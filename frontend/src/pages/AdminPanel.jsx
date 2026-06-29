@@ -163,7 +163,7 @@ function AdminPanel() {
     if (cachedSets) {
       try { setAvailableSets(JSON.parse(cachedSets)); } catch (e) {}
     }
-    fetch('https://api.pokemontcg.io/v2/sets?orderBy=-releaseDate')
+    fetch('/api/tcg/sets')
       .then(res => res.json())
       .then(data => {
         if (data.data) {
@@ -231,7 +231,7 @@ function AdminPanel() {
   const filteredCatalog = cards.filter(card => {
     const matchesQuery = catQuery === '' || card.name.toLowerCase().includes(catQuery.toLowerCase());
     const matchesSupertype = catSupertype === '' || card.supertype === catSupertype;
-    const matchesType = catType === '' || (card.types && card.types.includes(catType));
+    const matchesType = catType === '' || (card.types && card.types.includes(catType)) || (card.supertype === 'Energy' && card.name && card.name.includes(catType));
     const matchesSet = catSet === '' || card.set === availableSets.find(s => s.id === catSet)?.name;
     return matchesQuery && matchesSupertype && matchesType && matchesSet;
   });
@@ -347,7 +347,7 @@ function AdminPanel() {
           if (cardTotal) exactQuery += ` set.printedTotal:"${cardTotal}"`;
           
           try {
-            const exactResponse = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(exactQuery)}`, { signal });
+            const exactResponse = await fetch(`/api/tcg/cards?q=${encodeURIComponent(exactQuery)}`, { signal });
             const exactData = await exactResponse.json();
             if (exactData.data && exactData.data.length > 0) {
               // Escapar el nombre para coincidencia exacta
@@ -376,7 +376,7 @@ function AdminPanel() {
       if (searchSet) queryStr.push(`set.id:"${searchSet}"`);
       
       const finalQuery = queryStr.join(' ');
-      const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(finalQuery)}`, { signal });
+      const response = await fetch(`/api/tcg/cards?q=${encodeURIComponent(finalQuery)}`, { signal });
         const data = await response.json();
         setSearchResults(data.data || []);
         setHasSearchedAPI(true);

@@ -42,7 +42,7 @@ export default function Filters({
             onSupertypeChange('');
             onTypeChange('');
           }}
-          className={`flex-1 flex flex-col items-center justify-center py-3 px-1 border-r border-gray-200 transition-colors relative ${selectedSupertype === '' ? 'bg-blue-50' : 'hover:bg-gray-50 bg-white'}`}
+          className={`flex-1 flex flex-col items-center justify-center py-2.5 px-1 border-r border-gray-200 transition-colors relative ${selectedSupertype === '' ? 'bg-blue-50' : 'hover:bg-gray-50 bg-white'}`}
         >
           <span className={`font-label-sm text-[10px] sm:text-xs tracking-wider ${selectedSupertype === '' ? 'text-[#1e40af] font-bold' : 'text-gray-500'}`}>TODO</span>
           {showCounts && <span className={`font-headline-md text-headline-md ${selectedSupertype === '' ? 'text-[#1e40af]' : 'text-gray-700'}`}>
@@ -57,7 +57,7 @@ export default function Filters({
             onSupertypeChange(selectedSupertype === 'Pokémon' ? '' : 'Pokémon');
             onTypeChange(''); // Reset type when changing supertype
           }}
-          className={`flex-1 flex flex-col items-center justify-center py-3 px-1 border-r border-gray-200 transition-colors relative ${selectedSupertype === 'Pokémon' ? 'bg-blue-50' : 'hover:bg-gray-50 bg-white'}`}
+          className={`flex-1 flex flex-col items-center justify-center py-2.5 px-1 border-r border-gray-200 transition-colors relative ${selectedSupertype === 'Pokémon' ? 'bg-blue-50' : 'hover:bg-gray-50 bg-white'}`}
         >
           <span className={`font-label-sm text-[10px] sm:text-xs tracking-wider ${selectedSupertype === 'Pokémon' ? 'text-[#1e40af] font-bold' : 'text-gray-500'}`}>POKÉMON</span>
           {showCounts && <span className={`font-headline-md text-headline-md ${selectedSupertype === 'Pokémon' ? 'text-[#1e40af]' : 'text-gray-700'}`}>{counts.pokemon || 0}</span>}
@@ -70,7 +70,7 @@ export default function Filters({
             onSupertypeChange(selectedSupertype === 'Trainer' ? '' : 'Trainer');
             onTypeChange(''); 
           }}
-          className={`flex-1 flex flex-col items-center justify-center py-3 px-1 border-r border-gray-200 transition-colors relative ${selectedSupertype === 'Trainer' ? 'bg-blue-50' : 'hover:bg-gray-50 bg-white'}`}
+          className={`flex-1 flex flex-col items-center justify-center py-2.5 px-1 border-r border-gray-200 transition-colors relative ${selectedSupertype === 'Trainer' ? 'bg-blue-50' : 'hover:bg-gray-50 bg-white'}`}
         >
           <span className={`font-label-sm text-[10px] sm:text-xs tracking-wider ${selectedSupertype === 'Trainer' ? 'text-[#1e40af] font-bold' : 'text-gray-500'}`}>ENTRENADORES</span>
           {showCounts && <span className={`font-headline-md text-headline-md ${selectedSupertype === 'Trainer' ? 'text-[#1e40af]' : 'text-gray-700'}`}>{counts.trainers || 0}</span>}
@@ -83,7 +83,7 @@ export default function Filters({
             onSupertypeChange(selectedSupertype === 'Energy' ? '' : 'Energy');
             onTypeChange('');
           }}
-          className={`flex-1 flex flex-col items-center justify-center py-3 px-1 transition-colors relative ${selectedSupertype === 'Energy' ? 'bg-blue-50' : 'hover:bg-gray-50 bg-white'}`}
+          className={`flex-1 flex flex-col items-center justify-center py-2.5 px-1 transition-colors relative ${selectedSupertype === 'Energy' ? 'bg-blue-50' : 'hover:bg-gray-50 bg-white'}`}
         >
           <span className={`font-label-sm text-[10px] sm:text-xs tracking-wider ${selectedSupertype === 'Energy' ? 'text-[#1e40af] font-bold' : 'text-gray-500'}`}>ENERGÍA</span>
           {showCounts && <span className={`font-headline-md text-headline-md ${selectedSupertype === 'Energy' ? 'text-[#1e40af]' : 'text-gray-700'}`}>{counts.energy || 0}</span>}
@@ -101,30 +101,30 @@ export default function Filters({
       {/* Filter Chips (Type) - Only show if Pokemon or Energy is selected */}
       {(selectedSupertype === 'Pokémon' || selectedSupertype === 'Energy') && (
         <div className="border border-gray-300 rounded-xl bg-white overflow-hidden shadow-sm">
-          <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 bg-gray-50">
-            <span className="font-bold text-xs tracking-wider text-gray-700 uppercase">
+          <div className="flex justify-between items-center px-3 py-1.5 border-b border-gray-200 bg-gray-50">
+            <span className="font-bold text-[9px] sm:text-[10px] tracking-wider text-gray-700 uppercase">
               TIPO DE {selectedSupertype === 'Pokémon' ? 'POKÉMON' : 'ENERGÍA'}
             </span>
             
-            <label className="flex items-center gap-2 cursor-pointer hover:bg-gray-200 px-2 py-1 rounded transition-colors">
-              <span className="font-bold text-[10px] sm:text-xs tracking-wider text-gray-700">SELECCIONAR TODO</span>
+            <label className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-200 px-2 py-0.5 rounded transition-colors">
+              <span className="font-bold text-[9px] tracking-wider text-gray-700">SELECCIONAR TODO</span>
               <input 
                 type="checkbox" 
                 checked={selectedType === ''}
                 onChange={() => onTypeChange('')}
-                className="w-4 h-4 rounded text-[#1e40af] focus:ring-[#1e40af] bg-white border-gray-300" 
+                className="w-3 h-3 rounded text-[#1e40af] focus:ring-[#1e40af] bg-white border-gray-300" 
               />
             </label>
           </div>
           
-          <div className="flex flex-wrap gap-3 p-4 justify-center md:justify-start">
+          <div className="flex flex-wrap gap-1.5 px-2 py-2 justify-center md:justify-start">
             {Object.entries(TYPE_COLORS).map(([type, { color, label }]) => (
               <button 
                 key={type}
                 type="button"
                 onClick={() => onTypeChange(type)}
                 title={label}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform hover:scale-110 relative ${selectedType === type ? 'ring-2 ring-[#1e40af] ring-offset-2 ring-offset-white shadow-md' : 'opacity-80 hover:opacity-100 shadow-sm'}`}
+                className={`w-6 h-6 rounded-full flex items-center justify-center transition-transform hover:scale-110 relative ${selectedType === type ? 'ring-2 ring-[#1e40af] ring-offset-1 ring-offset-white shadow-md' : 'opacity-80 hover:opacity-100 shadow-sm'}`}
               >
                 <img 
                   src={`/types/${type}.png`} 

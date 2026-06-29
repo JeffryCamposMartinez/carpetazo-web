@@ -12,17 +12,15 @@ export default function Header() {
   const [userUsername, setUserUsername] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const getLinkClass = (path, isMobile = false) => {
+  const getLinkClass = (path) => {
     const isActive = location.pathname.startsWith(path);
     
     if (isActive) {
       // Active tab: light blue background, rounded top only, text dark blue, touches the bottom
       return `font-extrabold text-[#1a2b4b] bg-[#DBEAFE] rounded-t-xl px-6 py-3 transition-all duration-300`;
     }
-    // Inactive tab: white/gray text, transparent, smaller padding
-    return isMobile 
-      ? `text-gray-500 hover:text-[#1a2b4b] hover:bg-gray-100 rounded-t-xl px-4 py-2 transition-all duration-300 font-bold text-sm mb-1` 
-      : `text-white/70 hover:text-white hover:bg-white/10 rounded-t-xl px-5 py-2 transition-all duration-300 font-bold text-sm mb-1`;
+    // Inactive tab: light blue text, transparent, smaller padding
+    return `text-blue-200 hover:text-white hover:bg-white/10 rounded-t-xl px-5 py-2 transition-all duration-300 font-bold text-sm mb-1`;
   };
 
   useEffect(() => {
@@ -83,16 +81,11 @@ export default function Header() {
     <>
       {/* TopAppBar - Desktop */}
       <header className="w-full top-0 sticky z-40 bg-surface dark:bg-surface-dim hidden md:block">
-        <div className="flex items-center justify-between px-md pt-3 w-full max-w-container-max mx-auto">
-          <Link to="/?ref=logo" className="flex items-center cursor-pointer hover:opacity-80 transition-opacity pb-3">
-            <img src="/images/logos/logo_completo.png" alt="Carpetazo.cl" className="h-10 md:h-14 w-auto object-contain" />
-          </Link>
-          
-          <nav className="flex-1 flex justify-center items-end gap-2 px-4 self-end h-full">
-            <Link to="/explorar" className={getLinkClass('/explorar')}>Carpetas</Link>
-            <Link to="/cartas" className={getLinkClass('/cartas')}>Cartas</Link>
-            <Link to="/vendedores" className={getLinkClass('/vendedores')}>Vendedores</Link>
-          </nav>
+        <div className="flex flex-col w-full">
+          <div className="flex items-center justify-between px-md py-3 w-full max-w-container-max mx-auto">
+            <Link to="/?ref=logo" className="flex items-center cursor-pointer hover:opacity-80 transition-opacity">
+              <img src="/images/logos/logo_completo.png" alt="Carpetazo.cl" className="h-10 md:h-14 w-auto object-contain" />
+            </Link>
 
           {currentUser ? (
             <div className="relative profile-dropdown pb-3">
@@ -135,6 +128,13 @@ export default function Header() {
               </button>
             </div>
           )}
+          </div>
+          
+          <nav className="flex items-end justify-center w-full gap-2 overflow-x-auto px-4 pt-3 bg-[#1e40af] hide-scrollbar whitespace-nowrap shadow-inner border-t border-[#1a2b4b]/20">
+            <Link to="/explorar" className={getLinkClass('/explorar')}>Carpetas</Link>
+            <Link to="/cartas" className={getLinkClass('/cartas')}>Cartas</Link>
+            <Link to="/vendedores" className={getLinkClass('/vendedores')}>Vendedores</Link>
+          </nav>
         </div>
       </header>
 
@@ -184,10 +184,10 @@ export default function Header() {
           )}
           </div>
           
-          <nav className="flex items-end justify-center w-full gap-2 overflow-x-auto px-4 pt-3 bg-white hide-scrollbar whitespace-nowrap">
-            <Link to="/explorar" className={getLinkClass('/explorar', true)}>Carpetas</Link>
-            <Link to="/cartas" className={getLinkClass('/cartas', true)}>Cartas</Link>
-            <Link to="/vendedores" className={getLinkClass('/vendedores', true)}>Vendedores</Link>
+          <nav className="flex items-end justify-center w-full gap-2 overflow-x-auto px-4 pt-3 bg-[#1e40af] hide-scrollbar whitespace-nowrap shadow-inner border-t border-[#1a2b4b]/20">
+            <Link to="/explorar" className={getLinkClass('/explorar')}>Carpetas</Link>
+            <Link to="/cartas" className={getLinkClass('/cartas')}>Cartas</Link>
+            <Link to="/vendedores" className={getLinkClass('/vendedores')}>Vendedores</Link>
           </nav>
         </div>
       </header>

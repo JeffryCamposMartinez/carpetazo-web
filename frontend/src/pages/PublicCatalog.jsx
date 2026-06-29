@@ -208,7 +208,7 @@ function PublicCatalog() {
 
   const filteredCards = cards
     .filter(card => appliedFilters.supertype === '' || card.supertype === appliedFilters.supertype)
-    .filter(card => appliedFilters.type === '' || (card.types && card.types.includes(appliedFilters.type)))
+    .filter(card => appliedFilters.type === '' || (card.types && card.types.includes(appliedFilters.type)) || (card.supertype === 'Energy' && card.name && card.name.includes(appliedFilters.type)))
     .filter(card => appliedFilters.set === '' || card.set === appliedFilters.set)
     .filter(card => {
       if (!appliedFilters.query) return true;
@@ -329,23 +329,28 @@ function PublicCatalog() {
       </button>
         <div className="w-full overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x md:border-b border-gray-300 flex flex-col relative z-10 min-h-[calc(100vh-200px)] bg-[#DBEAFE]">
           <main className="flex-1 text-gray-900 px-4 sm:px-8 py-8 flex flex-col relative z-20">
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm mb-6">
-          <form onSubmit={handleSearch} className="flex flex-col gap-4">
-            <div className="flex flex-col md:flex-row gap-4 mb-2">
+            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm mb-6">
+          <form onSubmit={handleSearch} className="flex flex-col gap-2">
+            <div className="flex flex-col md:flex-row gap-2">
               <div className="flex-1 relative">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">search</span>
                 <input 
                   type="text" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Nombre de carta o número..."
-                  className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] transition-all"
+                  placeholder="Buscar nombre de carta o número..."
+                  className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] transition-all text-sm font-medium"
                 />
               </div>
+              <button type="submit" className="bg-[#1e40af] hover:bg-blue-800 text-white font-bold px-8 py-2.5 rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center gap-2 flex-shrink-0 w-full md:w-auto text-sm">
+                <span className="material-symbols-outlined text-[18px]">search</span> Buscar
+              </button>
             </div>
             
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
               <Filters 
+                title=""
+                subtitle=""
                 selectedSupertype={selectedSupertype}
                 onSupertypeChange={setSelectedSupertype}
                 selectedType={selectedType} 
@@ -355,22 +360,22 @@ function PublicCatalog() {
                 segmentedControlAddon={
                   <div className="relative w-full h-full">
                     <div 
-                      className="w-full h-full px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 text-gray-900 cursor-pointer flex justify-between items-center transition-all hover:border-[#1e40af] hover:bg-blue-50/30"
+                      className="w-full h-full px-4 py-2.5 rounded-xl border border-gray-300 bg-gray-50 text-gray-900 cursor-pointer flex justify-between items-center transition-all hover:border-[#1e40af] hover:bg-blue-50/30"
                       onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}
                     >
-                      <span className="truncate font-bold text-sm">{searchSet === '' ? 'Todas las ediciones' : searchSet}</span>
-                      <span className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
+                      <span className="truncate font-bold text-xs">{searchSet === '' ? 'Todas las ediciones' : searchSet}</span>
+                      <span className="material-symbols-outlined ml-2 text-gray-500 text-[20px]">expand_more</span>
                     </div>
                     {isSetDropdownOpen && (
                       <>
                         <div className="fixed inset-0 z-[100]" onClick={() => setIsSetDropdownOpen(false)}></div>
                         <div className="absolute z-[110] w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
-                          <div className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center gap-2 ${searchSet === '' ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(''); setIsSetDropdownOpen(false); }}>
+                          <div className={`px-4 py-2 cursor-pointer hover:bg-gray-50 flex items-center gap-2 text-sm ${searchSet === '' ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(''); setIsSetDropdownOpen(false); }}>
                             {searchSet === '' && <span className="material-symbols-outlined text-sm">check</span>}
                             <span className={searchSet !== '' ? 'ml-6' : ''}>Todas las ediciones</span>
                           </div>
                           {availableSets.map(setName => (
-                            <div key={setName} className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center gap-2 ${searchSet === setName ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(setName); setIsSetDropdownOpen(false); }}>
+                            <div key={setName} className={`px-4 py-2 cursor-pointer hover:bg-gray-50 flex items-center gap-2 text-sm ${searchSet === setName ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(setName); setIsSetDropdownOpen(false); }}>
                               {searchSet === setName && <span className="material-symbols-outlined text-sm">check</span>}
                               <span className={searchSet !== setName ? 'ml-6' : ''}>{setName}</span>
                             </div>
@@ -381,12 +386,6 @@ function PublicCatalog() {
                   </div>
                 }
               />
-            </div>
-
-            <div className="flex justify-center mt-2">
-              <button type="submit" className="bg-[#1e40af] hover:bg-blue-800 text-white font-bold px-12 py-3 rounded-full transition-all shadow-md hover:shadow-lg flex items-center gap-2">
-                <span className="material-symbols-outlined">search</span> Buscar
-              </button>
             </div>
           </form>
         </div>
