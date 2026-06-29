@@ -264,6 +264,61 @@ app.post('/api/reject-order', (req, res) => {
     res.json({ success: true, message: 'Order rejected successfully' });
 });
 
+// --- POKEMON TCG API PROXY CON CACHÉ ---
+const tcgCache = new Map();
+const CACHE_DURATION = 1000 * 60 * 60; // 1 hora en milisegundos
+
+app.get('/api/tcg/sets', async (req, res) => {
+    const cacheKey = 'sets';
+    
+    if (tcgCache.has(cacheKey)) {
+        const cached = tcgCache.get(cacheKey);
+        if (Date.now() - cached.timestamp < CACHE_DURATION) {
+            return res.json(cached.data);
+        }
+    }
+    
+    try {
+        const response = await fetch('https://api.pokemontcg.io/v2/sets?orderBy=-releaseDate');
+        if (!response.ok) throw new Error('Error fetching sets');
+        const data = await response.json();
+        
+        tcgCache.set(cacheKey, { timestamp: Date.now(), data });
+        res.json(data);
+    } catch (error) {
+        console.error('TCG API Sets Error:', error);
+        res.status(500).json({ error: 'Failed to fetch sets' });
+    }
+});
+
+app.get('/api/tcg/cards', async (req, res) => {
+    const query = req.query.q || '';
+    const cacheKey = `cards_${query}`;
+    
+    if (tcgCache.has(cacheKey)) {
+        const cached = tcgCache.get(cacheKey);
+        if (Date.now() - cached.timestamp < CACHE_DURATION) {
+            return res.json(cached.data);
+        }
+    }
+    
+    try {
+        const url = query 
+            ? `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(query)}` 
+            : 'https://api.pokemontcg.io/v2/cards';
+            
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Error fetching cards');
+        const data = await response.json();
+        
+        tcgCache.set(cacheKey, { timestamp: Date.now(), data });
+        res.json(data);
+    } catch (error) {
+        console.error('TCG API Cards Error:', error);
+        res.status(500).json({ error: 'Failed to fetch cards' });
+    }
+});
+
 app.listen(port, () => {
     console.log(`🚀 Servidor backend corriendo en http://localhost:${port}`);
 });
