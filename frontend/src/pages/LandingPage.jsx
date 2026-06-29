@@ -145,26 +145,6 @@ export default function LandingPage() {
           </Link>
         </div>
 
-        {/* Scroll Down Indicator */}
-        <div className="w-full flex justify-center pointer-events-none z-30 pt-2 pb-6">
-          <div 
-            className="flex flex-col items-center cursor-pointer pointer-events-auto group" 
-            onClick={() => {
-              const el = document.getElementById('features-section');
-              if (el) {
-                const y = el.getBoundingClientRect().top + window.scrollY - 60;
-                window.scrollTo({ top: y, behavior: 'smooth' });
-              }
-            }}
-          >
-            <span className="text-sm font-extrabold tracking-[0.2em] uppercase mb-3 text-surface group-hover:text-primary transition-colors drop-shadow-sm">
-              Descubre Más
-            </span>
-            <div className="w-14 h-14 md:w-16 md:h-16 rounded-full border-[3px] border-surface/20 bg-white shadow-xl flex items-center justify-center animate-bounce group-hover:shadow-2xl group-hover:border-primary group-hover:-translate-y-1 transition-all duration-300">
-              <span className="material-symbols-outlined text-4xl text-surface group-hover:text-primary drop-shadow-sm transition-colors">keyboard_arrow_down</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Ultra-Smooth Alpha Transition Space */}

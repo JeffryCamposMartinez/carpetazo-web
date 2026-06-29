@@ -1,0 +1,80 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ==========================================
+    // FUNCIONES DE AYUDA (HELPER FUNCTIONS)
+    // ==========================================
+    function isAuth() {
+      return request.auth != null;
+    }
+    
+    // ==========================================
+    // REGLAS PARA USUARIOS
+    // ==========================================
+    match /users/{userId} {
+      // Permitir lectura pública para poder ver el perfil de los vendedores
+      allow read: if true;
+      // Solo el dueño puede modificar su perfil
+      allow write: if isAuth() && request.auth.uid == userId;
+    }
+
+    // ==========================================
+    // REGLAS PARA CARPETAS (CATÁLOGOS)
+    // ==========================================
+    match /folders/{folderId} {
+      // Leer: Cualquiera si la carpeta es pública. Si no, solo el dueño.
+      allow read: if (resource.data.isPublic == true) || (isAuth() && resource.data.userId == request.auth.uid);
+      
+      // Crear: Solo usuarios logueados, y el userId debe ser el de ellos mismos.
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      
+      // Modificar/Borrar: Solo el dueño de la carpeta.
+      // ADEMÁS: Permitir a cualquier visitante incrementar los contadores de visitas.
+      allow update: if (isAuth() && resource.data.userId == request.auth.uid) || 
+                       (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['weeklyVisits', 'totalVisits', 'lastVisitWeek']));
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
+      
+      
+      // ----------------------------------------
+      // SUB-COLECCIÓN: CARTAS (cards)
+      // ----------------------------------------
+      match /cards/{cardId} {
+        // Leer: Igual que la carpeta padre. Si es pública, todos leen.
+        allow read: if get(/databases/$(database)/documents/folders/$(folderId)).data.isPublic == true ||
+                       (isAuth() && get(/databases/$(database)/documents/folders/$(folderId)).data.userId == request.auth.uid);
+        
+        // Escribir: Solo el dueño de la carpeta puede añadir/editar/borrar cartas.
+        allow write: if isAuth() && get(/databases/$(database)/documents/folders/$(folderId)).data.userId == request.auth.uid;
+      }
+    }
+
+    // ==========================================
+    // ÓRDENES Y PEDIDOS (Colección Raíz)
+    // ==========================================
+    match /orders/{orderId} {
+      // El vendedor puede leer, actualizar o borrar órdenes que le pertenecen
+      allow read, update, delete: if isAuth() && resource.data.sellerId == request.auth.uid;
+      
+      // Cualquier persona puede crear un pedido
+      allow create: if true;
+    }
+
+    // ==========================================
+    // HISTORIAL DE VENTAS (Colección Raíz)
+    // ==========================================
+    match /history/{historyId} {
+      // Solo el vendedor puede acceder a su historial de ventas
+      allow read, write: if isAuth() && resource.data.sellerId == request.auth.uid;
+    }
+    
+    // ==========================================
+    // CIERRE DE SEGURIDAD GLOBAL
+    // ==========================================
+    // Si alguien intenta acceder a una ruta que no especificamos arriba, DENEGAR por defecto.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

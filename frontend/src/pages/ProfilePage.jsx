@@ -89,13 +89,15 @@ const ProfilePage = () => {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState('general');
   const [profileData, setProfileData] = useState({
-    fullName: '', displayName: '', bio: '', phone: '', rut: '', 
+    fullName: '', displayName: '', username: '', bio: '', phone: '', rut: '', 
     facebookUrl: '', instagramUrl: '', youtubeUrl: '', 
     addresses: [], bankDetails: {}
   });
   const [savingProfile, setSavingProfile] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [rutError, setRutError] = useState('');
+  const [usernameAvailable, setUsernameAvailable] = useState(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
   
   // Modal states
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
@@ -161,6 +163,49 @@ const ProfilePage = () => {
     };
   }, [tabsContainerRef.current]);
 
+  useEffect(() => {
+    const checkUsername = async () => {
+      if (!profileData.username) {
+        setUsernameAvailable(null);
+        return;
+      }
+      
+      const cleanUsername = profileData.username.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+      
+      // Prevent searching if it's the same as what the user currently has in DB
+      if (currentUser && currentUser.uid) {
+         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+         if (userDoc.exists() && (userDoc.data().username === cleanUsername || userDoc.data().displayName === profileData.displayName)) {
+            setUsernameAvailable(true);
+            setCheckingUsername(false);
+            return;
+         }
+      }
+
+      const qUsername = query(collection(db, 'users'), where('username', '==', cleanUsername));
+      const usernameSnap = await getDocs(qUsername);
+      const existingUsernameDoc = usernameSnap.docs.find(doc => doc.id !== currentUser.uid);
+
+      const qDisplayName = query(collection(db, 'users'), where('displayName', '==', profileData.displayName));
+      const displayNameSnap = await getDocs(qDisplayName);
+      const existingDisplayNameDoc = displayNameSnap.docs.find(doc => doc.id !== currentUser.uid);
+      
+      if (existingUsernameDoc || existingDisplayNameDoc) {
+        setUsernameAvailable(false);
+      } else {
+        setUsernameAvailable(true);
+      }
+      setCheckingUsername(false);
+    };
+
+    setCheckingUsername(true);
+    const timeoutId = setTimeout(() => {
+      checkUsername();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [profileData.username, currentUser]);
+
   const handleInputChange = (field, value) => {
     setProfileData(prev => ({ ...prev, [field]: value }));
   };
@@ -180,8 +225,39 @@ const ProfilePage = () => {
     if (rutError) return;
     setSavingProfile(true);
     try {
+      if (profileData.username) {
+        // Enforce lowercase and remove invalid characters just in case
+        const cleanUsername = profileData.username.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+        
+        // Validate uniqueness for both username and displayName
+        const qUsername = query(collection(db, 'users'), where('username', '==', cleanUsername));
+        const usernameSnap = await getDocs(qUsername);
+        const existingUsernameDoc = usernameSnap.docs.find(doc => doc.id !== currentUser.uid);
+
+        const qDisplayName = query(collection(db, 'users'), where('displayName', '==', profileData.displayName));
+        const displayNameSnap = await getDocs(qDisplayName);
+        const existingDisplayNameDoc = displayNameSnap.docs.find(doc => doc.id !== currentUser.uid);
+        
+        if (existingUsernameDoc || existingDisplayNameDoc) {
+          alert("Ese nombre de usuario ya está en uso. Por favor, elige otro.");
+          setSavingProfile(false);
+          return;
+        }
+        
+        profileData.username = cleanUsername; // Ensure cleaned version is saved
+      }
+
       const docRef = doc(db, 'users', currentUser.uid);
       await setDoc(docRef, profileData, { merge: true });
+
+      // Update Firebase Auth profile
+      if (currentUser) {
+        const { updateProfile } = await import('firebase/auth');
+        await updateProfile(currentUser, {
+          displayName: profileData.displayName
+        });
+      }
+
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
@@ -492,7 +568,7 @@ const ProfilePage = () => {
                     {activeTab === 'general' && (
                       <form onSubmit={handleSaveProfile} className="flex flex-col h-full justify-between">
                         <div className="flex flex-col gap-8 max-w-3xl">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                             <div className="flex flex-col gap-3">
                               <label className="text-sm font-black text-slate-700 uppercase tracking-wide">Nombre completo</label>
                               <input 
@@ -503,17 +579,80 @@ const ProfilePage = () => {
                                 placeholder="Ej. Juan Pérez"
                               />
                             </div>
-                            <div className="flex flex-col gap-3">
-                              <label className="text-sm font-black text-slate-700 uppercase tracking-wide">Nombre de usuario</label>
-                              <div className="relative flex items-center">
-                                <span className="absolute left-5 text-slate-400 font-bold">@</span>
-                                <input 
-                                  type="text" 
-                                  value={profileData.displayName || ''}
-                                  onChange={(e) => handleInputChange('displayName', e.target.value)}
-                                  className="w-full pl-10 pr-5 py-3.5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-[#2563eb] transition-all font-bold text-slate-800 placeholder:text-slate-400 placeholder:font-medium"
-                                  placeholder="mi-usuario"
-                                />
+                            
+                            <div className="flex flex-col gap-6">
+                              <div className="flex flex-col gap-3">
+                                <label className="text-sm font-black text-slate-700 uppercase tracking-wide">Nombre de Usuario</label>
+                                <div className="relative flex items-center">
+                                  <span className="absolute left-5 text-slate-400 font-bold material-symbols-outlined text-[20px]">person</span>
+                                  <input 
+                                    type="text" 
+                                    value={profileData.displayName || ''}
+                                    onChange={(e) => {
+                                      // Forbid spaces but allow uppercase
+                                      const val = e.target.value.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+                                      handleInputChange('displayName', val);
+                                      handleInputChange('username', val.toLowerCase());
+                                    }}
+                                    className={`w-full pl-12 pr-12 py-3.5 rounded-2xl border-2 transition-all font-bold text-slate-800 placeholder:text-slate-400 placeholder:font-medium ${
+                                      profileData.username 
+                                        ? (usernameAvailable === false ? 'border-red-400 bg-red-50/50 focus:border-red-500 focus:outline-none' : usernameAvailable === true ? 'border-green-400 bg-green-50/50 focus:border-green-500 focus:outline-none' : 'border-slate-100 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-[#2563eb]')
+                                        : 'border-slate-100 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-[#2563eb]'
+                                    }`}
+                                    placeholder="mi_usuario_unico"
+                                  />
+                                  {profileData.username && (
+                                    <div className="absolute right-4 flex items-center">
+                                      {checkingUsername ? (
+                                        <span className="material-symbols-outlined animate-spin text-slate-400 text-[20px]">sync</span>
+                                      ) : usernameAvailable === true ? (
+                                        <span className="material-symbols-outlined text-green-500 text-[20px] font-bold">check_circle</span>
+                                      ) : usernameAvailable === false ? (
+                                        <span className="material-symbols-outlined text-red-500 text-[20px] font-bold">cancel</span>
+                                      ) : null}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col gap-3">
+                                <label className="text-sm font-black text-slate-700 uppercase tracking-wide">Enlace de perfil</label>
+                                <div className="relative flex items-center">
+                                  <span className="absolute left-5 text-slate-400 font-bold">@</span>
+                                  <input 
+                                    type="text" 
+                                    value={profileData.username || ''}
+                                    readOnly
+                                    disabled
+                                    className={`w-full pl-10 pr-12 py-3.5 rounded-2xl border-2 transition-all font-bold text-slate-500 placeholder:text-slate-400 placeholder:font-medium cursor-not-allowed ${
+                                      profileData.username 
+                                        ? (usernameAvailable === false ? 'border-red-400 bg-red-50/50' : usernameAvailable === true ? 'border-green-400 bg-green-50/50' : 'border-slate-100 bg-slate-100/80')
+                                        : 'border-slate-100 bg-slate-100/80'
+                                    }`}
+                                    placeholder="mi_usuario"
+                                  />
+                                  {profileData.username && (
+                                    <div className="absolute right-4 flex items-center">
+                                      {checkingUsername ? (
+                                        <span className="material-symbols-outlined animate-spin text-slate-400 text-[20px]">sync</span>
+                                      ) : usernameAvailable === true ? (
+                                        <span className="material-symbols-outlined text-green-500 text-[20px] font-bold">check_circle</span>
+                                      ) : usernameAvailable === false ? (
+                                        <span className="material-symbols-outlined text-red-500 text-[20px] font-bold">cancel</span>
+                                      ) : null}
+                                    </div>
+                                  )}
+                                </div>
+                                {usernameAvailable === false && !checkingUsername && (
+                                  <span className="text-red-500 text-xs font-bold ml-2 flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[14px]">error</span> Este usuario ya está en uso.
+                                  </span>
+                                )}
+                                {usernameAvailable === true && !checkingUsername && profileData.username && (
+                                  <span className="text-green-500 text-xs font-bold ml-2 flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[14px]">check_circle</span> Usuario disponible.
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -587,13 +726,12 @@ const ProfilePage = () => {
                             <div className="flex flex-col gap-3">
                               <label className="text-sm font-black text-slate-700 uppercase tracking-wide">Teléfono de contacto</label>
                               <div className="relative flex items-center">
-                                <span className="absolute left-5 text-slate-400 font-bold">+56 9</span>
                                 <input 
                                   type="text" 
                                   value={profileData.phone || ''}
                                   onChange={(e) => handleInputChange('phone', e.target.value)}
-                                  className="w-full pl-16 pr-5 py-3.5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-[#2563eb] transition-all font-bold text-slate-800 placeholder:text-slate-400"
-                                  placeholder="1234 5678"
+                                  className="w-full px-5 py-3.5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-[#2563eb] transition-all font-bold text-slate-800 placeholder:text-slate-400"
+                                  placeholder="+56 9 1234 5678"
                                 />
                               </div>
                             </div>
@@ -930,7 +1068,7 @@ const ProfilePage = () => {
                       type="text" 
                       value={addressFormData.street}
                       onChange={(e) => handleAddressInputChange('street', e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500" 
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 bg-white text-gray-900" 
                       placeholder="Ej: Av. Providencia" 
                     />
                   </div>
@@ -940,7 +1078,7 @@ const ProfilePage = () => {
                       type="text" 
                       value={addressFormData.number}
                       onChange={(e) => handleAddressInputChange('number', e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500" 
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 bg-white text-gray-900" 
                       placeholder="1234" 
                     />
                   </div>
@@ -950,7 +1088,7 @@ const ProfilePage = () => {
                       type="text" 
                       value={addressFormData.floor}
                       onChange={(e) => handleAddressInputChange('floor', e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500" 
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 bg-white text-gray-900" 
                       placeholder="5" 
                     />
                   </div>
@@ -963,7 +1101,7 @@ const ProfilePage = () => {
                       type="text" 
                       value={addressFormData.depto}
                       onChange={(e) => handleAddressInputChange('depto', e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500" 
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 bg-white text-gray-900" 
                       placeholder="501" 
                     />
                   </div>
@@ -972,12 +1110,13 @@ const ProfilePage = () => {
               </div>
 
               <div className="flex flex-col gap-2 border-t border-gray-100 pt-6">
-                <label className="text-sm font-bold text-[#1a2b4b]">Nombre de la dirección (Opcional)</label>
+                <label className="text-sm font-bold text-[#1a2b4b]">Nombre de la dirección *</label>
                 <input 
+                  required
                   type="text" 
                   value={addressFormData.name}
                   onChange={(e) => handleAddressInputChange('name', e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 bg-white text-gray-900"
                   placeholder="Ej: Nombre de tu tienda, Casa, Trabajo..."
                 />
                 <p className="text-xs text-gray-500">Útil si tienes una tienda física o quieres darle un alias a esta dirección.</p>
@@ -988,7 +1127,7 @@ const ProfilePage = () => {
                 <textarea 
                   value={addressFormData.reference}
                   onChange={(e) => handleAddressInputChange('reference', e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 resize-none h-24"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 bg-white text-gray-900 resize-none h-24"
                   placeholder="Frente al metro, edificio azul, portón negro, etc."
                 />
                 <p className="text-xs text-gray-500">Puntos de referencia, descripción de la fachada, indicaciones especiales, etc.</p>

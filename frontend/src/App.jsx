@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import ExplorePage from './pages/ExplorePage';
 import FolderPokemon from './pages/FolderPokemon';
 import PublicCatalog from './pages/PublicCatalog';
+import SellerProfile from './pages/SellerProfile';
 import AdminPanel from './pages/AdminPanel';
 import ProfilePage from './pages/ProfilePage';
 import ScrollToTop from './components/ScrollToTop';
@@ -28,6 +29,8 @@ function App() {
               <Route path="/carpeta/:id" element={<FolderPokemon />} />
               <Route path="/c/:folderId" element={<PublicCatalog />} />
               <Route path="/admin" element={<AdminPanel />} />
+              {/* Dynamic Username Route (Must be last to not override other paths) */}
+              <Route path="/:sellerUsername" element={<SellerProfile />} />
             </Routes>
           </div>
           

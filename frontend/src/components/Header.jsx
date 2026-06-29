@@ -9,6 +9,7 @@ export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const [userAvatar, setUserAvatar] = useState(null);
+  const [userUsername, setUserUsername] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const getLinkClass = (path, isMobile = false) => {
@@ -39,8 +40,15 @@ export default function Header() {
     if (currentUser) {
       setUserAvatar(currentUser.photoURL);
       unsubscribe = onSnapshot(doc(db, 'users', currentUser.uid), (userSnap) => {
-        if (userSnap.exists() && userSnap.data().avatarBase64) {
-          setUserAvatar(userSnap.data().avatarBase64);
+        if (userSnap.exists()) {
+          if (userSnap.data().avatarBase64) {
+            setUserAvatar(userSnap.data().avatarBase64);
+          } else {
+            setUserAvatar(currentUser.photoURL);
+          }
+          if (userSnap.data().username) {
+            setUserUsername(userSnap.data().username);
+          }
         } else {
           setUserAvatar(currentUser.photoURL);
         }
@@ -106,6 +114,9 @@ export default function Header() {
                   <Link to="/perfil" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 font-semibold flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">person</span> Mi perfil
                   </Link>
+                  <Link to={`/${userUsername || currentUser.uid}`} onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 font-semibold flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">storefront</span> Ver perfil público
+                  </Link>
                   <div className="h-px bg-gray-100 my-1 mx-2"></div>
                   <button onClick={() => { setIsDropdownOpen(false); handleLogout(); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-bold flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">logout</span> Salir
@@ -153,6 +164,9 @@ export default function Header() {
                   </Link>
                   <Link to="/perfil" onClick={() => setIsDropdownOpen(false)} className="px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 font-semibold flex items-center gap-3 border-b border-gray-50">
                     <span className="material-symbols-outlined text-[20px]">person</span> Mi perfil
+                  </Link>
+                  <Link to={`/${userUsername || currentUser.uid}`} onClick={() => setIsDropdownOpen(false)} className="px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 font-semibold flex items-center gap-3 border-b border-gray-50">
+                    <span className="material-symbols-outlined text-[20px]">storefront</span> Ver perfil público
                   </Link>
                   <button onClick={() => { setIsDropdownOpen(false); handleLogout(); }} className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 font-bold flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">logout</span> Salir

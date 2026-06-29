@@ -109,7 +109,7 @@ export default {
       },
       "animation": {
         "fadeIn": "fadeIn 0.5s ease-out forwards",
-        "marquee": "marquee 40s linear infinite",
+        "marquee": "marquee 120s linear infinite",
         "float": "float 6s ease-in-out infinite"
       }
     },
