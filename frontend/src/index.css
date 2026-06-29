@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none !important;
+  }
+  html::-webkit-scrollbar {
+    display: none;
+  }
+
+  body {
+    background-color: #1a2b4b;
+    color: theme('colors.on-background');
+    min-height: max(884px, 100dvh);
+    position: relative;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: url('https://images5.alphacoders.com/389/389247.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    z-index: -2;
+  }
+
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-color: rgba(17, 39, 74, 0.45); /* Lighter oceanic overlay */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: -1;
+  }
+
+  body.hide-global-bg::before,
+  body.hide-global-bg::after {
+    display: none !important;
+  }
+
+  @media (max-width: 1024px) {
+    body::before,
+    body::after {
+      display: none !important;
+    }
+  }
+
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+  
+  .material-symbols-outlined[data-weight="fill"] {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+
+  /* Ocultar flechas en inputs de número */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+}
+
+  /* Scrollbars Globales y Sutiles */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(40, 88, 150, 0.4);
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 203, 5, 0.8);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(40, 88, 150, 0.4) transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+@layer utilities {
+  .nav-effect-desktop {
+    @apply text-white/80 bg-transparent px-5 py-2 rounded-xl transition-all duration-300 font-bold text-sm;
+  }
+  .nav-effect-desktop:hover {
+    @apply bg-white text-[#1a2b4b] shadow-sm -translate-y-0.5;
+  }
+  
+  .nav-effect-mobile {
+    @apply text-gray-700 bg-transparent px-4 py-2 rounded-xl border border-transparent transition-all duration-300 font-bold text-xs;
+  }
+  .nav-effect-mobile:hover {
+    @apply bg-white text-[#1a2b4b] border-gray-200 shadow-sm;
+  }
+}
+
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}

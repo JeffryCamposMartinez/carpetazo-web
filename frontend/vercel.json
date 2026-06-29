@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/__/auth/(.*)",
+      "destination": "https://carpetazo-db9d7.firebaseapp.com/__/auth/$1"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://cheerful-patience-production-0bbd.up.railway.app/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
