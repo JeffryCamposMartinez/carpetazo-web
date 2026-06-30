@@ -207,7 +207,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <div className="w-full max-w-[1500px] mx-auto xl:px-12 2xl:px-16 animate-[fadeIn_0.5s_ease-out]">
+      <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16 animate-[fadeIn_0.5s_ease-out]">
       <div className="w-full rounded-none overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x border-gray-300 flex flex-col relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
         <div className="flex-1 text-gray-900 px-4 sm:px-8 py-12 flex flex-col relative z-20">
           <div className="flex flex-col mb-8 border-b border-gray-200">

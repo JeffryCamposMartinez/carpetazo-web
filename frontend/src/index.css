@@ -22,7 +22,7 @@
   body {
     background-color: #1a2b4b;
     color: theme('colors.on-background');
-    min-height: max(884px, 100dvh);
+    min-height: 100dvh;
     position: relative;
   }
 

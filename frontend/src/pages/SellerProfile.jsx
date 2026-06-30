@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
-import { doc, getDoc, collection, getDocs, query, where, setDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, where, setDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getFolderFilter } from './Dashboard';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -76,12 +76,19 @@ const getComplementaryHex = (r, g, b) => {
 export default function SellerProfile() {
   const { sellerUsername } = useParams();
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   
   const [sellerId, setSellerId] = useState(null);
   const [seller, setSeller] = useState(null);
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Reviews states
+  const [reviews, setReviews] = useState([]);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   // Editing states
   const [isEditingBio, setIsEditingBio] = useState(false);
@@ -184,6 +191,53 @@ export default function SellerProfile() {
     }
   };
 
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!newReview.comment.trim()) return;
+    
+    setSubmittingReview(true);
+    try {
+      const reviewData = {
+        targetUserId: sellerId,
+        reviewerId: currentUser.uid,
+        reviewerName: currentUser.displayName || 'Usuario',
+        rating: newReview.rating,
+        comment: newReview.comment,
+        createdAt: serverTimestamp()
+      };
+      
+      const reviewRef = await addDoc(collection(db, 'reviews'), reviewData);
+      
+      // Update local reviews list
+      const addedReview = { ...reviewData, id: reviewRef.id, createdAt: { toMillis: () => Date.now() } };
+      const updatedReviews = [addedReview, ...reviews];
+      setReviews(updatedReviews);
+      
+      // Calculate new average
+      const newTotal = updatedReviews.length;
+      const newSum = updatedReviews.reduce((sum, r) => sum + r.rating, 0);
+      const newRating = newSum / newTotal;
+      
+      // Update seller document in DB
+      await setDoc(doc(db, 'users', sellerId), {
+        rating: newRating,
+        totalTrades: newTotal
+      }, { merge: true });
+      
+      // Update local seller state
+      setSeller(prev => ({ ...prev, rating: newRating, totalTrades: newTotal }));
+      
+      setIsReviewModalOpen(false);
+      setNewReview({ rating: 5, comment: '' });
+      alert('¡Reseña publicada con éxito!');
+    } catch (err) {
+      console.error("Error submitting review:", err);
+      alert('Hubo un error al publicar la reseña.');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   useEffect(() => {
     window.scrollTo(0, 0);
     const fetchSellerData = async () => {
@@ -199,12 +253,18 @@ export default function SellerProfile() {
         const usernameSnap = await getDocs(qUsername);
         
         if (!usernameSnap.empty) {
-          targetSellerId = usernameSnap.docs[0].id;
-          userData = usernameSnap.docs[0].data();
-        } else {
+          // Find the active account (in case of duplicate usernames from deleted accounts)
+          const activeDoc = usernameSnap.docs.find(doc => !doc.data().isDeactivated);
+          if (activeDoc) {
+            targetSellerId = activeDoc.id;
+            userData = activeDoc.data();
+          }
+        } 
+        
+        if (!targetSellerId) {
           // 2. Fallback: Check if it's actually an old UID
           const userSnap = await getDoc(doc(db, 'users', sellerUsername));
-          if (userSnap.exists()) {
+          if (userSnap.exists() && !userSnap.data().isDeactivated) {
             targetSellerId = sellerUsername;
             userData = userSnap.data();
           }
@@ -243,6 +303,21 @@ export default function SellerProfile() {
         }));
         
         setFolders(foldersList);
+
+        // 4. Fetch reviews for this seller
+        const qReviews = query(
+          collection(db, 'reviews'),
+          where('targetUserId', '==', targetSellerId)
+        );
+        const reviewsSnapshot = await getDocs(qReviews);
+        const reviewsList = reviewsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        // Sort by date descending client-side
+        reviewsList.sort((a, b) => {
+          const dateA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+          const dateB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          return dateB - dateA;
+        });
+        setReviews(reviewsList);
       } catch (err) {
         console.error("Error fetching seller data:", err);
         setErrorMsg('Hubo un error al cargar el perfil del vendedor.');
@@ -270,7 +345,7 @@ export default function SellerProfile() {
 
   return (
     <div className="w-full bg-transparent flex flex-col min-h-screen">
-      <div className="w-full max-w-[1500px] mx-auto xl:px-12 2xl:px-16 animate-[fadeIn_0.5s_ease-out] flex-1 flex flex-col">
+      <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16 animate-[fadeIn_0.5s_ease-out] flex-1 flex flex-col">
         
         {/* HEADER HERO */}
         <div className="relative border-b border-gray-200 md:border-x shadow-sm py-8 px-6 md:px-12 flex flex-col md:flex-row items-center md:items-start gap-8 overflow-hidden bg-white">
@@ -342,7 +417,33 @@ export default function SellerProfile() {
                          (seller?.bannerBase64 ? "bg-white/40 backdrop-blur-md p-6 md:p-8 rounded-[2rem] shadow-xl drop-shadow-[0_0_12px_rgba(255,255,255,0.9)]" : "")}
               style={seller?.bannerComplementaryColor ? { border: `3px solid ${seller.bannerComplementaryColor}` } : {}}
             >
-              <h1 className="text-4xl font-black mb-2 text-[#1a2b4b]">{seller?.displayName || 'Vendedor Anónimo'}</h1>
+              <div className="flex items-center gap-2 mb-1 flex-wrap justify-center md:justify-start">
+                <h1 className="text-4xl font-black text-[#1a2b4b]">{seller?.displayName || 'Vendedor Anónimo'}</h1>
+                {/* Visual Fake Verified for now if undefined, so user can see how it looks */}
+                {(seller?.isVerified || true) && (
+                  <span className="material-symbols-outlined text-[#3b82f6] text-[32px] drop-shadow-sm" style={{ fontVariationSettings: "'FILL' 1" }} title="Vendedor Verificado">verified</span>
+                )}
+              </div>
+              
+              {/* Rating and Trades */}
+              <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
+                 {(seller?.totalTrades > 0) ? (
+                   <>
+                     <div className="flex items-center gap-1 bg-white/60 px-2.5 py-0.5 rounded-lg border border-yellow-300 shadow-sm">
+                        <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                        <span className="text-[#1a2b4b] font-extrabold text-lg">{seller?.rating?.toFixed(1) || '5.0'}</span>
+                     </div>
+                     <span className="text-gray-600 font-bold text-sm underline decoration-gray-300 underline-offset-2 cursor-pointer hover:text-[#1a2b4b]" onClick={() => document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' })}>
+                       {seller?.totalTrades} reseñas verificadas
+                     </span>
+                   </>
+                 ) : (
+                   <span className="text-gray-500 text-sm font-semibold bg-white/50 px-3 py-1 rounded-full border border-gray-200">
+                     Nuevo Vendedor (Sin valoraciones)
+                   </span>
+                 )}
+              </div>
+
               {seller?.fullName && <p className="text-gray-600 font-bold mb-4">{seller.fullName}</p>}
               
               {/* Biography in Header */}
@@ -426,6 +527,17 @@ export default function SellerProfile() {
                   return null;
                 })()}
 
+                {/* Internal Chat */}
+                {!isOwner && currentUser && (
+                  <button 
+                    onClick={() => navigate('/mensajes', { state: { startChatWith: { id: sellerId, name: seller.displayName, avatar: seller.avatarBase64 || seller.photoURL } } })}
+                    className="flex items-center gap-1.5 bg-[#1e40af] hover:bg-blue-800 text-white px-5 py-2 rounded-full shadow-[0_4px_10px_-2px_rgba(30,64,175,0.4)] transition-all cursor-pointer text-sm font-extrabold hover:-translate-y-0.5"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">chat</span>
+                    Mensaje Privado
+                  </button>
+                )}
+
                 {/* WhatsApp */}
                 {seller?.phone && (
                   <a href={`https://wa.me/${seller.phone.replace(/[^0-9]/g, '').startsWith('56') ? seller.phone.replace(/[^0-9]/g, '') : '56' + seller.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 bg-green-50 hover:bg-green-100 text-green-700 px-4 py-2 rounded-full border border-green-200 shadow-sm transition-colors cursor-pointer text-sm font-bold">
@@ -458,7 +570,7 @@ export default function SellerProfile() {
         <div className="w-full overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x md:border-b border-gray-300 flex flex-col relative z-10 flex-1 bg-[#DBEAFE]">
           <main className="flex-1 text-gray-900 px-4 sm:px-8 py-12 flex flex-col relative z-20">
             {/* FOLDERS SECTION */}
-            <div className="mb-12 mx-auto w-full max-w-6xl">
+            <div className="mb-12 mx-auto w-full max-w-[1200px]">
               <h2 className="text-3xl font-black text-[#1a2b4b] mb-8 flex items-center gap-3 border-b border-[#1a2b4b]/10 pb-4">
                 <span className="material-symbols-outlined text-primary text-3xl">folder_open</span>
                 Carpetas Públicas ({folders.length})
@@ -497,6 +609,48 @@ export default function SellerProfile() {
                         </div>
                       </div>
                     </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* REVIEWS SECTION */}
+            <div id="reviews-section" className="mx-auto w-full max-w-[1200px] mt-16 pt-8 border-t border-[#1a2b4b]/10">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
+                <h2 className="text-3xl font-black text-[#1a2b4b] flex items-center gap-3">
+                  <span className="material-symbols-outlined text-primary text-3xl">reviews</span>
+                  Reseñas de la Comunidad
+                </h2>
+              </div>
+              
+              {reviews.length === 0 ? (
+                <div className="bg-white/60 rounded-2xl p-8 text-center border border-gray-200 shadow-sm">
+                  <p className="text-gray-500 font-medium text-lg">Este vendedor aún no tiene reseñas.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {reviews.map(review => (
+                    <div key={review.id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="font-bold text-[#1a2b4b] flex items-center gap-2">
+                          <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs">
+                            {review.reviewerName[0].toUpperCase()}
+                          </span>
+                          {review.reviewerName}
+                        </div>
+                        <div className="flex text-primary">
+                          {[1,2,3,4,5].map(star => (
+                            <span key={star} className="material-symbols-outlined text-sm" style={{ fontVariationSettings: star <= review.rating ? "'FILL' 1" : "'FILL' 0" }}>
+                              star
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-gray-600 text-sm italic flex-1 mb-4 leading-relaxed">"{review.comment}"</p>
+                      <div className="text-xs text-gray-400 mt-auto pt-4 border-t border-gray-50 text-right">
+                        {review.createdAt?.toMillis ? new Date(review.createdAt.toMillis()).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Reciente'}
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}

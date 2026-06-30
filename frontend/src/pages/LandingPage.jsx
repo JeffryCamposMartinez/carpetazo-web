@@ -11,7 +11,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     if (currentUser && !isFromLogo) {
-      navigate('/explorar');
+      navigate('/');
     }
   }, [currentUser, navigate, isFromLogo]);
 
@@ -67,7 +67,7 @@ export default function LandingPage() {
 
   return (
     <>
-      <div className="w-full max-w-[1500px] mx-auto xl:px-12 2xl:px-16">
+      <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
         <div className="w-full rounded-none overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x border-outline-variant/30 flex flex-col relative z-10 min-h-screen">
           
           {/* Top Section: White Presentation & Carousel */}
@@ -139,7 +139,7 @@ export default function LandingPage() {
 
         {/* CTA Button */}
         <div className="z-20 flex flex-col sm:flex-row items-center justify-center gap-4 w-full px-4 my-auto">
-          <Link to="/explorar" className="w-full sm:w-auto px-6 py-3 md:px-8 md:py-4 bg-primary text-on-primary font-bold rounded-xl shadow-[0_0_20px_rgba(255,203,5,0.4)] hover:shadow-[0_0_30px_rgba(255,203,5,0.6)] transition-all hover:-translate-y-1 text-base md:text-lg flex items-center justify-center gap-3">
+          <Link to="/" className="w-full sm:w-auto px-6 py-3 md:px-8 md:py-4 bg-primary text-on-primary font-bold rounded-xl shadow-[0_0_20px_rgba(255,203,5,0.4)] hover:shadow-[0_0_30px_rgba(255,203,5,0.6)] transition-all hover:-translate-y-1 text-base md:text-lg flex items-center justify-center gap-3">
             <span className="material-symbols-outlined text-2xl">travel_explore</span>
             Explorar carpetas de la comunidad
           </Link>
@@ -157,7 +157,7 @@ export default function LandingPage() {
         <div className="absolute top-[10%] left-[-10%] w-[50%] h-[50%] bg-primary/10 blur-[120px] rounded-full pointer-events-none animate-float" style={{ animationDuration: '10s' }}></div>
         <div className="absolute bottom-[10%] right-[-10%] w-[50%] h-[50%] bg-tertiary/10 blur-[120px] rounded-full pointer-events-none animate-float" style={{ animationDuration: '12s', animationDelay: '2s' }}></div>
         
-        <div className="z-10 text-center w-full max-w-4xl mx-auto flex-shrink-0 mb-8 md:mb-12 animate-[fadeIn_0.5s_ease-out]">
+        <div className="z-10 text-center w-full max-w-[960px] mx-auto flex-shrink-0 mb-8 md:mb-12 animate-[fadeIn_0.5s_ease-out]">
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-on-background mb-3 md:mb-4 tracking-tight leading-tight">
             Nivel Profesional para <br className="md:hidden"/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-tertiary">Coleccionistas Exigentes</span>
@@ -198,7 +198,7 @@ export default function LandingPage() {
         </div>
 
         {/* Pro Features Grid: Desktop */}
-        <div className="z-10 w-full max-w-6xl mx-auto hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="z-10 w-full max-w-[1200px] mx-auto hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {proFeatures.map((feat, idx) => (
             <div 
               key={`desktop-${idx}`} 

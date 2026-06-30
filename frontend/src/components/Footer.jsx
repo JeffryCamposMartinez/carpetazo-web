@@ -1,4 +1,9 @@
+import { useLocation } from 'react-router-dom';
+
 export default function Footer() {
+  const location = useLocation();
+  if (location.pathname === '/mensajes') return null;
+
   return (
     <footer className="w-full bg-[#0a1120] text-white/70 py-6 mt-auto flex flex-col items-center justify-center gap-2 border-t border-white/5 relative z-10">
       <div className="flex items-center gap-2 hover:text-white transition-colors duration-300">

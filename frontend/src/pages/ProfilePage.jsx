@@ -431,15 +431,47 @@ const ProfilePage = () => {
       await setDoc(doc(db, 'users', currentUser.uid), {
         isActive: false,
         isDeactivated: true,
-        deactivatedAt: new Date().toISOString()
+        deactivatedAt: new Date().toISOString(),
+        username: `deleted_${Date.now()}_${currentUser.uid.substring(0, 5)}`,
+        displayName: 'Usuario Eliminado',
+        avatarBase64: null,
+        photoURL: null
       }, { merge: true });
+      
+      // Update all chats to notify the other person
+      const chatsRef = collection(db, 'chats');
+      const qChats = query(chatsRef, where('participants', 'array-contains', currentUser.uid));
+      const chatsSnap = await getDocs(qChats);
+      
+      for (const chatDoc of chatsSnap.docs) {
+        await setDoc(chatDoc.ref, {
+          participantDeactivated: {
+            [currentUser.uid]: true
+          }
+        }, { merge: true });
+      }
       
       await deleteUser(currentUser);
       
       navigate('/');
     } catch (error) {
       console.error("Error al eliminar la cuenta:", error);
-      alert("Error al eliminar la cuenta. Por seguridad, es posible que debas cerrar sesión, volver a ingresar e intentarlo nuevamente.");
+      if (error.code === 'auth/requires-recent-login') {
+        try {
+          // Si Firebase pide re-autenticación por seguridad, abrimos el popup de Google
+          const { reauthenticateWithPopup } = await import('firebase/auth');
+          const { googleProvider } = await import('../firebase');
+          await reauthenticateWithPopup(currentUser, googleProvider);
+          // Si tiene éxito, intentamos borrar de nuevo
+          await deleteUser(currentUser);
+          navigate('/');
+        } catch (reauthError) {
+          console.error("Error al re-autenticar:", reauthError);
+          alert("Debes completar el inicio de sesión para confirmar la eliminación de tu cuenta.");
+        }
+      } else {
+        alert("Error al eliminar la cuenta: " + error.message);
+      }
     } finally {
       setIsDeletingAccount(false);
     }
@@ -447,11 +479,11 @@ const ProfilePage = () => {
 
   return (
     <>
-      <div className="w-full max-w-[1500px] mx-auto xl:px-12 2xl:px-16">
+      <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
         <div className="w-full rounded-none flex flex-col relative z-10 min-h-[calc(100vh-80px)] pb-12">
           <div className="flex-1 bg-transparent p-4 md:p-8 flex flex-col relative z-20">
             
-            <div className="flex flex-col lg:flex-row gap-8 relative z-10 w-full h-full max-w-7xl mx-auto">
+            <div className="flex flex-col lg:flex-row gap-8 relative z-10 w-full h-full max-w-[1200px] mx-auto">
               
               {/* Sidebar Menu */}
               <div className="lg:w-[320px] shrink-0 flex flex-col gap-6">

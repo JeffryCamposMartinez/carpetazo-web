@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { db } from '../firebase';
 import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
 import { getFolderFilter } from './Dashboard';
+import HeroCarousel from '../components/HeroCarousel';
 
 export default function ExplorePage() {
   const [folders, setFolders] = useState([]);
@@ -145,51 +146,15 @@ export default function ExplorePage() {
 
   return (
     <>
-      <div className="w-full max-w-[1500px] mx-auto xl:px-12 2xl:px-16">
+      <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
         <div className="w-full rounded-none overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x border-outline-variant/30 flex flex-col relative z-10 min-h-[calc(100vh-80px)]">
           <div className="flex-1 bg-[#DBEAFE] text-surface p-4 md:p-8 flex flex-col items-center justify-start pt-8 relative z-20">
             
-            {/* Hero Section */}
-            <div className="w-full max-w-6xl bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between mb-6 gap-8 overflow-hidden relative">
-              <div className="md:w-1/2 z-10">
-                <h1 className="text-4xl md:text-5xl font-extrabold text-[#1a2b4b] mb-4 leading-tight">
-                  Explora las colecciones <br className="hidden md:block"/>
-                  <span className="text-primary">de la comunidad</span>
-                </h1>
-                <p className="text-gray-500 text-lg mb-8">
-                  Descubre carpetas públicas, encuentra las cartas que buscas para intercambiar o comprar, y conecta con otros coleccionistas.
-                </p>
-                <div className="flex gap-4">
-                  <button className="px-6 py-3 bg-[#1e40af] text-white font-bold rounded-lg shadow-md hover:bg-blue-800 transition-colors">
-                    Buscar carpetas
-                  </button>
-                </div>
-              </div>
-              
-              {/* Decorative Hero Image Area */}
-              <div className="md:w-1/2 relative h-[250px] md:h-[300px] w-full flex items-center justify-center">
-                <div className="absolute right-0 top-0 w-full h-full bg-gradient-to-l from-blue-50 to-transparent rounded-full blur-3xl opacity-50"></div>
-                
-                {/* Simulated overlapping folders graphics */}
-                <div className="relative w-64 h-48 transform rotate-12 transition-transform hover:rotate-6 hover:scale-105 duration-300 z-20 flex items-center justify-center">
-                  <div className="absolute inset-0 bg-[url('/images/carpeta_v4.png')] bg-[length:100%_100%] bg-no-repeat transition-all drop-shadow-[0_20px_30px_rgba(0,0,0,0.4)]" style={{ filter: 'hue-rotate(30deg) brightness(1.1) saturate(1.2)' }}></div>
-                  <img src="/images/logos/pokemon.png" className="absolute bottom-8 right-12 h-10 object-contain drop-shadow-[0_1px_1px_rgba(255,255,255,1)] drop-shadow-[0_-1px_1px_rgba(255,255,255,1)] drop-shadow-[1px_0_1px_rgba(255,255,255,1)] drop-shadow-[-1px_0_1px_rgba(255,255,255,1)] drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] z-10" alt="Pokemon" />
-                </div>
-                
-                <div className="absolute right-8 md:right-12 top-4 w-56 h-40 transform -rotate-6 transition-transform hover:-rotate-2 hover:scale-105 duration-300 z-10 flex items-center justify-center opacity-90">
-                  <div className="absolute inset-0 bg-[url('/images/carpeta_v4.png')] bg-[length:100%_100%] bg-no-repeat transition-all drop-shadow-xl" style={{ filter: getFolderFilter('black') }}></div>
-                  <img src="/images/logos/yugioh.png" className="absolute bottom-6 right-10 h-16 md:h-20 object-contain drop-shadow-[0_1px_1px_rgba(255,255,255,1)] drop-shadow-[0_-1px_1px_rgba(255,255,255,1)] drop-shadow-[1px_0_1px_rgba(255,255,255,1)] drop-shadow-[-1px_0_1px_rgba(255,255,255,1)] drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] z-10" alt="Yugioh" />
-                </div>
-                
-                <div className="absolute left-0 md:left-4 bottom-4 w-56 h-40 transform rotate-[-15deg] transition-transform hover:-rotate-10 hover:scale-105 duration-300 z-10 flex items-center justify-center opacity-90">
-                  <div className="absolute inset-0 bg-[url('/images/carpeta_v4.png')] bg-[length:100%_100%] bg-no-repeat transition-all drop-shadow-xl" style={{ filter: getFolderFilter('blue') }}></div>
-                  <img src="/images/logos/magic.png" className="absolute bottom-6 left-10 h-14 md:h-16 object-contain drop-shadow-[0_1px_1px_rgba(255,255,255,1)] drop-shadow-[0_-1px_1px_rgba(255,255,255,1)] drop-shadow-[1px_0_1px_rgba(255,255,255,1)] drop-shadow-[-1px_0_1px_rgba(255,255,255,1)] drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] z-10" alt="Magic" />
-                </div>
-              </div>
-            </div>
+            {/* Hero Section Carousel */}
+            <HeroCarousel />
 
             {/* TCG Categories Marquee */}
-            <div className="w-full max-w-6xl mb-8 overflow-hidden relative group">
+            <div className="w-full max-w-[1200px] mb-8 overflow-hidden relative group">
               <div className="absolute top-0 left-0 w-12 md:w-24 h-full bg-gradient-to-r from-blue-100 to-transparent z-10 pointer-events-none"></div>
               <div className="absolute top-0 right-0 w-12 md:w-24 h-full bg-gradient-to-l from-blue-100 to-transparent z-10 pointer-events-none"></div>
               
@@ -203,7 +168,7 @@ export default function ExplorePage() {
             </div>
 
             {/* Featured Folders Section */}
-            <div className="w-full max-w-6xl mb-16">
+            <div className="w-full max-w-[1200px] mb-16">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-bold text-[#1a2b4b]">Carpetas Destacadas de la semana</h2>
                 <button className="text-blue-600 font-semibold hover:underline text-sm">Ver más carpetas →</button>

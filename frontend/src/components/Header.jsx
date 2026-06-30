@@ -83,7 +83,7 @@ export default function Header() {
       <header className="w-full top-0 sticky z-40 bg-surface dark:bg-surface-dim hidden md:block">
         <div className="flex flex-col w-full">
           <div className="flex items-center justify-between px-md py-3 w-full max-w-container-max mx-auto">
-            <Link to="/?ref=logo" className="flex items-center cursor-pointer hover:opacity-80 transition-opacity">
+            <Link to="/bienvenida" className="flex items-center cursor-pointer hover:opacity-80 transition-opacity">
               <img src="/images/logos/logo_completo.png" alt="Carpetazo.cl" className="h-10 md:h-14 w-auto object-contain" />
             </Link>
 
@@ -103,6 +103,9 @@ export default function Header() {
                 <div className="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 flex flex-col py-2 animate-[fadeIn_0.2s_ease-out]">
                   <Link to="/dashboard" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 font-semibold flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">folder</span> Mis carpetas
+                  </Link>
+                  <Link to="/mensajes" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 font-semibold flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">chat</span> Mensajes
                   </Link>
                   <Link to="/perfil" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 font-semibold flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">person</span> Mi perfil
@@ -131,7 +134,8 @@ export default function Header() {
           </div>
           
           <nav className="flex items-end justify-center w-full gap-2 overflow-x-auto px-4 pt-3 bg-[#1e40af] hide-scrollbar whitespace-nowrap shadow-inner border-t border-[#1a2b4b]/20">
-            <Link to="/explorar" className={getLinkClass('/explorar')}>Carpetas</Link>
+            <Link to="/" className={getLinkClass('/')}>Inicio</Link>
+            <Link to="/carpetas" className={getLinkClass('/carpetas')}>Carpetas</Link>
             <Link to="/cartas" className={getLinkClass('/cartas')}>Cartas</Link>
             <Link to="/vendedores" className={getLinkClass('/vendedores')}>Vendedores</Link>
           </nav>
@@ -142,7 +146,7 @@ export default function Header() {
       <header className="w-full top-0 sticky z-40 bg-surface dark:bg-surface-dim md:hidden block">
         <div className="flex flex-col w-full">
           <div className="flex items-center justify-between px-md py-sm w-full max-w-container-max mx-auto border-b border-gray-100">
-            <Link to="/?ref=logo" className="flex items-center cursor-pointer hover:opacity-80 transition-opacity">
+            <Link to="/bienvenida" className="flex items-center cursor-pointer hover:opacity-80 transition-opacity">
               <img src="/images/logos/logo_completo.png" alt="Carpetazo.cl" className="h-10 w-auto object-contain" />
             </Link>
             {currentUser ? (
@@ -161,6 +165,9 @@ export default function Header() {
                 <div className="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 flex flex-col py-2 animate-[fadeIn_0.2s_ease-out]">
                   <Link to="/dashboard" onClick={() => setIsDropdownOpen(false)} className="px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 font-semibold flex items-center gap-3 border-b border-gray-50">
                     <span className="material-symbols-outlined text-[20px]">folder</span> Mis carpetas
+                  </Link>
+                  <Link to="/mensajes" onClick={() => setIsDropdownOpen(false)} className="px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 font-semibold flex items-center gap-3 border-b border-gray-50">
+                    <span className="material-symbols-outlined text-[20px]">chat</span> Mensajes
                   </Link>
                   <Link to="/perfil" onClick={() => setIsDropdownOpen(false)} className="px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 font-semibold flex items-center gap-3 border-b border-gray-50">
                     <span className="material-symbols-outlined text-[20px]">person</span> Mi perfil
@@ -185,7 +192,8 @@ export default function Header() {
           </div>
           
           <nav className="flex items-end justify-center w-full gap-2 overflow-x-auto px-4 pt-3 bg-[#1e40af] hide-scrollbar whitespace-nowrap shadow-inner border-t border-[#1a2b4b]/20">
-            <Link to="/explorar" className={getLinkClass('/explorar')}>Carpetas</Link>
+            <Link to="/" className={getLinkClass('/')}>Inicio</Link>
+            <Link to="/carpetas" className={getLinkClass('/carpetas')}>Carpetas</Link>
             <Link to="/cartas" className={getLinkClass('/cartas')}>Cartas</Link>
             <Link to="/vendedores" className={getLinkClass('/vendedores')}>Vendedores</Link>
           </nav>

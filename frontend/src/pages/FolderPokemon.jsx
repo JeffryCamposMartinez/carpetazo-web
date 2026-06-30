@@ -560,7 +560,7 @@ function FolderPokemon() {
               }
             }}>
               <div className="relative w-full aspect-[63/88] flex items-center justify-center bg-gray-50 p-2">
-                <img src={card.images?.small} alt={card.name} className="w-full h-full object-contain filter drop-shadow-sm" />
+                <img src={card.images?.small} alt={card.name} loading="lazy" className="w-full h-full object-contain filter drop-shadow-sm" />
               </div>
               <div className="p-3 text-center border-t border-gray-100">
                 <p className="font-bold text-sm text-gray-900 truncate">{card.name}</p>
@@ -793,7 +793,7 @@ function FolderPokemon() {
 
   return (
     <>
-      <div className="w-full max-w-[1500px] mx-auto xl:px-12 2xl:px-16 animate-[fadeIn_0.5s_ease-out]">
+      <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16 animate-[fadeIn_0.5s_ease-out]">
         <div className="w-full rounded-none overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] border-x border-gray-300 flex flex-col relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
           <main className="flex-1 text-gray-900 px-4 sm:px-8 py-8 flex flex-col relative z-20">
       <div className="mb-6 flex items-center gap-2 sm:gap-4 pb-4 border-b border-gray-300">

@@ -232,7 +232,7 @@ function PublicCatalog() {
 
   return (
     <>
-      <div className="w-full max-w-[1500px] mx-auto xl:px-12 2xl:px-16 animate-[fadeIn_0.5s_ease-out]">
+      <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16 animate-[fadeIn_0.5s_ease-out]">
       {/* Seller info banner */}
       <div className="bg-white border-b border-gray-200 py-6 px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-5 w-full md:w-auto">
