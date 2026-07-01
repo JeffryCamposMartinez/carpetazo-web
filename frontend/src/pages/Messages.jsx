@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
-import { collection, query, where, onSnapshot, orderBy, addDoc, serverTimestamp, doc, setDoc, writeBatch, updateDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, addDoc, serverTimestamp, doc, setDoc, writeBatch, updateDoc, increment } from 'firebase/firestore';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const compressImage = (file) => {
@@ -170,6 +170,10 @@ export default function Messages() {
           const msgRef = doc(db, `chats/${activeChat.id}/messages`, d.id);
           batch.update(msgRef, { read: true });
         });
+        // Reset unread count for current user in this chat
+        batch.update(doc(db, 'chats', activeChat.id), {
+          [`unreadCounts.${currentUser.uid}`]: 0
+        });
         await batch.commit().catch(err => console.error("Error marking messages as read:", err));
       }
 
@@ -249,10 +253,17 @@ export default function Messages() {
     });
 
     // Update chat last message
-    await setDoc(doc(db, 'chats', activeChat.id), {
+    const otherId = activeChat.participants.find(id => id !== currentUser.uid);
+    const chatRef = doc(db, 'chats', activeChat.id);
+    await setDoc(chatRef, {
       lastMessage: imageToSend ? (msgText ? `📷 ${msgText}` : '📷 Imagen') : msgText,
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     }, { merge: true });
+
+    // Increment unread count for the OTHER user using updateDoc (dot-notation works here)
+    await updateDoc(chatRef, {
+      [`unreadCounts.${otherId}`]: increment(1)
+    });
   };
 
   if (!currentUser) {
@@ -329,13 +340,29 @@ export default function Messages() {
     textareaRef.current?.focus();
   };
 
+  const scrollToMessage = (msgId) => {
+    const el = document.getElementById(`msg-${msgId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Flash highlight
+      el.classList.add('ring-2', 'ring-blue-400', 'ring-offset-1', 'rounded-2xl');
+      setTimeout(() => {
+        el.classList.remove('ring-2', 'ring-blue-400', 'ring-offset-1', 'rounded-2xl');
+      }, 1500);
+    }
+  };
+
+  const totalUnread = chats.reduce((sum, chat) => sum + (chat.unreadCounts?.[currentUser.uid] || 0), 0);
+
   return (
     <div className="flex-1 w-full bg-white flex min-h-0 overflow-visible" style={{ maxHeight: 'calc(100vh - 124px)' }}>
       {/* INBOX (Left Sidebar) */}
       <div className={`w-full md:w-1/3 lg:w-1/4 border-r border-gray-200 flex flex-col ${activeChat ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
           <h2 className="text-xl font-black text-[#1a2b4b]">Mensajes</h2>
-          <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full">{chats.length}</span>
+          {totalUnread > 0 && (
+            <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full min-w-[22px] text-center">{totalUnread}</span>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto">
           {loadingChats ? (
@@ -348,27 +375,44 @@ export default function Messages() {
             chats.map(chat => {
               const otherUser = getOtherParticipant(chat);
               const isActive = activeChat?.id === chat.id;
+              const unreadCount = chat.unreadCounts?.[currentUser.uid] || 0;
+              const hasUnread = unreadCount > 0 && !isActive;
               return (
                 <div 
                   key={chat.id}
                   onClick={() => setActiveChat(chat)}
-                  className={`flex items-center gap-3 p-4 cursor-pointer border-b border-gray-50 transition-colors ${isActive ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                  className={`flex items-center gap-3 p-4 cursor-pointer border-b border-gray-50 transition-colors ${
+                    isActive ? 'bg-blue-50' : hasUnread ? 'bg-blue-50/40 hover:bg-blue-50/60' : 'hover:bg-gray-50'
+                  }`}
                 >
-                  <div className="w-12 h-12 rounded-full bg-blue-100 flex-shrink-0 flex items-center justify-center overflow-hidden text-[#1a2b4b] font-bold text-lg">
-                    {otherUser.avatar ? (
-                      <img src={otherUser.avatar} alt="avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      otherUser.name.charAt(0).toUpperCase()
+                  {/* Avatar with unread dot */}
+                  <div className="relative flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden text-[#1a2b4b] font-bold text-lg">
+                      {otherUser.avatar ? (
+                        <img src={otherUser.avatar} alt="avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        otherUser.name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    {hasUnread && (
+                      <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-blue-600 rounded-full border-2 border-white" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-baseline mb-1">
-                      <h4 className="font-bold text-gray-900 truncate">{otherUser.name}</h4>
-                      <span className="text-[10px] text-gray-400 flex-shrink-0">
+                      <h4 className={`truncate ${hasUnread ? 'font-extrabold text-gray-900' : 'font-bold text-gray-900'}`}>{otherUser.name}</h4>
+                      <span className={`text-[10px] flex-shrink-0 ${hasUnread ? 'text-blue-600 font-bold' : 'text-gray-400'}`}>
                         {chat.updatedAt?.toMillis ? new Date(chat.updatedAt.toMillis()).toLocaleDateString() : ''}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-500 truncate">{chat.lastMessage || '...'}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className={`text-sm truncate ${hasUnread ? 'text-gray-900 font-semibold' : 'text-gray-500'}`}>{chat.lastMessage || '...'}</p>
+                      {hasUnread && (
+                        <span className="flex-shrink-0 bg-blue-600 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               )
@@ -423,8 +467,9 @@ export default function Messages() {
                 const isMe = msg.senderId === currentUser.uid;
                 return (
                   <div 
-                    key={msg.id} 
-                    className={`flex flex-col max-w-[80%] ${isMe ? 'self-end' : 'self-start'}`}
+                    key={msg.id}
+                    id={`msg-${msg.id}`}
+                    className={`flex flex-col max-w-[80%] ${isMe ? 'self-end' : 'self-start'} transition-all duration-300`}
                     onTouchStart={(e) => handleTouchStart(e, msg)}
                     onTouchMove={handleTouchMove}
                     onTouchEnd={(e) => handleTouchEnd(e, msg)}
@@ -437,16 +482,36 @@ export default function Messages() {
                     }`}>
                       {/* Reply preview inside bubble */}
                       {msg.replyTo && (
-                        <div className={`mb-2 px-2 py-1 rounded-lg border-l-4 text-xs ${
-                          isMe 
-                            ? 'border-blue-300 bg-white/10 text-blue-100' 
-                            : 'border-blue-400 bg-gray-100 text-gray-600'
-                        }`}>
-                          <span className="font-bold block mb-0.5">
-                            {msg.replyTo.senderId === currentUser.uid ? 'Tú' : getOtherParticipant(activeChat).name}
-                          </span>
-                          {msg.replyTo.imageBase64 && !msg.replyTo.text && <span>📷 Imagen</span>}
-                          {msg.replyTo.text && <span className="truncate block max-w-[200px]">{msg.replyTo.text}</span>}
+                        <div 
+                          onClick={() => scrollToMessage(msg.replyTo.id)}
+                          className={`mb-2 rounded-lg border-l-4 text-xs cursor-pointer overflow-hidden ${
+                            isMe 
+                              ? 'border-blue-300 bg-white/10 text-blue-100 hover:bg-white/20' 
+                              : 'border-blue-400 bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          } transition-colors`}
+                        >
+                          {/* If reply has image, show it as thumbnail on top */}
+                          {msg.replyTo.imageBase64 && (
+                            <img
+                              src={msg.replyTo.imageBase64}
+                              alt="imagen respondida"
+                              className="w-full max-h-24 object-cover"
+                            />
+                          )}
+                          <div className="px-2 py-1">
+                            <span className="font-bold block mb-0.5">
+                              {msg.replyTo.senderId === currentUser.uid ? 'Tú' : getOtherParticipant(activeChat).name}
+                            </span>
+                            {msg.replyTo.imageBase64 && !msg.replyTo.text && (
+                              <span className="flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[12px]">image</span>
+                                Imagen
+                              </span>
+                            )}
+                            {msg.replyTo.text && (
+                              <span className="truncate block max-w-[200px]">{msg.replyTo.text}</span>
+                            )}
+                          </div>
                         </div>
                       )}
                       {msg.imageBase64 && (
