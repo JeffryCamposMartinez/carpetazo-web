@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
-import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, onSnapshot, getCountFromServer } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import OrdersTab from '../components/OrdersTab';
 
@@ -59,16 +59,20 @@ export default function Dashboard() {
       try {
         const q = query(collection(db, 'folders'), where('userId', '==', currentUser.uid));
         const querySnapshot = await getDocs(q);
-        const foldersData = [];
         const currentWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
-        for (const docSnap of querySnapshot.docs) {
+        const foldersPromises = querySnapshot.docs.map(async (docSnap) => {
           const folder = { id: docSnap.id, ...docSnap.data() };
           folder.validWeeklyVisits = folder.lastVisitWeek === currentWeek ? (folder.weeklyVisits || 0) : 0;
           folder.validTotalVisits = folder.totalVisits || 0;
-          const cardsSnapshot = await getDocs(collection(db, `folders/${folder.id}/cards`));
-          folder.cardsCount = cardsSnapshot.size;
-          foldersData.push(folder);
-        }
+          try {
+            const countSnap = await getCountFromServer(collection(db, `folders/${folder.id}/cards`));
+            folder.cardsCount = countSnap.data().count;
+          } catch (e) {
+            folder.cardsCount = 0;
+          }
+          return folder;
+        });
+        const foldersData = await Promise.all(foldersPromises);
         setFolders(foldersData);
       } catch (error) {
         console.error("Error al cargar las carpetas:", error);
@@ -199,15 +203,17 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
+        <div className="w-full rounded-none overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x border-gray-300 flex flex-col items-center justify-center relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </div>
       </div>
     );
   }
 
   return (
     <>
-      <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16 animate-[fadeIn_0.5s_ease-out]">
+      <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
       <div className="w-full rounded-none overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x border-gray-300 flex flex-col relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
         <div className="flex-1 text-gray-900 px-4 sm:px-8 py-12 flex flex-col relative z-20">
           <div className="flex flex-col mb-8 border-b border-gray-200">
@@ -235,7 +241,7 @@ export default function Dashboard() {
                 : 'bg-white text-gray-600 hover:bg-gray-50 border-b-4 border-gray-200'
             }`}
           >
-            <span className="material-symbols-outlined text-lg md:text-xl">folder</span> Carpetas
+            <span translate="no" className="material-symbols-outlined text-lg md:text-xl">folder</span> Carpetas
           </button>
           <button 
             onClick={() => setActiveTab('solicitudes')}
@@ -245,7 +251,7 @@ export default function Dashboard() {
                 : 'bg-white text-gray-600 hover:bg-gray-50 border-b-4 border-gray-200'
             }`}
           >
-            <span className="material-symbols-outlined text-lg md:text-xl">notifications</span> Solicitudes
+            <span translate="no" className="material-symbols-outlined text-lg md:text-xl">notifications</span> Solicitudes
             {orders.filter(o => o.status === 'pending').length > 0 && (
               <span className="absolute top-2 right-2 md:right-4 flex h-2.5 w-2.5 md:h-3 md:w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
@@ -261,7 +267,7 @@ export default function Dashboard() {
                 : 'bg-white text-gray-600 hover:bg-gray-50 border-b-4 border-gray-200'
             }`}
           >
-            <span className="material-symbols-outlined text-lg md:text-xl">history</span> Historial
+            <span translate="no" className="material-symbols-outlined text-lg md:text-xl">history</span> Historial
           </button>
         </div>
       </div>
@@ -273,11 +279,11 @@ export default function Dashboard() {
             onClick={() => setIsCreateModalOpen(true)}
             className="bg-[#1e40af] hover:bg-blue-800 text-white font-bold py-3.5 md:py-4 px-8 md:px-12 rounded-full transition-all shadow-lg hover:shadow-[#1e40af]/30 flex items-center justify-center gap-3 shrink-0 hover:-translate-y-1 w-[90%] sm:w-auto"
           >
-            <span className="material-symbols-outlined text-2xl">add_circle</span>
+            <span translate="no" className="material-symbols-outlined text-2xl">add_circle</span>
             <span className="text-lg">Crear Carpeta</span>
           </button>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
 
         {folders.map(folder => (
           <div 
@@ -294,28 +300,28 @@ export default function Dashboard() {
                 className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full shadow-lg transition-all ${folder.isPublic ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'}`}
                 title={folder.isPublic ? "Carpeta Pública (Clic para ocultar)" : "Carpeta Privada (Clic para publicar)"}
               >
-                <span className="material-symbols-outlined text-[16px] md:text-[18px]">{folder.isPublic ? 'public' : 'public_off'}</span>
+                <span translate="no" className="material-symbols-outlined text-[16px] md:text-[18px]">{folder.isPublic ? 'public' : 'public_off'}</span>
               </button>
               <button 
                 onClick={(e) => handleShareFolder(e, folder)}
                 className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 shadow-lg transition-all"
                 title="Compartir enlace"
               >
-                <span className="material-symbols-outlined text-[16px] md:text-[18px]" data-icon="share">share</span>
+                <span translate="no" className="material-symbols-outlined text-[16px] md:text-[18px]" data-icon="share">share</span>
               </button>
               <button 
                 onClick={(e) => handleEditFolderClick(e, folder)}
                 className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-yellow-500 text-white hover:bg-yellow-600 shadow-lg transition-all"
                 title="Renombrar carpeta"
               >
-                <span className="material-symbols-outlined text-[16px] md:text-[18px]">edit</span>
+                <span translate="no" className="material-symbols-outlined text-[16px] md:text-[18px]">edit</span>
               </button>
               <button 
                 onClick={(e) => handleDeleteFolder(e, folder.id, folder.name)}
                 className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-700 shadow-lg transition-all"
                 title="Eliminar carpeta"
               >
-                <span className="material-symbols-outlined text-[16px] md:text-[18px]" data-icon="delete">delete</span>
+                <span translate="no" className="material-symbols-outlined text-[16px] md:text-[18px]" data-icon="delete">delete</span>
               </button>
             </div>
 
@@ -330,10 +336,10 @@ export default function Dashboard() {
                 {/* Top Badges */}
                 <div className="flex justify-between w-full">
                   <div className="bg-black/30 px-3 py-1.5 rounded-lg text-sm font-bold text-white shadow-sm flex items-center gap-1.5" title="Visitas de la semana">
-                    <span className="material-symbols-outlined text-[16px]">visibility</span> {folder.validWeeklyVisits > 0 ? folder.validWeeklyVisits : (folder.validTotalVisits || 0)}
+                    <span translate="no" className="material-symbols-outlined text-[16px]">visibility</span> {folder.validWeeklyVisits > 0 ? folder.validWeeklyVisits : (folder.validTotalVisits || 0)}
                   </div>
                   <div className="bg-black/30 px-3 py-1.5 rounded-lg text-sm font-bold text-white shadow-sm flex items-center gap-1.5" title="Cartas">
-                    <span className="material-symbols-outlined text-[16px]">style</span> {folder.cardsCount || 0}
+                    <span translate="no" className="material-symbols-outlined text-[16px]">style</span> {folder.cardsCount || 0}
                   </div>
                 </div>
                 
@@ -373,14 +379,14 @@ export default function Dashboard() {
             
             <div className="flex items-center justify-between mb-6 relative z-10">
               <h3 className="text-2xl font-bold text-[#1a2b4b] flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#1e40af]">create_new_folder</span>
+                <span translate="no" className="material-symbols-outlined text-[#1e40af]">create_new_folder</span>
                 Nueva Carpeta
               </h3>
               <button 
                 onClick={() => setIsCreateModalOpen(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
               >
-                <span className="material-symbols-outlined text-xl">close</span>
+                <span translate="no" className="material-symbols-outlined text-xl">close</span>
               </button>
             </div>
             
@@ -445,7 +451,7 @@ export default function Dashboard() {
                     <span className="animate-pulse">Creando...</span>
                   ) : (
                     <>
-                      <span className="material-symbols-outlined text-[18px]">add</span>
+                      <span translate="no" className="material-symbols-outlined text-[18px]">add</span>
                       Crear
                     </>
                   )}
@@ -466,7 +472,7 @@ export default function Dashboard() {
                 onClick={() => setEditingFolder(null)}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
               >
-                <span className="material-symbols-outlined text-xl">close</span>
+                <span translate="no" className="material-symbols-outlined text-xl">close</span>
               </button>
             </div>
             
@@ -524,7 +530,7 @@ export default function Dashboard() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white border border-gray-200 p-6 md:p-8 rounded-3xl max-w-md w-full shadow-2xl animate-[fadeIn_0.2s_ease-out]">
             <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-6">
-              <span className="material-symbols-outlined text-4xl text-red-600">warning</span>
+              <span translate="no" className="material-symbols-outlined text-4xl text-red-600">warning</span>
             </div>
             <h3 className="text-2xl font-bold text-center text-gray-900 mb-2">¿Eliminar carpeta?</h3>
             <p className="text-center text-gray-600 mb-8">

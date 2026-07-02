@@ -303,7 +303,7 @@ function AdminPanel() {
       <div className="flex flex-col items-center justify-center min-h-[70vh] px-4">
         <div className="bg-surface-container-lowest p-8 rounded-2xl shadow-lg border border-surface-container w-full max-w-sm">
           <div className="flex flex-col items-center mb-6">
-            <span className="material-symbols-outlined text-4xl text-primary mb-2">lock</span>
+            <span translate="no" className="material-symbols-outlined text-4xl text-primary mb-2">lock</span>
             <h2 className="font-headline-md text-headline-md text-on-background">Acceso Administrativo</h2>
           </div>
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
@@ -333,7 +333,7 @@ function AdminPanel() {
       {pendingOrders.length > 0 && (
         <div className="bg-surface-container-low p-6 rounded-2xl border border-surface-container shadow-sm mb-6">
           <h2 className="font-headline-md text-headline-md text-on-background flex items-center gap-2 mb-4">
-            <span className="material-symbols-outlined text-secondary">notifications_active</span>
+            <span translate="no" className="material-symbols-outlined text-secondary">notifications_active</span>
             Solicitudes Pendientes ({pendingOrders.length})
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -363,7 +363,7 @@ function AdminPanel() {
                         className="w-10 h-10 rounded-full bg-error-container text-on-error-container hover:bg-error hover:text-white flex items-center justify-center transition-colors"
                         title="Rechazar y eliminar solicitud"
                       >
-                        <span className="material-symbols-outlined text-[20px]">close</span>
+                        <span translate="no" className="material-symbols-outlined text-[20px]">close</span>
                       </button>
                       <button 
                         onClick={() => handleProcessOrder(order.code)}
@@ -371,7 +371,7 @@ function AdminPanel() {
                         className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container hover:bg-primary hover:text-white flex items-center justify-center transition-colors disabled:opacity-50"
                         title="Venta concretada (descontar stock)"
                       >
-                        <span className="material-symbols-outlined text-[20px]">check</span>
+                        <span translate="no" className="material-symbols-outlined text-[20px]">check</span>
                       </button>
                     </div>
                   </div>
@@ -386,7 +386,7 @@ function AdminPanel() {
         {/* Lado Izquierdo: Buscador de API */}
         <div className="flex-1 bg-surface-container-low p-6 rounded-2xl border border-surface-container shadow-sm">
           <h2 className="font-headline-md text-headline-md text-on-background flex items-center gap-2 mb-4">
-            <span className="material-symbols-outlined text-primary">search</span>
+            <span translate="no" className="material-symbols-outlined text-primary">search</span>
             Buscar en Pokémon TCG
           </h2>
           
@@ -423,7 +423,7 @@ function AdminPanel() {
                   <span className="truncate">
                     {searchSet === '' ? 'Todas las ediciones' : availableSets.find(s => s.id === searchSet)?.name || 'Seleccionado'}
                   </span>
-                  <span className="material-symbols-outlined ml-2 text-on-surface-variant">expand_more</span>
+                  <span translate="no" className="material-symbols-outlined ml-2 text-on-surface-variant">expand_more</span>
                 </div>
                 
                 {isSetDropdownOpen && (
@@ -440,7 +440,7 @@ function AdminPanel() {
                           setIsSetDropdownOpen(false);
                         }}
                       >
-                        {searchSet === '' && <span className="material-symbols-outlined text-sm">check</span>}
+                        {searchSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                         <span className={searchSet !== '' ? 'ml-6' : ''}>Todas las ediciones</span>
                       </div>
                       
@@ -453,7 +453,7 @@ function AdminPanel() {
                             setIsSetDropdownOpen(false);
                           }}
                         >
-                          {searchSet === set.id && <span className="material-symbols-outlined text-sm">check</span>}
+                          {searchSet === set.id && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                           <span className={searchSet !== set.id ? 'ml-6' : ''}>{set.name}</span>
                         </div>
                       ))}
@@ -469,7 +469,7 @@ function AdminPanel() {
                 className="bg-primary hover:bg-primary/90 text-on-primary font-label-md px-12 py-3.5 rounded-full transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 whitespace-nowrap flex items-center gap-2" 
                 disabled={isSearching}
               >
-                <span className="material-symbols-outlined">{isSearching ? 'hourglass_empty' : 'search'}</span>
+                <span translate="no" className="material-symbols-outlined">{isSearching ? 'hourglass_empty' : 'search'}</span>
                 {isSearching ? 'Buscando...' : 'Buscar Cartas'}
               </button>
             </div>
@@ -498,7 +498,7 @@ function AdminPanel() {
             ))
             ) : (
                 <div className="col-span-full py-12 text-center text-on-surface-variant flex flex-col items-center">
-                    <span className="material-symbols-outlined text-5xl mb-3 opacity-30">travel_explore</span>
+                    <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-30">travel_explore</span>
                     <p>Realiza una búsqueda usando los filtros de arriba para empezar.</p>
                 </div>
             )}
@@ -508,7 +508,7 @@ function AdminPanel() {
         {/* Lado Derecho: Añadir al Catálogo */}
         <div className="lg:w-[400px] bg-surface-container-highest p-6 rounded-2xl shadow-sm h-fit border border-surface-container">
           <h2 className="font-headline-md text-headline-md text-on-background flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">add_circle</span>
+            <span translate="no" className="material-symbols-outlined text-primary">add_circle</span>
             Añadir al Catálogo
           </h2>
           
@@ -528,7 +528,7 @@ function AdminPanel() {
                       rel="noopener noreferrer"
                       className="inline-flex flex-1 justify-center items-center gap-2 bg-surface-container-highest text-primary hover:bg-primary hover:text-on-primary px-4 py-2.5 rounded-xl border border-outline-variant shadow-sm transition-all transform hover:scale-105"
                     >
-                      <span className="material-symbols-outlined text-sm">open_in_new</span>
+                      <span translate="no" className="material-symbols-outlined text-sm">open_in_new</span>
                       <span className="font-label-sm font-bold tracking-wider">TCGPLAYER</span>
                     </a>
                     
@@ -538,7 +538,7 @@ function AdminPanel() {
                       rel="noopener noreferrer"
                       className="inline-flex flex-1 justify-center items-center gap-2 bg-surface-container-highest text-secondary hover:bg-secondary hover:text-on-secondary px-4 py-2.5 rounded-xl border border-outline-variant shadow-sm transition-all transform hover:scale-105"
                     >
-                      <span className="material-symbols-outlined text-sm">search</span>
+                      <span translate="no" className="material-symbols-outlined text-sm">search</span>
                       <span className="font-label-sm font-bold tracking-wider">TCGMATCH</span>
                     </a>
                   </div>
@@ -577,7 +577,7 @@ function AdminPanel() {
             </form>
           ) : (
             <div className="mt-8 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-outline-variant rounded-xl text-on-surface-variant">
-              <span className="material-symbols-outlined text-4xl mb-2 opacity-50">style</span>
+              <span translate="no" className="material-symbols-outlined text-4xl mb-2 opacity-50">style</span>
               <p>Selecciona una carta de los resultados de búsqueda para añadirla a tu catálogo.</p>
             </div>
           )}

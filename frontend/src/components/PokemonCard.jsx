@@ -90,11 +90,11 @@ export default function PokemonCard({ card, availableStock, cartQuantity, onAddT
         <div className="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between">
           <div className="flex flex-col gap-1">
             <a href={tcgPlayerUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-gray-400 hover:text-[#1e40af] text-[11px] font-bold transition-colors">
-              <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+              <span translate="no" className="material-symbols-outlined text-[12px]">open_in_new</span>
               TCGPlayer
             </a>
             <a href={tcgMatchUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-gray-400 hover:text-[#1e40af] text-[11px] font-bold transition-colors">
-              <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+              <span translate="no" className="material-symbols-outlined text-[12px]">open_in_new</span>
               TCGMatch
             </a>
           </div>
@@ -106,7 +106,7 @@ export default function PokemonCard({ card, availableStock, cartQuantity, onAddT
                   onClick={() => onRemoveFromCart()}
                   className="w-8 h-8 rounded-full border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 flex items-center justify-center transition-colors"
                 >
-                  <span className="material-symbols-outlined text-[16px]">remove</span>
+                  <span translate="no" className="material-symbols-outlined text-[16px]">remove</span>
                 </button>
                 <span className="text-[#1a2b4b] font-bold min-w-[12px] text-center">{cartQuantity}</span>
               </>
@@ -118,7 +118,7 @@ export default function PokemonCard({ card, availableStock, cartQuantity, onAddT
                 isOutOfStock ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' : 'bg-[#ffcb05] text-[#1a2b4b] hover:scale-105 shadow-sm hover:shadow-md'
               }`}
             >
-              <span className="material-symbols-outlined text-[18px]">add</span>
+              <span translate="no" className="material-symbols-outlined text-[18px]">add</span>
             </button>
           </div>
         </div>

@@ -29,7 +29,7 @@ const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
         className="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-error/90 hover:bg-error text-on-error opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
         title="Eliminar carta"
       >
-        <span className="material-symbols-outlined text-[18px]">delete</span>
+        <span translate="no" className="material-symbols-outlined text-[18px]">delete</span>
       </button>
       <div className="p-4 flex flex-col items-center flex-1">
         <div className="w-full relative pt-[140%] mb-3">
@@ -70,7 +70,7 @@ const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
         disabled={saving || !hasChanges} 
         className={"w-full py-2.5 font-bold text-xs tracking-wide transition-colors border-t border-outline-variant flex items-center justify-center gap-1.5 " + (hasChanges ? 'bg-primary text-on-primary hover:bg-primary/90' : 'bg-surface-container-low text-on-surface-variant opacity-60')}
       >
-        <span className="material-symbols-outlined text-[16px]">{saving ? 'hourglass_empty' : 'save'}</span>
+        <span translate="no" className="material-symbols-outlined text-[16px]">{saving ? 'hourglass_empty' : 'save'}</span>
         {saving ? 'Guardando...' : hasChanges ? 'Guardar' : 'Guardado'}
       </button>
     </div>
@@ -239,7 +239,7 @@ function AdminPanel() {
   const renderCatalogTab = () => (
     <div className="bg-surface-container-low p-6 rounded-2xl border border-surface-container shadow-sm">
       <h2 className="font-headline-md text-headline-md text-on-background flex items-center gap-2 mb-6">
-        <span className="material-symbols-outlined text-primary">inventory_2</span>
+        <span translate="no" className="material-symbols-outlined text-primary">inventory_2</span>
         Inventario Actual
       </h2>
       
@@ -271,7 +271,7 @@ function AdminPanel() {
             <span className="truncate">
               {catSet === '' ? 'Todas las ediciones' : availableSets.find(s => s.id === catSet)?.name || 'Seleccionado'}
             </span>
-            <span className="material-symbols-outlined ml-2 text-on-surface-variant">expand_more</span>
+            <span translate="no" className="material-symbols-outlined ml-2 text-on-surface-variant">expand_more</span>
           </div>
           
           {isCatSetDropdownOpen && (
@@ -282,7 +282,7 @@ function AdminPanel() {
                   className={`px-4 py-2 cursor-pointer hover:bg-surface-container-high transition-colors flex items-center gap-2 ${catSet === '' ? 'text-primary' : 'text-on-surface'}`}
                   onClick={() => { setCatSet(''); setIsCatSetDropdownOpen(false); }}
                 >
-                  {catSet === '' && <span className="material-symbols-outlined text-sm">check</span>}
+                  {catSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                   <span className={catSet !== '' ? 'ml-6' : ''}>Todas las ediciones</span>
                 </div>
                 {availableSets.map(set => (
@@ -291,7 +291,7 @@ function AdminPanel() {
                     className={`px-4 py-2 cursor-pointer hover:bg-surface-container-high transition-colors flex items-center gap-2 ${catSet === set.id ? 'text-primary' : 'text-on-surface'}`}
                     onClick={() => { setCatSet(set.id); setIsCatSetDropdownOpen(false); }}
                   >
-                    {catSet === set.id && <span className="material-symbols-outlined text-sm">check</span>}
+                    {catSet === set.id && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                     <span className={catSet !== set.id ? 'ml-6' : ''}>{set.name}</span>
                   </div>
                 ))}
@@ -307,7 +307,7 @@ function AdminPanel() {
         ))}
         {filteredCatalog.length === 0 && (
           <div className="col-span-full py-12 text-center text-on-surface-variant flex flex-col items-center">
-            <span className="material-symbols-outlined text-5xl mb-3 opacity-30">search_off</span>
+            <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-30">search_off</span>
             <p>No se encontraron cartas que coincidan con los filtros.</p>
           </div>
         )}
@@ -514,7 +514,7 @@ function AdminPanel() {
       {/* Lado Izquierdo: Buscador de API */}
       <div className="flex-1 bg-surface-container-low p-6 rounded-2xl border border-surface-container shadow-sm">
         <h2 className="font-headline-md text-headline-md text-on-background flex items-center gap-2 mb-4">
-          <span className="material-symbols-outlined text-primary">search</span>
+          <span translate="no" className="material-symbols-outlined text-primary">search</span>
           Buscar en Pokémon TCG
         </h2>
         
@@ -530,19 +530,19 @@ function AdminPanel() {
           <div className="relative min-w-[200px] mt-4">
             <div className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface text-on-surface cursor-pointer flex justify-between items-center" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
               <span className="truncate">{searchSet === '' ? 'Todas las ediciones' : availableSets.find(s => s.id === searchSet)?.name || 'Seleccionado'}</span>
-              <span className="material-symbols-outlined ml-2 text-on-surface-variant">expand_more</span>
+              <span translate="no" className="material-symbols-outlined ml-2 text-on-surface-variant">expand_more</span>
             </div>
             {isSetDropdownOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setIsSetDropdownOpen(false)}></div>
                 <div className="absolute z-20 w-full mt-1 bg-surface-container-highest border border-surface-container rounded-lg shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
                   <div className={`px-4 py-2 cursor-pointer hover:bg-surface-container-high transition-colors flex items-center gap-2 ${searchSet === '' ? 'text-primary' : 'text-on-surface'}`} onClick={() => { setSearchSet(''); setIsSetDropdownOpen(false); }}>
-                    {searchSet === '' && <span className="material-symbols-outlined text-sm">check</span>}
+                    {searchSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                     <span className={searchSet !== '' ? 'ml-6' : ''}>Todas las ediciones</span>
                   </div>
                   {availableSets.map(set => (
                     <div key={set.id} className={`px-4 py-2 cursor-pointer hover:bg-surface-container-high transition-colors flex items-center gap-2 ${searchSet === set.id ? 'text-primary' : 'text-on-surface'}`} onClick={() => { setSearchSet(set.id); setIsSetDropdownOpen(false); }}>
-                      {searchSet === set.id && <span className="material-symbols-outlined text-sm">check</span>}
+                      {searchSet === set.id && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                       <span className={searchSet !== set.id ? 'ml-6' : ''}>{set.name}</span>
                     </div>
                   ))}
@@ -552,7 +552,7 @@ function AdminPanel() {
           </div>
           <div className="flex justify-center mt-4">
             <button type="submit" className="bg-primary hover:bg-primary/90 text-on-primary font-label-md px-12 py-3.5 rounded-full transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 whitespace-nowrap flex items-center gap-2" disabled={isSearching}>
-              <span className="material-symbols-outlined">{isSearching ? 'hourglass_empty' : 'search'}</span>
+              <span translate="no" className="material-symbols-outlined">{isSearching ? 'hourglass_empty' : 'search'}</span>
               {isSearching ? 'Buscando...' : 'Buscar Cartas'}
             </button>
           </div>
@@ -585,12 +585,12 @@ function AdminPanel() {
           ))
           ) : hasSearchedAPI ? (
               <div className="col-span-full py-12 text-center text-on-surface-variant flex flex-col items-center">
-                  <span className="material-symbols-outlined text-5xl mb-3 opacity-30">search_off</span>
+                  <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-30">search_off</span>
                   <p>No se encontraron cartas que coincidan con tu búsqueda.</p>
               </div>
           ) : (
               <div className="col-span-full py-12 text-center text-on-surface-variant flex flex-col items-center">
-                  <span className="material-symbols-outlined text-5xl mb-3 opacity-30">travel_explore</span>
+                  <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-30">travel_explore</span>
                   <p>Realiza una búsqueda para empezar.</p>
               </div>
           )}
@@ -600,7 +600,7 @@ function AdminPanel() {
       {/* Lado Derecho: Añadir al Catálogo */}
       <div id="add-catalog-panel" className="w-full max-w-[400px] lg:w-[400px] bg-surface-container-highest p-6 rounded-2xl shadow-sm border border-surface-container sticky top-24 flex-shrink-0 z-10 hover:z-[60] h-fit min-h-[650px] lg:min-h-0 mx-auto lg:mx-0 self-center lg:self-start scroll-mt-24">
         <h2 className="font-headline-md text-headline-md text-on-background flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary">add_circle</span>
+          <span translate="no" className="material-symbols-outlined text-primary">add_circle</span>
           Añadir al Catálogo
         </h2>
         {selectedCard ? (
@@ -618,7 +618,7 @@ function AdminPanel() {
                   className="absolute -bottom-3 -right-3 z-[60] bg-primary text-on-primary rounded-full w-10 h-10 flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.5)] hover:bg-primary/90 hover:scale-110 transition-all border-2 border-surface"
                   title="Tomar Foto / Subir Imagen"
                 >
-                  <span className="material-symbols-outlined text-[20px]">photo_camera</span>
+                  <span translate="no" className="material-symbols-outlined text-[20px]">photo_camera</span>
                 </button>
               </div>
               <input 
@@ -640,7 +640,7 @@ function AdminPanel() {
                     rel="noopener noreferrer"
                     className="inline-flex justify-center items-center gap-1 bg-surface-container-highest text-primary hover:bg-primary hover:text-on-primary px-3 py-1 rounded-md border border-outline-variant shadow-sm transition-colors text-[10px]"
                   >
-                    <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                    <span translate="no" className="material-symbols-outlined text-[14px]">open_in_new</span>
                     <span className="font-bold tracking-wider">TCGPLAYER</span>
                   </a>
                   <a 
@@ -649,7 +649,7 @@ function AdminPanel() {
                     rel="noopener noreferrer"
                     className="inline-flex justify-center items-center gap-1 bg-surface-container-highest text-secondary hover:bg-secondary hover:text-on-secondary px-3 py-1 rounded-md border border-outline-variant shadow-sm transition-colors text-[10px]"
                   >
-                    <span className="material-symbols-outlined text-[14px]">search</span>
+                    <span translate="no" className="material-symbols-outlined text-[14px]">search</span>
                     <span className="font-bold tracking-wider">TCGMATCH</span>
                   </a>
                 </div>
@@ -692,7 +692,7 @@ function AdminPanel() {
           </form>
         ) : (
           <div className="mt-8 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-outline-variant rounded-xl text-on-surface-variant">
-            <span className="material-symbols-outlined text-4xl mb-2 opacity-50">style</span>
+            <span translate="no" className="material-symbols-outlined text-4xl mb-2 opacity-50">style</span>
             <p>Selecciona una carta de los resultados.</p>
           </div>
         )}
@@ -735,7 +735,7 @@ function AdminPanel() {
       {/* Solicitudes Pendientes */}
       <div className="bg-surface-container-low p-6 rounded-2xl border border-surface-container shadow-sm">
         <h2 className="font-headline-md text-headline-md text-on-background flex items-center gap-2 mb-4">
-          <span className="material-symbols-outlined text-secondary">notifications_active</span>
+          <span translate="no" className="material-symbols-outlined text-secondary">notifications_active</span>
           Solicitudes Pendientes ({pendingOrders.length})
         </h2>
         {pendingOrders.length === 0 ? (
@@ -757,8 +757,8 @@ function AdminPanel() {
                 <div className="flex justify-between items-center pt-2 border-t border-surface-container">
                   <span className="font-title-md text-secondary font-bold">{formatCLP(order.totalAmount || 0)}</span>
                   <div className="flex gap-2">
-                    <button onClick={() => handleRejectOrder(order.code)} className="w-10 h-10 rounded-full bg-error-container text-on-error-container hover:bg-error hover:text-white flex items-center justify-center transition-colors" title="Rechazar solicitud"><span className="material-symbols-outlined text-[20px]">close</span></button>
-                    <button onClick={() => handleProcessOrder(order.code)} disabled={isProcessingOrder} className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container hover:bg-primary hover:text-white flex items-center justify-center transition-colors disabled:opacity-50" title="Venta concretada"><span className="material-symbols-outlined text-[20px]">check</span></button>
+                    <button onClick={() => handleRejectOrder(order.code)} className="w-10 h-10 rounded-full bg-error-container text-on-error-container hover:bg-error hover:text-white flex items-center justify-center transition-colors" title="Rechazar solicitud"><span translate="no" className="material-symbols-outlined text-[20px]">close</span></button>
+                    <button onClick={() => handleProcessOrder(order.code)} disabled={isProcessingOrder} className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container hover:bg-primary hover:text-white flex items-center justify-center transition-colors disabled:opacity-50" title="Venta concretada"><span translate="no" className="material-symbols-outlined text-[20px]">check</span></button>
                   </div>
                 </div>
               </div>
@@ -770,7 +770,7 @@ function AdminPanel() {
       {/* Historial de Ventas */}
       <div className="bg-surface-container-low p-6 rounded-2xl border border-surface-container shadow-sm">
         <h2 className="font-headline-md text-headline-md text-on-background flex items-center gap-2 mb-4">
-          <span className="material-symbols-outlined text-primary">history</span>
+          <span translate="no" className="material-symbols-outlined text-primary">history</span>
           Historial de Ventas
         </h2>
         {history.length === 0 ? (
@@ -801,7 +801,7 @@ function AdminPanel() {
                     <td className="p-4 font-bold text-on-surface">{formatCLP(h.totalAmount || 0)}</td>
                     <td className="p-4">
                       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${h.status === 'completed' ? 'bg-[#25D366]/20 text-[#128C7E]' : 'bg-error-container text-on-error-container'}`}>
-                        <span className="material-symbols-outlined text-[14px]">
+                        <span translate="no" className="material-symbols-outlined text-[14px]">
                            {h.status === 'completed' ? 'check_circle' : 'cancel'}
                         </span>
                         {h.status === 'completed' ? 'Concretada' : 'Cancelada'}
@@ -822,7 +822,7 @@ function AdminPanel() {
       <div className="flex flex-col items-center justify-center min-h-[70vh] px-4">
         <div className="bg-surface-container-lowest p-8 rounded-2xl shadow-lg border border-surface-container w-full max-w-sm">
           <div className="flex flex-col items-center mb-6">
-            <span className="material-symbols-outlined text-4xl text-primary mb-2">lock</span>
+            <span translate="no" className="material-symbols-outlined text-4xl text-primary mb-2">lock</span>
             <h2 className="font-headline-md text-headline-md text-on-background">Acceso Administrativo</h2>
           </div>
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
@@ -844,15 +844,15 @@ function AdminPanel() {
       {/* Tabs */}
       <div className="flex gap-2 overflow-x-auto border-b border-surface-container mb-8 pb-0 custom-scrollbar">
         <button onClick={() => setActiveTab('catalog')} className={`px-6 py-4 rounded-t-xl font-label-md transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'catalog' ? 'bg-surface-container-lowest text-primary border-b-4 border-primary shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]' : 'hover:bg-surface-container text-on-surface-variant'}`}>
-          <span className="material-symbols-outlined">inventory_2</span>
+          <span translate="no" className="material-symbols-outlined">inventory_2</span>
           Manejo de Catálogo
         </button>
         <button onClick={() => setActiveTab('add')} className={`px-6 py-4 rounded-t-xl font-label-md transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'add' ? 'bg-surface-container-lowest text-primary border-b-4 border-primary shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]' : 'hover:bg-surface-container text-on-surface-variant'}`}>
-          <span className="material-symbols-outlined">add_circle</span>
+          <span translate="no" className="material-symbols-outlined">add_circle</span>
           Agregar al Catálogo
         </button>
         <button onClick={() => setActiveTab('sales')} className={`px-6 py-4 rounded-t-xl font-label-md transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'sales' ? 'bg-surface-container-lowest text-primary border-b-4 border-primary shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]' : 'hover:bg-surface-container text-on-surface-variant'}`}>
-          <span className="material-symbols-outlined">receipt_long</span>
+          <span translate="no" className="material-symbols-outlined">receipt_long</span>
           Ventas y Solicitudes
           {pendingOrders.length > 0 && <span className="bg-error text-white text-xs px-2 py-0.5 rounded-full">{pendingOrders.length}</span>}
         </button>

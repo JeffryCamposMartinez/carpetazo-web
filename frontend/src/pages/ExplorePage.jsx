@@ -1,13 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { db } from '../firebase';
-import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, where, getCountFromServer } from 'firebase/firestore';
 import { getFolderFilter } from './Dashboard';
 import HeroCarousel from '../components/HeroCarousel';
+import LazyFolderCard from '../components/LazyFolderCard';
 
 export default function ExplorePage() {
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+
+  // Sync URL param with search query when navigating from header
+  useEffect(() => {
+    const q = searchParams.get('q') || '';
+    setSearchQuery(q);
+  }, [searchParams]);
 
   const tcgCategories = [
     { name: 'One Piece', logo: '/images/logos/onepiece.webp', scaleClass: 'scale-150' },
@@ -73,67 +82,7 @@ export default function ExplorePage() {
         });
 
         const top10 = allFolders.slice(0, 10);
-        
-        const folderPromises = top10.map(async (folder) => {
-          try {
-            // Get cards to calculate count and value
-            const cardsSnapshot = await getDocs(collection(db, `folders/${folder.id}/cards`));
-            let totalValue = 0;
-            cardsSnapshot.forEach(cardDoc => {
-              const card = cardDoc.data();
-              totalValue += (parseFloat(card.price) || 0) * (parseInt(card.stock) || 1);
-            });
-            
-            folder.cardsCount = cardsSnapshot.size;
-            folder.value = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(totalValue);
-            
-            // Keep original color from database
-            if (!folder.color) folder.color = 'red';
-            let userName = 'Usuario';
-            let location = '';
-            
-            if (folder.userId) {
-              const userSnap = await getDoc(doc(db, 'users', folder.userId));
-              if (userSnap.exists()) {
-                const userData = userSnap.data();
-                if (userData.displayName) {
-                  userName = userData.displayName;
-                } else {
-                  userName = folder.userId.substring(0, 6);
-                }
-                
-                // Get location from default address
-                if (userData.addresses && userData.addresses.length > 0) {
-                  const defaultAddress = userData.addresses.find(a => a.isDefault) || userData.addresses[0];
-                  if (defaultAddress.comuna && defaultAddress.region) {
-                    location = `${defaultAddress.comuna}, ${defaultAddress.region}`;
-                  }
-                }
-                
-                if (userData.avatarBase64) {
-                  folder.avatarUrl = userData.avatarBase64;
-                } else if (userData.photoURL) {
-                  folder.avatarUrl = userData.photoURL;
-                }
-              } else {
-                userName = folder.userId.substring(0, 6);
-              }
-            }
-            folder.user = userName;
-            folder.location = location;
-            return folder;
-          } catch (err) {
-            console.error("Error fetching details for folder:", folder.id, err);
-            // Fallbacks in case of error
-            folder.cardsCount = folder.cardsCount || 0;
-            folder.user = folder.user || 'Usuario';
-            return folder;
-          }
-        });
-        
-        const foldersData = await Promise.all(folderPromises);
-        
-        setFolders(foldersData);
+        setFolders(top10);
       } catch (error) {
         console.error("Error fetching folders:", error);
       } finally {
@@ -181,57 +130,7 @@ export default function ExplorePage() {
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
                   {folders.map((folder) => (
-                    <Link to={`/c/${folder.id}`} key={folder.id} className="@container relative w-full aspect-[32/37] max-w-[320px] mx-auto flex flex-col cursor-pointer group hover:-translate-y-2 transition-transform duration-300">
-                      {/* The Background Image */}
-                      <div className="absolute inset-0 bg-[url('/images/carpeta_v4.png')] bg-[length:100%_100%] bg-no-repeat drop-shadow-md group-hover:drop-shadow-xl transition-all" style={{ filter: getFolderFilter(folder.color) }}></div>
-                      
-                      {/* Content overlay */}
-                      <div className="relative z-10 w-full h-full pt-[5%] pl-[18%] pr-[16%] pb-[15%] flex flex-col justify-between">
-                        
-                        {/* TOP SECTION */}
-                        <div className="w-full flex flex-col">
-                          {/* Cards Count */}
-                          <div className="flex justify-end w-full">
-                            <div className="bg-black/30 px-[3cqi] py-[1.5cqi] rounded-[3cqi] text-[4.5cqi] font-bold text-white shadow-sm flex items-center gap-[1.5cqi]" title="Cartas">
-                              <span className="material-symbols-outlined text-[5cqi]">style</span> {folder.cardsCount}
-                            </div>
-                          </div>
-                          
-                          {/* Folder Title */}
-                          <div className="flex flex-col items-start text-left mt-[2cqi] w-full pr-[2cqi]">
-                            <h3 className="font-extrabold text-white text-[11cqi] drop-shadow-md leading-tight line-clamp-3 break-words overflow-hidden w-full" title={folder.name}>{folder.name}</h3>
-                          </div>
-                        </div>
-                        
-                        {/* BOTTOM SECTION */}
-                        <div className="w-full mt-auto flex flex-col">
-                          <div className="flex justify-start mb-[3cqi]">
-                            <span className="text-[3.5cqi] font-bold px-[3cqi] py-[1cqi] text-white rounded-[2cqi] border border-white/60 tracking-wider uppercase drop-shadow-sm">{folder.tcg}</span>
-                          </div>
-                          <hr className="border-white/20 mb-[3cqi] w-full" />
-                          <div className="flex items-center justify-start gap-[3cqi] w-full">
-                            {folder.avatarUrl ? (
-                              <img 
-                                src={folder.avatarUrl} 
-                                alt={folder.user} 
-                                className="w-[12cqi] h-[12cqi] rounded-full shadow-md object-cover shrink-0 border border-white/40" 
-                              />
-                            ) : (
-                              <div className="w-[12cqi] h-[12cqi] rounded-full bg-white shadow-md flex items-center justify-center text-[5cqi] font-black text-[#8b1414] shrink-0">
-                                {folder.user.charAt(0).toUpperCase()}
-                              </div>
-                            )}
-                            <div className="flex flex-col">
-                              <span className="text-[5.5cqi] font-bold text-white drop-shadow-md line-clamp-1 leading-tight">{folder.user}</span>
-                              {folder.location && (
-                                <span className="text-[3.8cqi] text-white/80 drop-shadow-sm line-clamp-1 leading-tight">{folder.location}</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-
+                    <LazyFolderCard key={folder.id} folder={folder} />
                   ))}
                 </div>
               )}

@@ -13,11 +13,11 @@ export default function BottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 pb-6 md:hidden border-t border-outline-variant dark:border-outline bg-surface dark:bg-surface-dim shadow-lg rounded-t-xl">
       <Link className={getLinkClasses('/')} to="/">
-        <span className="material-symbols-outlined" data-icon="grid_view" data-weight={location.pathname === '/' ? "fill" : "regular"}>grid_view</span>
+        <span translate="no" className="material-symbols-outlined" data-icon="grid_view" data-weight={location.pathname === '/' ? "fill" : "regular"}>grid_view</span>
         <span className="font-label-sm text-label-sm mt-1">Catálogo</span>
       </Link>
       <Link className={getLinkClasses('/admin')} to="/admin">
-        <span className="material-symbols-outlined" data-icon="person" data-weight={location.pathname === '/admin' ? "fill" : "regular"}>person</span>
+        <span translate="no" className="material-symbols-outlined" data-icon="person" data-weight={location.pathname === '/admin' ? "fill" : "regular"}>person</span>
         <span className="font-label-sm text-label-sm mt-1">Admin</span>
       </Link>
     </nav>

@@ -139,6 +139,17 @@ export default function Messages() {
     return () => unsubscribe();
   }, [currentUser]);
 
+  // *** RESET UNREAD COUNT IMMEDIATELY when user opens a chat ***
+  useEffect(() => {
+    if (!activeChat || !currentUser) return;
+    const unreadCount = activeChat.unreadCounts?.[currentUser.uid] || 0;
+    if (unreadCount > 0) {
+      updateDoc(doc(db, 'chats', activeChat.id), {
+        [`unreadCounts.${currentUser.uid}`]: 0
+      }).catch(err => console.error("Error resetting unread count on open:", err));
+    }
+  }, [activeChat?.id]); // Only fires when WHICH chat changes, not on every re-render
+
   // Listen to Active Chat Messages
   useEffect(() => {
     if (!activeChat) {
@@ -170,12 +181,13 @@ export default function Messages() {
           const msgRef = doc(db, `chats/${activeChat.id}/messages`, d.id);
           batch.update(msgRef, { read: true });
         });
-        // Reset unread count for current user in this chat
-        batch.update(doc(db, 'chats', activeChat.id), {
-          [`unreadCounts.${currentUser.uid}`]: 0
-        });
         await batch.commit().catch(err => console.error("Error marking messages as read:", err));
       }
+
+      // Always reset the counter when the chat is open (safety net for race conditions)
+      updateDoc(doc(db, 'chats', activeChat.id), {
+        [`unreadCounts.${currentUser.uid}`]: 0
+      }).catch(() => {}); // Silently ignore errors
 
       setTimeout(() => {
         const container = messagesEndRef.current?.parentElement;
@@ -186,7 +198,7 @@ export default function Messages() {
     });
 
     return () => unsubscribe();
-  }, [activeChat, currentUser.uid]);
+  }, [activeChat?.id, currentUser.uid]);
 
   const handleImageSelect = async (e) => {
     const file = e.target.files[0];
@@ -425,7 +437,7 @@ export default function Messages() {
       <div className={`flex-1 flex flex-col min-h-0 bg-[#f0f2f5] ${!activeChat ? 'hidden md:flex' : 'fixed inset-0 z-50 md:static md:flex md:z-auto'}`}>
         {!activeChat ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gray-50">
-            <span className="material-symbols-outlined text-6xl text-gray-300 mb-4">forum</span>
+            <span translate="no" className="material-symbols-outlined text-6xl text-gray-300 mb-4">forum</span>
             <h3 className="text-xl font-bold text-gray-600 mb-2">Carpetazo Chat</h3>
             <p className="text-gray-400 max-w-sm">Selecciona una conversación de la izquierda para comenzar a coordinar tus tratos.</p>
           </div>
@@ -434,7 +446,7 @@ export default function Messages() {
             {/* Chat Header */}
             <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 shadow-sm z-10">
               <button className="md:hidden p-2 -ml-2 text-gray-500 hover:text-gray-900 flex items-center justify-center" onClick={() => setActiveChat(null)}>
-                <span className="material-symbols-outlined">arrow_back</span>
+                <span translate="no" className="material-symbols-outlined">arrow_back</span>
               </button>
               <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden font-bold text-[#1a2b4b]">
                 {getOtherParticipant(activeChat).avatar ? (
@@ -455,7 +467,7 @@ export default function Messages() {
 
             {/* Disclaimer Banner */}
             <div className="bg-yellow-50 border-b border-yellow-200 p-3 text-xs md:text-sm text-yellow-800 text-center shadow-sm z-10 flex items-center justify-center gap-2 flex-wrap">
-              <span className="material-symbols-outlined text-[18px]">security</span>
+              <span translate="no" className="material-symbols-outlined text-[18px]">security</span>
               <div>
                 <strong>Recomendación de Seguridad:</strong> Si hacen un intercambio en persona, júntense en un lugar público y revisen bien las cartas antes de entregarlas. Carpetazo.cl solo facilita este chat y no se responsabiliza por tratos externos.
               </div>
@@ -504,7 +516,7 @@ export default function Messages() {
                             </span>
                             {msg.replyTo.imageBase64 && !msg.replyTo.text && (
                               <span className="flex items-center gap-1">
-                                <span className="material-symbols-outlined text-[12px]">image</span>
+                                <span translate="no" className="material-symbols-outlined text-[12px]">image</span>
                                 Imagen
                               </span>
                             )}
@@ -560,7 +572,7 @@ export default function Messages() {
                         </span>
                       </div>
                       <button onClick={() => setReplyMessage(null)} className="text-gray-400 hover:text-gray-600 p-1">
-                        <span className="material-symbols-outlined text-[18px]">close</span>
+                        <span translate="no" className="material-symbols-outlined text-[18px]">close</span>
                       </button>
                     </div>
                   )}
@@ -575,7 +587,7 @@ export default function Messages() {
                         onClick={() => setPendingImage(null)}
                         className="p-1.5 hover:bg-gray-200 rounded-full text-gray-500 transition-colors"
                       >
-                        <span className="material-symbols-outlined text-xl">close</span>
+                        <span translate="no" className="material-symbols-outlined text-xl">close</span>
                       </button>
                     </div>
                   )}
@@ -612,7 +624,7 @@ export default function Messages() {
                         className="p-2 text-gray-400 hover:text-[#1a2b4b] hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center"
                         title="Adjuntar imagen"
                       >
-                        <span className="material-symbols-outlined text-[24px]">attach_file</span>
+                        <span translate="no" className="material-symbols-outlined text-[24px]">attach_file</span>
                       </button>
                       <button 
                         type="button" 
@@ -620,7 +632,7 @@ export default function Messages() {
                         className="p-2 text-gray-400 hover:text-[#1a2b4b] hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center md:hidden"
                         title="Tomar foto"
                       >
-                        <span className="material-symbols-outlined text-[24px]">photo_camera</span>
+                        <span translate="no" className="material-symbols-outlined text-[24px]">photo_camera</span>
                       </button>
                     </div>
 
@@ -648,7 +660,7 @@ export default function Messages() {
                       disabled={(!newMessage.trim() && !pendingImage) || isProcessingImage}
                       className="w-11 h-11 rounded-full bg-[#1e40af] text-white flex items-center justify-center flex-shrink-0 disabled:opacity-50 hover:bg-blue-800 transition-colors shadow-sm mb-0.5"
                     >
-                      <span className="material-symbols-outlined text-[20px]">send</span>
+                      <span translate="no" className="material-symbols-outlined text-[20px]">send</span>
                     </button>
                   </form>
                 </>
@@ -667,21 +679,21 @@ export default function Messages() {
                       onClick={handleReply}
                       className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg text-left transition-colors text-gray-700 font-medium"
                     >
-                      <span className="material-symbols-outlined text-gray-500">reply</span>
+                      <span translate="no" className="material-symbols-outlined text-gray-500">reply</span>
                       Responder
                     </button>
                     <button 
                       onClick={copyMessageToClipboard}
                       className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg text-left transition-colors text-gray-700 font-medium"
                     >
-                      <span className="material-symbols-outlined text-gray-500">content_copy</span>
+                      <span translate="no" className="material-symbols-outlined text-gray-500">content_copy</span>
                       Copiar texto
                     </button>
                     <button 
                       onClick={() => setSelectedMessage(null)}
                       className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg text-left transition-colors text-red-600 font-medium mt-1"
                     >
-                      <span className="material-symbols-outlined text-red-500">close</span>
+                      <span translate="no" className="material-symbols-outlined text-red-500">close</span>
                       Cancelar
                     </button>
                   </div>

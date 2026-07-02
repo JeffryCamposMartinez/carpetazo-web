@@ -1,19 +1,11 @@
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useState, useRef } from 'react';
 
 export default function LandingPage() {
   const { loginWithGoogle, currentUser } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const isFromLogo = new URLSearchParams(location.search).get('ref') === 'logo';
   const [isMarqueePaused, setIsMarqueePaused] = useState(false);
-
-  useEffect(() => {
-    if (currentUser && !isFromLogo) {
-      navigate('/');
-    }
-  }, [currentUser, navigate, isFromLogo]);
 
   // Hook para detectar hover en el carrusel cuando el mouse está quieto y las cartas se mueven debajo
   const mousePos = useRef({ x: -1, y: -1 });
@@ -115,6 +107,8 @@ export default function LandingPage() {
                     src={item.img} 
                     alt={`TCG Art ${idx}`} 
                     className={`w-full h-full object-cover skew-x-[15deg] transition-transform duration-500 ${item.bgScale || 'scale-[1.55] group-[.force-hover]:scale-[1.65]'}`}
+                    fetchPriority="high"
+                    decoding="sync"
                   />
                   {/* Subtle hover overlay */}
                   <div className="absolute inset-0 bg-black/0 group-[.force-hover]:bg-black/20 transition-colors duration-500 z-10 pointer-events-none"></div>
@@ -140,7 +134,7 @@ export default function LandingPage() {
         {/* CTA Button */}
         <div className="z-20 flex flex-col sm:flex-row items-center justify-center gap-4 w-full px-4 my-auto">
           <Link to="/" className="w-full sm:w-auto px-6 py-3 md:px-8 md:py-4 bg-primary text-on-primary font-bold rounded-xl shadow-[0_0_20px_rgba(255,203,5,0.4)] hover:shadow-[0_0_30px_rgba(255,203,5,0.6)] transition-all hover:-translate-y-1 text-base md:text-lg flex items-center justify-center gap-3">
-            <span className="material-symbols-outlined text-2xl">travel_explore</span>
+            <span translate="no" className="material-symbols-outlined text-2xl">travel_explore</span>
             Explorar carpetas de la comunidad
           </Link>
         </div>
@@ -184,7 +178,7 @@ export default function LandingPage() {
               <div className="flex flex-col gap-3 relative z-10">
                 <div className="flex items-center gap-4">
                   <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20 shadow-inner">
-                    <span className="material-symbols-outlined text-2xl text-primary drop-shadow-md">{feat.icon}</span>
+                    <span translate="no" className="material-symbols-outlined text-2xl text-primary drop-shadow-md">{feat.icon}</span>
                   </div>
                   <h3 className="text-base font-bold text-on-background leading-tight">{feat.title}</h3>
                 </div>
@@ -211,7 +205,7 @@ export default function LandingPage() {
               <div className="flex flex-col gap-3 relative z-10">
                 <div className="flex items-center gap-4">
                   <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20 shadow-inner group-hover:from-primary/40 group-hover:to-primary/10 group-hover:rotate-6 group-hover:scale-110 transition-all duration-300">
-                    <span className="material-symbols-outlined text-2xl text-primary drop-shadow-md">{feat.icon}</span>
+                    <span translate="no" className="material-symbols-outlined text-2xl text-primary drop-shadow-md">{feat.icon}</span>
                   </div>
                   <h3 className="text-lg font-bold text-on-background group-hover:text-primary transition-colors leading-tight">{feat.title}</h3>
                 </div>

@@ -61,7 +61,7 @@ const CustomDropdown = ({ options, value, onChange, placeholder }) => {
         <span className={value ? "text-slate-800 font-bold" : "text-slate-400 font-medium"}>
           {value || placeholder}
         </span>
-        <span className="material-symbols-outlined text-slate-400 transition-transform duration-200" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+        <span translate="no" className="material-symbols-outlined text-slate-400 transition-transform duration-200" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
           expand_more
         </span>
       </div>
@@ -497,12 +497,12 @@ const ProfilePage = () => {
                       {profileData.avatarBase64 || currentUser?.photoURL ? (
                         <img src={profileData.avatarBase64 || currentUser.photoURL} alt="Avatar" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="material-symbols-outlined text-[64px] text-slate-300">person</span>
+                        <span translate="no" className="material-symbols-outlined text-[64px] text-slate-300">person</span>
                       )}
                     </div>
                     {/* Hover overlay for changing avatar */}
                     <div className="absolute inset-0 bg-[#1a2b4b]/60 backdrop-blur-sm rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 z-20">
-                      <span className="material-symbols-outlined text-white text-3xl mb-1">photo_camera</span>
+                      <span translate="no" className="material-symbols-outlined text-white text-3xl mb-1">photo_camera</span>
                       <span className="text-white text-xs font-bold">Cambiar Foto</span>
                       <input 
                         type="file" 
@@ -525,7 +525,7 @@ const ProfilePage = () => {
                 {/* Vertical Tabs */}
                 <div className="relative w-full">
                   <div className="lg:hidden flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-3 opacity-80">
-                    <span className="material-symbols-outlined text-[14px] animate-[bounce_1s_infinite_horizontal]">swipe</span>
+                    <span translate="no" className="material-symbols-outlined text-[14px] animate-[bounce_1s_infinite_horizontal]">swipe</span>
                     Desliza para más opciones
                   </div>
                   <div 
@@ -553,12 +553,12 @@ const ProfilePage = () => {
                   
                   {/* Left fade indicator - mobile only */}
                   <div className={`absolute left-0 top-7 bottom-0 w-12 bg-gradient-to-r from-[#1a2b4b]/40 to-transparent rounded-l-3xl pointer-events-none lg:hidden flex items-center justify-start pl-1.5 transition-opacity duration-300 ${canScrollLeft ? 'opacity-100' : 'opacity-0'}`}>
-                    <span className="material-symbols-outlined text-white animate-pulse text-xl drop-shadow-md">chevron_left</span>
+                    <span translate="no" className="material-symbols-outlined text-white animate-pulse text-xl drop-shadow-md">chevron_left</span>
                   </div>
 
                   {/* Right fade indicator - mobile only */}
                   <div className={`absolute right-0 top-7 bottom-0 w-12 bg-gradient-to-l from-[#1a2b4b]/40 to-transparent rounded-r-3xl pointer-events-none lg:hidden flex items-center justify-end pr-1.5 transition-opacity duration-300 ${canScrollRight ? 'opacity-100' : 'opacity-0'}`}>
-                    <span className="material-symbols-outlined text-white animate-pulse text-xl drop-shadow-md">chevron_right</span>
+                    <span translate="no" className="material-symbols-outlined text-white animate-pulse text-xl drop-shadow-md">chevron_right</span>
                   </div>
                 </div>
 
@@ -589,7 +589,7 @@ const ProfilePage = () => {
 
                   {showSuccess && (
                     <div className="mb-8 bg-emerald-50 text-emerald-700 p-5 rounded-2xl border border-emerald-200 flex items-center gap-3 animate-[fadeIn_0.3s_ease-out] shadow-sm">
-                      <span className="material-symbols-outlined text-[24px]">check_circle</span>
+                      <span translate="no" className="material-symbols-outlined text-[24px]">check_circle</span>
                       <span className="font-bold">¡Cambios guardados con éxito!</span>
                     </div>
                   )}
@@ -636,11 +636,11 @@ const ProfilePage = () => {
                                   {profileData.username && (
                                     <div className="absolute right-4 flex items-center">
                                       {checkingUsername ? (
-                                        <span className="material-symbols-outlined animate-spin text-slate-400 text-[20px]">sync</span>
+                                        <span translate="no" className="material-symbols-outlined animate-spin text-slate-400 text-[20px]">sync</span>
                                       ) : usernameAvailable === true ? (
-                                        <span className="material-symbols-outlined text-green-500 text-[20px] font-bold">check_circle</span>
+                                        <span translate="no" className="material-symbols-outlined text-green-500 text-[20px] font-bold">check_circle</span>
                                       ) : usernameAvailable === false ? (
-                                        <span className="material-symbols-outlined text-red-500 text-[20px] font-bold">cancel</span>
+                                        <span translate="no" className="material-symbols-outlined text-red-500 text-[20px] font-bold">cancel</span>
                                       ) : null}
                                     </div>
                                   )}
@@ -666,23 +666,23 @@ const ProfilePage = () => {
                                   {profileData.username && (
                                     <div className="absolute right-4 flex items-center">
                                       {checkingUsername ? (
-                                        <span className="material-symbols-outlined animate-spin text-slate-400 text-[20px]">sync</span>
+                                        <span translate="no" className="material-symbols-outlined animate-spin text-slate-400 text-[20px]">sync</span>
                                       ) : usernameAvailable === true ? (
-                                        <span className="material-symbols-outlined text-green-500 text-[20px] font-bold">check_circle</span>
+                                        <span translate="no" className="material-symbols-outlined text-green-500 text-[20px] font-bold">check_circle</span>
                                       ) : usernameAvailable === false ? (
-                                        <span className="material-symbols-outlined text-red-500 text-[20px] font-bold">cancel</span>
+                                        <span translate="no" className="material-symbols-outlined text-red-500 text-[20px] font-bold">cancel</span>
                                       ) : null}
                                     </div>
                                   )}
                                 </div>
                                 {usernameAvailable === false && !checkingUsername && (
                                   <span className="text-red-500 text-xs font-bold ml-2 flex items-center gap-1">
-                                    <span className="material-symbols-outlined text-[14px]">error</span> Este usuario ya está en uso.
+                                    <span translate="no" className="material-symbols-outlined text-[14px]">error</span> Este usuario ya está en uso.
                                   </span>
                                 )}
                                 {usernameAvailable === true && !checkingUsername && profileData.username && (
                                   <span className="text-green-500 text-xs font-bold ml-2 flex items-center gap-1">
-                                    <span className="material-symbols-outlined text-[14px]">check_circle</span> Usuario disponible.
+                                    <span translate="no" className="material-symbols-outlined text-[14px]">check_circle</span> Usuario disponible.
                                   </span>
                                 )}
                               </div>
@@ -753,7 +753,7 @@ const ProfilePage = () => {
                                 }`}
                                 placeholder="12.345.678-9"
                               />
-                              {rutError && <span className="text-sm text-red-500 font-bold flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">error</span> {rutError}</span>}
+                              {rutError && <span className="text-sm text-red-500 font-bold flex items-center gap-1"><span translate="no" className="material-symbols-outlined text-[16px]">error</span> {rutError}</span>}
                             </div>
                             <div className="flex flex-col gap-3">
                               <label className="text-sm font-black text-slate-700 uppercase tracking-wide">Teléfono de contacto</label>
@@ -789,7 +789,7 @@ const ProfilePage = () => {
                           
                           <div className="bg-slate-50 border-2 border-slate-100 rounded-2xl p-5 flex items-center gap-5 transition-all focus-within:border-[#1877F2] focus-within:bg-white">
                             <div className="w-12 h-12 bg-[#1877F2]/10 rounded-xl flex items-center justify-center text-[#1877F2]">
-                              <span className="material-symbols-outlined text-[28px]">thumb_up</span>
+                              <span translate="no" className="material-symbols-outlined text-[28px]">thumb_up</span>
                             </div>
                             <div className="flex-1">
                               <label className="text-xs font-black text-slate-500 uppercase tracking-wide block mb-1">Perfil de Facebook</label>
@@ -808,7 +808,7 @@ const ProfilePage = () => {
 
                           <div className="bg-slate-50 border-2 border-slate-100 rounded-2xl p-5 flex items-center gap-5 transition-all focus-within:border-[#E4405F] focus-within:bg-white">
                             <div className="w-12 h-12 bg-[#E4405F]/10 rounded-xl flex items-center justify-center text-[#E4405F]">
-                              <span className="material-symbols-outlined text-[28px]">photo_camera</span>
+                              <span translate="no" className="material-symbols-outlined text-[28px]">photo_camera</span>
                             </div>
                             <div className="flex-1">
                               <label className="text-xs font-black text-slate-500 uppercase tracking-wide block mb-1">Perfil de Instagram</label>
@@ -827,7 +827,7 @@ const ProfilePage = () => {
 
                           <div className="bg-slate-50 border-2 border-slate-100 rounded-2xl p-5 flex items-center gap-5 transition-all focus-within:border-[#FF0000] focus-within:bg-white">
                             <div className="w-12 h-12 bg-[#FF0000]/10 rounded-xl flex items-center justify-center text-[#FF0000]">
-                              <span className="material-symbols-outlined text-[28px]">play_circle</span>
+                              <span translate="no" className="material-symbols-outlined text-[28px]">play_circle</span>
                             </div>
                             <div className="flex-1">
                               <label className="text-xs font-black text-slate-500 uppercase tracking-wide block mb-1">Canal de Youtube</label>
@@ -865,7 +865,7 @@ const ProfilePage = () => {
                               onClick={openAddAddressModal}
                               className="flex items-center gap-2 text-sm font-black bg-[#eef2ff] text-[#2563eb] hover:bg-[#2563eb] hover:text-white rounded-xl px-4 py-2.5 transition-all shadow-sm hover:shadow-md"
                             >
-                              <span className="material-symbols-outlined text-[18px]">add_location</span>
+                              <span translate="no" className="material-symbols-outlined text-[18px]">add_location</span>
                               Nueva Dirección
                             </button>
                           </div>
@@ -873,7 +873,7 @@ const ProfilePage = () => {
                           {(!profileData.addresses || profileData.addresses.length === 0) ? (
                             <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-200">
                               <div className="w-20 h-20 bg-white rounded-full shadow-sm flex items-center justify-center mb-4">
-                                <span className="material-symbols-outlined text-4xl text-slate-300">location_off</span>
+                                <span translate="no" className="material-symbols-outlined text-4xl text-slate-300">location_off</span>
                               </div>
                               <h3 className="text-lg font-bold text-slate-700 mb-2">No tienes direcciones</h3>
                               <p className="text-slate-500 font-medium mb-6">Agrega al menos una dirección para tus compras y envíos.</p>
@@ -896,7 +896,7 @@ const ProfilePage = () => {
                                     <div className="flex justify-between items-start mb-3">
                                       <div className="flex items-center gap-3">
                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${addr.isDefault ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' : 'bg-slate-100 text-slate-400'}`}>
-                                          <span className="material-symbols-outlined">{addr.isDefault ? 'home' : 'location_on'}</span>
+                                          <span translate="no" className="material-symbols-outlined">{addr.isDefault ? 'home' : 'location_on'}</span>
                                         </div>
                                         <div>
                                           <h4 className="font-black text-slate-800 text-lg leading-tight">{addr.name || 'Sin nombre'}</h4>
@@ -915,10 +915,10 @@ const ProfilePage = () => {
                                   
                                   <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
                                     <button onClick={() => handleEditAddressClick(idx)} className="flex items-center justify-center w-10 h-10 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-[#2563eb] transition-colors">
-                                      <span className="material-symbols-outlined text-[20px]">edit</span>
+                                      <span translate="no" className="material-symbols-outlined text-[20px]">edit</span>
                                     </button>
                                     <button onClick={() => handleDeleteAddress(idx)} className="flex items-center justify-center w-10 h-10 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors">
-                                      <span className="material-symbols-outlined text-[20px]">delete</span>
+                                      <span translate="no" className="material-symbols-outlined text-[20px]">delete</span>
                                     </button>
                                   </div>
                                 </div>
@@ -968,7 +968,7 @@ const ProfilePage = () => {
                           </div>
                           
                           <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 flex items-start gap-4 mt-4">
-                            <span className="material-symbols-outlined text-blue-500 mt-0.5">info</span>
+                            <span translate="no" className="material-symbols-outlined text-blue-500 mt-0.5">info</span>
                             <p className="text-sm text-blue-800/80 font-medium leading-relaxed">Estos datos son estrictamente confidenciales y solo se utilizarán para transferirte el dinero de tus ventas de manera segura a tu cuenta personal.</p>
                           </div>
                         </div>
@@ -989,7 +989,7 @@ const ProfilePage = () => {
                           
                           <div className="flex items-start gap-4 mb-6">
                             <div className="w-12 h-12 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
-                              <span className="material-symbols-outlined text-[28px]">warning</span>
+                              <span translate="no" className="material-symbols-outlined text-[28px]">warning</span>
                             </div>
                             <div>
                               <h2 className="text-xl font-black text-red-700 mb-1">Zona de Peligro</h2>
@@ -1022,7 +1022,7 @@ const ProfilePage = () => {
                                   disabled={deleteConfirmationText.toLowerCase() !== 'eliminar' || isDeletingAccount}
                                   className="w-full md:w-auto px-8 py-3.5 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl shadow-lg hover:shadow-red-500/30 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none disabled:shadow-none flex items-center justify-center gap-2"
                                 >
-                                  <span className="material-symbols-outlined text-[20px]">delete_forever</span>
+                                  <span translate="no" className="material-symbols-outlined text-[20px]">delete_forever</span>
                                   {isDeletingAccount ? 'Eliminando cuenta...' : 'Eliminar mi cuenta'}
                                 </button>
                               </div>
@@ -1048,7 +1048,7 @@ const ProfilePage = () => {
               onClick={() => setIsAddressModalOpen(false)}
               className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors"
             >
-              <span className="material-symbols-outlined">close</span>
+              <span translate="no" className="material-symbols-outlined">close</span>
             </button>
             <h2 className="text-2xl font-bold text-[#1a2b4b] mb-6">
               {editingAddressIndex !== null ? 'Editar dirección' : 'Agregar dirección'}
@@ -1191,7 +1191,7 @@ const ProfilePage = () => {
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
           <div className="bg-white p-8 rounded-[24px] w-full max-w-[400px] shadow-2xl flex flex-col items-center text-center animate-[scaleIn_0.2s_ease-out]">
             <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6">
-              <span className="material-symbols-outlined text-[32px]">warning</span>
+              <span translate="no" className="material-symbols-outlined text-[32px]">warning</span>
             </div>
             <h2 className="text-[22px] font-bold text-[#1a2b4b] mb-3">¿Eliminar dirección?</h2>
             <p className="text-gray-600 mb-8 text-[15px] leading-relaxed">
@@ -1220,7 +1220,7 @@ const ProfilePage = () => {
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
           <div className="bg-white p-8 rounded-[24px] w-full max-w-[400px] shadow-2xl flex flex-col items-center text-center animate-[scaleIn_0.2s_ease-out]">
             <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6">
-              <span className="material-symbols-outlined text-[32px]">home_pin</span>
+              <span translate="no" className="material-symbols-outlined text-[32px]">home_pin</span>
             </div>
             <h2 className="text-[22px] font-bold text-[#1a2b4b] mb-3">¿Dirección principal?</h2>
             <p className="text-gray-600 mb-8 text-[15px] leading-relaxed">

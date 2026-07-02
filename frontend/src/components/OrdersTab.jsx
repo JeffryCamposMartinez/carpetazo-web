@@ -59,7 +59,7 @@ export default function OrdersTab({ currentUser, showToast, filter = 'solicitude
   if (filteredOrders.length === 0) {
     return (
       <div className="py-20 text-center text-gray-500 flex flex-col items-center">
-        <span className="material-symbols-outlined text-6xl mb-4 opacity-30">
+        <span translate="no" className="material-symbols-outlined text-6xl mb-4 opacity-30">
           {filter === 'historial' ? 'history' : 'receipt_long'}
         </span>
         <h3 className="text-xl font-bold mb-2 text-gray-900">
@@ -96,7 +96,7 @@ export default function OrdersTab({ currentUser, showToast, filter = 'solicitude
                     <tr key={order.id} className="hover:bg-gray-50 transition-colors group">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <div className="flex items-center gap-2">
-                          <span className="material-symbols-outlined text-[16px] opacity-50">calendar_today</span>
+                          <span translate="no" className="material-symbols-outlined text-[16px] opacity-50">calendar_today</span>
                           {formatDate(order.createdAt)}
                         </div>
                       </td>
@@ -115,12 +115,12 @@ export default function OrdersTab({ currentUser, showToast, filter = 'solicitude
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         {order.status === 'completed' && (
                           <span className="inline-flex items-center gap-1 bg-green-500/10 text-green-400 border border-green-500/20 text-xs font-bold px-3 py-1.5 rounded-full">
-                            <span className="material-symbols-outlined text-[14px]">check_circle</span> Completado
+                            <span translate="no" className="material-symbols-outlined text-[14px]">check_circle</span> Completado
                           </span>
                         )}
                         {order.status === 'cancelled' && (
                           <span className="inline-flex items-center gap-1 bg-error/10 text-error border border-error/20 text-xs font-bold px-3 py-1.5 rounded-full">
-                            <span className="material-symbols-outlined text-[14px]">cancel</span> Cancelado
+                            <span translate="no" className="material-symbols-outlined text-[14px]">cancel</span> Cancelado
                           </span>
                         )}
                       </td>
@@ -139,7 +139,7 @@ export default function OrdersTab({ currentUser, showToast, filter = 'solicitude
                   <div>
                     <h4 className="font-bold text-gray-900 text-lg leading-tight">{order.buyerName || 'Cliente Anónimo'}</h4>
                     <div className="flex items-center gap-1 text-xs text-gray-500 mt-1.5">
-                      <span className="material-symbols-outlined text-[14px]">calendar_today</span>
+                      <span translate="no" className="material-symbols-outlined text-[14px]">calendar_today</span>
                       {formatDate(order.createdAt)}
                     </div>
                   </div>
@@ -159,12 +159,12 @@ export default function OrdersTab({ currentUser, showToast, filter = 'solicitude
                   <div>
                     {order.status === 'completed' && (
                       <span className="inline-flex items-center gap-1 bg-green-500/10 text-green-400 border border-green-500/20 text-xs font-bold px-2 py-1 rounded-full">
-                        <span className="material-symbols-outlined text-[14px]">check_circle</span> Completado
+                        <span translate="no" className="material-symbols-outlined text-[14px]">check_circle</span> Completado
                       </span>
                     )}
                     {order.status === 'cancelled' && (
                       <span className="inline-flex items-center gap-1 bg-error/10 text-error border border-error/20 text-xs font-bold px-2 py-1 rounded-full">
-                        <span className="material-symbols-outlined text-[14px]">cancel</span> Cancelado
+                        <span translate="no" className="material-symbols-outlined text-[14px]">cancel</span> Cancelado
                       </span>
                     )}
                   </div>
@@ -184,7 +184,7 @@ export default function OrdersTab({ currentUser, showToast, filter = 'solicitude
                     {order.status === 'pending' && <span className="bg-blue-50 text-[#1e40af] text-xs font-bold px-2 py-0.5 rounded-full border border-[#1e40af]/20">Pendiente</span>}
                   </div>
                   <p className="text-sm text-gray-500 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">calendar_today</span>
+                    <span translate="no" className="material-symbols-outlined text-[14px]">calendar_today</span>
                     {formatDate(order.createdAt)}
                   </p>
                   <p className="text-xs text-gray-600 mt-1">Carpeta: {order.folderName}</p>
@@ -216,14 +216,14 @@ export default function OrdersTab({ currentUser, showToast, filter = 'solicitude
                     onClick={() => updateOrderStatus(order, 'cancelled')}
                     className="flex-1 py-2.5 rounded-xl text-error bg-error/10 hover:bg-error/20 font-bold transition-colors flex justify-center items-center gap-2"
                   >
-                    <span className="material-symbols-outlined text-sm">close</span> Cancelar
+                    <span translate="no" className="material-symbols-outlined text-sm">close</span> Cancelar
                   </button>
                   <button 
                     onClick={() => updateOrderStatus(order, 'completed')}
                     className="flex-[2] py-2.5 rounded-xl text-white bg-green-600 hover:bg-green-500 font-bold transition-colors flex justify-center items-center gap-2 shadow-lg shadow-green-900/20"
                     title="Marca como pagado y resta el stock de las cartas"
                   >
-                    <span className="material-symbols-outlined text-sm">check</span> Completar
+                    <span translate="no" className="material-symbols-outlined text-sm">check</span> Completar
                   </button>
                 </div>
               )}

@@ -33,7 +33,7 @@ const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
         className="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-red-600 hover:bg-red-700 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
         title="Eliminar carta"
       >
-        <span className="material-symbols-outlined text-[18px]">delete</span>
+        <span translate="no" className="material-symbols-outlined text-[18px]">delete</span>
       </button>
       <div className="p-4 flex flex-col items-center flex-1">
         <div className="w-full relative pt-[140%] mb-3">
@@ -74,7 +74,7 @@ const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
         disabled={saving || !hasChanges} 
         className={"w-full py-3 font-bold text-xs tracking-wide transition-colors border-t border-gray-200 flex items-center justify-center gap-1.5 " + (hasChanges ? 'bg-[#1e40af] text-white hover:bg-blue-800' : 'bg-gray-100 text-gray-500 opacity-60')}
       >
-        <span className="material-symbols-outlined text-[16px]">{saving ? 'hourglass_empty' : 'save'}</span>
+        <span translate="no" className="material-symbols-outlined text-[16px]">{saving ? 'hourglass_empty' : 'save'}</span>
         {saving ? 'Guardando...' : hasChanges ? 'Guardar' : 'Guardado'}
       </button>
     </div>
@@ -227,7 +227,7 @@ function FolderPokemon() {
   const renderCatalogTab = () => (
     <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
       <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 mb-6">
-        <span className="material-symbols-outlined text-[#1e40af]">inventory_2</span>
+        <span translate="no" className="material-symbols-outlined text-[#1e40af]">inventory_2</span>
         Inventario Actual
       </h2>
       
@@ -258,7 +258,7 @@ function FolderPokemon() {
                 <span className="truncate font-bold text-sm">
                   {catSet === '' ? 'Todas las ediciones' : availableSets.find(s => s.id === catSet)?.name || 'Seleccionado'}
                 </span>
-                <span className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
+                <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
               </div>
               
               {isCatSetDropdownOpen && (
@@ -269,7 +269,7 @@ function FolderPokemon() {
                       className={`px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${catSet === '' ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
                       onClick={() => { setCatSet(''); setIsCatSetDropdownOpen(false); }}
                     >
-                      {catSet === '' && <span className="material-symbols-outlined text-sm">check</span>}
+                      {catSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                       <span className={catSet !== '' ? 'ml-6' : ''}>Todas las ediciones</span>
                     </div>
                     {availableSets.map(set => (
@@ -278,7 +278,7 @@ function FolderPokemon() {
                         className={`px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${catSet === set.id ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
                         onClick={() => { setCatSet(set.id); setIsCatSetDropdownOpen(false); }}
                       >
-                        {catSet === set.id && <span className="material-symbols-outlined text-sm">check</span>}
+                        {catSet === set.id && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                         <span className={catSet !== set.id ? 'ml-6' : ''}>{set.name}</span>
                       </div>
                     ))}
@@ -296,7 +296,7 @@ function FolderPokemon() {
         ))}
         {filteredCatalog.length === 0 && (
           <div className="col-span-full py-12 text-center text-on-surface-variant flex flex-col items-center">
-            <span className="material-symbols-outlined text-5xl mb-3 opacity-30">search_off</span>
+            <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-30">search_off</span>
             <p>No se encontraron cartas que coincidan con los filtros.</p>
           </div>
         )}
@@ -499,7 +499,7 @@ function FolderPokemon() {
       {/* Lado Izquierdo: Buscador de API */}
       <div className="flex-1 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
         <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 mb-4">
-          <span className="material-symbols-outlined text-[#1e40af]">search</span>
+          <span translate="no" className="material-symbols-outlined text-[#1e40af]">search</span>
           Buscar en Pokémon TCG
         </h2>
         
@@ -515,19 +515,19 @@ function FolderPokemon() {
           <div className="relative min-w-[200px] mt-4">
             <div className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 cursor-pointer flex justify-between items-center transition-colors hover:border-[#1e40af]" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
               <span className="truncate font-bold text-sm">{searchSet === '' ? 'Todas las ediciones' : availableSets.find(s => s.id === searchSet)?.name || 'Seleccionado'}</span>
-              <span className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
+              <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
             </div>
             {isSetDropdownOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setIsSetDropdownOpen(false)}></div>
                 <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
                   <div className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center gap-2 ${searchSet === '' ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(''); setIsSetDropdownOpen(false); }}>
-                    {searchSet === '' && <span className="material-symbols-outlined text-sm">check</span>}
+                    {searchSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                     <span className={searchSet !== '' ? 'ml-6' : ''}>Todas las ediciones</span>
                   </div>
                   {availableSets.map(set => (
                     <div key={set.id} className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center gap-2 ${searchSet === set.id ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(set.id); setIsSetDropdownOpen(false); }}>
-                      {searchSet === set.id && <span className="material-symbols-outlined text-sm">check</span>}
+                      {searchSet === set.id && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                       <span className={searchSet !== set.id ? 'ml-6' : ''}>{set.name}</span>
                     </div>
                   ))}
@@ -537,7 +537,7 @@ function FolderPokemon() {
           </div>
           <div className="flex justify-center mt-4">
             <button type="submit" className="bg-[#1e40af] hover:bg-blue-800 text-white font-bold px-12 py-3 rounded-full transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 whitespace-nowrap flex items-center gap-2" disabled={isSearching}>
-              <span className="material-symbols-outlined">{isSearching ? 'hourglass_empty' : 'search'}</span>
+              <span translate="no" className="material-symbols-outlined">{isSearching ? 'hourglass_empty' : 'search'}</span>
               {isSearching ? 'Buscando...' : 'Buscar Cartas'}
             </button>
           </div>
@@ -570,12 +570,12 @@ function FolderPokemon() {
           ))
           ) : hasSearchedAPI ? (
               <div className="col-span-full py-12 text-center text-gray-500 flex flex-col items-center">
-                  <span className="material-symbols-outlined text-5xl mb-3 opacity-50">search_off</span>
+                  <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-50">search_off</span>
                   <p className="font-bold">No se encontraron cartas que coincidan con tu búsqueda.</p>
               </div>
           ) : (
               <div className="col-span-full py-12 text-center text-gray-500 flex flex-col items-center">
-                  <span className="material-symbols-outlined text-5xl mb-3 opacity-50">travel_explore</span>
+                  <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-50">travel_explore</span>
                   <p className="font-bold">Realiza una búsqueda para empezar.</p>
               </div>
           )}
@@ -585,7 +585,7 @@ function FolderPokemon() {
       {/* Lado Derecho: Añadir al Catálogo */}
       <div id="add-catalog-panel" className="w-full max-w-[400px] lg:w-[400px] bg-white p-6 rounded-2xl shadow-sm border border-gray-200 sticky top-24 flex-shrink-0 z-10 hover:z-[60] h-fit min-h-[650px] lg:min-h-0 mx-auto lg:mx-0 self-center lg:self-start scroll-mt-24">
         <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 border-b border-gray-200 pb-4">
-          <span className="material-symbols-outlined text-[#1e40af]">add_circle</span>
+          <span translate="no" className="material-symbols-outlined text-[#1e40af]">add_circle</span>
           Añadir al Catálogo
         </h2>
         {selectedCard ? (
@@ -603,7 +603,7 @@ function FolderPokemon() {
                   className="absolute -bottom-3 -right-3 z-[60] bg-[#1e40af] text-white rounded-full w-10 h-10 flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.5)] hover:bg-blue-800 hover:scale-110 transition-all border-2 border-white"
                   title="Subir foto real de la carta"
                 >
-                  <span className="material-symbols-outlined text-[20px]">photo_camera</span>
+                  <span translate="no" className="material-symbols-outlined text-[20px]">photo_camera</span>
                 </button>
               </div>
               <input 
@@ -649,7 +649,7 @@ function FolderPokemon() {
             </div>
 
             <button type="submit" disabled={isSaving} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 mt-4 text-[15px]">
-              {isSaving ? <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span> : <span className="material-symbols-outlined">add_circle</span>}
+              {isSaving ? <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span> : <span translate="no" className="material-symbols-outlined">add_circle</span>}
               {isSaving ? 'Guardando...' : 'Guardar Carta'}
             </button>
             <div className="mt-2 flex justify-between gap-2">
@@ -663,7 +663,7 @@ function FolderPokemon() {
           </form>
         ) : (
           <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-gray-400 opacity-80 border-2 border-dashed border-gray-200 rounded-xl mt-6 p-6">
-            <span className="material-symbols-outlined text-6xl mb-4 text-gray-300">style</span>
+            <span translate="no" className="material-symbols-outlined text-6xl mb-4 text-gray-300">style</span>
             <p className="text-sm font-bold text-center">Selecciona una carta de los resultados.</p>
           </div>
         )}
@@ -706,7 +706,7 @@ function FolderPokemon() {
       {/* Solicitudes Pendientes */}
       <div className="bg-surface-container-low p-6 rounded-2xl border border-surface-container shadow-sm">
         <h2 className="font-headline-md text-headline-md text-on-background flex items-center gap-2 mb-4">
-          <span className="material-symbols-outlined text-secondary">notifications_active</span>
+          <span translate="no" className="material-symbols-outlined text-secondary">notifications_active</span>
           Solicitudes Pendientes ({pendingOrders.length})
         </h2>
         {pendingOrders.length === 0 ? (
@@ -728,8 +728,8 @@ function FolderPokemon() {
                 <div className="flex justify-between items-center pt-2 border-t border-surface-container">
                   <span className="font-title-md text-secondary font-bold">{formatCLP(order.totalAmount || 0)}</span>
                   <div className="flex gap-2">
-                    <button onClick={() => handleRejectOrder(order.code)} className="w-10 h-10 rounded-full bg-error-container text-on-error-container hover:bg-error hover:text-white flex items-center justify-center transition-colors" title="Rechazar solicitud"><span className="material-symbols-outlined text-[20px]">close</span></button>
-                    <button onClick={() => handleProcessOrder(order.code)} disabled={isProcessingOrder} className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container hover:bg-primary hover:text-white flex items-center justify-center transition-colors disabled:opacity-50" title="Venta concretada"><span className="material-symbols-outlined text-[20px]">check</span></button>
+                    <button onClick={() => handleRejectOrder(order.code)} className="w-10 h-10 rounded-full bg-error-container text-on-error-container hover:bg-error hover:text-white flex items-center justify-center transition-colors" title="Rechazar solicitud"><span translate="no" className="material-symbols-outlined text-[20px]">close</span></button>
+                    <button onClick={() => handleProcessOrder(order.code)} disabled={isProcessingOrder} className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container hover:bg-primary hover:text-white flex items-center justify-center transition-colors disabled:opacity-50" title="Venta concretada"><span translate="no" className="material-symbols-outlined text-[20px]">check</span></button>
                   </div>
                 </div>
               </div>
@@ -741,7 +741,7 @@ function FolderPokemon() {
       {/* Historial de Ventas */}
       <div className="bg-surface-container-low p-6 rounded-2xl border border-surface-container shadow-sm">
         <h2 className="font-headline-md text-headline-md text-on-background flex items-center gap-2 mb-4">
-          <span className="material-symbols-outlined text-primary">history</span>
+          <span translate="no" className="material-symbols-outlined text-primary">history</span>
           Historial de Ventas
         </h2>
         {history.length === 0 ? (
@@ -772,7 +772,7 @@ function FolderPokemon() {
                     <td className="p-4 font-bold text-on-surface">{formatCLP(h.totalAmount || 0)}</td>
                     <td className="p-4">
                       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${h.status === 'completed' ? 'bg-[#25D366]/20 text-[#128C7E]' : 'bg-error-container text-on-error-container'}`}>
-                        <span className="material-symbols-outlined text-[14px]">
+                        <span translate="no" className="material-symbols-outlined text-[14px]">
                            {h.status === 'completed' ? 'check_circle' : 'cancel'}
                         </span>
                         {h.status === 'completed' ? 'Concretada' : 'Cancelada'}
@@ -788,12 +788,26 @@ function FolderPokemon() {
     </div>
   );
 
-  if (loadingFolder) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div></div>;
-  if (!folderData || folderData.tcg !== 'Pokemon') return <div className="min-h-screen flex items-center justify-center p-4"><div className="text-center"><h2 className="text-2xl font-bold mb-4">Esta vista es exclusiva para catálogos Pokémon</h2><button onClick={() => navigate('/dashboard')} className="bg-primary text-on-primary px-6 py-2 rounded-full font-bold">Volver al Dashboard</button></div></div>;
+  if (loadingFolder) {
+    return (
+      <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
+        <div className="w-full rounded-none overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] border-x border-gray-300 flex flex-col items-center justify-center relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
+  if (!folderData || folderData.tcg !== 'Pokemon') return (
+    <div className="min-h-[calc(100vh-80px)] w-full flex flex-col items-center justify-center bg-[#DBEAFE] p-6 relative z-10">
+      <span translate="no" className="material-symbols-outlined text-6xl text-error mb-4">error</span>
+      <h2 className="text-2xl font-bold mb-6 text-[#1a2b4b] text-center max-w-md leading-snug">Esta vista es exclusiva para catálogos Pokémon</h2>
+      <button onClick={() => navigate('/dashboard')} className="bg-[#1e40af] hover:bg-blue-800 text-white px-6 py-2.5 rounded-xl font-bold shadow-md transition-colors">Volver al Dashboard</button>
+    </div>
+  );
 
   return (
     <>
-      <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16 animate-[fadeIn_0.5s_ease-out]">
+      <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
         <div className="w-full rounded-none overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] border-x border-gray-300 flex flex-col relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
           <main className="flex-1 text-gray-900 px-4 sm:px-8 py-8 flex flex-col relative z-20">
       <div className="mb-6 flex items-center gap-2 sm:gap-4 pb-4 border-b border-gray-300">
@@ -802,7 +816,7 @@ function FolderPokemon() {
           className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600 bg-white border border-gray-300 shadow-sm hover:text-[#1e40af]"
           title="Volver a mis carpetas"
         >
-          <span className="material-symbols-outlined text-xl sm:text-2xl">arrow_back</span>
+          <span translate="no" className="material-symbols-outlined text-xl sm:text-2xl">arrow_back</span>
         </button>
         <h1 className="font-headline-lg md:font-display-lg text-headline-lg md:text-display-lg text-[#1a2b4b] m-0 leading-tight truncate">Catálogo: {folderData.name}</h1>
       </div>
@@ -813,14 +827,14 @@ function FolderPokemon() {
           onClick={() => setActiveTab('add')} 
           className={`px-2 sm:px-6 py-4 rounded-t-xl font-bold transition-colors flex items-center justify-center gap-1 sm:gap-2 ${activeTab === 'add' ? 'bg-white text-[#1e40af] border-b-4 border-[#1e40af] shadow-sm' : 'bg-gray-50/50 hover:bg-gray-100 text-gray-500'}`}
         >
-          <span className="material-symbols-outlined text-[18px] sm:text-[24px]">add_circle</span>
+          <span translate="no" className="material-symbols-outlined text-[18px] sm:text-[24px]">add_circle</span>
           <span className="text-xs sm:text-sm">Agregar Cartas</span>
         </button>
         <button 
           onClick={() => setActiveTab('catalog')} 
           className={`px-2 sm:px-6 py-4 rounded-t-xl font-bold transition-colors flex items-center justify-center gap-1 sm:gap-2 ${activeTab === 'catalog' ? 'bg-white text-[#1e40af] border-b-4 border-[#1e40af] shadow-sm' : 'bg-gray-50/50 hover:bg-gray-100 text-gray-500'}`}
         >
-          <span className="material-symbols-outlined text-[18px] sm:text-[24px]">inventory_2</span>
+          <span translate="no" className="material-symbols-outlined text-[18px] sm:text-[24px]">inventory_2</span>
           <span className="text-xs sm:text-sm">Catálogo</span>
         </button>
       </div>
