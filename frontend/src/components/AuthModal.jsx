@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { db } from '../firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 export default function AuthModal({ isOpen, onClose }) {
   const { loginWithGoogle, loginWithEmail, registerWithEmail, resetPassword } = useAuth();
@@ -18,10 +20,18 @@ export default function AuthModal({ isOpen, onClose }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [confirmEmail, setConfirmEmail] = useState('');
 
+  // Real-time verification states
+  const [validating, setValidating] = useState({ fullName: false, username: false, email: false });
+  const [fieldErrors, setFieldErrors] = useState({ fullName: '', username: '', email: '' });
+  const [validFields, setValidFields] = useState({ fullName: false, username: false, email: false });
+
   // Clean state when modal opens/closes or view changes
   useEffect(() => {
     setErrorMsg('');
     setSuccessMsg('');
+    setFieldErrors({ fullName: '', username: '', email: '' });
+    setValidFields({ fullName: false, username: false, email: false });
+    setValidating({ fullName: false, username: false, email: false });
     if (!isOpen) {
       setEmail('');
       setPassword('');
@@ -73,6 +83,94 @@ export default function AuthModal({ isOpen, onClose }) {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Real-time checks
+  const checkFullName = async () => {
+    const name = fullName.trim();
+    if (!name) {
+      setFieldErrors(prev => ({ ...prev, fullName: '' }));
+      setValidFields(prev => ({ ...prev, fullName: false }));
+      return;
+    }
+    setValidating(prev => ({ ...prev, fullName: true }));
+    setFieldErrors(prev => ({ ...prev, fullName: '' }));
+    try {
+      const q = query(collection(db, 'users'), where('displayName', '==', name));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        setFieldErrors(prev => ({ ...prev, fullName: 'Este nombre completo ya está registrado.' }));
+        setValidFields(prev => ({ ...prev, fullName: false }));
+      } else {
+        setValidFields(prev => ({ ...prev, fullName: true }));
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setValidating(prev => ({ ...prev, fullName: false }));
+    }
+  };
+
+  const checkUsername = async () => {
+    const user = username.toLowerCase().trim();
+    if (!user) {
+      setFieldErrors(prev => ({ ...prev, username: '' }));
+      setValidFields(prev => ({ ...prev, username: false }));
+      return;
+    }
+    const usernameRegex = /^[a-z0-9_]{3,20}$/;
+    if (!usernameRegex.test(user)) {
+      setFieldErrors(prev => ({ ...prev, username: 'Debe tener entre 3 y 20 caracteres (minúsculas, números y _).' }));
+      setValidFields(prev => ({ ...prev, username: false }));
+      return;
+    }
+    setValidating(prev => ({ ...prev, username: true }));
+    setFieldErrors(prev => ({ ...prev, username: '' }));
+    try {
+      const q = query(collection(db, 'users'), where('username', '==', user));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        setFieldErrors(prev => ({ ...prev, username: 'Este nombre de usuario ya está registrado.' }));
+        setValidFields(prev => ({ ...prev, username: false }));
+      } else {
+        setValidFields(prev => ({ ...prev, username: true }));
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setValidating(prev => ({ ...prev, username: false }));
+    }
+  };
+
+  const checkEmail = async () => {
+    const mail = email.toLowerCase().trim();
+    if (!mail) {
+      setFieldErrors(prev => ({ ...prev, email: '' }));
+      setValidFields(prev => ({ ...prev, email: false }));
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(mail)) {
+      setFieldErrors(prev => ({ ...prev, email: 'Formato de correo electrónico inválido.' }));
+      setValidFields(prev => ({ ...prev, email: false }));
+      return;
+    }
+    setValidating(prev => ({ ...prev, email: true }));
+    setFieldErrors(prev => ({ ...prev, email: '' }));
+    try {
+      const q = query(collection(db, 'users'), where('email', '==', mail));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        setFieldErrors(prev => ({ ...prev, email: 'Este correo electrónico ya está registrado.' }));
+        setValidFields(prev => ({ ...prev, email: false }));
+      } else {
+        setValidFields(prev => ({ ...prev, email: true }));
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setValidating(prev => ({ ...prev, email: false }));
     }
   };
 
@@ -302,10 +400,20 @@ export default function AuthModal({ isOpen, onClose }) {
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
+                  onBlur={checkFullName}
                   placeholder="Tu Nombre y Apellido"
-                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white transition-all text-gray-800"
+                  className={`w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:bg-white transition-all text-gray-800 ${
+                    fieldErrors.fullName 
+                      ? 'border-red-300 focus:ring-red-300 focus:border-red-300' 
+                      : validFields.fullName 
+                        ? 'border-green-300 focus:ring-green-300 focus:border-green-300' 
+                        : 'border-gray-200 focus:ring-blue-400 focus:border-blue-400'
+                  }`}
                 />
               </div>
+              {validating.fullName && <p className="text-[10px] text-gray-400 mt-1 pl-1 font-bold">Verificando...</p>}
+              {fieldErrors.fullName && <p className="text-[10px] text-red-500 mt-1 pl-1 flex items-center gap-1 font-bold"><span translate="no" className="material-symbols-outlined text-[12px]">cancel</span>{fieldErrors.fullName}</p>}
+              {validFields.fullName && !validating.fullName && <p className="text-[10px] text-green-600 mt-1 pl-1 flex items-center gap-1 font-bold"><span translate="no" className="material-symbols-outlined text-[12px]">check_circle</span>Disponible</p>}
             </div>
 
             <div>
@@ -320,14 +428,27 @@ export default function AuthModal({ isOpen, onClose }) {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''))}
+                  onBlur={checkUsername}
                   placeholder="nombre_usuario"
-                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white transition-all text-gray-800 font-mono"
+                  className={`w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:bg-white transition-all text-gray-800 font-mono ${
+                    fieldErrors.username 
+                      ? 'border-red-300 focus:ring-red-300 focus:border-red-300' 
+                      : validFields.username 
+                        ? 'border-green-300 focus:ring-green-300 focus:border-green-300' 
+                        : 'border-gray-200 focus:ring-blue-400 focus:border-blue-400'
+                  }`}
                 />
               </div>
-              {username && (
-                <p className="text-[10px] text-gray-500 mt-1 pl-1">
-                  Tu enlace de perfil será: <strong className="text-gray-700 font-bold">carpetazo.cl/{username}</strong>
+              {validating.username && <p className="text-[10px] text-gray-400 mt-1 pl-1 font-bold">Verificando...</p>}
+              {fieldErrors.username && <p className="text-[10px] text-red-500 mt-1 pl-1 flex items-center gap-1 font-bold"><span translate="no" className="material-symbols-outlined text-[12px]">cancel</span>{fieldErrors.username}</p>}
+              {validFields.username && !validating.username && (
+                <p className="text-[10px] text-green-600 mt-1 pl-1 flex items-center gap-1 font-bold">
+                  <span translate="no" className="material-symbols-outlined text-[12px]">check_circle</span>
+                  <span>Disponible • Tu enlace de perfil será: <strong>carpetazo.cl/{username}</strong></span>
                 </p>
+              )}
+              {!username && !fieldErrors.username && (
+                <p className="text-[10px] text-gray-400 mt-1 pl-1">Ej. tu_usuario (letras, números y _)</p>
               )}
             </div>
 
@@ -341,10 +462,20 @@ export default function AuthModal({ isOpen, onClose }) {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    onBlur={checkEmail}
                     placeholder="tu@correo.com"
-                    className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white transition-all text-gray-800"
+                    className={`w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:bg-white transition-all text-gray-800 ${
+                      fieldErrors.email 
+                        ? 'border-red-300 focus:ring-red-300 focus:border-red-300' 
+                        : validFields.email 
+                          ? 'border-green-300 focus:ring-green-300 focus:border-green-300' 
+                          : 'border-gray-200 focus:ring-blue-400 focus:border-blue-400'
+                    }`}
                   />
                 </div>
+                {validating.email && <p className="text-[10px] text-gray-400 mt-1 pl-1 font-bold">Verificando...</p>}
+                {fieldErrors.email && <p className="text-[10px] text-red-500 mt-1 pl-1 flex items-center gap-1 font-bold"><span translate="no" className="material-symbols-outlined text-[12px]">cancel</span>{fieldErrors.email}</p>}
+                {validFields.email && !validating.email && <p className="text-[10px] text-green-600 mt-1 pl-1 flex items-center gap-1 font-bold"><span translate="no" className="material-symbols-outlined text-[12px]">check_circle</span>Disponible</p>}
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Confirmar Correo</label>
@@ -356,9 +487,27 @@ export default function AuthModal({ isOpen, onClose }) {
                     value={confirmEmail}
                     onChange={(e) => setConfirmEmail(e.target.value)}
                     placeholder="tu@correo.com"
-                    className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white transition-all text-gray-800"
+                    className={`w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:bg-white transition-all text-gray-800 ${
+                      confirmEmail && email !== confirmEmail 
+                        ? 'border-red-300 focus:ring-red-300 focus:border-red-300' 
+                        : confirmEmail && email === confirmEmail
+                          ? 'border-green-300 focus:ring-green-300 focus:border-green-300'
+                          : 'border-gray-200 focus:ring-blue-400 focus:border-blue-400'
+                    }`}
                   />
                 </div>
+                {confirmEmail && email !== confirmEmail && (
+                  <p className="text-[10px] text-red-500 mt-1 pl-1 flex items-center gap-1 font-bold">
+                    <span translate="no" className="material-symbols-outlined text-[12px]">cancel</span>
+                    Los correos no coinciden.
+                  </p>
+                )}
+                {confirmEmail && email === confirmEmail && (
+                  <p className="text-[10px] text-green-600 mt-1 pl-1 flex items-center gap-1 font-bold">
+                    <span translate="no" className="material-symbols-outlined text-[12px]">check_circle</span>
+                    Confirmado
+                  </p>
+                )}
               </div>
             </div>
 
