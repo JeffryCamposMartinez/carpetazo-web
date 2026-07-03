@@ -2,7 +2,53 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const jwt = require('jsonwebtoken');
+const jwksRsa = require('jwks-rsa');
 require('dotenv').config();
+
+const FIREBASE_PROJECT_ID = 'carpetazo-db9d7';
+
+// Configure JWKS client to retrieve Google's public keys
+const jwksClient = jwksRsa({
+  jwksUri: 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com',
+  cache: true,
+  rateLimit: true,
+  jwksRequestsPerMinute: 5
+});
+
+function getKey(header, callback) {
+  jwksClient.getSigningKey(header.kid, function(err, key) {
+    if (err) {
+      callback(err);
+    } else {
+      const signingKey = key.getPublicKey();
+      callback(null, signingKey);
+    }
+  });
+}
+
+// Middleware to validate Firebase ID Token (JWT)
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Format: Bearer <TOKEN>
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Token de autenticación requerido' });
+  }
+
+  jwt.verify(token, getKey, {
+    issuer: `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`,
+    audience: FIREBASE_PROJECT_ID,
+    algorithms: ['RS256']
+  }, (err, decoded) => {
+    if (err) {
+      console.error('Error al verificar token JWT:', err.message);
+      return res.status(403).json({ success: false, message: 'Token de autenticación inválido o expirado' });
+    }
+    req.user = decoded; // Contains user payload (uid as 'sub', email, etc.)
+    next();
+  });
+};
 
 const app = express();
 const port = process.env.PORT || 8000;
@@ -64,7 +110,7 @@ const saveHistory = (history) => {
 };
 
 // GET all cards
-app.get('/api/cards', (req, res) => {
+app.get('/api/cards', authenticateToken, (req, res) => {
     const cards = getCards();
     res.json({
         success: true,
@@ -73,7 +119,7 @@ app.get('/api/cards', (req, res) => {
 });
 
 // POST new card
-app.post('/api/cards', (req, res) => {
+app.post('/api/cards', authenticateToken, (req, res) => {
     const { id, name, pseudoName, hp, price, stock, imageUrl, types, set, rarity, supertype, number, total, language } = req.body;
     
     if (!id || !name || price === undefined || stock === undefined) {
@@ -114,7 +160,7 @@ app.post('/api/cards', (req, res) => {
 });
 
 // POST update existing card stock and price
-app.post('/api/cards/update', (req, res) => {
+app.post('/api/cards/update', authenticateToken, (req, res) => {
     const { id, price, stock } = req.body;
     
     if (!id || price === undefined || stock === undefined) {
@@ -135,7 +181,7 @@ app.post('/api/cards/update', (req, res) => {
 });
 
 // POST delete a card
-app.post('/api/cards/delete', (req, res) => {
+app.post('/api/cards/delete', authenticateToken, (req, res) => {
     const { id } = req.body;
     if (!id) {
         return res.status(400).json({ success: false, message: 'Missing card ID' });
@@ -152,7 +198,7 @@ app.post('/api/cards/delete', (req, res) => {
 });
 
 // GET all pending orders
-app.get('/api/orders', (req, res) => {
+app.get('/api/orders', authenticateToken, (req, res) => {
     const orders = getOrders();
     // Return them as an array mapped with the key as the code
     const orderList = Object.keys(orders).map(code => ({
@@ -164,7 +210,7 @@ app.get('/api/orders', (req, res) => {
 });
 
 // GET history
-app.get('/api/history', (req, res) => {
+app.get('/api/history', authenticateToken, (req, res) => {
     const history = getHistory();
     res.json({ success: true, data: history });
 });
@@ -195,7 +241,7 @@ app.post('/api/orders/create', (req, res) => {
 });
 
 // POST process order (discount stock using 10-digit code)
-app.post('/api/process-order', (req, res) => {
+app.post('/api/process-order', authenticateToken, (req, res) => {
     const { code } = req.body;
     
     if (!code) {
@@ -238,7 +284,7 @@ app.post('/api/process-order', (req, res) => {
 });
 
 // POST reject order (just delete from pending list)
-app.post('/api/reject-order', (req, res) => {
+app.post('/api/reject-order', authenticateToken, (req, res) => {
     const { code } = req.body;
     
     if (!code) {

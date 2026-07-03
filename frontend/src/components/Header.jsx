@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import AuthModal from './AuthModal';
 
 export default function Header() {
   const { currentUser, logout, loginWithGoogle } = useAuth();
@@ -15,6 +16,7 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCategory, setSearchCategory] = useState('Carpetas');
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const searchCategories = [
     { label: 'Carpetas', route: '/carpetas' },
@@ -85,12 +87,8 @@ export default function Header() {
     };
   }, [currentUser]);
 
-  const handleLogin = async () => {
-    try {
-      await loginWithGoogle();
-    } catch (error) {
-      console.error("Error al iniciar sesión con Google:", error);
-    }
+  const handleLogin = () => {
+    setIsAuthModalOpen(true);
   };
 
   const handleLogout = async () => {
@@ -347,6 +345,8 @@ export default function Header() {
           </div>
         </div>
       )}
+      {/* Authentication Modal */}
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </>
   );
 }

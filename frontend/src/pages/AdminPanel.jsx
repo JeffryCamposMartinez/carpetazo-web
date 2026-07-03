@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import Filters from '../components/Filters';
 import Toast from '../components/Toast';
 import ConfirmModal from '../components/ConfirmModal';
+import { useAuth } from '../contexts/AuthContext';
 
 const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
   const [price, setPrice] = useState(card.price);
@@ -78,6 +79,7 @@ const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
 };
 
 function AdminPanel() {
+  const { getAuthToken } = useAuth();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   
@@ -124,7 +126,10 @@ function AdminPanel() {
   // Fetch logic
   const fetchOrders = async () => {
     try {
-      const response = await fetch('/api/orders');
+      const token = await getAuthToken();
+      const response = await fetch('/api/orders', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const result = await response.json();
       if (result.success) setPendingOrders(result.data);
     } catch (err) { console.error('Error fetching orders:', err); }
@@ -132,7 +137,10 @@ function AdminPanel() {
 
   const fetchHistory = async () => {
     try {
-      const response = await fetch('/api/history');
+      const token = await getAuthToken();
+      const response = await fetch('/api/history', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const result = await response.json();
       if (result.success) setHistory(result.data);
     } catch (err) { console.error('Error fetching history:', err); }
@@ -140,7 +148,10 @@ function AdminPanel() {
 
   const fetchCards = async () => {
     try {
-      const response = await fetch('/api/cards');
+      const token = await getAuthToken();
+      const response = await fetch('/api/cards', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const result = await response.json();
       if (result.success) setCards(result.data);
     } catch (err) { console.error('Error fetching cards:', err); }
@@ -183,9 +194,13 @@ function AdminPanel() {
   // --- MANEJO DE CATÁLOGO LOGIC ---
   const handleUpdateCard = async (id, newPrice, newStock) => {
     try {
+      const token = await getAuthToken();
       const response = await fetch('/api/cards/update', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ id, price: newPrice, stock: newStock })
       });
       const result = await response.json();
@@ -210,9 +225,13 @@ function AdminPanel() {
     const id = confirmDialog.targetId;
     setConfirmDialog({ show: false, message: '', targetId: null });
     try {
+      const token = await getAuthToken();
       const response = await fetch('/api/cards/delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ id })
       });
       const result = await response.json();
@@ -455,9 +474,13 @@ function AdminPanel() {
       language: language
     };
     try {
+      const token = await getAuthToken();
       const response = await fetch('/api/cards', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(cardData)
       });
       const result = await response.json();

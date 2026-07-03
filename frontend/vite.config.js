@@ -8,7 +8,7 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       '/api': {
-        target: 'https://cheerful-patience-production-0bbd.up.railway.app',
+        target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
       }
@@ -18,7 +18,7 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       '/api': {
-        target: 'https://cheerful-patience-production-0bbd.up.railway.app',
+        target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
       }
