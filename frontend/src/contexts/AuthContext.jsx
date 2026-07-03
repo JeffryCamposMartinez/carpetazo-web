@@ -44,13 +44,24 @@ export function AuthProvider({ children }) {
   async function registerWithEmail(email, password, displayName, username) {
     const formattedUsername = username.toLowerCase().trim();
 
-    // 1. Validar que el username no esté tomado en Firestore
+    // 1. Validar que el username, displayName y email no estén tomados en Firestore
     const { collection, query, where, getDocs, doc, setDoc } = await import('firebase/firestore');
     const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('username', '==', formattedUsername));
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
+    
+    const [usernameSnap, displayNameSnap, emailSnap] = await Promise.all([
+      getDocs(query(usersRef, where('username', '==', formattedUsername))),
+      getDocs(query(usersRef, where('displayName', '==', displayName.trim()))),
+      getDocs(query(usersRef, where('email', '==', email.toLowerCase().trim())))
+    ]);
+
+    if (!usernameSnap.empty) {
       throw new Error('auth/username-already-in-use');
+    }
+    if (!displayNameSnap.empty) {
+      throw new Error('auth/displayname-already-in-use');
+    }
+    if (!emailSnap.empty) {
+      throw new Error('auth/email-already-in-use');
     }
 
     // 2. Crear el usuario en Firebase Auth

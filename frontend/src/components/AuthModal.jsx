@@ -114,13 +114,16 @@ export default function AuthModal({ isOpen, onClose }) {
       setView('verify-sent');
     } catch (err) {
       console.error(err);
-      if (err.message === 'auth/username-already-in-use') {
+      const errorCode = err.code || err.message;
+      if (errorCode === 'auth/username-already-in-use') {
         setErrorMsg('Este nombre de usuario ya está registrado por otro usuario.');
-      } else if (err.code === 'auth/email-already-in-use') {
+      } else if (errorCode === 'auth/displayname-already-in-use') {
+        setErrorMsg('Este nombre completo ya está registrado por otro usuario.');
+      } else if (errorCode === 'auth/email-already-in-use') {
         setErrorMsg('Este correo electrónico ya está registrado.');
-      } else if (err.code === 'auth/invalid-email') {
+      } else if (errorCode === 'auth/invalid-email') {
         setErrorMsg('Formato de correo electrónico inválido.');
-      } else if (err.code === 'auth/weak-password') {
+      } else if (errorCode === 'auth/weak-password') {
         setErrorMsg('La contraseña es muy débil (mínimo 6 caracteres).');
       } else {
         setErrorMsg('Error al registrar la cuenta. Por favor intenta de nuevo.');
