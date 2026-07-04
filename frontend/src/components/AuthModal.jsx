@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { db } from '../firebase';
+import { auth, db } from '../firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import { fetchSignInMethodsForEmail } from 'firebase/auth';
 
 export default function AuthModal({ isOpen, onClose }) {
   const { loginWithGoogle, loginWithEmail, registerWithEmail, resetPassword } = useAuth();
@@ -159,6 +160,15 @@ export default function AuthModal({ isOpen, onClose }) {
     setValidating(prev => ({ ...prev, email: true }));
     setFieldErrors(prev => ({ ...prev, email: '' }));
     try {
+      // 1. Consultar directamente a Firebase Authentication (Ground Truth)
+      const signInMethods = await fetchSignInMethodsForEmail(auth, mail);
+      if (signInMethods.length > 0) {
+        setFieldErrors(prev => ({ ...prev, email: 'Este correo electrónico ya está registrado.' }));
+        setValidFields(prev => ({ ...prev, email: false }));
+        return;
+      }
+
+      // 2. Consultar en Firestore (Respaldo)
       const q = query(collection(db, 'users'), where('email', '==', mail));
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
@@ -168,7 +178,21 @@ export default function AuthModal({ isOpen, onClose }) {
         setValidFields(prev => ({ ...prev, email: true }));
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error al verificar email en Firebase Auth:', err);
+      // En caso de que la protección de enumeración bloquee la consulta directa en Auth,
+      // caemos en la consulta de Firestore como respaldo
+      try {
+        const q = query(collection(db, 'users'), where('email', '==', mail));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          setFieldErrors(prev => ({ ...prev, email: 'Este correo electrónico ya está registrado.' }));
+          setValidFields(prev => ({ ...prev, email: false }));
+        } else {
+          setValidFields(prev => ({ ...prev, email: true }));
+        }
+      } catch (fsErr) {
+        console.error('Error en Firestore de respaldo:', fsErr);
+      }
     } finally {
       setValidating(prev => ({ ...prev, email: false }));
     }
