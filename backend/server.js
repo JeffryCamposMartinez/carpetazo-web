@@ -62,6 +62,20 @@ const dataPath = path.join(DATA_DIR, 'data.json');
 const ordersPath = path.join(DATA_DIR, 'orders.json');
 const historyPath = path.join(DATA_DIR, 'history.json');
 
+// --- INICIO: Inicializar volumen en Coolify ---
+if (DATA_DIR !== __dirname) {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  ['data.json', 'orders.json', 'history.json'].forEach(file => {
+    const targetPath = path.join(DATA_DIR, file);
+    const sourcePath = path.join(__dirname, file);
+    if (!fs.existsSync(targetPath) && fs.existsSync(sourcePath)) {
+      fs.copyFileSync(sourcePath, targetPath);
+      console.log(`Inicializado ${file} en disco persistente`);
+    }
+  });
+}
+// --- FIN ---
+
 // Helper to read data
 const getCards = () => {
     try {
