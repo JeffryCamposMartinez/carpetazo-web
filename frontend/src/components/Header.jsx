@@ -104,9 +104,9 @@ export default function Header() {
       {/* TopAppBar - Desktop */}
       <header className="w-full top-0 sticky z-40 bg-surface dark:bg-surface-dim hidden md:block">
         <div className="flex flex-col w-full">
-          <div className="flex items-center justify-between px-md py-3 w-full max-w-container-max mx-auto">
+          <div className="flex items-center justify-between px-md py-3 md:py-4 w-full max-w-container-max mx-auto">
             <Link to="/bienvenida" className="flex items-center cursor-pointer hover:opacity-80 transition-opacity">
-              <img src="/images/logos/logo_completo.png" alt="Carpetazo.cl" className="h-14 md:h-16 w-auto object-contain py-0.5 transform scale-[1.3] md:scale-[1.5] origin-[left_60%] translate-y-1" />
+              <img src="/images/logos/logo_completo.png" alt="Carpetazo.cl" className="h-14 md:h-14 w-auto object-contain transform scale-[1.3] md:scale-[1.4] origin-[left_center]" />
             </Link>
 
           {/* Centered Search Bar with Category Selector */}
