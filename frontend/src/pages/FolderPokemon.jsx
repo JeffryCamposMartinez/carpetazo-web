@@ -161,7 +161,7 @@ function FolderPokemon() {
     if (cachedSets) {
       try { setAvailableSets(JSON.parse(cachedSets)); } catch (e) {}
     }
-    fetch('/api/tcg/sets')
+    fetch('https://api.pokemontcg.io/v2/sets?orderBy=-releaseDate')
       .then(res => res.json())
       .then(data => {
         if (data.data) {
@@ -336,7 +336,7 @@ function FolderPokemon() {
           if (cardTotal) exactQuery += ` set.printedTotal:"${cardTotal}"`;
           
           try {
-            const exactResponse = await fetch(`/api/tcg/cards?q=${encodeURIComponent(exactQuery)}`, { signal });
+            const exactResponse = await fetch(`\https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(exactQuery)}`, { signal });
             const exactData = await exactResponse.json();
             if (exactData.data && exactData.data.length > 0) {
               // Escapar el nombre para coincidencia exacta
@@ -365,7 +365,7 @@ function FolderPokemon() {
       if (searchSet) queryStr.push(`set.id:"${searchSet}"`);
       
       const finalQuery = queryStr.join(' ');
-      const response = await fetch(`/api/tcg/cards?q=${encodeURIComponent(finalQuery)}`, { signal });
+      const response = await fetch(`\https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(finalQuery)}`, { signal });
         const data = await response.json();
         setSearchResults(data.data || []);
         setHasSearchedAPI(true);
@@ -863,3 +863,4 @@ function FolderPokemon() {
 }
 
 export default FolderPokemon;
+
