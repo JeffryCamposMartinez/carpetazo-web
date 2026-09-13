@@ -407,7 +407,206 @@ app.get('/api/tcg/cards', async (req, res) => {
     }
 });
 
+
+// ==========================================
+// NUEVAS RUTAS PRISMA (REEMPLAZO FIRESTORE)
+// ==========================================
+
+// --- CARPETAS ---
+
+// Obtener mis carpetas
+app.get('/api/folders/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const folders = await prisma.folder.findMany({
+      where: { userId: user.id },
+      include: { _count: { select: { cards: true } } },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ success: true, folders });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Crear carpeta
+app.post('/api/folders', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const { name, description, isPublic } = req.body;
+    
+    const folder = await prisma.folder.create({
+      data: {
+        name,
+        description,
+        isPublic: isPublic !== undefined ? isPublic : true,
+        userId: user.id
+      }
+    });
+    res.json({ success: true, folder });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Obtener detalles de una carpeta (y sus cartas)
+app.get('/api/folders/:id', authenticateToken, async (req, res) => {
+  try {
+    const folder = await prisma.folder.findUnique({
+      where: { id: req.params.id },
+      include: { cards: true, user: { select: { name: true, email: true } } }
+    });
+    if (!folder) return res.status(404).json({ success: false, message: 'Folder not found' });
+    res.json({ success: true, folder });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Borrar carpeta
+app.delete('/api/folders/:id', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const folder = await prisma.folder.findUnique({ where: { id: req.params.id } });
+    
+    if (!folder || folder.userId !== user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    
+    await prisma.folder.delete({ where: { id: req.params.id } });
+    res.json({ success: true, message: 'Folder deleted' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// --- CARTAS DE CARPETAS ---
+
+// Agregar carta a una carpeta
+app.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const folder = await prisma.folder.findUnique({ where: { id: req.params.id } });
+    
+    if (!folder || folder.userId !== user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    
+    const { tcgId, name, imageUrl, price } = req.body;
+    
+    const card = await prisma.card.create({
+      data: {
+        tcgId,
+        name,
+        imageUrl,
+        price: parseFloat(price) || null,
+        folderId: folder.id
+      }
+    });
+    res.json({ success: true, card });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Borrar carta de una carpeta
+app.delete('/api/cards/:id', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const card = await prisma.card.findUnique({ 
+      where: { id: req.params.id },
+      include: { folder: true }
+    });
+    
+    if (!card || card.folder.userId !== user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    
+    await prisma.card.delete({ where: { id: req.params.id } });
+    res.json({ success: true, message: 'Card deleted' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
+// --- RUTAS PÚBLICAS Y MENSAJES ---
+
+// Obtener todas las carpetas pblicas
+app.get('/api/folders', async (req, res) => {
+  try {
+    const folders = await prisma.folder.findMany({
+      where: { isPublic: true },
+      include: { user: { select: { name: true } }, _count: { select: { cards: true } } },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ success: true, folders });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Enviar un mensaje
+app.post('/api/messages', authenticateToken, async (req, res) => {
+  try {
+    const sender = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const { receiverId, content } = req.body;
+    
+    if (!receiverId || !content) return res.status(400).json({ success: false, message: 'Missing fields' });
+    
+    const message = await prisma.message.create({
+      data: {
+        senderId: sender.id,
+        receiverId,
+        content
+      }
+    });
+    res.json({ success: true, message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Obtener mis mensajes recibidos
+app.get('/api/messages/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const messages = await prisma.message.findMany({
+      where: { receiverId: user.id },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ success: true, messages });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Marcar mensaje como ledo
+app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const message = await prisma.message.findUnique({ where: { id: req.params.id } });
+    
+    if (!message || message.receiverId !== user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    
+    await prisma.message.update({
+      where: { id: req.params.id },
+      data: { isRead: true }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
 app.listen(port, () => {
     console.log(`ðŸš€ Servidor backend corriendo en http://localhost:${port}`);
 });
+
+
 
