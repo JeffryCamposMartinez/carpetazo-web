@@ -339,7 +339,8 @@ app.get('/api/tcg/sets', async (req, res) => {
     }
     
     try {
-        const response = await fetch('https://api.pokemontcg.io/v2/sets?orderBy=-releaseDate');
+        const fetchOptions = process.env.POKEMON_TCG_API_KEY ? { headers: { 'X-Api-Key': process.env.POKEMON_TCG_API_KEY } } : {};
+          const response = await fetch('https://api.pokemontcg.io/v2/sets?orderBy=-releaseDate', fetchOptions);
         if (!response.ok) throw new Error('Error fetching sets');
         const data = await response.json();
         
@@ -367,7 +368,8 @@ app.get('/api/tcg/cards', async (req, res) => {
             ? `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(query)}` 
             : 'https://api.pokemontcg.io/v2/cards';
             
-        const response = await fetch(url);
+        const fetchOptions = process.env.POKEMON_TCG_API_KEY ? { headers: { 'X-Api-Key': process.env.POKEMON_TCG_API_KEY } } : {};
+          const response = await fetch(url, fetchOptions);
         if (!response.ok) throw new Error('Error fetching cards');
         const data = await response.json();
         
