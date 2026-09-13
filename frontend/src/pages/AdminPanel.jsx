@@ -3,6 +3,7 @@ import Filters from '../components/Filters';
 import Toast from '../components/Toast';
 import ConfirmModal from '../components/ConfirmModal';
 import { useAuth } from '../contexts/AuthContext';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
   const [price, setPrice] = useState(card.price);
@@ -127,7 +128,7 @@ function AdminPanel() {
   const fetchOrders = async () => {
     try {
       const token = await getAuthToken();
-      const response = await fetch('/api/orders', {
+      const response = await fetch(`${API_BASE}/api/orders`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const result = await response.json();
@@ -138,7 +139,7 @@ function AdminPanel() {
   const fetchHistory = async () => {
     try {
       const token = await getAuthToken();
-      const response = await fetch('/api/history', {
+      const response = await fetch(`${API_BASE}/api/history`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const result = await response.json();
@@ -149,7 +150,7 @@ function AdminPanel() {
   const fetchCards = async () => {
     try {
       const token = await getAuthToken();
-      const response = await fetch('/api/cards', {
+      const response = await fetch(`${API_BASE}/api/cards`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const result = await response.json();
@@ -196,7 +197,7 @@ function AdminPanel() {
   const handleUpdateCard = async (id, newPrice, newStock) => {
     try {
       const token = await getAuthToken();
-      const response = await fetch('/api/cards/update', {
+      const response = await fetch(`${API_BASE}/api/cards/update`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -227,7 +228,7 @@ function AdminPanel() {
     setConfirmDialog({ show: false, message: '', targetId: null });
     try {
       const token = await getAuthToken();
-      const response = await fetch('/api/cards/delete', {
+      const response = await fetch(`${API_BASE}/api/cards/delete`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -455,7 +456,7 @@ function AdminPanel() {
     };
     try {
       const token = await getAuthToken();
-      const response = await fetch('/api/cards', {
+      const response = await fetch(`${API_BASE}/api/cards`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -708,7 +709,7 @@ function AdminPanel() {
     if (!code) return;
     setIsProcessingOrder(true);
     try {
-      const response = await fetch('/api/process-order', {
+      const response = await fetch(`${API_BASE}/api/process-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code })
@@ -721,7 +722,7 @@ function AdminPanel() {
   const handleRejectOrder = async (code) => {
     if (!code) return;
     try {
-      const response = await fetch('/api/reject-order', {
+      const response = await fetch(`${API_BASE}/api/reject-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code })

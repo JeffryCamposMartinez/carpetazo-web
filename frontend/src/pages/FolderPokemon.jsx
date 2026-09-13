@@ -6,6 +6,7 @@ import { doc, getDoc, collection, addDoc, updateDoc, deleteDoc, getDocs } from '
 import Filters from '../components/Filters';
 import Toast from '../components/Toast';
 import ConfirmModal from '../components/ConfirmModal';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
   const [price, setPrice] = useState(card.price);
@@ -653,7 +654,7 @@ function FolderPokemon() {
     if (!code) return;
     setIsProcessingOrder(true);
     try {
-      const response = await fetch('/api/process-order', {
+      const response = await fetch(`${API_BASE}/api/process-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code })
@@ -666,7 +667,7 @@ function FolderPokemon() {
   const handleRejectOrder = async (code) => {
     if (!code) return;
     try {
-      const response = await fetch('/api/reject-order', {
+      const response = await fetch(`${API_BASE}/api/reject-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code })
