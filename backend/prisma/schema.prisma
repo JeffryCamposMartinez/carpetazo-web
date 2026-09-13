@@ -1,0 +1,54 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  firebaseUid String @unique
+  email     String   @unique
+  name      String?
+  folders   Folder[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Folder {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  isPublic    Boolean  @default(true)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cards       Card[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Card {
+  id        String   @id @default(uuid())
+  tcgId     String   // The ID from the TCG API
+  name      String
+  imageUrl  String?
+  price     Float?
+  folderId  String
+  folder    Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  senderId  String
+  receiverId String
+  content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
