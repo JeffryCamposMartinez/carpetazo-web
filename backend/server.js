@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
@@ -33,7 +33,7 @@ const authenticateToken = (req, res, next) => {
   const token = authHeader && authHeader.split(' ')[1]; // Format: Bearer <TOKEN>
 
   if (!token) {
-    return res.status(401).json({ success: false, message: 'Token de autenticación requerido' });
+    return res.status(401).json({ success: false, message: 'Token de autenticaciÃ³n requerido' });
   }
 
   jwt.verify(token, getKey, {
@@ -43,18 +43,44 @@ const authenticateToken = (req, res, next) => {
   }, (err, decoded) => {
     if (err) {
       console.error('Error al verificar token JWT:', err.message);
-      return res.status(403).json({ success: false, message: 'Token de autenticación inválido o expirado' });
+      return res.status(403).json({ success: false, message: 'Token de autenticaciÃ³n invÃ¡lido o expirado' });
     }
     req.user = decoded; // Contains user payload (uid as 'sub', email, etc.)
     next();
   });
 };
 
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
 const app = express();
 const port = process.env.PORT || 8000;
 
 app.use(cors());
 app.use(express.json());
+
+// Sincronizar o crear usuario en la BD al iniciar sesin
+app.post('/api/users/sync', authenticateToken, async (req, res) => {
+  try {
+    const firebaseUid = req.user.sub;
+    const email = req.user.email || '';
+    
+    let user = await prisma.user.findUnique({
+      where: { firebaseUid }
+    });
+    
+    if (!user) {
+      user = await prisma.user.create({
+        data: { firebaseUid, email }
+      });
+    }
+    
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error('Error syncing user:', error);
+    res.status(500).json({ success: false, error: 'Failed to sync user' });
+  }
+});
 
 const DATA_DIR = process.env.DATA_DIR || __dirname;
 
@@ -266,7 +292,7 @@ app.post('/api/process-order', authenticateToken, (req, res) => {
     const order = orders[code];
     
     if (!order) {
-        return res.status(404).json({ success: false, message: 'Código de pedido no encontrado o ya procesado' });
+        return res.status(404).json({ success: false, message: 'CÃ³digo de pedido no encontrado o ya procesado' });
     }
 
     const cards = getCards();
@@ -324,7 +350,7 @@ app.post('/api/reject-order', authenticateToken, (req, res) => {
     res.json({ success: true, message: 'Order rejected successfully' });
 });
 
-// --- POKEMON TCG API PROXY CON CACHÉ ---
+// --- POKEMON TCG API PROXY CON CACHÃ‰ ---
 const tcgCache = new Map();
 const CACHE_DURATION = 1000 * 60 * 60; // 1 hora en milisegundos
 
@@ -382,5 +408,6 @@ app.get('/api/tcg/cards', async (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`🚀 Servidor backend corriendo en http://localhost:${port}`);
+    console.log(`ðŸš€ Servidor backend corriendo en http://localhost:${port}`);
 });
+
