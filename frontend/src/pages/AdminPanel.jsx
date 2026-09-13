@@ -174,12 +174,13 @@ function AdminPanel() {
     if (cachedSets) {
       try { setAvailableSets(JSON.parse(cachedSets)); } catch (e) {}
     }
-    fetch('https://api.pokemontcg.io/v2/sets?orderBy=-releaseDate')
+    fetch('https://tcgtracking.com/tcgapi/v1/3/sets')
       .then(res => res.json())
       .then(data => {
-        if (data.data) {
-          setAvailableSets(data.data);
-          localStorage.setItem('pokemon_tcg_sets', JSON.stringify(data.data));
+        if (data.sets) {
+          const sortedSets = data.sets.sort((a,b) => new Date(b.released_on || 0) - new Date(a.released_on || 0));
+          setAvailableSets(sortedSets);
+          localStorage.setItem('pokemon_tcg_sets', JSON.stringify(sortedSets));
         }
       })
       .catch(err => console.error(err));
@@ -345,7 +346,10 @@ function AdminPanel() {
 
   const handleSearchAPI = async (e) => {
     e.preventDefault();
-    if (!searchQuery.trim() && !searchType && !searchSupertype && !searchSet) return;
+    if (!searchSet) {
+      showToast('TCGTracking API requiere que selecciones una expansión primero.', 'error');
+      return;
+    }
     
     if (abortControllerRef.current) abortControllerRef.current.abort();
     abortControllerRef.current = new AbortController();
@@ -353,53 +357,29 @@ function AdminPanel() {
 
     setIsSearching(true);
     try {
-      let queryStr = [];
-      if (searchQuery.trim()) {
-        const query = searchQuery.trim();
-        if (query.includes('/')) {
-          let cardNum = query.split('/')[0].trim();
-          let cardTotal = query.split('/')[1]?.trim();
-          if (/^0+\d+$/.test(cardNum)) cardNum = cardNum.replace(/^0+/, '');
-          
-          // Búsqueda en 2 pasos: primero encontrar el nombre de la carta exacta
-          let exactQuery = `number:"${cardNum}"`;
-          if (cardTotal) exactQuery += ` set.printedTotal:"${cardTotal}"`;
-          
-          try {
-            const exactResponse = await fetch(`\https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(exactQuery)}`, { signal });
-            const exactData = await exactResponse.json();
-            if (exactData.data && exactData.data.length > 0) {
-              // Escapar el nombre para coincidencia exacta
-              const cardName = exactData.data[0].name.replace(/"/g, '\\"');
-              queryStr.push(`name:"!${cardName}"`);
-            } else {
-              queryStr.push(`number:"${cardNum}"`);
-            }
-          } catch (err) {
-            if (err.name !== 'AbortError') queryStr.push(`number:"${cardNum}"`);
-            else throw err;
-          }
-        } else {
-          let cleanNum = query;
-          if (/^0+\d+$/.test(cleanNum)) cleanNum = cleanNum.replace(/^0+/, '');
-          // En Lucene (Pokémon TCG API), los comodines (*) NO deben ir dentro de comillas.
-          const wildcardQuery = query.replace(/\s+/g, '*');
-          queryStr.push(`(name:*${wildcardQuery}* OR number:"${cleanNum}")`);
-        }
-      }
-      if (searchSupertype) queryStr.push(`supertype:"${searchSupertype}"`);
-      if (searchType) {
-        if (searchSupertype === 'Energy') queryStr.push(`(name:"${searchType}" OR types:"${searchType}")`);
-        else queryStr.push(`types:"${searchType}"`);
-      }
-      if (searchSet) queryStr.push(`set.id:"${searchSet}"`);
+      const response = await fetch(`https://tcgtracking.com/tcgapi/v1/3/sets/${searchSet}/cards`, { signal });
+      const data = await response.json();
+      let cards = data.products || [];
       
-      const finalQuery = queryStr.join(' ');
-      const response = await fetch(`\https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(finalQuery)}`, { signal });
-        const data = await response.json();
-        setSearchResults(data.data || []);
-        setHasSearchedAPI(true);
-      } catch (error) {
+      // Filter locally
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        cards = cards.filter(c => 
+          (c.name && c.name.toLowerCase().includes(q)) || 
+          (c.number && c.number.toLowerCase().includes(q)) || 
+          (c.clean_name && c.clean_name.toLowerCase().includes(q))
+        );
+      }
+      if (searchSupertype) {
+         cards = cards.filter(c => c.ext_data && c.ext_data["Card Type / HP / Stage"] && c.ext_data["Card Type / HP / Stage"].includes(searchSupertype));
+      }
+      if (searchType) {
+         cards = cards.filter(c => c.ext_data && c.ext_data["Card Type / HP / Stage"] && c.ext_data["Card Type / HP / Stage"].includes(searchType));
+      }
+      
+      setSearchResults(cards);
+      setHasSearchedAPI(true);
+    } catch (error) {
       if (error.name !== 'AbortError') {
         console.error(error);
         showToast('Error al buscar cartas en la API', 'error');
@@ -464,13 +444,13 @@ function AdminPanel() {
       hp: selectedCard.hp || 'N/A',
       price: parseFloat(price),
       stock: parseInt(stock),
-      imageUrl: selectedCard.images?.large || selectedCard.images?.small,
+      imageUrl: selectedCard.image_url || selectedCard.image_url,
       types: selectedCard.types || [],
       set: selectedCard.set?.name || 'Unknown',
-      rarity: selectedCard.rarity || 'Unknown',
-      supertype: selectedCard.supertype || 'Unknown',
-      number: selectedCard.number || '',
-      total: selectedCard.set?.printedTotal || '',
+      rarity: selectedCard.rarity || selectedCard.ext_data?.['Card Number / Rarity']?.split(' / ')[1] || 'Unknown',
+      supertype: selectedCard.ext_data ? selectedCard.ext_data['Card Type / HP / Stage']?.split(' / ')[0] || 'Unknown' : 'Unknown',
+      number: selectedCard.number?.split('/')[0] || '',
+      total: selectedCard.number?.split('/')[1] || '',
       language: language
     };
     try {
@@ -552,7 +532,7 @@ function AdminPanel() {
           <Filters selectedSupertype={searchSupertype} onSupertypeChange={setSearchSupertype} selectedType={searchType} onTypeChange={setSearchType} title="" subtitle="" showCounts={false} />
           <div className="relative min-w-[200px] mt-4">
             <div className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface text-on-surface cursor-pointer flex justify-between items-center" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
-              <span className="truncate">{searchSet === '' ? 'Todas las ediciones' : availableSets.find(s => s.id === searchSet)?.name || 'Seleccionado'}</span>
+              <span className="truncate">{searchSet === '' ? 'Selecciona una expansión' : availableSets.find(s => s.id === searchSet)?.name || 'Seleccionado'}</span>
               <span translate="no" className="material-symbols-outlined ml-2 text-on-surface-variant">expand_more</span>
             </div>
             {isSetDropdownOpen && (
@@ -598,7 +578,7 @@ function AdminPanel() {
               }
             }}>
               <div className="relative w-full aspect-[63/88] flex items-center justify-center bg-surface-container-highest">
-                <img src={card.images?.small} alt={card.name} loading="lazy" className="w-full h-full object-contain" />
+                <img src={card.image_url} alt={card.name} loading="lazy" className="w-full h-full object-contain" />
               </div>
               <div className="p-2 text-center">
                 <p className="font-label-sm text-on-background truncate">{card.name}</p>
@@ -631,7 +611,7 @@ function AdminPanel() {
             <div className="flex justify-center relative z-50 mb-2 mt-2">
               <div className="relative inline-block">
                 <img 
-                  src={selectedCard.images?.large || selectedCard.images?.small} 
+                  src={selectedCard.image_url || selectedCard.image_url} 
                   alt={selectedCard.name} 
                   className="h-44 sm:h-52 w-auto object-contain rounded-lg shadow-md hover:scale-[2.2] transition-transform duration-300 cursor-zoom-in relative z-50 hover:z-[70] origin-center" 
                 />
