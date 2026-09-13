@@ -6,7 +6,7 @@ import { getFirestore } from "firebase/firestore";
 // Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyB9g1X-PTEoO7B-U8wT7Vltthr2UKbQPYE",
-  authDomain: "carpetazo.cl",
+  authDomain: "carpetazo-db9d7.firebaseapp.com",
   projectId: "carpetazo-db9d7",
   storageBucket: "carpetazo-db9d7.firebasestorage.app",
   messagingSenderId: "276744200057",
