@@ -6,7 +6,7 @@
     },
     {
       "source": "/api/:path*",
-      "destination": "https://cheerful-patience-production-0bbd.up.railway.app/api/:path*"
+      "destination": "http://euipeh6ysbeenndtc41ksvgo.185.173.110.158.sslip.io/api/:path*"
     },
     {
       "source": "/(.*)",
@@ -14,3 +14,4 @@
     }
   ]
 }
+
