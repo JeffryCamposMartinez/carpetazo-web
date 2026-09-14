@@ -1,4 +1,4 @@
-// This is your Prisma schema file,
+﻿// This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
@@ -21,6 +21,9 @@ model User {
 }
 
 model Folder {
+  totalVisits   Int      @default(0)
+  weeklyVisits  Int      @default(0)
+  lastVisitWeek Int      @default(0)
   id          String   @id @default(uuid())
   name        String
   description String?
@@ -51,4 +54,17 @@ model Message {
   content   String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model Order {
+  id          String   @id @default(uuid())
+  sellerId    String
+  buyerName   String
+  folderId    String
+  folderName  String
+  items       Json
+  total       Float
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

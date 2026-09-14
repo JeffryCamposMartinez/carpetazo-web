@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { db } from '../firebase';
-import { doc, getDoc, collection, getDocs, addDoc, serverTimestamp, updateDoc, increment } from 'firebase/firestore';
+import api from '../utils/api';
 import Filters from '../components/Filters';
 import PokemonCard from '../components/PokemonCard';
 import Toast from '../components/Toast';
@@ -40,51 +39,31 @@ function PublicCatalog() {
     window.scrollTo(0, 0);
     const fetchCatalogData = async () => {
       try {
-        const folderRef = doc(db, 'folders', folderId);
-        const folderSnap = await getDoc(folderRef);
-        
-        if (!folderSnap.exists()) {
+                const response = await api.get(/folders/ + folderId);
+        if (!response.success || !response.folder) {
           setErrorMsg("La carpeta no existe o fue eliminada.");
           setLoading(false);
           return;
         }
-        
-        const folder = folderSnap.data();
+        const folder = response.folder;
         setFolderData(folder);
 
-        // Track folder visits
+                // Track folder visits
         if (!currentUser || currentUser.uid !== folder.userId) {
           const currentWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
-          if (folder.lastVisitWeek !== currentWeek) {
-            updateDoc(folderRef, { 
-              weeklyVisits: 1, 
-              lastVisitWeek: currentWeek, 
-              totalVisits: increment(1) 
-            }).catch(err => console.error("Error updating visits", err));
-          } else {
-            updateDoc(folderRef, { 
-              weeklyVisits: increment(1), 
-              totalVisits: increment(1) 
-            }).catch(err => console.error("Error updating visits", err));
-          }
+          api.post(/folders/ + folderId + '/visit', { currentWeek }).catch(err => console.error("Error updating visits", err));
         }
 
-        if (folder.userId) {
-          const sellerRef = doc(db, 'users', folder.userId);
-          const sellerSnap = await getDoc(sellerRef);
-          if (sellerSnap.exists()) {
-            setSellerData(sellerSnap.data());
-          }
+                if (folder.user) {
+          setSellerData(folder.user);
         }
 
-        const cardsRef = collection(db, 'folders', folderId, 'cards');
-        const cardsSnap = await getDocs(cardsRef);
-        const cardsList = cardsSnap.docs.map(d => ({ ...d.data(), apiId: d.data().id, id: d.id }));
+                const cardsList = (folder.cards || []).map(c => ({ ...c, apiId: c.tcgId || c.id }));
         setCards(cardsList);
         
       } catch (error) {
         console.error("Error fetching catalog:", error);
-        setErrorMsg("Hubo un error al cargar el catálogo.");
+        setErrorMsg("Hubo un error al cargar el catÃ¡logo.");
       } finally {
         setLoading(false);
       }
@@ -136,13 +115,13 @@ function PublicCatalog() {
     
     const phone = sellerData?.phone?.replace(/\D/g, '') || '';
     if (!phone) {
-      alert("El vendedor no tiene un número de contacto configurado.");
+      alert("El vendedor no tiene un nÃºmero de contacto configurado.");
       return;
     }
     
     const formattedPhone = phone.startsWith('56') ? phone : `56${phone}`;
     
-    // Abrir ventana síncronamente para evitar bloqueo de pop-ups
+    // Abrir ventana sÃ­ncronamente para evitar bloqueo de pop-ups
     const newWindow = window.open('', '_blank');
     if (newWindow) {
       newWindow.document.write('Generando tu pedido, por favor espera...');
@@ -150,11 +129,10 @@ function PublicCatalog() {
     
     setIsProcessingCheckout(true);
     try {
-      // 1. Guardar la orden en Firestore para que el vendedor pueda gestionar el stock
-      await addDoc(collection(db, 'orders'), {
+            // 1. Guardar la orden en la base de datos
+      await api.post('/orders/create', {
         sellerId: folderData.userId,
         buyerName: 'Cliente por WhatsApp',
-        createdAt: serverTimestamp(),
         folderId: folderId,
         folderName: folderData.name || 'Catálogo',
         items: cart.map(item => ({
@@ -163,23 +141,22 @@ function PublicCatalog() {
           quantity: item.quantity,
           price: item.price
         })),
-        total: cartTotal,
-        status: 'pending'
+        total: cartTotal
       });
 
       // 2. Generar el mensaje y redirigir
-      let message = `¡Hola! Vengo de Carpetazo. Me interesa comprar estas cartas de la carpeta "${folderData?.name || 'Catálogo'}":\n\n`;
+      let message = `Â¡Hola! Vengo de Carpetazo. Me interesa comprar estas cartas de la carpeta "${folderData?.name || 'CatÃ¡logo'}":\n\n`;
       cart.forEach(item => {
-        message += `• ${item.quantity}x ${item.name} (${item.set}) - ${formatCLP(item.price * item.quantity)}\n`;
+        message += `â€¢ ${item.quantity}x ${item.name} (${item.set}) - ${formatCLP(item.price * item.quantity)}\n`;
       });
-      message += `\nTotal: ${formatCLP(cartTotal)}\n\n¿Tienes disponibilidad?`;
+      message += `\nTotal: ${formatCLP(cartTotal)}\n\nÂ¿Tienes disponibilidad?`;
       
       const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
       
       if (newWindow) {
         newWindow.location.href = whatsappUrl;
       } else {
-        window.location.href = whatsappUrl; // fallback si el navegador bloquea incluso el window.open síncrono
+        window.location.href = whatsappUrl; // fallback si el navegador bloquea incluso el window.open sÃ­ncrono
       }
 
       setCart([]);
@@ -195,7 +172,7 @@ function PublicCatalog() {
   };
 
   const counts = {
-    pokemon: cards.filter(c => c.supertype === 'Pokémon').length,
+    pokemon: cards.filter(c => c.supertype === 'PokÃ©mon').length,
     trainers: cards.filter(c => c.supertype === 'Trainer').length,
     energy: cards.filter(c => c.supertype === 'Energy').length
   };
@@ -279,7 +256,7 @@ function PublicCatalog() {
             <div className="flex flex-col text-left flex-1 min-w-0">
               <div className="flex items-center gap-1 flex-wrap">
                 <span className="text-base font-black text-[#1a2b4b] leading-tight">
-                  {sellerData?.displayName || 'Vendedor Anónimo'}
+                  {sellerData?.displayName || 'Vendedor AnÃ³nimo'}
                 </span>
                 {(sellerData?.isVerified || true) && (
                   <span translate="no" className="material-symbols-outlined text-[#3b82f6] text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }} title="Vendedor Verificado">verified</span>
@@ -294,7 +271,7 @@ function PublicCatalog() {
                       <span translate="no" className="material-symbols-outlined text-primary text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                       <span className="text-[#1a2b4b] font-extrabold text-[11px]">{sellerData?.rating?.toFixed(1) || '5.0'}</span>
                     </div>
-                    <span className="text-gray-500 text-[10px] font-semibold">{sellerData?.totalTrades} reseñas</span>
+                    <span className="text-gray-500 text-[10px] font-semibold">{sellerData?.totalTrades} reseÃ±as</span>
                   </>
                 ) : (
                   <span className="text-gray-500 text-[10px] font-semibold bg-white/50 px-2 py-0.5 rounded-full border border-gray-200">Nuevo Vendedor</span>
@@ -367,7 +344,7 @@ function PublicCatalog() {
           </div>
 
           <Link to={`/${sellerData?.username || folderData.userId}`} className="flex items-center gap-1.5 text-xs font-bold text-[#1e40af] hover:text-blue-800 transition-colors group mt-2 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-gray-200 shadow-sm">
-            <span>Ver catálogo completo del vendedor</span>
+            <span>Ver catÃ¡logo completo del vendedor</span>
             <span translate="no" className="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
           </Link>
         </div>
@@ -391,7 +368,7 @@ function PublicCatalog() {
                   type="text" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar nombre de carta o número..."
+                  placeholder="Buscar nombre de carta o nÃºmero..."
                   className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] transition-all text-sm font-medium"
                 />
               </div>
@@ -446,7 +423,7 @@ function PublicCatalog() {
         {filteredCards.length === 0 ? (
           <div className="py-12 text-center text-gray-500 flex flex-col items-center">
               <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-30">inventory_2</span>
-              <p>Este catálogo aún no tiene cartas o no coinciden con tu búsqueda.</p>
+              <p>Este catÃ¡logo aÃºn no tiene cartas o no coinciden con tu bÃºsqueda.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -487,7 +464,7 @@ function PublicCatalog() {
               {cart.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 opacity-70">
                   <span translate="no" className="material-symbols-outlined text-6xl mb-2">shopping_bag</span>
-                  <p>Tu carrito está vacío.</p>
+                  <p>Tu carrito estÃ¡ vacÃ­o.</p>
                 </div>
               ) : (
                 cart.map(item => (
@@ -525,7 +502,7 @@ function PublicCatalog() {
                 </span>
                 {isProcessingCheckout ? 'Procesando...' : 'Generar Pedido por WhatsApp'}
               </button>
-              <p className="text-[10px] text-center text-gray-500 mt-3">Al presionar, se abrirá WhatsApp con el detalle de tu pedido para coordinar el pago y envío directamente con el vendedor.</p>
+              <p className="text-[10px] text-center text-gray-500 mt-3">Al presionar, se abrirÃ¡ WhatsApp con el detalle de tu pedido para coordinar el pago y envÃ­o directamente con el vendedor.</p>
             </div>
           </div>
         </div>
@@ -536,3 +513,4 @@ function PublicCatalog() {
 }
 
 export default PublicCatalog;
+

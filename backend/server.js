@@ -432,7 +432,7 @@ app.post('/api/folders', authenticateToken, async (req, res) => {
 });
 
 // Obtener detalles de una carpeta (y sus cartas)
-app.get('/api/folders/:id', authenticateToken, async (req, res) => {
+app.get('/api/folders/:id', async (req, res) => {
   try {
     const folder = await prisma.folder.findUnique({
       where: { id: req.params.id },
@@ -445,7 +445,33 @@ app.get('/api/folders/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Borrar carpeta
+  // Registrar visita a carpeta
+  app.post('/api/folders/:id/visit', async (req, res) => {
+    try {
+      const folderId = req.params.id;
+      const { currentWeek } = req.body;
+      
+      const folder = await prisma.folder.findUnique({ where: { id: folderId } });
+      if (!folder) return res.status(404).json({ success: false });
+
+      if (folder.lastVisitWeek !== currentWeek) {
+        await prisma.folder.update({
+          where: { id: folderId },
+          data: { weeklyVisits: 1, lastVisitWeek: currentWeek, totalVisits: { increment: 1 } }
+        });
+      } else {
+        await prisma.folder.update({
+          where: { id: folderId },
+          data: { weeklyVisits: { increment: 1 }, totalVisits: { increment: 1 } }
+        });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ success: false });
+    }
+  });
+
+  // Borrar carpeta
 app.delete('/api/folders/:id', authenticateToken, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
@@ -587,6 +613,7 @@ app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
 app.listen(port, () => {
     console.log(`ðŸš€ Servidor backend corriendo en http://localhost:${port}`);
 });
+
 
 
 
