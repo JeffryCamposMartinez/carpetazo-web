@@ -2,52 +2,32 @@
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-const jwt = require('jsonwebtoken');
-const jwksRsa = require('jwks-rsa');
-require('dotenv').config();
+const admin = require('firebase-admin');
 
 const FIREBASE_PROJECT_ID = 'carpetazo-db9d7';
 
-// Configure JWKS client to retrieve Google's public keys
-const jwksClient = jwksRsa({
-  jwksUri: 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com',
-  cache: true,
-  rateLimit: true,
-  jwksRequestsPerMinute: 5
+admin.initializeApp({
+  projectId: FIREBASE_PROJECT_ID
 });
 
-function getKey(header, callback) {
-  jwksClient.getSigningKey(header.kid, function(err, key) {
-    if (err) {
-      callback(err);
-    } else {
-      const signingKey = key.getPublicKey();
-      callback(null, signingKey);
-    }
-  });
-}
-
-// Middleware to validate Firebase ID Token (JWT)
-const authenticateToken = (req, res, next) => {
+// Middleware to validate Firebase ID Token
+const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Format: Bearer <TOKEN>
 
   if (!token) {
-    return res.status(401).json({ success: false, message: 'Token de autenticaciÃ³n requerido' });
+    return res.status(401).json({ success: false, message: 'Token de autenticación requerido' });
   }
 
-  jwt.verify(token, getKey, {
-    issuer: `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`,
-    audience: FIREBASE_PROJECT_ID,
-    algorithms: ['RS256']
-  }, (err, decoded) => {
-    if (err) {
-      console.error('Error al verificar token JWT:', err.message);
-      return res.status(403).json({ success: false, message: 'Token de autenticaciÃ³n invÃ¡lido o expirado' });
-    }
-    req.user = decoded; // Contains user payload (uid as 'sub', email, etc.)
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    req.user = decodedToken; // Contains user payload (uid, email, etc.)
+    req.user.sub = decodedToken.uid; // Ensure 'sub' maps to 'uid' for backwards compatibility
     next();
-  });
+  } catch (error) {
+    console.error('Error al verificar token Firebase:', error.message);
+    return res.status(403).json({ success: false, message: 'Token de autenticación inválido o expirado' });
+  }
 };
 
 const { PrismaClient } = require('@prisma/client');
@@ -607,6 +587,7 @@ app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
 app.listen(port, () => {
     console.log(`ðŸš€ Servidor backend corriendo en http://localhost:${port}`);
 });
+
 
 
 
