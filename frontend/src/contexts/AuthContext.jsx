@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, googleProvider, db } from '../firebase';
+import { api } from '../utils/api';
 import { 
   onAuthStateChanged, 
   signInWithPopup, 
@@ -21,18 +22,18 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Iniciar sesión con Google
+  // Iniciar sesiÃ³n con Google
   function loginWithGoogle() {
     return signInWithPopup(auth, googleProvider);
   }
 
-  // Iniciar sesión con Email y Contraseña
+  // Iniciar sesiÃ³n con Email y ContraseÃ±a
   async function loginWithEmail(email, password) {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
     if (!user.emailVerified) {
-      // Reenviar la verificación automáticamente si intenta ingresar y no está verificado
+      // Reenviar la verificaciÃ³n automÃ¡ticamente si intenta ingresar y no estÃ¡ verificado
       await sendEmailVerification(user);
       await signOut(auth);
       throw new Error('auth/email-not-verified');
@@ -40,11 +41,11 @@ export function AuthProvider({ children }) {
     return user;
   }
 
-  // Registrarse con Email y Contraseña
+  // Registrarse con Email y ContraseÃ±a
   async function registerWithEmail(email, password, displayName, username) {
     const formattedUsername = username.toLowerCase().trim();
 
-    // 1. Validar que el username, displayName y email no estén tomados en Firestore
+    // 1. Validar que el username, displayName y email no estÃ©n tomados en Firestore
     const { collection, query, where, getDocs, doc, setDoc } = await import('firebase/firestore');
     const usersRef = collection(db, 'users');
     
@@ -71,7 +72,7 @@ export function AuthProvider({ children }) {
     // 3. Actualizar perfil con el displayName
     await updateProfile(user, { displayName });
 
-    // 4. Enviar correo de verificación
+    // 4. Enviar correo de verificaciÃ³n
     await sendEmailVerification(user);
 
     // 5. Guardar en Firestore
@@ -84,12 +85,12 @@ export function AuthProvider({ children }) {
       createdAt: new Date()
     });
 
-    // 6. Forzar cierre de sesión inmediato
+    // 6. Forzar cierre de sesiÃ³n inmediato
     await signOut(auth);
     return user;
   }
 
-  // Restablecer contraseña
+  // Restablecer contraseÃ±a
   function resetPassword(email) {
     return sendPasswordResetEmail(auth, email);
   }
@@ -99,15 +100,15 @@ export function AuthProvider({ children }) {
     return auth.currentUser ? await auth.currentUser.getIdToken(true) : null;
   }
 
-  // Cerrar sesión
+  // Cerrar sesiÃ³n
   function logout() {
     return signOut(auth);
   }
 
   useEffect(() => {
-    // Suscribirse a los cambios en el estado de autenticación
+    // Suscribirse a los cambios en el estado de autenticaciÃ³n
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      // Si el usuario está autenticado pero no verificado, y es login por contraseña
+      // Si el usuario estÃ¡ autenticado pero no verificado, y es login por contraseÃ±a
       if (user && !user.emailVerified && user.providerData.some(p => p.providerId === 'password')) {
         await signOut(auth);
         setCurrentUser(null);
@@ -119,6 +120,9 @@ export function AuthProvider({ children }) {
       setLoading(false);
       
       if (user) {
+        // Sincronizar usuario con el backend PostgreSQL
+        api.syncUser().catch(console.error);
+        
         import('firebase/firestore').then(({ doc, getDoc, setDoc }) => {
           const userRef = doc(db, 'users', user.uid);
           getDoc(userRef).then((docSnap) => {
@@ -166,4 +170,5 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
+
 
