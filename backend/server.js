@@ -881,19 +881,11 @@ app.get('/api/users/:username', async (req, res) => {
 });
 
 
-// --- TCGCSV PROXY ---
-const TCGCSV_BASE = 'https://tcgcsv.com/tcgplayer';
-const tcgcsvCache = {};
-
+// --- TCGCSV LOCAL DB ---
 app.get('/api/tcg/categories', async (req, res) => {
   try {
-    if (tcgcsvCache['categories']) {
-      return res.json({ success: true, data: tcgcsvCache['categories'] });
-    }
-    const response = await fetch(`${TCGCSV_BASE}/categories`, { headers: { 'User-Agent': 'CarpetazoApp/1.0' } });
-    const data = await response.json();
-    tcgcsvCache['categories'] = data.results;
-    res.json({ success: true, data: data.results });
+    const categories = await prisma.tcgCategory.findMany({ orderBy: { name: 'asc' } });
+    res.json({ success: true, data: categories });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -902,14 +894,11 @@ app.get('/api/tcg/categories', async (req, res) => {
 app.get('/api/tcg/:categoryId/groups', async (req, res) => {
   try {
     const { categoryId } = req.params;
-    const cacheKey = `groups_${categoryId}`;
-    if (tcgcsvCache[cacheKey]) {
-      return res.json({ success: true, data: tcgcsvCache[cacheKey] });
-    }
-    const response = await fetch(`${TCGCSV_BASE}/${categoryId}/groups`, { headers: { 'User-Agent': 'CarpetazoApp/1.0' } });
-    const data = await response.json();
-    tcgcsvCache[cacheKey] = data.results;
-    res.json({ success: true, data: data.results });
+    const groups = await prisma.tcgGroup.findMany({
+      where: { categoryId: parseInt(categoryId) },
+      orderBy: { publishedOn: 'desc' }
+    });
+    res.json({ success: true, data: groups });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -918,14 +907,33 @@ app.get('/api/tcg/:categoryId/groups', async (req, res) => {
 app.get('/api/tcg/:categoryId/:groupId/products', async (req, res) => {
   try {
     const { categoryId, groupId } = req.params;
-    const cacheKey = `products_${categoryId}_${groupId}`;
-    if (tcgcsvCache[cacheKey]) {
-      return res.json({ success: true, data: tcgcsvCache[cacheKey] });
-    }
-    const response = await fetch(`${TCGCSV_BASE}/${categoryId}/${groupId}/products`, { headers: { 'User-Agent': 'CarpetazoApp/1.0' } });
-    const data = await response.json();
-    tcgcsvCache[cacheKey] = data.results;
-    res.json({ success: true, data: data.results });
+    const products = await prisma.tcgProduct.findMany({
+      where: { categoryId: parseInt(categoryId), groupId: parseInt(groupId) },
+      orderBy: { name: 'asc' }
+    });
+    res.json({ success: true, data: products });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/tcg/search', async (req, res) => {
+  try {
+    const { q, categoryId, groupId } = req.query;
+    if (!q) return res.json({ success: true, data: [] });
+    
+    let whereClause = {
+       name: { contains: q, mode: 'insensitive' }
+    };
+    if (categoryId) whereClause.categoryId = parseInt(categoryId);
+    if (groupId) whereClause.groupId = parseInt(groupId);
+
+    const products = await prisma.tcgProduct.findMany({
+      where: whereClause,
+      take: 50,
+      orderBy: { name: 'asc' }
+    });
+    res.json({ success: true, data: products });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
