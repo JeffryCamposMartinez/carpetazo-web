@@ -2,12 +2,11 @@
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-const { initializeApp } = require('firebase-admin/app');
-const { getAuth } = require('firebase-admin/auth');
+const admin = require('firebase-admin');
 
 const FIREBASE_PROJECT_ID = 'carpetazo-db9d7';
 
-initializeApp({
+admin.initializeApp({
   projectId: FIREBASE_PROJECT_ID
 });
 
@@ -21,7 +20,7 @@ const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    const decodedToken = await getAuth().verifyIdToken(token);
+    const decodedToken = await admin.auth().verifyIdToken(token);
     req.user = decodedToken; // Contains user payload (uid, email, etc.)
     req.user.sub = decodedToken.uid; // Ensure 'sub' maps to 'uid' for backwards compatibility
     next();
@@ -880,6 +879,7 @@ app.get('/api/users/:username', async (req, res) => {
 app.listen(port, () => {
     console.log(`Ã°Å¸Å¡â‚¬ Servidor backend corriendo en http://localhost:${port}`);
 });
+
 
 
 
