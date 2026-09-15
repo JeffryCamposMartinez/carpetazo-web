@@ -33,7 +33,7 @@ export function AuthProvider({ children }) {
     const user = userCredential.user;
 
     if (!user.emailVerified) {
-      // Reenviar la verificaciÃ³n automÃ¡ticamente si intenta ingresar y no estÃ¡ verificado
+      // Reenviar la verificación automáticamente si intenta ingresar y no está verificado
       await sendEmailVerification(user);
       await signOut(auth);
       throw new Error('auth/email-not-verified');
@@ -55,7 +55,7 @@ export function AuthProvider({ children }) {
     // 3. Actualizar perfil con el displayName
     await updateProfile(user, { displayName });
 
-    // 4. Enviar correo de verificaciÃ³n
+    // 4. Enviar correo de verificación
     await sendEmailVerification(user);
 
     // 5. Guardar en backend relacional a través del sync
@@ -86,9 +86,9 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
-    // Suscribirse a los cambios en el estado de autenticaciÃ³n
+    // Suscribirse a los cambios en el estado de autenticación
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      // Si el usuario estÃ¡ autenticado pero no verificado, y es login por Contraseña
+      // Si el usuario está autenticado pero no verificado, y es login por Contraseña
       if (user && !user.emailVerified && user.providerData.some(p => p.providerId === 'password')) {
         await signOut(auth);
         setCurrentUser(null);

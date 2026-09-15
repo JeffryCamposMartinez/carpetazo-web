@@ -160,7 +160,7 @@ export default function Header() {
                     <span translate="no" className="material-symbols-outlined text-[20px]">person</span> Mi perfil
                   </Link>
                   <Link to={`/${userUsername || currentUser.uid}`} onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 font-semibold flex items-center gap-3">
-                    <span translate="no" className="material-symbols-outlined text-[20px]">storefront</span> Ver perfil pÃºblico
+                    <span translate="no" className="material-symbols-outlined text-[20px]">storefront</span> Ver perfil público
                   </Link>
                   <div className="h-px bg-gray-100 my-1 mx-2"></div>
                   <button onClick={() => { setIsDropdownOpen(false); handleLogout(); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-bold flex items-center gap-3">
@@ -309,7 +309,7 @@ export default function Header() {
                     <span translate="no" className="material-symbols-outlined text-gray-400 text-[22px]">person</span> Mi perfil
                   </Link>
                   <Link to={`/${userUsername || currentUser.uid}`} onClick={() => setIsMobileMenuOpen(false)} className="py-3 text-[15px] text-gray-600 flex items-center gap-4 hover:bg-gray-50 rounded-lg -mx-2 px-2 transition-colors">
-                    <span translate="no" className="material-symbols-outlined text-gray-400 text-[22px]">storefront</span> Mi perfil pÃºblico
+                    <span translate="no" className="material-symbols-outlined text-gray-400 text-[22px]">storefront</span> Mi perfil público
                   </Link>
                   <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="py-3 text-[15px] text-gray-600 flex items-center gap-4 hover:bg-gray-50 rounded-lg -mx-2 px-2 transition-colors">
                     <span translate="no" className="material-symbols-outlined text-gray-400 text-[22px]">folder</span> Mis carpetas

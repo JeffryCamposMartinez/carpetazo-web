@@ -120,7 +120,7 @@ export default function Dashboard() {
     try {
       await api.deleteFolder(folderToDelete.id);
       setFolders(folders.filter(f => f.id !== folderToDelete.id));
-      showToast("Â¡Carpeta eliminada con Ã©xito!");
+      showToast("¡Carpeta eliminada con éxito!");
       setIsCreateModalOpen(false);
     } catch (error) {
       console.error("Error al eliminar la carpeta:", error);
@@ -159,7 +159,7 @@ export default function Dashboard() {
       setFolders(folders.map(f => f.id === folder.id ? { ...f, isPublic: newStatus } : f));
       showToast(newStatus ? 'Carpeta publicada' : 'Carpeta hecha privada');
     } catch (error) {
-      console.error("Error al cambiar estado pÃºblico:", error);
+      console.error("Error al cambiar estado público:", error);
       showToast('Error al cambiar privacidad');
     }
   };
@@ -170,19 +170,19 @@ export default function Dashboard() {
     
     if (navigator.share) {
       navigator.share({
-        title: `CatÃ¡logo de ${folder.name}`,
-        text: `Â¡Mira mi catÃ¡logo de cartas en Carpetazo!`,
+        title: `Catálogo de ${folder.name}`,
+        text: `¡Mira mi catálogo de cartas en Carpetazo!`,
         url: url
       }).catch(err => {
         if (err.name !== 'AbortError') {
           navigator.clipboard.writeText(url).then(() => {
-            showToast("Â¡Enlace copiado al portapapeles!");
+            showToast("¡Enlace copiado al portapapeles!");
           });
         }
       });
     } else {
       navigator.clipboard.writeText(url).then(() => {
-        showToast("Â¡Enlace copiado al portapapeles!");
+        showToast("¡Enlace copiado al portapapeles!");
       }).catch(err => console.error("Error al copiar", err));
     }
   };
@@ -211,8 +211,8 @@ export default function Dashboard() {
               {activeTab === 'historial' && 'Historial de Pedidos'}
             </h1>
             <p className="text-gray-600 text-lg md:text-xl leading-relaxed">
-              {activeTab === 'carpetas' && 'Crea catÃ¡logos personalizados para empezar a gestionar tus cartas, compartir enlaces con compradores y aumentar tus ventas.'}
-              {activeTab === 'solicitudes' && 'Gestiona y confirma los pedidos recientes para descontar el stock automÃ¡ticamente.'}
+              {activeTab === 'carpetas' && 'Crea catálogos personalizados para empezar a gestionar tus cartas, compartir enlaces con compradores y aumentar tus ventas.'}
+              {activeTab === 'solicitudes' && 'Gestiona y confirma los pedidos recientes para descontar el stock automáticamente.'}
               {activeTab === 'historial' && 'Revisa el registro de todas tus ventas completadas.'}
             </p>
           </div>
@@ -284,7 +284,7 @@ export default function Dashboard() {
               <button 
                 onClick={(e) => handleTogglePublic(e, folder)}
                 className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full shadow-lg transition-all ${folder.isPublic ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'}`}
-                title={folder.isPublic ? "Carpeta PÃºblica (Clic para ocultar)" : "Carpeta Privada (Clic para publicar)"}
+                title={folder.isPublic ? "Carpeta Pública (Clic para ocultar)" : "Carpeta Privada (Clic para publicar)"}
               >
                 <span translate="no" className="material-symbols-outlined text-[16px] md:text-[18px]">{folder.isPublic ? 'public' : 'public_off'}</span>
               </button>
@@ -391,13 +391,13 @@ export default function Dashboard() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">CategorÃ­a (TCG)</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Categoría (TCG)</label>
                 <select 
                   value={newFolderTcg}
                   onChange={(e) => setNewFolderTcg(e.target.value)}
                   className="w-full bg-gray-50 border border-gray-300 text-gray-900 px-4 py-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#1e40af] focus:border-[#1e40af] transition-all appearance-none cursor-pointer font-medium"
                 >
-                  <option value="Pokemon">PokÃ©mon TCG</option>
+                  <option value="Pokemon">Pokémon TCG</option>
                   <option value="YuGiOh">Yu-Gi-Oh!</option>
                   <option value="Magic">Magic: The Gathering</option>
                   <option value="Mitos y Leyendas">Mitos y Leyendas</option>
@@ -518,9 +518,9 @@ export default function Dashboard() {
             <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-6">
               <span translate="no" className="material-symbols-outlined text-4xl text-red-600">warning</span>
             </div>
-            <h3 className="text-2xl font-bold text-center text-gray-900 mb-2">Â¿Eliminar carpeta?</h3>
+            <h3 className="text-2xl font-bold text-center text-gray-900 mb-2">¿Eliminar carpeta?</h3>
             <p className="text-center text-gray-600 mb-8">
-              EstÃ¡s a punto de eliminar <strong>"{folderToDelete.name}"</strong>. Esta acciÃ³n no se puede deshacer.
+              Estás a punto de eliminar <strong>"{folderToDelete.name}"</strong>. Esta acción no se puede deshacer.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <button 
