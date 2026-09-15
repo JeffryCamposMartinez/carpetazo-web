@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
-import { doc, getDoc, updateDoc, deleteDoc, collection, getDocs, addDoc } from 'firebase/firestore';
 import { api } from '../utils/api';
 
 import Filters from '../components/Filters';
@@ -135,9 +134,8 @@ function FolderPokemon() {
 
   const fetchCards = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, 'folders', id, 'cards'));
-      const cardsData = querySnapshot.docs.map(doc => ({ ...doc.data(), apiId: doc.data().id, id: doc.id }));
-      setCards(cardsData);
+      const res = await api.getFolder(id);
+      if(res.success && res.folder) setCards(res.folder.cards || []);
     } catch (err) { console.error('Error fetching cards:', err); }
   };
 
@@ -145,11 +143,10 @@ function FolderPokemon() {
     window.scrollTo(0, 0);
     const init = async () => {
       try {
-        const docRef = doc(db, 'folders', id);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setFolderData(docSnap.data());
-          fetchCards();
+        const res = await api.getFolder(id);
+        if (res.success && res.folder) {
+          setFolderData(res.folder);
+          setCards(res.folder.cards || []);
         }
       } catch (e) { console.error(e); } finally { setLoadingFolder(false); }
     };
@@ -215,7 +212,7 @@ function FolderPokemon() {
     const cardIdToDelete = confirmDialog.targetId;
     setConfirmDialog({ show: false, message: '', targetId: null });
     try {
-      await deleteDoc(doc(db, 'folders', id, 'cards', cardIdToDelete));
+      await api.deleteCard(id, cardIdToDelete);
       if (true) {
         setCards(cards.filter(c => c.id !== cardIdToDelete));
         showToast('Carta eliminada exitosamente', 'success');
@@ -416,7 +413,7 @@ function FolderPokemon() {
       language: language
     };
     try {
-      await addDoc(collection(db, 'folders', id, 'cards'), cardData);
+      await api.addCard(id, cardData);
       if (true) {
         showToast('¡Carta guardada en el catálogo exitosamente!', 'success');
         setSelectedCard(null);
