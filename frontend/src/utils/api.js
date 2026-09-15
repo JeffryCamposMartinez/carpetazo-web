@@ -60,6 +60,12 @@ export const api = {
   sendMessage: (otherId, content) => apiFetch('/messages/' + otherId, { method: 'POST', body: JSON.stringify({ content }) }),
   markMessageRead: (id) => apiFetch('/messages/' + id + '/read', { method: 'PUT' }),
   
+  
+  // TCG Proxy
+  getTcgCategories: () => apiFetch('/tcg/categories'),
+  getTcgGroups: (categoryId) => apiFetch('/tcg/' + categoryId + '/groups'),
+  getTcgProducts: (categoryId, groupId) => apiFetch('/tcg/' + categoryId + '/' + groupId + '/products'),
+
   // Orders
   updateOrder: (id, data) => apiFetch('/orders/' + id, { method: 'PUT', body: JSON.stringify(data) }),
 };

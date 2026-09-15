@@ -92,8 +92,8 @@ function FolderPokemon() {
 
   // --- ADD TO CATALOG STATE ---
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchType, setSearchType] = useState('');
-  const [searchSupertype, setSearchSupertype] = useState('');
+  const [searchCategory, setSearchCategory] = useState('3');
+  const [availableCategories, setAvailableCategories] = useState([]);
   const [searchSet, setSearchSet] = useState('');
   const [availableSets, setAvailableSets] = useState([]);
   const [isSetDropdownOpen, setIsSetDropdownOpen] = useState(false);
@@ -116,8 +116,7 @@ function FolderPokemon() {
   const [confirmDialog, setConfirmDialog] = useState({ show: false, message: '', targetId: null });
 
   // --- CATALOG MANAGEMENT STATE ---
-  const [catSupertype, setCatSupertype] = useState('');
-  const [catType, setCatType] = useState('');
+  
   const [catQuery, setCatQuery] = useState('');
   const [catSet, setCatSet] = useState('');
   const [isCatSetDropdownOpen, setIsCatSetDropdownOpen] = useState(false);
@@ -156,23 +155,33 @@ function FolderPokemon() {
     init();
   }, [id]);
 
-  // Sets caching
+  // Categories and Sets caching
   useEffect(() => {
-    const cachedSets = localStorage.getItem('pokemon_tcg_sets');
-    if (cachedSets) {
-      try { setAvailableSets(JSON.parse(cachedSets)); } catch (e) {}
+    api.getTcgCategories()
+      .then(res => {
+        if (res.success) setAvailableCategories(res.data);
+      })
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (!searchCategory) {
+      setAvailableSets([]);
+      setSearchSet('');
+      return;
     }
-    fetch('https://tcgtracking.com/tcgapi/v1/3/sets')
-      .then(res => res.json())
-      .then(data => {
-        if (data.sets) {
-          const sortedSets = data.sets.sort((a,b) => new Date(b.released_on || 0) - new Date(a.released_on || 0));
+    api.getTcgGroups(searchCategory)
+      .then(res => {
+        if (res.success) {
+          const sortedSets = res.data.sort((a,b) => new Date(b.publishedOn || 0) - new Date(a.publishedOn || 0));
           setAvailableSets(sortedSets);
-          localStorage.setItem('pokemon_tcg_sets', JSON.stringify(sortedSets));
+          if (sortedSets.length > 0 && !searchSet) {
+             // Default to the most recent set or leave empty
+          }
         }
       })
-      .catch(err => console.error(err));
-  }, []);
+      .catch(console.error);
+  }, [searchCategory]);
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -220,8 +229,8 @@ function FolderPokemon() {
 
   const filteredCatalog = cards.filter(card => {
     const matchesQuery = catQuery === '' || card.name.toLowerCase().includes(catQuery.toLowerCase());
-    const matchesSupertype = catSupertype === '' || card.supertype === catSupertype;
-    const matchesType = catType === '' || (card.types && card.types.includes(catType)) || (card.supertype === 'Energy' && card.name && card.name.includes(catType));
+    const matchesSupertype = true;
+    const matchesType = true;
     const matchesSet = catSet === '' || card.set === availableSets.find(s => s.id === catSet)?.name;
     return matchesQuery && matchesSupertype && matchesType && matchesSet;
   });
@@ -243,15 +252,7 @@ function FolderPokemon() {
           className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]"
         />
         
-        <Filters 
-          selectedSupertype={catSupertype}
-          onSupertypeChange={setCatSupertype}
-          selectedType={catType}
-          onTypeChange={setCatType}
-          title=""
-          subtitle=""
-          showCounts={false}
-          segmentedControlAddon={
+        <div className="w-full">{
             <div className="relative w-full h-full">
               <div 
                 className="w-full h-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-all hover:border-[#1e40af]"
@@ -289,7 +290,6 @@ function FolderPokemon() {
               )}
             </div>
           }
-        />
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -313,39 +313,30 @@ function FolderPokemon() {
       setIsSearching(false);
     }
     setHasSearchedAPI(false);
-  }, [searchQuery, searchType, searchSupertype, searchSet]);
+  }, [searchQuery, searchCategory, searchSet]);
 
   const handleSearchAPI = async (e) => {
     e.preventDefault();
-    if (!searchSet) {
-      showToast('TCGTracking API requiere que selecciones una expansión primero.', 'error');
+    if (!searchSet || !searchCategory) {
+      showToast('Selecciona un TCG y una expansión.', 'error');
       return;
     }
     
     if (abortControllerRef.current) abortControllerRef.current.abort();
     abortControllerRef.current = new AbortController();
-    const { signal } = abortControllerRef.current;
 
     setIsSearching(true);
     try {
-      const response = await fetch(`https://tcgtracking.com/tcgapi/v1/3/sets/${searchSet}/cards`, { signal });
-      const data = await response.json();
-      let cards = data.products || [];
+      const response = await api.getTcgProducts(searchCategory, searchSet);
+      let cards = response.data || [];
       
       // Filter locally
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         cards = cards.filter(c => 
           (c.name && c.name.toLowerCase().includes(q)) || 
-          (c.number && c.number.toLowerCase().includes(q)) || 
-          (c.clean_name && c.clean_name.toLowerCase().includes(q))
+          (c.cleanName && c.cleanName.toLowerCase().includes(q))
         );
-      }
-      if (searchSupertype) {
-         cards = cards.filter(c => c.ext_data && c.ext_data["Card Type / HP / Stage"] && c.ext_data["Card Type / HP / Stage"].includes(searchSupertype));
-      }
-      if (searchType) {
-         cards = cards.filter(c => c.ext_data && c.ext_data["Card Type / HP / Stage"] && c.ext_data["Card Type / HP / Stage"].includes(searchType));
       }
       
       setSearchResults(cards);
@@ -410,19 +401,17 @@ function FolderPokemon() {
     if (!selectedCard || !price || !stock) return;
     setIsSaving(true);
     const cardData = {
-      id: selectedCard.id,
+      id: selectedCard.productId.toString(),
       name: selectedCard.name,
       pseudoName: pseudoName.trim(),
-      hp: selectedCard.hp || 'N/A',
       price: parseFloat(price),
       stock: parseInt(stock),
-      imageUrl: selectedCard.image_url || selectedCard.image_url,
-      types: selectedCard.types || [],
-      set: selectedCard.set?.name || 'Unknown',
-      rarity: selectedCard.rarity || selectedCard.ext_data?.['Card Number / Rarity']?.split(' / ')[1] || 'Unknown',
-      supertype: selectedCard.ext_data ? selectedCard.ext_data['Card Type / HP / Stage']?.split(' / ')[0] || 'Unknown' : 'Unknown',
-      number: selectedCard.number?.split('/')[0] || '',
-      total: selectedCard.number?.split('/')[1] || '',
+      imageUrl: selectedCard.imageUrl || '',
+      set: availableSets.find(s => s.groupId == searchSet)?.name || 'Unknown',
+      rarity: selectedCard.extData?.Rarity || selectedCard.extData?.['Card Number / Rarity'] || 'Unknown',
+      supertype: selectedCard.extData ? selectedCard.extData['Card Type / HP / Stage']?.split(' / ')[0] || 'Unknown' : 'Unknown',
+      number: selectedCard.extData?.Number || '',
+      total: '',
       language: language
     };
     try {
@@ -457,6 +446,7 @@ function FolderPokemon() {
       code = `${numStr}/${totalStr}`;
     }
     const searchQuery = `${card.name} ${code}`.trim();
+    if (card.tcgId) return `https://www.tcgplayer.com/product/${card.tcgId}`;
     return `https://www.tcgplayer.com/search/pokemon/product?q=${encodeURIComponent(searchQuery)}`;
   };
 
@@ -492,26 +482,36 @@ function FolderPokemon() {
             placeholder="Nombre (ej. Pikachu) o Código (ej. 15/165)"
             className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] transition-colors"
           />
-          <Filters selectedSupertype={searchSupertype} onSupertypeChange={setSearchSupertype} selectedType={searchType} onTypeChange={setSearchType} title="" subtitle="" showCounts={false} />
-          <div className="relative min-w-[200px] mt-4">
-            <div className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 cursor-pointer flex justify-between items-center transition-colors hover:border-[#1e40af]" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
-              <span className="truncate font-bold text-sm">{searchSet === '' ? 'Selecciona una expansión' : availableSets.find(s => s.id === searchSet)?.name || 'Seleccionado'}</span>
-              <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
+          <div className="flex gap-4 mb-2">
+            <select 
+              value={searchCategory} 
+              onChange={(e) => { setSearchCategory(e.target.value); setSearchSet(''); }}
+              className="w-1/3 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]"
+            >
+              <option value="" disabled>Seleccionar TCG</option>
+              {availableCategories.map(cat => (
+                <option key={cat.categoryId} value={cat.categoryId}>{cat.name}</option>
+              ))}
+            </select>
+            <div className="relative w-2/3">
+              <div className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-colors hover:border-[#1e40af]" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
+                <span className="truncate font-bold text-sm">{searchSet === '' ? 'Selecciona una expansión' : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
+                <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
+              </div>
+              {isSetDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsSetDropdownOpen(false)}></div>
+                  <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
+                    {availableSets.map(set => (
+                      <div key={set.groupId} className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center gap-2 ${searchSet == set.groupId ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(set.groupId); setIsSetDropdownOpen(false); }}>
+                        {searchSet == set.groupId && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
+                        <span className={searchSet != set.groupId ? 'ml-6' : ''}>{set.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
-            {isSetDropdownOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setIsSetDropdownOpen(false)}></div>
-                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
-                  
-                  {availableSets.map(set => (
-                    <div key={set.id} className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center gap-2 ${searchSet === set.id ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(set.id); setIsSetDropdownOpen(false); }}>
-                      {searchSet === set.id && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
-                      <span className={searchSet !== set.id ? 'ml-6' : ''}>{set.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
           </div>
           <div className="flex justify-center mt-4">
             <button type="submit" className="bg-[#1e40af] hover:bg-blue-800 text-white font-bold px-12 py-3 rounded-full transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 whitespace-nowrap flex items-center gap-2" disabled={isSearching}>
@@ -538,7 +538,7 @@ function FolderPokemon() {
               }
             }}>
               <div className="relative w-full aspect-[63/88] flex items-center justify-center bg-gray-50 p-2">
-                <img src={card.image_url} alt={card.name} loading="lazy" className="w-full h-full object-contain filter drop-shadow-sm" />
+                <img src={card.imageUrl} alt={card.name} loading="lazy" className="w-full h-full object-contain filter drop-shadow-sm" />
               </div>
               <div className="p-3 text-center border-t border-gray-100">
                 <p className="font-bold text-sm text-gray-900 truncate">{card.name}</p>
@@ -571,7 +571,7 @@ function FolderPokemon() {
             <div className="flex justify-center relative z-50 mb-2 mt-2">
               <div className="relative inline-block">
                 <img 
-                  src={selectedCard.image_url || selectedCard.image_url} 
+                  src={selectedCard.imageUrl || selectedCard.imageUrl} 
                   alt={selectedCard.name} 
                   className="h-44 sm:h-52 aspect-[63/88] object-fill rounded-lg shadow-md hover:scale-[2.2] transition-transform duration-300 cursor-zoom-in relative z-50 hover:z-[70] origin-center" 
                 />
@@ -775,7 +775,7 @@ function FolderPokemon() {
       </div>
     );
   }
-  if (!folderData || folderData.tcg !== 'Pokemon') return (
+  if (!folderData) return (
     <div className="min-h-[calc(100vh-80px)] w-full flex flex-col items-center justify-center bg-[#DBEAFE] p-6 relative z-10">
       <span translate="no" className="material-symbols-outlined text-6xl text-error mb-4">error</span>
       <h2 className="text-2xl font-bold mb-6 text-[#1a2b4b] text-center max-w-md leading-snug">Esta vista es exclusiva para catálogos Pokémon</h2>

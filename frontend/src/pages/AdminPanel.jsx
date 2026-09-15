@@ -169,23 +169,33 @@ function AdminPanel() {
     return () => clearInterval(interval);
   }, []);
 
-  // Sets caching
+  // Categories and Sets caching
   useEffect(() => {
-    const cachedSets = localStorage.getItem('pokemon_tcg_sets');
-    if (cachedSets) {
-      try { setAvailableSets(JSON.parse(cachedSets)); } catch (e) {}
+    api.getTcgCategories()
+      .then(res => {
+        if (res.success) setAvailableCategories(res.data);
+      })
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (!searchCategory) {
+      setAvailableSets([]);
+      setSearchSet('');
+      return;
     }
-    fetch('https://tcgtracking.com/tcgapi/v1/3/sets')
-      .then(res => res.json())
-      .then(data => {
-        if (data.sets) {
-          const sortedSets = data.sets.sort((a,b) => new Date(b.released_on || 0) - new Date(a.released_on || 0));
+    api.getTcgGroups(searchCategory)
+      .then(res => {
+        if (res.success) {
+          const sortedSets = res.data.sort((a,b) => new Date(b.publishedOn || 0) - new Date(a.publishedOn || 0));
           setAvailableSets(sortedSets);
-          localStorage.setItem('pokemon_tcg_sets', JSON.stringify(sortedSets));
+          if (sortedSets.length > 0 && !searchSet) {
+             // Default to the most recent set or leave empty
+          }
         }
       })
-      .catch(err => console.error(err));
-  }, []);
+      .catch(console.error);
+  }, [searchCategory]);
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -343,39 +353,30 @@ function AdminPanel() {
       setIsSearching(false);
     }
     setHasSearchedAPI(false);
-  }, [searchQuery, searchType, searchSupertype, searchSet]);
+  }, [searchQuery, searchCategory, searchSet]);
 
   const handleSearchAPI = async (e) => {
     e.preventDefault();
-    if (!searchSet) {
-      showToast('TCGTracking API requiere que selecciones una expansión primero.', 'error');
+    if (!searchSet || !searchCategory) {
+      showToast('Selecciona un TCG y una expansión.', 'error');
       return;
     }
     
     if (abortControllerRef.current) abortControllerRef.current.abort();
     abortControllerRef.current = new AbortController();
-    const { signal } = abortControllerRef.current;
 
     setIsSearching(true);
     try {
-      const response = await fetch(`https://tcgtracking.com/tcgapi/v1/3/sets/${searchSet}/cards`, { signal });
-      const data = await response.json();
-      let cards = data.products || [];
+      const response = await api.getTcgProducts(searchCategory, searchSet);
+      let cards = response.data || [];
       
       // Filter locally
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         cards = cards.filter(c => 
           (c.name && c.name.toLowerCase().includes(q)) || 
-          (c.number && c.number.toLowerCase().includes(q)) || 
-          (c.clean_name && c.clean_name.toLowerCase().includes(q))
+          (c.cleanName && c.cleanName.toLowerCase().includes(q))
         );
-      }
-      if (searchSupertype) {
-         cards = cards.filter(c => c.ext_data && c.ext_data["Card Type / HP / Stage"] && c.ext_data["Card Type / HP / Stage"].includes(searchSupertype));
-      }
-      if (searchType) {
-         cards = cards.filter(c => c.ext_data && c.ext_data["Card Type / HP / Stage"] && c.ext_data["Card Type / HP / Stage"].includes(searchType));
       }
       
       setSearchResults(cards);
@@ -445,7 +446,7 @@ function AdminPanel() {
       hp: selectedCard.hp || 'N/A',
       price: parseFloat(price),
       stock: parseInt(stock),
-      imageUrl: selectedCard.image_url || selectedCard.image_url,
+      imageUrl: selectedCard.imageUrl || selectedCard.imageUrl,
       types: selectedCard.types || [],
       set: selectedCard.set?.name || 'Unknown',
       rarity: selectedCard.rarity || selectedCard.ext_data?.['Card Number / Rarity']?.split(' / ')[1] || 'Unknown',
@@ -495,6 +496,7 @@ function AdminPanel() {
       code = `${numStr}/${totalStr}`;
     }
     const searchQuery = `${card.name} ${code}`.trim();
+    if (card.tcgId) return `https://www.tcgplayer.com/product/${card.tcgId}`;
     return `https://www.tcgplayer.com/search/pokemon/product?q=${encodeURIComponent(searchQuery)}`;
   };
 
@@ -530,7 +532,37 @@ function AdminPanel() {
             placeholder="Nombre (ej. Pikachu) o Código (ej. 15/165)"
             className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary"
           />
-          <Filters selectedSupertype={searchSupertype} onSupertypeChange={setSearchSupertype} selectedType={searchType} onTypeChange={setSearchType} title="" subtitle="" showCounts={false} />
+          <div className="flex gap-4 mb-2">
+            <select 
+              value={searchCategory} 
+              onChange={(e) => { setSearchCategory(e.target.value); setSearchSet(''); }}
+              className="w-1/3 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]"
+            >
+              <option value="" disabled>Seleccionar TCG</option>
+              {availableCategories.map(cat => (
+                <option key={cat.categoryId} value={cat.categoryId}>{cat.name}</option>
+              ))}
+            </select>
+            <div className="relative w-2/3">
+              <div className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-colors hover:border-[#1e40af]" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
+                <span className="truncate font-bold text-sm">{searchSet === '' ? 'Selecciona una expansión' : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
+                <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
+              </div>
+              {isSetDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsSetDropdownOpen(false)}></div>
+                  <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
+                    {availableSets.map(set => (
+                      <div key={set.groupId} className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center gap-2 ${searchSet == set.groupId ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(set.groupId); setIsSetDropdownOpen(false); }}>
+                        {searchSet == set.groupId && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
+                        <span className={searchSet != set.groupId ? 'ml-6' : ''}>{set.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
           <div className="relative min-w-[200px] mt-4">
             <div className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface text-on-surface cursor-pointer flex justify-between items-center" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
               <span className="truncate">{searchSet === '' ? 'Selecciona una expansión' : availableSets.find(s => s.id === searchSet)?.name || 'Seleccionado'}</span>
@@ -579,7 +611,7 @@ function AdminPanel() {
               }
             }}>
               <div className="relative w-full aspect-[63/88] flex items-center justify-center bg-surface-container-highest">
-                <img src={card.image_url} alt={card.name} loading="lazy" className="w-full h-full object-contain" />
+                <img src={card.imageUrl} alt={card.name} loading="lazy" className="w-full h-full object-contain" />
               </div>
               <div className="p-2 text-center">
                 <p className="font-label-sm text-on-background truncate">{card.name}</p>
@@ -612,7 +644,7 @@ function AdminPanel() {
             <div className="flex justify-center relative z-50 mb-2 mt-2">
               <div className="relative inline-block">
                 <img 
-                  src={selectedCard.image_url || selectedCard.image_url} 
+                  src={selectedCard.imageUrl || selectedCard.imageUrl} 
                   alt={selectedCard.name} 
                   className="h-44 sm:h-52 w-auto object-contain rounded-lg shadow-md hover:scale-[2.2] transition-transform duration-300 cursor-zoom-in relative z-50 hover:z-[70] origin-center" 
                 />
