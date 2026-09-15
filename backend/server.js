@@ -1,12 +1,13 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-const admin = require('firebase-admin');
+const { initializeApp } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
 
 const FIREBASE_PROJECT_ID = 'carpetazo-db9d7';
 
-admin.initializeApp({
+initializeApp({
   projectId: FIREBASE_PROJECT_ID
 });
 
@@ -16,17 +17,17 @@ const authenticateToken = async (req, res, next) => {
   const token = authHeader && authHeader.split(' ')[1]; // Format: Bearer <TOKEN>
 
   if (!token) {
-    return res.status(401).json({ success: false, message: 'Token de autenticación requerido' });
+    return res.status(401).json({ success: false, message: 'Token de autenticaciÃ³n requerido' });
   }
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(token);
+    const decodedToken = await getAuth().verifyIdToken(token);
     req.user = decodedToken; // Contains user payload (uid, email, etc.)
     req.user.sub = decodedToken.uid; // Ensure 'sub' maps to 'uid' for backwards compatibility
     next();
   } catch (error) {
     console.error('Error al verificar token Firebase:', error.message);
-    return res.status(403).json({ success: false, message: 'Token de autenticación inválido o expirado' });
+    return res.status(403).json({ success: false, message: 'Token de autenticaciÃ³n invÃ¡lido o expirado' });
   }
 };
 
@@ -408,7 +409,7 @@ app.post('/api/process-order', authenticateToken, (req, res) => {
     const order = orders[code];
     
     if (!order) {
-        return res.status(404).json({ success: false, message: 'CÃ³digo de pedido no encontrado o ya procesado' });
+        return res.status(404).json({ success: false, message: 'CÃƒÂ³digo de pedido no encontrado o ya procesado' });
     }
 
     const cards = getCards();
@@ -466,7 +467,7 @@ app.post('/api/reject-order', authenticateToken, (req, res) => {
     res.json({ success: true, message: 'Order rejected successfully' });
 });
 
-// --- POKEMON TCG API PROXY CON CACHÃ‰ ---
+// --- POKEMON TCG API PROXY CON CACHÃƒâ€° ---
 const tcgCache = new Map();
 const CACHE_DURATION = 1000 * 60 * 60; // 1 hora en milisegundos
 
@@ -676,7 +677,7 @@ app.delete('/api/cards/:id', authenticateToken, async (req, res) => {
 });
 
 
-// --- RUTAS PÚBLICAS Y MENSAJES ---
+// --- RUTAS PÃšBLICAS Y MENSAJES ---
 
 // Obtener todas las carpetas pblicas
 app.get('/api/folders', async (req, res) => {
@@ -877,8 +878,9 @@ app.get('/api/users/:username', async (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`ðŸš€ Servidor backend corriendo en http://localhost:${port}`);
+    console.log(`Ã°Å¸Å¡â‚¬ Servidor backend corriendo en http://localhost:${port}`);
 });
+
 
 
 
