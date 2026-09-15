@@ -253,7 +253,7 @@ function FolderPokemon() {
           className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]"
         />
         
-        <div className="w-full">{
+        <div className="w-full">
             <div className="relative w-full h-full">
               <div 
                 className="w-full h-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-all hover:border-[#1e40af]"
@@ -290,7 +290,7 @@ function FolderPokemon() {
                 </>
               )}
             </div>
-          }
+        </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
