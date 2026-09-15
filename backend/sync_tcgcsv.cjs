@@ -60,9 +60,7 @@ async function sync() {
       // 3. Sync Products for each group in this category
       // To avoid massive memory/time usage, we will just sync the 10 most recent groups for each category in this demo.
       // In production, you would sync all of them.
-      const recentGroups = groupData.results
-        .sort((a,b) => new Date(b.publishedOn) - new Date(a.publishedOn))
-        .slice(0, 15); // limit to 15 newest sets for now
+      const recentGroups = groupData.results.sort((a,b) => new Date(b.publishedOn) - new Date(a.publishedOn));
 
       for (const grp of recentGroups) {
         console.log(`  Fetching products for group: ${grp.name}...`);
