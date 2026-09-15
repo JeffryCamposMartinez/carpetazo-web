@@ -1,7 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
-import path from 'path';
+import path from 'path';
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 
@@ -17,7 +20,7 @@ const authenticateToken = async (req, res, next) => {
   const token = authHeader && authHeader.split(' ')[1]; // Format: Bearer <TOKEN>
 
   if (!token) {
-    return res.status(401).json({ success: false, message: 'Token de autenticaciÃƒÂ³n requerido' });
+    return res.status(401).json({ success: false, message: 'Token de autenticaciÃƒÆ’Ã‚Â³n requerido' });
   }
 
   try {
@@ -27,7 +30,7 @@ const authenticateToken = async (req, res, next) => {
     next();
   } catch (error) {
     console.error('Error al verificar token Firebase:', error.message);
-    return res.status(403).json({ success: false, message: 'Token de autenticaciÃƒÂ³n invÃƒÂ¡lido o expirado' });
+    return res.status(403).json({ success: false, message: 'Token de autenticaciÃƒÆ’Ã‚Â³n invÃƒÆ’Ã‚Â¡lido o expirado' });
   }
 };
 
@@ -409,7 +412,7 @@ app.post('/api/process-order', authenticateToken, (req, res) => {
     const order = orders[code];
     
     if (!order) {
-        return res.status(404).json({ success: false, message: 'CÃƒÆ’Ã‚Â³digo de pedido no encontrado o ya procesado' });
+        return res.status(404).json({ success: false, message: 'CÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³digo de pedido no encontrado o ya procesado' });
     }
 
     const cards = getCards();
@@ -467,7 +470,7 @@ app.post('/api/reject-order', authenticateToken, (req, res) => {
     res.json({ success: true, message: 'Order rejected successfully' });
 });
 
-// --- POKEMON TCG API PROXY CON CACHÃƒÆ’Ã¢â‚¬Â° ---
+// --- POKEMON TCG API PROXY CON CACHÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â° ---
 const tcgCache = new Map();
 const CACHE_DURATION = 1000 * 60 * 60; // 1 hora en milisegundos
 
@@ -677,7 +680,7 @@ app.delete('/api/cards/:id', authenticateToken, async (req, res) => {
 });
 
 
-// --- RUTAS PÃƒÅ¡BLICAS Y MENSAJES ---
+// --- RUTAS PÃƒÆ’Ã…Â¡BLICAS Y MENSAJES ---
 
 // Obtener todas las carpetas pblicas
 app.get('/api/folders', async (req, res) => {
@@ -878,7 +881,7 @@ app.get('/api/users/:username', async (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`ÃƒÂ°Ã…Â¸Ã…Â¡Ã¢â€šÂ¬ Servidor backend corriendo en http://localhost:${port}`);
+    console.log(`ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¦Ã‚Â¡ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Servidor backend corriendo en http://localhost:${port}`);
 });
 
 
@@ -887,4 +890,5 @@ app.listen(port, () => {
 
 
 
+
 
