@@ -51,7 +51,22 @@ app.post('/api/users/sync', authenticateToken, async (req, res) => {
     
     if (!user) {
       user = await prisma.user.create({
-        data: { firebaseUid, email }
+        data: { 
+          firebaseUid, 
+          email,
+          name: req.body.displayName || '',
+          username: req.body.username || req.body.displayName?.toLowerCase().replace(/\s+/g, '_') || firebaseUid,
+          photoURL: req.body.photoURL || null
+        }
+      });
+    } else {
+      user = await prisma.user.update({
+        where: { firebaseUid },
+        data: {
+          name: req.body.displayName || user.name,
+          username: req.body.username || user.username || user.name?.toLowerCase().replace(/\s+/g, '_'),
+          photoURL: req.body.photoURL || user.photoURL
+        }
       });
     }
     
@@ -128,6 +143,127 @@ const getHistory = () => {
 const saveHistory = (history) => {
     fs.writeFileSync(historyPath, JSON.stringify(history, null, 2));
 };
+
+// PUT update card in folder
+app.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const folder = await prisma.folder.findUnique({ where: { id: req.params.id } });
+    
+    if (!folder || folder.userId !== user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    
+    const { price, stock } = req.body;
+    const dataToUpdate = {};
+    if (price !== undefined) dataToUpdate.price = parseFloat(price);
+    if (stock !== undefined) dataToUpdate.stock = parseInt(stock);
+    
+    const card = await prisma.card.update({
+      where: { id: req.params.cardId, folderId: req.params.id },
+      data: dataToUpdate
+    });
+    
+    res.json({ success: true, card });
+  } catch (error) {
+    console.error('Error updating card:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// DELETE card from folder
+app.delete('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const folder = await prisma.folder.findUnique({ where: { id: req.params.id } });
+    
+    if (!folder || folder.userId !== user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    
+    await prisma.card.delete({
+      where: { id: req.params.cardId, folderId: req.params.id }
+    });
+    
+    res.json({ success: true, message: 'Card deleted' });
+  } catch (error) {
+    console.error('Error deleting card:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// PUT update folder
+app.put('/api/folders/:id', authenticateToken, async (req, res) => {
+  try {
+    const { name, color, tcg, isPublic } = req.body;
+    
+    // Validar propiedad de la carpeta
+    const folder = await prisma.folder.findUnique({
+      where: { id: req.params.id }
+    });
+    
+    if (!folder) return res.status(404).json({ success: false, message: 'Carpeta no encontrada' });
+    
+    // Actualizar
+    const data = {};
+    if (name !== undefined) data.name = name;
+    if (color !== undefined) data.color = color;
+    if (tcg !== undefined) data.tcg = tcg;
+    if (isPublic !== undefined) data.isPublic = isPublic;
+
+    const updated = await prisma.folder.update({
+      where: { id: req.params.id },
+      data
+    });
+
+    res.json({ success: true, folder: updated });
+  } catch (error) {
+    console.error('Error al actualizar carpeta:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// PUT update order status
+app.put('/api/orders/:id', authenticateToken, async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: req.params.id }
+    });
+    
+    if (!existingOrder) return res.status(404).json({ success: false, message: 'Order not found' });
+    
+    // Only deduct stock when changing from pending/processing to completed
+    if (status === 'completed' && existingOrder.status !== 'completed') {
+      let items = [];
+      try {
+        items = typeof existingOrder.items === 'string' ? JSON.parse(existingOrder.items) : existingOrder.items;
+      } catch (e) {
+        items = existingOrder.items || [];
+      }
+      
+      for (const item of items) {
+        if (item.id) {
+          const purchasedQty = parseInt(item.quantity) || 1;
+          await prisma.card.update({
+            where: { id: item.id },
+            data: { stock: { decrement: purchasedQty } }
+          }).catch(err => console.error("Could not decrement stock for card", item.id, err));
+        }
+      }
+    }
+    
+    const order = await prisma.order.update({
+      where: { id: req.params.id },
+      data: { status }
+    });
+    res.json({ success: true, order });
+  } catch (error) {
+    console.error('Error al actualizar orden:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
 
 // GET all cards
 app.get('/api/cards', authenticateToken, (req, res) => {
@@ -500,17 +636,19 @@ app.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     
-    const { tcgId, name, imageUrl, price } = req.body;
-    
-    const card = await prisma.card.create({
-      data: {
-        tcgId,
-        name,
-        imageUrl,
-        price: parseFloat(price) || null,
-        folderId: folder.id
-      }
-    });
+    const { tcgId, name, imageUrl, price, stock, data } = req.body;
+      
+      const card = await prisma.card.create({
+        data: {
+          tcgId,
+          name,
+          imageUrl,
+          price: parseFloat(price) || null,
+          stock: stock !== undefined ? parseInt(stock) : 1,
+          data: data || null,
+          folderId: folder.id
+        }
+      });
     res.json({ success: true, card });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -609,6 +747,134 @@ app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
   }
 });
 
+
+// GET messages between current user and another
+app.get('/api/messages/:otherId', authenticateToken, async (req, res) => {
+  try {
+    const currentUser = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    if (!currentUser) return res.status(401).json({ success: false });
+    
+    const otherId = req.params.otherId; // Use actual User ID (UUID)
+    
+    const messages = await prisma.message.findMany({
+      where: {
+        OR: [
+          { senderId: currentUser.id, receiverId: otherId },
+          { senderId: otherId, receiverId: currentUser.id }
+        ]
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+    
+    res.json({ success: true, messages });
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// POST new message
+app.post('/api/messages/:otherId', authenticateToken, async (req, res) => {
+  try {
+    const currentUser = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    if (!currentUser) return res.status(401).json({ success: false });
+    
+    const otherId = req.params.otherId;
+    const { content } = req.body;
+    
+    if (!content) return res.status(400).json({ success: false });
+    
+    const message = await prisma.message.create({
+      data: {
+        senderId: currentUser.id,
+        receiverId: otherId,
+        content
+      }
+    });
+    
+    res.json({ success: true, message });
+  } catch (error) {
+    console.error('Error sending message:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// GET user chats (last message with each person)
+app.get('/api/chats', authenticateToken, async (req, res) => {
+  try {
+    const currentUser = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    if (!currentUser) return res.status(401).json({ success: false });
+    
+    // Note: A real implementation would use a distinct query or group by.
+    // For simplicity, we just fetch all messages for the user and group them in JS
+    const messages = await prisma.message.findMany({
+      where: {
+        OR: [
+          { senderId: currentUser.id },
+          { receiverId: currentUser.id }
+        ]
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    const chatsMap = new Map();
+    for (const msg of messages) {
+      const otherId = msg.senderId === currentUser.id ? msg.receiverId : msg.senderId;
+      if (!chatsMap.has(otherId)) {
+        chatsMap.set(otherId, msg);
+      }
+    }
+    
+    const chats = Array.from(chatsMap.values());
+    
+    // We should also fetch the user info for each chat partner
+    const otherIds = chats.map(c => c.senderId === currentUser.id ? c.receiverId : c.senderId);
+    
+    const users = await prisma.user.findMany({
+      where: { id: { in: otherIds } },
+      select: { id: true, name: true, username: true, photoURL: true }
+    });
+    
+    const enrichedChats = chats.map(c => {
+      const partnerId = c.senderId === currentUser.id ? c.receiverId : c.senderId;
+      const partner = users.find(u => u.id === partnerId) || {};
+      return {
+        ...c,
+        partner
+      };
+    });
+    
+    res.json({ success: true, chats: enrichedChats });
+  } catch (error) {
+    console.error('Error fetching chats:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+
+// GET user profile and their folders
+app.get('/api/users/:username', async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { username: req.params.username },
+      include: {
+        folders: {
+          where: { isPublic: true },
+          include: { cards: true }
+        }
+      }
+    });
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
 
 app.listen(port, () => {
     console.log(`ðŸš€ Servidor backend corriendo en http://localhost:${port}`);

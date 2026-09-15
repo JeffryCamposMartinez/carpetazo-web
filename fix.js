@@ -1,0 +1,28 @@
+const fs = require('fs');
+const pkg = {
+  name: 'backend',
+  version: '1.0.0',
+  description: '',
+  main: 'index.js',
+  scripts: {
+    start: 'node server.js',
+    build: 'npx prisma generate && npx prisma db push --accept-data-loss',
+    test: 'echo \"Error: no test specified\" && exit 1'
+  },
+  keywords: [],
+  author: '',
+  license: 'ISC',
+  type: 'commonjs',
+  dependencies: {
+    '@prisma/client': '^6.19.3',
+    cors: '^2.8.6',
+    dotenv: '^17.4.2',
+    express: '^5.2.1',
+    'firebase-admin': '^14.4.0',
+    jsonwebtoken: '^9.0.3',
+    'jwks-rsa': '^4.1.0',
+    pg: '^8.22.0',
+    prisma: '^5.14.0'
+  }
+};
+fs.writeFileSync('backend/package.json', JSON.stringify(pkg, null, 2), 'utf8');

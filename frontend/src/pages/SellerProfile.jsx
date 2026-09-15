@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
-import { doc, getDoc, collection, query, where, setDoc, addDoc, serverTimestamp, getCountFromServer, getDocs } from 'firebase/firestore';
+import { api } from '../utils/api';
 import { getFolderFilter } from './Dashboard';
 import { useAuth } from '../contexts/AuthContext';
 

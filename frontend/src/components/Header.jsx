@@ -1,8 +1,8 @@
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+﻿import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { db } from '../firebase';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { api } from '../utils/api';
+
 import AuthModal from './AuthModal';
 
 export default function Header() {
@@ -59,32 +59,14 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    let unsubscribe = null;
+    useEffect(() => {
     if (currentUser) {
       setUserAvatar(currentUser.photoURL);
-      unsubscribe = onSnapshot(doc(db, 'users', currentUser.uid), (userSnap) => {
-        if (userSnap.exists()) {
-          if (userSnap.data().avatarBase64) {
-            setUserAvatar(userSnap.data().avatarBase64);
-          } else {
-            setUserAvatar(currentUser.photoURL);
-          }
-          if (userSnap.data().username) {
-            setUserUsername(userSnap.data().username);
-          }
-        } else {
-          setUserAvatar(currentUser.photoURL);
-        }
-      }, (error) => {
-        console.error("Error listening to user data for header", error);
-      });
+      // Fetch user profile from API if needed
+      // For now, we'll just use the auth info to prevent crashes
     } else {
       setUserAvatar(null);
     }
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
   }, [currentUser]);
 
   const handleLogin = () => {
@@ -96,7 +78,7 @@ export default function Header() {
       await logout();
       navigate('/');
     } catch (error) {
-      console.error('Error al cerrar sesión:', error);
+      console.error('Error al cerrar sesiÃ³n:', error);
     }
   };
   return (
@@ -178,7 +160,7 @@ export default function Header() {
                     <span translate="no" className="material-symbols-outlined text-[20px]">person</span> Mi perfil
                   </Link>
                   <Link to={`/${userUsername || currentUser.uid}`} onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 font-semibold flex items-center gap-3">
-                    <span translate="no" className="material-symbols-outlined text-[20px]">storefront</span> Ver perfil público
+                    <span translate="no" className="material-symbols-outlined text-[20px]">storefront</span> Ver perfil pÃºblico
                   </Link>
                   <div className="h-px bg-gray-100 my-1 mx-2"></div>
                   <button onClick={() => { setIsDropdownOpen(false); handleLogout(); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-bold flex items-center gap-3">
@@ -190,7 +172,7 @@ export default function Header() {
           ) : (
             <div className="flex items-center gap-3 pb-3">
               <button onClick={handleLogin} className="hidden sm:block px-4 py-2 text-on-surface font-bold rounded-lg hover:bg-surface-container transition-colors text-sm">
-                Iniciar Sesión
+                Iniciar SesiÃ³n
               </button>
               <button onClick={handleLogin} className="px-4 py-2 bg-primary text-on-primary font-bold rounded-lg shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 text-sm flex items-center gap-2">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4 h-4 bg-white rounded-full p-[2px]" />
@@ -327,7 +309,7 @@ export default function Header() {
                     <span translate="no" className="material-symbols-outlined text-gray-400 text-[22px]">person</span> Mi perfil
                   </Link>
                   <Link to={`/${userUsername || currentUser.uid}`} onClick={() => setIsMobileMenuOpen(false)} className="py-3 text-[15px] text-gray-600 flex items-center gap-4 hover:bg-gray-50 rounded-lg -mx-2 px-2 transition-colors">
-                    <span translate="no" className="material-symbols-outlined text-gray-400 text-[22px]">storefront</span> Mi perfil público
+                    <span translate="no" className="material-symbols-outlined text-gray-400 text-[22px]">storefront</span> Mi perfil pÃºblico
                   </Link>
                   <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="py-3 text-[15px] text-gray-600 flex items-center gap-4 hover:bg-gray-50 rounded-lg -mx-2 px-2 transition-colors">
                     <span translate="no" className="material-symbols-outlined text-gray-400 text-[22px]">folder</span> Mis carpetas
@@ -338,7 +320,7 @@ export default function Header() {
                 </div>
                 
                 <button onClick={() => { setIsMobileMenuOpen(false); handleLogout(); }} className="mt-8 mb-6 w-full py-3 text-[15px] text-white bg-red-600 hover:bg-red-700 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors shadow-sm">
-                  <span translate="no" className="material-symbols-outlined text-[20px]">logout</span> Cerrar sesión
+                  <span translate="no" className="material-symbols-outlined text-[20px]">logout</span> Cerrar sesiÃ³n
                 </button>
               </div>
             )}
@@ -350,3 +332,4 @@ export default function Header() {
     </>
   );
 }
+

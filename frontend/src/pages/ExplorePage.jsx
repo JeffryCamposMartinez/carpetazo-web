@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { db } from '../firebase';
-import { collection, getDocs, doc, getDoc, query, where, getCountFromServer } from 'firebase/firestore';
+import { api } from '../utils/api';
 import { getFolderFilter } from './Dashboard';
 import HeroCarousel from '../components/HeroCarousel';
 import LazyFolderCard from '../components/LazyFolderCard';
@@ -63,15 +62,11 @@ export default function ExplorePage() {
     const fetchFolders = async () => {
       try {
         const currentWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
-        const q = query(collection(db, 'folders'), where('isPublic', '==', true));
-        const foldersSnapshot = await getDocs(q);
-        
-        let allFolders = [];
-        for (const folderDoc of foldersSnapshot.docs) {
-          const folder = { id: folderDoc.id, ...folderDoc.data() };
+        const response = await api.getPublicFolders();
+        let allFolders = response.success ? response.folders : [];
+        for (const folder of allFolders) {
           folder.validWeeklyVisits = folder.lastVisitWeek === currentWeek ? (folder.weeklyVisits || 0) : 0;
           folder.validTotalVisits = folder.totalVisits || 0;
-          allFolders.push(folder);
         }
 
         allFolders.sort((a, b) => {

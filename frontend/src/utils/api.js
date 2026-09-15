@@ -37,7 +37,8 @@ export const apiFetch = async (endpoint, options = {}) => {
 
 export const api = {
   // Users
-  syncUser: () => apiFetch('/users/sync', { method: 'POST' }),
+  syncUser: (data = {}) => apiFetch('/users/sync', { method: 'POST', body: JSON.stringify(data) }),
+  getUserProfile: (username) => apiFetch('/users/' + username),
   
   // Folders
   getPublicFolders: () => apiFetch('/folders'),
@@ -45,13 +46,22 @@ export const api = {
   getFolder: (id) => apiFetch('/folders/' + id),
   createFolder: (data) => apiFetch('/folders', { method: 'POST', body: JSON.stringify(data) }),
   deleteFolder: (id) => apiFetch('/folders/' + id, { method: 'DELETE' }),
+  updateFolder: (id, data) => apiFetch('/folders/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   
   // Cards
-  addCardToFolder: (folderId, data) => apiFetch('/folders/' + folderId + '/cards', { method: 'POST', body: JSON.stringify(data) }),
-  deleteCard: (id) => apiFetch('/cards/' + id, { method: 'DELETE' }),
+  addCard: (folderId, data) => apiFetch('/folders/' + folderId + '/cards', { method: 'POST', body: JSON.stringify(data) }),
+  updateCard: (folderId, cardId, data) => apiFetch('/folders/' + folderId + '/cards/' + cardId, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteCard: (folderId, cardId) => apiFetch('/folders/' + folderId + '/cards/' + cardId, { method: 'DELETE' }),
   
-  // Messages
+  // Messages/Chats
   getMyMessages: () => apiFetch('/messages/me'),
-  sendMessage: (data) => apiFetch('/messages', { method: 'POST', body: JSON.stringify(data) }),
+  getChats: () => apiFetch('/chats'),
+  getMessages: (otherId) => apiFetch('/messages/' + otherId),
+  sendMessage: (otherId, content) => apiFetch('/messages/' + otherId, { method: 'POST', body: JSON.stringify({ content }) }),
   markMessageRead: (id) => apiFetch('/messages/' + id + '/read', { method: 'PUT' }),
+  
+  // Orders
+  updateOrder: (id, data) => apiFetch('/orders/' + id, { method: 'PUT', body: JSON.stringify(data) }),
 };
+
+export default api;

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { db } from '../firebase';
-import { collection, getDocs, doc, getDoc, query, where, getCountFromServer } from 'firebase/firestore';
+import { api } from '../utils/api';
 import { getFolderFilter } from './Dashboard';
 
 import LazyFolderCard from '../components/LazyFolderCard';
@@ -40,20 +39,15 @@ export default function FoldersPage() {
       setLoading(true);
       try {
         const currentWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
-        const q = query(collection(db, 'folders'), where('isPublic', '==', true));
-        const foldersSnapshot = await getDocs(q);
-        
-        let allFolders = [];
-        for (const folderDoc of foldersSnapshot.docs) {
-          const folder = { id: folderDoc.id, ...folderDoc.data() };
+        const response = await api.getPublicFolders();
+        let allFolders = response.success ? response.folders : [];
+        for (const folder of allFolders) {
           folder.validWeeklyVisits = folder.lastVisitWeek === currentWeek ? (folder.weeklyVisits || 0) : 0;
           folder.validTotalVisits = folder.totalVisits || 0;
-          
-          folder.cardsCount = 0;
-          folder.user = folder.userId ? folder.userId.substring(0, 6) : 'Usuario';
+          folder.cardsCount = folder.cards?.length || 0;
+          folder.user = folder.user?.name || folder.user?.username || 'Usuario';
           folder.location = '';
           folder.avatarUrl = null;
-          allFolders.push(folder);
         }
         setFolders(allFolders);
       } catch (error) {

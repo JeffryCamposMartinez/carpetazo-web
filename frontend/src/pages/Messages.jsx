@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
-import { collection, query, where, onSnapshot, orderBy, addDoc, serverTimestamp, doc, setDoc, writeBatch, updateDoc, increment } from 'firebase/firestore';
+import { api } from '../utils/api';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const compressImage = (file) => {

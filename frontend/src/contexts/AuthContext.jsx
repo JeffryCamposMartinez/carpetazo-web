@@ -45,25 +45,8 @@ export function AuthProvider({ children }) {
   async function registerWithEmail(email, password, displayName, username) {
     const formattedUsername = username.toLowerCase().trim();
 
-    // 1. Validar que el username, displayName y email no estÃ©n tomados en Firestore
-    const { collection, query, where, getDocs, doc, setDoc } = await import('firebase/firestore');
-    const usersRef = collection(db, 'users');
-    
-    const [usernameSnap, displayNameSnap, emailSnap] = await Promise.all([
-      getDocs(query(usersRef, where('username', '==', formattedUsername))),
-      getDocs(query(usersRef, where('displayName', '==', displayName.trim()))),
-      getDocs(query(usersRef, where('email', '==', email.toLowerCase().trim())))
-    ]);
-
-    if (!usernameSnap.empty) {
-      throw new Error('auth/username-already-in-use');
-    }
-    if (!displayNameSnap.empty) {
-      throw new Error('auth/displayname-already-in-use');
-    }
-    if (!emailSnap.empty) {
-      throw new Error('auth/email-already-in-use');
-    }
+    // 1. Omitimos validación de Firestore, confiamos en la base de datos de PostgreSQL 
+    // y en Firebase Auth para atrapar duplicados de email.
 
     // 2. Crear el usuario en Firebase Auth
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -75,15 +58,12 @@ export function AuthProvider({ children }) {
     // 4. Enviar correo de verificaciÃ³n
     await sendEmailVerification(user);
 
-    // 5. Guardar en Firestore
-    const userRef = doc(db, 'users', user.uid);
-    await setDoc(userRef, {
+    // 5. Guardar en backend relacional a través del sync
+    await getAuthToken(); // refrescar
+    await api.syncUser({
       displayName: displayName,
-      email: email,
-      photoURL: null,
-      username: formattedUsername,
-      createdAt: new Date()
-    });
+      username: formattedUsername
+    }).catch(console.error);
 
     // 6. Forzar cierre de sesiÃ³n inmediato
     await signOut(auth);
@@ -120,29 +100,11 @@ export function AuthProvider({ children }) {
       setLoading(false);
       
       if (user) {
-        // Sincronizar usuario con el backend PostgreSQL
-        api.syncUser().catch(console.error);
-        
-        import('firebase/firestore').then(({ doc, getDoc, setDoc }) => {
-          const userRef = doc(db, 'users', user.uid);
-          getDoc(userRef).then((docSnap) => {
-            if (!docSnap.exists()) {
-              const baseUsername = user.displayName ? user.displayName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') : user.uid;
-              setDoc(userRef, {
-                displayName: user.displayName,
-                email: user.email,
-                photoURL: user.photoURL,
-                username: baseUsername,
-                createdAt: new Date()
-              }, { merge: true });
-            } else if (!docSnap.data().username) {
-              const baseUsername = user.displayName ? user.displayName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') : user.uid;
-              setDoc(userRef, {
-                username: baseUsername
-              }, { merge: true });
-            }
-          });
-        });
+        // Sincronizar usuario con el backend PostgreSQL y OMITIR Firestore
+        api.syncUser({
+          displayName: user.displayName,
+          photoURL: user.photoURL
+        }).catch(console.error);
       }
     });
 

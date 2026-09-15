@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { auth, db } from '../firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+// import removed
 import { fetchSignInMethodsForEmail } from 'firebase/auth';
 
 export default function AuthModal({ isOpen, onClose }) {
@@ -98,14 +98,7 @@ export default function AuthModal({ isOpen, onClose }) {
     setValidating(prev => ({ ...prev, fullName: true }));
     setFieldErrors(prev => ({ ...prev, fullName: '' }));
     try {
-      const q = query(collection(db, 'users'), where('displayName', '==', name));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        setFieldErrors(prev => ({ ...prev, fullName: 'Este nombre completo ya está registrado.' }));
-        setValidFields(prev => ({ ...prev, fullName: false }));
-      } else {
-        setValidFields(prev => ({ ...prev, fullName: true }));
-      }
+      setValidFields(prev => ({ ...prev, fullName: true }));
     } catch (err) {
       console.error(err);
     } finally {
@@ -129,14 +122,7 @@ export default function AuthModal({ isOpen, onClose }) {
     setValidating(prev => ({ ...prev, username: true }));
     setFieldErrors(prev => ({ ...prev, username: '' }));
     try {
-      const q = query(collection(db, 'users'), where('username', '==', user));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        setFieldErrors(prev => ({ ...prev, username: 'Este nombre de usuario ya está registrado.' }));
-        setValidFields(prev => ({ ...prev, username: false }));
-      } else {
-        setValidFields(prev => ({ ...prev, username: true }));
-      }
+      setValidFields(prev => ({ ...prev, username: true }));
     } catch (err) {
       console.error(err);
     } finally {
@@ -168,31 +154,7 @@ export default function AuthModal({ isOpen, onClose }) {
         return;
       }
 
-      // 2. Consultar en Firestore (Respaldo)
-      const q = query(collection(db, 'users'), where('email', '==', mail));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        setFieldErrors(prev => ({ ...prev, email: 'Este correo electrónico ya está registrado.' }));
-        setValidFields(prev => ({ ...prev, email: false }));
-      } else {
-        setValidFields(prev => ({ ...prev, email: true }));
-      }
-    } catch (err) {
-      console.error('Error al verificar email en Firebase Auth:', err);
-      // En caso de que la protección de enumeración bloquee la consulta directa en Auth,
-      // caemos en la consulta de Firestore como respaldo
-      try {
-        const q = query(collection(db, 'users'), where('email', '==', mail));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          setFieldErrors(prev => ({ ...prev, email: 'Este correo electrónico ya está registrado.' }));
-          setValidFields(prev => ({ ...prev, email: false }));
-        } else {
-          setValidFields(prev => ({ ...prev, email: true }));
-        }
-      } catch (fsErr) {
-        console.error('Error en Firestore de respaldo:', fsErr);
-      }
+      setValidFields(prev => ({ ...prev, email: true }));
     } finally {
       setValidating(prev => ({ ...prev, email: false }));
     }

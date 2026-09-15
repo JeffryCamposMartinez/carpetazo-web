@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
-import { doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { api } from '../utils/api';
 import { deleteUser } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { chileData } from '../utils/chileData';

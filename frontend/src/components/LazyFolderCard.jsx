@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { db } from '../firebase';
-import { collection, doc, getDoc, getCountFromServer } from 'firebase/firestore';
+// import { db } from '../firebase';
+// import { collection, doc, getDoc, getCountFromServer } from 'firebase/firestore';
 import { getFolderFilter } from '../pages/Dashboard';
 
 export default function LazyFolderCard({ folder }) {
@@ -39,27 +39,17 @@ export default function LazyFolderCard({ folder }) {
 
   const fetchDetails = async () => {
     try {
-      const countSnap = await getCountFromServer(collection(db, `folders/${folder.id}/cards`));
-      const cardsCount = countSnap.data().count;
-
+      // In the new PostgreSQL backend, folder data comes preloaded with related cards count and user info.
+      // If we don't have it, we just display fallback or whatever is available in folder.
+      const cardsCount = folder.cards?.length || folder._count?.cards || 0;
+      
       let userName = 'Usuario';
       let location = '';
       let avatarUrl = null;
 
-      if (folder.userId) {
-        const userSnap = await getDoc(doc(db, 'users', folder.userId));
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          userName = userData.displayName || folder.userId.substring(0, 6);
-          
-          if (userData.addresses && userData.addresses.length > 0) {
-            const defaultAddress = userData.addresses.find(a => a.isDefault) || userData.addresses[0];
-            if (defaultAddress.comuna && defaultAddress.region) {
-              location = `${defaultAddress.comuna}, ${defaultAddress.region}`;
-            }
-          }
-          avatarUrl = userData.avatarBase64 || userData.photoURL || null;
-        }
+      if (folder.user) {
+        userName = folder.user.name || folder.user.username || folder.userId.substring(0, 6);
+        avatarUrl = folder.user.photoURL || null;
       }
 
       setDetails({

@@ -93,16 +93,13 @@ export default function Dashboard() {
 
     setIsCreating(true);
     try {
-      const docRef = await addDoc(collection(db, 'folders'), {
+      const response = await api.createFolder({
         name: newFolderName.trim(),
         tcg: newFolderTcg,
-        color: newFolderColor,
-        userId: currentUser.uid,
-        user: currentUser.displayName || 'Usuario AnÃ³nimo',
-        createdAt: serverTimestamp(),
+        color: newFolderColor
       });
       
-      setFolders([...folders, { id: docRef.id, name: newFolderName, tcg: newFolderTcg, color: newFolderColor, isPublic: false }]);
+      setFolders([...folders, response.folder]);
       setNewFolderName('');
       setIsCreateModalOpen(false);
       showToast("Carpeta creada exitosamente", "success");
@@ -121,7 +118,7 @@ export default function Dashboard() {
   const confirmDelete = async () => {
     if (!folderToDelete) return;
     try {
-      await deleteDoc(doc(db, 'folders', folderToDelete.id));
+      await api.deleteFolder(folderToDelete.id);
       setFolders(folders.filter(f => f.id !== folderToDelete.id));
       showToast("Â¡Carpeta eliminada con Ã©xito!");
       setIsCreateModalOpen(false);
@@ -144,7 +141,7 @@ export default function Dashboard() {
     
     const finalName = editFolderName.trim().substring(0, 22);
     try {
-      await updateDoc(doc(db, 'folders', editingFolder.id), { name: finalName, color: editFolderColor });
+      await api.updateFolder(editingFolder.id, { name: finalName, color: editFolderColor });
       setFolders(folders.map(f => f.id === editingFolder.id ? { ...f, name: finalName, color: editFolderColor } : f));
       setEditingFolder(null);
       showToast("Nombre de carpeta actualizado");
@@ -158,7 +155,7 @@ export default function Dashboard() {
     e.stopPropagation();
     try {
       const newStatus = !folder.isPublic;
-      await updateDoc(doc(db, 'folders', folder.id), { isPublic: newStatus });
+      await api.updateFolder(folder.id, { isPublic: newStatus });
       setFolders(folders.map(f => f.id === folder.id ? { ...f, isPublic: newStatus } : f));
       showToast(newStatus ? 'Carpeta publicada' : 'Carpeta hecha privada');
     } catch (error) {
