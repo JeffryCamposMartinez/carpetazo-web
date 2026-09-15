@@ -403,7 +403,7 @@ export default function Messages() {
                       {otherUser.avatar ? (
                         <img src={otherUser.avatar} alt="avatar" className="w-full h-full object-cover" />
                       ) : (
-                        otherUser.name.charAt(0).toUpperCase()
+                        (otherUser.name || 'U').charAt(0).toUpperCase()
                       )}
                     </div>
                     {hasUnread && (
@@ -452,7 +452,7 @@ export default function Messages() {
                 {getOtherParticipant(activeChat).avatar ? (
                   <img src={getOtherParticipant(activeChat).avatar} alt="avatar" className="w-full h-full object-cover" />
                 ) : (
-                  getOtherParticipant(activeChat).name.charAt(0).toUpperCase()
+                  (getOtherParticipant(activeChat).name || 'U').charAt(0).toUpperCase()
                 )}
               </div>
               <h3 className="font-bold text-[#1a2b4b]">{getOtherParticipant(activeChat).name}</h3>

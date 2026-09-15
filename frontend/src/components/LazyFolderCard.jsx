@@ -113,11 +113,11 @@ export default function LazyFolderCard({ folder }) {
               />
             ) : (
               <div className="w-[12cqi] h-[12cqi] rounded-full bg-white shadow-md flex items-center justify-center text-[5cqi] font-black text-[#8b1414] shrink-0">
-                {details.user.charAt(0).toUpperCase()}
+                { (typeof details.user === 'string' ? details.user : (details.user?.username || details.user?.name || 'U')).charAt(0).toUpperCase() }
               </div>
             )}
             <div className="flex flex-col">
-              <span className="text-[5.5cqi] font-bold text-white drop-shadow-md line-clamp-1 leading-tight">{details.user}</span>
+              <span className="text-[5.5cqi] font-bold text-white drop-shadow-md line-clamp-1 leading-tight">{typeof details.user === "string" ? details.user : (details.user?.username || details.user?.name || "Usuario")}</span>
               {details.location && (
                 <span className="text-[3.8cqi] text-white/80 drop-shadow-sm line-clamp-1 leading-tight">{details.location}</span>
               )}
