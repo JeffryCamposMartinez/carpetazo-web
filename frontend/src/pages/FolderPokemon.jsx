@@ -99,6 +99,10 @@ function FolderPokemon() {
   const [isSetDropdownOpen, setIsSetDropdownOpen] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [hasSearchedAPI, setHasSearchedAPI] = useState(false);
+  const [filterType, setFilterType] = useState('all');
+  const [filterRarity, setFilterRarity] = useState('');
+  const [availableRarities, setAvailableRarities] = useState([]);
+  const [rawSearchResults, setRawSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [price, setPrice] = useState('');
@@ -313,7 +317,40 @@ function FolderPokemon() {
     setHasSearchedAPI(false);
   }, [searchQuery, searchCategory, searchSet]);
 
-  const handleSearchAPI = async (e) => {
+  
+  useEffect(() => {
+    let filtered = rawSearchResults;
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      filtered = filtered.filter(c => 
+        (c.name && c.name.toLowerCase().includes(q)) || 
+        (c.cleanName && c.cleanName.toLowerCase().includes(q)) ||
+        (c.extData && Array.isArray(c.extData) && c.extData.some(x => (x.name === 'Number' || x.name === 'Card Number / Rarity') && x.value && x.value.toLowerCase().includes(q)))
+      );
+    }
+
+    if (filterType !== 'all') {
+      const sealedKeywords = ['booster', 'box', 'pack', 'deck', 'case', 'blister', 'display', 'collection', 'tin', 'elite trainer', 'bundle', 'kit', 'theme', 'starter'];
+      filtered = filtered.filter(c => {
+        const lowerName = (c.name || '').toLowerCase();
+        const isSealed = sealedKeywords.some(kw => lowerName.includes(kw));
+        return filterType === 'sealed' ? isSealed : !isSealed;
+      });
+    }
+
+    if (filterRarity) {
+      filtered = filtered.filter(c => {
+        if (!c.extData || !Array.isArray(c.extData)) return false;
+        const rObj = c.extData.find(x => x.name === 'Rarity' || x.name === 'Card Number / Rarity');
+        return rObj && rObj.value === filterRarity;
+      });
+    }
+
+    setSearchResults(filtered);
+  }, [rawSearchResults, filterType, filterRarity, searchQuery]);
+
+const handleSearchAPI = async (e) => {
     e.preventDefault();
     if (!searchSet || !searchCategory) {
       showToast('Selecciona un TCG y una expansión.', 'error');
@@ -328,16 +365,17 @@ function FolderPokemon() {
       const response = await api.getTcgProducts(searchCategory, searchSet);
       let cards = response.data || [];
       
-      // Filter locally
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        cards = cards.filter(c => 
-          (c.name && c.name.toLowerCase().includes(q)) || 
-          (c.cleanName && c.cleanName.toLowerCase().includes(q))
-        );
-      }
-      
-      setSearchResults(cards);
+      const rarities = new Set();
+      cards.forEach(c => {
+        if (c.extData && Array.isArray(c.extData)) {
+          const rarityObj = c.extData.find(x => x.name === 'Rarity' || x.name === 'Card Number / Rarity');
+          if (rarityObj && rarityObj.value) rarities.add(rarityObj.value);
+        }
+      });
+      setAvailableRarities(Array.from(rarities).sort());
+      setFilterRarity('');
+      setFilterType('all');
+      setRawSearchResults(cards);
       setHasSearchedAPI(true);
     } catch (error) {
       if (error.name !== 'AbortError') {
@@ -511,6 +549,33 @@ function FolderPokemon() {
               )}
             </div>
           </div>
+          
+          <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex flex-col gap-4 mt-2">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center w-full sm:w-auto bg-white p-1 rounded-lg border border-gray-200">
+                <button type="button" onClick={() => setFilterType('all')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${filterType === 'all' ? 'bg-[#1e40af] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>Todos</button>
+                <button type="button" onClick={() => setFilterType('cards')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${filterType === 'cards' ? 'bg-[#1e40af] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>Cartas</button>
+                <button type="button" onClick={() => setFilterType('sealed')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${filterType === 'sealed' ? 'bg-[#1e40af] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>Sellado</button>
+              </div>
+              
+              {availableRarities.length > 0 && (
+                <div className="flex items-center gap-2 w-full sm:w-auto sm:min-w-[200px]">
+                  <span className="text-sm font-bold text-gray-700">Rareza:</span>
+                  <select 
+                    value={filterRarity} 
+                    onChange={(e) => setFilterRarity(e.target.value)}
+                    className="flex-1 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-sm"
+                  >
+                    <option value="">Todas</option>
+                    {availableRarities.map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="flex justify-center mt-4">
             <button type="submit" className="bg-[#1e40af] hover:bg-blue-800 text-white font-bold px-12 py-3 rounded-full transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 whitespace-nowrap flex items-center gap-2" disabled={isSearching}>
               <span translate="no" className="material-symbols-outlined">{isSearching ? 'hourglass_empty' : 'search'}</span>
