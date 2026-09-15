@@ -22,12 +22,12 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Iniciar sesiÃ³n con Google
+  // Iniciar sesión con Google
   function loginWithGoogle() {
     return signInWithPopup(auth, googleProvider);
   }
 
-  // Iniciar sesiÃ³n con Email y ContraseÃ±a
+  // Iniciar sesión con Email y Contraseña
   async function loginWithEmail(email, password) {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
@@ -41,7 +41,7 @@ export function AuthProvider({ children }) {
     return user;
   }
 
-  // Registrarse con Email y ContraseÃ±a
+  // Registrarse con Email y Contraseña
   async function registerWithEmail(email, password, displayName, username) {
     const formattedUsername = username.toLowerCase().trim();
 
@@ -65,12 +65,12 @@ export function AuthProvider({ children }) {
       username: formattedUsername
     }).catch(console.error);
 
-    // 6. Forzar cierre de sesiÃ³n inmediato
+    // 6. Forzar cierre de sesión inmediato
     await signOut(auth);
     return user;
   }
 
-  // Restablecer contraseÃ±a
+  // Restablecer Contraseña
   function resetPassword(email) {
     return sendPasswordResetEmail(auth, email);
   }
@@ -80,7 +80,7 @@ export function AuthProvider({ children }) {
     return auth.currentUser ? await auth.currentUser.getIdToken(true) : null;
   }
 
-  // Cerrar sesiÃ³n
+  // Cerrar sesión
   function logout() {
     return signOut(auth);
   }
@@ -88,7 +88,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     // Suscribirse a los cambios en el estado de autenticaciÃ³n
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      // Si el usuario estÃ¡ autenticado pero no verificado, y es login por contraseÃ±a
+      // Si el usuario estÃ¡ autenticado pero no verificado, y es login por Contraseña
       if (user && !user.emailVerified && user.providerData.some(p => p.providerId === 'password')) {
         await signOut(auth);
         setCurrentUser(null);
