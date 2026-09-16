@@ -151,13 +151,16 @@ const uploadToDrive = (url, product, catName, groupName) => {
     https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, async (res) => {
       if (res.statusCode === 200) {
         try {
+          const isSealed = checkIfSealed(product);
+          const subFolderName = isSealed ? 'Sellados' : 'Cartas';
           const rootFolderId = await getOrCreateDriveFolder();
           const catFolderId = await getOrCreateSubFolder(catName, rootFolderId);
           const groupFolderId = await getOrCreateSubFolder(groupName, catFolderId);
+          const finalFolderId = await getOrCreateSubFolder(subFolderName, groupFolderId);
           
           const fileMetadata = {
             name: product.productId + '.jpg',
-            parents: [groupFolderId],
+            parents: [finalFolderId],
             description: `TCG Card: ` + product.name + `\nJuego: ` + catName + `\nExpansión: ` + groupName + `\nID: ` + product.productId
           };
           const uploadedFile = await drive.files.create({
@@ -170,14 +173,17 @@ const uploadToDrive = (url, product, catName, groupName) => {
       } else if (res.statusCode === 301 || res.statusCode === 302) {
         https.get(res.headers.location, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, async (res2) => {
              try {
+                const isSealed = checkIfSealed(product);
+                const subFolderName = isSealed ? 'Sellados' : 'Cartas';
                 const rootFolderId = await getOrCreateDriveFolder();
                 const catFolderId = await getOrCreateSubFolder(catName, rootFolderId);
                 const groupFolderId = await getOrCreateSubFolder(groupName, catFolderId);
+                const finalFolderId = await getOrCreateSubFolder(subFolderName, groupFolderId);
 
                 const uploadedFile = await drive.files.create({
                   resource: {
                     name: product.productId + '.jpg',
-                    parents: [groupFolderId],
+                    parents: [finalFolderId],
                     description: `TCG Card: ` + product.name + `\nJuego: ` + catName + `\nExpansión: ` + groupName + `\nID: ` + product.productId
                   },
                   media: { mimeType: 'image/jpeg', body: res2 },
@@ -284,7 +290,29 @@ const startDownloadEngine = async () => {
             }
         }
         
-        if (isDownloading) {
+        if (isDownloading && progress.productIdx >= progress.productsCache.length && progress.productsCache.length > 0) {
+           try {
+             const rootFolderId = await getOrCreateDriveFolder();
+             const catFolderId = await getOrCreateSubFolder(currentCategoryName, rootFolderId);
+             const groupFolderId = await getOrCreateSubFolder(currentGroupName, catFolderId);
+             
+             const existing = await drive.files.list({
+               q: "name='datos_expansion.json' and '" + groupFolderId + "' in parents and trashed=false",
+               fields: 'files(id)'
+             });
+             
+             if (existing.data.files.length === 0) {
+                 await drive.files.create({
+                   resource: { name: 'datos_expansion.json', parents: [groupFolderId] },
+                   media: { mimeType: 'application/json', body: JSON.stringify(progress.productsCache, null, 2) },
+                   fields: 'id'
+                 });
+                 console.log("Subido datos_expansion.json para " + currentGroupName);
+             }
+           } catch (e) {
+             console.error("Error subiendo datos_expansion.json para " + currentGroupName, e);
+           }
+
            progress.groupIdx++;
            progress.productIdx = 0;
            progress.productsCache = [];
