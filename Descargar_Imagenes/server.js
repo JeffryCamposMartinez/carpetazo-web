@@ -9,6 +9,13 @@ const { google } = require('googleapis');
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Logger de debug
+app.use((req, res, next) => {
+  console.log(`[INCOMING REQUEST] ${req.method} ${req.url}`);
+  next();
+});
+
 app.use(express.static('public'));
 
 const tokensPath = path.join(__dirname, 'tokens.json');
@@ -26,7 +33,7 @@ let driveFolderId = null;
 
 // Estado persistente
 let progress = {
-  categories: [1, 2, 3, 71, 63, 62], // 1=Magic, 2=Yugioh, 3=Pokemon, 71=OnePiece, 63=FleshAndBlood, 62=Digimon
+  categories: [1, 2, 3, 71, 63, 62],
   catIdx: 0,
   groupIdx: 0,
   productIdx: 0,
@@ -218,6 +225,7 @@ const startDownloadEngine = async () => {
 
 // Autenticación Google
 app.get('/api/auth/google', (req, res) => {
+  console.log('Generating Google Auth URL...');
   const url = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
@@ -227,6 +235,7 @@ app.get('/api/auth/google', (req, res) => {
 });
 
 app.get('/api/auth/google/callback', async (req, res) => {
+  console.log('Google Auth Callback hit!', req.query);
   const { code } = req.query;
   try {
     const { tokens } = await oauth2Client.getToken(code);
@@ -234,6 +243,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
     fs.writeFileSync(tokensPath, JSON.stringify(tokens));
     res.send('<h3>Autenticación Exitosa!</h3><p>Puedes cerrar esta ventana y volver al panel.</p><script>setTimeout(() => window.location.href = "/", 3000)</script>');
   } catch (err) {
+    console.error('Callback error:', err);
     res.status(500).send('Error de autenticación: ' + err.message);
   }
 });
@@ -270,7 +280,13 @@ app.post('/api/stop', (req, res) => {
   res.json({ success: true });
 });
 
-const PORT = 4000;
-app.listen(PORT, () => {
-  console.log(`Servidor de descargas corriendo en http://localhost:${PORT}`);
+// Capturar errores 404 para todo lo demás
+app.use((req, res) => {
+  console.log(`[404 NOT FOUND IN EXPRESS] ${req.method} ${req.url}`);
+  res.status(404).send('No se encontró la ruta en Express');
+});
+
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor de descargas corriendo en http://0.0.0.0:${PORT}`);
 });
