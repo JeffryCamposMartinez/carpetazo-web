@@ -370,6 +370,10 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+app.get('/api/failed', (req, res) => {
+  res.json(failedDownloads);
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor de descargas corriendo en http://0.0.0.0:${PORT}`);
 });
