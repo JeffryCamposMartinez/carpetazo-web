@@ -66,6 +66,7 @@ const saveDownloadedIds = () => {
   fs.writeFileSync(downloadedIdsPath, JSON.stringify(Array.from(downloadedIds)));
 };
 let isWaitingSync = false;
+let isWaitingCloudflare = false;
 
 let currentImage = null;
 let currentProductName = null;
