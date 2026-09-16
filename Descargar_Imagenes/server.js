@@ -59,7 +59,10 @@ const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_REDIRECT_URI || 'http://localhost:4000/api/auth/google/callback'
 );
 
-if (fs.existsSync(tokensPath)) {
+if (process.env.GOOGLE_REFRESH_TOKEN) {
+  oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+  console.log('Usando GOOGLE_REFRESH_TOKEN de las variables de entorno');
+} else if (fs.existsSync(tokensPath)) {
   try {
     const tokens = JSON.parse(fs.readFileSync(tokensPath, 'utf8'));
     oauth2Client.setCredentials(tokens);
@@ -290,5 +293,6 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor de descargas corriendo en http://0.0.0.0:${PORT}`);
 });
+
 
 
