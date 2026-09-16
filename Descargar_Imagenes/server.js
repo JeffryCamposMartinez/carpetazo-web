@@ -24,17 +24,15 @@ let errorCount = 0;
 const DOWNLOAD_DELAY = 1500;
 let driveFolderId = null;
 
-let tcgToken = null;
-let tokenExpires = 0;
-
 // Estado persistente
 let progress = {
   categories: [1, 2, 3, 71, 63, 62], // 1=Magic, 2=Yugioh, 3=Pokemon, 71=OnePiece, 63=FleshAndBlood, 62=Digimon
   catIdx: 0,
   groupIdx: 0,
-  offset: 0,
+  productIdx: 0,
   downloadedCount: 0,
-  groupsCache: []
+  groupsCache: [],
+  productsCache: []
 };
 
 if (fs.existsSync(progressPath)) {
@@ -124,77 +122,37 @@ const uploadToDrive = (url, product, catName, groupName) => {
   });
 };
 
-// TCGPlayer API Helpers
-const getTcgToken = async () => {
-  if (tcgToken && Date.now() < tokenExpires) return tcgToken;
-  const publicKey = process.env.TCGPLAYER_PUBLIC_KEY;
-  const privateKey = process.env.TCGPLAYER_PRIVATE_KEY;
-  if(!publicKey || !privateKey) throw new Error("Faltan llaves de TCGPlayer");
-  
-  const response = await fetch('https://api.tcgplayer.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `grant_type=client_credentials&client_id=${publicKey}&client_secret=${privateKey}`
-  });
-  const data = await response.json();
-  if (data.error) throw new Error(data.error_description || data.error);
-  
-  tcgToken = data.access_token;
-  tokenExpires = Date.now() + ((data.expires_in - 300) * 1000);
-  return tcgToken;
-};
-
+// TCGCSV API Helpers
 const fetchCategory = async (categoryId) => {
-  const token = await getTcgToken();
-  const res = await fetch(`https://api.tcgplayer.com/catalog/categories/${categoryId}`, {
-    headers: { 'Authorization': `bearer ${token}` }
-  });
+  const res = await fetch(`https://tcgcsv.com/categories`);
   const json = await res.json();
-  return json.results[0];
+  const cat = json.results.find(c => c.categoryId === categoryId);
+  return cat ? cat.name : `Categoría ${categoryId}`;
 };
 
 const fetchGroups = async (categoryId) => {
-  const token = await getTcgToken();
-  let offset = 0;
-  const limit = 100;
-  let allGroups = [];
-  while(true) {
-    const res = await fetch(`https://api.tcgplayer.com/catalog/categories/${categoryId}/groups?offset=${offset}&limit=${limit}`, {
-      headers: { 'Authorization': `bearer ${token}` }
-    });
-    const json = await res.json();
-    if(!json.results || json.results.length === 0) break;
-    allGroups = allGroups.concat(json.results);
-    offset += limit;
-    if (allGroups.length >= json.totalItems) break;
-  }
-  return allGroups;
+  const res = await fetch(`https://tcgcsv.com/${categoryId}/groups`);
+  const json = await res.json();
+  return json.results || [];
 };
 
-const fetchProducts = async (groupId, offset) => {
-  const token = await getTcgToken();
-  const res = await fetch(`https://api.tcgplayer.com/catalog/products?groupId=${groupId}&offset=${offset}&limit=100&getExtendedFields=false`, {
-    headers: { 'Authorization': `bearer ${token}` }
-  });
-  return await res.json();
+const fetchProducts = async (categoryId, groupId) => {
+  const res = await fetch(`https://tcgcsv.com/${categoryId}/${groupId}/products`);
+  const json = await res.json();
+  return json.results || [];
 };
 
 const startDownloadEngine = async () => {
   if (isDownloading) return;
   if (!oauth2Client.credentials || !oauth2Client.credentials.refresh_token) return;
-  if (!process.env.TCGPLAYER_PUBLIC_KEY || !process.env.TCGPLAYER_PRIVATE_KEY) {
-      console.log('No TCGPlayer keys found!');
-      return;
-  }
   isDownloading = true;
 
   try {
     while (isDownloading && progress.catIdx < progress.categories.length) {
       const categoryId = progress.categories[progress.catIdx];
-      const categoryInfo = await fetchCategory(categoryId);
-      currentCategoryName = categoryInfo ? categoryInfo.name : `Categoría ${categoryId}`;
+      currentCategoryName = await fetchCategory(categoryId);
 
-      if (progress.groupsCache.length === 0) {
+      if (!progress.groupsCache || progress.groupsCache.length === 0) {
         progress.groupsCache = await fetchGroups(categoryId);
         saveProgress();
       }
@@ -203,17 +161,14 @@ const startDownloadEngine = async () => {
         const group = progress.groupsCache[progress.groupIdx];
         currentGroupName = group.name;
 
-        let hasMoreProducts = true;
-        while (isDownloading && hasMoreProducts) {
-          const productsRes = await fetchProducts(group.groupId, progress.offset);
-          
-          if (!productsRes.results || productsRes.results.length === 0) {
-             hasMoreProducts = false;
-             break;
-          }
-
-          for (const product of productsRes.results) {
-            if (!isDownloading) break;
+        if (!progress.productsCache || progress.productsCache.length === 0) {
+            progress.productsCache = await fetchProducts(categoryId, group.groupId);
+            saveProgress();
+        }
+        
+        while (isDownloading && progress.productIdx < progress.productsCache.length) {
+            const product = progress.productsCache[progress.productIdx];
+            
             if (product.imageUrl) {
               currentImage = product.imageUrl;
               currentProductName = product.name;
@@ -228,20 +183,17 @@ const startDownloadEngine = async () => {
                 errorCount++;
               }
             }
-          }
-
-          if (isDownloading && hasMoreProducts) {
-             progress.offset += 100;
-             if (progress.offset >= productsRes.totalItems) {
-                hasMoreProducts = false;
-             }
-             saveProgress();
-          }
+            
+            if (isDownloading) {
+                progress.productIdx++;
+                saveProgress();
+            }
         }
         
         if (isDownloading) {
            progress.groupIdx++;
-           progress.offset = 0;
+           progress.productIdx = 0;
+           progress.productsCache = [];
            saveProgress();
         }
       }
@@ -249,8 +201,9 @@ const startDownloadEngine = async () => {
       if (isDownloading) {
          progress.catIdx++;
          progress.groupIdx = 0;
-         progress.offset = 0;
+         progress.productIdx = 0;
          progress.groupsCache = [];
+         progress.productsCache = [];
          saveProgress();
       }
     }
@@ -288,12 +241,10 @@ app.get('/api/auth/google/callback', async (req, res) => {
 app.get('/api/status', (req, res) => {
   const estimatedGb = ((progress.downloadedCount * 25) / 1024 / 1024).toFixed(3);
   const isGoogleAuth = !!(oauth2Client.credentials && oauth2Client.credentials.refresh_token);
-  const hasTcgKeys = !!(process.env.TCGPLAYER_PUBLIC_KEY && process.env.TCGPLAYER_PRIVATE_KEY);
   
   res.json({
     isDownloading,
     isGoogleAuth,
-    hasTcgKeys,
     downloadedImages: progress.downloadedCount,
     currentImage,
     currentProductName,
@@ -306,7 +257,6 @@ app.get('/api/status', (req, res) => {
 
 app.post('/api/start', (req, res) => {
   if (!oauth2Client.credentials) return res.status(401).json({ success: false, message: 'Google No Autorizado' });
-  if (!process.env.TCGPLAYER_PUBLIC_KEY) return res.status(401).json({ success: false, message: 'Llaves de TCGPlayer Faltantes en Coolify' });
   if (!isDownloading) {
     startDownloadEngine();
     res.json({ success: true });
