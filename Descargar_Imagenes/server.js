@@ -286,7 +286,8 @@ app.use((req, res) => {
   res.status(404).send('No se encontró la ruta en Express');
 });
 
-const PORT = process.env.PORT || 4000;
+const PORT = 4000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor de descargas corriendo en http://0.0.0.0:${PORT}`);
 });
+
