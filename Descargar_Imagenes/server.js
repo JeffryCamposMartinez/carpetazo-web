@@ -37,7 +37,7 @@ const getOrCreateDriveFolder = async () => {
   const folderName = process.env.DRIVE_FOLDER_NAME || 'TCG_Master_Backup';
   const safeName = folderName.replace(/'/g, "\\'");
   const res = await drive.files.list({
-    q: mimeType='application/vnd.google-apps.folder' and name='' and trashed=false,
+    q: `mimeType='application/vnd.google-apps.folder' and name='${safeName}' and trashed=false`,
     fields: 'files(id, name)',
   });
   if (res.data.files.length > 0) {
@@ -59,7 +59,7 @@ const getOrCreateSubFolder = async (folderName, parentId) => {
   
   const safeName = folderName.replace(/'/g, "\\'");
   const res = await drive.files.list({
-    q: mimeType='application/vnd.google-apps.folder' and name='' and '' in parents and trashed=false,
+    q: `mimeType='application/vnd.google-apps.folder' and name='${safeName}' and '${parentId}' in parents and trashed=false`,
     fields: 'files(id, name)',
   });
   
@@ -88,7 +88,7 @@ const uploadToDrive = (url, product, catName, groupName) => {
           const fileMetadata = {
             name: product.productId + '.jpg',
             parents: [groupFolderId],
-            description: TCG Card:  + product.name + \nJuego:  + catName + \nExpansión:  + groupName + \nID:  + product.productId
+            description: `TCG Card: ` + product.name + `\nJuego: ` + catName + `\nExpansión: ` + groupName + `\nID: ` + product.productId
           };
           const uploadedFile = await drive.files.create({
             resource: fileMetadata,
@@ -108,7 +108,7 @@ const uploadToDrive = (url, product, catName, groupName) => {
                   resource: {
                     name: product.productId + '.jpg',
                     parents: [groupFolderId],
-                    description: TCG Card:  + product.name + \nJuego:  + catName + \nExpansión:  + groupName + \nID:  + product.productId
+                    description: `TCG Card: ` + product.name + `\nJuego: ` + catName + `\nExpansión: ` + groupName + `\nID: ` + product.productId
                   },
                   media: { mimeType: 'image/jpeg', body: res2 },
                   fields: 'id'
@@ -117,7 +117,7 @@ const uploadToDrive = (url, product, catName, groupName) => {
               } catch (e) { reject(e); }
         }).on('error', reject);
       } else {
-        reject(new Error(HTTP  + res.statusCode));
+        reject(new Error(`HTTP ` + res.statusCode));
       }
     }).on('error', reject);
   });
@@ -297,6 +297,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor de descargas corriendo en http://0.0.0.0:${PORT}`);
 });
+
 
 
 
