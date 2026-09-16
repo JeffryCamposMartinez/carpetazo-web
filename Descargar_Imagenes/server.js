@@ -372,20 +372,21 @@ app.post('/api/stop', (req, res) => {
   res.json({ success: true });
 });
 
-// Capturar errores 404 para todo lo demás
+app.get('/api/failed', (req, res) => {
+  res.json(failedDownloads);
+});
+
+// Capturar errores 404 para todo lo demas
 app.use((req, res) => {
   console.log(`[404 NOT FOUND IN EXPRESS] ${req.method} ${req.url}`);
   res.status(404).send('No se encontró la ruta en Express');
 });
 
 const PORT = process.env.PORT || 3000;
-app.get('/api/failed', (req, res) => {
-  res.json(failedDownloads);
-});
-
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor de descargas corriendo en http://0.0.0.0:${PORT}`);
 });
+
 
 
 
