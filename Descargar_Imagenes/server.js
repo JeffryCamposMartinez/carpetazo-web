@@ -12,8 +12,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+// Usamos variable de entorno o fallback
+const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:carpetazo2024@185.173.110.158:5432/carpetazo_db';
+
 const pool = new Pool({
-  connectionString: 'postgresql://postgres:carpetazo2024@185.173.110.158:5432/carpetazo_db'
+  connectionString: dbUrl
 });
 
 const tokensPath = path.join(__dirname, 'tokens.json');
@@ -44,15 +47,20 @@ if (fs.existsSync(tokensPath)) {
 
 const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
-// Crear tabla de registro si no existe
+// Crear tabla de registro si no existe (con manejo de errores para evitar crasheos)
 const initDb = async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS "TcgDriveUpload" (
-      "productId" INTEGER PRIMARY KEY,
-      "driveFileId" TEXT NOT NULL,
-      "uploadedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS "TcgDriveUpload" (
+        "productId" INTEGER PRIMARY KEY,
+        "driveFileId" TEXT NOT NULL,
+        "uploadedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('Conexi?n a BD y tabla TcgDriveUpload verificada correctamente.');
+  } catch (err) {
+    console.error('Advertencia: No se pudo conectar a la base de datos al inicio. Verifica DATABASE_URL.', err.message);
+  }
 };
 initDb();
 
