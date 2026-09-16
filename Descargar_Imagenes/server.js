@@ -134,20 +134,20 @@ const uploadToDrive = (url, product, catName, groupName) => {
 
 // TCGCSV API Helpers
 const fetchCategory = async (categoryId) => {
-  const res = await fetch(`https://tcgcsv.com/categories`);
+  const res = await fetch(`https://tcgcsv.com/tcgplayer/categories`);
   const json = await res.json();
   const cat = json.results.find(c => c.categoryId === categoryId);
   return cat ? cat.name : `Categoría ${categoryId}`;
 };
 
 const fetchGroups = async (categoryId) => {
-  const res = await fetch(`https://tcgcsv.com/${categoryId}/groups`);
+  const res = await fetch(`https://tcgcsv.com/tcgplayer/${categoryId}/groups`);
   const json = await res.json();
   return json.results || [];
 };
 
 const fetchProducts = async (categoryId, groupId) => {
-  const res = await fetch(`https://tcgcsv.com/${categoryId}/${groupId}/products`);
+  const res = await fetch(`https://tcgcsv.com/tcgplayer/${categoryId}/${groupId}/products`);
   const json = await res.json();
   return json.results || [];
 };
@@ -293,6 +293,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor de descargas corriendo en http://0.0.0.0:${PORT}`);
 });
+
 
 
 
