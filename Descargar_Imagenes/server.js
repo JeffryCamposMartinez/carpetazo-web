@@ -373,11 +373,20 @@ const startDownloadEngine = async () => {
     }
     
   } catch (err) {
-    console.error('Error fatal:', err);
-    isDownloading = false;
-    sendEmail('⚠️ TCG Master Downloader: Se ha detenido por un error interno: ' + err.message);
-  }
-};
+      console.error('Error fatal detectado (Posible Cloudflare):', err);
+      isDownloading = false;
+      isWaitingCloudflare = true;
+      sendEmail('TCG Master Downloader: Se detecto un bloqueo largo de seguridad (ej. Cloudflare). El sistema se pondra a dormir y auto-reintentara en 1 hora.');
+      
+      // Auto-reinicio en 1 hora
+      setTimeout(() => {
+          console.log("Despertando tras 1 hora de reposo, reintentando extraccion...");
+          if (!isDownloading) {
+              startDownloadEngine();
+          }
+      }, 60 * 60 * 1000);
+    }
+  };
 
 // Autenticación Google
 app.get('/api/auth/google', (req, res) => {
