@@ -56,7 +56,7 @@ const saveProgress = () => {
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID || 'PENDIENTE_CLIENT_ID',
   process.env.GOOGLE_CLIENT_SECRET || 'PENDIENTE_CLIENT_SECRET',
-  process.env.GOOGLE_REDIRECT_URI || 'http://localhost:4000/api/auth/google/callback'
+  process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/auth/google/callback'
 );
 
 if (process.env.GOOGLE_REFRESH_TOKEN) {
@@ -73,7 +73,7 @@ const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
 const getOrCreateDriveFolder = async () => {
   if (driveFolderId) return driveFolderId;
-  const folderName = 'TCG_Master_Backup';
+  const folderName = process.env.DRIVE_FOLDER_NAME || 'TCG_Master_Backup';
   const res = await drive.files.list({
     q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`,
     fields: 'files(id, name)',
@@ -293,6 +293,8 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor de descargas corriendo en http://0.0.0.0:${PORT}`);
 });
+
+
 
 
 
