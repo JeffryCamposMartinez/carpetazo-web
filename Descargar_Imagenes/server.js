@@ -133,6 +133,19 @@ const uploadToDrive = (url, product, catName, groupName) => {
 };
 
 // TCGCSV API Helpers
+const { exec } = require('child_process');
+const util = require('util');
+const execPromise = util.promisify(exec);
+
+async function curlFetch(url) {
+  try {
+    const { stdout } = await execPromise(curl -sL -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" " + url + ");
+    return JSON.parse(stdout);
+  } catch (err) {
+    console.error("curlFetch error: ", err);
+    throw err;
+  }
+}
 const FETCH_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
   "Accept": "application/json"
@@ -297,6 +310,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor de descargas corriendo en http://0.0.0.0:${PORT}`);
 });
+
 
 
 
