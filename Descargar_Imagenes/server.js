@@ -21,6 +21,27 @@ app.use(express.static('public'));
 const tokensPath = path.join(__dirname, 'tokens.json');
 const progressPath = path.join(__dirname, 'progress.json');
 
+const failedPath = path.join(__dirname, 'failed.json');
+let failedDownloads = [];
+if (fs.existsSync(failedPath)) {
+  try { failedDownloads = JSON.parse(fs.readFileSync(failedPath, 'utf8')); } catch(e) {}
+}
+const saveFailed = () => fs.writeFileSync(failedPath, JSON.stringify(failedDownloads, null, 2));
+
+const sendWhatsApp = (message) => {
+  const phone = process.env.WSP_PHONE || '+56933105415';
+  const apikey = process.env.CALLMEBOT_API_KEY;
+  if (!apikey) {
+    console.log("WhatsApp API Key no configurada. Mensaje:", message);
+    return;
+  }
+  const url = "https://api.callmebot.com/whatsapp.php?phone=" + encodeURIComponent(phone) + "&text=" + encodeURIComponent(message) + "&apikey=" + apikey;
+  https.get(url, (res) => {
+    res.on('data', () => {});
+  }).on('error', (err) => console.error("Error WSP:", err.message));
+};
+
+
 // Variables de estado
 let isDownloading = false;
 let currentImage = null;
@@ -200,6 +221,7 @@ const startDownloadEngine = async () => {
   if (isDownloading) return;
   if (!oauth2Client.credentials || !oauth2Client.credentials.refresh_token) return;
   isDownloading = true;
+  sendWhatsApp('🚀 TCG Master Downloader: La extracción ha iniciado.');
 
   try {
     while (isDownloading && progress.catIdx < progress.categories.length) {
@@ -235,6 +257,15 @@ const startDownloadEngine = async () => {
               } catch (err) {
                 console.error(`Error subiendo ${product.productId}:`, err.message);
                 errorCount++;
+                failedDownloads.push({
+                  id: product.productId,
+                  name: product.name,
+                  category: currentCategoryName,
+                  group: currentGroupName,
+                  error: err.message,
+                  timestamp: new Date().toISOString()
+                });
+                saveFailed();
               }
             }
             
@@ -262,11 +293,15 @@ const startDownloadEngine = async () => {
       }
     }
     
-    if (progress.catIdx >= progress.categories.length) isDownloading = false;
+    if (progress.catIdx >= progress.categories.length) {
+      isDownloading = false;
+      sendWhatsApp('✅ TCG Master Downloader: ¡Descarga completada al 100%!');
+    }
     
   } catch (err) {
     console.error('Error fatal:', err);
     isDownloading = false;
+    sendWhatsApp('⚠️ TCG Master Downloader: Se ha detenido por un error interno: ' + err.message);
   }
 };
 
@@ -323,6 +358,7 @@ app.post('/api/start', (req, res) => {
 });
 
 app.post('/api/stop', (req, res) => {
+  if (isDownloading) sendWhatsApp('🛑 TCG Master Downloader: La extracción ha sido pausada.');
   isDownloading = false;
   res.json({ success: true });
 });
