@@ -160,6 +160,20 @@ const getOrCreateSubFolder = async (folderName, parentId) => {
   }
 };
 
+
+const checkIfSealed = (product) => {
+  if (!product || !product.name) return false;
+  const nameLower = product.name.toLowerCase();
+  const sealedKeywords = ['booster box', 'booster pack', ' pack', ' deck', ' tin', 'blister', 'display', 'box set', 'collection box', 'elite trainer box', 'special edition'];
+  if (sealedKeywords.some(kw => nameLower.includes(kw))) return true;
+
+  const hasNumber = product.extendedData && product.extendedData.some(d => d.name === 'Number');
+  const hasRarity = product.extendedData && product.extendedData.some(d => d.name === 'Rarity');
+  if (!hasNumber && !hasRarity) return true;
+
+  return false;
+};
+
 const uploadToDrive = (url, product, catName, groupName) => {
   return new Promise((resolve, reject) => {
     https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, async (res) => {
