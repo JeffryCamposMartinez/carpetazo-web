@@ -53,6 +53,20 @@ const sendEmail = (message) => {
 
 // Variables de estado
 let isDownloading = false;
+
+const downloadedIdsPath = path.join(__dirname, 'downloaded_ids.json');
+let downloadedIds = new Set();
+if (fs.existsSync(downloadedIdsPath)) {
+  try {
+    const data = JSON.parse(fs.readFileSync(downloadedIdsPath, 'utf8'));
+    downloadedIds = new Set(data);
+  } catch(e) {}
+}
+const saveDownloadedIds = () => {
+  fs.writeFileSync(downloadedIdsPath, JSON.stringify(Array.from(downloadedIds)));
+};
+let isWaitingSync = false;
+
 let currentImage = null;
 let currentProductName = null;
 let currentCategoryName = 'Iniciando...';
@@ -236,6 +250,7 @@ const startDownloadEngine = async () => {
   if (isDownloading) return;
   if (!oauth2Client.credentials || !oauth2Client.credentials.refresh_token) return;
   isDownloading = true;
+  isWaitingSync = false;
   sendEmail('🚀 TCG Master Downloader: La extracción ha iniciado.');
 
   try {
@@ -265,10 +280,14 @@ const startDownloadEngine = async () => {
               currentProductName = product.name;
               
               try {
-                await uploadToDrive(product.imageUrl, product, currentCategoryName, currentGroupName);
-                progress.downloadedCount++;
-                saveProgress();
-                await new Promise(resolve => setTimeout(resolve, DOWNLOAD_DELAY));
+                if (!downloadedIds.has(product.productId)) {
+                    await uploadToDrive(product.imageUrl, product, currentCategoryName, currentGroupName);
+                    downloadedIds.add(product.productId);
+                    saveDownloadedIds();
+                    progress.downloadedCount++;
+                    saveProgress();
+                    await new Promise(resolve => setTimeout(resolve, DOWNLOAD_DELAY));
+                }
               } catch (err) {
                 console.error(`Error subiendo ${product.productId}:`, err.message);
                 errorCount++;
@@ -373,6 +392,7 @@ app.get('/api/status', (req, res) => {
   
   res.json({
     isDownloading,
+    isWaitingSync,
     isGoogleAuth,
     downloadedImages: progress.downloadedCount,
     currentImage,
