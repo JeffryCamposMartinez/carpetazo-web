@@ -93,7 +93,7 @@ const getOrCreateDriveFolder = async () => {
 
 const uploadToDrive = (url, product, catName, groupName) => {
   return new Promise((resolve, reject) => {
-    https.get(url, async (res) => {
+    https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, async (res) => {
       if (res.statusCode === 200) {
         try {
           const folderId = await getOrCreateDriveFolder();
@@ -110,7 +110,7 @@ const uploadToDrive = (url, product, catName, groupName) => {
           resolve(uploadedFile.data.id);
         } catch (e) { reject(e); }
       } else if (res.statusCode === 301 || res.statusCode === 302) {
-        https.get(res.headers.location, async (res2) => {
+        https.get(res.headers.location, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, async (res2) => {
              try {
                 const folderId = await getOrCreateDriveFolder();
                 const uploadedFile = await drive.files.create({
@@ -307,6 +307,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor de descargas corriendo en http://0.0.0.0:${PORT}`);
 });
+
 
 
 
