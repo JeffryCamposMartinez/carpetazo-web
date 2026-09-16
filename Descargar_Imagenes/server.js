@@ -30,52 +30,14 @@ let currentGroupName = 'Iniciando...';
 let errorCount = 0;
 const DOWNLOAD_DELAY = 1500;
 let driveFolderId = null;
-
-// Estado persistente
-let progress = {
-  categories: [1, 2, 3, 71, 63, 62],
-  catIdx: 0,
-  groupIdx: 0,
-  productIdx: 0,
-  downloadedCount: 0,
-  groupsCache: [],
-  productsCache: []
-};
-
-if (fs.existsSync(progressPath)) {
-  try {
-    progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
-  } catch(e) {}
-}
-
-const saveProgress = () => {
-  fs.writeFileSync(progressPath, JSON.stringify(progress));
-};
-
-// Configuración de Google OAuth2
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID || 'PENDIENTE_CLIENT_ID',
-  process.env.GOOGLE_CLIENT_SECRET || 'PENDIENTE_CLIENT_SECRET',
-  process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/auth/google/callback'
-);
-
-if (process.env.GOOGLE_REFRESH_TOKEN) {
-  oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
-  console.log('Usando GOOGLE_REFRESH_TOKEN de las variables de entorno');
-} else if (fs.existsSync(tokensPath)) {
-  try {
-    const tokens = JSON.parse(fs.readFileSync(tokensPath, 'utf8'));
-    oauth2Client.setCredentials(tokens);
-  } catch (e) { }
-}
-
-const drive = google.drive({ version: 'v3', auth: oauth2Client });
+const driveFolderCache = {};
 
 const getOrCreateDriveFolder = async () => {
   if (driveFolderId) return driveFolderId;
   const folderName = process.env.DRIVE_FOLDER_NAME || 'TCG_Master_Backup';
+  const safeName = folderName.replace(/'/g, "\\'");
   const res = await drive.files.list({
-    q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`,
+    q: mimeType='application/vnd.google-apps.folder' and name='' and trashed=false,
     fields: 'files(id, name)',
   });
   if (res.data.files.length > 0) {
@@ -91,16 +53,42 @@ const getOrCreateDriveFolder = async () => {
   }
 };
 
+const getOrCreateSubFolder = async (folderName, parentId) => {
+  const cacheKey = parentId + '_' + folderName;
+  if (driveFolderCache[cacheKey]) return driveFolderCache[cacheKey];
+  
+  const safeName = folderName.replace(/'/g, "\\'");
+  const res = await drive.files.list({
+    q: mimeType='application/vnd.google-apps.folder' and name='' and '' in parents and trashed=false,
+    fields: 'files(id, name)',
+  });
+  
+  if (res.data.files.length > 0) {
+    driveFolderCache[cacheKey] = res.data.files[0].id;
+    return driveFolderCache[cacheKey];
+  } else {
+    const folder = await drive.files.create({
+      resource: { name: folderName, mimeType: 'application/vnd.google-apps.folder', parents: [parentId] },
+      fields: 'id'
+    });
+    driveFolderCache[cacheKey] = folder.data.id;
+    return driveFolderCache[cacheKey];
+  }
+};
+
 const uploadToDrive = (url, product, catName, groupName) => {
   return new Promise((resolve, reject) => {
     https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, async (res) => {
       if (res.statusCode === 200) {
         try {
-          const folderId = await getOrCreateDriveFolder();
+          const rootFolderId = await getOrCreateDriveFolder();
+          const catFolderId = await getOrCreateSubFolder(catName, rootFolderId);
+          const groupFolderId = await getOrCreateSubFolder(groupName, catFolderId);
+          
           const fileMetadata = {
-            name: `${product.productId}.jpg`,
-            parents: [folderId],
-            description: `TCG Card: ${product.name}\nJuego: ${catName}\nExpansión: ${groupName}\nID: ${product.productId}`
+            name: product.productId + '.jpg',
+            parents: [groupFolderId],
+            description: TCG Card:  + product.name + \nJuego:  + catName + \nExpansión:  + groupName + \nID:  + product.productId
           };
           const uploadedFile = await drive.files.create({
             resource: fileMetadata,
@@ -112,12 +100,15 @@ const uploadToDrive = (url, product, catName, groupName) => {
       } else if (res.statusCode === 301 || res.statusCode === 302) {
         https.get(res.headers.location, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, async (res2) => {
              try {
-                const folderId = await getOrCreateDriveFolder();
+                const rootFolderId = await getOrCreateDriveFolder();
+                const catFolderId = await getOrCreateSubFolder(catName, rootFolderId);
+                const groupFolderId = await getOrCreateSubFolder(groupName, catFolderId);
+
                 const uploadedFile = await drive.files.create({
                   resource: {
-                    name: `${product.productId}.jpg`,
-                    parents: [folderId],
-                    description: `TCG Card: ${product.name}\nJuego: ${catName}\nExpansión: ${groupName}\nID: ${product.productId}`
+                    name: product.productId + '.jpg',
+                    parents: [groupFolderId],
+                    description: TCG Card:  + product.name + \nJuego:  + catName + \nExpansión:  + groupName + \nID:  + product.productId
                   },
                   media: { mimeType: 'image/jpeg', body: res2 },
                   fields: 'id'
@@ -126,12 +117,11 @@ const uploadToDrive = (url, product, catName, groupName) => {
               } catch (e) { reject(e); }
         }).on('error', reject);
       } else {
-        reject(new Error(`HTTP ${res.statusCode}`));
+        reject(new Error(HTTP  + res.statusCode));
       }
     }).on('error', reject);
   });
 };
-
 // TCGCSV API Helpers
 const { exec } = require('child_process');
 const util = require('util');
@@ -307,6 +297,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor de descargas corriendo en http://0.0.0.0:${PORT}`);
 });
+
 
 
 
