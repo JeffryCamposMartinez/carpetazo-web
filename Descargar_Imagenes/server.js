@@ -151,21 +151,18 @@ const FETCH_HEADERS = {
   "Accept": "application/json"
 };
 const fetchCategory = async (categoryId) => {
-  const res = await fetch(`https://tcgcsv.com/tcgplayer/categories`);
-  const json = await res.json();
+  const json = await curlFetch(`https://tcgcsv.com/tcgplayer/categories`);
   const cat = json.results.find(c => c.categoryId === categoryId);
   return cat ? cat.name : `Categoría ${categoryId}`;
 };
 
 const fetchGroups = async (categoryId) => {
-  const res = await fetch(`https://tcgcsv.com/tcgplayer/${categoryId}/groups`);
-  const json = await res.json();
+  const json = await curlFetch(`https://tcgcsv.com/tcgplayer/${categoryId}/groups`);
   return json.results || [];
 };
 
 const fetchProducts = async (categoryId, groupId) => {
-  const res = await fetch(`https://tcgcsv.com/tcgplayer/${categoryId}/${groupId}/products`);
-  const json = await res.json();
+  const json = await curlFetch(`https://tcgcsv.com/tcgplayer/${categoryId}/${groupId}/products`);
   return json.results || [];
 };
 
@@ -310,6 +307,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor de descargas corriendo en http://0.0.0.0:${PORT}`);
 });
+
 
 
 
