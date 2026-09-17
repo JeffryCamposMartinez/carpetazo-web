@@ -139,7 +139,10 @@ function FolderPokemon() {
   const fetchCards = async () => {
     try {
       const res = await api.getFolder(id);
-      if(res.success && res.folder) setCards(res.folder.cards || []);
+      if(res.success && res.folder) {
+        const mappedCards = (res.folder.cards || []).map(c => ({ ...c, ...(c.data || {}) }));
+        setCards(mappedCards);
+      }
     } catch (err) { console.error('Error fetching cards:', err); }
   };
 
@@ -150,7 +153,8 @@ function FolderPokemon() {
         const res = await api.getFolder(id);
         if (res.success && res.folder) {
           setFolderData(res.folder);
-          setCards(res.folder.cards || []);
+          const mappedCards = (res.folder.cards || []).map(c => ({ ...c, ...(c.data || {}) }));
+          setCards(mappedCards);
         }
       } catch (e) { console.error(e); } finally { setLoadingFolder(false); }
     };
@@ -194,14 +198,10 @@ function FolderPokemon() {
   // --- MANEJO DE CATÁLOGO LOGIC ---
   const handleUpdateCard = async (cardIdToUpdate, newPrice, newStock) => {
     try {
-      await updateDoc(doc(db, 'folders', id, 'cards', cardIdToUpdate), { price: parseFloat(newPrice), stock: parseInt(newStock) });
-      if (true) {
-        // Optimistic update locally
-        setCards(cards.map(c => c.id === cardIdToUpdate ? { ...c, price: parseFloat(newPrice), stock: parseInt(newStock) } : c));
-        showToast('Carta actualizada correctamente', 'success');
-      } else {
-        showToast(result.message, 'error');
-      }
+      await api.updateCard(id, cardIdToUpdate, { price: parseFloat(newPrice), stock: parseInt(newStock) });
+      // Optimistic update locally
+      setCards(cards.map(c => c.id === cardIdToUpdate ? { ...c, price: parseFloat(newPrice), stock: parseInt(newStock) } : c));
+      showToast('Carta actualizada correctamente', 'success');
     } catch (error) {
       console.error(error);
       showToast('Error de conexión al actualizar la carta.', 'error');
@@ -437,18 +437,20 @@ const handleSearchAPI = async (e) => {
     if (!selectedCard || !price || !stock) return;
     setIsSaving(true);
     const cardData = {
-      id: selectedCard.productId.toString(),
+      tcgId: selectedCard.productId.toString(),
       name: selectedCard.name,
-      pseudoName: pseudoName.trim(),
       price: parseFloat(price),
       stock: parseInt(stock),
       imageUrl: selectedCard.imageUrl || '',
-      set: availableSets.find(s => s.groupId == searchSet)?.name || 'Unknown',
-      rarity: selectedCard.extData?.Rarity || selectedCard.extData?.['Card Number / Rarity'] || 'Unknown',
-      supertype: selectedCard.extData ? selectedCard.extData['Card Type / HP / Stage']?.split(' / ')[0] || 'Unknown' : 'Unknown',
-      number: selectedCard.extData?.Number || '',
-      total: '',
-      language: language
+      data: {
+        pseudoName: pseudoName.trim(),
+        set: availableSets.find(s => s.groupId == searchSet)?.name || 'Unknown',
+        rarity: selectedCard.extData?.Rarity || selectedCard.extData?.['Card Number / Rarity'] || 'Unknown',
+        supertype: selectedCard.extData ? selectedCard.extData['Card Type / HP / Stage']?.split(' / ')[0] || 'Unknown' : 'Unknown',
+        number: selectedCard.extData?.Number || '',
+        total: '',
+        language: language
+      }
     };
     try {
       await api.addCard(id, cardData);
