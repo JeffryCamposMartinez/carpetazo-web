@@ -1,4 +1,4 @@
-﻿import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../utils/api';
@@ -195,21 +195,28 @@ export default function Header() {
       <header className="w-full top-0 sticky z-40 bg-surface dark:bg-surface-dim md:hidden block">
         <div className="flex flex-col w-full">
           <div className="flex items-center justify-between px-4 py-3 w-full border-b border-gray-100 relative h-[60px]">
-            {/* Left: Hamburger Menu */}
-            <button onClick={() => setIsMobileMenuOpen(true)} className="p-1 text-white hover:opacity-80 z-10">
-              <span translate="no" className="material-symbols-outlined text-[28px]">menu</span>
-            </button>
+            {/* Left: Profile and Hamburger Menu */}
+            <div className="flex items-center gap-2 z-10">
+              {currentUser ? (
+                <button onClick={() => setIsMobileMenuOpen(true)} className="flex items-center gap-2 focus:outline-none">
+                  <img src={userAvatar || currentUser.photoURL} alt="Profile" className="w-9 h-9 rounded-full border border-gray-200 object-cover bg-white shadow-sm" />
+                  <span translate="no" className="material-symbols-outlined text-[28px] text-white">menu</span>
+                </button>
+              ) : (
+                <button onClick={() => setIsMobileMenuOpen(true)} className="p-1 text-white hover:opacity-80">
+                  <span translate="no" className="material-symbols-outlined text-[28px]">menu</span>
+                </button>
+              )}
+            </div>
 
             {/* Center: Logo */}
             <Link to="/bienvenida" className="absolute left-1/2 -translate-x-1/2 flex items-center cursor-pointer hover:opacity-80 transition-opacity">
               <img src="/images/logos/logo_completo.png" alt="Carpetazo.cl" className="h-10 w-auto object-contain py-0.5 transform scale-[1.5] origin-[center_60%] translate-y-0.5" />
             </Link>
 
-            {/* Right: Profile (Unclickable) or Login */}
-            <div className="z-10">
-              {currentUser ? (
-                <img src={userAvatar || currentUser.photoURL} alt="Profile" className="w-9 h-9 rounded-full border border-gray-200 object-cover bg-white shadow-sm" />
-              ) : (
+            {/* Right: Login (if not logged in) */}
+            <div className="z-10 w-[60px] flex justify-end">
+              {!currentUser && (
                 <button onClick={handleLogin} className="px-3 py-1.5 bg-primary text-on-primary font-bold rounded-md shadow-sm transition-all text-xs flex items-center gap-1.5">
                   <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-3.5 h-3.5 bg-white rounded-full p-[1px]" />
                   Entrar
