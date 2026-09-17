@@ -73,7 +73,7 @@ export default function AlbumView({ cards, cart, onAddToCart, onRemoveFromCart }
         usePortrait={isPortrait}
       >
         {/* Cover */}
-        <Page className="bg-[#eab308] flex items-center justify-center border-4 border-[#ca8a04]">
+        <Page className="bg-[#facc15] flex items-center justify-center border-4 border-[#eab308]">
           <div className="text-center p-8 border-4 border-yellow-400 rounded-lg bg-black/20 backdrop-blur-sm">
             <span translate="no" className="material-symbols-outlined text-6xl text-white mb-4 block">menu_book</span>
             <h1 className="text-3xl font-black text-white uppercase tracking-widest drop-shadow-md">Catálogo</h1>
@@ -125,7 +125,7 @@ export default function AlbumView({ cards, cart, onAddToCart, onRemoveFromCart }
         </Page>
 
         {/* Back Cover */}
-        <Page className="bg-[#eab308] flex items-center justify-center border-4 border-[#ca8a04]">
+        <Page className="bg-[#facc15] flex items-center justify-center border-4 border-[#eab308]">
           <div className="opacity-20 text-center">
             <span translate="no" className="material-symbols-outlined text-6xl text-white">verified</span>
           </div>
@@ -134,4 +134,5 @@ export default function AlbumView({ cards, cart, onAddToCart, onRemoveFromCart }
     </div>
   );
 }
+
 
