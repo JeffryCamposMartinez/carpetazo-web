@@ -518,18 +518,18 @@ const handleSearchAPI = async (e) => {
             placeholder="Nombre (ej. Pikachu) o Código (ej. 15/165)"
             className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] transition-colors"
           />
-          <div className="flex gap-4 mb-2">
+          <div className="flex flex-col sm:flex-row gap-4 mb-2">
             <select 
               value={searchCategory} 
               onChange={(e) => { setSearchCategory(e.target.value); setSearchSet(''); }}
-              className="w-1/3 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]"
+              className="w-full sm:w-1/3 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]"
             >
               <option value="" disabled>Seleccionar TCG</option>
               {availableCategories.map(cat => (
                 <option key={cat.categoryId} value={cat.categoryId}>{cat.name}</option>
               ))}
             </select>
-            <div className="relative w-2/3">
+            <div className="relative w-full sm:w-2/3">
               <div className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-colors hover:border-[#1e40af]" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
                 <span className="truncate font-bold text-sm">{searchSet === '' ? 'Selecciona una expansión' : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
                 <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
