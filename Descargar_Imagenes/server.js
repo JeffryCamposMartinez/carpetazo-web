@@ -73,7 +73,7 @@ let currentProductName = null;
 let currentCategoryName = 'Iniciando...';
 let currentGroupName = 'Iniciando...';
 let errorCount = 0;
-const DOWNLOAD_DELAY = 1500;
+const DOWNLOAD_DELAY = 3000;
 // Estado persistente
 let progress = {
   categories: [1, 2, 3, 71, 63, 62],
@@ -310,6 +310,9 @@ const startDownloadEngine = async () => {
                 }
               } catch (err) {
                 console.error(`Error subiendo ${product.productId}:`, err.message);
+                  if (err.message.includes('403') || err.message.includes('429')) {
+                      throw new Error("TCGPlayer CDN bloqueó la IP para descargar imágenes (403). Forzando reposo de 1 hora.");
+                  }
                 errorCount++;
                 failedDownloads.push({
                   id: product.productId,
