@@ -352,8 +352,12 @@ function FolderPokemon() {
 
 const handleSearchAPI = async (e) => {
     e.preventDefault();
-    if (!searchSet || !searchCategory) {
-      showToast('Selecciona un TCG y una expansión.', 'error');
+    if (!searchCategory) {
+      showToast('Selecciona un TCG.', 'error');
+      return;
+    }
+    if (!searchSet && !searchQuery.trim()) {
+      showToast('Selecciona una expansión o ingresa un nombre para buscar.', 'error');
       return;
     }
     
@@ -362,8 +366,14 @@ const handleSearchAPI = async (e) => {
 
     setIsSearching(true);
     try {
-      const response = await api.getTcgProducts(searchCategory, searchSet);
-      let cards = response.data || [];
+      let cards = [];
+      if (searchSet) {
+        const response = await api.getTcgProducts(searchCategory, searchSet);
+        cards = response.data || [];
+      } else {
+        const response = await api.searchTcgProducts(searchQuery.trim(), searchCategory);
+        cards = response.data || [];
+      }
       
       const rarities = new Set();
       cards.forEach(c => {
@@ -444,7 +454,7 @@ const handleSearchAPI = async (e) => {
       imageUrl: selectedCard.imageUrl || '',
       data: {
         pseudoName: pseudoName.trim(),
-        set: availableSets.find(s => s.groupId == searchSet)?.name || 'Unknown',
+        set: availableSets.find(s => s.groupId == (searchSet || selectedCard.groupId))?.name || 'Unknown',
         rarity: selectedCard.extData?.Rarity || selectedCard.extData?.['Card Number / Rarity'] || 'Unknown',
         supertype: selectedCard.extData ? selectedCard.extData['Card Type / HP / Stage']?.split(' / ')[0] || 'Unknown' : 'Unknown',
         number: selectedCard.extData?.Number || '',
@@ -607,7 +617,7 @@ const handleSearchAPI = async (e) => {
               </div>
               <div className="p-3 text-center border-t border-gray-100">
                 <p className="font-bold text-sm text-gray-900 truncate">{card.name}</p>
-                <p className="text-xs text-gray-500 truncate mt-1">{availableSets.find(s => s.id === searchSet)?.name}</p>
+                <p className="text-xs text-gray-500 truncate mt-1">{availableSets.find(s => s.groupId == (searchSet || card.groupId))?.name}</p>
               </div>
             </div>
           ))
@@ -660,7 +670,7 @@ const handleSearchAPI = async (e) => {
             </div>
             <div className="text-center mt-2 px-2">
               <p className="font-bold text-gray-900 leading-tight">{selectedCard.name}</p>
-              <p className="text-sm text-gray-500 mt-1">{availableSets.find(s => s.id === searchSet)?.name} • {selectedCard.rarity}</p>
+              <p className="text-sm text-gray-500 mt-1">{availableSets.find(s => s.groupId == (searchSet || selectedCard.groupId))?.name} • {selectedCard.rarity}</p>
             </div>
             
             <div className="flex flex-col gap-1">

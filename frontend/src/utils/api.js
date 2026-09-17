@@ -1,4 +1,4 @@
-﻿import { auth } from '../firebase';
+import { auth } from '../firebase';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -65,6 +65,11 @@ export const api = {
   getTcgCategories: () => apiFetch('/tcg/categories'),
   getTcgGroups: (categoryId) => apiFetch('/tcg/' + categoryId + '/groups'),
   getTcgProducts: (categoryId, groupId) => apiFetch('/tcg/' + categoryId + '/' + groupId + '/products'),
+  searchTcgProducts: (query, categoryId) => {
+    let qs = `?q=${encodeURIComponent(query)}`;
+    if (categoryId) qs += `&categoryId=${categoryId}`;
+    return apiFetch('/tcg/search' + qs);
+  },
 
   // Orders
   updateOrder: (id, data) => apiFetch('/orders/' + id, { method: 'PUT', body: JSON.stringify(data) }),
