@@ -73,11 +73,11 @@ export default function AlbumView({ cards, cart, onAddToCart, onRemoveFromCart }
         usePortrait={isPortrait}
       >
         {/* Cover */}
-        <Page className="bg-[#1e3a8a] flex items-center justify-center border-4 border-[#1e40af]">
-          <div className="text-center p-8 border-4 border-yellow-400 rounded-lg bg-[#1a2b4b]/80 backdrop-blur-sm">
-            <span translate="no" className="material-symbols-outlined text-6xl text-yellow-400 mb-4 block">menu_book</span>
+        <Page className="bg-[#eab308] flex items-center justify-center border-4 border-[#ca8a04]">
+          <div className="text-center p-8 border-4 border-yellow-400 rounded-lg bg-black/20 backdrop-blur-sm">
+            <span translate="no" className="material-symbols-outlined text-6xl text-white mb-4 block">menu_book</span>
             <h1 className="text-3xl font-black text-white uppercase tracking-widest drop-shadow-md">Catálogo</h1>
-            <p className="text-yellow-200 mt-2 font-bold tracking-widest">Carpetazo</p>
+            <p className="text-white/80 mt-2 font-bold tracking-widest">Carpetazo</p>
           </div>
         </Page>
 
@@ -125,7 +125,7 @@ export default function AlbumView({ cards, cart, onAddToCart, onRemoveFromCart }
         </Page>
 
         {/* Back Cover */}
-        <Page className="bg-[#1e3a8a] flex items-center justify-center border-4 border-[#1e40af]">
+        <Page className="bg-[#eab308] flex items-center justify-center border-4 border-[#ca8a04]">
           <div className="opacity-20 text-center">
             <span translate="no" className="material-symbols-outlined text-6xl text-white">verified</span>
           </div>
@@ -134,3 +134,4 @@ export default function AlbumView({ cards, cart, onAddToCart, onRemoveFromCart }
     </div>
   );
 }
+
