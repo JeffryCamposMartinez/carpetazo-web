@@ -1,6 +1,6 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import api from '../utils/api';
+import api, { apiFetch } from '../utils/api';
 import Filters from '../components/Filters';
 import PokemonCard from '../components/PokemonCard';
 import Toast from '../components/Toast';
@@ -39,7 +39,7 @@ function PublicCatalog() {
     window.scrollTo(0, 0);
     const fetchCatalogData = async () => {
       try {
-                const response = await api.get(/folders/ + folderId);
+                const response = await apiFetch('/folders/' + folderId);
         if (!response.success || !response.folder) {
           setErrorMsg("La carpeta no existe o fue eliminada.");
           setLoading(false);
@@ -51,14 +51,14 @@ function PublicCatalog() {
                 // Track folder visits
         if (!currentUser || currentUser.uid !== folder.userId) {
           const currentWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
-          api.post(/folders/ + folderId + '/visit', { currentWeek }).catch(err => console.error("Error updating visits", err));
+          apiFetch('/folders/' + folderId + '/visit', { method: 'POST', body: JSON.stringify({ currentWeek }) }).catch(err => console.error("Error updating visits", err));
         }
 
                 if (folder.user) {
           setSellerData(folder.user);
         }
 
-                const cardsList = (folder.cards || []).map(c => ({ ...c, apiId: c.tcgId || c.id }));
+        const cardsList = (folder.cards || []).map(c => ({ ...c, apiId: c.tcgId || c.id, ...(c.data || {}) }));
         setCards(cardsList);
         
       } catch (error) {
