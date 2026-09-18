@@ -1,4 +1,3 @@
-import sharp from 'sharp';
 ﻿import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import express from 'express';
@@ -953,6 +952,7 @@ app.get('/api/images/proxy', async (req, res) => {
     return res.redirect('/images/cards/' + id + '.webp');
   }
 
+
   try {
     // Si no existe, la descargamos
     const response = await fetch(url);
@@ -960,20 +960,15 @@ app.get('/api/images/proxy', async (req, res) => {
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Convertimos a WebP
-    const webpBuffer = await sharp(buffer)
-      .webp({ quality: 80 })
-      .toBuffer();
-
-    // Guardamos en disco
+    // Guardamos en disco la imagen ORIGINAL
     if (!fs.existsSync(publicDir)) {
       fs.mkdirSync(publicDir, { recursive: true });
     }
-    fs.writeFileSync(imagePath, webpBuffer);
+    fs.writeFileSync(imagePath, buffer);
 
-    // Enviamos el WebP generado
-    res.type('image/webp');
-    res.send(webpBuffer);
+    // Enviamos la imagen
+    res.type(response.headers.get('content-type') || 'image/png');
+    res.send(buffer);
   } catch (err) {
     console.error('Image Proxy Error:', err);
     // Fallback: redirigir a la URL original si algo falla
