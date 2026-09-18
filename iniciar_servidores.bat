@@ -1,0 +1,9 @@
+﻿@echo off
+echo Iniciando Backend...
+start "Carpetazo Backend" cmd /k "cd backend && npm start"
+
+echo Iniciando Frontend...
+start "Carpetazo Frontend" cmd /k "cd frontend && npm run dev -- --host"
+
+echo Iniciando Ngrok...
+start "Ngrok Frontend" cmd /k "ngrok http 5173"

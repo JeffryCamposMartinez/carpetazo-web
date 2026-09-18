@@ -1,3 +1,5 @@
+﻿import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
@@ -20,7 +22,7 @@ const authenticateToken = async (req, res, next) => {
   const token = authHeader && authHeader.split(' ')[1]; // Format: Bearer <TOKEN>
 
   if (!token) {
-    return res.status(401).json({ success: false, message: 'Token de autenticaciÃƒÆ’Ã‚Â³n requerido' });
+    return res.status(401).json({ success: false, message: 'Token de autenticaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n requerido' });
   }
 
   try {
@@ -30,7 +32,7 @@ const authenticateToken = async (req, res, next) => {
     next();
   } catch (error) {
     console.error('Error al verificar token Firebase:', error.message);
-    return res.status(403).json({ success: false, message: 'Token de autenticaciÃƒÆ’Ã‚Â³n invÃƒÆ’Ã‚Â¡lido o expirado' });
+    return res.status(403).json({ success: false, message: 'Token de autenticaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n invÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lido o expirado' });
   }
 };
 
@@ -40,7 +42,23 @@ const prisma = new PrismaClient();
 const app = express();
 const port = process.env.PORT || 8000;
 
-app.use(cors());
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  message: 'Demasiadas peticiones desde esta IP, por favor intenta de nuevo más tarde.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(helmet());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://carpetazo.cl', 'https://www.carpetazo.cl'] 
+    : ['http://localhost:5173', 'http://192.168.1.15:5173'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
+app.use('/api', limiter);
 app.use(express.json());
 
 // Sincronizar o crear usuario en la BD al iniciar sesin
@@ -412,7 +430,7 @@ app.post('/api/process-order', authenticateToken, (req, res) => {
     const order = orders[code];
     
     if (!order) {
-        return res.status(404).json({ success: false, message: 'CÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³digo de pedido no encontrado o ya procesado' });
+        return res.status(404).json({ success: false, message: 'CÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³digo de pedido no encontrado o ya procesado' });
     }
 
     const cards = getCards();
@@ -470,7 +488,7 @@ app.post('/api/reject-order', authenticateToken, (req, res) => {
     res.json({ success: true, message: 'Order rejected successfully' });
 });
 
-// --- POKEMON TCG API PROXY CON CACHÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â° ---
+// --- POKEMON TCG API PROXY CON CACHÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â° ---
 const tcgCache = new Map();
 const CACHE_DURATION = 1000 * 60 * 60; // 1 hora en milisegundos
 
@@ -680,7 +698,7 @@ app.delete('/api/cards/:id', authenticateToken, async (req, res) => {
 });
 
 
-// --- RUTAS PÃƒÆ’Ã…Â¡BLICAS Y MENSAJES ---
+// --- RUTAS PÃƒÆ’Ã†â€™Ãƒâ€¦Ã‚Â¡BLICAS Y MENSAJES ---
 
 // Obtener todas las carpetas pblicas
 app.get('/api/folders', async (req, res) => {
@@ -940,7 +958,7 @@ app.get('/api/tcg/search', async (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¦Ã‚Â¡ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Servidor backend corriendo en http://localhost:${port}`);
+    console.log(`ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ Servidor backend corriendo en http://localhost:${port}`);
 });
 
 
@@ -949,5 +967,7 @@ app.listen(port, () => {
 
 
 
+
+
 
 
