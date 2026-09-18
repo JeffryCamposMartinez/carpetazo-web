@@ -35,11 +35,11 @@ const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
       </button>
       <div className="p-4 flex flex-col items-center flex-1">
         <div className="w-full relative pt-[140%] mb-3">
-          <img src={card.imageUrl} alt={card.name} className="absolute inset-0 w-full h-full object-contain filter drop-shadow-md transition-transform duration-300" />
+          <img src={card.imageUrl} referrerPolicy="no-referrer" alt={card.name} className="absolute inset-0 w-full h-full object-contain filter drop-shadow-md transition-transform duration-300" />
         </div>
         <p className="font-label-md font-bold text-on-background text-center line-clamp-1 w-full">{card.name}</p>
         <p className="text-[10px] text-on-surface-variant mb-4 text-center truncate w-full">
-          {card.set} • {card.supertype} • #{(() => {
+          {card.set} â€¢ {card.supertype} â€¢ #{(() => {
             let numStr = (card.number || card.id?.split('-')[1] || '').toString();
             let totalStr = (card.total || '---').toString();
             if (/^\d+$/.test(numStr)) numStr = numStr.padStart(3, '0');
@@ -200,10 +200,10 @@ function AdminPanel() {
   const handleLogin = (e) => {
     e.preventDefault();
     if (password === 'admin123') setIsAuthenticated(true);
-    else showToast('Contraseña incorrecta', 'error');
+    else showToast('ContraseÃ±a incorrecta', 'error');
   };
 
-  // --- MANEJO DE CATÁLOGO LOGIC ---
+  // --- MANEJO DE CATÃLOGO LOGIC ---
   const handleUpdateCard = async (id, newPrice, newStock) => {
     try {
       const token = await getAuthToken();
@@ -225,12 +225,12 @@ function AdminPanel() {
       }
     } catch (error) {
       console.error(error);
-      showToast('Error de conexión al actualizar la carta.', 'error');
+      showToast('Error de conexiÃ³n al actualizar la carta.', 'error');
     }
   };
 
   const handleDeleteRequest = (id) => {
-    setConfirmDialog({ show: true, message: '¿Estás seguro de eliminar esta carta del catálogo?', targetId: id });
+    setConfirmDialog({ show: true, message: 'Â¿EstÃ¡s seguro de eliminar esta carta del catÃ¡logo?', targetId: id });
   };
 
   const executeDeleteCard = async () => {
@@ -255,7 +255,7 @@ function AdminPanel() {
       }
     } catch (error) {
       console.error(error);
-      showToast('Error de conexión al eliminar la carta.', 'error');
+      showToast('Error de conexiÃ³n al eliminar la carta.', 'error');
     }
   };
 
@@ -280,7 +280,7 @@ function AdminPanel() {
           type="text" 
           value={catQuery}
           onChange={(e) => setCatQuery(e.target.value)}
-          placeholder="Buscar por nombre en tu catálogo..."
+          placeholder="Buscar por nombre en tu catÃ¡logo..."
           className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary"
         />
         
@@ -346,7 +346,7 @@ function AdminPanel() {
     </div>
   );
 
-  // --- AGREGAR AL CATÁLOGO LOGIC ---
+  // --- AGREGAR AL CATÃLOGO LOGIC ---
   useEffect(() => {
     if (isSearching && abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -358,7 +358,7 @@ function AdminPanel() {
   const handleSearchAPI = async (e) => {
     e.preventDefault();
     if (!searchSet || !searchCategory) {
-      showToast('Selecciona un TCG y una expansión.', 'error');
+      showToast('Selecciona un TCG y una expansiÃ³n.', 'error');
       return;
     }
     
@@ -467,10 +467,10 @@ function AdminPanel() {
       });
       const result = await response.json();
       if (result.success) {
-        showToast('¡Carta guardada en el catálogo exitosamente!', 'success');
+        showToast('Â¡Carta guardada en el catÃ¡logo exitosamente!', 'success');
         setSelectedCard(null);
         fetchCards();
-        // Volver arriba suavemente en móviles para buscar la siguiente carta
+        // Volver arriba suavemente en mÃ³viles para buscar la siguiente carta
         if (window.innerWidth < 1024) {
           setTimeout(() => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -479,7 +479,7 @@ function AdminPanel() {
       } else showToast('Error al guardar la carta', 'error');
     } catch (error) {
       console.error(error);
-      showToast('Error de conexión al guardar la carta', 'error');
+      showToast('Error de conexiÃ³n al guardar la carta', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -521,7 +521,7 @@ function AdminPanel() {
       <div className="flex-1 bg-surface-container-low p-6 rounded-2xl border border-surface-container shadow-sm">
         <h2 className="font-headline-md text-headline-md text-on-background flex items-center gap-2 mb-4">
           <span translate="no" className="material-symbols-outlined text-primary">search</span>
-          Buscar en Pokémon TCG
+          Buscar en PokÃ©mon TCG
         </h2>
         
         <form onSubmit={handleSearchAPI} className="flex flex-col gap-4 mb-6">
@@ -529,7 +529,7 @@ function AdminPanel() {
             type="text" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Nombre (ej. Pikachu) o Código (ej. 15/165)"
+            placeholder="Nombre (ej. Pikachu) o CÃ³digo (ej. 15/165)"
             className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary"
           />
           <div className="flex gap-4 mb-2">
@@ -545,7 +545,7 @@ function AdminPanel() {
             </select>
             <div className="relative w-2/3">
               <div className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-colors hover:border-[#1e40af]" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
-                <span className="truncate font-bold text-sm">{searchSet === '' ? 'Selecciona una expansión' : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
+                <span className="truncate font-bold text-sm">{searchSet === '' ? 'Selecciona una expansiÃ³n' : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
                 <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
               </div>
               {isSetDropdownOpen && (
@@ -565,7 +565,7 @@ function AdminPanel() {
           </div>
           <div className="relative min-w-[200px] mt-4">
             <div className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface text-on-surface cursor-pointer flex justify-between items-center" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
-              <span className="truncate">{searchSet === '' ? 'Selecciona una expansión' : availableSets.find(s => s.id === searchSet)?.name || 'Seleccionado'}</span>
+              <span className="truncate">{searchSet === '' ? 'Selecciona una expansiÃ³n' : availableSets.find(s => s.id === searchSet)?.name || 'Seleccionado'}</span>
               <span translate="no" className="material-symbols-outlined ml-2 text-on-surface-variant">expand_more</span>
             </div>
             {isSetDropdownOpen && (
@@ -598,7 +598,7 @@ function AdminPanel() {
           {isSearching ? (
             <div className="col-span-full flex flex-col items-center justify-center py-16">
               <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-primary mb-4"></div>
-              <p className="text-on-surface-variant font-body-md animate-pulse">Consultando la Pokédex mundial...</p>
+              <p className="text-on-surface-variant font-body-md animate-pulse">Consultando la PokÃ©dex mundial...</p>
             </div>
           ) : searchResults.length > 0 ? (
             searchResults.map(card => (
@@ -611,7 +611,7 @@ function AdminPanel() {
               }
             }}>
               <div className="relative w-full aspect-[63/88] flex items-center justify-center bg-surface-container-highest">
-                <img src={card.imageUrl} alt={card.name} loading="lazy" className="w-full h-full object-contain" />
+                <img src={card.imageUrl} referrerPolicy="no-referrer" alt={card.name} loading="lazy" className="w-full h-full object-contain" />
               </div>
               <div className="p-2 text-center">
                 <p className="font-label-sm text-on-background truncate">{card.name}</p>
@@ -622,22 +622,22 @@ function AdminPanel() {
           ) : hasSearchedAPI ? (
               <div className="col-span-full py-12 text-center text-on-surface-variant flex flex-col items-center">
                   <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-30">search_off</span>
-                  <p>No se encontraron cartas que coincidan con tu búsqueda.</p>
+                  <p>No se encontraron cartas que coincidan con tu bÃºsqueda.</p>
               </div>
           ) : (
               <div className="col-span-full py-12 text-center text-on-surface-variant flex flex-col items-center">
                   <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-30">travel_explore</span>
-                  <p>Realiza una búsqueda para empezar.</p>
+                  <p>Realiza una bÃºsqueda para empezar.</p>
               </div>
           )}
         </div>
       </div>
 
-      {/* Lado Derecho: Añadir al Catálogo */}
+      {/* Lado Derecho: AÃ±adir al CatÃ¡logo */}
       <div id="add-catalog-panel" className="w-full max-w-[400px] lg:w-[400px] bg-surface-container-highest p-6 rounded-2xl shadow-sm border border-surface-container sticky top-24 flex-shrink-0 z-10 hover:z-[60] h-fit min-h-[650px] lg:min-h-0 mx-auto lg:mx-0 self-center lg:self-start scroll-mt-24">
         <h2 className="font-headline-md text-headline-md text-on-background flex items-center gap-2">
           <span translate="no" className="material-symbols-outlined text-primary">add_circle</span>
-          Añadir al Catálogo
+          AÃ±adir al CatÃ¡logo
         </h2>
         {selectedCard ? (
           <form onSubmit={handleSaveCard} className="flex flex-col gap-2 mt-2">
@@ -668,7 +668,7 @@ function AdminPanel() {
             </div>
             <div className="text-center relative z-0">
                 <h3 className="font-headline-sm text-on-background leading-tight truncate">{selectedCard.name}</h3>
-                <p className="text-[11px] text-on-surface-variant truncate mb-2">{selectedCard.set?.name} • {selectedCard.rarity}</p>
+                <p className="text-[11px] text-on-surface-variant truncate mb-2">{selectedCard.set?.name} â€¢ {selectedCard.rarity}</p>
                 <div className="flex justify-center gap-2">
                   <a 
                     href={getTcgplayerUrl(selectedCard)}
@@ -810,7 +810,7 @@ function AdminPanel() {
           Historial de Ventas
         </h2>
         {history.length === 0 ? (
-          <div className="text-center py-8 text-on-surface-variant bg-surface rounded-xl border border-dashed border-outline-variant">El historial está vacío.</div>
+          <div className="text-center py-8 text-on-surface-variant bg-surface rounded-xl border border-dashed border-outline-variant">El historial estÃ¡ vacÃ­o.</div>
         ) : (
           <div className="overflow-x-auto bg-surface rounded-xl border border-outline-variant">
             <table className="w-full text-left border-collapse min-w-[600px]">
@@ -818,7 +818,7 @@ function AdminPanel() {
                 <tr className="border-b border-surface-container bg-surface-container-lowest text-on-surface-variant text-sm font-label-md">
                   <th className="p-4">Fecha</th>
                   <th className="p-4">Ref</th>
-                  <th className="p-4">Artículos</th>
+                  <th className="p-4">ArtÃ­culos</th>
                   <th className="p-4">Total</th>
                   <th className="p-4">Estado</th>
                 </tr>
@@ -862,7 +862,7 @@ function AdminPanel() {
             <h2 className="font-headline-md text-headline-md text-on-background">Acceso Administrativo</h2>
           </div>
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Contraseña" className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary" />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="ContraseÃ±a" className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary" />
             <button type="submit" className="bg-primary hover:bg-primary/90 text-on-primary font-label-md py-3 rounded-lg transition-colors shadow-sm">Entrar al Panel</button>
           </form>
         </div>
@@ -881,11 +881,11 @@ function AdminPanel() {
       <div className="flex gap-2 overflow-x-auto border-b border-surface-container mb-8 pb-0 custom-scrollbar">
         <button onClick={() => setActiveTab('catalog')} className={`px-6 py-4 rounded-t-xl font-label-md transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'catalog' ? 'bg-surface-container-lowest text-primary border-b-4 border-primary shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]' : 'hover:bg-surface-container text-on-surface-variant'}`}>
           <span translate="no" className="material-symbols-outlined">inventory_2</span>
-          Manejo de Catálogo
+          Manejo de CatÃ¡logo
         </button>
         <button onClick={() => setActiveTab('add')} className={`px-6 py-4 rounded-t-xl font-label-md transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'add' ? 'bg-surface-container-lowest text-primary border-b-4 border-primary shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]' : 'hover:bg-surface-container text-on-surface-variant'}`}>
           <span translate="no" className="material-symbols-outlined">add_circle</span>
-          Agregar al Catálogo
+          Agregar al CatÃ¡logo
         </button>
         <button onClick={() => setActiveTab('sales')} className={`px-6 py-4 rounded-t-xl font-label-md transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'sales' ? 'bg-surface-container-lowest text-primary border-b-4 border-primary shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]' : 'hover:bg-surface-container text-on-surface-variant'}`}>
           <span translate="no" className="material-symbols-outlined">receipt_long</span>
@@ -905,7 +905,7 @@ function AdminPanel() {
       
       <ConfirmModal 
         isOpen={confirmDialog.show} 
-        title="Confirmar Acción" 
+        title="Confirmar AcciÃ³n" 
         message={confirmDialog.message} 
         onConfirm={executeDeleteCard} 
         onCancel={() => setConfirmDialog({ show: false, message: '', targetId: null })}
