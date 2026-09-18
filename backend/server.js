@@ -1,3 +1,5 @@
+import webp from 'webp-converter';
+webp.grant_permission();
 ﻿import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import express from 'express';
@@ -953,6 +955,7 @@ app.get('/api/images/proxy', async (req, res) => {
   }
 
 
+
   try {
     // Si no existe, la descargamos
     const response = await fetch(url);
@@ -960,15 +963,28 @@ app.get('/api/images/proxy', async (req, res) => {
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Guardamos en disco la imagen ORIGINAL
     if (!fs.existsSync(publicDir)) {
       fs.mkdirSync(publicDir, { recursive: true });
     }
-    fs.writeFileSync(imagePath, buffer);
 
-    // Enviamos la imagen
-    res.type(response.headers.get('content-type') || 'image/png');
-    res.send(buffer);
+    // Usar webp-converter (seguro en Docker sin dependencias nativas complejas)
+    const tempPath = path.join(publicDir, 'temp_' + id + '.img');
+    fs.writeFileSync(tempPath, buffer);
+
+    try {
+      await webp.cwebp(tempPath, imagePath, '-q 80');
+      // Enviar la imagen WebP optimizada
+      res.type('image/webp');
+      res.sendFile(imagePath);
+    } catch (conversionError) {
+      console.error('WebP conversion failed, falling back to original', conversionError);
+      fs.writeFileSync(imagePath, buffer); // Fallback to original
+      res.type(response.headers.get('content-type') || 'image/png');
+      res.send(buffer);
+    } finally {
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+    }
+
   } catch (err) {
     console.error('Image Proxy Error:', err);
     // Fallback: redirigir a la URL original si algo falla
