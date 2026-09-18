@@ -127,7 +127,7 @@ export default function Filters({
                 className={`w-6 h-6 rounded-full flex items-center justify-center transition-transform hover:scale-110 relative ${selectedType === type ? 'ring-2 ring-[#1e40af] ring-offset-1 ring-offset-white shadow-md' : 'opacity-80 hover:opacity-100 shadow-sm'}`}
               >
                 <img 
-                  src={`/types/${type}.png`} 
+                  src={`/types/${type}.svg`} 
                   alt={type} 
                   className="w-full h-full object-contain" 
                 />
