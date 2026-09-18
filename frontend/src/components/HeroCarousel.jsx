@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getFolderFilter } from '../pages/Dashboard';
 
@@ -99,7 +99,7 @@ export default function HeroCarousel() {
               onClick={() => navigate('/explorar')}
               className="px-4 py-1.5 bg-[#1e40af] text-white font-bold rounded-xl shadow-md text-xs"
             >
-              Conoce nuestras garantÃ­as
+              Conoce nuestras garantías
             </button>
           </div>
         </div>
@@ -112,13 +112,13 @@ export default function HeroCarousel() {
               <span className="text-[#f59e0b]">Total Seguridad</span>
             </h1>
             <p className="text-gray-500 text-base mb-6 max-w-lg">
-              Protegemos cada transacciÃ³n. Contamos con perfiles verificados y soporte constante para que armes tu mazo sin riesgos ni preocupaciones.
+              Protegemos cada transacción. Contamos con perfiles verificados y soporte constante para que armes tu mazo sin riesgos ni preocupaciones.
             </p>
             <button
               onClick={() => navigate('/explorar')}
               className="w-fit px-5 py-2.5 bg-[#1e40af] text-white font-bold rounded-lg shadow-md hover:bg-blue-800 transition-colors text-sm"
             >
-              Conoce nuestras garantÃ­as
+              Conoce nuestras garantías
             </button>
           </div>
           <div className="w-1/2 relative h-[220px] flex items-center justify-center">
@@ -150,7 +150,7 @@ export default function HeroCarousel() {
             </div>
             <h1 className="text-[20px] font-extrabold text-[#1a2b4b] mb-1 leading-tight">
               Eleva tu nivel de{' '}
-              <span className="text-[#f59e0b]">ColecciÃ³n</span>
+              <span className="text-[#f59e0b]">Colección</span>
             </h1>
             <p className="text-gray-600 text-[12px] leading-tight max-w-xs font-medium">
               Conecta con miles de jugadores, encuentra rarezas y sella los mejores tratos.
@@ -183,7 +183,7 @@ export default function HeroCarousel() {
             </div>
             <h1 className="text-4xl font-extrabold text-[#1a2b4b] mb-3 leading-tight tracking-tight">
               Eleva tu nivel de{' '}
-              <span className="text-[#f59e0b] drop-shadow-sm">ColecciÃ³n</span>
+              <span className="text-[#f59e0b] drop-shadow-sm">Colección</span>
             </h1>
             <p className="text-gray-600 text-base mb-6 max-w-sm font-medium">
               Conecta con miles de jugadores, encuentra rarezas y sella los mejores tratos.
@@ -218,7 +218,7 @@ export default function HeroCarousel() {
             </div>
             <h1 className="text-[20px] font-extrabold text-white mb-1 leading-tight">
               Potencia tu tienda con{' '}
-              <span className="text-[#38bdf8]">toda la tecnologÃ­a</span>
+              <span className="text-[#38bdf8]">toda la tecnología</span>
             </h1>
             <p className="text-gray-400 text-[12px] leading-tight max-w-xs">
               Sitio web, punto de venta y un marketplace dedicado para tu tienda TCG.
@@ -231,7 +231,7 @@ export default function HeroCarousel() {
           </div>
           <div className="z-20 pb-1">
             <button className="px-4 py-1.5 bg-[#3b82f6] text-white font-bold rounded-full shadow-lg shadow-blue-500/30 text-xs">
-              Conocer mÃ¡s
+              Conocer más
             </button>
           </div>
         </div>
@@ -244,13 +244,13 @@ export default function HeroCarousel() {
             </div>
             <h1 className="text-4xl font-extrabold text-white mb-4 leading-tight">
               Potencia tu tienda con{' '}
-              <span className="text-[#38bdf8]">todo el poder de la tecnologÃ­a</span>
+              <span className="text-[#38bdf8]">todo el poder de la tecnología</span>
             </h1>
             <p className="text-gray-400 text-base mb-8 max-w-xl">
               Sitio web, punto de venta, puntos de retiro y un marketplace dedicado para tu tienda de TCG.
             </p>
             <button className="px-6 py-2.5 bg-[#3b82f6] text-white font-bold rounded-full shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-colors text-sm">
-              Conocer mÃ¡s
+              Conocer más
             </button>
           </div>
         </div>
@@ -415,6 +415,3 @@ export default function HeroCarousel() {
     </div>
   );
 }
-
-
-

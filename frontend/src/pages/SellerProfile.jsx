@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { api } from '../utils/api';
@@ -104,7 +104,7 @@ export default function SellerProfile() {
     
     // Validate size before compressing (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert("La imagen es demasiado grande. MÃ¡ximo 10MB permitidos.");
+      alert("La imagen es demasiado grande. Máximo 10MB permitidos.");
       return;
     }
 
@@ -163,7 +163,7 @@ export default function SellerProfile() {
           setSeller(prev => ({ ...prev, ...updateData }));
         } catch (error) {
           console.error(`Error saving ${type}:`, error);
-          alert(`Error al guardar ${type === 'banner' ? 'la portada' : 'la foto de perfil'}. Intenta con una imagen mÃ¡s pequeÃ±a.`);
+          alert(`Error al guardar ${type === 'banner' ? 'la portada' : 'la foto de perfil'}. Intenta con una imagen más pequeña.`);
         } finally {
           setSavingImage(false);
         }
@@ -185,7 +185,7 @@ export default function SellerProfile() {
       setIsEditingBio(false);
     } catch (error) {
       console.error("Error saving bio:", error);
-      alert("Error al guardar la biografÃ­a.");
+      alert("Error al guardar la biografía.");
     } finally {
       setSavingBio(false);
     }
@@ -229,10 +229,10 @@ export default function SellerProfile() {
       
       setIsReviewModalOpen(false);
       setNewReview({ rating: 5, comment: '' });
-      alert('Â¡ReseÃ±a publicada con Ã©xito!');
+      alert('¡Reseña publicada con éxito!');
     } catch (err) {
       console.error("Error submitting review:", err);
-      alert('Hubo un error al publicar la reseÃ±a.');
+      alert('Hubo un error al publicar la reseña.');
     } finally {
       setSubmittingReview(false);
     }
@@ -423,7 +423,7 @@ export default function SellerProfile() {
               {/* Text info next to avatar */}
               <div className="flex flex-col text-left flex-1 min-w-0">
                 <div className="flex items-center gap-1 flex-wrap">
-                  <h1 className="text-base font-black text-[#1a2b4b] leading-tight">{seller?.displayName || 'Vendedor AnÃ³nimo'}</h1>
+                  <h1 className="text-base font-black text-[#1a2b4b] leading-tight">{seller?.displayName || 'Vendedor Anónimo'}</h1>
                   {(seller?.isVerified || true) && (
                     <span translate="no" className="material-symbols-outlined text-[#3b82f6] text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }} title="Vendedor Verificado">verified</span>
                   )}
@@ -436,7 +436,7 @@ export default function SellerProfile() {
                         <span translate="no" className="material-symbols-outlined text-primary text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                         <span className="text-[#1a2b4b] font-extrabold text-[11px]">{seller?.rating?.toFixed(1) || '5.0'}</span>
                       </div>
-                      <span className="text-gray-500 text-[10px] font-semibold">{seller?.totalTrades} reseÃ±as</span>
+                      <span className="text-gray-500 text-[10px] font-semibold">{seller?.totalTrades} reseñas</span>
                     </>
                   ) : (
                     <span className="text-gray-500 text-[10px] font-semibold bg-white/50 px-2 py-0.5 rounded-full border border-gray-200">Nuevo Vendedor</span>
@@ -521,7 +521,7 @@ export default function SellerProfile() {
               style={seller?.bannerComplementaryColor ? { border: `3px solid ${seller.bannerComplementaryColor}` } : {}}
             >
               <div className="flex items-center gap-2 mb-1 flex-wrap justify-center md:justify-start">
-                <h1 className="text-2xl md:text-4xl font-black text-[#1a2b4b]">{seller?.displayName || 'Vendedor AnÃ³nimo'}</h1>
+                <h1 className="text-2xl md:text-4xl font-black text-[#1a2b4b]">{seller?.displayName || 'Vendedor Anónimo'}</h1>
                 {/* Visual Fake Verified for now if undefined, so user can see how it looks */}
                 {(seller?.isVerified || true) && (
                   <span translate="no" className="material-symbols-outlined text-[#3b82f6] text-[24px] md:text-[32px] drop-shadow-sm" style={{ fontVariationSettings: "'FILL' 1" }} title="Vendedor Verificado">verified</span>
@@ -537,7 +537,7 @@ export default function SellerProfile() {
                         <span className="text-[#1a2b4b] font-extrabold text-lg">{seller?.rating?.toFixed(1) || '5.0'}</span>
                      </div>
                      <span className="text-gray-600 font-bold text-sm underline decoration-gray-300 underline-offset-2 cursor-pointer hover:text-[#1a2b4b]" onClick={() => document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' })}>
-                       {seller?.totalTrades} reseÃ±as verificadas
+                       {seller?.totalTrades} reseñas verificadas
                      </span>
                    </>
                  ) : (
@@ -558,7 +558,7 @@ export default function SellerProfile() {
                         value={tempBio}
                         onChange={(e) => setTempBio(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-primary resize-none h-24"
-                        placeholder="CuÃ©ntale a la comunidad sobre ti y tus colecciones..."
+                        placeholder="Cuéntale a la comunidad sobre ti y tus colecciones..."
                       />
                       <div className="flex gap-2 justify-end">
                         <button onClick={() => setIsEditingBio(false)} disabled={savingBio} className="px-4 py-1.5 rounded-lg text-sm font-bold text-gray-500 hover:bg-gray-100">Cancelar</button>
@@ -574,12 +574,12 @@ export default function SellerProfile() {
                           "{seller.bio}"
                         </p>
                       ) : (
-                        <p className="text-gray-400 italic text-sm md:text-base py-1">AÃºn no has escrito una biografÃ­a.</p>
+                        <p className="text-gray-400 italic text-sm md:text-base py-1">Aún no has escrito una biografía.</p>
                       )}
                       <button 
                         onClick={() => { setTempBio(seller?.bio || ''); setIsEditingBio(true); }}
                         className="text-gray-400 hover:text-primary transition-colors p-1 md:opacity-0 md:group-hover:opacity-100 flex items-center justify-center rounded-full hover:bg-blue-50"
-                        title="Editar biografÃ­a"
+                        title="Editar biografía"
                       >
                         <span translate="no" className="material-symbols-outlined text-lg">edit</span>
                       </button>
@@ -613,7 +613,7 @@ export default function SellerProfile() {
                     const displayText = defaultAddress.name ? `${defaultAddress.name} - ${parts}` : parts;
 
                     return (
-                      <span className={`flex items-center gap-1.5 ${hasStreet ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-gray-50 border-gray-200 text-gray-700'} px-3 py-1.5 md:px-4 md:py-2 rounded-full border shadow-sm text-xs md:text-sm font-semibold`} title={hasStreet ? "DirecciÃ³n de la tienda" : "UbicaciÃ³n"}>
+                      <span className={`flex items-center gap-1.5 ${hasStreet ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-gray-50 border-gray-200 text-gray-700'} px-3 py-1.5 md:px-4 md:py-2 rounded-full border shadow-sm text-xs md:text-sm font-semibold`} title={hasStreet ? "Dirección de la tienda" : "Ubicación"}>
                         <span translate="no" className="material-symbols-outlined text-[16px] md:text-[18px]">{hasStreet ? 'storefront' : 'location_on'}</span>
                         {displayText}
                       </span>
@@ -678,7 +678,7 @@ export default function SellerProfile() {
                 <div className="flex items-center gap-2 md:gap-3">
                   <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-[#1a2b4b]/10 flex items-center justify-center flex-shrink-0">
                     <svg viewBox="0 0 24 24" className="w-5 h-5 md:w-6 md:h-6" xmlns="http://www.w3.org/2000/svg">
-                      {/* Left cover â€” perspective parallelogram */}
+                      {/* Left cover — perspective parallelogram */}
                       <polygon points="1,5 7,3 7,21 1,20" fill="#3b82f6"/>
                       {/* Cover shine */}
                       <polygon points="1,5 3,4.3 3,19.5 1,20" fill="white" opacity="0.2"/>
@@ -695,7 +695,7 @@ export default function SellerProfile() {
                       <circle cx="7.5" cy="12" r="1" fill="#ffcb05"/>
                     </svg>
                   </div>
-                  <h2 className="text-lg md:text-3xl font-black text-[#1a2b4b] leading-tight">Carpetas PÃºblicas</h2>
+                  <h2 className="text-lg md:text-3xl font-black text-[#1a2b4b] leading-tight">Carpetas Públicas</h2>
                 </div>
                 <span className="inline-flex items-center justify-center bg-[#1a2b4b] text-white text-xs md:text-sm font-black px-2.5 py-1 md:px-3 md:py-1.5 rounded-full shadow-sm">
                   {folders.length}
@@ -705,7 +705,7 @@ export default function SellerProfile() {
               {folders.length === 0 ? (
                 <div className="bg-white rounded-2xl p-12 text-center border border-dashed border-blue-300 shadow-sm">
                   <span translate="no" className="material-symbols-outlined text-6xl text-blue-300 mb-4">inventory_2</span>
-                  <p className="text-gray-500 font-bold text-lg">Este vendedor aÃºn no tiene carpetas pÃºblicas disponibles.</p>
+                  <p className="text-gray-500 font-bold text-lg">Este vendedor aún no tiene carpetas públicas disponibles.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-8">
@@ -745,13 +745,13 @@ export default function SellerProfile() {
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
                 <h2 className="text-3xl font-black text-[#1a2b4b] flex items-center gap-3">
                   <span translate="no" className="material-symbols-outlined text-primary text-3xl">reviews</span>
-                  ReseÃ±as de la Comunidad
+                  Reseñas de la Comunidad
                 </h2>
               </div>
               
               {reviews.length === 0 ? (
                 <div className="bg-white/60 rounded-2xl p-8 text-center border border-gray-200 shadow-sm">
-                  <p className="text-gray-500 font-medium text-lg">Este vendedor aÃºn no tiene reseÃ±as.</p>
+                  <p className="text-gray-500 font-medium text-lg">Este vendedor aún no tiene reseñas.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -787,4 +787,3 @@ export default function SellerProfile() {
     </div>
   );
 }
-

@@ -1,4 +1,4 @@
-﻿import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useState, useRef } from 'react';
 
@@ -7,7 +7,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [isMarqueePaused, setIsMarqueePaused] = useState(false);
 
-  // Hook para detectar hover en el carrusel cuando el mouse estÃ¡ quieto y las cartas se mueven debajo
+  // Hook para detectar hover en el carrusel cuando el mouse está quieto y las cartas se mueven debajo
   const mousePos = useRef({ x: -1, y: -1 });
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -44,17 +44,17 @@ export default function LandingPage() {
     try {
       await loginWithGoogle();
     } catch (error) {
-      console.error("Error al iniciar sesiÃ³n con Google:", error);
+      console.error("Error al iniciar sesión con Google:", error);
     }
   };
 
   const proFeatures = [
-    { icon: 'inventory_2', title: 'GestiÃ³n Inteligente de Inventario', desc: 'Registra cartas, variaciones, estados y cantidades con una interfaz ultrarrÃ¡pida diseÃ±ada para grandes volÃºmenes.' },
-    { icon: 'monitoring', title: 'ValoraciÃ³n en Tiempo Real', desc: 'SincronizaciÃ³n automÃ¡tica con los mercados globales para que siempre conozcas el valor real de tu colecciÃ³n.' },
-    { icon: 'storefront', title: 'Carpetas PÃºblicas y Ventas', desc: 'Convierte tu colecciÃ³n en una vitrina virtual. Comparte tus cartas disponibles para venta o intercambio con un solo link.' },
-    { icon: 'style', title: 'Soporte Multi-TCG', desc: 'Centraliza todas tus colecciones en un mismo lugar: PokÃ©mon, Yu-Gi-Oh!, Magic, One Piece, Mitos y Leyendas y mÃ¡s.' },
-    { icon: 'query_stats', title: 'EstadÃ­sticas Avanzadas', desc: 'Visualiza el crecimiento de tu inversiÃ³n, cartas mÃ¡s valiosas y fluctuaciones del mercado con grÃ¡ficos detallados.' },
-    { icon: 'security', title: 'Privacidad y Seguridad', desc: 'Tus datos estÃ¡n respaldados en la nube. Controla quÃ© carpetas son pÃºblicas y cuÃ¡les son estrictamente privadas.' }
+    { icon: 'inventory_2', title: 'Gestión Inteligente de Inventario', desc: 'Registra cartas, variaciones, estados y cantidades con una interfaz ultrarrápida diseñada para grandes volúmenes.' },
+    { icon: 'monitoring', title: 'Valoración en Tiempo Real', desc: 'Sincronización automática con los mercados globales para que siempre conozcas el valor real de tu colección.' },
+    { icon: 'storefront', title: 'Carpetas Públicas y Ventas', desc: 'Convierte tu colección en una vitrina virtual. Comparte tus cartas disponibles para venta o intercambio con un solo link.' },
+    { icon: 'style', title: 'Soporte Multi-TCG', desc: 'Centraliza todas tus colecciones en un mismo lugar: Pokémon, Yu-Gi-Oh!, Magic, One Piece, Mitos y Leyendas y más.' },
+    { icon: 'query_stats', title: 'Estadísticas Avanzadas', desc: 'Visualiza el crecimiento de tu inversión, cartas más valiosas y fluctuaciones del mercado con gráficos detallados.' },
+    { icon: 'security', title: 'Privacidad y Seguridad', desc: 'Tus datos están respaldados en la nube. Controla qué carpetas son públicas y cuáles son estrictamente privadas.' }
   ];
 
   return (
@@ -155,7 +155,7 @@ export default function LandingPage() {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-tertiary">Coleccionistas Exigentes</span>
           </h1>
           <p className="text-sm md:text-base lg:text-lg text-on-surface-variant max-w-2xl mx-auto px-4 md:px-0">
-            Descubre todas las herramientas que Carpetazo.cl te ofrece para transformar la manera en que gestionas, exhibes y valoras tu colecciÃ³n.
+            Descubre todas las herramientas que Carpetazo.cl te ofrece para transformar la manera en que gestionas, exhibes y valoras tu colección.
           </p>
         </div>
 
@@ -220,5 +220,3 @@ export default function LandingPage() {
     </>
   );
 }
-
-

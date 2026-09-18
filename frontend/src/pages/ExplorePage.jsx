@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../utils/api';
 import { getFolderFilter } from './Dashboard';
@@ -21,7 +21,7 @@ export default function ExplorePage() {
     { name: 'One Piece', logo: '/images/logos/onepiece.webp', scaleClass: 'scale-150' },
     { name: 'Magic', logo: '/images/logos/magic.webp', scaleClass: 'scale-150' },
     { name: 'Riftbound', logo: '/images/logos/riftbound.webp', scaleClass: 'scale-100' },
-    { name: 'PokÃ©mon', logo: '/images/logos/pokemon.webp', scaleClass: 'scale-100' },
+    { name: 'Pokémon', logo: '/images/logos/pokemon.webp', scaleClass: 'scale-100' },
     { name: 'Yu-Gi-Oh!', logo: '/images/logos/yugioh.webp', scaleClass: 'scale-[2.25]' },
     { name: 'Mitos y Leyendas', logo: '/images/logos/mitosyleyendas.webp', scaleClass: 'scale-[1.3]' }
   ];
@@ -29,7 +29,7 @@ export default function ExplorePage() {
   const mousePos = useRef({ x: -1, y: -1 });
 
   useEffect(() => {
-    // Hook para detectar hover en el carrusel cuando el mouse estÃ¡ quieto y las cartas se mueven debajo
+    // Hook para detectar hover en el carrusel cuando el mouse está quieto y las cartas se mueven debajo
     const handleMouseMove = (e) => {
       mousePos.current = { x: e.clientX, y: e.clientY };
     };
@@ -115,7 +115,7 @@ export default function ExplorePage() {
             <div className="w-full max-w-[1200px] mb-16">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-bold text-[#1a2b4b]">Carpetas Destacadas de la semana</h2>
-                <button className="text-blue-600 font-semibold hover:underline text-sm">Ver mÃ¡s carpetas â†’</button>
+                <button className="text-blue-600 font-semibold hover:underline text-sm">Ver más carpetas →</button>
               </div>
               
               {loading ? (
@@ -147,4 +147,3 @@ export default function ExplorePage() {
     </>
   );
 }
-
