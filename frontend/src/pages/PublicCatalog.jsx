@@ -6,7 +6,6 @@ import PokemonCard from '../components/PokemonCard';
 import AlbumView from '../components/AlbumView';
 import Toast from '../components/Toast';
 import { useAuth } from '../contexts/AuthContext';
-import { getProxyImageUrl } from '../utils/api';
 
 function PublicCatalog() {
   const { folderId } = useParams();
@@ -495,7 +494,7 @@ function PublicCatalog() {
               ) : (
                 cart.map(item => (
                   <div key={item.id} className="flex gap-4 bg-gray-50 p-3 rounded-xl border border-gray-200 shadow-sm relative group">
-                    <img src={getProxyImageUrl(item.tcgProductId || item.id, item.imageUrl)} alt={item.name} className="w-14 h-20 object-cover rounded-md shadow-sm" />
+                    <img src={item.imageUrl} alt={item.name} className="w-14 h-20 object-cover rounded-md shadow-sm" />
                     <div className="flex-1 flex flex-col justify-center">
                       <p className="font-bold text-sm text-gray-900 leading-tight mb-1 line-clamp-2">{item.name}</p>
                       <p className="text-gray-500 text-xs mb-1">{item.set}</p>

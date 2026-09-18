@@ -1,4 +1,3 @@
-import { getProxyImageUrl } from '../utils/api';
 export default function PokemonCard({ card, availableStock, cartQuantity, onAddToCart, onRemoveFromCart }) {
   const isOutOfStock = availableStock <= 0;
 
@@ -35,7 +34,7 @@ export default function PokemonCard({ card, availableStock, cartQuantity, onAddT
       <div className="relative w-full aspect-[63/88] bg-gray-50 flex items-center justify-center p-2">
         <img 
           className="w-full h-full object-fill" 
-          src={getProxyImageUrl(card.tcgProductId || card.id, card.imageUrl)} 
+          src={card.imageUrl} 
           alt={card.name} 
         />
         {isOutOfStock && cartQuantity === 0 && (
