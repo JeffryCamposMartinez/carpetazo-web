@@ -42,7 +42,7 @@ const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
         </div>
         <p className="font-bold text-gray-900 text-center line-clamp-1 w-full text-sm">{card.name}</p>
         <p className="text-[10px] text-gray-500 mb-4 text-center truncate w-full">
-          {card.set} • {card.supertype} • #{(() => {
+          {card.set} Ã¢â‚¬Â¢ {card.supertype} Ã¢â‚¬Â¢ #{(() => {
             let numStr = (card.number || card.apiId?.split('-')[1] || card.id?.split('-')[1] || '').toString();
             let totalStr = (card.total || '---').toString();
             if (/^\d+$/.test(numStr)) numStr = numStr.padStart(3, '0');
@@ -152,7 +152,18 @@ function FolderPokemon() {
       try {
         const res = await api.getFolder(id);
         if (res.success && res.folder) {
-          setFolderData(res.folder);
+                    setFolderData(res.folder);
+          // Set searchCategory based on the folder's TCG
+          const tcgMap = {
+            'Pokemon': '3',
+            'YuGiOh': '2',
+            'Magic': '1',
+            'Mitos y Leyendas': '99',
+            'OnePiece': '62'
+          };
+          if (res.folder.tcg && tcgMap[res.folder.tcg]) {
+            setSearchCategory(tcgMap[res.folder.tcg]);
+          }
           const mappedCards = (res.folder.cards || []).map(c => ({ ...c, ...(c.data || {}) }));
           setCards(mappedCards);
         }
@@ -192,10 +203,10 @@ function FolderPokemon() {
   const handleLogin = (e) => {
     e.preventDefault();
     if (password === 'admin123') setIsAuthenticated(true);
-    else showToast('Contraseña incorrecta', 'error');
+    else showToast('ContraseÃƒÂ±a incorrecta', 'error');
   };
 
-  // --- MANEJO DE CATÁLOGO LOGIC ---
+  // --- MANEJO DE CATÃƒÂLOGO LOGIC ---
   const handleUpdateCard = async (cardIdToUpdate, newPrice, newStock) => {
     try {
       await api.updateCard(id, cardIdToUpdate, { price: parseFloat(newPrice), stock: parseInt(newStock) });
@@ -204,12 +215,12 @@ function FolderPokemon() {
       showToast('Carta actualizada correctamente', 'success');
     } catch (error) {
       console.error(error);
-      showToast('Error de conexión al actualizar la carta.', 'error');
+      showToast('Error de conexiÃƒÂ³n al actualizar la carta.', 'error');
     }
   };
 
   const handleDeleteRequest = (id) => {
-    setConfirmDialog({ show: true, message: '¿Estás seguro de eliminar esta carta del catálogo?', targetId: id });
+    setConfirmDialog({ show: true, message: 'Ã‚Â¿EstÃƒÂ¡s seguro de eliminar esta carta del catÃƒÂ¡logo?', targetId: id });
   };
 
   const executeDeleteCard = async () => {
@@ -225,7 +236,7 @@ function FolderPokemon() {
       }
     } catch (error) {
       console.error(error);
-      showToast('Error de conexión al eliminar la carta.', 'error');
+      showToast('Error de conexiÃƒÂ³n al eliminar la carta.', 'error');
     }
   };
 
@@ -250,7 +261,7 @@ function FolderPokemon() {
           type="text" 
           value={catQuery}
           onChange={(e) => setCatQuery(e.target.value)}
-          placeholder="Buscar por nombre en tu catálogo..."
+          placeholder="Buscar por nombre en tu catÃƒÂ¡logo..."
           className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]"
         />
         
@@ -308,7 +319,7 @@ function FolderPokemon() {
     </div>
   );
 
-  // --- AGREGAR AL CATÁLOGO LOGIC ---
+  // --- AGREGAR AL CATÃƒÂLOGO LOGIC ---
   useEffect(() => {
     if (isSearching && abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -357,7 +368,7 @@ const handleSearchAPI = async (e) => {
       return;
     }
     if (!searchSet && !searchQuery.trim()) {
-      showToast('Selecciona una expansión o ingresa un nombre para buscar.', 'error');
+      showToast('Selecciona una expansiÃƒÂ³n o ingresa un nombre para buscar.', 'error');
       return;
     }
     
@@ -420,7 +431,7 @@ const handleSearchAPI = async (e) => {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Ultra-compresión a WebP con calidad del 50%
+        // Ultra-compresiÃƒÂ³n a WebP con calidad del 50%
         const compressedBase64 = canvas.toDataURL('image/webp', 0.5);
 
         setSelectedCard(prev => {
@@ -465,10 +476,10 @@ const handleSearchAPI = async (e) => {
     try {
       await api.addCard(id, cardData);
       if (true) {
-        showToast('¡Carta guardada en el catálogo exitosamente!', 'success');
+        showToast('Ã‚Â¡Carta guardada en el catÃƒÂ¡logo exitosamente!', 'success');
         setSelectedCard(null);
         fetchCards();
-        // Volver arriba suavemente en móviles para buscar la siguiente carta
+        // Volver arriba suavemente en mÃƒÂ³viles para buscar la siguiente carta
         if (window.innerWidth < 1024) {
           setTimeout(() => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -477,7 +488,7 @@ const handleSearchAPI = async (e) => {
       } else showToast('Error al guardar la carta', 'error');
     } catch (error) {
       console.error(error);
-      showToast('Error de conexión al guardar la carta', 'error');
+      showToast('Error de conexiÃƒÂ³n al guardar la carta', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -519,7 +530,7 @@ const handleSearchAPI = async (e) => {
       <div className="flex-1 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
         <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 mb-4">
           <span translate="no" className="material-symbols-outlined text-[#1e40af]">search</span>
-          Buscar en Pokémon TCG
+          Buscar en PokÃƒÂ©mon TCG
         </h2>
         
         <form onSubmit={handleSearchAPI} className="flex flex-col gap-4 mb-6">
@@ -527,14 +538,14 @@ const handleSearchAPI = async (e) => {
             type="text" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Nombre (ej. Pikachu) o Código (ej. 15/165)"
+            placeholder="Nombre (ej. Pikachu) o CÃƒÂ³digo (ej. 15/165)"
             className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] transition-colors"
           />
           <div className="flex flex-col sm:flex-row gap-4 mb-2">
-            <select 
+                        <select 
               value={searchCategory} 
-              onChange={(e) => { setSearchCategory(e.target.value); setSearchSet(''); }}
-              className="w-full sm:w-1/3 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]"
+              disabled={true}
+              className="w-full sm:w-1/3 px-4 py-3 rounded-lg border border-gray-300 bg-gray-100 text-gray-600 focus:outline-none cursor-not-allowed font-medium"
             >
               <option value="" disabled>Seleccionar TCG</option>
               {availableCategories.map(cat => (
@@ -543,7 +554,7 @@ const handleSearchAPI = async (e) => {
             </select>
             <div className="relative w-full sm:w-2/3">
               <div className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-colors hover:border-[#1e40af]" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
-                <span className="truncate font-bold text-sm">{searchSet === '' ? 'Selecciona una expansión' : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
+                <span className="truncate font-bold text-sm">{searchSet === '' ? 'Selecciona una expansiÃƒÂ³n' : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
                 <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
               </div>
               {isSetDropdownOpen && (
@@ -600,7 +611,7 @@ const handleSearchAPI = async (e) => {
           {isSearching ? (
             <div className="col-span-full flex flex-col items-center justify-center py-16">
               <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#1e40af] mb-4"></div>
-              <p className="text-gray-500 font-bold animate-pulse">Consultando la Pokédex mundial...</p>
+              <p className="text-gray-500 font-bold animate-pulse">Consultando la PokÃƒÂ©dex mundial...</p>
             </div>
           ) : searchResults.length > 0 ? (
             searchResults.map(card => (
@@ -624,22 +635,22 @@ const handleSearchAPI = async (e) => {
           ) : hasSearchedAPI ? (
               <div className="col-span-full py-12 text-center text-gray-500 flex flex-col items-center">
                   <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-50">search_off</span>
-                  <p className="font-bold">No se encontraron cartas que coincidan con tu búsqueda.</p>
+                  <p className="font-bold">No se encontraron cartas que coincidan con tu bÃƒÂºsqueda.</p>
               </div>
           ) : (
               <div className="col-span-full py-12 text-center text-gray-500 flex flex-col items-center">
                   <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-50">travel_explore</span>
-                  <p className="font-bold">Realiza una búsqueda para empezar.</p>
+                  <p className="font-bold">Realiza una bÃƒÂºsqueda para empezar.</p>
               </div>
           )}
         </div>
       </div>
 
-      {/* Lado Derecho: Añadir al Catálogo */}
+      {/* Lado Derecho: AÃƒÂ±adir al CatÃƒÂ¡logo */}
       <div id="add-catalog-panel" className="w-full max-w-[400px] lg:w-[400px] bg-white p-6 rounded-2xl shadow-sm border border-gray-200 sticky top-24 flex-shrink-0 z-10 hover:z-[60] h-fit min-h-[650px] lg:min-h-0 mx-auto lg:mx-0 self-center lg:self-start scroll-mt-24">
         <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 border-b border-gray-200 pb-4">
           <span translate="no" className="material-symbols-outlined text-[#1e40af]">add_circle</span>
-          Añadir al Catálogo
+          AÃƒÂ±adir al CatÃƒÂ¡logo
         </h2>
         {selectedCard ? (
           <form onSubmit={handleSaveCard} className="flex flex-col gap-2 mt-2">
@@ -670,7 +681,7 @@ const handleSearchAPI = async (e) => {
             </div>
             <div className="text-center mt-2 px-2">
               <p className="font-bold text-gray-900 leading-tight">{selectedCard.name}</p>
-              <p className="text-sm text-gray-500 mt-1">{availableSets.find(s => s.groupId == (searchSet || selectedCard.groupId))?.name} • {selectedCard.rarity}</p>
+              <p className="text-sm text-gray-500 mt-1">{availableSets.find(s => s.groupId == (searchSet || selectedCard.groupId))?.name} Ã¢â‚¬Â¢ {selectedCard.rarity}</p>
             </div>
             
             <div className="flex flex-col gap-1">
@@ -798,7 +809,7 @@ const handleSearchAPI = async (e) => {
           Historial de Ventas
         </h2>
         {history.length === 0 ? (
-          <div className="text-center py-8 text-on-surface-variant bg-surface rounded-xl border border-dashed border-outline-variant">El historial está vacío.</div>
+          <div className="text-center py-8 text-on-surface-variant bg-surface rounded-xl border border-dashed border-outline-variant">El historial estÃƒÂ¡ vacÃƒÂ­o.</div>
         ) : (
           <div className="overflow-x-auto bg-surface rounded-xl border border-outline-variant">
             <table className="w-full text-left border-collapse min-w-[600px]">
@@ -806,7 +817,7 @@ const handleSearchAPI = async (e) => {
                 <tr className="border-b border-surface-container bg-surface-container-lowest text-on-surface-variant text-sm font-label-md">
                   <th className="p-4">Fecha</th>
                   <th className="p-4">Ref</th>
-                  <th className="p-4">Artículos</th>
+                  <th className="p-4">ArtÃƒÂ­culos</th>
                   <th className="p-4">Total</th>
                   <th className="p-4">Estado</th>
                 </tr>
@@ -871,7 +882,7 @@ const handleSearchAPI = async (e) => {
         >
           <span translate="no" className="material-symbols-outlined text-xl sm:text-2xl">arrow_back</span>
         </button>
-        <h1 className="font-headline-lg md:font-display-lg text-headline-lg md:text-display-lg text-[#1a2b4b] m-0 leading-tight truncate">Catálogo: {folderData.name}</h1>
+        <h1 className="font-headline-lg md:font-display-lg text-headline-lg md:text-display-lg text-[#1a2b4b] m-0 leading-tight truncate">CatÃƒÂ¡logo: {folderData.name}</h1>
       </div>
 
       {/* Tabs */}
@@ -888,7 +899,7 @@ const handleSearchAPI = async (e) => {
           className={`px-2 sm:px-6 py-4 rounded-t-xl font-bold transition-colors flex items-center justify-center gap-1 sm:gap-2 ${activeTab === 'catalog' ? 'bg-white text-[#1e40af] border-b-4 border-[#1e40af] shadow-sm' : 'bg-gray-50/50 hover:bg-gray-100 text-gray-500'}`}
         >
           <span translate="no" className="material-symbols-outlined text-[18px] sm:text-[24px]">inventory_2</span>
-          <span className="text-xs sm:text-sm">Catálogo</span>
+          <span className="text-xs sm:text-sm">CatÃƒÂ¡logo</span>
         </button>
       </div>
 
@@ -903,7 +914,7 @@ const handleSearchAPI = async (e) => {
       
       <ConfirmModal 
         isOpen={confirmDialog.show} 
-        title="Confirmar Acción" 
+        title="Confirmar AcciÃƒÂ³n" 
         message={confirmDialog.message} 
         onConfirm={executeDeleteCard} 
         onCancel={() => setConfirmDialog({ show: false, message: '', targetId: null })}
