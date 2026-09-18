@@ -159,13 +159,13 @@ export default function HeroCarousel() {
           <div className="z-10 relative flex justify-center items-center h-[75px] w-full">
             <div className="absolute flex justify-center items-center scale-[0.45] w-full">
               <div className="relative w-32 h-44 transform -rotate-[15deg] z-10 rounded-[6px] shadow-xl overflow-hidden -mr-12">
-                <img src="/images/promos/luffy.png" alt="Luffy" className="w-full h-full object-cover" onError={(e) => { e.target.src = '/images/carpeta_v4.webp'; }} />
+                <img src="/images/promos/luffy.webp" alt="Luffy" className="w-full h-full object-cover" onError={(e) => { e.target.src = '/images/carpeta_v4.webp'; }} />
               </div>
               <div className="relative w-40 h-56 transform -translate-y-4 z-30 rounded-[6px] shadow-2xl overflow-hidden">
-                <img src="/images/promos/charizard.png" alt="Charizard" className="w-full h-full object-cover" onError={(e) => { e.target.src = '/images/carpeta_v4.webp'; }} />
+                <img src="/images/promos/charizard.webp" alt="Charizard" className="w-full h-full object-cover" onError={(e) => { e.target.src = '/images/carpeta_v4.webp'; }} />
               </div>
               <div className="relative w-32 h-44 transform rotate-[15deg] z-20 rounded-[6px] shadow-xl overflow-hidden -ml-12">
-                <img src="/images/promos/onering.png" alt="The One Ring" className="w-full h-full object-cover" onError={(e) => { e.target.src = '/images/carpeta_v4.webp'; }} />
+                <img src="/images/promos/onering.webp" alt="The One Ring" className="w-full h-full object-cover" onError={(e) => { e.target.src = '/images/carpeta_v4.webp'; }} />
               </div>
             </div>
           </div>
@@ -195,13 +195,13 @@ export default function HeroCarousel() {
           </div>
           <div className="w-1/2 relative h-[220px] flex items-center justify-center">
             <div className="absolute left-[15%] transform -rotate-[15deg] hover:-translate-y-4 hover:scale-110 transition-all duration-300 z-10 w-32 h-44 rounded-[6px] shadow-[0_10px_20px_rgba(0,0,0,0.3)] overflow-hidden">
-              <img src="/images/promos/luffy.png" alt="Luffy" className="w-full h-full object-cover" onError={(e) => { e.target.src = '/images/carpeta_v4.webp'; }} />
+              <img src="/images/promos/luffy.webp" alt="Luffy" className="w-full h-full object-cover" onError={(e) => { e.target.src = '/images/carpeta_v4.webp'; }} />
             </div>
             <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-4 hover:-translate-y-8 hover:scale-110 transition-all duration-300 z-30 w-40 h-56 rounded-[6px] shadow-[0_15px_25px_rgba(0,0,0,0.4)] overflow-hidden">
-              <img src="/images/promos/charizard.png" alt="Charizard" className="w-full h-full object-cover" onError={(e) => { e.target.src = '/images/carpeta_v4.webp'; }} />
+              <img src="/images/promos/charizard.webp" alt="Charizard" className="w-full h-full object-cover" onError={(e) => { e.target.src = '/images/carpeta_v4.webp'; }} />
             </div>
             <div className="absolute right-[15%] transform rotate-[15deg] hover:-translate-y-4 hover:scale-110 transition-all duration-300 z-20 w-32 h-44 rounded-[6px] shadow-[0_10px_20px_rgba(0,0,0,0.3)] overflow-hidden">
-              <img src="/images/promos/onering.png" alt="The One Ring" className="w-full h-full object-cover" onError={(e) => { e.target.src = '/images/carpeta_v4.webp'; }} />
+              <img src="/images/promos/onering.webp" alt="The One Ring" className="w-full h-full object-cover" onError={(e) => { e.target.src = '/images/carpeta_v4.webp'; }} />
             </div>
           </div>
         </div>
@@ -415,5 +415,6 @@ export default function HeroCarousel() {
     </div>
   );
 }
+
 
 
