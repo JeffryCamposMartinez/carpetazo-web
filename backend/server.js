@@ -939,33 +939,6 @@ app.get('/api/tcg/:categoryId/:groupId/products', async (req, res) => {
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
 
-    }
-
-    // Usar webp-converter (seguro en Docker sin dependencias nativas complejas)
-    const tempPath = path.join(publicDir, 'temp_' + id + '.img');
-    fs.writeFileSync(tempPath, buffer);
-
-    try {
-      await webp.cwebp(tempPath, imagePath, '-q 80');
-      // Enviar la imagen WebP optimizada
-      res.type('image/webp');
-      res.sendFile(imagePath);
-    } catch (conversionError) {
-      console.error('WebP conversion failed, falling back to original', conversionError);
-      fs.writeFileSync(imagePath, buffer); // Fallback to original
-      res.type(response.headers.get('content-type') || 'image/png');
-      res.send(buffer);
-    } finally {
-      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
-    }
-
-  } catch (err) {
-    console.error('Image Proxy Error:', err);
-    // Fallback: redirigir a la URL original si algo falla
-    res.redirect(url);
-  }
-});
-// --- End Image Cache Proxy ---
 
 app.get('/api/tcg/search', async (req, res) => {
   try {
