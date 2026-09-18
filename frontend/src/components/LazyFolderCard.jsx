@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 // import { db } from '../firebase';
 // import { collection, doc, getDoc, getCountFromServer } from 'firebase/firestore';
@@ -78,7 +78,7 @@ export default function LazyFolderCard({ folder }) {
       className="@container relative w-full aspect-[32/37] max-w-[320px] mx-auto flex flex-col cursor-pointer group hover:-translate-y-2 transition-transform duration-300 select-none"
     >
       <div 
-        className="absolute inset-0 bg-[url('/images/carpeta_v4.png')] bg-[length:100%_100%] bg-no-repeat drop-shadow-md group-hover:drop-shadow-xl transition-all" 
+        className="absolute inset-0 bg-[url('/images/carpeta_v4.webp')] bg-[length:100%_100%] bg-no-repeat drop-shadow-md group-hover:drop-shadow-xl transition-all" 
         style={{ filter: getFolderFilter(folder.color) }}
       ></div>
       
@@ -128,3 +128,4 @@ export default function LazyFolderCard({ folder }) {
     </Link>
   );
 }
+

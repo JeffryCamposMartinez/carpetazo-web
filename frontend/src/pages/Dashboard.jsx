@@ -277,7 +277,7 @@ export default function Dashboard() {
             className="relative w-full aspect-[32/37] max-w-[320px] mx-auto flex flex-col cursor-pointer group hover:-translate-y-2 transition-transform duration-300 mb-20 md:mb-0"
           >
             {/* The Background Image */}
-            <div className="absolute inset-0 bg-[url('/images/carpeta_v4.png')] bg-[length:100%_100%] bg-no-repeat drop-shadow-md group-hover:drop-shadow-xl transition-all" style={{ filter: getFolderFilter(folder.color) }}></div>
+            <div className="absolute inset-0 bg-[url('/images/carpeta_v4.webp')] bg-[length:100%_100%] bg-no-repeat drop-shadow-md group-hover:drop-shadow-xl transition-all" style={{ filter: getFolderFilter(folder.color) }}></div>
 
             {/* Action Buttons: Horizontal on mobile (bottom), Vertical on desktop (right) */}
             <div className="absolute -bottom-10 md:top-2 md:-bottom-auto left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:-right-8 z-20 flex flex-row md:flex-col gap-2">
@@ -546,5 +546,6 @@ export default function Dashboard() {
     </>
   );
 }
+
 
 

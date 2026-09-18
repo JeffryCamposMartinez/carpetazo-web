@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../utils/api';
 import { getFolderFilter } from './Dashboard';
@@ -20,11 +20,11 @@ export default function FoldersPage() {
   const itemsPerPage = 40;
 
   const tcgCategories = [
-    { name: 'Pokémon', logo: '/images/logos/pokemon.png', scaleClass: 'scale-[0.9]' },
+    { name: 'PokÃ©mon', logo: '/images/logos/pokemon.webp', scaleClass: 'scale-[0.9]' },
     { name: 'One Piece', logo: '/images/logos/onepiece.webp', scaleClass: 'scale-[1.3]' },
-    { name: 'Magic', logo: '/images/logos/magic.png', scaleClass: 'scale-[1.2]' },
-    { name: 'Yu-Gi-Oh!', logo: '/images/logos/yugioh.png', scaleClass: 'scale-[1.8]' },
-    { name: 'Riftbound', logo: '/images/logos/riftbound.png', scaleClass: 'scale-[0.9]' },
+    { name: 'Magic', logo: '/images/logos/magic.webp', scaleClass: 'scale-[1.2]' },
+    { name: 'Yu-Gi-Oh!', logo: '/images/logos/yugioh.webp', scaleClass: 'scale-[1.8]' },
+    { name: 'Riftbound', logo: '/images/logos/riftbound.webp', scaleClass: 'scale-[0.9]' },
     { name: 'Mitos y Leyendas', logo: '/images/logos/mitosyleyendas.webp', scaleClass: 'scale-[1.1]' }
   ];
 
@@ -172,8 +172,8 @@ export default function FoldersPage() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ordenar por:</label>
                 <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="w-full bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold">
-                  <option value="weekly">Más populares (Semanal)</option>
-                  <option value="total">Más visitadas (Total)</option>
+                  <option value="weekly">MÃ¡s populares (Semanal)</option>
+                  <option value="total">MÃ¡s visitadas (Total)</option>
                   <option value="name">Nombre (A-Z)</option>
                 </select>
               </div>
@@ -189,7 +189,7 @@ export default function FoldersPage() {
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-300">
             <div>
               <h1 className="text-3xl font-extrabold text-[#1a2b4b]">Explorar Carpetas</h1>
-              <p className="text-gray-600 text-sm mt-1">Busca y filtra catálogos creados por nuestra comunidad</p>
+              <p className="text-gray-600 text-sm mt-1">Busca y filtra catÃ¡logos creados por nuestra comunidad</p>
             </div>
           </div>
           {loading ? (
@@ -200,7 +200,7 @@ export default function FoldersPage() {
             <div className="w-full flex-1 flex flex-col items-center justify-center py-20 bg-white/40 border border-white/20 rounded-2xl p-8 text-center">
               <span translate="no" className="material-symbols-outlined text-6xl text-gray-400 mb-4">folder_open</span>
               <h3 className="text-xl font-bold text-[#1a2b4b]">No se encontraron carpetas</h3>
-              <p className="text-gray-500 text-sm mt-1 max-w-sm">Intenta cambiando el filtro TCG o buscando con otros términos.</p>
+              <p className="text-gray-500 text-sm mt-1 max-w-sm">Intenta cambiando el filtro TCG o buscando con otros tÃ©rminos.</p>
               <button onClick={clearFilters} className="mt-6 px-5 py-2.5 bg-[#1e40af] text-white font-bold rounded-xl shadow-md text-xs hover:bg-blue-800 transition-colors">
                 Limpiar Filtros
               </button>
@@ -219,7 +219,7 @@ export default function FoldersPage() {
                     Anterior
                   </button>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-gray-500">Página</span>
+                    <span className="text-xs font-bold text-gray-500">PÃ¡gina</span>
                     <select value={currentPage} onChange={(e) => { setCurrentPage(Number(e.target.value)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="bg-white border border-gray-200 text-xs rounded-xl px-3 py-1.5 font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer">
                       {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                         <option key={page} value={page}>{page}</option>
@@ -249,3 +249,4 @@ export default function FoldersPage() {
     </div>
   );
 }
+
