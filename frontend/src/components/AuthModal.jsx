@@ -56,7 +56,7 @@ export default function AuthModal({ isOpen, onClose }) {
     } catch (err) {
       console.error(err);
       if (err.code !== 'auth/popup-closed-by-user') {
-        setErrorMsg('Error al iniciar sesiÃ³n con Google.');
+        setErrorMsg('Error al iniciar sesión con Google.');
       }
     } finally {
       setLoading(false);
@@ -76,11 +76,11 @@ export default function AuthModal({ isOpen, onClose }) {
       if (err.message === 'auth/email-not-verified') {
         setView('verify-sent');
       } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
-        setErrorMsg('Correo o contraseÃ±a incorrectos.');
+        setErrorMsg('Correo o contraseña incorrectos.');
       } else if (err.code === 'auth/invalid-email') {
-        setErrorMsg('Formato de correo electrÃ³nico invÃ¡lido.');
+        setErrorMsg('Formato de correo electrónico inválido.');
       } else {
-        setErrorMsg('OcurriÃ³ un error al iniciar sesiÃ³n. Por favor intenta de nuevo.');
+        setErrorMsg('Ocurrió un error al iniciar sesión. Por favor intenta de nuevo.');
       }
     } finally {
       setLoading(false);
@@ -115,7 +115,7 @@ export default function AuthModal({ isOpen, onClose }) {
     }
     const usernameRegex = /^[a-z0-9_]{3,20}$/;
     if (!usernameRegex.test(user)) {
-      setFieldErrors(prev => ({ ...prev, username: 'Debe tener entre 3 y 20 caracteres (minÃºsculas, nÃºmeros y _).' }));
+      setFieldErrors(prev => ({ ...prev, username: 'Debe tener entre 3 y 20 caracteres (minúsculas, números y _).' }));
       setValidFields(prev => ({ ...prev, username: false }));
       return;
     }
@@ -139,7 +139,7 @@ export default function AuthModal({ isOpen, onClose }) {
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(mail)) {
-      setFieldErrors(prev => ({ ...prev, email: 'Formato de correo electrÃ³nico invÃ¡lido.' }));
+      setFieldErrors(prev => ({ ...prev, email: 'Formato de correo electrónico inválido.' }));
       setValidFields(prev => ({ ...prev, email: false }));
       return;
     }
@@ -149,7 +149,7 @@ export default function AuthModal({ isOpen, onClose }) {
       // 1. Consultar directamente a Firebase Authentication (Ground Truth)
       const signInMethods = await fetchSignInMethodsForEmail(auth, mail);
       if (signInMethods.length > 0) {
-        setFieldErrors(prev => ({ ...prev, email: 'Este correo electrÃ³nico ya estÃ¡ registrado.' }));
+        setFieldErrors(prev => ({ ...prev, email: 'Este correo electrónico ya está registrado.' }));
         setValidFields(prev => ({ ...prev, email: false }));
         return;
       }
@@ -169,26 +169,26 @@ export default function AuthModal({ isOpen, onClose }) {
     // Username validation
     const usernameRegex = /^[a-z0-9_]{3,20}$/;
     if (!usernameRegex.test(username)) {
-      setErrorMsg('El usuario debe tener entre 3 y 20 caracteres y contener solo letras minÃºsculas, nÃºmeros y guiones bajos (_).');
+      setErrorMsg('El usuario debe tener entre 3 y 20 caracteres y contener solo letras minúsculas, números y guiones bajos (_).');
       setLoading(false);
       return;
     }
 
     // Email match validation
     if (email.toLowerCase().trim() !== confirmEmail.toLowerCase().trim()) {
-      setErrorMsg('Los correos electrÃ³nicos no coinciden.');
+      setErrorMsg('Los correos electrónicos no coinciden.');
       setLoading(false);
       return;
     }
 
     if (password !== confirmPassword) {
-      setErrorMsg('Las contraseÃ±as no coinciden.');
+      setErrorMsg('Las contraseñas no coinciden.');
       setLoading(false);
       return;
     }
 
     if (password.length < 6) {
-      setErrorMsg('La contraseÃ±a debe tener al menos 6 caracteres.');
+      setErrorMsg('La contraseña debe tener al menos 6 caracteres.');
       setLoading(false);
       return;
     }
@@ -200,15 +200,15 @@ export default function AuthModal({ isOpen, onClose }) {
       console.error(err);
       const errorCode = err.code || err.message;
       if (errorCode === 'auth/username-already-in-use') {
-        setErrorMsg('Este nombre de usuario ya estÃ¡ registrado por otro usuario.');
+        setErrorMsg('Este nombre de usuario ya está registrado por otro usuario.');
       } else if (errorCode === 'auth/displayname-already-in-use') {
-        setErrorMsg('Este nombre completo ya estÃ¡ registrado por otro usuario.');
+        setErrorMsg('Este nombre completo ya está registrado por otro usuario.');
       } else if (errorCode === 'auth/email-already-in-use') {
-        setErrorMsg('Este correo electrÃ³nico ya estÃ¡ registrado.');
+        setErrorMsg('Este correo electrónico ya está registrado.');
       } else if (errorCode === 'auth/invalid-email') {
-        setErrorMsg('Formato de correo electrÃ³nico invÃ¡lido.');
+        setErrorMsg('Formato de correo electrónico inválido.');
       } else if (errorCode === 'auth/weak-password') {
-        setErrorMsg('La contraseÃ±a es muy dÃ©bil (mÃ­nimo 6 caracteres).');
+        setErrorMsg('La contraseña es muy débil (mínimo 6 caracteres).');
       } else {
         setErrorMsg('Error al registrar la cuenta. Por favor intenta de nuevo.');
       }
@@ -225,13 +225,13 @@ export default function AuthModal({ isOpen, onClose }) {
     setSuccessMsg('');
     try {
       await resetPassword(email);
-      setSuccessMsg('Te hemos enviado un enlace para restablecer tu contraseÃ±a. Revisa tu correo.');
+      setSuccessMsg('Te hemos enviado un enlace para restablecer tu contraseña. Revisa tu correo.');
     } catch (err) {
       console.error(err);
       if (err.code === 'auth/user-not-found') {
         setErrorMsg('No existe ninguna cuenta asociada a este correo.');
       } else if (err.code === 'auth/invalid-email') {
-        setErrorMsg('Formato de correo electrÃ³nico invÃ¡lido.');
+        setErrorMsg('Formato de correo electrónico inválido.');
       } else {
         setErrorMsg('Error al enviar el enlace. Intenta de nuevo.');
       }
@@ -263,10 +263,10 @@ export default function AuthModal({ isOpen, onClose }) {
         <div className="flex flex-col items-center mb-6">
           <img src="/images/logos/logo_completo.webp" alt="Carpetazo.cl" className="h-16 w-auto object-contain mb-1.5" />
           <p className="text-gray-500 text-xs font-semibold tracking-wide uppercase">
-            {view === 'login' && 'Iniciar SesiÃ³n'}
+            {view === 'login' && 'Iniciar Sesión'}
             {view === 'register' && 'Crear una Cuenta'}
-            {view === 'forgot' && 'Recuperar ContraseÃ±a'}
-            {view === 'verify-sent' && 'VerificaciÃ³n Requerida'}
+            {view === 'forgot' && 'Recuperar Contraseña'}
+            {view === 'verify-sent' && 'Verificación Requerida'}
           </p>
         </div>
 
@@ -290,7 +290,7 @@ export default function AuthModal({ isOpen, onClose }) {
         {view === 'login' && (
           <form onSubmit={handleEmailLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Correo ElectrÃ³nico</label>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Correo Electrónico</label>
               <div className="relative">
                 <span translate="no" className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">mail</span>
                 <input 
@@ -306,13 +306,13 @@ export default function AuthModal({ isOpen, onClose }) {
 
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-xs font-bold text-gray-700 uppercase">ContraseÃ±a</label>
+                <label className="block text-xs font-bold text-gray-700 uppercase">Contraseña</label>
                 <button 
                   type="button" 
                   onClick={() => setView('forgot')}
                   className="text-xs text-blue-600 hover:text-blue-700 font-bold transition-colors"
                 >
-                  Â¿La olvidaste?
+                  ¿La olvidaste?
                 </button>
               </div>
               <div className="relative">
@@ -322,7 +322,7 @@ export default function AuthModal({ isOpen, onClose }) {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="••••••••"
                   className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white transition-all text-gray-800"
                 />
               </div>
@@ -362,13 +362,13 @@ export default function AuthModal({ isOpen, onClose }) {
 
             {/* Register redirection */}
             <p className="text-center text-xs text-gray-500 mt-6 pt-4 border-t border-gray-100 font-medium">
-              Â¿No tienes una cuenta?{' '}
+              ¿No tienes una cuenta?{' '}
               <button 
                 type="button" 
                 onClick={() => setView('register')}
                 className="text-blue-600 hover:text-blue-700 font-bold"
               >
-                RegÃ­strate aquÃ­
+                Regístrate aquí
               </button>
             </p>
           </form>
@@ -405,7 +405,7 @@ export default function AuthModal({ isOpen, onClose }) {
             <div>
               <div className="flex justify-between items-center mb-1.5">
                 <label className="block text-xs font-bold text-gray-700 uppercase">Nombre de Usuario</label>
-                <span className="text-[10px] text-gray-400 font-bold uppercase">Solo minÃºsculas y _</span>
+                <span className="text-[10px] text-gray-400 font-bold uppercase">Solo minúsculas y _</span>
               </div>
               <div className="relative">
                 <span translate="no" className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">alternate_email</span>
@@ -430,17 +430,17 @@ export default function AuthModal({ isOpen, onClose }) {
               {validFields.username && !validating.username && (
                 <p className="text-[10px] text-green-600 mt-1 pl-1 flex items-center gap-1 font-bold">
                   <span translate="no" className="material-symbols-outlined text-[12px]">check_circle</span>
-                  <span>Disponible â€¢ Tu enlace de perfil serÃ¡: <strong>carpetazo.cl/{username}</strong></span>
+                  <span>Disponible • Tu enlace de perfil será: <strong>carpetazo.cl/{username}</strong></span>
                 </p>
               )}
               {!username && !fieldErrors.username && (
-                <p className="text-[10px] text-gray-400 mt-1 pl-1">Ej. tu_usuario (letras, nÃºmeros y _)</p>
+                <p className="text-[10px] text-gray-400 mt-1 pl-1">Ej. tu_usuario (letras, números y _)</p>
               )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Correo ElectrÃ³nico</label>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Correo Electrónico</label>
                 <div className="relative">
                   <span translate="no" className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">mail</span>
                   <input 
@@ -499,7 +499,7 @@ export default function AuthModal({ isOpen, onClose }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">ContraseÃ±a</label>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Contraseña</label>
                 <div className="relative">
                   <span translate="no" className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">lock</span>
                   <input 
@@ -507,7 +507,7 @@ export default function AuthModal({ isOpen, onClose }) {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="MÃ­n. 6 car."
+                    placeholder="Mín. 6 car."
                     className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white transition-all text-gray-800"
                   />
                 </div>
@@ -545,13 +545,13 @@ export default function AuthModal({ isOpen, onClose }) {
 
             {/* Back to Login */}
             <p className="text-center text-xs text-gray-500 mt-6 pt-4 border-t border-gray-100 font-medium">
-              Â¿Ya tienes cuenta registrada?{' '}
+              ¿Ya tienes cuenta registrada?{' '}
               <button 
                 type="button" 
                 onClick={() => setView('login')}
                 className="text-blue-600 hover:text-blue-700 font-bold"
               >
-                Inicia sesiÃ³n aquÃ­
+                Inicia sesión aquí
               </button>
             </p>
           </form>
@@ -561,11 +561,11 @@ export default function AuthModal({ isOpen, onClose }) {
         {view === 'forgot' && (
           <form onSubmit={handleResetPassword} className="space-y-4">
             <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-              Ingresa el correo electrÃ³nico asociado a tu cuenta. Te enviaremos un enlace de recuperaciÃ³n para que puedas restablecer tu contraseÃ±a.
+              Ingresa el correo electrónico asociado a tu cuenta. Te enviaremos un enlace de recuperación para que puedas restablecer tu contraseña.
             </p>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Correo ElectrÃ³nico</label>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Correo Electrónico</label>
               <div className="relative">
                 <span translate="no" className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">mail</span>
                 <input 
@@ -602,7 +602,7 @@ export default function AuthModal({ isOpen, onClose }) {
                 className="text-blue-600 hover:text-blue-700 font-bold flex items-center justify-center gap-1 mx-auto"
               >
                 <span translate="no" className="material-symbols-outlined text-[14px]">arrow_back</span>
-                Volver a Iniciar SesiÃ³n
+                Volver a Iniciar Sesión
               </button>
             </p>
           </form>
@@ -616,7 +616,7 @@ export default function AuthModal({ isOpen, onClose }) {
             </div>
             
             <div className="space-y-2">
-              <h3 className="font-bold text-gray-800 text-base">Â¡Enlace enviado!</h3>
+              <h3 className="font-bold text-gray-800 text-base">¡Enlace enviado!</h3>
               <p className="text-xs text-gray-500 leading-relaxed px-2">
                 Hemos enviado un correo a <strong className="text-gray-800 font-bold">{email}</strong>. 
                 Por favor, abre el enlace que te enviamos para verificar tu cuenta y poder ingresar.
@@ -624,7 +624,7 @@ export default function AuthModal({ isOpen, onClose }) {
             </div>
 
             <div className="bg-amber-50 border border-amber-100 text-amber-800 text-[11px] font-medium p-3 rounded-xl leading-relaxed">
-              <strong>Â¿No lo has recibido?</strong> Recuerda revisar tu carpeta de correo no deseado (Spam).
+              <strong>¿No lo has recibido?</strong> Recuerda revisar tu carpeta de correo no deseado (Spam).
             </div>
 
             <div className="flex flex-col gap-2 pt-2">
@@ -639,7 +639,7 @@ export default function AuthModal({ isOpen, onClose }) {
                 ) : (
                   <>
                     <span translate="no" className="material-symbols-outlined text-[16px]">refresh</span>
-                    Ya verifiquÃ©, intentar ingresar
+                    Ya verifiqué, intentar ingresar
                   </>
                 )}
               </button>
@@ -649,7 +649,7 @@ export default function AuthModal({ isOpen, onClose }) {
                 onClick={() => setView('login')}
                 className="w-full py-2 text-xs text-gray-500 hover:text-gray-700 font-bold transition-colors"
               >
-                Volver a Iniciar SesiÃ³n
+                Volver a Iniciar Sesión
               </button>
             </div>
           </div>
