@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, googleProvider, db } from '../firebase';
 import { api } from '../utils/api';
 import { 

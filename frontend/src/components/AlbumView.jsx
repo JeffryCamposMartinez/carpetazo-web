@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import HTMLFlipBook from 'react-pageflip';
 import PokemonCard from './PokemonCard';
 
