@@ -64,7 +64,7 @@ function PublicCatalog() {
         
       } catch (error) {
         console.error("Error fetching catalog:", error);
-        setErrorMsg("Hubo un error al cargar el catÃ¡logo.");
+        setErrorMsg("Hubo un error al cargar el catálogo.");
       } finally {
         setLoading(false);
       }
@@ -116,13 +116,13 @@ function PublicCatalog() {
     
     const phone = sellerData?.phone?.replace(/\D/g, '') || '';
     if (!phone) {
-      alert("El vendedor no tiene un nÃºmero de contacto configurado.");
+      alert("El vendedor no tiene un número de contacto configurado.");
       return;
     }
     
     const formattedPhone = phone.startsWith('56') ? phone : `56${phone}`;
     
-    // Abrir ventana sÃ­ncronamente para evitar bloqueo de pop-ups
+    // Abrir ventana síncronamente para evitar bloqueo de pop-ups
     const newWindow = window.open('', '_blank');
     if (newWindow) {
       newWindow.document.write('Generando tu pedido, por favor espera...');
@@ -135,7 +135,7 @@ function PublicCatalog() {
         sellerId: folderData.userId,
         buyerName: 'Cliente por WhatsApp',
         folderId: folderId,
-        folderName: folderData.name || 'CatÃ¡logo',
+        folderName: folderData.name || 'Catálogo',
         items: cart.map(item => ({
           id: item.id,
           name: item.name,
@@ -146,18 +146,18 @@ function PublicCatalog() {
       });
 
       // 2. Generar el mensaje y redirigir
-      let message = `Â¡Hola! Vengo de Carpetazo. Me interesa comprar estas cartas de la carpeta "${folderData?.name || 'CatÃ¡logo'}":\n\n`;
+      let message = `¡Hola! Vengo de Carpetazo. Me interesa comprar estas cartas de la carpeta "${folderData?.name || 'Catálogo'}":\n\n`;
       cart.forEach(item => {
         message += `Ã¢â‚¬Â¢ ${item.quantity}x ${item.name} (${item.set}) - ${formatCLP(item.price * item.quantity)}\n`;
       });
-      message += `\nTotal: ${formatCLP(cartTotal)}\n\nÂ¿Tienes disponibilidad?`;
+      message += `\nTotal: ${formatCLP(cartTotal)}\n\n¿Tienes disponibilidad?`;
       
       const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
       
       if (newWindow) {
         newWindow.location.href = whatsappUrl;
       } else {
-        window.location.href = whatsappUrl; // fallback si el navegador bloquea incluso el window.open sÃ­ncrono
+        window.location.href = whatsappUrl; // fallback si el navegador bloquea incluso el window.open síncrono
       }
 
       setCart([]);
@@ -173,7 +173,7 @@ function PublicCatalog() {
   };
 
   const counts = {
-    pokemon: cards.filter(c => c.supertype === 'PokÃ©mon').length,
+    pokemon: cards.filter(c => c.supertype === 'Pokémon').length,
     trainers: cards.filter(c => c.supertype === 'Trainer').length,
     energy: cards.filter(c => c.supertype === 'Energy').length
   };
@@ -257,7 +257,7 @@ function PublicCatalog() {
             <div className="flex flex-col text-left flex-1 min-w-0">
               <div className="flex items-center gap-1 flex-wrap">
                 <span className="text-base font-black text-[#1a2b4b] leading-tight">
-                  {sellerData?.displayName || 'Vendedor AnÃ³nimo'}
+                  {sellerData?.displayName || 'Vendedor Anónimo'}
                 </span>
                 {(sellerData?.isVerified || true) && (
                   <span translate="no" className="material-symbols-outlined text-[#3b82f6] text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }} title="Vendedor Verificado">verified</span>
@@ -272,7 +272,7 @@ function PublicCatalog() {
                       <span translate="no" className="material-symbols-outlined text-primary text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                       <span className="text-[#1a2b4b] font-extrabold text-[11px]">{sellerData?.rating?.toFixed(1) || '5.0'}</span>
                     </div>
-                    <span className="text-gray-500 text-[10px] font-semibold">{sellerData?.totalTrades} reseÃ±as</span>
+                    <span className="text-gray-500 text-[10px] font-semibold">{sellerData?.totalTrades} reseñas</span>
                   </>
                 ) : (
                   <span className="text-gray-500 text-[10px] font-semibold bg-white/50 px-2 py-0.5 rounded-full border border-gray-200">Nuevo Vendedor</span>
@@ -345,7 +345,7 @@ function PublicCatalog() {
           </div>
 
           <Link to={`/${sellerData?.username || folderData.userId}`} className="flex items-center gap-1.5 text-xs font-bold text-[#1e40af] hover:text-blue-800 transition-colors group mt-2 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-gray-200 shadow-sm">
-            <span>Ver catÃ¡logo completo del vendedor</span>
+            <span>Ver catálogo completo del vendedor</span>
             <span translate="no" className="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
           </Link>
         </div>
@@ -369,7 +369,7 @@ function PublicCatalog() {
                   type="text" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar nombre de carta o nÃºmero..."
+                  placeholder="Buscar nombre de carta o número..."
                   className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] transition-all text-sm font-medium"
                 />
               </div>
@@ -490,7 +490,7 @@ function PublicCatalog() {
               {cart.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 opacity-70">
                   <span translate="no" className="material-symbols-outlined text-6xl mb-2">shopping_bag</span>
-                  <p>Tu carrito estÃ¡ vacÃ­o.</p>
+                  <p>Tu carrito está vacío.</p>
                 </div>
               ) : (
                 cart.map(item => (
@@ -528,7 +528,7 @@ function PublicCatalog() {
                 </span>
                 {isProcessingCheckout ? 'Procesando...' : 'Generar Pedido por WhatsApp'}
               </button>
-              <p className="text-[10px] text-center text-gray-500 mt-3">Al presionar, se abrirÃ¡ WhatsApp con el detalle de tu pedido para coordinar el pago y envÃ­o directamente con el vendedor.</p>
+              <p className="text-[10px] text-center text-gray-500 mt-3">Al presionar, se abrirá WhatsApp con el detalle de tu pedido para coordinar el pago y envío directamente con el vendedor.</p>
             </div>
           </div>
         </div>

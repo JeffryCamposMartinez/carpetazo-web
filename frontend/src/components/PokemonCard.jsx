@@ -2,7 +2,7 @@ import { getProxyImageUrl } from '../utils/api';
 export default function PokemonCard({ card, availableStock, cartQuantity, onAddToCart, onRemoveFromCart }) {
   const isOutOfStock = availableStock <= 0;
 
-  // Formatear el cÃ³digo de la carta para la bÃºsqueda
+  // Formatear el código de la carta para la búsqueda
   let numStr = (card.number || card.id?.split('-')[1] || '').toString();
   let totalStr = (card.total || card.set?.printedTotal || '').toString();
   let cardCode = '';
@@ -14,7 +14,7 @@ export default function PokemonCard({ card, availableStock, cartQuantity, onAddT
 
   const searchTerm = cardCode ? `${card.name} ${cardCode}` : card.name;
 
-  // URLs de bÃºsqueda
+  // URLs de búsqueda
   const tcgPlayerUrl = card.tcgplayer?.url || `https://www.tcgplayer.com/search/pokemon/product?productLineName=pokemon&q=${encodeURIComponent(searchTerm)}`;
   const tcgMatchUrl = `https://tcgmatch.cl/cartas/busqueda/q=${encodeURIComponent(searchTerm)}`;
 
