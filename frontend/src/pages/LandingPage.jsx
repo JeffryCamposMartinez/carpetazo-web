@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+﻿import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useState, useRef } from 'react';
 
@@ -7,7 +7,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [isMarqueePaused, setIsMarqueePaused] = useState(false);
 
-  // Hook para detectar hover en el carrusel cuando el mouse está quieto y las cartas se mueven debajo
+  // Hook para detectar hover en el carrusel cuando el mouse estÃ¡ quieto y las cartas se mueven debajo
   const mousePos = useRef({ x: -1, y: -1 });
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -44,17 +44,17 @@ export default function LandingPage() {
     try {
       await loginWithGoogle();
     } catch (error) {
-      console.error("Error al iniciar sesión con Google:", error);
+      console.error("Error al iniciar sesiÃ³n con Google:", error);
     }
   };
 
   const proFeatures = [
-    { icon: 'inventory_2', title: 'Gestión Inteligente de Inventario', desc: 'Registra cartas, variaciones, estados y cantidades con una interfaz ultrarrápida diseñada para grandes volúmenes.' },
-    { icon: 'monitoring', title: 'Valoración en Tiempo Real', desc: 'Sincronización automática con los mercados globales para que siempre conozcas el valor real de tu colección.' },
-    { icon: 'storefront', title: 'Carpetas Públicas y Ventas', desc: 'Convierte tu colección en una vitrina virtual. Comparte tus cartas disponibles para venta o intercambio con un solo link.' },
-    { icon: 'style', title: 'Soporte Multi-TCG', desc: 'Centraliza todas tus colecciones en un mismo lugar: Pokémon, Yu-Gi-Oh!, Magic, One Piece, Mitos y Leyendas y más.' },
-    { icon: 'query_stats', title: 'Estadísticas Avanzadas', desc: 'Visualiza el crecimiento de tu inversión, cartas más valiosas y fluctuaciones del mercado con gráficos detallados.' },
-    { icon: 'security', title: 'Privacidad y Seguridad', desc: 'Tus datos están respaldados en la nube. Controla qué carpetas son públicas y cuáles son estrictamente privadas.' }
+    { icon: 'inventory_2', title: 'GestiÃ³n Inteligente de Inventario', desc: 'Registra cartas, variaciones, estados y cantidades con una interfaz ultrarrÃ¡pida diseÃ±ada para grandes volÃºmenes.' },
+    { icon: 'monitoring', title: 'ValoraciÃ³n en Tiempo Real', desc: 'SincronizaciÃ³n automÃ¡tica con los mercados globales para que siempre conozcas el valor real de tu colecciÃ³n.' },
+    { icon: 'storefront', title: 'Carpetas PÃºblicas y Ventas', desc: 'Convierte tu colecciÃ³n en una vitrina virtual. Comparte tus cartas disponibles para venta o intercambio con un solo link.' },
+    { icon: 'style', title: 'Soporte Multi-TCG', desc: 'Centraliza todas tus colecciones en un mismo lugar: PokÃ©mon, Yu-Gi-Oh!, Magic, One Piece, Mitos y Leyendas y mÃ¡s.' },
+    { icon: 'query_stats', title: 'EstadÃ­sticas Avanzadas', desc: 'Visualiza el crecimiento de tu inversiÃ³n, cartas mÃ¡s valiosas y fluctuaciones del mercado con grÃ¡ficos detallados.' },
+    { icon: 'security', title: 'Privacidad y Seguridad', desc: 'Tus datos estÃ¡n respaldados en la nube. Controla quÃ© carpetas son pÃºblicas y cuÃ¡les son estrictamente privadas.' }
   ];
 
   return (
@@ -72,30 +72,30 @@ export default function LandingPage() {
             <div className="w-full overflow-hidden pt-4 pb-12 md:pb-16 relative mt-4 animate-[fadeIn_0.9s_ease-out]">
               <div className="flex w-max animate-marquee gap-8 md:gap-14 pl-8 md:pl-14 pb-4">
                 {[
-              { img: '/images/4k/magic.png', logo: '/images/logos/magic.png', scale: 'scale-[1.8]' },
-              { img: '/images/4k/pokemon.png', logo: '/images/logos/pokemon.png', scale: 'scale-[1.1] -translate-y-3 md:-translate-y-4' },
-              { img: '/images/4k/mitosyleyendas.png', logo: '/images/logos/mitosyleyendas.webp', scale: 'scale-[1.4]', bgScale: 'scale-[1.75] origin-top object-top -translate-x-8 group-[.force-hover]:scale-[1.85]' },
-              { img: '/images/4k/onepiece.png', logo: '/images/logos/onepiece.webp', scale: 'scale-[1.7]' },
-              { img: '/images/4k/riftbound.png', logo: '/images/logos/riftbound.png', scale: 'scale-[1.0] -translate-y-3 md:-translate-y-4' },
-              { img: '/images/4k/yugioh.png', logo: '/images/logos/yugioh.png', scale: 'scale-[2.2]' },
-              { img: '/images/4k/magic.png', logo: '/images/logos/magic.png', scale: 'scale-[1.8]' },
-              { img: '/images/4k/pokemon.png', logo: '/images/logos/pokemon.png', scale: 'scale-[1.1] -translate-y-3 md:-translate-y-4' },
-              { img: '/images/4k/mitosyleyendas.png', logo: '/images/logos/mitosyleyendas.webp', scale: 'scale-[1.4]', bgScale: 'scale-[1.75] origin-top object-top -translate-x-8 group-[.force-hover]:scale-[1.85]' },
-              { img: '/images/4k/onepiece.png', logo: '/images/logos/onepiece.webp', scale: 'scale-[1.7]' },
-              { img: '/images/4k/riftbound.png', logo: '/images/logos/riftbound.png', scale: 'scale-[1.0] -translate-y-3 md:-translate-y-4' },
-              { img: '/images/4k/yugioh.png', logo: '/images/logos/yugioh.png', scale: 'scale-[2.2]' },
-              { img: '/images/4k/magic.png', logo: '/images/logos/magic.png', scale: 'scale-[1.8]' },
-              { img: '/images/4k/pokemon.png', logo: '/images/logos/pokemon.png', scale: 'scale-[1.1] -translate-y-3 md:-translate-y-4' },
-              { img: '/images/4k/mitosyleyendas.png', logo: '/images/logos/mitosyleyendas.webp', scale: 'scale-[1.4]', bgScale: 'scale-[1.75] origin-top object-top -translate-x-8 group-[.force-hover]:scale-[1.85]' },
-              { img: '/images/4k/onepiece.png', logo: '/images/logos/onepiece.webp', scale: 'scale-[1.7]' },
-              { img: '/images/4k/riftbound.png', logo: '/images/logos/riftbound.png', scale: 'scale-[1.0] -translate-y-3 md:-translate-y-4' },
-              { img: '/images/4k/yugioh.png', logo: '/images/logos/yugioh.png', scale: 'scale-[2.2]' },
-              { img: '/images/4k/magic.png', logo: '/images/logos/magic.png', scale: 'scale-[1.8]' },
-              { img: '/images/4k/pokemon.png', logo: '/images/logos/pokemon.png', scale: 'scale-[1.1] -translate-y-3 md:-translate-y-4' },
-              { img: '/images/4k/mitosyleyendas.png', logo: '/images/logos/mitosyleyendas.webp', scale: 'scale-[1.4]', bgScale: 'scale-[1.75] origin-top object-top -translate-x-8 group-[.force-hover]:scale-[1.85]' },
-              { img: '/images/4k/onepiece.png', logo: '/images/logos/onepiece.webp', scale: 'scale-[1.7]' },
-              { img: '/images/4k/riftbound.png', logo: '/images/logos/riftbound.png', scale: 'scale-[1.0] -translate-y-3 md:-translate-y-4' },
-              { img: '/images/4k/yugioh.png', logo: '/images/logos/yugioh.png', scale: 'scale-[2.2]' }
+              { img: '/images/4k/magic.webp', logo: '/images/logos/magic.webp', scale: 'scale-[1.8]' },
+              { img: '/images/4k/pokemon.webp', logo: '/images/logos/pokemon.webp', scale: 'scale-[1.1] -translate-y-3 md:-translate-y-4' },
+              { img: '/images/4k/mitosyleyendas.webp', logo: '/images/logos/mitosyleyendas.webp', scale: 'scale-[1.4]', bgScale: 'scale-[1.75] origin-top object-top -translate-x-8 group-[.force-hover]:scale-[1.85]' },
+              { img: '/images/4k/onepiece.webp', logo: '/images/logos/onepiece.webp', scale: 'scale-[1.7]' },
+              { img: '/images/4k/riftbound.webp', logo: '/images/logos/riftbound.webp', scale: 'scale-[1.0] -translate-y-3 md:-translate-y-4' },
+              { img: '/images/4k/yugioh.webp', logo: '/images/logos/yugioh.webp', scale: 'scale-[2.2]' },
+              { img: '/images/4k/magic.webp', logo: '/images/logos/magic.webp', scale: 'scale-[1.8]' },
+              { img: '/images/4k/pokemon.webp', logo: '/images/logos/pokemon.webp', scale: 'scale-[1.1] -translate-y-3 md:-translate-y-4' },
+              { img: '/images/4k/mitosyleyendas.webp', logo: '/images/logos/mitosyleyendas.webp', scale: 'scale-[1.4]', bgScale: 'scale-[1.75] origin-top object-top -translate-x-8 group-[.force-hover]:scale-[1.85]' },
+              { img: '/images/4k/onepiece.webp', logo: '/images/logos/onepiece.webp', scale: 'scale-[1.7]' },
+              { img: '/images/4k/riftbound.webp', logo: '/images/logos/riftbound.webp', scale: 'scale-[1.0] -translate-y-3 md:-translate-y-4' },
+              { img: '/images/4k/yugioh.webp', logo: '/images/logos/yugioh.webp', scale: 'scale-[2.2]' },
+              { img: '/images/4k/magic.webp', logo: '/images/logos/magic.webp', scale: 'scale-[1.8]' },
+              { img: '/images/4k/pokemon.webp', logo: '/images/logos/pokemon.webp', scale: 'scale-[1.1] -translate-y-3 md:-translate-y-4' },
+              { img: '/images/4k/mitosyleyendas.webp', logo: '/images/logos/mitosyleyendas.webp', scale: 'scale-[1.4]', bgScale: 'scale-[1.75] origin-top object-top -translate-x-8 group-[.force-hover]:scale-[1.85]' },
+              { img: '/images/4k/onepiece.webp', logo: '/images/logos/onepiece.webp', scale: 'scale-[1.7]' },
+              { img: '/images/4k/riftbound.webp', logo: '/images/logos/riftbound.webp', scale: 'scale-[1.0] -translate-y-3 md:-translate-y-4' },
+              { img: '/images/4k/yugioh.webp', logo: '/images/logos/yugioh.webp', scale: 'scale-[2.2]' },
+              { img: '/images/4k/magic.webp', logo: '/images/logos/magic.webp', scale: 'scale-[1.8]' },
+              { img: '/images/4k/pokemon.webp', logo: '/images/logos/pokemon.webp', scale: 'scale-[1.1] -translate-y-3 md:-translate-y-4' },
+              { img: '/images/4k/mitosyleyendas.webp', logo: '/images/logos/mitosyleyendas.webp', scale: 'scale-[1.4]', bgScale: 'scale-[1.75] origin-top object-top -translate-x-8 group-[.force-hover]:scale-[1.85]' },
+              { img: '/images/4k/onepiece.webp', logo: '/images/logos/onepiece.webp', scale: 'scale-[1.7]' },
+              { img: '/images/4k/riftbound.webp', logo: '/images/logos/riftbound.webp', scale: 'scale-[1.0] -translate-y-3 md:-translate-y-4' },
+              { img: '/images/4k/yugioh.webp', logo: '/images/logos/yugioh.webp', scale: 'scale-[2.2]' }
             ].map((item, idx) => (
               <div 
                 key={idx} 
@@ -103,8 +103,7 @@ export default function LandingPage() {
               >
                 {/* The Skewed Card Frame */}
                 <div className="w-full h-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.3)] border-4 border-white rounded-xl relative">
-                  <img 
-                    src={item.img} 
+                  <img src={item.img} loading="lazy" 
                     alt={`TCG Art ${idx}`} 
                     className={`w-full h-full object-cover skew-x-[15deg] transition-transform duration-500 ${item.bgScale || 'scale-[1.55] group-[.force-hover]:scale-[1.65]'}`}
                     fetchPriority="high"
@@ -116,8 +115,7 @@ export default function LandingPage() {
                 
                 {/* Logo Overlay (No Circle, Strong White Outline) */}
                 <div className="absolute -bottom-6 md:-bottom-8 left-1/2 -translate-x-1/2 w-36 h-16 md:w-60 md:h-28 z-20 pointer-events-none flex items-center justify-center group-[.force-hover]:-translate-y-2 transition-transform duration-500 skew-x-[15deg]">
-                  <img 
-                    src={item.logo} 
+                  <img src={item.logo} loading="lazy" 
                     alt="Logo" 
                     className={`w-full h-full object-contain drop-shadow-[0_1px_1px_rgba(255,255,255,1)] drop-shadow-[0_-1px_1px_rgba(255,255,255,1)] drop-shadow-[1px_0_1px_rgba(255,255,255,1)] drop-shadow-[-1px_0_1px_rgba(255,255,255,1)] drop-shadow-[0_0_15px_rgba(255,255,255,0.8)] ${item.scale}`} 
                   />
@@ -157,7 +155,7 @@ export default function LandingPage() {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-tertiary">Coleccionistas Exigentes</span>
           </h1>
           <p className="text-sm md:text-base lg:text-lg text-on-surface-variant max-w-2xl mx-auto px-4 md:px-0">
-            Descubre todas las herramientas que Carpetazo.cl te ofrece para transformar la manera en que gestionas, exhibes y valoras tu colección.
+            Descubre todas las herramientas que Carpetazo.cl te ofrece para transformar la manera en que gestionas, exhibes y valoras tu colecciÃ³n.
           </p>
         </div>
 
@@ -222,3 +220,5 @@ export default function LandingPage() {
     </>
   );
 }
+
+
