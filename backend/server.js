@@ -1,3 +1,4 @@
+import sharp from 'sharp';
 ﻿import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import express from 'express';
@@ -937,7 +938,7 @@ app.get('/api/tcg/:categoryId/:groupId/products', async (req, res) => {
 
 
 // --- Image Cache Proxy ---
-const sharp = require('sharp');
+
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
 app.get('/api/images/proxy', async (req, res) => {
