@@ -76,3 +76,11 @@ export const api = {
 };
 
 export default api;
+
+export const getProxyImageUrl = (id, originalUrl) => {
+  if (!originalUrl) return '';
+  if (originalUrl.startsWith('/')) return originalUrl;
+  if (originalUrl.includes('/images/proxy')) return originalUrl;
+  
+  return `${API_BASE_URL}/images/proxy?id=${id}&url=${encodeURIComponent(originalUrl)}`;
+};

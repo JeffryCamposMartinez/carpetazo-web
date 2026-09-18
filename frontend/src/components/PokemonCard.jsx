@@ -1,7 +1,8 @@
+import { getProxyImageUrl } from '../utils/api';
 export default function PokemonCard({ card, availableStock, cartQuantity, onAddToCart, onRemoveFromCart }) {
   const isOutOfStock = availableStock <= 0;
 
-  // Formatear el código de la carta para la búsqueda
+  // Formatear el cÃ³digo de la carta para la bÃºsqueda
   let numStr = (card.number || card.id?.split('-')[1] || '').toString();
   let totalStr = (card.total || card.set?.printedTotal || '').toString();
   let cardCode = '';
@@ -13,7 +14,7 @@ export default function PokemonCard({ card, availableStock, cartQuantity, onAddT
 
   const searchTerm = cardCode ? `${card.name} ${cardCode}` : card.name;
 
-  // URLs de búsqueda
+  // URLs de bÃºsqueda
   const tcgPlayerUrl = card.tcgplayer?.url || `https://www.tcgplayer.com/search/pokemon/product?productLineName=pokemon&q=${encodeURIComponent(searchTerm)}`;
   const tcgMatchUrl = `https://tcgmatch.cl/cartas/busqueda/q=${encodeURIComponent(searchTerm)}`;
 
@@ -34,7 +35,7 @@ export default function PokemonCard({ card, availableStock, cartQuantity, onAddT
       <div className="relative w-full aspect-[63/88] bg-gray-50 flex items-center justify-center p-2">
         <img 
           className="w-full h-full object-fill" 
-          src={card.imageUrl} 
+          src={getProxyImageUrl(card.tcgProductId || card.id, card.imageUrl)} 
           alt={card.name} 
         />
         {isOutOfStock && cartQuantity === 0 && (
@@ -64,7 +65,7 @@ export default function PokemonCard({ card, availableStock, cartQuantity, onAddT
         
         {/* Set Name */}
         <div className="text-gray-500 text-xs mb-3 font-semibold">
-          {card.set} • #{(() => {
+          {card.set} â€¢ #{(() => {
             let numStr = (card.number || card.id?.split('-')[1] || '').toString();
             let totalStr = (card.total || '---').toString();
             if (/^\d+$/.test(numStr)) numStr = numStr.padStart(3, '0');
@@ -126,3 +127,4 @@ export default function PokemonCard({ card, availableStock, cartQuantity, onAddT
     </article>
   );
 }
+

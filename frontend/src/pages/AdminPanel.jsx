@@ -3,6 +3,7 @@ import Filters from '../components/Filters';
 import Toast from '../components/Toast';
 import ConfirmModal from '../components/ConfirmModal';
 import { useAuth } from '../contexts/AuthContext';
+import { getProxyImageUrl } from '../utils/api';
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
@@ -35,7 +36,7 @@ const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
       </button>
       <div className="p-4 flex flex-col items-center flex-1">
         <div className="w-full relative pt-[140%] mb-3">
-          <img src={card.imageUrl} alt={card.name} className="absolute inset-0 w-full h-full object-contain filter drop-shadow-md transition-transform duration-300" />
+          <img src={getProxyImageUrl(card.tcgProductId || card.id, card.imageUrl)} alt={card.name} className="absolute inset-0 w-full h-full object-contain filter drop-shadow-md transition-transform duration-300" />
         </div>
         <p className="font-label-md font-bold text-on-background text-center line-clamp-1 w-full">{card.name}</p>
         <p className="text-[10px] text-on-surface-variant mb-4 text-center truncate w-full">
@@ -611,7 +612,7 @@ function AdminPanel() {
               }
             }}>
               <div className="relative w-full aspect-[63/88] flex items-center justify-center bg-surface-container-highest">
-                <img src={card.imageUrl} alt={card.name} loading="lazy" className="w-full h-full object-contain" />
+                <img src={getProxyImageUrl(card.tcgProductId || card.id, card.imageUrl)} alt={card.name} loading="lazy" className="w-full h-full object-contain" />
               </div>
               <div className="p-2 text-center">
                 <p className="font-label-sm text-on-background truncate">{card.name}</p>
@@ -644,7 +645,7 @@ function AdminPanel() {
             <div className="flex justify-center relative z-50 mb-2 mt-2">
               <div className="relative inline-block">
                 <img 
-                  src={selectedCard.imageUrl || selectedCard.imageUrl} 
+                  src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} 
                   alt={selectedCard.name} 
                   className="h-44 sm:h-52 w-auto object-contain rounded-lg shadow-md hover:scale-[2.2] transition-transform duration-300 cursor-zoom-in relative z-50 hover:z-[70] origin-center" 
                 />
