@@ -76,6 +76,7 @@ model Order {
 }
 
 model TcgCategory {
+  blocks      TcgBlock[]
   categoryId  Int       @id
   name        String
   modifiedOn  DateTime
@@ -83,6 +84,8 @@ model TcgCategory {
 }
 
 model TcgGroup {
+  blockId     Int?
+  block       TcgBlock?   @relation(fields: [blockId], references: [id])
   groupId     Int       @id
   categoryId  Int
   name        String
@@ -93,6 +96,8 @@ model TcgGroup {
 }
 
 model TcgProduct {
+  physicalProductId Int?
+  physicalProduct   TcgPhysicalProduct? @relation(fields: [physicalProductId], references: [id])
   productId   Int       @id
   groupId     Int
   categoryId  Int
@@ -101,4 +106,18 @@ model TcgProduct {
   imageUrl    String
   extData     Json?
   group       TcgGroup  @relation(fields: [groupId], references: [groupId])
+}
+
+model TcgBlock {
+  id          Int       @id @default(autoincrement())
+  categoryId  Int
+  name        String
+  category    TcgCategory @relation(fields: [categoryId], references: [categoryId])
+  groups      TcgGroup[]
+}
+
+model TcgPhysicalProduct {
+  id          Int       @id @default(autoincrement())
+  name        String
+  products    TcgProduct[]
 }

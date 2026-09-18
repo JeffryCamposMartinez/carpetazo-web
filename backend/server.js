@@ -1,4 +1,4 @@
-﻿import helmet from 'helmet';
+import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import express from 'express';
 import cors from 'cors';
@@ -937,6 +937,7 @@ app.get('/api/tcg/:categoryId/:groupId/products', async (req, res) => {
 // --- Image Cache Proxy ---
 
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
+app.use('/images/myl', express.static(path.join(__dirname, 'data/images/myl')));
 
 
 
