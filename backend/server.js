@@ -1,5 +1,3 @@
-import webp from 'webp-converter';
-webp.grant_permission();
 ﻿import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import express from 'express';
@@ -942,29 +940,7 @@ app.get('/api/tcg/:categoryId/:groupId/products', async (req, res) => {
 
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
-app.get('/api/images/proxy', async (req, res) => {
-  const { id, url } = req.query;
-  if (!id || !url) return res.status(400).send('Missing id or url');
 
-  const publicDir = path.join(__dirname, 'public/images/cards');
-  const imagePath = path.join(publicDir, id + '.webp');
-
-  // Si ya existe localmente, devolvemos la url local est�tica para que sirva desde cache del browser
-  if (fs.existsSync(imagePath)) {
-    return res.redirect('/images/cards/' + id + '.webp');
-  }
-
-
-
-  try {
-    // Si no existe, la descargamos
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Failed to fetch from TCGCSV');
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    if (!fs.existsSync(publicDir)) {
-      fs.mkdirSync(publicDir, { recursive: true });
     }
 
     // Usar webp-converter (seguro en Docker sin dependencias nativas complejas)
