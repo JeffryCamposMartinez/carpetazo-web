@@ -52,9 +52,7 @@ const limiter = rateLimit({
 
 app.use(helmet());
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://carpetazo.cl', 'https://www.carpetazo.cl'] 
-    : ['http://localhost:5173', 'http://192.168.1.15:5173'],
+  origin: ['https://carpetazo.cl', 'https://www.carpetazo.cl', 'http://localhost:5173', 'http://192.168.1.15:5173'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
@@ -1001,6 +999,7 @@ app.listen(port, () => {
 
 
 
+
 
 
 
