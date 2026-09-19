@@ -102,6 +102,11 @@ function FolderPokemon() {
   const [mylRace, setMylRace] = useState('');
   const [mylFrequency, setMylFrequency] = useState('');
   const [mylCost, setMylCost] = useState('');
+  const [searchBlock, setSearchBlock] = useState('');
+  const [catBlock, setCatBlock] = useState('');
+
+  const filteredSearchSets = searchCategory === '99' && searchBlock !== '' ? availableSets.filter(s => s.blockId == searchBlock) : availableSets;
+  const filteredCatSets = (folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') && catBlock !== '' ? availableSets.filter(s => s.blockId == catBlock) : availableSets;
   const [isSetDropdownOpen, setIsSetDropdownOpen] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [hasSearchedAPI, setHasSearchedAPI] = useState(false);
@@ -285,6 +290,15 @@ function FolderPokemon() {
           className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]"
         />
         
+        {(folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') && (
+          <select value={catBlock} onChange={(e) => { setCatBlock(e.target.value); setCatSet(''); }} className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]">
+            <option value="">Selecciona un bloque (Todos)</option>
+            <option value="1">Furia Extendido</option>
+            <option value="2">Primer Bloque</option>
+            <option value="3">Primera Era</option>
+          </select>
+        )}
+        
         <div className="w-full">
             <div className="relative w-full h-full">
               <div 
@@ -308,7 +322,7 @@ function FolderPokemon() {
                       {catSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                       <span className={catSet !== '' ? 'ml-6' : ''}>Todas las ediciones</span>
                     </div>
-                    {availableSets.map(set => (
+                    {filteredCatSets.map(set => (
                       <div 
                         key={set.id}
                         className={`px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${catSet === set.id ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
@@ -626,7 +640,17 @@ const handleSearchAPI = async (e) => {
                   <option key={cat.categoryId} value={cat.categoryId}>{cat.name}</option>
                 ))}
               </select>
-            <div className="relative w-full sm:w-2/3">
+              
+            {searchCategory === '99' && (
+              <select value={searchBlock} onChange={(e) => { setSearchBlock(e.target.value); setSearchSet(''); }} className="w-full sm:w-1/3 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors">
+                <option value="">Bloque (Todos)</option>
+                <option value="1">Furia Extendido</option>
+                <option value="2">Primer Bloque</option>
+                <option value="3">Primera Era</option>
+              </select>
+            )}
+
+            <div className={`relative w-full ${searchCategory === '99' ? 'sm:w-1/3' : 'sm:w-2/3'}`}>
               <div className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-colors hover:border-[#1e40af]" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
                 <span className="truncate font-bold text-sm">{searchSet === '' ? 'Selecciona una expansión' : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
                 <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
@@ -635,7 +659,7 @@ const handleSearchAPI = async (e) => {
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setIsSetDropdownOpen(false)}></div>
                   <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
-                    {availableSets.map(set => (
+                    {filteredSearchSets.map(set => (
                       <div key={set.groupId} className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center gap-2 ${searchSet == set.groupId ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(set.groupId); setIsSetDropdownOpen(false); }}>
                         {searchSet == set.groupId && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                         <span className={searchSet != set.groupId ? 'ml-6' : ''}>{set.name}</span>
