@@ -145,6 +145,32 @@ function FolderPokemonInner() {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [price, setPrice] = useState('');
+  const [visibleCount, setVisibleCount] = useState(50);
+  const observerTarget = useRef(null);
+
+  useEffect(() => {
+    setVisibleCount(50);
+  }, [searchResults]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount(prev => prev + 50);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    const target = observerTarget.current;
+    if (target) {
+      observer.observe(target);
+    }
+    return () => {
+      if (target) {
+        observer.unobserve(target);
+      }
+    };
+  }, [searchResults, visibleCount]);
   const [stock, setStock] = useState('');
   const [pseudoName, setPseudoName] = useState('');
   const [language, setLanguage] = useState('English');
@@ -800,7 +826,8 @@ const handleSearchAPI = async (e) => {
               <p className="text-gray-500 font-bold animate-pulse">Consultando la Pokédex mundial...</p>
             </div>
           ) : searchResults.length > 0 ? (
-            searchResults.map(card => (
+            <>
+            {searchResults.slice(0, visibleCount).map(card => (
             <div key={card.id} className={`cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-200 bg-white shadow-sm ${selectedCard?.id === card.id ? 'border-[#1e40af] shadow-md scale-[1.02]' : 'border-gray-200 hover:border-[#1e40af]/50'}`} onClick={() => { 
               setSelectedCard(card); setPrice(''); setStock(''); setPseudoName(''); 
               if (window.innerWidth < 1024) {
@@ -817,7 +844,13 @@ const handleSearchAPI = async (e) => {
                 <p className="text-xs text-gray-500 truncate mt-1">{availableSets.find(s => s.groupId == (searchSet || card.groupId))?.name}</p>
               </div>
             </div>
-          ))
+          ))}
+          {visibleCount < searchResults.length && (
+            <div ref={observerTarget} className="col-span-full h-10 w-full flex items-center justify-center mt-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e40af]"></div>
+            </div>
+          )}
+          </>
           ) : hasSearchedAPI ? (
               <div className="col-span-full py-12 text-center text-gray-500 flex flex-col items-center">
                   <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-50">search_off</span>
