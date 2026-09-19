@@ -80,3 +80,5 @@ El servidor backend correrá en `http://localhost:3000`.
 
 ## 📄 Licencia
 Este proyecto es privado y todos sus derechos están reservados a sus creadores.
+
+
