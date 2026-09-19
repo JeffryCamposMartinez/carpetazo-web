@@ -35,7 +35,7 @@ const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
       </button>
       <div className="p-4 flex flex-col items-center flex-1">
         <div className="w-full relative pt-[140%] mb-3">
-          <img src={card.imageUrl} referrerPolicy="no-referrer" alt={card.name} className="absolute inset-0 w-full h-full object-contain filter drop-shadow-md transition-transform duration-300" />
+          <img src={card.imageUrl} referrerPolicy="no-referrer" referrerPolicy="no-referrer" alt={card.name} className="absolute inset-0 w-full h-full object-contain filter drop-shadow-md transition-transform duration-300" />
         </div>
         <p className="font-label-md font-bold text-on-background text-center line-clamp-1 w-full">{card.name}</p>
         <p className="text-[10px] text-on-surface-variant mb-4 text-center truncate w-full">
@@ -611,7 +611,7 @@ function AdminPanel() {
               }
             }}>
               <div className="relative w-full aspect-[63/88] flex items-center justify-center bg-surface-container-highest">
-                <img src={card.imageUrl} referrerPolicy="no-referrer" alt={card.name} loading="lazy" className="w-full h-full object-contain" />
+                <img src={card.imageUrl} referrerPolicy="no-referrer" referrerPolicy="no-referrer" alt={card.name} loading="lazy" className="w-full h-full object-contain" />
               </div>
               <div className="p-2 text-center">
                 <p className="font-label-sm text-on-background truncate">{card.name}</p>

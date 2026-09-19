@@ -38,7 +38,7 @@ const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
       </button>
       <div className="p-4 flex flex-col items-center flex-1">
         <div className="w-full relative pt-[140%] mb-3">
-          <img src={card.imageUrl} referrerPolicy="no-referrer" alt={card.name} className="absolute inset-0 w-full h-full object-fill filter drop-shadow-md transition-transform duration-300" />
+          <img src={card.imageUrl} referrerPolicy="no-referrer" referrerPolicy="no-referrer" referrerPolicy="no-referrer" alt={card.name} className="absolute inset-0 w-full h-full object-fill filter drop-shadow-md transition-transform duration-300" />
         </div>
         <p className="font-bold text-gray-900 text-center line-clamp-1 w-full text-sm">{card.name}</p>
         <p className="text-[10px] text-gray-500 mb-4 text-center truncate w-full">
@@ -624,7 +624,7 @@ const handleSearchAPI = async (e) => {
               }
             }}>
               <div className="relative w-full aspect-[63/88] flex items-center justify-center bg-gray-50 p-2">
-                <img src={card.imageUrl} referrerPolicy="no-referrer" alt={card.name} loading="lazy" className="w-full h-full object-contain filter drop-shadow-sm" />
+                <img src={card.imageUrl} referrerPolicy="no-referrer" referrerPolicy="no-referrer" referrerPolicy="no-referrer" alt={card.name} loading="lazy" className="w-full h-full object-contain filter drop-shadow-sm" />
               </div>
               <div className="p-3 text-center border-t border-gray-100">
                 <p className="font-bold text-sm text-gray-900 truncate">{card.name}</p>
