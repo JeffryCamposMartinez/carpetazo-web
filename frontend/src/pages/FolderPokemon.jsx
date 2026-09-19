@@ -271,8 +271,9 @@ function FolderPokemonInner() {
           let sortedSets = res.data.sort((a,b) => new Date(b.publishedOn || 0) - new Date(a.publishedOn || 0));
           
           if (searchCategory === '99') {
-            const allowedSets = ['Espada Sagrada', 'Helenica', 'Hijos de Daana', 'Dominios de RA', 'Dracula Inferno'];
-            sortedSets = sortedSets.filter(s => allowedSets.includes(s.name));
+            const allowedSets = ['Espada Sagrada', 'Helenica', 'Tierras Altas', 'Dominios de RA'];
+            // Preserve exact order requested by user
+            sortedSets = allowedSets.map(name => sortedSets.find(s => s.name === name)).filter(Boolean);
           }
           
           setAvailableSets(sortedSets);
@@ -382,7 +383,7 @@ function FolderPokemonInner() {
                 onClick={() => setIsCatSetDropdownOpen(!isCatSetDropdownOpen)}
               >
                 <span className="truncate font-bold text-sm">
-                  {catSet === '' ? 'Todas las ediciones' : catSet === 'otros' ? 'Otros' : availableSets.find(s => s.id === catSet)?.name || 'Seleccionado'}
+                  {catSet === '' ? 'Todas las ediciones' :  availableSets.find(s => s.id === catSet)?.name || 'Seleccionado'}
                 </span>
                 <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
               </div>
@@ -398,13 +399,7 @@ function FolderPokemonInner() {
                       {catSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                       <span className={catSet !== '' ? 'ml-6' : ''}>Todas las ediciones</span>
                     </div>
-                    <div 
-                      className={`px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${catSet === 'otros' ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
-                      onClick={() => { setCatSet('otros'); setIsCatSetDropdownOpen(false); }}
-                    >
-                      {catSet === 'otros' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
-                      <span className={catSet !== 'otros' ? 'ml-6' : ''}>Otros</span>
-                    </div>
+                    
                     {filteredCatSets.map(set => (
                       <div 
                         key={set.id}
@@ -526,7 +521,7 @@ const handleSearchAPI = async (e) => {
       showToast('Selecciona un TCG.', 'error');
       return;
     }
-    if (!searchSet && !searchQuery.trim()) {
+    if (!searchSet && !searchQuery.trim() && searchCategory !== '99') {
       showToast('Selecciona una edición o ingresa un nombre para buscar.', 'error');
       return;
     }
@@ -726,19 +721,20 @@ const handleSearchAPI = async (e) => {
 
             <div className={`relative w-full ${searchCategory === '99' ? 'sm:w-1/3' : 'sm:w-2/3'}`}>
               <div className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-colors hover:border-[#1e40af]" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
-                <span className="truncate font-bold text-sm">{searchSet === '' ? 'Selecciona una edición' : searchSet === 'otros' ? 'Otros' : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
+                <span className="truncate font-bold text-sm">{searchSet === '' ? 'Todas las ediciones' : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
                 <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
               </div>
               {isSetDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setIsSetDropdownOpen(false)}></div>
                   <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
+                    
                     <div 
-                      className={`px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${searchSet === 'otros' ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
-                      onClick={() => { setSearchSet('otros'); setIsSetDropdownOpen(false); }}
+                      className={`px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${searchSet === '' ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
+                      onClick={() => { setSearchSet(''); setIsSetDropdownOpen(false); }}
                     >
-                      {searchSet === 'otros' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
-                      <span className={searchSet !== 'otros' ? 'ml-6' : ''}>Otros</span>
+                      {searchSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
+                      <span className={searchSet !== '' ? 'ml-6' : ''}>Todas las ediciones</span>
                     </div>
                     {filteredSearchSets.map(set => (
                       <div key={set.groupId} className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center gap-2 ${searchSet == set.groupId ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(set.groupId); setIsSetDropdownOpen(false); }}>
