@@ -597,10 +597,11 @@ const handleSearchAPI = async (e) => {
 
         setSelectedCard(prev => {
           if (!prev) return prev;
+          const safeId = String(prev.id || prev.productId || prev.tcgProductId || '');
           return {
             ...prev,
             isCustomImage: true,
-            id: prev.id.includes('-custom-') ? prev.id : `${prev.id}-custom-${Date.now()}`,
+            id: safeId.includes('-custom-') ? safeId : `${safeId}-custom-${Date.now()}`,
             images: {
               ...prev.images,
               large: compressedBase64,
