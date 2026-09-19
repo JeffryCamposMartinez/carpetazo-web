@@ -146,6 +146,19 @@ function FolderPokemonInner() {
   const [selectedCard, setSelectedCard] = useState(null);
   const [price, setPrice] = useState('');
   const [visibleCount, setVisibleCount] = useState(50);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   const observerTarget = useRef(null);
 
   useEffect(() => {
@@ -1141,6 +1154,17 @@ const handleSearchAPI = async (e) => {
           </main>
         </div>
       </div>
+    
+      {/* Scroll to top button */}
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-6 right-6 bg-[#1e40af] text-white p-3 rounded-full shadow-lg hover:bg-blue-800 transition-all z-50 flex items-center justify-center transform hover:scale-110 active:scale-95 border-2 border-white/20"
+          aria-label="Volver arriba"
+        >
+          <span translate="no" className="material-symbols-outlined text-2xl">arrow_upward</span>
+        </button>
+      )}
     </>
   );
 }
