@@ -264,7 +264,6 @@ function FolderPokemon() {
     let matchesMyl = true;
     if (folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') {
       if (mylType && card.extData?.type !== mylType) matchesMyl = false;
-      if (mylFrequency && card.extData?.frequency !== mylFrequency) matchesMyl = false;
       if (mylCost && parseInt(card.extData?.cost) !== parseInt(mylCost)) matchesMyl = false;
       if (mylRace) {
         if (!card.extData?.race) matchesMyl = false;
