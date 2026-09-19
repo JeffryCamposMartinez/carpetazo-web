@@ -11,6 +11,7 @@ import AdminPanel from './pages/AdminPanel';
 import ProfilePage from './pages/ProfilePage';
 import Messages from './pages/Messages';
 import FoldersPage from './pages/FoldersPage';
+import MylSorter from './pages/MylSorter';
 import ScrollToTop from './components/ScrollToTop';
 import Footer from './components/Footer';
 
@@ -31,6 +32,7 @@ function App() {
               <Route path="/carpeta/:id" element={<FolderPokemon />} />
               <Route path="/c/:folderId" element={<PublicCatalog />} />
               <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/admin/sorter" element={<MylSorter />} />
               <Route path="/mensajes" element={<Messages />} />
               <Route path="/carpetas" element={<FoldersPage />} />
               {/* Dynamic Username Route (Must be last to not override other paths) */}
