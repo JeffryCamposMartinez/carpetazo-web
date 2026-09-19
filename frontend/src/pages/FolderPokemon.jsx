@@ -1,4 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
+
+import React from 'react';
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null, errorInfo: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  componentDidCatch(error, errorInfo) { this.setState({ errorInfo }); console.error(error, errorInfo); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '20px', background: 'white', color: 'red', zIndex: 9999, position: 'fixed', inset: 0, overflow: 'auto' }}>
+          <h1>React Crashed!</h1>
+          <pre>{this.state.error?.toString()}</pre>
+          <pre>{this.state.errorInfo?.componentStack}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { api } from '../utils/api';
@@ -82,7 +103,7 @@ const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
   );
 };
 
-function FolderPokemon() {
+function FolderPokemonInner() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [folderData, setFolderData] = useState(null);
@@ -1073,5 +1094,12 @@ const handleSearchAPI = async (e) => {
   );
 }
 
+
+const FolderPokemon = (props) => (
+  <ErrorBoundary>
+    <FolderPokemonInner {...props} />
+  </ErrorBoundary>
+);
 export default FolderPokemon;
+
 
