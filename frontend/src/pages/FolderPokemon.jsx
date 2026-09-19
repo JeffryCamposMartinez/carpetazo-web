@@ -512,6 +512,46 @@ function FolderPokemonInner() {
       });
     }
 
+    // Custom Sorting for Mitos y Leyendas
+    if (searchCategory === '99') {
+      const typeOrder = {
+        'ORO': 1,
+        'ALIADO': 2,
+        'TALISMAN': 3,
+        'TALISMÁN': 3,
+        'TOTEM': 4,
+        'TÓTEM': 4,
+        'ARMA': 5
+      };
+
+      filtered.sort((a, b) => {
+        const extA = a.extData || {};
+        const extB = b.extData || {};
+
+        // 1. Cost (lowest to highest)
+        const costA = extA.cost != null && extA.cost !== '' && !isNaN(extA.cost) ? Number(extA.cost) : 0;
+        const costB = extB.cost != null && extB.cost !== '' && !isNaN(extB.cost) ? Number(extB.cost) : 0;
+        
+        if (costA !== costB) {
+          return costA - costB;
+        }
+
+        // 2. Type Order
+        const typeA = (extA.type || '').toUpperCase();
+        const typeB = (extB.type || '').toUpperCase();
+
+        const orderA = typeOrder[typeA] || 99;
+        const orderB = typeOrder[typeB] || 99;
+
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+
+        // 3. Fallback to name
+        return a.name.localeCompare(b.name);
+      });
+    }
+
     setSearchResults(filtered);
   }, [rawSearchResults, filterType, filterRarity, searchQuery]);
 
