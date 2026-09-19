@@ -96,6 +96,12 @@ function FolderPokemon() {
   const [availableCategories, setAvailableCategories] = useState([]);
   const [searchSet, setSearchSet] = useState('');
   const [availableSets, setAvailableSets] = useState([]);
+
+  // MYL Custom Filters
+  const [mylType, setMylType] = useState('');
+  const [mylRace, setMylRace] = useState('');
+  const [mylFrequency, setMylFrequency] = useState('');
+  const [mylCost, setMylCost] = useState('');
   const [isSetDropdownOpen, setIsSetDropdownOpen] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [hasSearchedAPI, setHasSearchedAPI] = useState(false);
