@@ -444,11 +444,13 @@ const handleSearchAPI = async (e) => {
     setIsSearching(true);
     try {
       let cards = [];
-      if (searchSet) {
-        const response = await api.getTcgProducts(searchCategory, searchSet);
+      const mylFilters = searchCategory === '99' ? { type: mylType, race: mylRace, frequency: mylFrequency, cost: mylCost } : {};
+      
+      if (searchSet && searchQuery.trim() === '') {
+        const response = await api.getTcgProducts(searchCategory, searchSet, mylFilters);
         cards = response.data || [];
       } else {
-        const response = await api.searchTcgProducts(searchQuery.trim(), searchCategory);
+        const response = await api.searchTcgProducts(searchQuery.trim(), searchCategory, searchSet, mylFilters);
         cards = response.data || [];
       }
       
