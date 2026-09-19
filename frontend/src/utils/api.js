@@ -78,6 +78,7 @@ export const api = {
     if (query) qs.append('q', query);
     if (categoryId) qs.append('categoryId', categoryId);
     if (searchSet) qs.append('groupId', searchSet);
+    if (mylFilters.blockId) qs.append('blockId', mylFilters.blockId);
     if (mylFilters.type) qs.append('mylType', mylFilters.type);
     if (mylFilters.race) qs.append('mylRace', mylFilters.race);
     if (mylFilters.frequency) qs.append('mylFrequency', mylFilters.frequency);

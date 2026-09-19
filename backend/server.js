@@ -966,7 +966,7 @@ app.use('/images/myl', express.static(path.join(__dirname, 'data/images/myl')));
 
 app.get('/api/tcg/search', async (req, res) => {
   try {
-    const { q, categoryId, groupId, mylType, mylRace, mylFrequency, mylCost } = req.query;
+    const { q, categoryId, groupId, blockId, mylType, mylRace, mylFrequency, mylCost } = req.query;
     
     let whereClause = {};
     if (q) {
@@ -980,6 +980,14 @@ app.get('/api/tcg/search', async (req, res) => {
         whereClause.groupId = { notIn: groupIds };
       } else {
         whereClause.groupId = parseInt(groupId);
+      }
+    } else if (blockId) {
+      const groups = await prisma.tcgGroup.findMany({ where: { blockId: parseInt(blockId) }, select: { groupId: true } });
+      const groupIds = groups.map(g => g.groupId);
+      if (groupIds.length > 0) {
+        whereClause.groupId = { in: groupIds };
+      } else {
+        whereClause.groupId = -1; // No groups found for this block, return empty
       }
     }
 
@@ -996,7 +1004,7 @@ app.get('/api/tcg/search', async (req, res) => {
 
     const products = await prisma.tcgProduct.findMany({
       where: whereClause,
-      take: 50,
+      take: 2000,
       orderBy: { name: 'asc' }
     });
     res.json({ success: true, data: products });
