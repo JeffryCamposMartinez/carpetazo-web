@@ -925,8 +925,22 @@ app.get('/api/tcg/:categoryId/groups', async (req, res) => {
 app.get('/api/tcg/:categoryId/:groupId/products', async (req, res) => {
   try {
     const { categoryId, groupId } = req.params;
+    const { mylType, mylRace, mylFrequency, mylCost } = req.query;
+    
+    let whereClause = { categoryId: parseInt(categoryId), groupId: parseInt(groupId) };
+    
+    let andConditions = [];
+    if (mylType) andConditions.push({ extData: { path: ['type'], equals: mylType } });
+    if (mylRace) andConditions.push({ extData: { path: ['race'], array_contains: mylRace } });
+    if (mylFrequency) andConditions.push({ extData: { path: ['frequency'], equals: mylFrequency } });
+    if (mylCost !== undefined && mylCost !== '') andConditions.push({ extData: { path: ['cost'], equals: parseInt(mylCost) } });
+    
+    if (andConditions.length > 0) {
+      whereClause.AND = andConditions;
+    }
+
     const products = await prisma.tcgProduct.findMany({
-      where: { categoryId: parseInt(categoryId), groupId: parseInt(groupId) },
+      where: whereClause,
       orderBy: { name: 'asc' }
     });
     res.json({ success: true, data: products });
@@ -945,14 +959,25 @@ app.use('/images/myl', express.static(path.join(__dirname, 'data/images/myl')));
 
 app.get('/api/tcg/search', async (req, res) => {
   try {
-    const { q, categoryId, groupId } = req.query;
-    if (!q) return res.json({ success: true, data: [] });
+    const { q, categoryId, groupId, mylType, mylRace, mylFrequency, mylCost } = req.query;
     
-    let whereClause = {
-       name: { contains: q, mode: 'insensitive' }
-    };
+    let whereClause = {};
+    if (q) {
+      whereClause.name = { contains: q, mode: 'insensitive' };
+    }
     if (categoryId) whereClause.categoryId = parseInt(categoryId);
     if (groupId) whereClause.groupId = parseInt(groupId);
+
+    // Mitos y Leyendas Filters
+    let andConditions = [];
+    if (mylType) andConditions.push({ extData: { path: ['type'], equals: mylType } });
+    if (mylRace) andConditions.push({ extData: { path: ['race'], array_contains: mylRace } });
+    if (mylFrequency) andConditions.push({ extData: { path: ['frequency'], equals: mylFrequency } });
+    if (mylCost !== undefined && mylCost !== '') andConditions.push({ extData: { path: ['cost'], equals: parseInt(mylCost) } });
+    
+    if (andConditions.length > 0) {
+      whereClause.AND = andConditions;
+    }
 
     const products = await prisma.tcgProduct.findMany({
       where: whereClause,

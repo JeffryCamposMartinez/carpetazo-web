@@ -64,11 +64,25 @@ export const api = {
   // TCG Proxy
   getTcgCategories: () => apiFetch('/tcg/categories'),
   getTcgGroups: (categoryId) => apiFetch('/tcg/' + categoryId + '/groups'),
-  getTcgProducts: (categoryId, groupId) => apiFetch('/tcg/' + categoryId + '/' + groupId + '/products'),
-  searchTcgProducts: (query, categoryId) => {
-    let qs = `?q=${encodeURIComponent(query)}`;
-    if (categoryId) qs += `&categoryId=${categoryId}`;
-    return apiFetch('/tcg/search' + qs);
+  getTcgProducts: (categoryId, groupId, mylFilters = {}) => {
+    let qs = new URLSearchParams();
+    if (mylFilters.type) qs.append('mylType', mylFilters.type);
+    if (mylFilters.race) qs.append('mylRace', mylFilters.race);
+    if (mylFilters.frequency) qs.append('mylFrequency', mylFilters.frequency);
+    if (mylFilters.cost) qs.append('mylCost', mylFilters.cost);
+    const qString = qs.toString() ? '?' + qs.toString() : '';
+    return apiFetch('/tcg/' + categoryId + '/' + groupId + '/products' + qString);
+  },
+  searchTcgProducts: (query, categoryId, searchSet, mylFilters = {}) => {
+    let qs = new URLSearchParams();
+    if (query) qs.append('q', query);
+    if (categoryId) qs.append('categoryId', categoryId);
+    if (searchSet) qs.append('groupId', searchSet);
+    if (mylFilters.type) qs.append('mylType', mylFilters.type);
+    if (mylFilters.race) qs.append('mylRace', mylFilters.race);
+    if (mylFilters.frequency) qs.append('mylFrequency', mylFilters.frequency);
+    if (mylFilters.cost) qs.append('mylCost', mylFilters.cost);
+    return apiFetch('/tcg/search?' + qs.toString());
   },
 
   // Orders

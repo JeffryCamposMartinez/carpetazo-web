@@ -245,7 +245,21 @@ function FolderPokemon() {
     const matchesSupertype = true;
     const matchesType = true;
     const matchesSet = catSet === '' || card.set === availableSets.find(s => s.id === catSet)?.name;
-    return matchesQuery && matchesSupertype && matchesType && matchesSet;
+    
+    // Client-side MYL filtering
+    let matchesMyl = true;
+    if (folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') {
+      if (mylType && card.extData?.type !== mylType) matchesMyl = false;
+      if (mylFrequency && card.extData?.frequency !== mylFrequency) matchesMyl = false;
+      if (mylCost && parseInt(card.extData?.cost) !== parseInt(mylCost)) matchesMyl = false;
+      if (mylRace) {
+        if (!card.extData?.race) matchesMyl = false;
+        else if (Array.isArray(card.extData.race) && !card.extData.race.includes(mylRace)) matchesMyl = false;
+        else if (typeof card.extData.race === 'string' && card.extData.race !== mylRace) matchesMyl = false;
+      }
+    }
+    
+    return matchesQuery && matchesSupertype && matchesType && matchesSet && matchesMyl;
   });
 
   const renderCatalogTab = () => (
@@ -303,7 +317,59 @@ function FolderPokemon() {
               )}
             </div>
         </div>
-      </div>
+      
+      {/* MYL Custom Filters UI for Catalog Tab */}
+      {(folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') && (
+        <div className="flex flex-col gap-3 mb-8 p-4 bg-[#DBEAFE]/30 rounded-xl border border-blue-200">
+          <h4 className="text-xs font-bold text-[#1e40af] uppercase tracking-wider mb-1 flex items-center gap-1">
+            <span translate="no" className="material-symbols-outlined text-[16px]">tune</span>
+            Filtros Mitos y Leyendas
+          </h4>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <select value={mylType} onChange={(e) => setMylType(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
+              <option value="">Tipo (Todos)</option>
+              <option value="ALIADO">Aliado</option>
+              <option value="ARMA">Arma</option>
+              <option value="ORO">Oro</option>
+              <option value="TALISMAN">Talismán</option>
+              <option value="TOTEM">Tótem</option>
+            </select>
+            <select value={mylRace} onChange={(e) => setMylRace(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
+              <option value="">Raza (Todas)</option>
+              <option value="CABALLERO">Caballero</option>
+              <option value="DRAGON">Dragón</option>
+              <option value="FAERIE">Faerie</option>
+              <option value="GUERRERO">Guerrero</option>
+              <option value="SOMBRA">Sombra</option>
+              <option value="BESTIA">Bestia</option>
+              <option value="DIOS">Dios</option>
+              <option value="HEROE">Héroe</option>
+              <option value="SACERDOTE">Sacerdote</option>
+              <option value="SIN_RAZA">Sin Raza</option>
+              <option value="DESAFIANTE">Desafiante</option>
+              <option value="ANCESTRAL">Ancestral</option>
+            </select>
+            <select value={mylFrequency} onChange={(e) => setMylFrequency(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
+              <option value="">Frecuencia (Todas)</option>
+              <option value="VASALLO">Vasallo</option>
+              <option value="CORTESANO">Cortesano</option>
+              <option value="REAL">Real</option>
+              <option value="MEGA_REAL">Mega Real</option>
+              <option value="ULTRA_REAL">Ultra Real</option>
+              <option value="PROMOCIONAL">Promocional</option>
+              <option value="SECRETA">Secreta</option>
+              <option value="LEGENDARIA">Legendaria</option>
+            </select>
+            <input 
+              type="number" 
+              placeholder="Costo (ej. 2)" 
+              value={mylCost} 
+              onChange={(e) => setMylCost(e.target.value)} 
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all placeholder:text-gray-400"
+            />
+          </div>
+        </div>
+      )}      </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {filteredCatalog.map(card => (
@@ -573,6 +639,59 @@ const handleSearchAPI = async (e) => {
             </div>
           </div>
           
+            {/* MYL Custom Filters UI */}
+            {searchCategory === '99' && (
+              <div className="flex flex-col gap-3 mt-4 p-4 bg-[#DBEAFE]/30 rounded-xl border border-blue-200">
+                <h4 className="text-xs font-bold text-[#1e40af] uppercase tracking-wider mb-1 flex items-center gap-1">
+                  <span translate="no" className="material-symbols-outlined text-[16px]">tune</span>
+                  Filtros Mitos y Leyendas
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <select value={mylType} onChange={(e) => setMylType(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
+                    <option value="">Tipo (Todos)</option>
+                    <option value="ALIADO">Aliado</option>
+                    <option value="ARMA">Arma</option>
+                    <option value="ORO">Oro</option>
+                    <option value="TALISMAN">Talismán</option>
+                    <option value="TOTEM">Tótem</option>
+                  </select>
+                  <select value={mylRace} onChange={(e) => setMylRace(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
+                    <option value="">Raza (Todas)</option>
+                    <option value="CABALLERO">Caballero</option>
+                    <option value="DRAGON">Dragón</option>
+                    <option value="FAERIE">Faerie</option>
+                    <option value="GUERRERO">Guerrero</option>
+                    <option value="SOMBRA">Sombra</option>
+                    <option value="BESTIA">Bestia</option>
+                    <option value="DIOS">Dios</option>
+                    <option value="HEROE">Héroe</option>
+                    <option value="SACERDOTE">Sacerdote</option>
+                    <option value="SIN_RAZA">Sin Raza</option>
+                    <option value="DESAFIANTE">Desafiante</option>
+                    <option value="ANCESTRAL">Ancestral</option>
+                  </select>
+                  <select value={mylFrequency} onChange={(e) => setMylFrequency(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
+                    <option value="">Frecuencia (Todas)</option>
+                    <option value="VASALLO">Vasallo</option>
+                    <option value="CORTESANO">Cortesano</option>
+                    <option value="REAL">Real</option>
+                    <option value="MEGA_REAL">Mega Real</option>
+                    <option value="ULTRA_REAL">Ultra Real</option>
+                    <option value="PROMOCIONAL">Promocional</option>
+                    <option value="SECRETA">Secreta</option>
+                    <option value="LEGENDARIA">Legendaria</option>
+                  </select>
+                  <input 
+                    type="number" 
+                    placeholder="Costo (ej. 2)" 
+                    value={mylCost} 
+                    onChange={(e) => setMylCost(e.target.value)} 
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all placeholder:text-gray-400"
+                  />
+                </div>
+              </div>
+            )}
+            
           <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex flex-col gap-4 mt-2">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center w-full sm:w-auto bg-white p-1 rounded-lg border border-gray-200">
