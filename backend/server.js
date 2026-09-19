@@ -927,7 +927,14 @@ app.get('/api/tcg/:categoryId/:groupId/products', async (req, res) => {
     const { categoryId, groupId } = req.params;
     const { mylType, mylRace, mylFrequency, mylCost } = req.query;
     
-    let whereClause = { categoryId: parseInt(categoryId), groupId: parseInt(groupId) };
+    let whereClause = { categoryId: parseInt(categoryId) };
+    if (groupId === 'otros') {
+      const groups = await prisma.tcgGroup.findMany({ where: { categoryId: parseInt(categoryId) }, select: { groupId: true } });
+      const groupIds = groups.map(g => g.groupId);
+      whereClause.groupId = { notIn: groupIds };
+    } else {
+      whereClause.groupId = parseInt(groupId);
+    }
     
     let andConditions = [];
     if (mylType) andConditions.push({ extData: { path: ['type'], equals: mylType } });
@@ -966,7 +973,15 @@ app.get('/api/tcg/search', async (req, res) => {
       whereClause.name = { contains: q, mode: 'insensitive' };
     }
     if (categoryId) whereClause.categoryId = parseInt(categoryId);
-    if (groupId) whereClause.groupId = parseInt(groupId);
+    if (groupId) {
+      if (groupId === 'otros') {
+        const groups = await prisma.tcgGroup.findMany({ where: { categoryId: parseInt(categoryId) }, select: { groupId: true } });
+        const groupIds = groups.map(g => g.groupId);
+        whereClause.groupId = { notIn: groupIds };
+      } else {
+        whereClause.groupId = parseInt(groupId);
+      }
+    }
 
     // Mitos y Leyendas Filters
     let andConditions = [];
