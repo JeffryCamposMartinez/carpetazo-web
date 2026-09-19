@@ -104,6 +104,14 @@ const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
 };
 
 function FolderPokemonInner() {
+
+  const getProxyImageUrl = (productId, originalUrl) => {
+    if (!originalUrl) return '';
+    if (originalUrl.includes('api.carpetazo.cl/images')) return originalUrl;
+    if (originalUrl.startsWith('blob:')) return originalUrl;
+    return `https://api.carpetazo.cl/api/proxy-image?productId=${productId}`;
+  };
+
   const { id } = useParams();
   const navigate = useNavigate();
   const [folderData, setFolderData] = useState(null);

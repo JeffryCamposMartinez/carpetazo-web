@@ -80,6 +80,14 @@ const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
 };
 
 function AdminPanel() {
+
+  const getProxyImageUrl = (productId, originalUrl) => {
+    if (!originalUrl) return '';
+    if (originalUrl.includes('api.carpetazo.cl/images')) return originalUrl;
+    if (originalUrl.startsWith('blob:')) return originalUrl;
+    return `https://api.carpetazo.cl/api/proxy-image?productId=${productId}`;
+  };
+
   const { getAuthToken } = useAuth();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
