@@ -145,7 +145,7 @@ function FolderPokemonInner() {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [price, setPrice] = useState('');
-  const [visibleCount, setVisibleCount] = useState(50);
+  const [visibleCount, setVisibleCount] = useState(30);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
@@ -162,14 +162,14 @@ function FolderPokemonInner() {
   const observerTarget = useRef(null);
 
   useEffect(() => {
-    setVisibleCount(50);
+    setVisibleCount(30);
   }, [searchResults]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       entries => {
         if (entries[0].isIntersecting) {
-          setVisibleCount(prev => prev + 50);
+          setVisibleCount(prev => prev + 30);
         }
       },
       { threshold: 0.1 }
@@ -904,7 +904,10 @@ const handleSearchAPI = async (e) => {
               }
             }}>
               <div className="relative w-full aspect-[63/88] flex items-center justify-center bg-gray-50 p-2">
-                <img src={card.imageUrl} referrerPolicy="no-referrer" referrerPolicy="no-referrer" referrerPolicy="no-referrer" alt={card.name} loading="lazy" className="w-full h-full object-contain filter drop-shadow-sm" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-300"></div>
+                </div>
+                <img src={card.imageUrl} referrerPolicy="no-referrer" alt={card.name} loading="lazy" className="w-full h-full object-contain filter drop-shadow-sm relative z-10 transition-opacity duration-300 opacity-0" onLoad={(e) => { e.currentTarget.classList.remove('opacity-0'); e.currentTarget.previousSibling.style.display = 'none'; }} />
               </div>
               <div className="p-3 text-center border-t border-gray-100">
                 <p className="font-bold text-sm text-gray-900 truncate">{card.name}</p>
