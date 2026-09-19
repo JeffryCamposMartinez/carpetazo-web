@@ -100,7 +100,6 @@ function FolderPokemon() {
   // MYL Custom Filters
   const [mylType, setMylType] = useState('');
   const [mylRace, setMylRace] = useState('');
-  const [mylFrequency, setMylFrequency] = useState('');
   const [mylCost, setMylCost] = useState('');
   const [searchBlock, setSearchBlock] = useState('');
   const [catBlock, setCatBlock] = useState('');
@@ -356,7 +355,7 @@ function FolderPokemon() {
             <span translate="no" className="material-symbols-outlined text-[16px]">tune</span>
             Filtros Mitos y Leyendas
           </h4>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <select value={mylType} onChange={(e) => setMylType(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
               <option value="">Tipo (Todos)</option>
               <option value="ALIADO">Aliado</option>
@@ -380,23 +379,13 @@ function FolderPokemon() {
               <option value="DESAFIANTE">Desafiante</option>
               <option value="ANCESTRAL">Ancestral</option>
             </select>
-            <select value={mylFrequency} onChange={(e) => setMylFrequency(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
-              <option value="">Frecuencia (Todas)</option>
-              <option value="VASALLO">Vasallo</option>
-              <option value="CORTESANO">Cortesano</option>
-              <option value="REAL">Real</option>
-              <option value="MEGA_REAL">Mega Real</option>
-              <option value="ULTRA_REAL">Ultra Real</option>
-              <option value="PROMOCIONAL">Promocional</option>
-              <option value="SECRETA">Secreta</option>
-              <option value="LEGENDARIA">Legendaria</option>
-            </select>
+            
             <input 
               type="number" 
               placeholder="Costo (ej. 2)" 
               value={mylCost} 
               onChange={(e) => setMylCost(e.target.value)} 
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all placeholder:text-gray-400"
+              className="col-span-2 sm:col-span-1 w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all placeholder:text-gray-400"
             />
           </div>
         </div>
@@ -475,7 +464,7 @@ const handleSearchAPI = async (e) => {
     setIsSearching(true);
     try {
       let cards = [];
-      const mylFilters = searchCategory === '99' ? { type: mylType, race: mylRace, frequency: mylFrequency, cost: mylCost } : {};
+      const mylFilters = searchCategory === '99' ? { type: mylType, race: mylRace, frequency: cost: mylCost } : {};
       
       if (searchSet && searchQuery.trim() === '') {
         const response = await api.getTcgProducts(searchCategory, searchSet, mylFilters);
@@ -720,23 +709,13 @@ const handleSearchAPI = async (e) => {
                     <option value="DESAFIANTE">Desafiante</option>
                     <option value="ANCESTRAL">Ancestral</option>
                   </select>
-                  <select value={mylFrequency} onChange={(e) => setMylFrequency(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
-                    <option value="">Frecuencia (Todas)</option>
-                    <option value="VASALLO">Vasallo</option>
-                    <option value="CORTESANO">Cortesano</option>
-                    <option value="REAL">Real</option>
-                    <option value="MEGA_REAL">Mega Real</option>
-                    <option value="ULTRA_REAL">Ultra Real</option>
-                    <option value="PROMOCIONAL">Promocional</option>
-                    <option value="SECRETA">Secreta</option>
-                    <option value="LEGENDARIA">Legendaria</option>
-                  </select>
+                  
                   <input 
                     type="number" 
                     placeholder="Costo (ej. 2)" 
                     value={mylCost} 
                     onChange={(e) => setMylCost(e.target.value)} 
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all placeholder:text-gray-400"
+                    className="col-span-2 sm:col-span-1 w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all placeholder:text-gray-400"
                   />
                 </div>
               </div>
