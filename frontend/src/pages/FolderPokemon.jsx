@@ -749,13 +749,16 @@ const handleSearchAPI = async (e) => {
               </div>
             )}
             
+          {(searchCategory !== '99' || availableRarities.length > 0) && (
           <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex flex-col gap-4 mt-2">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center w-full sm:w-auto bg-white p-1 rounded-lg border border-gray-200">
-                <button type="button" onClick={() => setFilterType('all')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${filterType === 'all' ? 'bg-[#1e40af] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>Todos</button>
-                <button type="button" onClick={() => setFilterType('cards')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${filterType === 'cards' ? 'bg-[#1e40af] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>Cartas</button>
-                <button type="button" onClick={() => setFilterType('sealed')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${filterType === 'sealed' ? 'bg-[#1e40af] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>Sellado</button>
-              </div>
+              {searchCategory !== '99' && (
+                <div className="flex items-center w-full sm:w-auto bg-white p-1 rounded-lg border border-gray-200">
+                  <button type="button" onClick={() => setFilterType('all')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${filterType === 'all' ? 'bg-[#1e40af] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>Todos</button>
+                  <button type="button" onClick={() => setFilterType('cards')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${filterType === 'cards' ? 'bg-[#1e40af] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>Cartas</button>
+                  <button type="button" onClick={() => setFilterType('sealed')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${filterType === 'sealed' ? 'bg-[#1e40af] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>Sellado</button>
+                </div>
+              )}
               
               {availableRarities.length > 0 && (
                 <div className="flex items-center gap-2 w-full sm:w-auto sm:min-w-[200px]">
@@ -774,6 +777,7 @@ const handleSearchAPI = async (e) => {
               )}
             </div>
           </div>
+        )}
 
           <div className="flex justify-center mt-4">
             <button type="submit" className="bg-[#1e40af] hover:bg-blue-800 text-white font-bold px-12 py-3 rounded-full transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 whitespace-nowrap flex items-center gap-2" disabled={isSearching}>
