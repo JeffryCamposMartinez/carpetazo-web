@@ -109,6 +109,7 @@ function FolderPokemonInner() {
     if (!originalUrl) return '';
     if (originalUrl.includes('api.carpetazo.cl/images')) return originalUrl;
     if (originalUrl.startsWith('blob:')) return originalUrl;
+    if (originalUrl.startsWith('data:')) return originalUrl;
     return `https://api.carpetazo.cl/api/proxy-image?productId=${productId}`;
   };
 
@@ -654,6 +655,7 @@ const handleSearchAPI = async (e) => {
             ...prev,
             isCustomImage: true,
             id: safeId.includes('-custom-') ? safeId : `${safeId}-custom-${Date.now()}`,
+            imageUrl: compressedBase64,
             images: {
               ...prev.images,
               large: compressedBase64,
