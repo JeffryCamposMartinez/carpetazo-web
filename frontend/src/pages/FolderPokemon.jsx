@@ -464,7 +464,7 @@ const handleSearchAPI = async (e) => {
     setIsSearching(true);
     try {
       let cards = [];
-      const mylFilters = searchCategory === '99' ? { type: mylType, race: mylRace, frequency: cost: mylCost } : {};
+      const mylFilters = searchCategory === '99' ? { type: mylType, race: mylRace, cost: mylCost } : {};
       
       if (searchSet && searchQuery.trim() === '') {
         const response = await api.getTcgProducts(searchCategory, searchSet, mylFilters);
