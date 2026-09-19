@@ -523,12 +523,40 @@ function FolderPokemonInner() {
         'TÓTEM': 4,
         'ARMA': 5
       };
+      
+      const editionOrder = {
+        'Espada Sagrada': 1,
+        'Helenica': 2,
+        'Tierras Altas': 3,
+        'Dominios de RA': 4
+      };
 
       filtered.sort((a, b) => {
+        // 1. Edition Order
+        const setA = availableSets.find(s => s.groupId == a.groupId)?.name || '';
+        const setB = availableSets.find(s => s.groupId == b.groupId)?.name || '';
+        const edOrderA = editionOrder[setA] || 99;
+        const edOrderB = editionOrder[setB] || 99;
+
+        if (edOrderA !== edOrderB) {
+          return edOrderA - edOrderB;
+        }
+
         const extA = a.extData || {};
         const extB = b.extData || {};
 
-        // 1. Cost (lowest to highest)
+        // 2. Type Order (Prioritizing Type inside Edition)
+        const typeA = (extA.type || '').toUpperCase();
+        const typeB = (extB.type || '').toUpperCase();
+
+        const typeOrderA = typeOrder[typeA] || 99;
+        const typeOrderB = typeOrder[typeB] || 99;
+
+        if (typeOrderA !== typeOrderB) {
+          return typeOrderA - typeOrderB;
+        }
+
+        // 3. Cost (lowest to highest)
         const costA = extA.cost != null && extA.cost !== '' && !isNaN(extA.cost) ? Number(extA.cost) : 0;
         const costB = extB.cost != null && extB.cost !== '' && !isNaN(extB.cost) ? Number(extB.cost) : 0;
         
@@ -536,18 +564,7 @@ function FolderPokemonInner() {
           return costA - costB;
         }
 
-        // 2. Type Order
-        const typeA = (extA.type || '').toUpperCase();
-        const typeB = (extB.type || '').toUpperCase();
-
-        const orderA = typeOrder[typeA] || 99;
-        const orderB = typeOrder[typeB] || 99;
-
-        if (orderA !== orderB) {
-          return orderA - orderB;
-        }
-
-        // 3. Fallback to name
+        // 4. Fallback to name
         return a.name.localeCompare(b.name);
       });
     }
