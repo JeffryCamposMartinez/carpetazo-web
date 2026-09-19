@@ -229,7 +229,13 @@ function FolderPokemonInner() {
     api.getTcgGroups(searchCategory)
       .then(res => {
         if (res.success) {
-          const sortedSets = res.data.sort((a,b) => new Date(b.publishedOn || 0) - new Date(a.publishedOn || 0));
+          let sortedSets = res.data.sort((a,b) => new Date(b.publishedOn || 0) - new Date(a.publishedOn || 0));
+          
+          if (searchCategory === '99') {
+            const allowedSets = ['Espada Sagrada', 'Helenica', 'Hijos de Daana', 'Dominios de RA', 'Dracula Inferno'];
+            sortedSets = sortedSets.filter(s => allowedSets.includes(s.name));
+          }
+          
           setAvailableSets(sortedSets);
           if (sortedSets.length > 0 && !searchSet) {
              // Default to the most recent set or leave empty
