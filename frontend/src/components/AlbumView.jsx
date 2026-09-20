@@ -4,6 +4,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
   const [currentPage, setCurrentPage] = useState(0);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
   const [activeCardId, setActiveCardId] = useState(null);
+  const [previewCard, setPreviewCard] = useState(null);
   const [targetPage, setTargetPage] = useState(null);
 
   useEffect(() => {
@@ -397,7 +398,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                   onClick={(e) => {
                     e.stopPropagation();
                     if (card) {
-                      setActiveCardId(cardIsActive ? null : uniqueId);
+                      setPreviewCard(card);
                     }
                   }}
                   onMouseEnter={() => {
