@@ -112,7 +112,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
       nextCards.forEach(card => {
         if (card?.imageUrl) {
           const img = new Image();
-          img.src = card.image;
+          img.src = card.imageUrl;
         }
       });
     }
@@ -417,7 +417,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                       <div className={`relative w-full h-full flex flex-col items-center justify-center transition-all duration-300 ease-out min-h-0 min-w-0 ${cardIsActive ? 'scale-[1.25] md:scale-[1.4] -translate-y-4 md:-translate-y-6 z-[100]' : ''}`}>
                         <div className="relative w-[95%] h-[95%] flex items-center justify-center">
                           <img
-                            src={card.image}
+                            src={card.imageUrl}
                             alt={card.name}
                             loading="lazy"
                             className="max-w-full max-h-full object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] rounded-[4%]"
