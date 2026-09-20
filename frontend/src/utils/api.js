@@ -64,12 +64,14 @@ export const api = {
   // TCG Proxy
   getTcgCategories: () => apiFetch('/tcg/categories'),
   getTcgGroups: (categoryId) => apiFetch('/tcg/' + categoryId + '/groups'),
+    getTcgPhysicalProducts: () => apiFetch('/tcg/physical-products'),
   getTcgProducts: (categoryId, groupId, mylFilters = {}) => {
     let qs = new URLSearchParams();
     if (mylFilters.type) qs.append('mylType', mylFilters.type);
     if (mylFilters.race) qs.append('mylRace', mylFilters.race);
     if (mylFilters.frequency) qs.append('mylFrequency', mylFilters.frequency);
     if (mylFilters.cost) qs.append('mylCost', mylFilters.cost);
+      if (mylFilters.physicalProductId) qs.append('physicalProductId', mylFilters.physicalProductId);
     const qString = qs.toString() ? '?' + qs.toString() : '';
     return apiFetch('/tcg/' + categoryId + '/' + groupId + '/products' + qString);
   },

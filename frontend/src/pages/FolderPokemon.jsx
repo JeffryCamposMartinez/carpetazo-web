@@ -126,6 +126,8 @@ function FolderPokemonInner() {
   const [availableCategories, setAvailableCategories] = useState([]);
   const [searchSet, setSearchSet] = useState('');
   const [availableSets, setAvailableSets] = useState([]);
+  const [availablePhysicalProducts, setAvailablePhysicalProducts] = useState([]);
+  const [searchPhysicalProduct, setSearchPhysicalProduct] = useState('');
 
   // MYL Custom Filters
   const [mylType, setMylType] = useState('');
@@ -266,7 +268,8 @@ function FolderPokemonInner() {
       setSearchSet('');
       return;
     }
-    api.getTcgGroups(searchCategory)
+    api.getTcgPhysicalProducts().then(res => { if(res.success) setAvailablePhysicalProducts(res.data); }).catch(console.error);
+      api.getTcgGroups(searchCategory)
       .then(res => {
         if (res.success) {
           let sortedSets = res.data.sort((a,b) => new Date(b.publishedOn || 0) - new Date(a.publishedOn || 0));
@@ -590,7 +593,7 @@ const handleSearchAPI = async (e) => {
     setIsSearching(true);
     try {
       let cards = [];
-      const mylFilters = searchCategory === '99' ? { type: mylType, race: mylRace, cost: mylCost, blockId: searchBlock } : {};
+      const mylFilters = searchCategory === '99' ? { type: mylType, race: mylRace, cost: mylCost, blockId: searchBlock, physicalProductId: searchPhysicalProduct } : {};
       
       if (searchSet && searchQuery.trim() === '') {
         const response = await api.getTcgProducts(searchCategory, searchSet, mylFilters);

@@ -964,15 +964,31 @@ app.use('/images/myl', express.static(path.join(__dirname, 'data/images/myl')));
 
 
 
+
+app.get('/api/tcg/physical-products', async (req, res) => {
+  try {
+    const products = await prisma.tcgPhysicalProduct.findMany({
+      orderBy: { name: 'asc' }
+    });
+    res.json({ success: true, data: products });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.get('/api/tcg/search', async (req, res) => {
   try {
-    const { q, categoryId, groupId, blockId, mylType, mylRace, mylFrequency, mylCost } = req.query;
+    const { q, categoryId, groupId, blockId, mylType, mylRace, mylFrequency, mylCost, physicalProductId } = req.query;
     
     let whereClause = {};
     if (q) {
       whereClause.name = { contains: q, mode: 'insensitive' };
     }
     if (categoryId) whereClause.categoryId = parseInt(categoryId);
+    if (physicalProductId) {
+      whereClause.physicalProductId = parseInt(physicalProductId);
+    }
+
     if (groupId) {
       if (groupId === 'otros') {
         const groups = await prisma.tcgGroup.findMany({ where: { categoryId: parseInt(categoryId) }, select: { groupId: true } });
