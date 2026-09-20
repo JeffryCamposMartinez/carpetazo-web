@@ -47,9 +47,12 @@ export default function LazyFolderCard({ folder }) {
       let location = '';
       let avatarUrl = null;
 
-      if (folder.user) {
-        userName = folder.user.name || folder.user.username || folder.userId.substring(0, 6);
-        avatarUrl = folder.user.photoURL || null;
+            if (typeof folder.user === 'string') {
+        userName = folder.user;
+        avatarUrl = folder.avatarUrl || null;
+      } else if (folder.user) {
+        userName = folder.user.name || folder.user.username || (folder.userId ? folder.userId.substring(0, 6) : 'Usuario');
+        avatarUrl = folder.user.photoURL || folder.avatarUrl || null;
       }
 
       setDetails({
