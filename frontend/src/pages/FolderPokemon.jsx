@@ -275,9 +275,8 @@ function FolderPokemonInner() {
           let sortedSets = res.data.sort((a,b) => new Date(b.publishedOn || 0) - new Date(a.publishedOn || 0));
           
           if (searchCategory === '99') {
-            const allowedSets = ['Espada Sagrada', 'Helenica', 'Tierras Altas', 'Dominios de RA'];
-            // Preserve exact order requested by user
-            sortedSets = allowedSets.map(name => sortedSets.find(s => s.name === name)).filter(Boolean);
+            const allowedSets = ['Hijos de Daana', 'Espada Sagrada', 'Helénica', 'Dominios de RA', 'Drácula e Inferno'];
+              sortedSets = allowedSets.map(name => sortedSets.find(s => s.name === name)).filter(Boolean);
           }
           
           setAvailableSets(sortedSets);
