@@ -902,7 +902,7 @@ app.get('/api/users/:username', async (req, res) => {
 // --- TCGCSV LOCAL DB ---
 app.get('/api/tcg/categories', async (req, res) => {
   try {
-    const categories = await prisma.tcgCategory.findMany({ orderBy: { name: 'asc' } });
+    const categories = await prisma.tcgCategory.findMany({ orderBy: [ { releaseDate: 'desc' }, { name: 'asc' } ] });
     res.json({ success: true, data: categories });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
