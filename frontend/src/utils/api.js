@@ -72,7 +72,6 @@ export const api = {
     if (mylFilters.frequency) qs.append('mylFrequency', mylFilters.frequency);
     if (mylFilters.cost) qs.append('mylCost', mylFilters.cost);
       if (mylFilters.physicalProductId) qs.append('physicalProductId', mylFilters.physicalProductId);
-      if (mylFilters.physicalProductId) qs.append('physicalProductId', mylFilters.physicalProductId);
     const qString = qs.toString() ? '?' + qs.toString() : '';
     return apiFetch('/tcg/' + categoryId + '/' + groupId + '/products' + qString);
   },
@@ -86,7 +85,8 @@ export const api = {
     if (mylFilters.race) qs.append('mylRace', mylFilters.race);
     if (mylFilters.frequency) qs.append('mylFrequency', mylFilters.frequency);
     if (mylFilters.cost) qs.append('mylCost', mylFilters.cost);
-    return apiFetch('/tcg/search?' + qs.toString());
+      if (mylFilters.physicalProductId) qs.append('physicalProductId', mylFilters.physicalProductId);
+      return apiFetch('/tcg/search?' + qs.toString());
   },
 
   // Orders
