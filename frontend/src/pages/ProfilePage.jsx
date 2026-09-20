@@ -186,9 +186,7 @@ const ProfilePage = () => {
       const usernameSnap = await getDocs(qUsername);
       const existingUsernameDoc = usernameSnap.docs.find(doc => doc.id !== currentUser.uid);
 
-      const qDisplayName = query(collection(db, 'users'), where('displayName', '==', profileData.displayName));
-      const displayNameSnap = await getDocs(qDisplayName);
-      const existingDisplayNameDoc = displayNameSnap.docs.find(doc => doc.id !== currentUser.uid);
+      const existingDisplayNameDoc = false;
       
       if (existingUsernameDoc || existingDisplayNameDoc) {
         setUsernameAvailable(false);
@@ -234,9 +232,7 @@ const ProfilePage = () => {
         const usernameSnap = await getDocs(qUsername);
         const existingUsernameDoc = usernameSnap.docs.find(doc => doc.id !== currentUser.uid);
 
-        const qDisplayName = query(collection(db, 'users'), where('displayName', '==', profileData.displayName));
-        const displayNameSnap = await getDocs(qDisplayName);
-        const existingDisplayNameDoc = displayNameSnap.docs.find(doc => doc.id !== currentUser.uid);
+        const existingDisplayNameDoc = false;
         
         if (existingUsernameDoc || existingDisplayNameDoc) {
           alert("Ese nombre de usuario ya está en uso. Por favor, elige otro.");
@@ -606,7 +602,7 @@ const ProfilePage = () => {
                               <input 
                                 type="text" 
                                 value={profileData.fullName || ''}
-                                onChange={(e) => handleInputChange('fullName', e.target.value)}
+                                onChange={(e) => { handleInputChange('fullName', e.target.value); handleInputChange('displayName', e.target.value); }}
                                 className="w-full px-5 py-3.5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-[#2563eb] transition-all font-bold text-slate-800 placeholder:text-slate-400 placeholder:font-medium"
                                 placeholder="Ej. Juan Pérez"
                               />
@@ -623,7 +619,6 @@ const ProfilePage = () => {
                                     onChange={(e) => {
                                       // Forbid spaces but allow uppercase
                                       const val = e.target.value.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-                                      handleInputChange('displayName', val);
                                       handleInputChange('username', val.toLowerCase());
                                     }}
                                     className={`w-full pl-12 pr-12 py-3.5 rounded-2xl border-2 transition-all font-bold text-slate-800 placeholder:text-slate-400 placeholder:font-medium ${
