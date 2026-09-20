@@ -371,7 +371,360 @@ function FolderPokemonInner() {
         />
         
         {(folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') && (
-          
+          <select value={catBlock} onChange={(e) => { setCatBlock(e.target.value); setCatSet(''); }} className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]">
+            <option value="">Selecciona un bloque (Todos)</option>
+            <option value="1">Furia Extendido</option>
+            <option value="2">Primer Bloque</option>
+            <option value="3">Primera Era</option>
+          </select>
+        )}
+        
+        <div className="w-full">
+            <div className="relative w-full h-full">
+              <div 
+                className="w-full h-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-all hover:border-[#1e40af]"
+                onClick={() => setIsCatSetDropdownOpen(!isCatSetDropdownOpen)}
+              >
+                <span className="truncate font-bold text-sm">
+                  {catSet === '' ? 'Todas las ediciones' :  availableSets.find(s => s.id === catSet)?.name || 'Seleccionado'}
+                </span>
+                <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
+              </div>
+              
+              {isCatSetDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-[100]" onClick={() => setIsCatSetDropdownOpen(false)}></div>
+                  <div className="absolute z-[110] w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
+                    <div 
+                      className={`px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${catSet === '' ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
+                      onClick={() => { setCatSet(''); setIsCatSetDropdownOpen(false); }}
+                    >
+                      {catSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
+                      <span className={catSet !== '' ? 'ml-6' : ''}>Todas las ediciones</span>
+                    </div>
+                    
+                    {filteredCatSets.map(set => (
+                      <div 
+                        key={set.id}
+                        className={`px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${catSet === set.id ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
+                        onClick={() => { setCatSet(set.id); setIsCatSetDropdownOpen(false); }}
+                      >
+                        {catSet === set.id && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
+                        <span className={catSet !== set.id ? 'ml-6' : ''}>{set.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+        </div>
+      
+      {/* MYL Custom Filters UI for Catalog Tab */}
+      {(folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') && (
+        <div className="flex flex-col gap-3 mb-8 p-4 bg-[#DBEAFE]/30 rounded-xl border border-blue-200">
+          <h4 className="text-xs font-bold text-[#1e40af] uppercase tracking-wider mb-1 flex items-center gap-1">
+            <span translate="no" className="material-symbols-outlined text-[16px]">tune</span>
+            Filtros Mitos y Leyendas
+          </h4>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <select value={mylType} onChange={(e) => setMylType(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
+              <option value="">Tipo (Todos)</option>
+              <option value="ALIADO">Aliado</option>
+              <option value="ARMA">Arma</option>
+              <option value="ORO">Oro</option>
+              <option value="TALISMAN">Talismán</option>
+              <option value="TOTEM">Tótem</option>
+            </select>
+            <select value={mylRace} onChange={(e) => setMylRace(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
+              <option value="">Raza (Todas)</option>
+              <option value="CABALLERO">Caballero</option>
+              <option value="DRAGON">Dragón</option>
+              <option value="FAERIE">Faerie</option>
+              <option value="GUERRERO">Guerrero</option>
+              <option value="SOMBRA">Sombra</option>
+              <option value="BESTIA">Bestia</option>
+              <option value="DIOS">Dios</option>
+              <option value="HEROE">Héroe</option>
+              <option value="SACERDOTE">Sacerdote</option>
+              <option value="SIN_RAZA">Sin Raza</option>
+              <option value="DESAFIANTE">Desafiante</option>
+              <option value="ANCESTRAL">Ancestral</option>
+            </select>
+            
+            <input 
+              type="number" 
+              placeholder="Costo (ej. 2)" 
+              value={mylCost} 
+              onChange={(e) => setMylCost(e.target.value)} 
+              className="col-span-2 sm:col-span-1 w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all placeholder:text-gray-400"
+            />
+          </div>
+        </div>
+      )}      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        {filteredCatalog.map(card => (
+          <AdminCardEdit key={card.id} card={card} onUpdate={handleUpdateCard} onDelete={handleDeleteRequest} />
+        ))}
+        {filteredCatalog.length === 0 && (
+          <div className="col-span-full py-12 text-center text-on-surface-variant flex flex-col items-center">
+            <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-30">search_off</span>
+            <p>No se encontraron cartas que coincidan con los filtros.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // --- AGREGAR AL CATÁLOGO LOGIC ---
+  useEffect(() => {
+    if (isSearching && abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      setIsSearching(false);
+    }
+    setHasSearchedAPI(false);
+  }, [searchQuery, searchCategory, searchSet]);
+
+  
+  useEffect(() => {
+    let filtered = rawSearchResults;
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      filtered = filtered.filter(c => 
+        (c.name && c.name.toLowerCase().includes(q)) || 
+        (c.cleanName && c.cleanName.toLowerCase().includes(q)) ||
+        (c.extData && Array.isArray(c.extData) && c.extData.some(x => (x.name === 'Number' || x.name === 'Card Number / Rarity') && x.value && x.value.toLowerCase().includes(q)))
+      );
+    }
+
+    if (filterType !== 'all') {
+      const sealedKeywords = ['booster', 'box', 'pack', 'deck', 'case', 'blister', 'display', 'collection', 'tin', 'elite trainer', 'bundle', 'kit', 'theme', 'starter'];
+      filtered = filtered.filter(c => {
+        const lowerName = (c.name || '').toLowerCase();
+        const isSealed = sealedKeywords.some(kw => lowerName.includes(kw));
+        return filterType === 'sealed' ? isSealed : !isSealed;
+      });
+    }
+
+    if (filterRarity) {
+      filtered = filtered.filter(c => {
+        if (!c.extData || !Array.isArray(c.extData)) return false;
+        const rObj = c.extData.find(x => x.name === 'Rarity' || x.name === 'Card Number / Rarity');
+        return rObj && rObj.value === filterRarity;
+      });
+    }
+
+    // Custom Sorting for Mitos y Leyendas
+    if (searchCategory === '99') {
+      const typeOrder = {
+        'ORO': 1,
+        'ALIADO': 2,
+        'TALISMAN': 3,
+        'TALISMÁN': 3,
+        'TOTEM': 4,
+        'TÓTEM': 4,
+        'ARMA': 5
+      };
+      
+      const editionOrder = {
+        'Espada Sagrada': 1,
+        'Helenica': 2,
+        'Tierras Altas': 3,
+        'Dominios de RA': 4
+      };
+
+      
+    }
+
+    setSearchResults(filtered);
+  }, [rawSearchResults, filterType, filterRarity, searchQuery]);
+
+const handleSearchAPI = async (e) => {
+    e.preventDefault();
+    if (!searchCategory) {
+      showToast('Selecciona un TCG.', 'error');
+      return;
+    }
+    if (!searchSet && !searchQuery.trim() && searchCategory !== '99') {
+      showToast('Selecciona una edición o ingresa un nombre para buscar.', 'error');
+      return;
+    }
+    
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    abortControllerRef.current = new AbortController();
+
+    setIsSearching(true);
+    try {
+      let cards = [];
+      const mylFilters = searchCategory === '99' ? { type: mylType, race: mylRace, cost: mylCost, blockId: searchBlock, physicalProductId: searchPhysicalProduct } : {};
+      
+      if (searchSet && searchQuery.trim() === '') {
+        const response = await api.getTcgProducts(searchCategory, searchSet, mylFilters);
+        cards = response.data || [];
+      } else {
+        const response = await api.searchTcgProducts(searchQuery.trim(), searchCategory, searchSet, mylFilters);
+        cards = response.data || [];
+      }
+      
+      const rarities = new Set();
+      cards.forEach(c => {
+        if (c.extData && Array.isArray(c.extData)) {
+          const rarityObj = c.extData.find(x => x.name === 'Rarity' || x.name === 'Card Number / Rarity');
+          if (rarityObj && rarityObj.value) rarities.add(rarityObj.value);
+        }
+      });
+      setAvailableRarities(Array.from(rarities).sort());
+      setFilterRarity('');
+      setFilterType('all');
+      setRawSearchResults(cards);
+      setHasSearchedAPI(true);
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error(error);
+        showToast('Error al buscar cartas en la API', 'error');
+      }
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_HEIGHT = 600;
+        let width = img.width;
+        let height = img.height;
+
+        if (height > MAX_HEIGHT) {
+          width *= MAX_HEIGHT / height;
+          height = MAX_HEIGHT;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Ultra-compresión a WebP con calidad del 50%
+        const compressedBase64 = canvas.toDataURL('image/webp', 0.5);
+
+        setSelectedCard(prev => {
+          if (!prev) return prev;
+          const safeId = String(prev.id || prev.productId || prev.tcgProductId || '');
+          return {
+            ...prev,
+            isCustomImage: true,
+            id: safeId.includes('-custom-') ? safeId : `${safeId}-custom-${Date.now()}`,
+            imageUrl: compressedBase64,
+            images: {
+              ...prev.images,
+              large: compressedBase64,
+              small: compressedBase64
+            }
+          };
+        });
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveCard = async (e) => {
+    e.preventDefault();
+    if (!selectedCard || !price || !stock) return;
+    setIsSaving(true);
+    const cardData = {
+      tcgId: selectedCard.productId.toString(),
+      name: selectedCard.name,
+      price: parseFloat(price),
+      stock: parseInt(stock),
+      imageUrl: selectedCard.imageUrl || '',
+      data: {
+        pseudoName: pseudoName.trim(),
+        set: availableSets.find(s => s.groupId == (searchSet || selectedCard.groupId))?.name || 'Unknown',
+        rarity: selectedCard.extData?.Rarity || selectedCard.extData?.['Card Number / Rarity'] || 'Unknown',
+        supertype: selectedCard.extData ? selectedCard.extData['Card Type / HP / Stage']?.split(' / ')[0] || 'Unknown' : 'Unknown',
+        number: selectedCard.extData?.Number || '',
+        total: '',
+        language: language
+      }
+    };
+    try {
+      await api.addCard(id, cardData);
+      if (true) {
+        showToast('¡Carta guardada en el catálogo exitosamente!', 'success');
+        setSelectedCard(null);
+        fetchCards();
+        // Volver arriba suavemente en móviles para buscar la siguiente carta
+        if (window.innerWidth < 1024) {
+          setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }, 100);
+        }
+      } else showToast('Error al guardar la carta', 'error');
+    } catch (error) {
+      console.error(error);
+      showToast('Error de conexión al guardar la carta', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const getTcgplayerUrl = (card) => {
+    if (!card) return '#';
+    let code = card.number || '';
+    if (card.set && card.set.printedTotal) {
+      let numStr = card.number.toString();
+      let totalStr = card.set.printedTotal.toString();
+      if (/^\d+$/.test(numStr)) numStr = numStr.padStart(3, '0');
+      if (/^\d+$/.test(totalStr)) totalStr = totalStr.padStart(3, '0');
+      code = `${numStr}/${totalStr}`;
+    }
+    const searchQuery = `${card.name} ${code}`.trim();
+    if (card.tcgId) return `https://www.tcgplayer.com/product/${card.tcgId}`;
+    return `https://www.tcgplayer.com/search/pokemon/product?q=${encodeURIComponent(searchQuery)}`;
+  };
+
+  const getTcgmatchUrl = (card) => {
+    if (!card) return '#';
+    let code = card.number || '';
+    if (card.set && card.set.printedTotal) {
+      let numStr = card.number.toString();
+      let totalStr = card.set.printedTotal.toString();
+      if (/^\d+$/.test(numStr)) numStr = numStr.padStart(3, '0');
+      if (/^\d+$/.test(totalStr)) totalStr = totalStr.padStart(3, '0');
+      code = `${numStr}/${totalStr}`;
+    }
+    const searchQuery = `${card.name} ${code}`.trim();
+    const encodedQuery = encodeURIComponent(searchQuery).replace(/%20/g, '+');
+    return `https://tcgmatch.cl/cartas/busqueda/q=${encodedQuery}`;
+  };
+
+  const renderAddTab = () => (
+    <div className="flex flex-col-reverse lg:flex-row gap-6">
+      {/* Lado Izquierdo: Buscador de API */}
+      <div className="flex-1 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+        <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 mb-4">
+          <span translate="no" className="material-symbols-outlined text-[#1e40af]">search</span>
+            Buscar en {folderData?.tcg || "Catálogo"}
+        </h2>
+        
+        <form onSubmit={handleSearchAPI} className="flex flex-col gap-4 mb-6">
+          <input 
+            type="text" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={searchCategory === "99" ? "Nombre de la carta (ej. Oseye)" : "Nombre (ej. Pikachu) o Código"}
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] transition-colors"
+          />
+          <div className="flex flex-col sm:flex-row gap-4 mb-2">
               
             {searchCategory === '99' && (
               <select value={searchBlock} onChange={(e) => { setSearchBlock(e.target.value); setSearchSet(''); }} className="w-full sm:w-1/2 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors">
