@@ -949,7 +949,7 @@ app.get('/api/tcg/:categoryId/:groupId/products', async (req, res) => {
     const products = await prisma.tcgProduct.findMany({
       where: whereClause,
       orderBy: [
-        { physicalProduct: { releaseDate: 'desc' } },
+        { physicalProduct: { releaseDate: { sort: 'desc', nulls: 'last' } } },
         { name: 'asc' }
       ]
     });
@@ -1025,7 +1025,7 @@ app.get('/api/tcg/search', async (req, res) => {
       where: whereClause,
       take: 2000,
       orderBy: [
-        { physicalProduct: { releaseDate: 'desc' } },
+        { physicalProduct: { releaseDate: { sort: 'desc', nulls: 'last' } } },
         { name: 'asc' }
       ]
     });
