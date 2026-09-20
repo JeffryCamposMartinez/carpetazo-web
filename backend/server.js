@@ -594,7 +594,7 @@ app.get('/api/folders/:id', async (req, res) => {
   try {
     const folder = await prisma.folder.findUnique({
       where: { id: req.params.id },
-      include: { cards: true, user: { select: { name: true, email: true } } }
+      include: { cards: true, user: { select: { name: true, email: true, username: true, photoURL: true, firebaseUid: true } } }
     });
     if (!folder) return res.status(404).json({ success: false, message: 'Folder not found' });
     res.json({ success: true, folder });
@@ -705,7 +705,7 @@ app.get('/api/folders', async (req, res) => {
   try {
     const folders = await prisma.folder.findMany({
       where: { isPublic: true },
-      include: { user: { select: { name: true } }, _count: { select: { cards: true } } },
+      include: { user: { select: { name: true, username: true, photoURL: true, firebaseUid: true } }, _count: { select: { cards: true } } },
       orderBy: { createdAt: 'desc' }
     });
     res.json({ success: true, folders });

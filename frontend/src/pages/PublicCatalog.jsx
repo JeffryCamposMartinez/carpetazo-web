@@ -6,6 +6,8 @@ import PokemonCard from '../components/PokemonCard';
 import AlbumView from '../components/AlbumView';
 import Toast from '../components/Toast';
 import { useAuth } from '../contexts/AuthContext';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 function PublicCatalog() {
   const { folderId } = useParams();
@@ -54,8 +56,24 @@ function PublicCatalog() {
           apiFetch('/folders/' + folderId + '/visit', { method: 'POST', body: JSON.stringify({ currentWeek }) }).catch(err => console.error("Error updating visits", err));
         }
 
-                if (folder.user) {
-          setSellerData(folder.user);
+                        if (folder.user) {
+          let mergedUser = { 
+            ...folder.user, 
+            displayName: folder.user.name || folder.user.username,
+            avatarBase64: folder.user.photoURL
+          };
+          if (folder.user.firebaseUid) {
+            try {
+              
+              const userSnap = await getDoc(doc(db, 'users', folder.user.firebaseUid));
+              if (userSnap.exists()) {
+                mergedUser = { ...mergedUser, ...userSnap.data() };
+              }
+            } catch (e) {
+              console.error("Error fetching firestore user data:", e);
+            }
+          }
+          setSellerData(mergedUser);
         }
 
         const cardsList = (folder.cards || []).map(c => ({ ...c, apiId: c.tcgId || c.id, ...(c.data || {}) }));

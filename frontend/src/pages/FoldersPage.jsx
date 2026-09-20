@@ -45,9 +45,9 @@ export default function FoldersPage() {
           folder.validWeeklyVisits = folder.lastVisitWeek === currentWeek ? (folder.weeklyVisits || 0) : 0;
           folder.validTotalVisits = folder.totalVisits || 0;
           folder.cardsCount = folder.cards?.length || 0;
-          folder.user = folder.user?.name || folder.user?.username || 'Usuario';
+          folder.avatarUrl = folder.user?.photoURL || null;
+          folder.user = folder.user?.name || folder.user?.username || 'Vendedor Anónimo';
           folder.location = '';
-          folder.avatarUrl = null;
         }
         setFolders(allFolders);
       } catch (error) {
