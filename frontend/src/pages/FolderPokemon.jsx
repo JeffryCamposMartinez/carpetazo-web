@@ -728,7 +728,7 @@ const handleSearchAPI = async (e) => {
           <div className="flex flex-col sm:flex-row gap-4 mb-2">
               
             {searchCategory === '99' && (
-                <select value={searchBlock} onChange={(e) => { setSearchBlock(e.target.value); setSearchSet(''); }} className="w-full sm:w-1/3 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors">
+                <select value={searchBlock} onChange={(e) => { setSearchBlock(e.target.value); setSearchSet(''); setSearchPhysicalProduct(''); }} className="w-full sm:w-1/3 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors">
                   <option value="">Bloque (Todos)</option>
                   <option value="1">Furia Extendido</option>
                   <option value="2">Primer Bloque</option>
@@ -736,9 +736,9 @@ const handleSearchAPI = async (e) => {
                 </select>
               )}
               {searchCategory === '99' && (
-                <select value={searchPhysicalProduct} onChange={(e) => setSearchPhysicalProduct(e.target.value)} className="w-full sm:w-1/3 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors">
+                <select value={searchPhysicalProduct} onChange={(e) => setSearchPhysicalProduct(e.target.value)} disabled={!searchBlock} className="w-full sm:w-1/3 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
                   <option value="">Producto (Todos)</option>
-                  {availablePhysicalProducts.map(p => (
+                  {availablePhysicalProducts.filter(p => !searchBlock || p.blockId === parseInt(searchBlock)).map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>

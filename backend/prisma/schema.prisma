@@ -120,5 +120,6 @@ model TcgPhysicalProduct {
   id          Int       @id @default(autoincrement())
   name        String
   releaseDate DateTime?
+  blockId     Int?
   products    TcgProduct[]
 }
