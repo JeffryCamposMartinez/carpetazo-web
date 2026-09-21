@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 
-export default function AlbumView({ cards = [], renderCardActions, renderCardOverlays, binderColor = '#2f7336', emptyMessage, topRightControls }) {
+export default function AlbumView({ cards = [], renderCardActions, renderCardOverlays, binderColor = '#2f7336', emptyMessage, topRightControls, tcg }) {
   const [currentPage, setCurrentPage] = useState(0);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
   const [activeCardId, setActiveCardId] = useState(null);
@@ -404,10 +404,10 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                     <div className="flex flex-col gap-1">
                       <h2 className="text-2xl md:text-4xl font-black leading-tight text-white drop-shadow-md">{previewCard.name}</h2>
                       <p className="text-slate-400 text-xs md:text-base italic leading-tight">
-                        {previewCard.set} • {previewCard.supertype || 'Pokémon'} • #{(() => {
+                        {previewCard.set} • {previewCard.supertype || (tcg === 'Mitos y Leyendas' ? 'Carta' : 'Pokémon')} {tcg !== 'Mitos y Leyendas' && ` • #${(() => {
                             let numStr = (previewCard.number || previewCard.apiId?.split('-')[1] || previewCard.id?.split('-')[1] || '').toString();
                             return numStr.padStart(3, '0');
-                        })()}
+                        })()}`}
                       </p>
                     </div>
 
@@ -421,11 +421,22 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-2 md:gap-y-3 text-xs md:text-base bg-black/40 p-3 md:p-5 rounded-xl border border-white/5 shadow-inner">
-                      <p className="flex flex-col"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Rareza</strong> <span className="font-medium text-white truncate">{previewCard.rarity || 'Desconocida'}</span></p>
-                      <p className="flex flex-col"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Idioma</strong> <span className="font-medium text-white truncate">{previewCard.language || 'Desconocido'}</span></p>
-                      <p className="flex flex-col col-span-2 mt-1 md:mt-2 pt-2 md:pt-3 border-t border-white/10"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Estado</strong> <span className="font-medium text-white truncate">{previewCard.condition || 'Near Mint'}</span></p>
-                    </div>
+                    {tcg === 'Mitos y Leyendas' ? (
+                      <div className="w-full bg-black/40 p-3 md:p-5 rounded-xl border border-white/5 shadow-inner overflow-y-auto max-h-[120px] md:max-h-[200px]">
+                        <p className="flex flex-col">
+                          <strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-1">Habilidad</strong> 
+                          <span className="font-medium text-white text-[11px] md:text-sm leading-relaxed whitespace-pre-wrap">
+                            {previewCard.data?.ability || previewCard.ability || previewCard.extData?.ability || previewCard.data?.efecto || previewCard.efecto || previewCard.data?.text || previewCard.text || 'Sin habilidad registrada'}
+                          </span>
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-2 md:gap-y-3 text-xs md:text-base bg-black/40 p-3 md:p-5 rounded-xl border border-white/5 shadow-inner">
+                        <p className="flex flex-col"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Rareza</strong> <span className="font-medium text-white truncate">{previewCard.rarity || 'Desconocida'}</span></p>
+                        <p className="flex flex-col"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Idioma</strong> <span className="font-medium text-white truncate">{previewCard.language || 'Desconocido'}</span></p>
+                        <p className="flex flex-col col-span-2 mt-1 md:mt-2 pt-2 md:pt-3 border-t border-white/10"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Estado</strong> <span className="font-medium text-white truncate">{previewCard.condition || 'Near Mint'}</span></p>
+                      </div>
+                    )}
 
                     <div className="mt-auto pt-4 md:pt-6 w-full flex justify-center">
                       <div className="w-full max-w-[280px] md:max-w-[320px] album-preview-actions bg-white/5 p-2 md:p-3 rounded-xl border border-white/10">
@@ -499,6 +510,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                     if (card) {
                       setActiveCardId(cardIsActive ? null : uniqueId);
                         setPreviewCard(card);
+                        console.log('PreviewCard Data:', card);
                     }
                   }}
                   onMouseEnter={() => {
