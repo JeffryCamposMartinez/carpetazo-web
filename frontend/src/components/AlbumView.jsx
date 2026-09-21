@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 
 export default function AlbumView({ cards = [], renderCardActions, renderCardOverlays, binderColor = '#2f7336', emptyMessage, topRightControls, tcg }) {
   const [currentPage, setCurrentPage] = useState(0);
@@ -209,7 +209,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
       {!inverted && (
         <div className="md:hidden flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs mb-3 font-medium bg-slate-200/50 dark:bg-slate-800/50 px-3 py-1 rounded-full">
           <span translate="no" className="material-symbols-outlined text-[16px]">swipe</span>
-          Desliza para cambiar de página
+          Desliza para cambiar de pÃ¡gina
         </div>
       )}
 
@@ -326,7 +326,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
             <div className="absolute inset-0 bg-black/30 z-0" />
             
             {/* Leather Texture for the binder wrap */}
-            <div className="absolute inset-0 opacity-40 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/leather.png')] z-10" />
+            <div className="absolute inset-0 opacity-40 mix-blend-multiply bg-[url('/images/leather.png')] z-10" />
             <div className="absolute inset-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.6)] md:shadow-[inset_0_0_50px_rgba(0,0,0,0.6)] z-10" />
             
             {/* Stitched Edge (Costura) */}
@@ -434,7 +434,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                     <div className="flex flex-col gap-1">
                       <h2 className="text-2xl md:text-4xl font-black leading-tight text-white drop-shadow-md">{previewCard.name}</h2>
                       <p className="text-slate-400 text-xs md:text-base italic leading-tight">
-                        {previewCard.set} • {(previewCard.supertype === 'Unknown' || !previewCard.supertype) ? (tcg === 'Mitos y Leyendas' ? 'Carta' : 'Pokémon') : previewCard.supertype} {tcg !== 'Mitos y Leyendas' && ` • #${(() => {
+                        {previewCard.set} â€¢ {(previewCard.supertype === 'Unknown' || !previewCard.supertype) ? (tcg === 'Mitos y Leyendas' ? 'Carta' : 'PokÃ©mon') : previewCard.supertype} {tcg !== 'Mitos y Leyendas' && ` â€¢ #${(() => {
                             let numStr = (previewCard.number || previewCard.apiId?.split('-')[1] || previewCard.id?.split('-')[1] || '').toString();
                             return numStr.padStart(3, '0');
                         })()}`}
@@ -566,7 +566,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                             className="max-w-full max-h-full object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] rounded-[4%]"
                           />
                           
-                          <div className="absolute top-0 right-0 md:-top-1 md:-right-1 bg-black/80 text-white text-[10px] md:text-xs font-bold px-1.5 py-0.5 rounded shadow-md z-[120] pointer-events-none transition-all">
+                          <div className="absolute top-1 right-1 md:top-1.5 md:right-1.5 bg-black/80 text-white text-[10px] md:text-xs font-bold px-2 py-[2px] rounded-full shadow-lg border border-white/20 z-[120] pointer-events-none transition-all backdrop-blur-sm">
                             x{card.stock || 0}
                           </div>
                           <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black/80 text-yellow-400 text-[10px] md:text-xs font-bold px-2 py-0.5 rounded-full shadow-md z-[120] whitespace-nowrap pointer-events-none transition-opacity duration-300 ${cardIsActive ? 'opacity-0' : 'opacity-100'}`}>
@@ -646,7 +646,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                   ) : (
                     <>
                       {/* Back page texture and subtle logo for mobile */}
-                      <div className="absolute inset-0 opacity-40 mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
+                      <div className="absolute inset-0 opacity-40 mix-blend-overlay bg-[url('/images/cubes.png')]" />
                       <div className="absolute right-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-l from-black/90 to-transparent pointer-events-none z-20" />
                       <div className="absolute inset-0 flex items-center justify-center opacity-10">
                         <span translate="no" className="material-symbols-outlined text-[10rem] md:text-[15rem]">style</span>
@@ -670,3 +670,5 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
     </div>
   );
 }
+
+

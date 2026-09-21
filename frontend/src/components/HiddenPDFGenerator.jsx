@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import api from '../utils/api';
 
 export default function HiddenPDFGenerator({ folderId, onComplete, onProgress }) {
@@ -181,7 +181,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
             >
               {/* Binder Cover Leather Texture */}
               <div className="absolute inset-0 bg-black/30 z-0" />
-              <div className="absolute inset-0 opacity-40 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/leather.png')] z-0" />
+              <div className="absolute inset-0 opacity-40 mix-blend-multiply bg-[url('/images/leather.png')] z-0" />
               <div className="absolute inset-0 shadow-[inset_0_0_50px_rgba(0,0,0,0.6)] z-0" />
               
               {/* Stitched Edge */}
@@ -192,7 +192,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
               <div className={`relative flex-1 bg-[#151515] flex flex-col p-[12mm] shadow-[inset_0_0_10px_rgba(0,0,0,0.5),-5px_5px_15px_rgba(0,0,0,0.8)] z-20 overflow-hidden ${isRightPage ? 'rounded-r-[1.5rem] rounded-l-none mt-[4mm] mb-[4mm] mr-[4mm] ml-0' : 'rounded-l-[1.5rem] rounded-r-none mt-[4mm] mb-[4mm] ml-[4mm] mr-0'}`}>
                  
                  {/* Subtle texture for the black page */}
-                 <div className="absolute inset-0 opacity-40 mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] z-0" />
+                 <div className="absolute inset-0 opacity-40 mix-blend-overlay bg-[url('/images/cubes.png')] z-0" />
                  
                  {/* Spine shadow on the inner black page */}
                  <div className={`absolute top-0 bottom-0 w-28 pointer-events-none z-10 bg-gradient-to-${isRightPage ? 'r' : 'l'} from-black/90 to-transparent ${isRightPage ? 'left-0' : 'right-0'}`} />
@@ -218,7 +218,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
                               onLoad={() => setImagesLoaded(prev => prev + 1)}
                               onError={() => setImagesLoaded(prev => prev + 1)} 
                             />
-                            <div className="absolute top-0 right-0 bg-black/90 text-white font-bold text-[11px] h-[22px] leading-[22px] px-2 rounded shadow-md z-[120] text-center inline-block">
+                            <div className="absolute top-1.5 right-1.5 bg-black/80 text-white font-bold text-[11px] px-2 py-[2px] rounded-full shadow-lg border border-white/20 z-[120] flex items-center justify-center backdrop-blur-sm">
                               x{card.stock || 0}
                             </div>
                             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black/90 text-yellow-400 font-bold text-[11px] h-[22px] leading-[22px] px-3 rounded-full shadow-md whitespace-nowrap z-[120] text-center inline-block">
@@ -247,3 +247,5 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
     </div>
   );
 }
+
+
