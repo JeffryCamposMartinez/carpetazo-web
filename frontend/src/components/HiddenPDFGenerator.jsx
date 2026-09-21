@@ -218,11 +218,11 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
                               onLoad={() => setImagesLoaded(prev => prev + 1)}
                               onError={() => setImagesLoaded(prev => prev + 1)} 
                             />
-                            <div className="absolute top-1.5 right-1.5 bg-black/80 text-white font-bold text-[11px] px-2 py-0.5 rounded-full shadow-lg border border-white/20 z-[120] inline-block text-center backdrop-blur-sm">
-                              <span className="relative -top-[4px]">x{card.stock || 0}</span>
+                            <div className="absolute top-1.5 right-1.5 bg-black/80 text-white font-bold text-[13px] px-3 py-1 rounded-full shadow-lg border border-white/20 z-[120] inline-block text-center backdrop-blur-sm">
+                              <span className="relative -top-[5px]">x{card.stock || 0}</span>
                             </div>
-                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black/90 text-yellow-400 font-bold text-[11px] px-3 py-1 rounded-full shadow-md whitespace-nowrap z-[120] inline-block text-center border border-white/10">
-                              <span className="relative -top-[4px]">{card.price ? '$' + Number(card.price).toLocaleString('es-CL') : 'Sin precio'}</span>
+                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black/90 text-yellow-400 font-bold text-[13px] px-4 py-1.5 rounded-full shadow-md whitespace-nowrap z-[120] inline-block text-center border border-white/10">
+                              <span className="relative -top-[5px]">{card.price ? '$' + Number(card.price).toLocaleString('es-CL') : 'Sin precio'}</span>
                             </div>
                           </div>
                         ) : (
