@@ -93,8 +93,6 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
   };
 
   useEffect(() => {
-    
-  useEffect(() => {
     if (previewCard && tcg === 'Mitos y Leyendas') {
       const fetchAbility = async () => {
         setFetchingAbility(true);
@@ -103,19 +101,15 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
           const res = await fetch('https://api.carpetazo.cl/api/tcg/search?q=' + encodeURIComponent(previewCard.name));
           const json = await res.json();
           if (json.success && json.data) {
-            // Find by TCG ID if possible, otherwise by exact name match
             let match = json.data.find(c => c.productId == previewCard.tcgId || c.productId == previewCard.apiId);
             if (!match) match = json.data.find(c => c.name.toLowerCase() === previewCard.name.toLowerCase());
-            
             if (match && match.extData && match.extData.effect) {
-              // Strip HTML tags like <p> from the effect text
               setFetchedAbility(match.extData.effect.replace(/<[^>]*>?/gm, ''));
             } else {
               setFetchedAbility('Sin habilidad (Carta Vainilla)');
             }
           }
         } catch (err) {
-          console.error("Error fetching ability", err);
           setFetchedAbility('Error al cargar habilidad');
         } finally {
           setFetchingAbility(false);
@@ -124,6 +118,8 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
       fetchAbility();
     }
   }, [previewCard, tcg]);
+
+  useEffect(() => {
 
     const handleKeyDown = (e) => {
       // Ignore if typing in an input to prevent interfering with search
