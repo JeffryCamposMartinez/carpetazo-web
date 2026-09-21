@@ -5,6 +5,8 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
   const [activeCardId, setActiveCardId] = useState(null);
     const [previewCard, setPreviewCard] = useState(null);
+  const [fetchedAbility, setFetchedAbility] = useState(null);
+  const [fetchingAbility, setFetchingAbility] = useState(false);
   const [targetPage, setTargetPage] = useState(null);
 
   useEffect(() => {
@@ -91,6 +93,38 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
   };
 
   useEffect(() => {
+    
+  useEffect(() => {
+    if (previewCard && tcg === 'Mitos y Leyendas') {
+      const fetchAbility = async () => {
+        setFetchingAbility(true);
+        setFetchedAbility(null);
+        try {
+          const res = await fetch('https://api.carpetazo.cl/api/tcg/search?q=' + encodeURIComponent(previewCard.name));
+          const json = await res.json();
+          if (json.success && json.data) {
+            // Find by TCG ID if possible, otherwise by exact name match
+            let match = json.data.find(c => c.productId == previewCard.tcgId || c.productId == previewCard.apiId);
+            if (!match) match = json.data.find(c => c.name.toLowerCase() === previewCard.name.toLowerCase());
+            
+            if (match && match.extData && match.extData.effect) {
+              // Strip HTML tags like <p> from the effect text
+              setFetchedAbility(match.extData.effect.replace(/<[^>]*>?/gm, ''));
+            } else {
+              setFetchedAbility('Sin habilidad (Carta Vainilla)');
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching ability", err);
+          setFetchedAbility('Error al cargar habilidad');
+        } finally {
+          setFetchingAbility(false);
+        }
+      };
+      fetchAbility();
+    }
+  }, [previewCard, tcg]);
+
     const handleKeyDown = (e) => {
       // Ignore if typing in an input to prevent interfering with search
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -426,7 +460,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                         <p className="flex flex-col">
                           <strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-1">Habilidad</strong> 
                           <span className="font-medium text-white text-[11px] md:text-sm leading-relaxed whitespace-pre-wrap">
-                            {previewCard.data?.ability || previewCard.ability || previewCard.extData?.ability || previewCard.data?.efecto || previewCard.efecto || previewCard.data?.text || previewCard.text || JSON.stringify(previewCard, null, 2)}
+                            {fetchingAbility ? 'Buscando habilidad ancestral...' : (fetchedAbility || 'Sin habilidad registrada')}
                           </span>
                         </p>
                       </div>
