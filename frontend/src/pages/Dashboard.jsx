@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
@@ -123,7 +123,7 @@ export default function Dashboard() {
     try {
       await api.deleteFolder(folderToDelete.id);
       setFolders(folders.filter(f => f.id !== folderToDelete.id));
-      showToast("¡Carpeta eliminada con éxito!");
+      showToast("Â¡Carpeta eliminada con Ã©xito!");
       setIsCreateModalOpen(false);
     } catch (error) {
       console.error("Error al eliminar la carpeta:", error);
@@ -162,7 +162,7 @@ export default function Dashboard() {
       setFolders(folders.map(f => f.id === folder.id ? { ...f, isPublic: newStatus } : f));
       showToast(newStatus ? 'Carpeta publicada' : 'Carpeta hecha privada');
     } catch (error) {
-      console.error("Error al cambiar estado público:", error);
+      console.error("Error al cambiar estado pÃºblico:", error);
       showToast('Error al cambiar privacidad');
     }
   };
@@ -173,19 +173,19 @@ export default function Dashboard() {
     
     if (navigator.share) {
       navigator.share({
-        title: `Catálogo de ${folder.name}`,
-        text: `¡Mira mi catálogo de cartas en Carpetazo!`,
+        title: `CatÃ¡logo de ${folder.name}`,
+        text: `Â¡Mira mi catÃ¡logo de cartas en Carpetazo!`,
         url: url
       }).catch(err => {
         if (err.name !== 'AbortError') {
           navigator.clipboard.writeText(url).then(() => {
-            showToast("¡Enlace copiado al portapapeles!");
+            showToast("Â¡Enlace copiado al portapapeles!");
           });
         }
       });
     } else {
       navigator.clipboard.writeText(url).then(() => {
-        showToast("¡Enlace copiado al portapapeles!");
+        showToast("Â¡Enlace copiado al portapapeles!");
       }).catch(err => console.error("Error al copiar", err));
     }
   };
@@ -214,8 +214,8 @@ export default function Dashboard() {
               {activeTab === 'historial' && 'Historial de Pedidos'}
             </h1>
             <p className="text-gray-600 text-lg md:text-xl leading-relaxed">
-              {activeTab === 'carpetas' && 'Crea catálogos personalizados para empezar a gestionar tus cartas, compartir enlaces con compradores y aumentar tus ventas.'}
-              {activeTab === 'solicitudes' && 'Gestiona y confirma los pedidos recientes para descontar el stock automáticamente.'}
+              {activeTab === 'carpetas' && 'Crea catÃ¡logos personalizados para empezar a gestionar tus cartas, compartir enlaces con compradores y aumentar tus ventas.'}
+              {activeTab === 'solicitudes' && 'Gestiona y confirma los pedidos recientes para descontar el stock automÃ¡ticamente.'}
               {activeTab === 'historial' && 'Revisa el registro de todas tus ventas completadas.'}
             </p>
           </div>
@@ -287,7 +287,7 @@ export default function Dashboard() {
               <button 
                 onClick={(e) => handleTogglePublic(e, folder)}
                 className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full shadow-lg transition-all ${folder.isPublic ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'}`}
-                title={folder.isPublic ? "Carpeta Pública (Clic para ocultar)" : "Carpeta Privada (Clic para publicar)"}
+                title={folder.isPublic ? "Carpeta PÃºblica (Clic para ocultar)" : "Carpeta Privada (Clic para publicar)"}
               >
                 <span translate="no" className="material-symbols-outlined text-[16px] md:text-[18px]">{folder.isPublic ? 'public' : 'public_off'}</span>
               </button>
@@ -405,13 +405,13 @@ export default function Dashboard() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Categoría (TCG)</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">CategorÃ­a (TCG)</label>
                 <select 
                   value={newFolderTcg}
                   onChange={(e) => setNewFolderTcg(e.target.value)}
                   className="w-full bg-gray-50 border border-gray-300 text-gray-900 px-4 py-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#1e40af] focus:border-[#1e40af] transition-all appearance-none cursor-pointer font-medium"
                 >
-                  <option value="Pokemon">Pokémon TCG</option>
+                  <option value="Pokemon">PokÃ©mon TCG</option>
                   <option value="YuGiOh">Yu-Gi-Oh!</option>
                   <option value="Magic">Magic: The Gathering</option>
                   <option value="Mitos y Leyendas">Mitos y Leyendas</option>
@@ -453,47 +453,7 @@ export default function Dashboard() {
                     <>
                       <span translate="no" className="material-symbols-outlined text-[18px]">add</span>
                       Crear
-                    
-      {/* PDF Generator Components */}
-      {generatingPdfFolder && (
-        <HiddenPDFGenerator 
-          folderId={generatingPdfFolder} 
-          onProgress={(loaded, total, isGenerating) => setPdfProgress({ loaded, total, generating: isGenerating })}
-          onComplete={() => setGeneratingPdfFolder(null)} 
-        />
-      )}
-      
-      {generatingPdfFolder && (
-        <div className="fixed inset-0 bg-slate-900 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full flex flex-col items-center">
-            <div className="w-16 h-16 border-4 border-blue-100 border-t-[#1e40af] rounded-full animate-spin mb-6"></div>
-            
-            <h2 className="text-2xl font-bold text-[#1a2b4b] mb-2 text-center">
-              {pdfProgress.generating ? 'Generando PDF...' : 'Preparando Carpeta...'}
-            </h2>
-            <p className="text-gray-500 mb-8 text-center text-sm px-4 leading-relaxed">
-              {pdfProgress.generating 
-                ? 'Dibujando la carpeta y descargando. Esto puede tardar unos segundos...' 
-                : 'Cargando imágenes en alta resolución. Por favor espera...'}
-            </p>
-            <div className="w-full bg-gray-100 rounded-full h-4 mb-4 overflow-hidden shadow-inner relative">
-              <div 
-                className="bg-gradient-to-r from-blue-500 to-[#1e40af] h-full rounded-full transition-all duration-300 ease-out absolute left-0 top-0" 
-                style={{ width: pdfProgress.generating ? '100%' : `${Math.min(100, (pdfProgress.loaded / Math.max(1, pdfProgress.total)) * 100)}%` }}
-              >
-                <div className="absolute top-0 left-0 right-0 bottom-0 bg-white/20" style={{ backgroundImage: 'linear-gradient(45deg, rgba(255,255,255,0.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.15) 75%, transparent 75%, transparent)', backgroundSize: '1rem 1rem' }}></div>
-              </div>
-            </div>
-            <div className="flex justify-between w-full text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-              <span>Progreso</span>
-              <span>
-                {pdfProgress.generating ? '100%' : `${Math.round(Math.min(100, (pdfProgress.loaded / Math.max(1, pdfProgress.total)) * 100))}%`}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-      </>
+                      </>
 
                   )}
                 </button>
@@ -573,9 +533,9 @@ export default function Dashboard() {
             <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-6">
               <span translate="no" className="material-symbols-outlined text-4xl text-red-600">warning</span>
             </div>
-            <h3 className="text-2xl font-bold text-center text-gray-900 mb-2">¿Eliminar carpeta?</h3>
+            <h3 className="text-2xl font-bold text-center text-gray-900 mb-2">Â¿Eliminar carpeta?</h3>
             <p className="text-center text-gray-600 mb-8">
-              Estás a punto de eliminar <strong>"{folderToDelete.name}"</strong>. Esta acción no se puede deshacer.
+              EstÃ¡s a punto de eliminar <strong>"{folderToDelete.name}"</strong>. Esta acciÃ³n no se puede deshacer.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <button 
@@ -595,11 +555,49 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* PDF Generator Components */}
+      {generatingPdfFolder && (
+        <HiddenPDFGenerator 
+          folderId={generatingPdfFolder} 
+          onProgress={(loaded, total, isGenerating) => setPdfProgress({ loaded, total, generating: isGenerating })}
+          onComplete={() => setGeneratingPdfFolder(null)} 
+        />
+      )}
+      
+      {generatingPdfFolder && (
+        <div className="fixed inset-0 bg-slate-900 z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full flex flex-col items-center">
+            <div className="w-16 h-16 border-4 border-blue-100 border-t-[#1e40af] rounded-full animate-spin mb-6"></div>
+            
+            <h2 className="text-2xl font-bold text-[#1a2b4b] mb-2 text-center">
+              {pdfProgress.generating ? 'Generando PDF...' : 'Preparando Carpeta...'}
+            </h2>
+            <p className="text-gray-500 mb-8 text-center text-sm px-4 leading-relaxed">
+              {pdfProgress.generating 
+                ? 'Dibujando la carpeta y descargando. Esto puede tardar unos segundos...' 
+                : 'Cargando imágenes en alta resolución. Por favor espera...'}
+            </p>
+            <div className="w-full bg-gray-100 rounded-full h-4 mb-4 overflow-hidden shadow-inner relative">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-[#1e40af] h-full rounded-full transition-all duration-300 ease-out absolute left-0 top-0" 
+                style={{ width: pdfProgress.generating ? '100%' : `${Math.min(100, (pdfProgress.loaded / Math.max(1, pdfProgress.total)) * 100)}%` }}
+              >
+                <div className="absolute top-0 left-0 right-0 bottom-0 bg-white/20" style={{ backgroundImage: 'linear-gradient(45deg, rgba(255,255,255,0.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.15) 75%, transparent 75%, transparent)', backgroundSize: '1rem 1rem' }}></div>
+              </div>
+            </div>
+            <div className="flex justify-between w-full text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+              <span>Progreso</span>
+              <span>
+                {pdfProgress.generating ? '100%' : `${Math.round(Math.min(100, (pdfProgress.loaded / Math.max(1, pdfProgress.total)) * 100))}%`}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
       </div>
       </div>
     </>
   );
 }
-
-
