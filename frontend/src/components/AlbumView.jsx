@@ -278,7 +278,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
       {/* 3D Binder Wrapper for Spine Centering on Desktop */}
       <div className={`w-full flex justify-center md:justify-start md:ml-[50%] md:w-[50%] perspective-[3500px] relative ${targetPage !== null ? 'pointer-events-none' : ''} ${activeCardId !== null ? 'z-[70]' : 'z-10'}`}>
         <div
-          className="relative w-[95%] max-w-[450px] xl:max-w-[500px] 2xl:max-w-[600px] mt-2 md:mt-4 touch-pan-y"
+          className="relative w-[95%] max-w-[360px] xl:max-w-[400px] 2xl:max-w-[460px] mt-2 md:mt-4 touch-pan-y"
           style={{ perspective: '3500px', aspectRatio: '7.5/10.5' }}
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
