@@ -565,9 +565,10 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                             loading="lazy"
                             className="max-w-full max-h-full object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] rounded-[4%]"
                           />
-                                                    <div className="absolute top-1 right-1 md:top-1.5 md:right-1.5 bg-black/80 text-white text-[10px] md:text-xs font-bold px-2 py-0.5 md:py-1 leading-none rounded-full shadow-lg border border-white/20 z-[120] flex items-center justify-center pointer-events-none transition-all backdrop-blur-sm">
-                              <span className="mt-[1px]">x{card.stock || 0}</span>
-                            </div>
+                          
+                          <div className="absolute top-1 right-1 md:top-1.5 md:right-1.5 bg-black/80 text-white text-[10px] md:text-xs font-bold px-2 py-0.5 md:py-1 leading-none rounded-full shadow-lg border border-white/20 z-[120] flex items-center justify-center pointer-events-none transition-all backdrop-blur-sm">
+                            <span className="mt-[1px]">x{card.stock || 0}</span>
+                          </div>
                           <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black/80 text-yellow-400 text-[10px] md:text-xs font-bold px-2.5 py-0.5 md:py-1 leading-none rounded-full shadow-md z-[120] flex items-center justify-center border border-white/10 whitespace-nowrap pointer-events-none transition-opacity duration-300 ${cardIsActive ? 'opacity-0' : 'opacity-100'}`}>
                             <span className="mt-[1px]">{card.price ? '$' + Number(card.price).toLocaleString('es-CL') : 'Sin precio'}</span>
                           </div>
