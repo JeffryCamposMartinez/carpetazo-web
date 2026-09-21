@@ -198,7 +198,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
 
               {/* Watermark Logo */}
               <div className={`absolute bottom-[12mm] z-[50] opacity-60 flex items-center justify-center w-[40mm] h-[15mm] ${isRightPage ? 'right-[12mm]' : 'left-[12mm]'}`}>
-                <img src="/images/logos/watermark.png" alt="Carpetazo" className="max-w-full max-h-full object-contain filter drop-shadow-lg" />
+                <img src="/images/logos/logo_completo.webp" alt="Carpetazo" className="max-w-full max-h-full object-contain filter drop-shadow-lg" />
               </div>
 
               {/* Inner Black Page (where cards live) */}
