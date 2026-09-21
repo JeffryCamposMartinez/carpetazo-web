@@ -340,7 +340,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                    right: '50%'
                  }}
             >
-               <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/paper.png')]" />
+               <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[url('/images/paper.png')]" />
                
                {/* Stamped Logo Watermark */}
                <img 
@@ -358,7 +358,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                    left: '50%'
                  }}
             >
-               <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/paper.png')]" />
+               <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[url('/images/paper.png')]" />
             </div>
             
             {/* Center Spine Crease (Exactly at the page hinge) */}
@@ -443,7 +443,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
 
                     <div className="flex flex-wrap items-center gap-2 md:gap-4 my-1 md:my-2">
                       <span className="bg-yellow-400 text-black px-3 py-1 md:px-5 md:py-2.5 rounded-lg font-black text-xl md:text-3xl shadow-lg leading-none">
-                          {previewCard.price ? '$' + previewCard.price : 'Sin precio'}
+                          {previewCard.price ? '
                       </span>
                       <span className="bg-slate-800 border border-slate-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-white font-medium text-xs md:text-lg flex items-center gap-1.5 leading-none shadow-md">
                           <span translate="no" className="material-symbols-outlined text-[16px] md:text-xl">inventory_2</span>
@@ -566,8 +566,237 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                             className="max-w-full max-h-full object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] rounded-[4%]"
                           />
                           
-                          <div className="absolute top-1 right-1 md:top-1.5 md:right-1.5 bg-black/80 text-white text-[10px] md:text-xs font-bold px-2 py-[2px] rounded-full shadow-lg border border-white/20 z-[120] pointer-events-none transition-all backdrop-blur-sm">
-                            x{card.stock || 0}
+                          <div className="absolute top-1 right-1 md:top-1.5 md:right-1.5 bg-black/80 text-white text-[10px] md:text-xs font-bold px-2 py-0.5 md:py-1 leading-none rounded-full shadow-lg border border-white/20 z-[120] flex items-center justify-center pointer-events-none transition-all backdrop-blur-sm">
+                              <span className="mt-[1px]">x{card.stock || 0}</span>
+                          </div>
+                          <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black/80 text-yellow-400 text-[10px] md:text-xs font-bold px-2.5 py-0.5 md:py-1 leading-none rounded-full shadow-md z-[120] flex items-center justify-center border border-white/10 whitespace-nowrap pointer-events-none transition-opacity duration-300 ${cardIsActive ? 'opacity-0' : 'opacity-100'}">
+                              <span className="mt-[1px]">{card.price ? '
+
+                          {renderCardOverlays && (
+                            <div className="absolute inset-0 pointer-events-none z-[110]">
+                              {renderCardOverlays(card)}
+                            </div>
+                          )}
+                        </div>
+                        
+                                                  
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center opacity-20 select-none relative z-0">
+                      <span translate="no" className="material-symbols-outlined text-white text-4xl mb-1">style</span>
+                    </div>
+                  )}
+                </div>
+              );
+            };
+
+            return (
+              <div
+                key={pageIndex}
+                className="absolute top-0 left-0 right-0 bottom-0"
+                style={{
+                  transformOrigin: 'left center',
+                  transform,
+                  zIndex,
+                  transition: 'transform 0.9s cubic-bezier(0.4, 0.0, 0.2, 1)',
+                  transformStyle: 'preserve-3d',
+                }}
+              >
+                {/* FRONT FACE (Cards) */}
+                <div 
+                  className="absolute inset-0 bg-[#151515] rounded-r-xl md:rounded-r-2xl shadow-[inset_0_0_8px_rgba(0,0,0,0.5),3px_3px_10px_rgba(0,0,0,0.5)] md:shadow-[inset_0_0_10px_rgba(0,0,0,0.5),5px_5px_15px_rgba(0,0,0,0.5)] flex flex-col"
+                  style={{ transform: 'translateZ(1px)' }}
+                >
+                  {/* Binder inner spine shading */}
+                  <div className="absolute left-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-r from-black/80 to-transparent pointer-events-none z-20" />
+
+                  {/* Card Pockets Grid */}
+                  <div className="flex-1 grid gap-1.5 md:gap-3 h-full p-2 md:p-5 pl-6 md:pl-12 grid-cols-3 grid-rows-3">
+                    {frontPockets.map((card, i) => renderPocket(card, i, false))}
+                  </div>
+                  
+                  {/* Empty Message Overlay */}
+                  {cards.length === 0 && emptyMessage && pageIndex === 0 && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-8 z-50">
+                       <div className="bg-[#1a1a1a]/80 backdrop-blur-md text-white p-6 rounded-2xl border border-white/10 shadow-2xl text-center max-w-[80%]">
+                         <span translate="no" className="material-symbols-outlined text-4xl md:text-5xl mb-2 opacity-50">search_off</span>
+                         <p className="font-medium text-sm md:text-lg">{emptyMessage}</p>
+                       </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* BACK FACE (Textured Black Page OR Left Page Cards) */}
+                <div 
+                  className="absolute inset-0 bg-[#111] rounded-l-xl md:rounded-l-2xl shadow-[inset_0_0_8px_rgba(0,0,0,0.5),-3px_3px_10px_rgba(0,0,0,0.5)] md:shadow-[inset_0_0_10px_rgba(0,0,0,0.5),-5px_5px_15px_rgba(0,0,0,0.5)] flex flex-col"
+                  style={{ transform: 'rotateY(180deg) translateZ(1px)' }}
+                >
+                  {isDesktop ? (
+                    <div className="absolute inset-0 bg-[#151515] flex flex-col">
+                      {/* Spine shading on the right side since this is the left page */}
+                      <div className="absolute right-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-l from-black/80 to-transparent pointer-events-none z-20" />
+                      
+                      {/* Notice pr-12 instead of pl-12 for the spine margin! */}
+                      <div className="flex-1 grid gap-3 h-full p-5 pr-12 grid-cols-3 grid-rows-3">
+                        {backPockets.map((card, i) => renderPocket(card, i, true))}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Back page texture and subtle logo for mobile */}
+                      <div className="absolute inset-0 opacity-40 mix-blend-overlay bg-[url('/images/cubes.png')]" />
+                      <div className="absolute right-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-l from-black/90 to-transparent pointer-events-none z-20" />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                        <span translate="no" className="material-symbols-outlined text-[10rem] md:text-[15rem]">style</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {cards.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-medium">
+              No hay cartas en esta carpeta.
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Binder Footer Controls */}
+      {renderPaginationControls(true)}
+    </div>
+  );
+}
+
+
+
+ + Number(previewCard.price).toLocaleString('es-CL') : 'Sin precio'}
+                      </span>
+                      <span className="bg-slate-800 border border-slate-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-white font-medium text-xs md:text-lg flex items-center gap-1.5 leading-none shadow-md">
+                          <span translate="no" className="material-symbols-outlined text-[16px] md:text-xl">inventory_2</span>
+                          x{previewCard.stock || 0} Disponibles
+                      </span>
+                    </div>
+
+                    {tcg === 'Mitos y Leyendas' ? (
+                      <div className="w-full bg-black/40 p-3 md:p-5 rounded-xl border border-white/5 shadow-inner overflow-y-auto max-h-[120px] md:max-h-[200px]">
+                        <p className="flex flex-col">
+                          <strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-1">Habilidad</strong> 
+                          <span className="font-medium text-white text-[11px] md:text-sm leading-relaxed whitespace-pre-wrap">
+                            {fetchingAbility ? 'Buscando habilidad ancestral...' : (fetchedAbility || 'Sin habilidad registrada')}
+                          </span>
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-2 md:gap-y-3 text-xs md:text-base bg-black/40 p-3 md:p-5 rounded-xl border border-white/5 shadow-inner">
+                        <p className="flex flex-col"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Rareza</strong> <span className="font-medium text-white truncate">{previewCard.rarity || 'Desconocida'}</span></p>
+                        <p className="flex flex-col"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Idioma</strong> <span className="font-medium text-white truncate">{previewCard.language || 'Desconocido'}</span></p>
+                        <p className="flex flex-col col-span-2 mt-1 md:mt-2 pt-2 md:pt-3 border-t border-white/10"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Estado</strong> <span className="font-medium text-white truncate">{previewCard.condition || 'Near Mint'}</span></p>
+                      </div>
+                    )}
+
+                    <div className="mt-auto pt-4 md:pt-6 w-full flex justify-center">
+                      <div className="w-full max-w-[280px] md:max-w-[320px] album-preview-actions bg-white/5 p-2 md:p-3 rounded-xl border border-white/10">
+                        {renderCardActions && renderCardActions(previewCard)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {visiblePages.map((pageIndex) => {
+            const frontGridIndex = isDesktop ? (pageIndex * 2) : pageIndex;
+            const backGridIndex = isDesktop ? (pageIndex * 2 + 1) : null;
+
+            const frontCards = cards.slice(
+              frontGridIndex * cardsPerPage,
+              (frontGridIndex + 1) * cardsPerPage
+            );
+            const frontPockets = Array.from({ length: cardsPerPage }).map(
+              (_, i) => frontCards[i] || null
+            );
+
+            let backPockets = [];
+            if (isDesktop) {
+              const backCards = cards.slice(
+                backGridIndex * cardsPerPage,
+                (backGridIndex + 1) * cardsPerPage
+              );
+              backPockets = Array.from({ length: cardsPerPage }).map(
+                (_, i) => backCards[i] || null
+              );
+            }
+
+            const isPast = pageIndex < currentPage;
+            const isActive = pageIndex === currentPage;
+            const isFuture = pageIndex > currentPage;
+
+            let transform = 'rotateY(0deg)';
+            let zIndex = 0;
+
+            if (isPast) {
+              transform = 'rotateY(-180deg)';
+              zIndex = 50 - (currentPage - pageIndex); 
+            } else if (isActive) {
+              transform = 'rotateY(0deg)';
+              zIndex = 40;
+            } else if (isFuture) {
+              transform = 'rotateY(0deg)';
+              zIndex = 30 - (pageIndex - currentPage);
+            }
+
+            const renderPocket = (card, i, isBackFace = false) => {
+              const uniqueId = card ? (isBackFace ? `${card.id}-back` : card.id) : null;
+              const cardIsActive = card && activeCardId === uniqueId;
+              
+              const colIndex = i % 3;
+              let tooltipPosClass = 'left-1/2 -translate-x-1/2';
+              if (colIndex === 0) {
+                tooltipPosClass = 'left-[5%] md:left-1/2 md:-translate-x-1/2';
+              } else if (colIndex === 2) {
+                tooltipPosClass = 'right-[5%] md:right-auto md:left-1/2 md:-translate-x-1/2';
+              }
+
+              return (
+                <div
+                  key={card ? uniqueId : `empty-${isBackFace ? 'back-' : ''}${i}`}
+                  className={`bg-[#222] rounded-xl border border-white/10 shadow-[inset_0_4px_15px_rgba(0,0,0,0.6)] flex flex-col items-center justify-center relative transition-all duration-300 min-h-0 min-w-0 ${cardIsActive ? 'z-50' : 'z-auto hover:z-50'}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (card) {
+                      setActiveCardId(cardIsActive ? null : uniqueId);
+                        setPreviewCard(card);
+                        console.log('PreviewCard Data:', card);
+                    }
+                  }}
+                  onMouseEnter={() => {
+                    if (isDesktop && card) setActiveCardId(uniqueId);
+                  }}
+                  onMouseLeave={() => {
+                    if (isDesktop && card) setActiveCardId(null);
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 pointer-events-none z-10 rounded-xl" />
+
+                  {card ? (
+                    <div 
+                      className="w-full h-full relative z-30 flex items-center justify-center cursor-pointer"
+                      style={{ transform: cardIsActive ? 'translateZ(80px)' : 'translateZ(0px)', transition: 'transform 300ms ease-out', transformStyle: 'preserve-3d' }}
+                    >
+                      <div className={`relative w-full h-full flex flex-col items-center justify-center transition-all duration-300 ease-out min-h-0 min-w-0 ${cardIsActive ? 'scale-[1.25] md:scale-[1.4] -translate-y-4 md:-translate-y-6 z-[100]' : ''}`}>
+                        <div className="relative w-[95%] h-[95%] flex items-center justify-center">
+                          <img
+                            src={card.imageUrl}
+                            alt={card.name}
+                            loading="lazy"
+                            className="max-w-full max-h-full object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] rounded-[4%]"
+                          />
+                          
+                          <div className="absolute top-1 right-1 md:top-1.5 md:right-1.5 bg-black/80 text-white text-[10px] md:text-xs font-bold px-2 py-0.5 md:py-1 leading-none rounded-full shadow-lg border border-white/20 z-[120] flex items-center justify-center pointer-events-none transition-all backdrop-blur-sm">
+                              <span className="mt-[1px]">x{card.stock || 0}</span>
                           </div>
                           <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black/80 text-yellow-400 text-[10px] md:text-xs font-bold px-2 py-0.5 rounded-full shadow-md z-[120] whitespace-nowrap pointer-events-none transition-opacity duration-300 ${cardIsActive ? 'opacity-0' : 'opacity-100'}`}>
                             {card.price ? `$${card.price}` : 'Sin precio'}
@@ -670,5 +899,441 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
     </div>
   );
 }
+
+
+
+ + Number(card.price).toLocaleString('es-CL') : 'Sin precio'}</span>
+                            </div>
+
+                          {renderCardOverlays && (
+                            <div className="absolute inset-0 pointer-events-none z-[110]">
+                              {renderCardOverlays(card)}
+                            </div>
+                          )}
+                        </div>
+                        
+                                                  
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center opacity-20 select-none relative z-0">
+                      <span translate="no" className="material-symbols-outlined text-white text-4xl mb-1">style</span>
+                    </div>
+                  )}
+                </div>
+              );
+            };
+
+            return (
+              <div
+                key={pageIndex}
+                className="absolute top-0 left-0 right-0 bottom-0"
+                style={{
+                  transformOrigin: 'left center',
+                  transform,
+                  zIndex,
+                  transition: 'transform 0.9s cubic-bezier(0.4, 0.0, 0.2, 1)',
+                  transformStyle: 'preserve-3d',
+                }}
+              >
+                {/* FRONT FACE (Cards) */}
+                <div 
+                  className="absolute inset-0 bg-[#151515] rounded-r-xl md:rounded-r-2xl shadow-[inset_0_0_8px_rgba(0,0,0,0.5),3px_3px_10px_rgba(0,0,0,0.5)] md:shadow-[inset_0_0_10px_rgba(0,0,0,0.5),5px_5px_15px_rgba(0,0,0,0.5)] flex flex-col"
+                  style={{ transform: 'translateZ(1px)' }}
+                >
+                  {/* Binder inner spine shading */}
+                  <div className="absolute left-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-r from-black/80 to-transparent pointer-events-none z-20" />
+
+                  {/* Card Pockets Grid */}
+                  <div className="flex-1 grid gap-1.5 md:gap-3 h-full p-2 md:p-5 pl-6 md:pl-12 grid-cols-3 grid-rows-3">
+                    {frontPockets.map((card, i) => renderPocket(card, i, false))}
+                  </div>
+                  
+                  {/* Empty Message Overlay */}
+                  {cards.length === 0 && emptyMessage && pageIndex === 0 && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-8 z-50">
+                       <div className="bg-[#1a1a1a]/80 backdrop-blur-md text-white p-6 rounded-2xl border border-white/10 shadow-2xl text-center max-w-[80%]">
+                         <span translate="no" className="material-symbols-outlined text-4xl md:text-5xl mb-2 opacity-50">search_off</span>
+                         <p className="font-medium text-sm md:text-lg">{emptyMessage}</p>
+                       </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* BACK FACE (Textured Black Page OR Left Page Cards) */}
+                <div 
+                  className="absolute inset-0 bg-[#111] rounded-l-xl md:rounded-l-2xl shadow-[inset_0_0_8px_rgba(0,0,0,0.5),-3px_3px_10px_rgba(0,0,0,0.5)] md:shadow-[inset_0_0_10px_rgba(0,0,0,0.5),-5px_5px_15px_rgba(0,0,0,0.5)] flex flex-col"
+                  style={{ transform: 'rotateY(180deg) translateZ(1px)' }}
+                >
+                  {isDesktop ? (
+                    <div className="absolute inset-0 bg-[#151515] flex flex-col">
+                      {/* Spine shading on the right side since this is the left page */}
+                      <div className="absolute right-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-l from-black/80 to-transparent pointer-events-none z-20" />
+                      
+                      {/* Notice pr-12 instead of pl-12 for the spine margin! */}
+                      <div className="flex-1 grid gap-3 h-full p-5 pr-12 grid-cols-3 grid-rows-3">
+                        {backPockets.map((card, i) => renderPocket(card, i, true))}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Back page texture and subtle logo for mobile */}
+                      <div className="absolute inset-0 opacity-40 mix-blend-overlay bg-[url('/images/cubes.png')]" />
+                      <div className="absolute right-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-l from-black/90 to-transparent pointer-events-none z-20" />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                        <span translate="no" className="material-symbols-outlined text-[10rem] md:text-[15rem]">style</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {cards.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-medium">
+              No hay cartas en esta carpeta.
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Binder Footer Controls */}
+      {renderPaginationControls(true)}
+    </div>
+  );
+}
+
+
+
+ + Number(previewCard.price).toLocaleString('es-CL') : 'Sin precio'}
+                      </span>
+                      <span className="bg-slate-800 border border-slate-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-white font-medium text-xs md:text-lg flex items-center gap-1.5 leading-none shadow-md">
+                          <span translate="no" className="material-symbols-outlined text-[16px] md:text-xl">inventory_2</span>
+                          x{previewCard.stock || 0} Disponibles
+                      </span>
+                    </div>
+
+                    {tcg === 'Mitos y Leyendas' ? (
+                      <div className="w-full bg-black/40 p-3 md:p-5 rounded-xl border border-white/5 shadow-inner overflow-y-auto max-h-[120px] md:max-h-[200px]">
+                        <p className="flex flex-col">
+                          <strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-1">Habilidad</strong> 
+                          <span className="font-medium text-white text-[11px] md:text-sm leading-relaxed whitespace-pre-wrap">
+                            {fetchingAbility ? 'Buscando habilidad ancestral...' : (fetchedAbility || 'Sin habilidad registrada')}
+                          </span>
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-2 md:gap-y-3 text-xs md:text-base bg-black/40 p-3 md:p-5 rounded-xl border border-white/5 shadow-inner">
+                        <p className="flex flex-col"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Rareza</strong> <span className="font-medium text-white truncate">{previewCard.rarity || 'Desconocida'}</span></p>
+                        <p className="flex flex-col"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Idioma</strong> <span className="font-medium text-white truncate">{previewCard.language || 'Desconocido'}</span></p>
+                        <p className="flex flex-col col-span-2 mt-1 md:mt-2 pt-2 md:pt-3 border-t border-white/10"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Estado</strong> <span className="font-medium text-white truncate">{previewCard.condition || 'Near Mint'}</span></p>
+                      </div>
+                    )}
+
+                    <div className="mt-auto pt-4 md:pt-6 w-full flex justify-center">
+                      <div className="w-full max-w-[280px] md:max-w-[320px] album-preview-actions bg-white/5 p-2 md:p-3 rounded-xl border border-white/10">
+                        {renderCardActions && renderCardActions(previewCard)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {visiblePages.map((pageIndex) => {
+            const frontGridIndex = isDesktop ? (pageIndex * 2) : pageIndex;
+            const backGridIndex = isDesktop ? (pageIndex * 2 + 1) : null;
+
+            const frontCards = cards.slice(
+              frontGridIndex * cardsPerPage,
+              (frontGridIndex + 1) * cardsPerPage
+            );
+            const frontPockets = Array.from({ length: cardsPerPage }).map(
+              (_, i) => frontCards[i] || null
+            );
+
+            let backPockets = [];
+            if (isDesktop) {
+              const backCards = cards.slice(
+                backGridIndex * cardsPerPage,
+                (backGridIndex + 1) * cardsPerPage
+              );
+              backPockets = Array.from({ length: cardsPerPage }).map(
+                (_, i) => backCards[i] || null
+              );
+            }
+
+            const isPast = pageIndex < currentPage;
+            const isActive = pageIndex === currentPage;
+            const isFuture = pageIndex > currentPage;
+
+            let transform = 'rotateY(0deg)';
+            let zIndex = 0;
+
+            if (isPast) {
+              transform = 'rotateY(-180deg)';
+              zIndex = 50 - (currentPage - pageIndex); 
+            } else if (isActive) {
+              transform = 'rotateY(0deg)';
+              zIndex = 40;
+            } else if (isFuture) {
+              transform = 'rotateY(0deg)';
+              zIndex = 30 - (pageIndex - currentPage);
+            }
+
+            const renderPocket = (card, i, isBackFace = false) => {
+              const uniqueId = card ? (isBackFace ? `${card.id}-back` : card.id) : null;
+              const cardIsActive = card && activeCardId === uniqueId;
+              
+              const colIndex = i % 3;
+              let tooltipPosClass = 'left-1/2 -translate-x-1/2';
+              if (colIndex === 0) {
+                tooltipPosClass = 'left-[5%] md:left-1/2 md:-translate-x-1/2';
+              } else if (colIndex === 2) {
+                tooltipPosClass = 'right-[5%] md:right-auto md:left-1/2 md:-translate-x-1/2';
+              }
+
+              return (
+                <div
+                  key={card ? uniqueId : `empty-${isBackFace ? 'back-' : ''}${i}`}
+                  className={`bg-[#222] rounded-xl border border-white/10 shadow-[inset_0_4px_15px_rgba(0,0,0,0.6)] flex flex-col items-center justify-center relative transition-all duration-300 min-h-0 min-w-0 ${cardIsActive ? 'z-50' : 'z-auto hover:z-50'}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (card) {
+                      setActiveCardId(cardIsActive ? null : uniqueId);
+                        setPreviewCard(card);
+                        console.log('PreviewCard Data:', card);
+                    }
+                  }}
+                  onMouseEnter={() => {
+                    if (isDesktop && card) setActiveCardId(uniqueId);
+                  }}
+                  onMouseLeave={() => {
+                    if (isDesktop && card) setActiveCardId(null);
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 pointer-events-none z-10 rounded-xl" />
+
+                  {card ? (
+                    <div 
+                      className="w-full h-full relative z-30 flex items-center justify-center cursor-pointer"
+                      style={{ transform: cardIsActive ? 'translateZ(80px)' : 'translateZ(0px)', transition: 'transform 300ms ease-out', transformStyle: 'preserve-3d' }}
+                    >
+                      <div className={`relative w-full h-full flex flex-col items-center justify-center transition-all duration-300 ease-out min-h-0 min-w-0 ${cardIsActive ? 'scale-[1.25] md:scale-[1.4] -translate-y-4 md:-translate-y-6 z-[100]' : ''}`}>
+                        <div className="relative w-[95%] h-[95%] flex items-center justify-center">
+                          <img
+                            src={card.imageUrl}
+                            alt={card.name}
+                            loading="lazy"
+                            className="max-w-full max-h-full object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] rounded-[4%]"
+                          />
+                          
+                          <div className="absolute top-1 right-1 md:top-1.5 md:right-1.5 bg-black/80 text-white text-[10px] md:text-xs font-bold px-2 py-0.5 md:py-1 leading-none rounded-full shadow-lg border border-white/20 z-[120] flex items-center justify-center pointer-events-none transition-all backdrop-blur-sm">
+                              <span className="mt-[1px]">x{card.stock || 0}</span>
+                          </div>
+                          <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black/80 text-yellow-400 text-[10px] md:text-xs font-bold px-2.5 py-0.5 md:py-1 leading-none rounded-full shadow-md z-[120] flex items-center justify-center border border-white/10 whitespace-nowrap pointer-events-none transition-opacity duration-300 ${cardIsActive ? 'opacity-0' : 'opacity-100'}">
+                              <span className="mt-[1px]">{card.price ? '
+
+                          {renderCardOverlays && (
+                            <div className="absolute inset-0 pointer-events-none z-[110]">
+                              {renderCardOverlays(card)}
+                            </div>
+                          )}
+                        </div>
+                        
+                                                  
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center opacity-20 select-none relative z-0">
+                      <span translate="no" className="material-symbols-outlined text-white text-4xl mb-1">style</span>
+                    </div>
+                  )}
+                </div>
+              );
+            };
+
+            return (
+              <div
+                key={pageIndex}
+                className="absolute top-0 left-0 right-0 bottom-0"
+                style={{
+                  transformOrigin: 'left center',
+                  transform,
+                  zIndex,
+                  transition: 'transform 0.9s cubic-bezier(0.4, 0.0, 0.2, 1)',
+                  transformStyle: 'preserve-3d',
+                }}
+              >
+                {/* FRONT FACE (Cards) */}
+                <div 
+                  className="absolute inset-0 bg-[#151515] rounded-r-xl md:rounded-r-2xl shadow-[inset_0_0_8px_rgba(0,0,0,0.5),3px_3px_10px_rgba(0,0,0,0.5)] md:shadow-[inset_0_0_10px_rgba(0,0,0,0.5),5px_5px_15px_rgba(0,0,0,0.5)] flex flex-col"
+                  style={{ transform: 'translateZ(1px)' }}
+                >
+                  {/* Binder inner spine shading */}
+                  <div className="absolute left-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-r from-black/80 to-transparent pointer-events-none z-20" />
+
+                  {/* Card Pockets Grid */}
+                  <div className="flex-1 grid gap-1.5 md:gap-3 h-full p-2 md:p-5 pl-6 md:pl-12 grid-cols-3 grid-rows-3">
+                    {frontPockets.map((card, i) => renderPocket(card, i, false))}
+                  </div>
+                  
+                  {/* Empty Message Overlay */}
+                  {cards.length === 0 && emptyMessage && pageIndex === 0 && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-8 z-50">
+                       <div className="bg-[#1a1a1a]/80 backdrop-blur-md text-white p-6 rounded-2xl border border-white/10 shadow-2xl text-center max-w-[80%]">
+                         <span translate="no" className="material-symbols-outlined text-4xl md:text-5xl mb-2 opacity-50">search_off</span>
+                         <p className="font-medium text-sm md:text-lg">{emptyMessage}</p>
+                       </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* BACK FACE (Textured Black Page OR Left Page Cards) */}
+                <div 
+                  className="absolute inset-0 bg-[#111] rounded-l-xl md:rounded-l-2xl shadow-[inset_0_0_8px_rgba(0,0,0,0.5),-3px_3px_10px_rgba(0,0,0,0.5)] md:shadow-[inset_0_0_10px_rgba(0,0,0,0.5),-5px_5px_15px_rgba(0,0,0,0.5)] flex flex-col"
+                  style={{ transform: 'rotateY(180deg) translateZ(1px)' }}
+                >
+                  {isDesktop ? (
+                    <div className="absolute inset-0 bg-[#151515] flex flex-col">
+                      {/* Spine shading on the right side since this is the left page */}
+                      <div className="absolute right-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-l from-black/80 to-transparent pointer-events-none z-20" />
+                      
+                      {/* Notice pr-12 instead of pl-12 for the spine margin! */}
+                      <div className="flex-1 grid gap-3 h-full p-5 pr-12 grid-cols-3 grid-rows-3">
+                        {backPockets.map((card, i) => renderPocket(card, i, true))}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Back page texture and subtle logo for mobile */}
+                      <div className="absolute inset-0 opacity-40 mix-blend-overlay bg-[url('/images/cubes.png')]" />
+                      <div className="absolute right-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-l from-black/90 to-transparent pointer-events-none z-20" />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                        <span translate="no" className="material-symbols-outlined text-[10rem] md:text-[15rem]">style</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {cards.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-medium">
+              No hay cartas en esta carpeta.
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Binder Footer Controls */}
+      {renderPaginationControls(true)}
+    </div>
+  );
+}
+
+
+
+ + Number(card.price).toLocaleString('es-CL') : 'Sin precio'}</span>
+                            </div>
+
+                          {renderCardOverlays && (
+                            <div className="absolute inset-0 pointer-events-none z-[110]">
+                              {renderCardOverlays(card)}
+                            </div>
+                          )}
+                        </div>
+                        
+                                                  
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center opacity-20 select-none relative z-0">
+                      <span translate="no" className="material-symbols-outlined text-white text-4xl mb-1">style</span>
+                    </div>
+                  )}
+                </div>
+              );
+            };
+
+            return (
+              <div
+                key={pageIndex}
+                className="absolute top-0 left-0 right-0 bottom-0"
+                style={{
+                  transformOrigin: 'left center',
+                  transform,
+                  zIndex,
+                  transition: 'transform 0.9s cubic-bezier(0.4, 0.0, 0.2, 1)',
+                  transformStyle: 'preserve-3d',
+                }}
+              >
+                {/* FRONT FACE (Cards) */}
+                <div 
+                  className="absolute inset-0 bg-[#151515] rounded-r-xl md:rounded-r-2xl shadow-[inset_0_0_8px_rgba(0,0,0,0.5),3px_3px_10px_rgba(0,0,0,0.5)] md:shadow-[inset_0_0_10px_rgba(0,0,0,0.5),5px_5px_15px_rgba(0,0,0,0.5)] flex flex-col"
+                  style={{ transform: 'translateZ(1px)' }}
+                >
+                  {/* Binder inner spine shading */}
+                  <div className="absolute left-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-r from-black/80 to-transparent pointer-events-none z-20" />
+
+                  {/* Card Pockets Grid */}
+                  <div className="flex-1 grid gap-1.5 md:gap-3 h-full p-2 md:p-5 pl-6 md:pl-12 grid-cols-3 grid-rows-3">
+                    {frontPockets.map((card, i) => renderPocket(card, i, false))}
+                  </div>
+                  
+                  {/* Empty Message Overlay */}
+                  {cards.length === 0 && emptyMessage && pageIndex === 0 && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-8 z-50">
+                       <div className="bg-[#1a1a1a]/80 backdrop-blur-md text-white p-6 rounded-2xl border border-white/10 shadow-2xl text-center max-w-[80%]">
+                         <span translate="no" className="material-symbols-outlined text-4xl md:text-5xl mb-2 opacity-50">search_off</span>
+                         <p className="font-medium text-sm md:text-lg">{emptyMessage}</p>
+                       </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* BACK FACE (Textured Black Page OR Left Page Cards) */}
+                <div 
+                  className="absolute inset-0 bg-[#111] rounded-l-xl md:rounded-l-2xl shadow-[inset_0_0_8px_rgba(0,0,0,0.5),-3px_3px_10px_rgba(0,0,0,0.5)] md:shadow-[inset_0_0_10px_rgba(0,0,0,0.5),-5px_5px_15px_rgba(0,0,0,0.5)] flex flex-col"
+                  style={{ transform: 'rotateY(180deg) translateZ(1px)' }}
+                >
+                  {isDesktop ? (
+                    <div className="absolute inset-0 bg-[#151515] flex flex-col">
+                      {/* Spine shading on the right side since this is the left page */}
+                      <div className="absolute right-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-l from-black/80 to-transparent pointer-events-none z-20" />
+                      
+                      {/* Notice pr-12 instead of pl-12 for the spine margin! */}
+                      <div className="flex-1 grid gap-3 h-full p-5 pr-12 grid-cols-3 grid-rows-3">
+                        {backPockets.map((card, i) => renderPocket(card, i, true))}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Back page texture and subtle logo for mobile */}
+                      <div className="absolute inset-0 opacity-40 mix-blend-overlay bg-[url('/images/cubes.png')]" />
+                      <div className="absolute right-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-l from-black/90 to-transparent pointer-events-none z-20" />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                        <span translate="no" className="material-symbols-outlined text-[10rem] md:text-[15rem]">style</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {cards.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-medium">
+              No hay cartas en esta carpeta.
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Binder Footer Controls */}
+      {renderPaginationControls(true)}
+    </div>
+  );
+}
+
 
 
