@@ -404,7 +404,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                     <div className="flex flex-col gap-1">
                       <h2 className="text-2xl md:text-4xl font-black leading-tight text-white drop-shadow-md">{previewCard.name}</h2>
                       <p className="text-slate-400 text-xs md:text-base italic leading-tight">
-                        {previewCard.set} • {previewCard.supertype || (tcg === 'Mitos y Leyendas' ? 'Carta' : 'Pokémon')} {tcg !== 'Mitos y Leyendas' && ` • #${(() => {
+                        {previewCard.set} • {(previewCard.supertype === 'Unknown' || !previewCard.supertype) ? (tcg === 'Mitos y Leyendas' ? 'Carta' : 'Pokémon') : previewCard.supertype} {tcg !== 'Mitos y Leyendas' && ` • #${(() => {
                             let numStr = (previewCard.number || previewCard.apiId?.split('-')[1] || previewCard.id?.split('-')[1] || '').toString();
                             return numStr.padStart(3, '0');
                         })()}`}
@@ -426,7 +426,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                         <p className="flex flex-col">
                           <strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-1">Habilidad</strong> 
                           <span className="font-medium text-white text-[11px] md:text-sm leading-relaxed whitespace-pre-wrap">
-                            {previewCard.data?.ability || previewCard.ability || previewCard.extData?.ability || previewCard.data?.efecto || previewCard.efecto || previewCard.data?.text || previewCard.text || 'Sin habilidad registrada'}
+                            {previewCard.data?.ability || previewCard.ability || previewCard.extData?.ability || previewCard.data?.efecto || previewCard.efecto || previewCard.data?.text || previewCard.text || JSON.stringify(previewCard, null, 2)}
                           </span>
                         </p>
                       </div>
