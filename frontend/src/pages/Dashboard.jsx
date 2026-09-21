@@ -288,19 +288,19 @@ export default function Dashboard() {
           {folders.map(folder => (
             <div 
               key={folder.id} 
-              className="relative w-full aspect-[32/37] max-w-[320px] mx-auto flex flex-col cursor-pointer group hover:-translate-y-2 transition-transform duration-300 mb-6"
+              className={`relative w-full aspect-[32/37] max-w-[320px] mx-auto flex flex-col cursor-pointer group hover:-translate-y-2 transition-transform duration-300 mb-6 ${activeMenuFolderId === folder.id ? 'z-50' : 'z-10'}`}
             >
             {/* The Background Image */}
             <div className="absolute inset-0 bg-[url('/images/carpeta_v4.webp')] bg-[length:100%_100%] bg-no-repeat drop-shadow-md group-hover:drop-shadow-xl transition-all" style={{ filter: getFolderFilter(folder.color) }}></div>
 
             {/* Action Menu (3 dots) */}
-            <div className="absolute top-2 right-2 z-30 folder-menu-container">
+            <div className="absolute -top-4 -right-2 z-50 folder-menu-container">
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
                   setActiveMenuFolderId(activeMenuFolderId === folder.id ? null : folder.id);
                 }}
-                className="w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors backdrop-blur-sm shadow-md"
+                className="w-10 h-10 rounded-full bg-[#1a1a1a] border border-white/10 hover:bg-black/80 text-white flex items-center justify-center transition-colors shadow-lg"
               >
                 <span translate="no" className="material-symbols-outlined text-[24px]">more_vert</span>
               </button>
