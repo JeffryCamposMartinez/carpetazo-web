@@ -394,8 +394,11 @@ export default function Dashboard() {
       </div>
       </div>
       ) : (
-        <OrdersTab currentUser={currentUser} showToast={showToast} filter={activeTab} orders={orders} />
-      )}
+          <OrdersTab currentUser={currentUser} showToast={showToast} filter={activeTab} orders={orders} />
+        )}
+      </div>
+    </div>
+  </div>
 
       {toastMessage && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl border border-white/10 z-[9999] animate-[slideUp_0.3s_ease-out]">
@@ -626,10 +629,6 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-
-    </div>
-      </div>
-      </div>
     </>
   );
 }
