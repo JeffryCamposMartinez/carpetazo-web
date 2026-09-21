@@ -298,6 +298,17 @@ export default function Dashboard() {
                 <span translate="no" className="material-symbols-outlined text-[16px] md:text-[18px]" data-icon="share">share</span>
               </button>
               <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setGeneratingPdfFolder(folder.id);
+                  setPdfProgress({ loaded: 0, total: 1, generating: false });
+                }}
+                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-purple-600 text-white hover:bg-purple-700 shadow-lg transition-all"
+                title="Generar PDF"
+              >
+                <span translate="no" className="material-symbols-outlined text-[16px] md:text-[18px]">picture_as_pdf</span>
+              </button>
+              <button 
                 onClick={(e) => handleEditFolderClick(e, folder)}
                 className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-yellow-500 text-white hover:bg-yellow-600 shadow-lg transition-all"
                 title="Renombrar carpeta"

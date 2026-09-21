@@ -462,8 +462,7 @@ function PublicCatalog() {
                 <p>Este catálogo aún no tiene cartas o no coinciden con tu búsqueda.</p>
             </div>
           ) : viewMode === 'album' ? (
-            <AlbumView 
-              cards={filteredCards} 
+            <AlbumView tcg={folderData?.tcg} cards={filteredCards} 
               binderColor={folderData?.color || '#2f7336'}
               renderCardActions={(card) => {
                 const cartItem = cart.find(i => i.id === card.id);
