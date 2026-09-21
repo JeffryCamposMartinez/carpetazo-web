@@ -128,10 +128,10 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
 
         // Add clickable watermark link over the logo
         const isRightPage = (i % 2 === 0);
-        const linkW = 50;
-        const linkH = 20;
-        const bottomOffset = 8;
-        const sideOffset = 10;
+        const linkW = 34;
+        const linkH = 45;
+        const bottomOffset = 4;
+        const sideOffset = 5;
         const linkY = 297 - bottomOffset - linkH;
         const linkX = isRightPage ? (210 - sideOffset - linkW) : sideOffset;
         pdf.link(linkX, linkY, linkW, linkH, { url: 'https://carpetazo.cl' });
@@ -202,7 +202,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
               <img 
                 src="/images/logos/logo_completo.webp" 
                 alt="Carpetazo" 
-                className={`absolute bottom-[30px] z-[50] opacity-80 w-[180px] h-auto object-contain filter drop-shadow-lg ${isRightPage ? 'right-[38px]' : 'left-[38px]'}`} 
+                className={`absolute bottom-[16px] z-[50] opacity-90 w-[130px] h-auto object-contain filter drop-shadow-xl ${isRightPage ? 'right-[20px]' : 'left-[20px]'}`} 
               />
 
               {/* Inner Black Page (where cards live) */}
