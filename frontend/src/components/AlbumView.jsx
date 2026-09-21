@@ -249,7 +249,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
   );
 
   return (
-    <div className="w-full flex flex-col items-center py-2 md:pt-4 md:pb-10 md:overflow-visible relative" onClick={() => setActiveCardId(null)}>
+    <div className="w-full flex flex-col items-center py-2 md:pt-4 md:pb-10 md:overflow-visible relative" onClick={() => { setActiveCardId(null); setPreviewCard(null); }}>
       
       {/* Desktop Side Navigation Arrows */}
       {isDesktop && (
@@ -342,13 +342,12 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
             {/* IN-ALBUM SPREAD PREVIEW */}
             {previewCard && (
               <div 
-                className="absolute rounded-2xl md:rounded-3xl shadow-[0_30px_60px_rgba(0,0,0,0.95)] z-[1000] flex flex-col md:flex-row overflow-hidden border border-white/10"
+                className="absolute rounded-2xl md:rounded-3xl shadow-[0_30px_60px_rgba(0,0,0,0.95)] z-[1000] flex flex-col md:flex-row overflow-hidden border border-white/10 bg-[#0a0a0a]/80 backdrop-blur-md"
                 style={{
                   top: isDesktop ? '-20px' : '-8px',
                   bottom: isDesktop ? '-20px' : '-8px',
                   right: isDesktop ? '-28px' : '-10px',
                   left: isDesktop ? 'calc(-100% - 28px)' : '-10px',
-                  backgroundColor: '#151515',
                   transform: 'translateZ(100px)'
                 }}
                 onClick={(e) => { e.stopPropagation(); setPreviewCard(null); }}
@@ -388,7 +387,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                 </button>
 
                 {/* Left Side (Image) */}
-                <div className="w-full md:w-1/2 h-[45%] md:h-full bg-black/40 flex items-center justify-center p-4 md:p-8 relative" onClick={(e) => e.stopPropagation()}>
+                <div className="w-full md:w-1/2 h-[45%] md:h-full bg-black/20 flex items-center justify-center p-4 md:p-8 relative" onClick={(e) => e.stopPropagation()}>
                   {isDesktop && <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-black/80 to-transparent pointer-events-none z-10" />}
                   <img 
                     src={previewCard.imageUrl} 
@@ -398,7 +397,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                 </div>
 
                 {/* Right Side (Info) */}
-                <div className="w-full md:w-1/2 h-[55%] md:h-full flex flex-col justify-between p-4 md:p-8 text-white relative bg-[#151515]" onClick={(e) => e.stopPropagation()}>
+                <div className="w-full md:w-1/2 h-[55%] md:h-full flex flex-col justify-between p-4 md:p-8 text-white relative bg-transparent" onClick={(e) => e.stopPropagation()}>
                   {isDesktop && <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-black/80 to-transparent pointer-events-none z-10" />}
                   
                   <div className="flex flex-col gap-2 md:gap-4 h-full md:pl-6 relative z-20 overflow-y-auto">
