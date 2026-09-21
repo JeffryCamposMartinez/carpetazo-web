@@ -202,7 +202,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
               <img 
                 src="/images/logos/logo_completo.webp" 
                 alt="Carpetazo" 
-                className={`absolute bottom-[16px] z-[50] opacity-90 w-[130px] h-auto object-contain filter drop-shadow-xl ${isRightPage ? 'right-[20px]' : 'left-[20px]'}`} 
+                className={`absolute bottom-[16px] z-[50] opacity-60 w-[130px] h-auto object-contain filter drop-shadow-xl ${isRightPage ? 'right-[20px]' : 'left-[20px]'}`} 
               />
 
               {/* Inner Black Page (where cards live) */}
