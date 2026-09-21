@@ -130,7 +130,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
         const isRightPage = (i % 2 === 0);
         const linkW = 40;
         const linkH = 15;
-        const linkY = 12;
+        const linkY = 297 - 12 - linkH;
         const linkX = isRightPage ? (210 - 12 - linkW) : 12;
         pdf.link(linkX, linkY, linkW, linkH, { url: 'https://carpetazo.cl' });
       }
@@ -197,8 +197,8 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
               <div className={`absolute inset-[6px] rounded-[16px] border-[2px] border-dashed border-white/20 z-10 pointer-events-none translate-y-[1px] ${isRightPage ? 'border-l-0 rounded-l-none' : 'border-r-0 rounded-r-none'}`} />
 
               {/* Watermark Logo */}
-              <div className={`absolute top-[12mm] z-[50] opacity-50 flex items-center justify-center w-[40mm] h-[15mm] ${isRightPage ? 'right-[12mm]' : 'left-[12mm]'}`}>
-                <img src="/images/logos/carpetazo_logo.webp" alt="Carpetazo" className="max-w-full max-h-full object-contain filter drop-shadow-lg" />
+              <div className={`absolute bottom-[12mm] z-[50] opacity-60 flex items-center justify-center w-[40mm] h-[15mm] ${isRightPage ? 'right-[12mm]' : 'left-[12mm]'}`}>
+                <img src="/images/logos/watermark.png" alt="Carpetazo" className="max-w-full max-h-full object-contain filter drop-shadow-lg" />
               </div>
 
               {/* Inner Black Page (where cards live) */}
