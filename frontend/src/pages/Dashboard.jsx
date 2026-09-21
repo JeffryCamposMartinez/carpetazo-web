@@ -401,7 +401,7 @@ export default function Dashboard() {
   </div>
 
       {toastMessage && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl border border-white/10 z-[9999] animate-[slideUp_0.3s_ease-out]">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl border border-white/10 z-[9999] animate-[slideUp_0.3s_ease-out]">
           {toastMessage}
         </div>
       )}
