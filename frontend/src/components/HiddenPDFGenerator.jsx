@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../utils/api';
 
 export default function HiddenPDFGenerator({ folderId, onComplete, onProgress }) {
@@ -218,11 +218,11 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
                               onLoad={() => setImagesLoaded(prev => prev + 1)}
                               onError={() => setImagesLoaded(prev => prev + 1)} 
                             />
-                            <div className="absolute top-1.5 right-1.5 bg-black/80 text-white font-bold text-[11px] px-2 py-[2px] rounded-full shadow-lg border border-white/20 z-[120] flex items-center justify-center backdrop-blur-sm">
-                              x{card.stock || 0}
+                            <div className="absolute top-1.5 right-1.5 bg-black/80 text-white font-bold text-[11px] px-2 py-0.5 leading-none rounded-full shadow-lg border border-white/20 z-[120] flex items-center justify-center backdrop-blur-sm">
+                              <span className="mt-[1px]">x{card.stock || 0}</span>
                             </div>
-                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black/90 text-yellow-400 font-bold text-[11px] h-[22px] leading-[22px] px-3 rounded-full shadow-md whitespace-nowrap z-[120] text-center inline-block">
-                              ${card.price}
+                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black/90 text-yellow-400 font-bold text-[11px] px-3 py-1 leading-none rounded-full shadow-md whitespace-nowrap z-[120] flex items-center justify-center border border-white/10">
+                              <span className="mt-[1px]">{card.price ? '$' + Number(card.price).toLocaleString('es-CL') : 'Sin precio'}</span>
                             </div>
                           </div>
                         ) : (
