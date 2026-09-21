@@ -42,6 +42,8 @@ export default function Dashboard() {
   const [editFolderColor, setEditFolderColor] = useState('red');
   const [activeTab, setActiveTab] = useState('carpetas');
   const [orders, setOrders] = useState([]);
+  const [generatingPdfFolder, setGeneratingPdfFolder] = useState(null);
+  const [pdfProgress, setPdfProgress] = useState({ loaded: 0, total: 1, generating: false });
 
   const showToast = (msg) => {
     setToastMessage(msg);
