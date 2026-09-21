@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
@@ -45,6 +45,17 @@ export default function Dashboard() {
   const [orders, setOrders] = useState([]);
   const [generatingPdfFolder, setGeneratingPdfFolder] = useState(null);
   const [pdfProgress, setPdfProgress] = useState({ loaded: 0, total: 1, generating: false });
+  const [activeMenuFolderId, setActiveMenuFolderId] = useState(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.folder-menu-container')) {
+        setActiveMenuFolderId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -274,55 +285,76 @@ export default function Dashboard() {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
 
-        {folders.map(folder => (
-          <div 
-            key={folder.id} 
-            className="relative w-full aspect-[32/37] max-w-[320px] mx-auto flex flex-col cursor-pointer group hover:-translate-y-2 transition-transform duration-300 mb-20 md:mb-0"
-          >
+          {folders.map(folder => (
+            <div 
+              key={folder.id} 
+              className="relative w-full aspect-[32/37] max-w-[320px] mx-auto flex flex-col cursor-pointer group hover:-translate-y-2 transition-transform duration-300 mb-6"
+            >
             {/* The Background Image */}
             <div className="absolute inset-0 bg-[url('/images/carpeta_v4.webp')] bg-[length:100%_100%] bg-no-repeat drop-shadow-md group-hover:drop-shadow-xl transition-all" style={{ filter: getFolderFilter(folder.color) }}></div>
 
-            {/* Action Buttons: Horizontal on mobile (bottom), Vertical on desktop (right) */}
-            <div className="absolute -bottom-[4.5rem] md:top-2 md:-bottom-auto left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:-right-8 z-20 flex flex-row flex-wrap md:flex-nowrap md:flex-col justify-center gap-2 w-[110%] md:w-auto">
-              <button 
-                onClick={(e) => handleTogglePublic(e, folder)}
-                className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full shadow-lg transition-all ${folder.isPublic ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'}`}
-                title={folder.isPublic ? "Carpeta PÃºblica (Clic para ocultar)" : "Carpeta Privada (Clic para publicar)"}
-              >
-                <span translate="no" className="material-symbols-outlined text-[16px] md:text-[18px]">{folder.isPublic ? 'public' : 'public_off'}</span>
-              </button>
-              <button 
-                onClick={(e) => handleShareFolder(e, folder)}
-                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 shadow-lg transition-all"
-                title="Compartir enlace"
-              >
-                <span translate="no" className="material-symbols-outlined text-[16px] md:text-[18px]" data-icon="share">share</span>
-              </button>
+            {/* Action Menu (3 dots) */}
+            <div className="absolute top-2 right-2 z-30 folder-menu-container">
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  setGeneratingPdfFolder(folder.id);
-                  setPdfProgress({ loaded: 0, total: 1, generating: false });
+                  setActiveMenuFolderId(activeMenuFolderId === folder.id ? null : folder.id);
                 }}
-                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-purple-600 text-white hover:bg-purple-700 shadow-lg transition-all"
-                title="Generar PDF"
+                className="w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors backdrop-blur-sm shadow-md"
               >
-                <span translate="no" className="material-symbols-outlined text-[16px] md:text-[18px]">picture_as_pdf</span>
+                <span translate="no" className="material-symbols-outlined text-[24px]">more_vert</span>
               </button>
-              <button 
-                onClick={(e) => handleEditFolderClick(e, folder)}
-                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-yellow-500 text-white hover:bg-yellow-600 shadow-lg transition-all"
-                title="Renombrar carpeta"
+              
+              {/* Animated Popover */}
+              <div 
+                className={`absolute top-12 -right-2 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl py-2 z-[100] flex flex-col gap-1 w-48 origin-top-right transition-all duration-200 ${
+                  activeMenuFolderId === folder.id 
+                    ? 'opacity-100 scale-100 pointer-events-auto' 
+                    : 'opacity-0 scale-95 pointer-events-none'
+                }`}
               >
-                <span translate="no" className="material-symbols-outlined text-[16px] md:text-[18px]">edit</span>
-              </button>
-              <button 
-                onClick={(e) => handleDeleteFolder(e, folder.id, folder.name)}
-                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-700 shadow-lg transition-all"
-                title="Eliminar carpeta"
-              >
-                <span translate="no" className="material-symbols-outlined text-[16px] md:text-[18px]" data-icon="delete">delete</span>
-              </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setActiveMenuFolderId(null); handleTogglePublic(e, folder); }}
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-white/10 transition-colors text-white w-full"
+                >
+                  <span translate="no" className={`material-symbols-outlined text-[18px] ${folder.isPublic ? 'text-green-400' : 'text-gray-400'}`}>{folder.isPublic ? 'public' : 'public_off'}</span>
+                  {folder.isPublic ? 'Hacer Privada' : 'Hacer Pública'}
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setActiveMenuFolderId(null); handleShareFolder(e, folder); }}
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-white/10 transition-colors text-white w-full"
+                >
+                  <span translate="no" className="material-symbols-outlined text-[18px] text-blue-400">share</span>
+                  Compartir enlace
+                </button>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuFolderId(null);
+                    setGeneratingPdfFolder(folder.id);
+                    setPdfProgress({ loaded: 0, total: 1, generating: false });
+                  }}
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-white/10 transition-colors text-white w-full"
+                >
+                  <span translate="no" className="material-symbols-outlined text-[18px] text-purple-400">picture_as_pdf</span>
+                  Generar PDF
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setActiveMenuFolderId(null); handleEditFolderClick(e, folder); }}
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-white/10 transition-colors text-white w-full"
+                >
+                  <span translate="no" className="material-symbols-outlined text-[18px] text-yellow-400">edit</span>
+                  Renombrar
+                </button>
+                <hr className="border-white/10 my-1 mx-2" />
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setActiveMenuFolderId(null); handleDeleteFolder(e, folder.id, folder.name); }}
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-red-500/20 text-red-400 transition-colors w-full"
+                >
+                  <span translate="no" className="material-symbols-outlined text-[18px]">delete</span>
+                  Eliminar
+                </button>
+              </div>
             </div>
 
             {/* Content overlay */}
