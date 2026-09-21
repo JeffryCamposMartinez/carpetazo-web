@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { db } from '../firebase';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import api from '../utils/api';
 
 export default function HiddenPDFGenerator({ folderId, onComplete, onProgress }) {
   const [cards, setCards] = useState([]);
@@ -37,11 +36,12 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
     const fetchFolderData = async () => {
       setLoading(true);
       try {
-        const folderSnap = await getDoc(doc(db, 'folders', folderId));
-        if (folderSnap.exists()) setFolder(folderSnap.data());
-
-        const cardsSnap = await getDocs(collection(db, 'folders', folderId, 'cards'));
-        const cardsData = cardsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const res = await api.getFolder(folderId);
+        if (res.success && res.folder) {
+            setFolder(res.folder);
+        }
+        
+        const cardsData = (res?.folder?.cards || []).map(c => ({ ...c, ...(c.data || {}) }));
         const totalCards = cardsData.length;
         
         let loadedCount = 0;
