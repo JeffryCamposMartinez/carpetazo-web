@@ -283,7 +283,7 @@ export default function Dashboard() {
             <div className="absolute inset-0 bg-[url('/images/carpeta_v4.webp')] bg-[length:100%_100%] bg-no-repeat drop-shadow-md group-hover:drop-shadow-xl transition-all" style={{ filter: getFolderFilter(folder.color) }}></div>
 
             {/* Action Buttons: Horizontal on mobile (bottom), Vertical on desktop (right) */}
-            <div className="absolute -bottom-10 md:top-2 md:-bottom-auto left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:-right-8 z-20 flex flex-row md:flex-col gap-2">
+            <div className="absolute -bottom-[4.5rem] md:top-2 md:-bottom-auto left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:-right-8 z-20 flex flex-row flex-wrap md:flex-nowrap md:flex-col justify-center gap-2 w-[110%] md:w-auto">
               <button 
                 onClick={(e) => handleTogglePublic(e, folder)}
                 className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full shadow-lg transition-all ${folder.isPublic ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'}`}
