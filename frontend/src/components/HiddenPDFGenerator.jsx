@@ -199,9 +199,11 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
               <div className={`absolute inset-[6px] rounded-[16px] border-[2px] border-dashed border-white/20 z-10 pointer-events-none translate-y-[1px] ${isRightPage ? 'border-l-0 rounded-l-none' : 'border-r-0 rounded-r-none'}`} />
 
               {/* Watermark Logo */}
-              <div className={`absolute bottom-[8mm] z-[50] opacity-70 flex items-center justify-center w-[50mm] h-[20mm] ${isRightPage ? 'right-[10mm]' : 'left-[10mm]'}`}>
-                <img src="/images/logos/logo_completo.webp" alt="Carpetazo" className="max-w-full max-h-full object-contain filter drop-shadow-lg" />
-              </div>
+              <img 
+                src="/images/logos/logo_completo.webp" 
+                alt="Carpetazo" 
+                className={`absolute bottom-[30px] z-[50] opacity-80 w-[180px] h-auto object-contain filter drop-shadow-lg ${isRightPage ? 'right-[38px]' : 'left-[38px]'}`} 
+              />
 
               {/* Inner Black Page (where cards live) */}
               <div className={`relative flex-1 bg-[#151515] flex flex-col p-[12mm] shadow-[inset_0_0_10px_rgba(0,0,0,0.5),-5px_5px_15px_rgba(0,0,0,0.8)] z-20 overflow-hidden ${isRightPage ? 'rounded-r-[1.5rem] rounded-l-none mt-[4mm] mb-[4mm] mr-[4mm] ml-0' : 'rounded-l-[1.5rem] rounded-r-none mt-[4mm] mb-[4mm] ml-[4mm] mr-0'}`}>
