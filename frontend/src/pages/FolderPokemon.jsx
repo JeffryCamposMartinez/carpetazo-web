@@ -436,21 +436,40 @@ function FolderPokemonInner() {
               <option value="TALISMAN">Talismán</option>
               <option value="TOTEM">Tótem</option>
             </select>
-            <select value={mylRace} onChange={(e) => setMylRace(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
-              <option value="">Raza (Todas)</option>
-              <option value="CABALLERO">Caballero</option>
-              <option value="DRAGON">Dragón</option>
-              <option value="FAERIE">Faerie</option>
-              <option value="GUERRERO">Guerrero</option>
-              <option value="SOMBRA">Sombra</option>
-              <option value="BESTIA">Bestia</option>
-              <option value="DIOS">Dios</option>
-              <option value="HEROE">Héroe</option>
-              <option value="SACERDOTE">Sacerdote</option>
-              <option value="SIN_RAZA">Sin Raza</option>
-              <option value="DESAFIANTE">Desafiante</option>
-              <option value="ANCESTRAL">Ancestral</option>
-            </select>
+            <select value={mylRace} onChange={(e) => setMylRace(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] text-sm font-medium shadow-sm transition-all">
+                    <option value="">Raza (Todas)</option>
+                    {searchBlock === '2' ? (
+                      <>
+                        <option value="CABALLERO">Caballero</option>
+                        <option value="DEFENSOR">Defensor</option>
+                        <option value="DESAFIANTE">Desafiante</option>
+                        <option value="DRAGON">Dragón</option>
+                        <option value="ETERNO">Eterno</option>
+                        <option value="FAERIE">Faerie</option>
+                        <option value="FARAON">Faraón</option>
+                        <option value="HEROE">Héroe</option>
+                        <option value="OLIMPICO">Olímpico</option>
+                        <option value="SACERDOTE">Sacerdote</option>
+                        <option value="SOMBRA">Sombra</option>
+                        <option value="TITAN">Titán</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="CABALLERO">Caballero</option>
+                        <option value="DRAGON">Dragón</option>
+                        <option value="FAERIE">Faerie</option>
+                        <option value="GUERRERO">Guerrero</option>
+                        <option value="SOMBRA">Sombra</option>
+                        <option value="BESTIA">Bestia</option>
+                        <option value="DIOS">Dios</option>
+                        <option value="HEROE">Héroe</option>
+                        <option value="SACERDOTE">Sacerdote</option>
+                        <option value="SIN_RAZA">Sin Raza</option>
+                        <option value="DESAFIANTE">Desafiante</option>
+                        <option value="ANCESTRAL">Ancestral</option>
+                      </>
+                    )}
+                  </select>
             
             <input 
               type="number" 
@@ -789,20 +808,39 @@ const handleSearchAPI = async (e) => {
                     <option value="TALISMAN">Talismán</option>
                     <option value="TOTEM">Tótem</option>
                   </select>
-                  <select value={mylRace} onChange={(e) => setMylRace(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
+                  <select value={mylRace} onChange={(e) => setMylRace(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] text-sm font-medium shadow-sm transition-all">
                     <option value="">Raza (Todas)</option>
-                    <option value="CABALLERO">Caballero</option>
-                    <option value="DRAGON">Dragón</option>
-                    <option value="FAERIE">Faerie</option>
-                    <option value="GUERRERO">Guerrero</option>
-                    <option value="SOMBRA">Sombra</option>
-                    <option value="BESTIA">Bestia</option>
-                    <option value="DIOS">Dios</option>
-                    <option value="HEROE">Héroe</option>
-                    <option value="SACERDOTE">Sacerdote</option>
-                    <option value="SIN_RAZA">Sin Raza</option>
-                    <option value="DESAFIANTE">Desafiante</option>
-                    <option value="ANCESTRAL">Ancestral</option>
+                    {searchBlock === '2' ? (
+                      <>
+                        <option value="CABALLERO">Caballero</option>
+                        <option value="DEFENSOR">Defensor</option>
+                        <option value="DESAFIANTE">Desafiante</option>
+                        <option value="DRAGON">Dragón</option>
+                        <option value="ETERNO">Eterno</option>
+                        <option value="FAERIE">Faerie</option>
+                        <option value="FARAON">Faraón</option>
+                        <option value="HEROE">Héroe</option>
+                        <option value="OLIMPICO">Olímpico</option>
+                        <option value="SACERDOTE">Sacerdote</option>
+                        <option value="SOMBRA">Sombra</option>
+                        <option value="TITAN">Titán</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="CABALLERO">Caballero</option>
+                        <option value="DRAGON">Dragón</option>
+                        <option value="FAERIE">Faerie</option>
+                        <option value="GUERRERO">Guerrero</option>
+                        <option value="SOMBRA">Sombra</option>
+                        <option value="BESTIA">Bestia</option>
+                        <option value="DIOS">Dios</option>
+                        <option value="HEROE">Héroe</option>
+                        <option value="SACERDOTE">Sacerdote</option>
+                        <option value="SIN_RAZA">Sin Raza</option>
+                        <option value="DESAFIANTE">Desafiante</option>
+                        <option value="ANCESTRAL">Ancestral</option>
+                      </>
+                    )}
                   </select>
                   
                   <input 

@@ -938,10 +938,10 @@ app.get('/api/tcg/:categoryId/:groupId/products', async (req, res) => {
     }
     
     let andConditions = [];
-    if (mylType) andConditions.push({ extData: { path: ['type'], equals: mylType } });
-    if (mylRace) andConditions.push({ extData: { path: ['race'], array_contains: mylRace } });
-    if (mylFrequency) andConditions.push({ extData: { path: ['frequency'], equals: mylFrequency } });
-    if (mylCost !== undefined && mylCost !== '') andConditions.push({ extData: { path: ['cost'], equals: parseInt(mylCost) } });
+    if (mylType) andConditions.push({ extData: { array_contains: [{ name: 'Type', value: mylType }] } });
+    if (mylRace) andConditions.push({ extData: { array_contains: [{ name: 'Race', value: mylRace }] } });
+    if (mylFrequency) andConditions.push({ extData: { array_contains: [{ name: 'Frequency', value: mylFrequency }] } });
+    if (mylCost !== undefined && mylCost !== '') andConditions.push({ extData: { array_contains: [{ name: 'Cost', value: mylCost.toString() }] } });
     
     if (andConditions.length > 0) {
       whereClause.AND = andConditions;
@@ -1017,10 +1017,10 @@ app.get('/api/tcg/search', async (req, res) => {
 
     // Mitos y Leyendas Filters
     let andConditions = [];
-    if (mylType) andConditions.push({ extData: { path: ['type'], equals: mylType } });
-    if (mylRace) andConditions.push({ extData: { path: ['race'], array_contains: mylRace } });
-    if (mylFrequency) andConditions.push({ extData: { path: ['frequency'], equals: mylFrequency } });
-    if (mylCost !== undefined && mylCost !== '') andConditions.push({ extData: { path: ['cost'], equals: parseInt(mylCost) } });
+    if (mylType) andConditions.push({ extData: { array_contains: [{ name: 'Type', value: mylType }] } });
+    if (mylRace) andConditions.push({ extData: { array_contains: [{ name: 'Race', value: mylRace }] } });
+    if (mylFrequency) andConditions.push({ extData: { array_contains: [{ name: 'Frequency', value: mylFrequency }] } });
+    if (mylCost !== undefined && mylCost !== '') andConditions.push({ extData: { array_contains: [{ name: 'Cost', value: mylCost.toString() }] } });
     
     if (andConditions.length > 0) {
       whereClause.AND = andConditions;
