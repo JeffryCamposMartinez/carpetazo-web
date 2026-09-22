@@ -986,7 +986,11 @@ app.get('/api/tcg/search', async (req, res) => {
     
     let whereClause = {};
     if (q) {
-      whereClause.name = { contains: q, mode: 'insensitive' };
+      const cleanQ = q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, "");
+      whereClause.OR = [
+        { name: { contains: q, mode: 'insensitive' } },
+        { cleanName: { contains: cleanQ, mode: 'insensitive' } }
+      ];
     }
     if (categoryId) whereClause.categoryId = parseInt(categoryId);
     if (physicalProductId) {
