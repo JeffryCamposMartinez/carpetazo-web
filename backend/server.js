@@ -925,9 +925,10 @@ app.get('/api/tcg/:categoryId/groups', async (req, res) => {
 app.get('/api/tcg/:categoryId/:groupId/products', async (req, res) => {
   try {
     const { categoryId, groupId } = req.params;
-    const { mylType, mylRace, mylFrequency, mylCost } = req.query;
+    const { mylType, mylRace, mylFrequency, mylCost, physicalProductId } = req.query;
     
     let whereClause = { categoryId: parseInt(categoryId) };
+    if (physicalProductId) whereClause.physicalProductId = parseInt(physicalProductId);
     if (groupId === 'otros') {
       const groups = await prisma.tcgGroup.findMany({ where: { categoryId: parseInt(categoryId) }, select: { groupId: true } });
       const groupIds = groups.map(g => g.groupId);
