@@ -83,7 +83,7 @@ function AdminPanel() {
 
   const getProxyImageUrl = (productId, originalUrl) => {
     if (!originalUrl) return '';
-    if (originalUrl.includes('api.carpetazo.cl/images')) return originalUrl;
+    if (originalUrl.includes('api.carpetazo.cl/images') || originalUrl.includes('r2.dev') || originalUrl.includes('imagenes.carpetazo.cl')) return originalUrl;
     if (originalUrl.startsWith('blob:')) return originalUrl;
     return `https://api.carpetazo.cl/api/proxy-image?productId=${productId}`;
   };
