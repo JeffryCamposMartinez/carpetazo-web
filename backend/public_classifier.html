@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Clasificador MYL - Modo Mesa</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #1f2937; /* Mesa oscura */
+            background-image: radial-gradient(circle, #374151 10%, transparent 11%), radial-gradient(circle, #374151 10%, transparent 11%);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            color: white; margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+            user-select: none; -webkit-user-select: none;
+        }
+        
+        /* Barra superior de herramientas */
+        .toolbar {
+            background: #111827;
+            padding: 15px 20px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10;
+        }
+        
+        .toolbar h1 { margin: 0; font-size: 20px; color: #f3f4f6; }
+        .stats { font-size: 14px; color: #9ca3af; margin-top: 5px; }
+
+        .tools { display: flex; gap: 10px; }
+        .tool-btn {
+            padding: 10px 20px; font-size: 14px; font-weight: bold; border: 2px solid transparent; border-radius: 8px; cursor: pointer; color: white !important; opacity: 0.6; transition: all 0.2s;
+        }
+        .tool-btn.active { opacity: 1; transform: scale(1.05); box-shadow: 0 0 15px currentColor; border-color: white; }
+
+        .btn-1 { background-color: #3b82f6; color: #3b82f6; } /* Daana */
+        .btn-2 { background-color: #ef4444; color: #ef4444; } /* Espada */
+        .btn-3 { background-color: #eab308; color: #eab308; } /* Helenica */
+        .btn-4 { background-color: #10b981; color: #10b981; } /* Dominios */
+        .btn-5 { background-color: #8b5cf6; color: #8b5cf6; } /* Dracula */
+
+        .btn-undo {
+            background-color: #4b5563; padding: 10px 20px; border: none; border-radius: 8px; color: white; cursor: pointer; font-weight: bold; opacity: 1; transition: 0.2s;
+        }
+        .btn-undo:hover { background-color: #6b7280; }
+        .btn-undo:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* Mesa de cartas */
+        .tabletop {
+            flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; align-content: flex-start;
+        }
+
+        .card-slot {
+            width: 180px; aspect-ratio: 2.5 / 3.5; position: relative; cursor: pointer; perspective: 1000px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card-slot img {
+            width: 100%; height: 100%; object-fit: contain; border-radius: 10px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); transition: all 0.2s ease-out; pointer-events: none; user-drag: none; -webkit-user-drag: none;
+        }
+
+        .card-slot:hover { transform: translateY(-10px) scale(1.05); z-index: 5; }
+        .card-slot:hover img { box-shadow: 0 20px 25px -5px rgba(0,0,0,0.6); }
+
+        .card-slot.disappearing { transform: scale(0) rotate(15deg); opacity: 0; pointer-events: none; }
+        .card-slot.appearing { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        @keyframes popIn {
+            0% { transform: scale(0) translateY(50px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        .badge {
+            position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 4px 10px; border-radius: 10px; font-size: 11px; white-space: nowrap; pointer-events: none;
+        }
+
+        /* Cursor especial */
+        body.tool-999992 .tabletop { cursor: crosshair; }
+        body.tool-999994 .tabletop { cursor: crosshair; }
+        body.tool-999993 .tabletop { cursor: crosshair; }
+        body.tool-999991 .tabletop { cursor: crosshair; }
+        body.tool-999995 .tabletop { cursor: crosshair; }
+
+        /* Cuadro de seleccion estilo Windows */
+        .selection-box {
+            position: fixed;
+            border: 1px solid rgba(59, 130, 246, 0.8);
+            background-color: rgba(59, 130, 246, 0.3);
+            pointer-events: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toolbar">
+        <div>
+            <h1>Modo Mesa: Clasificador</h1>
+            <div class="stats" id="stats-text">Cargando...</div>
+        </div>
+        
+        <div class="tools">
+            <button class="tool-btn btn-1" id="tool-999992" onclick="selectTool(999992, this)">1. Hijos de Daana</button>
+            <button class="tool-btn btn-2" id="tool-999994" onclick="selectTool(999994, this)">2. Espada Sagrada</button>
+            <button class="tool-btn btn-3" id="tool-999993" onclick="selectTool(999993, this)">3. Helénica</button>
+            <button class="tool-btn btn-4" id="tool-999991" onclick="selectTool(999991, this)">4. Dominios de RA</button>
+            <button class="tool-btn btn-5" id="tool-999995" onclick="selectTool(999995, this)">5. Drácula e Inferno</button>
+        </div>
+
+        <button class="btn-undo" id="undo-btn" onclick="undo()" disabled>⬅ Deshacer</button>
+    </div>
+
+    <div class="tabletop" id="tabletop">
+        <!-- Generaremos exactamente 20 slots permanentes -->
+    </div>
+
+    <script>
+        let cardQueue = [];
+        let displayedCards = new Array(21).fill(null); // Array fijo de 20 posiciones
+        const MAX_TABLE_CARDS = 21;
+        
+        let currentToolGroupId = null; 
+        let totalRemaining = 0;
+        let historyCount = 0;
+        let isFetching = false;
+
+        // Inicializar los 20 slots físicos vacíos en el DOM
+        const table = document.getElementById('tabletop');
+        for (let i = 0; i < MAX_TABLE_CARDS; i++) {
+            const slot = document.createElement('div');
+            slot.className = 'card-slot';
+            slot.id = 'slot-' + i;
+            slot.style.visibility = 'hidden'; // Oculto hasta que le pongamos una carta
+            table.appendChild(slot);
+        }
+
+        function selectTool(groupId, btnElement) {
+            currentToolGroupId = groupId;
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            document.body.className = ''; 
+            
+            if (btnElement) {
+                btnElement.classList.add('active');
+                document.body.classList.add('tool-' + groupId);
+            }
+        }
+
+        async function fetchBatch() {
+            if (isFetching) return;
+            isFetching = true;
+            try {
+                // Collect IDs of cards currently on table and in queue
+                const excludeIds = [];
+                displayedCards.forEach(c => { if(c) excludeIds.push(c.productId) });
+                cardQueue.forEach(c => excludeIds.push(c.productId));
+
+                const res = await fetch('/api/next-batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ excludeIds })
+                });
+                
+                const data = await res.json();
+                
+                if (data.done) {
+                    isFetching = false;
+                    return;
+                }
+
+                // Añadir a la cola
+                cardQueue.push(...data.cards);
+                
+                totalRemaining = data.remaining;
+                historyCount = data.historyCount;
+                updateStats();
+
+                fillTable();
+
+            } catch(e) {
+                console.error(e);
+            }
+            isFetching = false;
+        }
+
+        function updateStats() {
+            const onTable = displayedCards.filter(c => c !== null).length;
+            document.getElementById('stats-text').innerText = `Restantes: ${totalRemaining} | Mesa: ${onTable}`;
+            document.getElementById('undo-btn').disabled = historyCount === 0;
+        }
+
+        function fillTable() {
+            let filledAny = false;
+            // Llenar cualquier slot nulo si hay cartas en la cola
+            for (let i = 0; i < MAX_TABLE_CARDS; i++) {
+                if (displayedCards[i] === null && cardQueue.length > 0) {
+                    const card = cardQueue.shift();
+                    injectCardIntoSlot(card, i);
+                    filledAny = true;
+                }
+            }
+
+            updateStats();
+
+            // Si la cola se está quedando vacía, pedir más al backend
+            if (cardQueue.length < 10) {
+                fetchBatch();
+            }
+        }
+
+        function injectCardIntoSlot(card, index) {
+            displayedCards[index] = card;
+            const slot = document.getElementById('slot-' + index);
+            
+            // Si el slot estaba oculto o estaba "desapareciendo", lo reseteamos
+            slot.classList.remove('disappearing');
+            
+            // Forzar reflow para reiniciar la animación
+            void slot.offsetWidth; 
+            
+            slot.classList.add('appearing');
+            slot.style.visibility = 'visible';
+            slot.onclick = () => shootCard(index);
+            
+            slot.innerHTML = `
+                <img src="${card.localImageUrl}" alt="${card.name}">
+                <div class="badge">${card.name}</div>
+            `;
+        }
+
+        async function shootCard(slotIndex) {
+            if (!currentToolGroupId) {
+                alert("Primero selecciona un 'Pincel de Edición' en la barra de arriba.");
+                return;
+            }
+
+            const card = displayedCards[slotIndex];
+            if (!card) return;
+
+            const slot = document.getElementById('slot-' + slotIndex);
+            
+            // Iniciar animación de desaparición
+            slot.classList.remove('appearing');
+            slot.classList.add('disappearing');
+
+            // Quitar del array local
+            displayedCards[slotIndex] = null;
+            totalRemaining--;
+            historyCount++;
+            updateStats();
+
+            // Llamar a la API en background
+            fetch('/api/classify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ productId: card.productId, groupId: currentToolGroupId })
+            }).catch(console.error);
+
+            // Después de 300ms, si hay cartas en la cola, poner una nueva en este mismo hueco
+            setTimeout(() => {
+                if (cardQueue.length > 0) {
+                    const nextCard = cardQueue.shift();
+                    injectCardIntoSlot(nextCard, slotIndex);
+                    
+                    // Pedir más si nos quedamos cortos
+                    if (cardQueue.length < 10) fetchBatch();
+                } else {
+                    // Si no hay más cartas en la cola, esconder el hueco
+                    slot.style.visibility = 'hidden';
+                }
+                updateStats();
+            }, 300);
+        }
+
+        async function undo() {
+            if (historyCount === 0) return;
+            
+            try {
+                const res = await fetch('/api/undo', { method: 'POST' });
+                const data = await res.json();
+                if (data.success && data.card) {
+                    totalRemaining++;
+                    historyCount--;
+                    
+                    // Buscar un slot libre para inyectar la carta restaurada
+                    let freeIndex = displayedCards.indexOf(null);
+                    
+                    if (freeIndex !== -1) {
+                        // Si hay un hueco libre, la ponemos ahí
+                        injectCardIntoSlot(data.card, freeIndex);
+                    } else {
+                        // Si la mesa está llena (raro, pero posible si deshace muy rápido), 
+                        // sacamos la última carta de la mesa, la devolvemos a la cola, 
+                        // y ponemos la restaurada en su lugar
+                        const displacedCard = displayedCards[20];
+                        cardQueue.unshift(displacedCard);
+                        injectCardIntoSlot(data.card, 20);
+                    }
+                    updateStats();
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        // Selección de área estilo Windows
+        let isDragging = false;
+        let startX = 0, startY = 0;
+        let selectionBox = null;
+
+        document.getElementById('tabletop').addEventListener('mousedown', (e) => {
+            if (e.target.closest('.card-slot')) return; // No iniciar si clicaste una carta
+            
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            selectionBox = document.createElement('div');
+            selectionBox.className = 'selection-box';
+            selectionBox.style.left = startX + 'px';
+            selectionBox.style.top = startY + 'px';
+            selectionBox.style.width = '0px';
+            selectionBox.style.height = '0px';
+            document.body.appendChild(selectionBox);
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const currentX = e.clientX;
+            const currentY = e.clientY;
+            
+            const x = Math.min(startX, currentX);
+            const y = Math.min(startY, currentY);
+            const width = Math.abs(startX - currentX);
+            const height = Math.abs(startY - currentY);
+            
+            selectionBox.style.left = x + 'px';
+            selectionBox.style.top = y + 'px';
+            selectionBox.style.width = width + 'px';
+            selectionBox.style.height = height + 'px';
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            if (selectionBox) {
+                const rect = selectionBox.getBoundingClientRect();
+                selectionBox.remove();
+                selectionBox = null;
+                
+                // Si la selección fue muy pequeña (solo un clic fallido), ignorar
+                if (rect.width < 10 && rect.height < 10) return;
+                
+                if (!currentToolGroupId) {
+                    alert("Primero selecciona un 'Pincel de Edición' en la barra de arriba.");
+                    return;
+                }
+
+                // Disparar a todas las cartas dentro del rectángulo
+                const slots = document.querySelectorAll('.card-slot');
+                slots.forEach((slot) => {
+                    if (slot.style.visibility === 'hidden') return;
+                    
+                    const slotRect = slot.getBoundingClientRect();
+                    
+                    const intersect = !(
+                        rect.right < slotRect.left || 
+                        rect.left > slotRect.right || 
+                        rect.bottom < slotRect.top || 
+                        rect.top > slotRect.bottom
+                    );
+                    
+                    if (intersect) {
+                        const idx = parseInt(slot.id.split('-')[1]);
+                        shootCard(idx);
+                    }
+                });
+            }
+        });
+
+        // Keyboard shortcuts para seleccionar herramienta
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '1' && e.key <= '5') {
+                const btns = [999992, 999994, 999993, 999991, 999995];
+                const groupId = btns[parseInt(e.key) - 1];
+                const btnElement = document.getElementById('tool-' + groupId);
+                if (btnElement) selectTool(groupId, btnElement);
+            }
+            if (e.key === 'Backspace' || e.key === 'z') {
+                undo();
+            }
+        });
+
+        // Iniciar
+        fetchBatch();
+    </script>
+</body>
+</html>
