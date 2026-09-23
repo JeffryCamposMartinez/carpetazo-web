@@ -571,7 +571,16 @@ function FolderPokemonInner() {
     setSearchResults(filtered);
   }, [rawSearchResults, filterType, filterRarity, searchQuery, mylType, mylRace, mylCost, searchPhysicalProduct]);
 
-const handleSearchAPI = async (e) => {
+
+  const [initialSearchTriggered, setInitialSearchTriggered] = useState(false);
+  useEffect(() => {
+    if (!loadingFolder && searchCategory && !initialSearchTriggered && activeTab === 'add') {
+      setInitialSearchTriggered(true);
+      handleSearchAPI({ preventDefault: () => {} });
+    }
+  }, [loadingFolder, searchCategory, initialSearchTriggered, activeTab]);
+
+  const handleSearchAPI = async (e) => {
     e.preventDefault();
     if (!searchCategory) {
       showToast('Selecciona un TCG.', 'error');
@@ -939,7 +948,7 @@ const handleSearchAPI = async (e) => {
             }}>
               <div className="relative w-full aspect-[63/88] flex items-center justify-center bg-gray-50 p-2">
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-300"></div>
+                  <img src="/favicon.png" className="w-10 h-10 opacity-40 animate-pulse object-contain filter grayscale" alt="Cargando..." />
                 </div>
                 <img src={card.imageUrl} referrerPolicy="no-referrer" alt={card.name} loading="lazy" className="w-full h-full object-contain filter drop-shadow-sm relative z-10 transition-opacity duration-300 opacity-0" onLoad={(e) => { e.currentTarget.classList.remove('opacity-0'); e.currentTarget.previousSibling.style.display = 'none'; }} />
               </div>
