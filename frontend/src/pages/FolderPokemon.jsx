@@ -944,9 +944,9 @@ const handleSearchAPI = async (e) => {
                 </div>
                 <img src={card.imageUrl} referrerPolicy="no-referrer" alt={card.name} loading="lazy" className="w-full h-full object-contain filter drop-shadow-sm relative z-10 transition-opacity duration-300 opacity-0" onLoad={(e) => { e.currentTarget.classList.remove('opacity-0'); e.currentTarget.previousSibling.style.display = 'none'; }} />
               </div>
-              <div className={`text-center border-t border-gray-100 w-full ${gridCols <= 2 ? 'p-4' : 'p-2'}`}>
-                <p className={`font-bold text-gray-900 truncate ${gridCols === 1 ? 'text-xl' : gridCols === 2 ? 'text-lg' : gridCols === 3 ? 'text-base' : 'text-sm'}`}>{card.name}</p>
-                <p className={`text-gray-500 truncate mt-1 ${gridCols === 1 ? 'text-lg' : gridCols === 2 ? 'text-base' : gridCols === 3 ? 'text-sm' : 'text-xs'}`}>{availableSets.find(s => s.groupId == (searchSet || card.groupId))?.name}</p>
+              <div className={`text-center border-t border-gray-100 w-full ${gridCols <= 2 ? 'p-4' : gridCols === 3 ? 'p-3' : gridCols === 4 ? 'p-2' : 'p-1'}`}>
+                <p className={`font-bold text-gray-900 truncate ${gridCols === 1 ? 'text-2xl' : gridCols === 2 ? 'text-xl' : gridCols === 3 ? 'text-base' : gridCols === 4 ? 'text-sm' : 'text-xs'}`}>{card.name}</p>
+                <p className={`text-gray-500 truncate mt-1 ${gridCols === 1 ? 'text-xl' : gridCols === 2 ? 'text-lg' : gridCols === 3 ? 'text-sm' : gridCols === 4 ? 'text-xs' : 'text-[10px]'}`}>{availableSets.find(s => s.groupId == (searchSet || card.groupId))?.name}</p>
               </div>
             </div>
           ))}
