@@ -919,11 +919,11 @@ function FolderPokemonInner() {
           </div>
         )}
 
-          <div className="flex justify-between items-center mt-4 mb-2 gap-3 w-full px-2 md:px-0">
+          <div className="fixed bottom-[88px] right-6 flex flex-col gap-3 z-[60] lg:static lg:flex-row lg:justify-between lg:w-full lg:px-0 lg:mt-4 lg:mb-2 lg:z-auto">
             <button 
               type="button" 
               onClick={() => { const isMobile = window.innerWidth <= 768; const maxCols = isMobile ? 3 : 5; const minCols = isMobile ? 1 : 2; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }} 
-              className="bg-gray-100 hover:bg-gray-200 text-[#1e40af] border border-gray-300 w-16 md:w-12 h-12 rounded-[24px] md:rounded-full transition-all duration-300 shadow-sm flex items-center justify-center font-bold" 
+              className="bg-white hover:bg-gray-100 text-[#1e40af] border border-gray-200 lg:border-gray-300 w-14 h-14 lg:w-12 lg:h-12 rounded-full transition-all duration-300 shadow-lg lg:shadow-sm flex items-center justify-center font-bold" 
               title="Cambiar vista"
             >
               <span translate="no" className="material-symbols-outlined text-[20px]">grid_view</span>
@@ -933,7 +933,7 @@ function FolderPokemonInner() {
             <button 
               type="button" 
               onClick={() => { setSearchQuery(''); setSearchPhysicalProduct(''); setSearchSet(''); setMylType(''); setMylRace(''); setMylCost(''); }} 
-              className="bg-gray-100 hover:bg-red-50 text-gray-400 hover:text-red-500 border border-gray-300 hover:border-red-300 w-16 md:w-12 h-12 rounded-[24px] md:rounded-full transition-all duration-300 shadow-sm flex items-center justify-center font-bold" 
+              className="bg-white hover:bg-red-50 text-gray-500 hover:text-red-500 border border-gray-200 lg:border-gray-300 w-14 h-14 lg:w-12 lg:h-12 rounded-full transition-all duration-300 shadow-lg lg:shadow-sm flex items-center justify-center font-bold" 
               title="Limpiar filtros"
             >
               <span translate="no" className="material-symbols-outlined text-[22px]">filter_alt_off</span>
