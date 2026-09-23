@@ -122,7 +122,7 @@ function FolderPokemonInner() {
 
   // --- ADD TO CATALOG STATE ---
   const [searchQuery, setSearchQuery] = useState('');
-  const [gridCols, setGridCols] = useState(typeof window !== 'undefined' && window.innerWidth <= 768 ? 2 : 4);
+  const [gridCols, setGridCols] = useState(typeof window !== 'undefined' && window.innerWidth <= 768 ? 2 : 3);
   const [searchCategory, setSearchCategory] = useState('3');
   const [availableCategories, setAvailableCategories] = useState([]);
   const [searchSet, setSearchSet] = useState('');
