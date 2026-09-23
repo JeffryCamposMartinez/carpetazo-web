@@ -140,6 +140,16 @@ function FolderPokemonInner() {
   const filteredSearchSets = searchCategory === '99' && searchBlock !== '' ? availableSets.filter(s => s.blockId == searchBlock) : availableSets;
   const filteredCatSets = (folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') && catBlock !== '' ? availableSets.filter(s => s.blockId == catBlock) : availableSets;
   const [isSetDropdownOpen, setIsSetDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768 && gridCols === 1) {
+        setGridCols(3);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [gridCols]);
   const [searchResults, setSearchResults] = useState([]);
   const [hasSearchedAPI, setHasSearchedAPI] = useState(false);
   const [filterType, setFilterType] = useState('all');
@@ -889,7 +899,7 @@ const handleSearchAPI = async (e) => {
           <div className="flex justify-center items-center mt-4 mb-2 gap-3">
             <button 
               type="button" 
-              onClick={() => { const maxCols = window.innerWidth <= 768 ? 3 : 5; setGridCols(prev => prev >= maxCols ? 1 : prev + 1); }} 
+              onClick={() => { const isMobile = window.innerWidth <= 768; const maxCols = isMobile ? 3 : 5; const minCols = isMobile ? 1 : 2; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }} 
               className="bg-gray-100 hover:bg-gray-200 text-[#1e40af] border border-gray-300 w-12 h-12 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center font-bold" 
               title="Cambiar vista"
             >
