@@ -744,19 +744,19 @@ const handleSearchAPI = async (e) => {
               placeholder={searchCategory === "99" ? "Nombre de la carta (ej. Oseye)" : "Nombre (ej. Pikachu) o Código"}
             className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] transition-colors"
           />
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+          <div className="grid grid-cols-3 gap-2 mb-2">
               
             {searchCategory === '99' && (
-                <select value={searchBlock} onChange={(e) => { setSearchBlock(e.target.value); setSearchSet(''); setSearchPhysicalProduct(''); }} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors">
-                  <option value="">Bloque (Todos)</option>
+                <select value={searchBlock} onChange={(e) => { setSearchBlock(e.target.value); setSearchSet(''); setSearchPhysicalProduct(''); }} className="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors truncate">
+                  <option value="">Bloque</option>
                   <option value="1">Furia Extendido</option>
                   <option value="2">Primer Bloque</option>
                   <option value="3">Primera Era</option>
                 </select>
               )}
               {searchCategory === '99' && (
-                <select value={searchPhysicalProduct} onChange={(e) => setSearchPhysicalProduct(e.target.value)} disabled={!searchBlock} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
-                  <option value="">Producto (Todos)</option>
+                <select value={searchPhysicalProduct} onChange={(e) => setSearchPhysicalProduct(e.target.value)} disabled={!searchBlock} className="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed truncate">
+                  <option value="">Producto</option>
                   {availablePhysicalProducts.filter(p => !searchBlock || p.blockId === parseInt(searchBlock)).map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
@@ -764,8 +764,8 @@ const handleSearchAPI = async (e) => {
               )}
 
             <div className="relative w-full">
-              <div className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-colors hover:border-[#1e40af]" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
-                <span className="truncate font-bold text-sm">{searchSet === '' ? 'Todas las ediciones' : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
+              <div className="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-colors hover:border-[#1e40af]" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
+                <span className="truncate font-bold text-sm">{searchSet === '' ? 'Edición' : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
                 <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
               </div>
               {isSetDropdownOpen && (
@@ -778,7 +778,7 @@ const handleSearchAPI = async (e) => {
                       onClick={() => { setSearchSet(''); setIsSetDropdownOpen(false); }}
                     >
                       {searchSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
-                      <span className={searchSet !== '' ? 'ml-6' : ''}>Todas las ediciones</span>
+                      <span className={searchSet !== '' ? 'ml-6' : ''}>Edición</span>
                     </div>
                     {filteredSearchSets.map(set => (
                       <div key={set.groupId} className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 flex items-center gap-2 ${searchSet == set.groupId ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(set.groupId); setIsSetDropdownOpen(false); }}>
