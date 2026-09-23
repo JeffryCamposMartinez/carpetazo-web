@@ -629,7 +629,22 @@ function FolderPokemonInner() {
     }
   };
 
-  const handleImageUpload = (e) => {
+  
+    const firstRenderFilters = useRef(true);
+    useEffect(() => {
+      if (firstRenderFilters.current) {
+        firstRenderFilters.current = false;
+        return;
+      }
+      if (activeTab === 'add' && !loadingFolder && searchCategory) {
+        const timeoutId = setTimeout(() => {
+          handleSearchAPI({ preventDefault: () => {} });
+        }, 150);
+        return () => clearTimeout(timeoutId);
+      }
+    }, [searchBlock, searchSet, searchPhysicalProduct, mylType, mylRace, mylCost]);
+
+    const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
