@@ -930,7 +930,7 @@ const handleSearchAPI = async (e) => {
           ) : searchResults.length > 0 ? (
             <>
             {searchResults.slice(0, visibleCount).map(card => (
-            <div key={card.id} className={`cursor-pointer flex flex-col justify-between rounded-xl overflow-hidden border-2 transition-all duration-200 bg-white shadow-sm ${gridCols <= 2 ? 'max-w-[270px] mx-auto w-full' : 'w-full'} ${selectedCard?.id === card.id ? 'border-[#1e40af] shadow-md scale-[1.02]' : 'border-gray-200 hover:border-[#1e40af]/50'}`} onClick={() => { 
+            <div key={card.id} className={`cursor-pointer flex flex-col justify-between rounded-xl overflow-hidden border-2 transition-all duration-200 bg-white shadow-sm ${gridCols <= 2 ? 'max-w-[350px] mx-auto w-full' : 'w-full'} ${selectedCard?.id === card.id ? 'border-[#1e40af] shadow-md scale-[1.02]' : 'border-gray-200 hover:border-[#1e40af]/50'}`} onClick={() => { 
               setSelectedCard(card); setPrice(''); setStock(''); setPseudoName(''); 
               if (window.innerWidth < 1024) {
                 setTimeout(() => {
