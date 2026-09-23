@@ -921,7 +921,7 @@ const handleSearchAPI = async (e) => {
           </div>
         </form>
       </div>
-      <div className={`grid gap-4 pr-2 ${gridCols === 1 ? 'grid-cols-1' : gridCols === 2 ? 'grid-cols-2 lg:px-12 xl:px-20 lg:gap-8' : gridCols === 3 ? 'grid-cols-3' : gridCols === 4 ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-5'}`}>
+      <div className={`grid gap-4 pr-2 ${gridCols === 1 ? 'grid-cols-1' : gridCols === 2 ? 'grid-cols-2' : gridCols === 3 ? 'grid-cols-3' : gridCols === 4 ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-5'}`}>
           {isSearching ? (
             <div className="col-span-full flex flex-col items-center justify-center py-16">
               <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#1e40af] mb-4"></div>
@@ -930,7 +930,7 @@ const handleSearchAPI = async (e) => {
           ) : searchResults.length > 0 ? (
             <>
             {searchResults.slice(0, visibleCount).map(card => (
-            <div key={card.id} className={`cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-200 bg-white shadow-sm ${selectedCard?.id === card.id ? 'border-[#1e40af] shadow-md scale-[1.02]' : 'border-gray-200 hover:border-[#1e40af]/50'}`} onClick={() => { 
+            <div key={card.id} className={`cursor-pointer flex flex-col justify-between rounded-xl overflow-hidden border-2 transition-all duration-200 bg-white shadow-sm ${gridCols <= 2 ? 'max-w-[260px] mx-auto w-full' : 'w-full'} ${selectedCard?.id === card.id ? 'border-[#1e40af] shadow-md scale-[1.02]' : 'border-gray-200 hover:border-[#1e40af]/50'}`} onClick={() => { 
               setSelectedCard(card); setPrice(''); setStock(''); setPseudoName(''); 
               if (window.innerWidth < 1024) {
                 setTimeout(() => {
