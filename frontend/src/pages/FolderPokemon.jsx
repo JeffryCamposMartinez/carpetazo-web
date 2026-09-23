@@ -422,12 +422,7 @@ function FolderPokemonInner() {
       
       {/* MYL Custom Filters UI for Catalog Tab */}
       {(folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') && (
-        <div className="flex flex-col gap-3 mb-8 p-4 bg-[#DBEAFE]/30 rounded-xl border border-blue-200">
-          <h4 className="text-xs font-bold text-[#1e40af] uppercase tracking-wider mb-1 flex items-center gap-1">
-            <span translate="no" className="material-symbols-outlined text-[16px]">tune</span>
-            Filtros Mitos y Leyendas
-          </h4>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
             <select value={mylType} onChange={(e) => setMylType(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
               <option value="">Tipo (Todos)</option>
               <option value="ALIADO">Aliado</option>
@@ -747,10 +742,10 @@ const handleSearchAPI = async (e) => {
               placeholder={searchCategory === "99" ? "Nombre de la carta (ej. Oseye)" : "Nombre (ej. Pikachu) o Código"}
             className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] transition-colors"
           />
-          <div className="flex flex-col sm:flex-row gap-4 mb-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-1">
               
             {searchCategory === '99' && (
-                <select value={searchBlock} onChange={(e) => { setSearchBlock(e.target.value); setSearchSet(''); setSearchPhysicalProduct(''); }} className="w-full sm:w-1/3 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors">
+                <select value={searchBlock} onChange={(e) => { setSearchBlock(e.target.value); setSearchSet(''); setSearchPhysicalProduct(''); }} className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors">
                   <option value="">Bloque (Todos)</option>
                   <option value="1">Furia Extendido</option>
                   <option value="2">Primer Bloque</option>
@@ -758,7 +753,7 @@ const handleSearchAPI = async (e) => {
                 </select>
               )}
               {searchCategory === '99' && (
-                <select value={searchPhysicalProduct} onChange={(e) => setSearchPhysicalProduct(e.target.value)} disabled={!searchBlock} className="w-full sm:w-1/3 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
+                <select value={searchPhysicalProduct} onChange={(e) => setSearchPhysicalProduct(e.target.value)} disabled={!searchBlock} className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
                   <option value="">Producto (Todos)</option>
                   {availablePhysicalProducts.filter(p => !searchBlock || p.blockId === parseInt(searchBlock)).map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
@@ -766,7 +761,7 @@ const handleSearchAPI = async (e) => {
                 </select>
               )}
 
-            <div className={`relative w-full ${searchCategory === '99' ? 'sm:w-1/3' : 'sm:w-2/3'}`}>
+            <div className="relative w-full">>
               <div className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-colors hover:border-[#1e40af]" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
                 <span className="truncate font-bold text-sm">{searchSet === '' ? 'Todas las ediciones' : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
                 <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
@@ -797,12 +792,7 @@ const handleSearchAPI = async (e) => {
           
             {/* MYL Custom Filters UI */}
             {searchCategory === '99' && (
-              <div className="flex flex-col gap-3 mt-4 p-4 bg-[#DBEAFE]/30 rounded-xl border border-blue-200">
-                <h4 className="text-xs font-bold text-[#1e40af] uppercase tracking-wider mb-1 flex items-center gap-1">
-                  <span translate="no" className="material-symbols-outlined text-[16px]">tune</span>
-                  Filtros Mitos y Leyendas
-                </h4>
-                <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 mt-3">
                   <select value={mylType} onChange={(e) => setMylType(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
                     <option value="">Tipo (Todos)</option>
                     <option value="ALIADO">Aliado</option>
