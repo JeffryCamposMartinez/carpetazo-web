@@ -30,7 +30,7 @@
     content: "";
     position: fixed;
     inset: 0;
-    background-image: url('https://images5.alphacoders.com/389/389247.png');
+    background-image: url('/images/bg_389247.webp');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
