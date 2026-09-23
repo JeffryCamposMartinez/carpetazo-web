@@ -885,7 +885,7 @@ const handleSearchAPI = async (e) => {
           </div>
         )}
 
-          <div className="flex justify-center items-center mt-4 gap-3">
+          <div className="flex justify-center items-center mt-4 mb-8 gap-3">
             <button 
               type="button" 
               onClick={() => { const maxCols = window.innerWidth <= 768 ? 3 : 5; setGridCols(prev => prev >= maxCols ? 1 : prev + 1); }} 
@@ -898,6 +898,14 @@ const handleSearchAPI = async (e) => {
             <button type="submit" className="bg-[#1e40af] hover:bg-blue-800 text-white font-bold px-12 py-3 rounded-full transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 whitespace-nowrap flex items-center gap-2" disabled={isSearching}>
               <span translate="no" className="material-symbols-outlined">{isSearching ? 'hourglass_empty' : 'search'}</span>
               {isSearching ? 'Buscando...' : 'Buscar Cartas'}
+            </button>
+            <button 
+              type="button" 
+              onClick={() => { setSearchQuery(''); setSearchPhysicalProduct(''); setSearchSet(''); setMylType(''); setMylRace(''); setMylCost(''); }} 
+              className="bg-gray-100 hover:bg-red-50 text-gray-400 hover:text-red-500 border border-gray-300 hover:border-red-300 w-12 h-12 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center font-bold" 
+              title="Limpiar filtros"
+            >
+              <span translate="no" className="material-symbols-outlined text-[22px]">filter_alt_off</span>
             </button>
           </div>
         </form>
