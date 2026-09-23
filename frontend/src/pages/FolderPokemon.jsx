@@ -134,7 +134,7 @@ function FolderPokemonInner() {
   const [mylType, setMylType] = useState('');
   const [mylRace, setMylRace] = useState('');
   const [mylCost, setMylCost] = useState('');
-  const [searchBlock, setSearchBlock] = useState('');
+  const [searchBlock, setSearchBlock] = useState('2');
   const [catBlock, setCatBlock] = useState('');
 
   const filteredSearchSets = searchCategory === '99' && searchBlock !== '' ? availableSets.filter(s => s.blockId == searchBlock) : availableSets;
@@ -760,7 +760,6 @@ const handleSearchAPI = async (e) => {
               
             {searchCategory === '99' && (
                 <select value={searchBlock} onChange={(e) => { setSearchBlock(e.target.value); setSearchSet(''); setSearchPhysicalProduct(''); }} className="w-full px-2 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors truncate">
-                  <option value="">Bloque</option>
                   <option value="1">Furia Extendido</option>
                   <option value="2">Primer Bloque</option>
                   <option value="3">Primera Era</option>
