@@ -733,9 +733,10 @@ const handleSearchAPI = async (e) => {
       {/* Lado Izquierdo: Buscador de API */}
       <div className="flex-1 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
         <div className="sticky top-0 lg:top-4 bg-white z-40 pb-4 pt-4 -mx-6 px-6 -mt-6 rounded-t-2xl border-b border-gray-100 mb-6 shadow-sm">
+            <div className="sticky top-[70px] lg:top-[115px] bg-white z-40 pb-4 pt-6 -mx-6 px-6 -mt-6 border-b border-gray-100 mb-6 shadow-sm rounded-t-2xl" style={{ boxShadow: '0 0 0 1px white' }}>
             <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 mb-4">
           <span translate="no" className="material-symbols-outlined text-[#1e40af]">search</span>
-            Buscar en {folderData?.tcg || "Catálogo"}
+            Buscar en {folderData?.tcg || "Carpeta"}
         </h2>
         
         <form onSubmit={handleSearchAPI} className="flex flex-col gap-2 mb-3">
@@ -911,6 +912,7 @@ const handleSearchAPI = async (e) => {
           </div>
         </form>
           </div>
+          </div>
 
         <div className={`grid gap-4 pr-2 ${gridCols === 1 ? 'grid-cols-1' : gridCols === 2 ? 'grid-cols-2' : gridCols === 3 ? 'grid-cols-3' : gridCols === 4 ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-5'}`}>
           {isSearching ? (
@@ -961,11 +963,11 @@ const handleSearchAPI = async (e) => {
         </div>
       </div>
 
-      {/* Lado Derecho: Añadir al Catálogo */}
-      <div id="add-catalog-panel" className={`w-full max-w-[400px] lg:w-[400px] bg-white p-6 lg:p-6 rounded-2xl shadow-sm border border-gray-200 sticky top-24 flex-shrink-0 z-10 hover:z-[60] h-fit min-h-[650px] lg:min-h-0 mx-auto lg:mx-0 self-center lg:self-start scroll-mt-24 ${!selectedCard ? 'hidden lg:block' : 'block'}`}>
+      {/* Lado Derecho: Añadir al Carpeta */}
+      <div id="add-catalog-panel" className={`w-full max-w-[400px] lg:w-[400px] bg-white p-6 lg:p-6 rounded-2xl shadow-sm border border-gray-200 sticky top-[115px] flex-shrink-0 z-10 hover:z-[60] h-fit min-h-[650px] lg:min-h-0 mx-auto lg:mx-0 self-center lg:self-start scroll-mt-[115px] ${!selectedCard ? 'hidden lg:block' : 'block'}`}>
         <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 border-b border-gray-200 pb-4">
           <span translate="no" className="material-symbols-outlined text-[#1e40af]">add_circle</span>
-          Añadir al Catálogo
+          Añadir al Carpeta
         </h2>
         {selectedCard ? (
           <form onSubmit={handleSaveCard} className="flex flex-col gap-2 mt-2">
@@ -1197,7 +1199,7 @@ const handleSearchAPI = async (e) => {
         >
           <span translate="no" className="material-symbols-outlined text-xl sm:text-2xl">arrow_back</span>
         </button>
-        <h1 className="font-headline-lg md:font-display-lg text-headline-lg md:text-display-lg text-[#1a2b4b] m-0 leading-tight truncate">Catálogo: {folderData.name}</h1>
+        <h1 className="font-headline-lg md:font-display-lg text-headline-lg md:text-display-lg text-[#1a2b4b] m-0 leading-tight truncate">Carpeta: {folderData.name}</h1>
       </div>
 
       {/* Tabs */}
@@ -1214,7 +1216,7 @@ const handleSearchAPI = async (e) => {
           className={`px-2 sm:px-6 py-4 rounded-t-xl font-bold transition-colors flex items-center justify-center gap-1 sm:gap-2 ${activeTab === 'catalog' ? 'bg-white text-[#1e40af] border-b-4 border-[#1e40af] shadow-sm' : 'bg-gray-50/50 hover:bg-gray-100 text-gray-500'}`}
         >
           <span translate="no" className="material-symbols-outlined text-[18px] sm:text-[24px]">inventory_2</span>
-          <span className="text-xs sm:text-sm">Catálogo</span>
+          <span className="text-xs sm:text-sm">Carpeta</span>
         </button>
       </div>
 
