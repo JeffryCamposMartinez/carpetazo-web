@@ -888,7 +888,7 @@ const handleSearchAPI = async (e) => {
           <div className="flex justify-center items-center mt-4 gap-3">
             <button 
               type="button" 
-              onClick={() => setGridCols(prev => prev >= 5 ? 1 : prev + 1)} 
+              onClick={() => { const maxCols = window.innerWidth <= 768 ? 3 : 5; setGridCols(prev => prev >= maxCols ? 1 : prev + 1); }} 
               className="bg-gray-100 hover:bg-gray-200 text-[#1e40af] border border-gray-300 w-12 h-12 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center font-bold" 
               title="Cambiar vista"
             >
