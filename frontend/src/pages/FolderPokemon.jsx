@@ -930,7 +930,7 @@ const handleSearchAPI = async (e) => {
           ) : searchResults.length > 0 ? (
             <>
             {searchResults.slice(0, visibleCount).map(card => (
-            <div key={card.id} className={`cursor-pointer flex flex-col justify-between rounded-xl overflow-hidden border-2 transition-all duration-200 bg-white shadow-sm ${gridCols === 1 ? 'max-w-[200px] mx-auto w-full' : gridCols === 2 ? 'max-w-[350px] mx-auto w-full' : 'w-full'} ${selectedCard?.id === card.id ? 'border-[#1e40af] shadow-md scale-[1.02]' : 'border-gray-200 hover:border-[#1e40af]/50'}`} onClick={() => { 
+            <div key={card.id} className={`cursor-pointer flex flex-col justify-between rounded-xl overflow-hidden border-2 transition-all duration-200 bg-white shadow-sm ${gridCols === 1 ? 'max-w-[230px] mx-auto w-full' : gridCols === 2 ? 'max-w-[350px] mx-auto w-full' : 'w-full'} ${selectedCard?.id === card.id ? 'border-[#1e40af] shadow-md scale-[1.02]' : 'border-gray-200 hover:border-[#1e40af]/50'}`} onClick={() => { 
               setSelectedCard(card); setPrice(''); setStock(''); setPseudoName(''); 
               if (window.innerWidth < 1024) {
                 setTimeout(() => {
@@ -945,8 +945,8 @@ const handleSearchAPI = async (e) => {
                 <img src={card.imageUrl} referrerPolicy="no-referrer" alt={card.name} loading="lazy" className="w-full h-full object-contain filter drop-shadow-sm relative z-10 transition-opacity duration-300 opacity-0" onLoad={(e) => { e.currentTarget.classList.remove('opacity-0'); e.currentTarget.previousSibling.style.display = 'none'; }} />
               </div>
               <div className={`text-center border-t border-gray-100 w-full ${gridCols <= 2 ? 'p-2' : gridCols === 3 ? 'p-3' : gridCols === 4 ? 'p-2' : 'p-1'}`}>
-                <p className={`font-bold text-gray-900 truncate ${gridCols === 1 ? 'text-2xl' : gridCols === 2 ? 'text-xl' : gridCols === 3 ? 'text-base' : gridCols === 4 ? 'text-sm' : 'text-xs'}`}>{card.name}</p>
-                <p className={`text-gray-500 truncate mt-1 ${gridCols === 1 ? 'text-xl' : gridCols === 2 ? 'text-lg' : gridCols === 3 ? 'text-sm' : gridCols === 4 ? 'text-xs' : 'text-[10px]'}`}>{availableSets.find(s => s.groupId == (searchSet || card.groupId))?.name}</p>
+                <p className={`font-bold text-gray-900 truncate ${gridCols === 1 ? 'text-lg' : gridCols === 2 ? 'text-xl' : gridCols === 3 ? 'text-base' : gridCols === 4 ? 'text-sm' : 'text-xs'}`}>{card.name}</p>
+                <p className={`text-gray-500 truncate mt-1 ${gridCols === 1 ? 'text-sm' : gridCols === 2 ? 'text-lg' : gridCols === 3 ? 'text-sm' : gridCols === 4 ? 'text-xs' : 'text-[10px]'}`}>{availableSets.find(s => s.groupId == (searchSet || card.groupId))?.name}</p>
               </div>
             </div>
           ))}
