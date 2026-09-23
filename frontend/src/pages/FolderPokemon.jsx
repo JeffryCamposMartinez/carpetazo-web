@@ -426,7 +426,7 @@ function FolderPokemonInner() {
           
           <div className="grid grid-cols-3 gap-2">
             <select value={mylType} onChange={(e) => setMylType(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
-              <option value="">Tipo (Todos)</option>
+              <option value="">Tipo</option>
               <option value="ALIADO">Aliado</option>
               <option value="ARMA">Arma</option>
               <option value="ORO">Oro</option>
@@ -434,7 +434,7 @@ function FolderPokemonInner() {
               <option value="TOTEM">Tótem</option>
             </select>
             <select value={mylRace} onChange={(e) => setMylRace(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] text-sm font-medium shadow-sm transition-all">
-                    <option value="">Raza (Todas)</option>
+                    <option value="">Raza</option>
                     {searchBlock === '2' ? (
                       <>
                         <option value="CABALLERO">Caballero</option>
@@ -473,7 +473,7 @@ function FolderPokemonInner() {
                 onChange={(e) => setMylCost(e.target.value)} 
                 className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] text-sm font-medium shadow-sm transition-all"
               >
-                <option value="">Costo (Todos)</option>
+                <option value="">Costo</option>
                 {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
                   <option key={i} value={i}>{i}</option>
                 ))}
@@ -798,7 +798,7 @@ const handleSearchAPI = async (e) => {
                 
                 <div className="grid grid-cols-3 gap-2">
                   <select value={mylType} onChange={(e) => setMylType(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
-                    <option value="">Tipo (Todos)</option>
+                    <option value="">Tipo</option>
                     <option value="ALIADO">Aliado</option>
                     <option value="ARMA">Arma</option>
                     <option value="ORO">Oro</option>
@@ -806,7 +806,7 @@ const handleSearchAPI = async (e) => {
                     <option value="TOTEM">Tótem</option>
                   </select>
                   <select value={mylRace} onChange={(e) => setMylRace(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] text-sm font-medium shadow-sm transition-all">
-                    <option value="">Raza (Todas)</option>
+                    <option value="">Raza</option>
                     {searchBlock === '2' ? (
                       <>
                         <option value="CABALLERO">Caballero</option>
@@ -845,7 +845,7 @@ const handleSearchAPI = async (e) => {
                 onChange={(e) => setMylCost(e.target.value)} 
                 className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] text-sm font-medium shadow-sm transition-all"
               >
-                <option value="">Costo (Todos)</option>
+                <option value="">Costo</option>
                 {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
                   <option key={i} value={i}>{i}</option>
                 ))}
