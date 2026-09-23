@@ -765,8 +765,8 @@ function FolderPokemonInner() {
   const renderAddTab = () => (
     <div className="flex flex-col-reverse lg:flex-row gap-6">
       {/* Lado Izquierdo: Buscador de API */}
-      <div className="flex-1 bg-[#1a1a1a] rounded-2xl border border-gray-200 shadow-sm flex flex-col overflow-hidden relative">
-        <div className="sticky top-[70px] lg:top-[150px] bg-white z-40 pb-4 pt-6 px-4 lg:px-6 border-b border-gray-200 shadow-sm" style={{ boxShadow: '0 10px 15px -3px rgba(255,255,255,1), 0 4px 6px -2px rgba(255,255,255,1)' }}>
+      <div className="flex-1 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+        <div className="sticky top-[70px] lg:top-[150px] bg-white z-40 pb-2 pt-6 -mx-6 px-6 -mt-6 border-b border-gray-200 shadow-sm rounded-t-2xl mb-4" style={{ boxShadow: '0 10px 15px -3px rgba(255,255,255,1), 0 4px 6px -2px rgba(255,255,255,1)' }}>
             <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 mb-4">
           <span translate="no" className="material-symbols-outlined text-[#1e40af]">search</span>
             Buscar en {folderData?.tcg || "Carpeta"}
@@ -940,12 +940,8 @@ function FolderPokemonInner() {
             </button>
           </div>
         </form>
-        </div>
-        <div 
-          className="flex-1 p-4 lg:p-8" 
-          style={{ backgroundImage: "url('/images/binder_bg.png')", backgroundSize: "100% auto", backgroundRepeat: "repeat-y", backgroundPosition: "top center", minHeight: "600px" }}
-        >
-        <div className={`grid gap-4 pr-2 ${gridCols === 1 ? 'grid-cols-1' : gridCols === 2 ? 'grid-cols-2' : gridCols === 3 ? 'grid-cols-3' : gridCols === 4 ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-5'}`}>
+      </div>
+      <div className={`grid gap-4 pr-2 ${gridCols === 1 ? 'grid-cols-1' : gridCols === 2 ? 'grid-cols-2' : gridCols === 3 ? 'grid-cols-3' : gridCols === 4 ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-5'}`}>
           {isSearching ? (
             <div className="col-span-full flex flex-col items-center justify-center py-16">
               <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#1e40af] mb-4"></div>
@@ -996,7 +992,6 @@ function FolderPokemonInner() {
 
       {/* Lado Derecho: Añadir a Carpeta */}
 
-        </div>
         {/* Columna de Botones FAB (Solo PC) */}
         <div className="hidden lg:flex flex-col gap-3 sticky top-[calc(100vh-220px)] h-fit z-[60] self-start -mx-2">
             <button 
