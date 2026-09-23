@@ -385,9 +385,9 @@ function FolderPokemonInner() {
         {(folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') && (
           <select value={catBlock} onChange={(e) => { setCatBlock(e.target.value); setCatSet(''); }} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]">
             <option value="">Selecciona un bloque (Todos)</option>
-            <option value="1">Furia Extendido</option>
-            <option value="2">Primer Bloque</option>
-            <option value="3">Primera Era</option>
+              <option value="2">Primer Bloque</option>
+              <option value="3">Primera Era</option>
+              <option value="1">Furia Extendido</option>
           </select>
         )}
         
@@ -760,9 +760,9 @@ const handleSearchAPI = async (e) => {
               
             {searchCategory === '99' && (
                 <select value={searchBlock} onChange={(e) => { setSearchBlock(e.target.value); setSearchSet(''); setSearchPhysicalProduct(''); }} className="w-full px-2 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors truncate">
-                  <option value="1">Furia Extendido</option>
                   <option value="2">Primer Bloque</option>
-                  <option value="3">Primera Era</option>
+                    <option value="3">Primera Era</option>
+                    <option value="1">Furia Extendido</option>
                 </select>
               )}
               {searchCategory === '99' && (
