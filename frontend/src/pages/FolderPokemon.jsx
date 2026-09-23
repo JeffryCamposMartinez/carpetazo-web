@@ -961,7 +961,7 @@ const handleSearchAPI = async (e) => {
       </div>
 
       {/* Lado Derecho: Añadir a Carpeta */}
-      <div id="add-catalog-panel" className={`w-full max-w-[400px] lg:w-[400px] bg-white p-6 lg:p-6 rounded-2xl shadow-sm border border-gray-200 lg:sticky lg:top-[150px] flex-shrink-0 z-10 hover:z-[60] h-fit min-h-[650px] lg:min-h-0 mx-auto lg:mx-0 self-center lg:self-start scroll-mt-[80px] lg:scroll-mt-[150px] ${!selectedCard ? 'hidden lg:block' : 'block'}`}>
+      <div id="add-catalog-panel" className={`w-full max-w-[400px] lg:w-[400px] bg-white p-6 lg:p-6 rounded-2xl shadow-sm border border-gray-200 lg:sticky lg:top-[150px] flex-shrink-0 z-10 hover:z-[60] h-fit min-h-[650px] lg:min-h-0 mx-auto lg:mx-0 self-center lg:self-start scroll-mt-[130px] lg:scroll-mt-[150px] ${!selectedCard ? 'hidden lg:block' : 'block'}`}>
         <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 border-b border-gray-200 pb-4">
           <span translate="no" className="material-symbols-outlined text-[#1e40af]">add_circle</span>
           Añadir a Carpeta
