@@ -49,7 +49,7 @@ const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
   const hasChanges = price != card.price || stock != card.stock;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 flex flex-col shadow-sm hover:shadow-md transition-shadow overflow-hidden relative group">
+    <div className="bg-blue-50 rounded-2xl border border-gray-200 flex flex-col shadow-sm hover:shadow-md transition-shadow overflow-hidden relative group">
       <button 
         onClick={() => onDelete(card.id)}
         className="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-red-600 hover:bg-red-700 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
@@ -950,7 +950,7 @@ function FolderPokemonInner() {
           ) : searchResults.length > 0 ? (
             <>
             {searchResults.slice(0, visibleCount).map(card => (
-            <div key={card.id} className={`cursor-pointer flex flex-col justify-between rounded-xl overflow-hidden border-2 transition-all duration-200 bg-white shadow-sm ${gridCols === 1 ? 'max-w-[255px] mx-auto w-full' : gridCols === 2 ? 'max-w-[350px] mx-auto w-full' : 'w-full'} ${selectedCard?.id === card.id ? 'border-[#1e40af] shadow-md scale-[1.02]' : 'border-gray-200 hover:border-[#1e40af]/50'}`} onClick={() => { 
+            <div key={card.id} className={`cursor-pointer flex flex-col justify-between rounded-xl overflow-hidden border-2 transition-all duration-200 bg-blue-50 shadow-sm ${gridCols === 1 ? 'max-w-[255px] mx-auto w-full' : gridCols === 2 ? 'max-w-[350px] mx-auto w-full' : 'w-full'} ${selectedCard?.id === card.id ? 'border-[#1e40af] shadow-md scale-[1.02]' : 'border-gray-200 hover:border-[#1e40af]/50'}`} onClick={() => { 
               setSelectedCard(card); setPrice(''); setStock(''); setPseudoName(''); 
               if (window.innerWidth < 1024) {
                 setTimeout(() => {
