@@ -122,7 +122,7 @@ function FolderPokemonInner() {
 
   // --- ADD TO CATALOG STATE ---
   const [searchQuery, setSearchQuery] = useState('');
-  const [gridCols, setGridCols] = useState(2);
+  const [gridCols, setGridCols] = useState(typeof window !== 'undefined' && window.innerWidth <= 768 ? 2 : 4);
   const [searchCategory, setSearchCategory] = useState('3');
   const [availableCategories, setAvailableCategories] = useState([]);
   const [searchSet, setSearchSet] = useState('');
@@ -885,7 +885,16 @@ const handleSearchAPI = async (e) => {
           </div>
         )}
 
-          <div className="flex justify-center mt-4">
+          <div className="flex justify-center items-center mt-4 gap-3">
+            <button 
+              type="button" 
+              onClick={() => setGridCols(prev => prev >= 5 ? 1 : prev + 1)} 
+              className="bg-gray-100 hover:bg-gray-200 text-[#1e40af] border border-gray-300 w-12 h-12 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center font-bold" 
+              title="Cambiar vista"
+            >
+              <span translate="no" className="material-symbols-outlined text-[20px]">grid_view</span>
+              <span className="ml-1">{gridCols}</span>
+            </button>
             <button type="submit" className="bg-[#1e40af] hover:bg-blue-800 text-white font-bold px-12 py-3 rounded-full transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 whitespace-nowrap flex items-center gap-2" disabled={isSearching}>
               <span translate="no" className="material-symbols-outlined">{isSearching ? 'hourglass_empty' : 'search'}</span>
               {isSearching ? 'Buscando...' : 'Buscar Cartas'}
@@ -916,9 +925,9 @@ const handleSearchAPI = async (e) => {
                 </div>
                 <img src={card.imageUrl} referrerPolicy="no-referrer" alt={card.name} loading="lazy" className="w-full h-full object-contain filter drop-shadow-sm relative z-10 transition-opacity duration-300 opacity-0" onLoad={(e) => { e.currentTarget.classList.remove('opacity-0'); e.currentTarget.previousSibling.style.display = 'none'; }} />
               </div>
-              <div className="p-3 text-center border-t border-gray-100">
-                <p className="font-bold text-sm text-gray-900 truncate">{card.name}</p>
-                <p className="text-xs text-gray-500 truncate mt-1">{availableSets.find(s => s.groupId == (searchSet || card.groupId))?.name}</p>
+              <div className={`text-center border-t border-gray-100 w-full ${gridCols <= 2 ? 'p-4' : 'p-2'}`}>
+                <p className={`font-bold text-gray-900 truncate ${gridCols === 1 ? 'text-xl' : gridCols === 2 ? 'text-lg' : gridCols === 3 ? 'text-base' : 'text-sm'}`}>{card.name}</p>
+                <p className={`text-gray-500 truncate mt-1 ${gridCols === 1 ? 'text-lg' : gridCols === 2 ? 'text-base' : gridCols === 3 ? 'text-sm' : 'text-xs'}`}>{availableSets.find(s => s.groupId == (searchSet || card.groupId))?.name}</p>
               </div>
             </div>
           ))}
