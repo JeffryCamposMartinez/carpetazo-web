@@ -368,11 +368,11 @@ function FolderPokemonInner() {
           value={catQuery}
           onChange={(e) => setCatQuery(e.target.value)}
           placeholder="Buscar por nombre en tu catálogo..."
-          className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]"
+          className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]"
         />
         
         {(folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') && (
-          <select value={catBlock} onChange={(e) => { setCatBlock(e.target.value); setCatSet(''); }} className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]">
+          <select value={catBlock} onChange={(e) => { setCatBlock(e.target.value); setCatSet(''); }} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]">
             <option value="">Selecciona un bloque (Todos)</option>
             <option value="1">Furia Extendido</option>
             <option value="2">Primer Bloque</option>
@@ -383,7 +383,7 @@ function FolderPokemonInner() {
         <div className="w-full">
             <div className="relative w-full h-full">
               <div 
-                className="w-full h-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-all hover:border-[#1e40af]"
+                className="w-full h-full px-3 py-1.5 text-sm rounded-xl border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-all hover:border-[#1e40af]"
                 onClick={() => setIsCatSetDropdownOpen(!isCatSetDropdownOpen)}
               >
                 <span className="truncate font-bold text-sm">
@@ -397,7 +397,7 @@ function FolderPokemonInner() {
                   <div className="fixed inset-0 z-[100]" onClick={() => setIsCatSetDropdownOpen(false)}></div>
                   <div className="absolute z-[110] w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
                     <div 
-                      className={`px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${catSet === '' ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
+                      className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${catSet === '' ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
                       onClick={() => { setCatSet(''); setIsCatSetDropdownOpen(false); }}
                     >
                       {catSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
@@ -407,7 +407,7 @@ function FolderPokemonInner() {
                     {filteredCatSets.map(set => (
                       <div 
                         key={set.id}
-                        className={`px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${catSet === set.id ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
+                        className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${catSet === set.id ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
                         onClick={() => { setCatSet(set.id); setIsCatSetDropdownOpen(false); }}
                       >
                         {catSet === set.id && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
@@ -422,10 +422,10 @@ function FolderPokemonInner() {
       
       {/* MYL Custom Filters UI for Catalog Tab */}
       {(folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') && (
-        <div className="flex flex-col mb-4">
+        <div className="flex flex-col mb-2">
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <select value={mylType} onChange={(e) => setMylType(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
+          <div className="grid grid-cols-3 gap-2">
+            <select value={mylType} onChange={(e) => setMylType(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
               <option value="">Tipo (Todos)</option>
               <option value="ALIADO">Aliado</option>
               <option value="ARMA">Arma</option>
@@ -433,7 +433,7 @@ function FolderPokemonInner() {
               <option value="TALISMAN">Talismán</option>
               <option value="TOTEM">Tótem</option>
             </select>
-            <select value={mylRace} onChange={(e) => setMylRace(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] text-sm font-medium shadow-sm transition-all">
+            <select value={mylRace} onChange={(e) => setMylRace(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] text-sm font-medium shadow-sm transition-all">
                     <option value="">Raza (Todas)</option>
                     {searchBlock === '2' ? (
                       <>
@@ -471,7 +471,7 @@ function FolderPokemonInner() {
             <select 
                 value={mylCost} 
                 onChange={(e) => setMylCost(e.target.value)} 
-                className="col-span-2 sm:col-span-1 w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] text-sm font-medium shadow-sm transition-all"
+                className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] text-sm font-medium shadow-sm transition-all"
               >
                 <option value="">Costo (Todos)</option>
                 {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
@@ -736,18 +736,18 @@ const handleSearchAPI = async (e) => {
             Buscar en {folderData?.tcg || "Catálogo"}
         </h2>
         
-        <form onSubmit={handleSearchAPI} className="flex flex-col gap-4 mb-6">
+        <form onSubmit={handleSearchAPI} className="flex flex-col gap-2 mb-3">
           <input 
             type="text" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={searchCategory === "99" ? "Nombre de la carta (ej. Oseye)" : "Nombre (ej. Pikachu) o Código"}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] transition-colors"
+            className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] transition-colors"
           />
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
               
             {searchCategory === '99' && (
-                <select value={searchBlock} onChange={(e) => { setSearchBlock(e.target.value); setSearchSet(''); setSearchPhysicalProduct(''); }} className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors">
+                <select value={searchBlock} onChange={(e) => { setSearchBlock(e.target.value); setSearchSet(''); setSearchPhysicalProduct(''); }} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors">
                   <option value="">Bloque (Todos)</option>
                   <option value="1">Furia Extendido</option>
                   <option value="2">Primer Bloque</option>
@@ -755,7 +755,7 @@ const handleSearchAPI = async (e) => {
                 </select>
               )}
               {searchCategory === '99' && (
-                <select value={searchPhysicalProduct} onChange={(e) => setSearchPhysicalProduct(e.target.value)} disabled={!searchBlock} className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
+                <select value={searchPhysicalProduct} onChange={(e) => setSearchPhysicalProduct(e.target.value)} disabled={!searchBlock} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
                   <option value="">Producto (Todos)</option>
                   {availablePhysicalProducts.filter(p => !searchBlock || p.blockId === parseInt(searchBlock)).map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
@@ -764,7 +764,7 @@ const handleSearchAPI = async (e) => {
               )}
 
             <div className="relative w-full">
-              <div className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-colors hover:border-[#1e40af]" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
+              <div className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-colors hover:border-[#1e40af]" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
                 <span className="truncate font-bold text-sm">{searchSet === '' ? 'Todas las ediciones' : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
                 <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
               </div>
@@ -774,14 +774,14 @@ const handleSearchAPI = async (e) => {
                   <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
                     
                     <div 
-                      className={`px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${searchSet === '' ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
+                      className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${searchSet === '' ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
                       onClick={() => { setSearchSet(''); setIsSetDropdownOpen(false); }}
                     >
                       {searchSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                       <span className={searchSet !== '' ? 'ml-6' : ''}>Todas las ediciones</span>
                     </div>
                     {filteredSearchSets.map(set => (
-                      <div key={set.groupId} className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center gap-2 ${searchSet == set.groupId ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(set.groupId); setIsSetDropdownOpen(false); }}>
+                      <div key={set.groupId} className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 flex items-center gap-2 ${searchSet == set.groupId ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(set.groupId); setIsSetDropdownOpen(false); }}>
                         {searchSet == set.groupId && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                         <span className={searchSet != set.groupId ? 'ml-6' : ''}>{set.name}</span>
                       </div>
@@ -794,10 +794,10 @@ const handleSearchAPI = async (e) => {
           
             {/* MYL Custom Filters UI */}
             {searchCategory === '99' && (
-              <div className="flex flex-col mt-3">
+              <div className="flex flex-col mt-2">
                 
-                <div className="grid grid-cols-2 gap-3">
-                  <select value={mylType} onChange={(e) => setMylType(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
+                <div className="grid grid-cols-3 gap-2">
+                  <select value={mylType} onChange={(e) => setMylType(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
                     <option value="">Tipo (Todos)</option>
                     <option value="ALIADO">Aliado</option>
                     <option value="ARMA">Arma</option>
@@ -805,7 +805,7 @@ const handleSearchAPI = async (e) => {
                     <option value="TALISMAN">Talismán</option>
                     <option value="TOTEM">Tótem</option>
                   </select>
-                  <select value={mylRace} onChange={(e) => setMylRace(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] text-sm font-medium shadow-sm transition-all">
+                  <select value={mylRace} onChange={(e) => setMylRace(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] text-sm font-medium shadow-sm transition-all">
                     <option value="">Raza (Todas)</option>
                     {searchBlock === '2' ? (
                       <>
@@ -843,7 +843,7 @@ const handleSearchAPI = async (e) => {
                   <select 
                 value={mylCost} 
                 onChange={(e) => setMylCost(e.target.value)} 
-                className="col-span-2 sm:col-span-1 w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] text-sm font-medium shadow-sm transition-all"
+                className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] text-sm font-medium shadow-sm transition-all"
               >
                 <option value="">Costo (Todos)</option>
                 {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
@@ -871,7 +871,7 @@ const handleSearchAPI = async (e) => {
                   <select 
                     value={filterRarity} 
                     onChange={(e) => setFilterRarity(e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-sm"
+                    className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-sm"
                   >
                     <option value="">Todas</option>
                     {availableRarities.map(r => (
@@ -981,7 +981,7 @@ const handleSearchAPI = async (e) => {
             
             <div className="flex flex-col gap-1">
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Alias / Apodo (Opcional)</label>
-              <input type="text" value={pseudoName} onChange={(e) => setPseudoName(e.target.value)} placeholder="Ej: Charizard de Ash..." maxLength={30} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" />
+              <input type="text" value={pseudoName} onChange={(e) => setPseudoName(e.target.value)} placeholder="Ej: Charizard de Ash..." maxLength={30} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-sm text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" />
             </div>
 
             <div className="flex gap-4">
@@ -994,13 +994,13 @@ const handleSearchAPI = async (e) => {
               </div>
               <div className="w-1/3">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Stock*</label>
-                <input type="number" required min="1" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-center" placeholder="1" />
+                <input type="number" required min="1" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-center" placeholder="1" />
               </div>
             </div>
 
             <div className="flex flex-col gap-1">
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Idioma</label>
-              <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-sm">
+              <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-sm">
                 <option value="English">English</option>
                 <option value="Spanish">Spanish</option>
                 <option value="Japanese">Japanese</option>
