@@ -991,6 +991,37 @@ function FolderPokemonInner() {
       </div>
 
       {/* Lado Derecho: Añadir a Carpeta */}
+
+        {/* Columna de Botones FAB (Solo PC) */}
+        <div className="hidden lg:flex flex-col gap-3 sticky top-[calc(100vh-220px)] h-fit z-[60] self-start -mx-2">
+            <button 
+                type="button" 
+                onClick={() => { const isMobile = window.innerWidth <= 768; const maxCols = isMobile ? 3 : 5; const minCols = isMobile ? 1 : 2; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }} 
+                className="bg-white hover:bg-gray-100 text-[#1e40af] border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
+                title="Cambiar vista"
+            >
+                <span translate="no" className="material-symbols-outlined text-[20px]">grid_view</span>
+                <span className="ml-1">{gridCols}</span>
+            </button>
+            <button 
+                type="button" 
+                onClick={() => { setSearchQuery(''); setSearchPhysicalProduct(''); setSearchSet(''); setMylType(''); setMylRace(''); setMylCost(''); }} 
+                className="bg-white hover:bg-red-50 text-gray-500 hover:text-red-500 border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
+                title="Limpiar filtros"
+            >
+                <span translate="no" className="material-symbols-outlined text-[22px]">filter_alt_off</span>
+            </button>
+            <button
+                type="button"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className={`bg-[#1e40af] text-white w-14 h-14 rounded-full shadow-lg hover:bg-blue-800 transition-all flex items-center justify-center transform hover:scale-110 active:scale-95 border-2 border-white/20 ${showScrollTop ? 'opacity-100 scale-100' : 'opacity-0 scale-0 pointer-events-none'}`}
+                aria-label="Volver arriba"
+                title="Volver arriba"
+            >
+                <span translate="no" className="material-symbols-outlined text-2xl">arrow_upward</span>
+            </button>
+        </div>
+
       <div id="add-catalog-panel" className={`w-full max-w-[400px] lg:w-[400px] bg-white p-6 lg:p-6 rounded-2xl shadow-sm border border-gray-200 lg:sticky lg:top-[150px] flex-shrink-0 z-10 hover:z-[60] h-fit min-h-[650px] lg:min-h-0 mx-auto lg:mx-0 self-center lg:self-start scroll-mt-[130px] lg:scroll-mt-[150px] ${!selectedCard ? 'hidden lg:block' : 'block'}`}>
         <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 border-b border-gray-200 pb-4">
           <span translate="no" className="material-symbols-outlined text-[#1e40af]">add_circle</span>
