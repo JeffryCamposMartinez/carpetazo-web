@@ -639,10 +639,10 @@ function FolderPokemonInner() {
       if (activeTab === 'add' && !loadingFolder && searchCategory) {
         const timeoutId = setTimeout(() => {
           handleSearchAPI({ preventDefault: () => {} });
-        }, 150);
+        }, 500);
         return () => clearTimeout(timeoutId);
       }
-    }, [searchBlock, searchSet, searchPhysicalProduct, mylType, mylRace, mylCost]);
+    }, [searchBlock, searchSet, searchPhysicalProduct, mylType, mylRace, mylCost, searchQuery]);
 
     const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -919,7 +919,7 @@ function FolderPokemonInner() {
           </div>
         )}
 
-          <div className="flex justify-center items-center mt-4 mb-2 gap-3 w-full px-2 md:px-0">
+          <div className="flex justify-between items-center mt-4 mb-2 gap-3 w-full px-2 md:px-0">
             <button 
               type="button" 
               onClick={() => { const isMobile = window.innerWidth <= 768; const maxCols = isMobile ? 3 : 5; const minCols = isMobile ? 1 : 2; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }} 
@@ -929,10 +929,7 @@ function FolderPokemonInner() {
               <span translate="no" className="material-symbols-outlined text-[20px]">grid_view</span>
               <span className="ml-1">{gridCols}</span>
             </button>
-            <button type="submit" className="bg-[#1e40af] hover:bg-blue-800 text-white font-bold px-8 md:px-12 py-3 rounded-full transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 whitespace-nowrap flex items-center justify-center gap-2 flex-1 md:flex-none" disabled={isSearching}>
-              <span translate="no" className="material-symbols-outlined">{isSearching ? 'hourglass_empty' : 'search'}</span>
-              {isSearching ? 'Buscando...' : <><span className='md:hidden'>Buscar</span><span className='hidden md:inline'>Buscar Cartas</span></>}
-            </button>
+            <button type="submit" className="hidden" />
             <button 
               type="button" 
               onClick={() => { setSearchQuery(''); setSearchPhysicalProduct(''); setSearchSet(''); setMylType(''); setMylRace(''); setMylCost(''); }} 
