@@ -919,7 +919,7 @@ function FolderPokemonInner() {
           </div>
         )}
 
-          <div className="fixed bottom-[88px] right-6 flex flex-col gap-3 z-[60]">
+          <div className="fixed bottom-[88px] right-6 flex flex-col gap-3 z-[60] lg:hidden">
             <button 
               type="button" 
               onClick={() => { const isMobile = window.innerWidth <= 768; const maxCols = isMobile ? 3 : 5; const minCols = isMobile ? 1 : 2; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }} 
@@ -1271,7 +1271,7 @@ function FolderPokemonInner() {
       {showScrollTop && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-6 right-6 bg-[#1e40af] text-white w-14 h-14 rounded-full shadow-lg hover:bg-blue-800 transition-all z-50 flex items-center justify-center transform hover:scale-110 active:scale-95 border-2 border-white/20"
+          className="fixed bottom-6 right-6 bg-[#1e40af] text-white w-14 h-14 rounded-full shadow-lg hover:bg-blue-800 transition-all z-50 flex items-center justify-center transform hover:scale-110 active:scale-95 border-2 border-white/20 lg:hidden"
           aria-label="Volver arriba"
         >
           <span translate="no" className="material-symbols-outlined text-2xl">arrow_upward</span>
