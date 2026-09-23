@@ -732,7 +732,8 @@ const handleSearchAPI = async (e) => {
     <div className="flex flex-col-reverse lg:flex-row gap-6">
       {/* Lado Izquierdo: Buscador de API */}
       <div className="flex-1 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-        <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 mb-4">
+        <div className="sticky top-0 lg:top-4 bg-white z-40 pb-4 pt-4 -mx-6 px-6 -mt-6 rounded-t-2xl border-b border-gray-100 mb-6 shadow-sm">
+            <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 mb-4">
           <span translate="no" className="material-symbols-outlined text-[#1e40af]">search</span>
             Buscar en {folderData?.tcg || "Catálogo"}
         </h2>
@@ -909,6 +910,7 @@ const handleSearchAPI = async (e) => {
             </button>
           </div>
         </form>
+          </div>
 
         <div className={`grid gap-4 pr-2 ${gridCols === 1 ? 'grid-cols-1' : gridCols === 2 ? 'grid-cols-2' : gridCols === 3 ? 'grid-cols-3' : gridCols === 4 ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-5'}`}>
           {isSearching ? (
@@ -1168,7 +1170,7 @@ const handleSearchAPI = async (e) => {
   if (loadingFolder) {
     return (
       <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
-        <div className="w-full rounded-none overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] border-x border-gray-300 flex flex-col items-center justify-center relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
+        <div className="w-full rounded-none shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] border-x border-gray-300 flex flex-col items-center justify-center relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         </div>
       </div>
@@ -1185,7 +1187,7 @@ const handleSearchAPI = async (e) => {
   return (
     <>
       <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
-        <div className="w-full rounded-none overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] border-x border-gray-300 flex flex-col relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
+        <div className="w-full rounded-none shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] border-x border-gray-300 flex flex-col relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
           <main className="flex-1 text-gray-900 px-4 sm:px-8 py-8 flex flex-col relative z-20">
       <div className="mb-6 flex items-center gap-2 sm:gap-4 pb-4 border-b border-gray-300">
         <button 
