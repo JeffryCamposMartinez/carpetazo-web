@@ -422,7 +422,9 @@ function FolderPokemonInner() {
       
       {/* MYL Custom Filters UI for Catalog Tab */}
       {(folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+        <div className="flex flex-col mb-4">
+          
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <select value={mylType} onChange={(e) => setMylType(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
               <option value="">Tipo (Todos)</option>
               <option value="ALIADO">Aliado</option>
@@ -742,7 +744,7 @@ const handleSearchAPI = async (e) => {
               placeholder={searchCategory === "99" ? "Nombre de la carta (ej. Oseye)" : "Nombre (ej. Pikachu) o Código"}
             className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] transition-colors"
           />
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-2">
               
             {searchCategory === '99' && (
                 <select value={searchBlock} onChange={(e) => { setSearchBlock(e.target.value); setSearchSet(''); setSearchPhysicalProduct(''); }} className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors">
@@ -761,7 +763,7 @@ const handleSearchAPI = async (e) => {
                 </select>
               )}
 
-            <div className="relative w-full">>
+            <div className="relative w-full">
               <div className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-colors hover:border-[#1e40af]" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
                 <span className="truncate font-bold text-sm">{searchSet === '' ? 'Todas las ediciones' : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
                 <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
@@ -792,7 +794,9 @@ const handleSearchAPI = async (e) => {
           
             {/* MYL Custom Filters UI */}
             {searchCategory === '99' && (
-              <div className="grid grid-cols-2 gap-3 mt-3">
+              <div className="flex flex-col mt-3">
+                
+                <div className="grid grid-cols-2 gap-3">
                   <select value={mylType} onChange={(e) => setMylType(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all">
                     <option value="">Tipo (Todos)</option>
                     <option value="ALIADO">Aliado</option>
