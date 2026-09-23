@@ -57,8 +57,8 @@ const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
       >
         <span translate="no" className="material-symbols-outlined text-[18px]">delete</span>
       </button>
-      <div className={`flex flex-col items-center flex-1 ${gridCols <= 2 ? 'p-2' : 'p-4'}`}>
-        <div className={`w-full relative pt-[140%] ${gridCols <= 2 ? 'mb-1' : 'mb-3'}`}>
+      <div className="p-4 flex flex-col items-center flex-1">
+        <div className="w-full relative pt-[140%] mb-3">
           <img src={card.imageUrl} referrerPolicy="no-referrer" referrerPolicy="no-referrer" referrerPolicy="no-referrer" alt={card.name} className="absolute inset-0 w-full h-full object-fill filter drop-shadow-md transition-transform duration-300" />
         </div>
         <p className="font-bold text-gray-900 text-center line-clamp-1 w-full text-sm">{card.name}</p>
