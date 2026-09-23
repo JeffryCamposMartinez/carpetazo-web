@@ -732,8 +732,7 @@ const handleSearchAPI = async (e) => {
     <div className="flex flex-col-reverse lg:flex-row gap-6">
       {/* Lado Izquierdo: Buscador de API */}
       <div className="flex-1 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-        <div className="sticky top-0 lg:top-4 bg-white z-40 pb-4 pt-4 -mx-6 px-6 -mt-6 rounded-t-2xl border-b border-gray-100 mb-6 shadow-sm">
-            <div className="sticky top-[70px] lg:top-[115px] bg-white z-40 pb-4 pt-6 -mx-6 px-6 -mt-6 border-b border-gray-100 mb-6 shadow-sm rounded-t-2xl" style={{ boxShadow: '0 0 0 1px white' }}>
+        <div className="sticky top-[70px] lg:top-[150px] bg-white z-40 pb-2 pt-6 -mx-6 px-6 -mt-6 border-b border-gray-200 shadow-sm rounded-t-2xl mb-4" style={{ boxShadow: '0 10px 15px -3px rgba(255,255,255,1), 0 4px 6px -2px rgba(255,255,255,1)' }}>
             <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 mb-4">
           <span translate="no" className="material-symbols-outlined text-[#1e40af]">search</span>
             Buscar en {folderData?.tcg || "Carpeta"}
@@ -887,7 +886,7 @@ const handleSearchAPI = async (e) => {
           </div>
         )}
 
-          <div className="flex justify-center items-center mt-4 mb-8 gap-3">
+          <div className="flex justify-center items-center mt-4 mb-2 gap-3">
             <button 
               type="button" 
               onClick={() => { const maxCols = window.innerWidth <= 768 ? 3 : 5; setGridCols(prev => prev >= maxCols ? 1 : prev + 1); }} 
@@ -911,10 +910,8 @@ const handleSearchAPI = async (e) => {
             </button>
           </div>
         </form>
-          </div>
-          </div>
-
-        <div className={`grid gap-4 pr-2 ${gridCols === 1 ? 'grid-cols-1' : gridCols === 2 ? 'grid-cols-2' : gridCols === 3 ? 'grid-cols-3' : gridCols === 4 ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-5'}`}>
+      </div>
+      <div className={`grid gap-4 pr-2 ${gridCols === 1 ? 'grid-cols-1' : gridCols === 2 ? 'grid-cols-2' : gridCols === 3 ? 'grid-cols-3' : gridCols === 4 ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-5'}`}>
           {isSearching ? (
             <div className="col-span-full flex flex-col items-center justify-center py-16">
               <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#1e40af] mb-4"></div>
@@ -963,11 +960,11 @@ const handleSearchAPI = async (e) => {
         </div>
       </div>
 
-      {/* Lado Derecho: Añadir al Carpeta */}
-      <div id="add-catalog-panel" className={`w-full max-w-[400px] lg:w-[400px] bg-white p-6 lg:p-6 rounded-2xl shadow-sm border border-gray-200 sticky top-[115px] flex-shrink-0 z-10 hover:z-[60] h-fit min-h-[650px] lg:min-h-0 mx-auto lg:mx-0 self-center lg:self-start scroll-mt-[115px] ${!selectedCard ? 'hidden lg:block' : 'block'}`}>
+      {/* Lado Derecho: Añadir a Carpeta */}
+      <div id="add-catalog-panel" className={`w-full max-w-[400px] lg:w-[400px] bg-white p-6 lg:p-6 rounded-2xl shadow-sm border border-gray-200 sticky top-[150px] flex-shrink-0 z-10 hover:z-[60] h-fit min-h-[650px] lg:min-h-0 mx-auto lg:mx-0 self-center lg:self-start scroll-mt-[150px] ${!selectedCard ? 'hidden lg:block' : 'block'}`}>
         <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 border-b border-gray-200 pb-4">
           <span translate="no" className="material-symbols-outlined text-[#1e40af]">add_circle</span>
-          Añadir al Carpeta
+          Añadir a Carpeta
         </h2>
         {selectedCard ? (
           <form onSubmit={handleSaveCard} className="flex flex-col gap-2 mt-2">
