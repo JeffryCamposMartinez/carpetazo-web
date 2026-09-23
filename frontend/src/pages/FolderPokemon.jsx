@@ -766,7 +766,7 @@ function FolderPokemonInner() {
     <div className="flex flex-col-reverse lg:flex-row gap-6">
       {/* Lado Izquierdo: Buscador de API */}
       <div className="flex-1 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-        <div className="sticky top-[69px] lg:top-[149px] bg-white z-30 pb-2 pt-6 -mx-6 px-6 -mt-6 border-b border-gray-200 shadow-sm rounded-t-2xl mb-4" style={{ boxShadow: '0 10px 15px -3px rgba(255,255,255,1), 0 4px 6px -2px rgba(255,255,255,1)' }}>
+        <div className="sticky top-[60px] lg:top-[140px] bg-white z-30 pb-2 pt-6 -mx-6 px-6 -mt-6 border-b border-gray-200 shadow-sm rounded-t-2xl mb-4" style={{ boxShadow: '0 10px 15px -3px rgba(255,255,255,1), 0 4px 6px -2px rgba(255,255,255,1)' }}>
             <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 mb-4">
           <span translate="no" className="material-symbols-outlined text-[#1e40af]">search</span>
             Buscar en {folderData?.tcg || "Carpeta"}
@@ -1022,7 +1022,7 @@ function FolderPokemonInner() {
             </button>
         </div>
 
-      <div id="add-catalog-panel" className={`w-full max-w-[400px] lg:w-[400px] bg-white p-6 lg:p-6 rounded-2xl shadow-sm border border-gray-200 lg:sticky lg:top-[149px] flex-shrink-0 z-10 hover:z-[60] h-fit min-h-[650px] lg:min-h-0 mx-auto lg:mx-0 self-center lg:self-start scroll-mt-[130px] lg:scroll-mt-[150px] ${!selectedCard ? 'hidden lg:block' : 'block'}`}>
+      <div id="add-catalog-panel" className={`w-full max-w-[400px] lg:w-[400px] bg-white p-6 lg:p-6 rounded-2xl shadow-sm border border-gray-200 lg:sticky lg:top-[140px] flex-shrink-0 z-10 hover:z-[60] h-fit min-h-[650px] lg:min-h-0 mx-auto lg:mx-0 self-center lg:self-start scroll-mt-[130px] lg:scroll-mt-[150px] ${!selectedCard ? 'hidden lg:block' : 'block'}`}>
         <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 border-b border-gray-200 pb-4">
           <span translate="no" className="material-symbols-outlined text-[#1e40af]">add_circle</span>
           Añadir a Carpeta
