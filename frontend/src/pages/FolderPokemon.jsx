@@ -471,13 +471,16 @@ function FolderPokemonInner() {
                     )}
                   </select>
             
-            <input 
-              type="number" 
-              placeholder="Costo (ej. 2)" 
-              value={mylCost} 
-              onChange={(e) => setMylCost(e.target.value)} 
-              className="col-span-2 sm:col-span-1 w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all placeholder:text-gray-400"
-            />
+            <select 
+                value={mylCost} 
+                onChange={(e) => setMylCost(e.target.value)} 
+                className="col-span-2 sm:col-span-1 w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] text-sm font-medium shadow-sm transition-all"
+              >
+                <option value="">Costo (Todos)</option>
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
+                  <option key={i} value={i}>{i}</option>
+                ))}
+              </select>
           </div>
         </div>
       )}      </div>
@@ -843,13 +846,16 @@ const handleSearchAPI = async (e) => {
                     )}
                   </select>
                   
-                  <input 
-                    type="number" 
-                    placeholder="Costo (ej. 2)" 
-                    value={mylCost} 
-                    onChange={(e) => setMylCost(e.target.value)} 
-                    className="col-span-2 sm:col-span-1 w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 text-sm font-medium shadow-sm transition-all placeholder:text-gray-400"
-                  />
+                  <select 
+                value={mylCost} 
+                onChange={(e) => setMylCost(e.target.value)} 
+                className="col-span-2 sm:col-span-1 w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] text-sm font-medium shadow-sm transition-all"
+              >
+                <option value="">Costo (Todos)</option>
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
+                  <option key={i} value={i}>{i}</option>
+                ))}
+              </select>
                 </div>
               </div>
             )}
