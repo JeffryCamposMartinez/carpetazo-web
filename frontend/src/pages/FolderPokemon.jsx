@@ -66,7 +66,7 @@ const getPreviewReorderedCards = (cardArray = [], dragCardId, targetIndex) => {
   return nextCards;
 };
 
-const AdminCardEdit = ({ card, onUpdate, onDelete, dragHandleProps = {}, compact = false }) => {
+const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, compact = false }) => {
   const [price, setPrice] = useState(card.price);
   const [stock, setStock] = useState(card.stock);
   const [saving, setSaving] = useState(false);
@@ -150,7 +150,7 @@ const AdminCardEdit = ({ card, onUpdate, onDelete, dragHandleProps = {}, compact
       </button>
     </div>
   );
-};
+}, (prev, next) => prev.card === next.card && prev.compact === next.compact);
 
 function FolderPokemonInner() {
 
