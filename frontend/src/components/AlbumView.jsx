@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 
-const PAGE_TURN_DURATION_MS = 450;
 const DRAG_SCROLL_EDGE_PX = 120;
 const DRAG_SCROLL_MAX_SPEED = 28;
 const DRAG_PAGE_TURN_EDGE_RATIO = 0.18;
@@ -9,6 +8,7 @@ const DRAG_PAGE_TURN_HOLD_MS = 1000;
 export default function AlbumView({ cards = [], renderCardActions, renderCardOverlays, binderColor = '#2f7336', emptyMessage, topRightControls, tcg, reorderEnabled = false, onReorderCard }) {
   const [currentPage, setCurrentPage] = useState(0);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+  const pageTurnDurationMs = isDesktop ? 450 : 850;
   const [activeCardId, setActiveCardId] = useState(null);
     const [previewCard, setPreviewCard] = useState(null);
   const [fetchedAbility, setFetchedAbility] = useState(null);
@@ -169,14 +169,14 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
     if (targetPage !== currentPage) {
       const timer = setTimeout(() => {
         setCurrentPage(page => page + (targetPage > page ? 1 : -1));
-      }, PAGE_TURN_DURATION_MS);
+      }, pageTurnDurationMs);
       return () => clearTimeout(timer);
     }
 
     const timer = setTimeout(() => {
       setTargetPage(null);
       setTurnDirection(null);
-    }, PAGE_TURN_DURATION_MS);
+    }, pageTurnDurationMs);
     return () => clearTimeout(timer);
   }, [currentPage, targetPage]);
 
@@ -929,7 +929,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                   transformOrigin: 'left center',
                   transform,
                   zIndex,
-                  transition: `${PAGE_TURN_DURATION_MS}ms transform cubic-bezier(0.4, 0.0, 0.2, 1)`,
+                  transition: `${pageTurnDurationMs}ms transform cubic-bezier(0.4, 0.0, 0.2, 1)`,
                   transformStyle: 'preserve-3d',
                 }}
               >
