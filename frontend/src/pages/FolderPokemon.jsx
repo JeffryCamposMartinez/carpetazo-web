@@ -161,6 +161,13 @@ function FolderPokemonInner() {
   const [price, setPrice] = useState('');
   const [visibleCount, setVisibleCount] = useState(30);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const isMylFolder = folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99';
+
+  const scrollToTopIfNeeded = () => {
+    if (window.scrollY > 0) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -377,13 +384,13 @@ function FolderPokemonInner() {
         <input 
           type="text" 
           value={catQuery}
-          onChange={(e) => setCatQuery(e.target.value)}
+          onChange={(e) => { setCatQuery(e.target.value); scrollToTopIfNeeded(); }}
           placeholder="Buscar por nombre en tu catálogo..."
           className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]"
         />
         
         {(folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') && (
-          <select value={catBlock} onChange={(e) => { setCatBlock(e.target.value); setCatSet(''); }} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]">
+          <select value={catBlock} onChange={(e) => { setCatBlock(e.target.value); setCatSet(''); scrollToTopIfNeeded(); }} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]">
             <option value="">Selecciona un bloque (Todos)</option>
               <option value="2">Primer Bloque</option>
               <option value="3">Primera Era</option>
@@ -409,7 +416,7 @@ function FolderPokemonInner() {
                   <div className="absolute z-[110] w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
                     <div 
                       className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${catSet === '' ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
-                      onClick={() => { setCatSet(''); setIsCatSetDropdownOpen(false); }}
+                      onClick={() => { setCatSet(''); setIsCatSetDropdownOpen(false); scrollToTopIfNeeded(); }}
                     >
                       {catSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                       <span className={catSet !== '' ? 'ml-6' : ''}>Todas las ediciones</span>
@@ -419,7 +426,7 @@ function FolderPokemonInner() {
                       <div 
                         key={set.id}
                         className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${catSet === set.id ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
-                        onClick={() => { setCatSet(set.id); setIsCatSetDropdownOpen(false); }}
+                        onClick={() => { setCatSet(set.id); setIsCatSetDropdownOpen(false); scrollToTopIfNeeded(); }}
                       >
                         {catSet === set.id && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                         <span className={catSet !== set.id ? 'ml-6' : ''}>{set.name}</span>
@@ -436,7 +443,7 @@ function FolderPokemonInner() {
         <div className="flex flex-col mb-2">
           
           <div className="grid grid-cols-3 gap-2">
-            <select value={mylType} onChange={(e) => setMylType(e.target.value)} className="w-full px-3 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 font-medium shadow-sm transition-all">
+            <select value={mylType} onChange={(e) => { setMylType(e.target.value); scrollToTopIfNeeded(); }} className="w-full px-3 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 font-medium shadow-sm transition-all">
               <option value="">Tipo</option>
               <option value="ALIADO">Aliado</option>
               <option value="ARMA">Arma</option>
@@ -444,7 +451,7 @@ function FolderPokemonInner() {
               <option value="TALISMAN">Talismán</option>
               <option value="TOTEM">Tótem</option>
             </select>
-            <select value={mylRace} onChange={(e) => setMylRace(e.target.value)} className="w-full px-3 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] font-medium shadow-sm transition-all">
+            <select value={mylRace} onChange={(e) => { setMylRace(e.target.value); scrollToTopIfNeeded(); }} className="w-full px-3 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] font-medium shadow-sm transition-all">
                     <option value="">Raza</option>
                     {searchBlock === '2' ? (
                       <>
@@ -481,7 +488,7 @@ function FolderPokemonInner() {
             
             <select 
                 value={mylCost} 
-                onChange={(e) => setMylCost(e.target.value)} 
+                onChange={(e) => { setMylCost(e.target.value); scrollToTopIfNeeded(); }} 
                 className="w-full px-3 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] font-medium shadow-sm transition-all"
               >
                 <option value="">Costo</option>
@@ -708,7 +715,7 @@ function FolderPokemonInner() {
         supertype: selectedCard.extData ? selectedCard.extData['Card Type / HP / Stage']?.split(' / ')[0] || 'Unknown' : 'Unknown',
         number: selectedCard.extData?.Number || '',
         total: '',
-        language: language
+        language: isMylFolder ? 'Spanish' : language
       }
     };
     try {
@@ -783,14 +790,14 @@ function FolderPokemonInner() {
           <div className="grid grid-cols-3 gap-2 mb-2">
               
             {searchCategory === '99' && (
-                <select value={searchBlock} onChange={(e) => { setSearchBlock(e.target.value); setSearchSet(''); setSearchPhysicalProduct(''); }} className="w-full px-2 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors truncate">
+                <select value={searchBlock} onChange={(e) => { setSearchBlock(e.target.value); setSearchSet(''); setSearchPhysicalProduct(''); scrollToTopIfNeeded(); }} className="w-full px-2 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors truncate">
                   <option value="2">Primer Bloque</option>
                     <option value="3">Primera Era</option>
                     <option value="1">Furia Extendido</option>
                 </select>
               )}
               {searchCategory === '99' && (
-                <select value={searchPhysicalProduct} onChange={(e) => setSearchPhysicalProduct(e.target.value)} disabled={!searchBlock} className="w-full px-2 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed truncate">
+                <select value={searchPhysicalProduct} onChange={(e) => { setSearchPhysicalProduct(e.target.value); scrollToTopIfNeeded(); }} disabled={!searchBlock} className="w-full px-2 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed truncate">
                   <option value="">Producto</option>
                   {availablePhysicalProducts.filter(p => !searchBlock || p.blockId === parseInt(searchBlock)).map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
@@ -810,13 +817,13 @@ function FolderPokemonInner() {
                     
                     <div 
                       className={`px-3 py-1.5 text-sm lg:text-xs cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${searchSet === '' ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
-                      onClick={() => { setSearchSet(''); setIsSetDropdownOpen(false); }}
+                      onClick={() => { setSearchSet(''); setIsSetDropdownOpen(false); scrollToTopIfNeeded(); }}
                     >
                       {searchSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                       <span className={searchSet !== '' ? 'ml-6' : ''}>Edición</span>
                     </div>
                     {filteredSearchSets.map(set => (
-                      <div key={set.groupId} className={`px-3 py-1.5 text-sm lg:text-xs cursor-pointer hover:bg-gray-50 flex items-center gap-2 ${searchSet == set.groupId ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(set.groupId); setIsSetDropdownOpen(false); }}>
+                      <div key={set.groupId} className={`px-3 py-1.5 text-sm lg:text-xs cursor-pointer hover:bg-gray-50 flex items-center gap-2 ${searchSet == set.groupId ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(set.groupId); setIsSetDropdownOpen(false); scrollToTopIfNeeded(); }}>
                         {searchSet == set.groupId && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
                         <span className={searchSet != set.groupId ? 'ml-6' : ''}>{set.name}</span>
                       </div>
@@ -832,7 +839,7 @@ function FolderPokemonInner() {
               <div className="flex flex-col mt-2">
                 
                 <div className="grid grid-cols-3 gap-2">
-                  <select value={mylType} onChange={(e) => setMylType(e.target.value)} className="w-full px-3 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 font-medium shadow-sm transition-all">
+                  <select value={mylType} onChange={(e) => { setMylType(e.target.value); scrollToTopIfNeeded(); }} className="w-full px-3 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 font-medium shadow-sm transition-all">
                     <option value="">Tipo</option>
                     <option value="ALIADO">Aliado</option>
                     <option value="ARMA">Arma</option>
@@ -840,7 +847,7 @@ function FolderPokemonInner() {
                     <option value="TALISMAN">Talismán</option>
                     <option value="TOTEM">Tótem</option>
                   </select>
-                  <select value={mylRace} onChange={(e) => setMylRace(e.target.value)} className="w-full px-3 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] font-medium shadow-sm transition-all">
+                  <select value={mylRace} onChange={(e) => { setMylRace(e.target.value); scrollToTopIfNeeded(); }} className="w-full px-3 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] font-medium shadow-sm transition-all">
                     <option value="">Raza</option>
                     {searchBlock === '2' ? (
                       <>
@@ -877,7 +884,7 @@ function FolderPokemonInner() {
                   
                   <select 
                 value={mylCost} 
-                onChange={(e) => setMylCost(e.target.value)} 
+                onChange={(e) => { setMylCost(e.target.value); scrollToTopIfNeeded(); }} 
                 className="w-full px-3 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] font-medium shadow-sm transition-all"
               >
                 <option value="">Costo</option>
@@ -894,9 +901,9 @@ function FolderPokemonInner() {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               {searchCategory !== '99' && (
                 <div className="flex items-center w-full sm:w-auto bg-white p-1 rounded-lg border border-gray-200">
-                  <button type="button" onClick={() => setFilterType('all')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${filterType === 'all' ? 'bg-[#1e40af] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>Todos</button>
-                  <button type="button" onClick={() => setFilterType('cards')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${filterType === 'cards' ? 'bg-[#1e40af] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>Cartas</button>
-                  <button type="button" onClick={() => setFilterType('sealed')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${filterType === 'sealed' ? 'bg-[#1e40af] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>Sellado</button>
+                  <button type="button" onClick={() => { setFilterType('all'); scrollToTopIfNeeded(); }} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${filterType === 'all' ? 'bg-[#1e40af] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>Todos</button>
+                  <button type="button" onClick={() => { setFilterType('cards'); scrollToTopIfNeeded(); }} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${filterType === 'cards' ? 'bg-[#1e40af] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>Cartas</button>
+                  <button type="button" onClick={() => { setFilterType('sealed'); scrollToTopIfNeeded(); }} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${filterType === 'sealed' ? 'bg-[#1e40af] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>Sellado</button>
                 </div>
               )}
               
@@ -905,7 +912,7 @@ function FolderPokemonInner() {
                   <span className="text-sm font-bold text-gray-700">Rareza:</span>
                   <select 
                     value={filterRarity} 
-                    onChange={(e) => setFilterRarity(e.target.value)}
+                    onChange={(e) => { setFilterRarity(e.target.value); scrollToTopIfNeeded(); }}
                     className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-sm"
                   >
                     <option value="">Todas</option>
@@ -932,7 +939,7 @@ function FolderPokemonInner() {
             <button type="submit" className="hidden" />
             <button 
               type="button" 
-              onClick={() => { setSearchQuery(''); setSearchPhysicalProduct(''); setSearchSet(''); setMylType(''); setMylRace(''); setMylCost(''); }} 
+              onClick={() => { setSearchQuery(''); setSearchPhysicalProduct(''); setSearchSet(''); setMylType(''); setMylRace(''); setMylCost(''); scrollToTopIfNeeded(); }} 
               className="bg-white hover:bg-red-50 text-gray-500 hover:text-red-500 border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
               title="Limpiar filtros"
             >
@@ -1005,7 +1012,7 @@ function FolderPokemonInner() {
             </button>
             <button 
                 type="button" 
-                onClick={() => { setSearchQuery(''); setSearchPhysicalProduct(''); setSearchSet(''); setMylType(''); setMylRace(''); setMylCost(''); }} 
+                onClick={() => { setSearchQuery(''); setSearchPhysicalProduct(''); setSearchSet(''); setMylType(''); setMylRace(''); setMylCost(''); scrollToTopIfNeeded(); }} 
                 className="bg-white hover:bg-red-50 text-gray-500 hover:text-red-500 border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
                 title="Limpiar filtros"
             >
@@ -1022,19 +1029,19 @@ function FolderPokemonInner() {
             </button>
         </div>
 
-      <div id="add-catalog-panel" className={`w-full max-w-[400px] lg:w-[400px] bg-white p-6 lg:p-6 rounded-2xl shadow-sm border border-gray-200 lg:sticky lg:top-[140px] flex-shrink-0 z-10 hover:z-[60] h-fit min-h-[650px] lg:min-h-0 mx-auto lg:mx-0 self-center lg:self-start scroll-mt-[130px] lg:scroll-mt-[150px] ${!selectedCard ? 'hidden lg:block' : 'block'}`}>
+      <div id="add-catalog-panel" className={`w-full max-w-[400px] lg:w-[400px] bg-white p-6 lg:p-6 rounded-2xl shadow-sm border border-gray-200 lg:sticky lg:top-[140px] flex-shrink-0 z-10 hover:z-[60] mx-auto lg:mx-0 self-center lg:self-start scroll-mt-[130px] lg:scroll-mt-[150px] ${selectedCard ? 'block lg:h-[calc(100vh-160px)] lg:min-h-[620px] overflow-visible' : 'hidden lg:block h-fit min-h-[650px] lg:min-h-0'}`}>
         <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 border-b border-gray-200 pb-4">
           <span translate="no" className="material-symbols-outlined text-[#1e40af]">add_circle</span>
           Añadir a Carpeta
         </h2>
         {selectedCard ? (
-          <form onSubmit={handleSaveCard} className="flex flex-col gap-2 mt-2">
-            <div className="flex justify-center relative z-50 mb-2 mt-2">
+          <form onSubmit={handleSaveCard} className="flex min-h-[610px] lg:min-h-0 lg:h-[calc(100%-58px)] flex-col justify-between gap-4 mt-2">
+            <div className="flex justify-center relative z-50 mt-4">
               <div className="relative inline-block">
                 <img 
                   src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} 
                   alt={selectedCard.name} 
-                  className="h-44 sm:h-52 aspect-[63/88] object-fill rounded-lg shadow-md hover:scale-[2.2] transition-transform duration-300 cursor-zoom-in relative z-50 hover:z-[70] origin-center" 
+                  className="h-72 sm:h-80 lg:h-[min(38vh,330px)] aspect-[63/88] object-fill rounded-lg shadow-md hover:scale-[1.55] transition-transform duration-300 cursor-zoom-in relative z-50 hover:z-[70] origin-center" 
                 />
                 <button 
                   type="button"
@@ -1054,50 +1061,54 @@ function FolderPokemonInner() {
                 onChange={handleImageUpload} 
               />
             </div>
-            <div className="text-center mt-2 px-2">
-              <p className="font-bold text-gray-900 leading-tight">{selectedCard.name}</p>
-              <p className="text-sm text-gray-500 mt-1">{availableSets.find(s => s.groupId == (searchSet || selectedCard.groupId))?.name} • {selectedCard.rarity}</p>
-            </div>
-            
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Alias / Apodo (Opcional)</label>
-              <input type="text" value={pseudoName} onChange={(e) => setPseudoName(e.target.value)} placeholder="Ej: Charizard de Ash..." maxLength={30} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-sm text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" />
-            </div>
+            <div className="flex flex-col gap-3">
+              <div className="text-center px-2">
+                <p className="font-bold text-gray-900 leading-tight">{selectedCard.name}</p>
+                <p className="text-sm text-gray-500 mt-1">{availableSets.find(s => s.groupId == (searchSet || selectedCard.groupId))?.name} • {selectedCard.rarity}</p>
+              </div>
+              
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Alias / Apodo (Opcional)</label>
+                <input type="text" value={pseudoName} onChange={(e) => setPseudoName(e.target.value)} placeholder="Ej: Charizard de Ash..." maxLength={30} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-sm text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" />
+              </div>
 
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Precio (CLP)*</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                  <input type="number" required min="1" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" placeholder="1000" />
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Precio (CLP)*</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                    <input type="number" required min="1" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" placeholder="1000" />
+                  </div>
+                </div>
+                <div className="w-1/3">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Stock*</label>
+                  <input type="number" required min="1" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-center" placeholder="1" />
                 </div>
               </div>
-              <div className="w-1/3">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Stock*</label>
-                <input type="number" required min="1" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-center" placeholder="1" />
+
+              {!isMylFolder && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Idioma</label>
+                  <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-sm">
+                    <option value="English">English</option>
+                    <option value="Spanish">Spanish</option>
+                    <option value="Japanese">Japanese</option>
+                  </select>
+                </div>
+              )}
+
+              <button type="submit" disabled={isSaving} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-[15px]">
+                {isSaving ? <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span> : <span translate="no" className="material-symbols-outlined">add_circle</span>}
+                {isSaving ? 'Guardando...' : 'Guardar Carta'}
+              </button>
+              <div className="flex justify-between gap-2">
+                <a href={getTcgplayerUrl(selectedCard)} target="_blank" rel="noopener noreferrer" className="flex-1 text-center py-2 text-[11px] font-bold text-[#1e40af] bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200 flex items-center justify-center gap-1">
+                  TCGPlayer
+                </a>
+                <a href={getTcgmatchUrl(selectedCard)} target="_blank" rel="noopener noreferrer" className="flex-1 text-center py-2 text-[11px] font-bold text-[#1e40af] bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200 flex items-center justify-center gap-1">
+                  TCGMatch
+                </a>
               </div>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Idioma</label>
-              <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-sm">
-                <option value="English">English</option>
-                <option value="Spanish">Spanish</option>
-                <option value="Japanese">Japanese</option>
-              </select>
-            </div>
-
-            <button type="submit" disabled={isSaving} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 mt-4 text-[15px]">
-              {isSaving ? <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span> : <span translate="no" className="material-symbols-outlined">add_circle</span>}
-              {isSaving ? 'Guardando...' : 'Guardar Carta'}
-            </button>
-            <div className="mt-2 flex justify-between gap-2">
-              <a href={getTcgplayerUrl(selectedCard)} target="_blank" rel="noopener noreferrer" className="flex-1 text-center py-2 text-[11px] font-bold text-[#1e40af] bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200 flex items-center justify-center gap-1">
-                TCGPlayer
-              </a>
-              <a href={getTcgmatchUrl(selectedCard)} target="_blank" rel="noopener noreferrer" className="flex-1 text-center py-2 text-[11px] font-bold text-[#1e40af] bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200 flex items-center justify-center gap-1">
-                TCGMatch
-              </a>
             </div>
           </form>
         ) : (
