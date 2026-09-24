@@ -39,14 +39,17 @@ const authenticateToken = async (req, res, next) => {
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
-const app = express();
-const port = process.env.PORT || 8000;
-
+const app = express();
+const port = process.env.PORT || 8000;
+
 app.set('trust proxy', 1);
+
+const rateLimitMax = Number.parseInt(process.env.RATE_LIMIT_MAX || '2000', 10);
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 300,
+  max: Number.isFinite(rateLimitMax) && rateLimitMax > 0 ? rateLimitMax : 2000,
+  skip: (req) => req.method === 'OPTIONS',
   message: 'Demasiadas peticiones desde esta IP, por favor intenta de nuevo mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡s tarde.',
   standardHeaders: true,
   legacyHeaders: false,
