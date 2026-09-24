@@ -734,18 +734,22 @@ function FolderPokemonInner() {
         const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
         if (touch.clientY < DRAG_SCROLL_EDGE_PX) {
           const intensity = (DRAG_SCROLL_EDGE_PX - touch.clientY) / DRAG_SCROLL_EDGE_PX;
-          window.scrollBy({ top: -Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED), left: 0, behavior: 'auto' });
+          catalogDragScrollSpeedRef.current = -Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED);
         } else if (touch.clientY > viewportHeight - DRAG_SCROLL_EDGE_PX) {
           const intensity = (touch.clientY - (viewportHeight - DRAG_SCROLL_EDGE_PX)) / DRAG_SCROLL_EDGE_PX;
-          window.scrollBy({ top: Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED), left: 0, behavior: 'auto' });
+          catalogDragScrollSpeedRef.current = Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED);
+        } else {
+          catalogDragScrollSpeedRef.current = 0;
         }
 
         const dropEl = document.elementFromPoint(touch.clientX, touch.clientY)?.closest?.('[data-catalog-drop-index]');
         if (dropEl?.dataset?.catalogDropIndex !== undefined) {
           const nextIndex = Number(dropEl.dataset.catalogDropIndex);
           if (Number.isFinite(nextIndex)) {
-            touchCatalogDropIndexRef.current = nextIndex;
-            setDropCatalogIndex(nextIndex);
+            if (touchCatalogDropIndexRef.current !== nextIndex) {
+              touchCatalogDropIndexRef.current = nextIndex;
+              setDropCatalogIndex(nextIndex);
+            }
           }
         }
       };
@@ -761,6 +765,7 @@ function FolderPokemonInner() {
 
       const cleanup = () => {
         isTouchDragRef.current = false;
+        catalogDragScrollSpeedRef.current = 0;
         touchCatalogCardIdRef.current = null;
         touchCatalogDropIndexRef.current = null;
         setDraggedCatalogCardId(null);
