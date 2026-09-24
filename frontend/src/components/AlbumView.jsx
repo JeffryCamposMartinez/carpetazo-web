@@ -801,7 +801,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                       window.addEventListener('touchmove', handleTouchMove, { passive: false });
                       window.addEventListener('touchend', handleTouchEnd);
                       window.addEventListener('touchcancel', cleanup);
-                    }, 500);
+                    }, 1000);
                   }}
                   onTouchMove={(e) => {
                     if (isTouchAlbumDragRef.current) return;
