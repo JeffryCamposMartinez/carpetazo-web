@@ -158,6 +158,9 @@ function FolderPokemonInner() {
   const [rawSearchResults, setRawSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [selectedQueue, setSelectedQueue] = useState([]);
+  const [activeQueueItemId, setActiveQueueItemId] = useState(null);
   const [price, setPrice] = useState('');
   const [visibleCount, setVisibleCount] = useState(30);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -166,6 +169,130 @@ function FolderPokemonInner() {
   const scrollToTopIfNeeded = () => {
     if (window.scrollY > 0) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const getCardSelectionKey = (card) => String(card?.productId || card?.tcgProductId || card?.id || card?.name || '');
+  const isBatchAdding = activeQueueItemId !== null;
+  const selectedQueueCountByCard = selectedQueue.reduce((acc, item) => {
+    const key = getCardSelectionKey(item.card);
+    acc[key] = (acc[key] || 0) + (item.quantity || 1);
+    return acc;
+  }, {});
+  const totalQueuedCards = selectedQueue.reduce((sum, item) => sum + (item.quantity || 1), 0);
+
+  const resetCardForm = () => {
+    setPrice('');
+    setStock('');
+    setPseudoName('');
+  };
+
+  const toggleMultiSelectMode = () => {
+    if (!multiSelectMode) {
+      setSelectedCard(null);
+      resetCardForm();
+    }
+    setMultiSelectMode(prev => {
+      const next = !prev;
+      if (!next) {
+        setSelectedQueue([]);
+        setActiveQueueItemId(null);
+      }
+      return next;
+    });
+  };
+
+  const addCardToQueue = (card) => {
+    setSelectedQueue(prev => {
+      const key = getCardSelectionKey(card);
+      const existingIndex = prev.findIndex(item => getCardSelectionKey(item.card) === key);
+      
+      if (existingIndex >= 0) {
+        const next = [...prev];
+        next[existingIndex] = {
+          ...next[existingIndex],
+          quantity: (next[existingIndex].quantity || 1) + 1
+        };
+        return next;
+      }
+      
+      return [
+        ...prev,
+        {
+          queueId: `${key}-${Date.now()}`,
+          card,
+          quantity: 1
+        }
+      ];
+    });
+    
+    setTimeout(() => {
+      if (queueScrollRef.current) {
+        queueScrollRef.current.scrollTo({ top: queueScrollRef.current.scrollHeight, behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
+  const removeQueueItem = (queueId) => {
+    setSelectedQueue(prev => prev.filter(item => item.queueId !== queueId));
+    if (activeQueueItemId === queueId) {
+      setActiveQueueItemId(null);
+      setSelectedCard(null);
+      resetCardForm();
+    }
+  };
+
+  const decreaseQueueItemQuantity = (e, queueId) => {
+    e.preventDefault();
+    const item = selectedQueue.find(i => i.queueId === queueId);
+    if (!item) return;
+    
+    if (item.quantity > 1) {
+      setSelectedQueue(prev => prev.map(i => i.queueId === queueId ? { ...i, quantity: i.quantity - 1 } : i));
+    } else {
+      removeQueueItem(queueId);
+    }
+  };
+
+  const startQueuedAdd = () => {
+    const nextItem = selectedQueue[0];
+    if (!nextItem) return;
+    setActiveQueueItemId(nextItem.queueId);
+    setSelectedCard(nextItem.card);
+    setStock((nextItem.quantity || 1).toString());
+    setPseudoName('');
+    setPrice('');
+    if (window.innerWidth < 1024) {
+      setTimeout(() => {
+        document.getElementById('add-catalog-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  };
+
+  const handleResultCardClick = (card) => {
+    if (multiSelectMode) {
+      addCardToQueue(card);
+      return;
+    }
+    setActiveQueueItemId(null);
+    setSelectedCard(card);
+    resetCardForm();
+    if (window.innerWidth < 1024) {
+      setTimeout(() => {
+        document.getElementById('add-catalog-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  };
+
+  const handleRightClickResultCard = (e, card) => {
+    e.preventDefault();
+    if (!multiSelectMode) return;
+    
+    const key = getCardSelectionKey(card);
+    const existingItem = selectedQueue.find(item => getCardSelectionKey(item.card) === key);
+    
+    if (existingItem) {
+      decreaseQueueItemQuantity(e, existingItem.queueId);
     }
   };
 
@@ -211,6 +338,7 @@ function FolderPokemonInner() {
   const [isSaving, setIsSaving] = useState(false);
   const abortControllerRef = useRef(null);
   const fileInputRef = useRef(null);
+  const queueScrollRef = useRef(null);
 
   // --- UI STATE ---
   const [toast, setToast] = useState({ message: '', type: 'info' });
@@ -700,37 +828,68 @@ function FolderPokemonInner() {
 
   const handleSaveCard = async (e) => {
     e.preventDefault();
-    if (!selectedCard || !price || !stock) return;
+    const cardStock = parseInt(stock);
+    if (!selectedCard || !price || !cardStock) return;
     setIsSaving(true);
-    const cardData = {
-      tcgId: selectedCard.productId.toString(),
-      name: selectedCard.name,
-      price: parseFloat(price),
-      stock: parseInt(stock),
-      imageUrl: selectedCard.imageUrl || '',
-      data: {
-        pseudoName: pseudoName.trim(),
-        set: availableSets.find(s => s.groupId == (searchSet || selectedCard.groupId))?.name || 'Unknown',
-        rarity: selectedCard.extData?.Rarity || selectedCard.extData?.['Card Number / Rarity'] || 'Unknown',
-        supertype: selectedCard.extData ? selectedCard.extData['Card Type / HP / Stage']?.split(' / ')[0] || 'Unknown' : 'Unknown',
-        number: selectedCard.extData?.Number || '',
-        total: '',
-        language: isMylFolder ? 'Spanish' : language
-      }
-    };
+    
     try {
-      await api.addCard(id, cardData);
-      if (true) {
+      const targetTcgId = selectedCard.productId?.toString() || selectedCard.id?.toString() || selectedCard.tcgProductId?.toString();
+      const existingCard = cards.find(c => c.tcgId === targetTcgId);
+      
+      if (existingCard) {
+        const newStock = existingCard.stock + cardStock;
+        const newPrice = parseFloat(price);
+        await api.updateCard(id, existingCard.id, { price: newPrice, stock: newStock });
+        showToast('¡Carta actualizada (se sumó el stock)!', 'success');
+      } else {
+        const cardData = {
+          tcgId: targetTcgId,
+          name: selectedCard.name,
+          price: parseFloat(price),
+          stock: cardStock,
+          imageUrl: selectedCard.imageUrl || '',
+          data: {
+            pseudoName: isBatchAdding ? '' : pseudoName.trim(),
+            set: availableSets.find(s => s.groupId == (searchSet || selectedCard.groupId))?.name || 'Unknown',
+            rarity: selectedCard.extData?.Rarity || selectedCard.extData?.['Card Number / Rarity'] || 'Unknown',
+            supertype: selectedCard.extData ? selectedCard.extData['Card Type / HP / Stage']?.split(' / ')[0] || 'Unknown' : 'Unknown',
+            number: selectedCard.extData?.Number || '',
+            total: '',
+            language: isMylFolder ? 'Spanish' : language
+          }
+        };
+        await api.addCard(id, cardData);
         showToast('¡Carta guardada en el catálogo exitosamente!', 'success');
+      }
+      
+      if (isBatchAdding) {
+        setSelectedQueue(prev => {
+          const remaining = prev.filter(item => item.queueId !== activeQueueItemId);
+          const nextItem = remaining[0];
+          if (nextItem) {
+            setActiveQueueItemId(nextItem.queueId);
+            setSelectedCard(nextItem.card);
+            setStock((nextItem.quantity || 1).toString());
+          } else {
+            setActiveQueueItemId(null);
+            setSelectedCard(null);
+            setStock('');
+            setMultiSelectMode(false);
+          }
+          return remaining;
+        });
+        setPrice('');
+        setPseudoName('');
+      } else {
         setSelectedCard(null);
-        fetchCards();
-        // Volver arriba suavemente en móviles para buscar la siguiente carta
-        if (window.innerWidth < 1024) {
-          setTimeout(() => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }, 100);
-        }
-      } else showToast('Error al guardar la carta', 'error');
+      }
+      fetchCards();
+      
+      if (!isBatchAdding || selectedQueue.length <= 1) {
+        setTimeout(() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 100);
+      }
     } catch (error) {
       console.error(error);
       showToast('Error de conexión al guardar la carta', 'error');
@@ -739,35 +898,7 @@ function FolderPokemonInner() {
     }
   };
 
-  const getTcgplayerUrl = (card) => {
-    if (!card) return '#';
-    let code = card.number || '';
-    if (card.set && card.set.printedTotal) {
-      let numStr = card.number.toString();
-      let totalStr = card.set.printedTotal.toString();
-      if (/^\d+$/.test(numStr)) numStr = numStr.padStart(3, '0');
-      if (/^\d+$/.test(totalStr)) totalStr = totalStr.padStart(3, '0');
-      code = `${numStr}/${totalStr}`;
-    }
-    const searchQuery = `${card.name} ${code}`.trim();
-    if (card.tcgId) return `https://www.tcgplayer.com/product/${card.tcgId}`;
-    return `https://www.tcgplayer.com/search/pokemon/product?q=${encodeURIComponent(searchQuery)}`;
-  };
 
-  const getTcgmatchUrl = (card) => {
-    if (!card) return '#';
-    let code = card.number || '';
-    if (card.set && card.set.printedTotal) {
-      let numStr = card.number.toString();
-      let totalStr = card.set.printedTotal.toString();
-      if (/^\d+$/.test(numStr)) numStr = numStr.padStart(3, '0');
-      if (/^\d+$/.test(totalStr)) totalStr = totalStr.padStart(3, '0');
-      code = `${numStr}/${totalStr}`;
-    }
-    const searchQuery = `${card.name} ${code}`.trim();
-    const encodedQuery = encodeURIComponent(searchQuery).replace(/%20/g, '+');
-    return `https://tcgmatch.cl/cartas/busqueda/q=${encodedQuery}`;
-  };
 
   const renderAddTab = () => (
     <div className="flex flex-col-reverse lg:flex-row gap-6">
@@ -929,6 +1060,19 @@ function FolderPokemonInner() {
           <div className="fixed bottom-[88px] right-6 flex flex-col gap-3 z-[60] lg:hidden">
             <button 
               type="button" 
+              onClick={toggleMultiSelectMode}
+              className={`${multiSelectMode ? 'bg-[#1e40af] text-white border-[#1e40af]' : 'bg-white text-[#1e40af] border-gray-200 hover:bg-gray-100'} w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95 border`}
+              title={multiSelectMode ? 'Desactivar selección múltiple' : 'Activar selección múltiple'}
+            >
+              <span translate="no" className="material-symbols-outlined text-[22px]">library_add</span>
+              {selectedQueue.length > 0 && (
+                <span className={`absolute -top-1 -right-1 min-w-6 h-6 px-1 rounded-full text-xs flex items-center justify-center border-2 border-white ${multiSelectMode ? 'bg-white text-[#1e40af]' : 'bg-[#1e40af] text-white'}`}>
+                  {selectedQueue.length}
+                </span>
+              )}
+            </button>
+            <button 
+              type="button" 
               onClick={() => { const isMobile = window.innerWidth <= 768; const maxCols = isMobile ? 3 : 5; const minCols = isMobile ? 1 : 2; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }} 
               className="bg-white hover:bg-gray-100 text-[#1e40af] border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
               title="Cambiar vista"
@@ -948,6 +1092,36 @@ function FolderPokemonInner() {
           </div>
         </form>
       </div>
+      {(multiSelectMode || selectedQueue.length > 0) && (
+        <div className="lg:hidden mb-4 rounded-2xl border border-blue-100 bg-blue-50/80 p-3 shadow-sm">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <p className="text-sm font-bold text-[#1a2b4b]">Selección múltiple</p>
+              <p className="text-xs text-gray-500">{totalQueuedCards} carta{totalQueuedCards === 1 ? '' : 's'} en la lista</p>
+            </div>
+            <div className="flex gap-2">
+              {selectedQueue.length > 0 && (
+                <button type="button" onClick={() => { setSelectedQueue([]); setActiveQueueItemId(null); setSelectedCard(null); resetCardForm(); }} className="px-3 py-2 rounded-lg text-xs font-bold border border-gray-200 bg-white text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
+                  Limpiar
+                </button>
+              )}
+              <button type="button" disabled={selectedQueue.length === 0} onClick={startQueuedAdd} className="px-4 py-2 rounded-lg text-xs font-bold bg-[#1e40af] text-white disabled:bg-gray-300 disabled:cursor-not-allowed shadow-sm hover:bg-blue-800 transition-colors">
+                Agregar selección
+              </button>
+            </div>
+          </div>
+          {selectedQueue.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+              {selectedQueue.map((item, index) => (
+                <button key={item.queueId} type="button" onClick={(e) => decreaseQueueItemQuantity(e, item.queueId)} onContextMenu={(e) => e.preventDefault()} className={`relative flex-shrink-0 w-16 rounded-lg border-2 bg-white p-1 shadow-sm transition-all ${activeQueueItemId === item.queueId ? 'border-[#1e40af]' : 'border-blue-200 hover:border-red-300'}`} title="Quitar de la selección">
+                  <img src={item.card.imageUrl} alt={item.card.name} className="w-full aspect-[63/88] object-contain rounded" />
+                  <span className="absolute -top-2 -left-2 bg-[#1e40af] text-white text-[10px] font-bold rounded-full min-w-5 px-1 h-5 flex items-center justify-center border border-white">x{item.quantity || 1}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <div className={`grid gap-4 pr-2 ${gridCols === 1 ? 'grid-cols-1' : gridCols === 2 ? 'grid-cols-2' : gridCols === 3 ? 'grid-cols-3' : gridCols === 4 ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-5'}`}>
           {isSearching ? (
             <div className="col-span-full flex flex-col items-center justify-center py-16">
@@ -956,15 +1130,16 @@ function FolderPokemonInner() {
             </div>
           ) : searchResults.length > 0 ? (
             <>
-            {searchResults.slice(0, visibleCount).map(card => (
-            <div key={card.id} className={`cursor-pointer flex flex-col justify-between rounded-xl overflow-hidden border-2 transition-all duration-200 bg-blue-50 shadow-sm ${gridCols === 1 ? 'max-w-[255px] mx-auto w-full' : gridCols === 2 ? 'max-w-[350px] mx-auto w-full' : 'w-full'} ${selectedCard?.id === card.id ? 'border-[#1e40af] shadow-md scale-[1.02]' : 'border-gray-200 hover:border-[#1e40af]/50'}`} onClick={() => { 
-              setSelectedCard(card); setPrice(''); setStock(''); setPseudoName(''); 
-              if (window.innerWidth < 1024) {
-                setTimeout(() => {
-                  document.getElementById('add-catalog-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 100);
-              }
-            }}>
+            {searchResults.slice(0, visibleCount).map(card => {
+              const queuedCount = selectedQueueCountByCard[getCardSelectionKey(card)] || 0;
+              const isCardSelected = selectedCard?.id === card.id || queuedCount > 0;
+              return (
+            <div key={card.id} className={`relative cursor-pointer flex flex-col justify-between rounded-xl overflow-hidden border-2 transition-all duration-200 bg-blue-50 shadow-sm ${gridCols === 1 ? 'max-w-[255px] mx-auto w-full' : gridCols === 2 ? 'max-w-[350px] mx-auto w-full' : 'w-full'} ${isCardSelected ? 'border-[#1e40af] shadow-md scale-[1.02] ring-2 ring-[#1e40af]/20' : 'border-gray-200 hover:border-[#1e40af]/50'}`} onClick={() => handleResultCardClick(card)} onContextMenu={(e) => handleRightClickResultCard(e, card)} title={multiSelectMode ? "Clic izquierdo: Añadir 1 copia | Clic derecho: Quitar 1 copia" : ""}>
+              {queuedCount > 0 && (
+                <div className="absolute top-2 right-2 z-20 bg-[#1e40af] text-white text-xs font-bold rounded-full min-w-7 h-7 px-2 flex items-center justify-center border-2 border-white shadow-md">
+                  x{queuedCount}
+                </div>
+              )}
               <div className="relative w-full aspect-[63/88] flex items-center justify-center bg-gray-50 p-2">
                 <div className="absolute inset-0 flex items-center justify-center">
                   <img src="/favicon.png" className="w-10 h-10 opacity-40 animate-pulse object-contain filter grayscale" alt="Cargando..." />
@@ -976,7 +1151,7 @@ function FolderPokemonInner() {
                 <p className={`text-gray-500 truncate mt-1 ${gridCols === 1 ? 'text-xs' : gridCols === 2 ? 'text-lg' : gridCols === 3 ? 'text-sm' : gridCols === 4 ? 'text-xs' : 'text-[10px]'}`}>{availableSets.find(s => s.groupId == (searchSet || card.groupId))?.name}</p>
               </div>
             </div>
-          ))}
+          );})}
           {visibleCount < searchResults.length && (
             <div ref={observerTarget} className="col-span-full h-10 w-full flex items-center justify-center mt-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e40af]"></div>
@@ -1000,7 +1175,20 @@ function FolderPokemonInner() {
       {/* Lado Derecho: Añadir a Carpeta */}
 
         {/* Columna de Botones FAB (Solo PC) */}
-        <div className="hidden lg:flex flex-col gap-3 sticky top-[calc(100vh-220px)] h-fit z-[60] self-start -mx-2">
+        <div className="hidden lg:flex flex-col gap-3 sticky top-[360px] h-fit z-[60] self-start -mx-2">
+            <button 
+                type="button" 
+                onClick={toggleMultiSelectMode}
+                className={`${multiSelectMode ? 'bg-[#1e40af] text-white border-[#1e40af]' : 'bg-white text-[#1e40af] border-gray-200 hover:bg-gray-100'} relative w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95 border`}
+                title={multiSelectMode ? 'Desactivar selección múltiple' : 'Activar selección múltiple'}
+            >
+                <span translate="no" className="material-symbols-outlined text-[22px]">library_add</span>
+                {selectedQueue.length > 0 && (
+                    <span className={`absolute -top-1 -right-1 min-w-6 h-6 px-1 rounded-full text-xs flex items-center justify-center border-2 border-white ${multiSelectMode ? 'bg-white text-[#1e40af]' : 'bg-[#1e40af] text-white'}`}>
+                        {selectedQueue.length}
+                    </span>
+                )}
+            </button>
             <button 
                 type="button" 
                 onClick={() => { const isMobile = window.innerWidth <= 768; const maxCols = isMobile ? 3 : 5; const minCols = isMobile ? 1 : 2; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }} 
@@ -1029,19 +1217,19 @@ function FolderPokemonInner() {
             </button>
         </div>
 
-      <div id="add-catalog-panel" className={`w-full max-w-[400px] lg:w-[400px] bg-white p-6 lg:p-6 rounded-2xl shadow-sm border border-gray-200 lg:sticky lg:top-[140px] flex-shrink-0 z-10 hover:z-[60] mx-auto lg:mx-0 self-center lg:self-start scroll-mt-[130px] lg:scroll-mt-[150px] ${selectedCard ? 'block lg:h-[calc(100vh-160px)] lg:min-h-[620px] overflow-visible' : 'hidden lg:block h-fit min-h-[650px] lg:min-h-0'}`}>
+      <div id="add-catalog-panel" className={`w-full max-w-[400px] lg:w-[400px] bg-white p-6 lg:p-6 rounded-2xl shadow-sm border border-gray-200 lg:sticky lg:top-[140px] flex-shrink-0 z-10 hover:z-[60] mx-auto lg:mx-0 self-center lg:self-start scroll-mt-[130px] lg:scroll-mt-[150px] ${selectedCard ? 'block' : 'hidden lg:block'} lg:h-[calc(100vh-160px)] overflow-visible`}>
         <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 border-b border-gray-200 pb-4">
           <span translate="no" className="material-symbols-outlined text-[#1e40af]">add_circle</span>
-          Añadir a Carpeta
+          {isBatchAdding ? 'Agregar Selección' : 'Añadir a Carpeta'}
         </h2>
         {selectedCard ? (
           <form onSubmit={handleSaveCard} className="flex min-h-[610px] lg:min-h-0 lg:h-[calc(100%-58px)] flex-col justify-between gap-4 mt-2">
-            <div className="flex justify-center relative z-50 mt-4">
-              <div className="relative inline-block">
+            <div className="flex justify-center relative z-50 mt-4 lg:flex-1 lg:min-h-0 w-full">
+              <div className="relative inline-block lg:h-full flex justify-center items-center">
                 <img 
                   src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} 
                   alt={selectedCard.name} 
-                  className="h-72 sm:h-80 lg:h-[min(38vh,330px)] aspect-[63/88] object-fill rounded-lg shadow-md hover:scale-[1.55] transition-transform duration-300 cursor-zoom-in relative z-50 hover:z-[70] origin-center" 
+                  className="h-72 sm:h-80 lg:h-full lg:max-h-full lg:w-full aspect-[63/88] object-contain rounded-lg shadow-md hover:scale-[1.55] transition-transform duration-300 cursor-zoom-in relative z-50 hover:z-[70] origin-center" 
                 />
                 <button 
                   type="button"
@@ -1065,28 +1253,37 @@ function FolderPokemonInner() {
               <div className="text-center px-2">
                 <p className="font-bold text-gray-900 leading-tight">{selectedCard.name}</p>
                 <p className="text-sm text-gray-500 mt-1">{availableSets.find(s => s.groupId == (searchSet || selectedCard.groupId))?.name} • {selectedCard.rarity}</p>
+                {isBatchAdding && (
+                  <p className="text-xs font-bold text-[#1e40af] mt-2">
+                    Carta {selectedQueue.findIndex(item => item.queueId === activeQueueItemId) + 1} de {selectedQueue.length}
+                  </p>
+                )}
               </div>
               
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Alias / Apodo (Opcional)</label>
-                <input type="text" value={pseudoName} onChange={(e) => setPseudoName(e.target.value)} placeholder="Ej: Charizard de Ash..." maxLength={30} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-sm text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" />
-              </div>
+              {!isBatchAdding && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Alias / Apodo (Opcional)</label>
+                  <input type="text" value={pseudoName} onChange={(e) => setPseudoName(e.target.value)} placeholder="Ej: Charizard de Ash..." maxLength={30} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-sm text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" />
+                </div>
+              )}
 
               <div className="flex gap-4">
-                <div className="flex-1">
+                <div className={isBatchAdding ? 'w-full' : 'flex-1'}>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Precio (CLP)*</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
                     <input type="number" required min="1" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" placeholder="1000" />
                   </div>
                 </div>
-                <div className="w-1/3">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Stock*</label>
-                  <input type="number" required min="1" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-center" placeholder="1" />
-                </div>
+                {!isBatchAdding && (
+                  <div className="w-1/3">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Stock*</label>
+                    <input type="number" required min="1" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-center" placeholder="1" />
+                  </div>
+                )}
               </div>
 
-              {!isMylFolder && (
+              {!isMylFolder && !isBatchAdding && (
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Idioma</label>
                   <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-sm">
@@ -1099,23 +1296,73 @@ function FolderPokemonInner() {
 
               <button type="submit" disabled={isSaving} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-[15px]">
                 {isSaving ? <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span> : <span translate="no" className="material-symbols-outlined">add_circle</span>}
-                {isSaving ? 'Guardando...' : 'Guardar Carta'}
+                {isSaving ? 'Guardando...' : isBatchAdding ? 'Guardar y continuar' : 'Guardar Carta'}
               </button>
-              <div className="flex justify-between gap-2">
-                <a href={getTcgplayerUrl(selectedCard)} target="_blank" rel="noopener noreferrer" className="flex-1 text-center py-2 text-[11px] font-bold text-[#1e40af] bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200 flex items-center justify-center gap-1">
-                  TCGPlayer
-                </a>
-                <a href={getTcgmatchUrl(selectedCard)} target="_blank" rel="noopener noreferrer" className="flex-1 text-center py-2 text-[11px] font-bold text-[#1e40af] bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200 flex items-center justify-center gap-1">
-                  TCGMatch
-                </a>
-              </div>
             </div>
           </form>
         ) : (
-          <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-gray-400 opacity-80 border-2 border-dashed border-gray-200 rounded-xl mt-6 p-6">
-            <span translate="no" className="material-symbols-outlined text-6xl mb-4 text-gray-300">style</span>
-            <p className="text-sm font-bold text-center">Selecciona una carta de los resultados.</p>
-          </div>
+          <>
+            {(multiSelectMode || selectedQueue.length > 0) ? (
+              <div className="hidden lg:flex min-h-[610px] lg:min-h-0 lg:h-[calc(100%-58px)] flex-col justify-between gap-4 mt-2">
+                  <div className="flex items-center justify-between gap-3 px-2 mt-4">
+                    <div>
+                      <p className="text-sm font-bold text-[#1a2b4b]">Selección múltiple</p>
+                      <p className="text-xs text-gray-500">{totalQueuedCards} carta{totalQueuedCards === 1 ? '' : 's'} en la lista</p>
+                    </div>
+                    {selectedQueue.length > 0 && (
+                      <button type="button" onClick={() => { setSelectedQueue([]); setActiveQueueItemId(null); setSelectedCard(null); resetCardForm(); }} className="px-3 py-2 rounded-lg text-xs font-bold border border-gray-200 bg-white text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
+                        Limpiar
+                      </button>
+                    )}
+                  </div>
+
+                  <div ref={queueScrollRef} className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden custom-scrollbar mt-2 px-2 pb-4">
+                    {selectedQueue.length > 0 ? (
+                      <div className="grid grid-cols-3 gap-4">
+                        {selectedQueue.map((item, index) => (
+                          <div key={item.queueId} onContextMenu={(e) => decreaseQueueItemQuantity(e, item.queueId)} title="Clic derecho para quitar 1 copia" className="relative w-full aspect-[63/88] rounded-xl shadow-sm border-2 border-blue-200 bg-white p-1.5 hover:border-red-300 transition-colors flex items-center justify-center cursor-context-menu">
+                            <img 
+                              src={getProxyImageUrl(item.card.tcgProductId || item.card.id, item.card.imageUrl)} 
+                              alt={item.card.name} 
+                              className="w-full h-full object-contain rounded-md" 
+                            />
+                            <button 
+                              type="button" 
+                              onClick={() => removeQueueItem(item.queueId)} 
+                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center shadow-md border-2 border-white hover:scale-110 transition-transform z-[60]"
+                              title="Quitar de la selección"
+                            >
+                              <span translate="no" className="material-symbols-outlined text-[14px]">close</span>
+                            </button>
+                            <span className="absolute -bottom-2 -left-2 bg-[#1e40af] text-white text-[11px] font-bold rounded-full min-w-7 px-1 h-7 flex items-center justify-center shadow-md border-2 border-white z-[60]">
+                              x{item.quantity || 1}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="w-full h-full min-h-[300px] flex flex-col items-center justify-center text-gray-400 opacity-80 border-2 border-dashed border-gray-200 rounded-xl">
+                        <span translate="no" className="material-symbols-outlined text-6xl mb-4 text-gray-300">library_add</span>
+                        <div className="text-center px-4">
+                          <p className="text-sm font-bold">Usa clic izquierdo para sumar copias.</p>
+                          <p className="text-sm font-bold mt-1 opacity-80">Usa clic derecho para restarlas.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <button type="button" disabled={selectedQueue.length === 0} onClick={startQueuedAdd} className="w-full py-3.5 rounded-xl text-[15px] font-bold bg-[#1e40af] text-white disabled:bg-gray-300 disabled:cursor-not-allowed shadow-sm hover:bg-blue-800 transition-colors flex items-center justify-center gap-2">
+                    <span translate="no" className="material-symbols-outlined text-[20px]">playlist_add_check</span>
+                    Agregar selección
+                  </button>
+                </div>
+            ) : (
+              <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-gray-400 opacity-80 border-2 border-dashed border-gray-200 rounded-xl mt-6 p-6">
+                <span translate="no" className="material-symbols-outlined text-6xl mb-4 text-gray-300">style</span>
+                <p className="text-sm font-bold text-center">Selecciona una carta de los resultados.</p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
