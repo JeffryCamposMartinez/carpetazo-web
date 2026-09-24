@@ -42,6 +42,8 @@ const prisma = new PrismaClient();
 const app = express();
 const port = process.env.PORT || 8000;
 
+app.set('trust proxy', 1);
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 300,
@@ -174,10 +176,19 @@ app.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res) =>
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     
-    const { price, stock } = req.body;
-    const dataToUpdate = {};
-    if (price !== undefined) dataToUpdate.price = parseFloat(price);
-    if (stock !== undefined) dataToUpdate.stock = parseInt(stock);
+    const { price, stock, data } = req.body;
+    const dataToUpdate = {};
+    if (price !== undefined) dataToUpdate.price = parseFloat(price);
+    if (stock !== undefined) dataToUpdate.stock = parseInt(stock);
+    if (data !== undefined) {
+      const existingCard = await prisma.card.findFirst({
+        where: { id: req.params.cardId, folderId: req.params.id }
+      });
+      dataToUpdate.data = {
+        ...(existingCard?.data && typeof existingCard.data === 'object' ? existingCard.data : {}),
+        ...data
+      };
+    }
     
     const card = await prisma.card.update({
       where: { id: req.params.cardId, folderId: req.params.id },
