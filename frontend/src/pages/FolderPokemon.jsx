@@ -27,9 +27,46 @@ import { api } from '../utils/api';
 import Filters from '../components/Filters';
 import Toast from '../components/Toast';
 import ConfirmModal from '../components/ConfirmModal';
+import AlbumView from '../components/AlbumView';
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const CATALOG_CARDS_PER_PAGE = 9;
+const DRAG_SCROLL_EDGE_PX = 120;
+const DRAG_SCROLL_MAX_SPEED = 28;
 
-const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
+const getCatalogOrderValue = (card, fallbackIndex = 0) => {
+  const value = Number(card?.catalogOrder);
+  return Number.isFinite(value) ? value : fallbackIndex + 100000;
+};
+
+const sortCatalogCards = (cardArray = []) => (
+  [...cardArray].sort((a, b) => {
+    const orderDiff = getCatalogOrderValue(a) - getCatalogOrderValue(b);
+    if (orderDiff !== 0) return orderDiff;
+    return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+  })
+);
+
+const chunkCardsByPage = (cardArray = []) => {
+  const pages = [];
+  for (let i = 0; i < cardArray.length; i += CATALOG_CARDS_PER_PAGE) {
+    pages.push(cardArray.slice(i, i + CATALOG_CARDS_PER_PAGE));
+  }
+  return pages;
+};
+
+const getPreviewReorderedCards = (cardArray = [], dragCardId, targetIndex) => {
+  if (!dragCardId || targetIndex === null || targetIndex === undefined) return cardArray;
+  const fromIndex = cardArray.findIndex(card => card.id === dragCardId);
+  if (fromIndex < 0) return cardArray;
+
+  const nextCards = [...cardArray];
+  const [movedCard] = nextCards.splice(fromIndex, 1);
+  const dropIndex = Math.min(Math.max(Number(targetIndex), 0), nextCards.length);
+  nextCards.splice(dropIndex, 0, movedCard);
+  return nextCards;
+};
+
+const AdminCardEdit = ({ card, onUpdate, onDelete, dragHandleProps = {}, compact = false }) => {
   const [price, setPrice] = useState(card.price);
   const [stock, setStock] = useState(card.stock);
   const [saving, setSaving] = useState(false);
@@ -50,42 +87,54 @@ const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
 
   return (
     <div className="bg-blue-50 rounded-2xl border border-gray-200 flex flex-col shadow-sm hover:shadow-md transition-shadow overflow-hidden relative group">
+      <div
+        {...dragHandleProps}
+        className={`${compact ? 'top-1.5 left-1.5 w-7 h-7' : 'top-2 left-2 w-8 h-8'} absolute z-10 rounded-full bg-white/90 text-[#1e40af] shadow-sm border border-blue-100 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-100 transition-opacity`}
+        style={{ touchAction: 'none' }}
+        title="Mantén y arrastra para ordenar"
+      >
+        <span translate="no" className="material-symbols-outlined text-[18px]">drag_indicator</span>
+      </div>
       <button 
         onClick={() => onDelete(card.id)}
-        className="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-red-600 hover:bg-red-700 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+        className={`${compact ? 'top-1.5 right-1.5 w-7 h-7' : 'top-2 right-2 w-8 h-8'} absolute z-10 flex items-center justify-center rounded-full bg-red-600 hover:bg-red-700 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-sm`}
         title="Eliminar carta"
       >
         <span translate="no" className="material-symbols-outlined text-[18px]">delete</span>
       </button>
-      <div className="p-4 flex flex-col items-center flex-1">
-        <div className="w-full relative pt-[140%] mb-3">
+      <div className={`${compact ? 'p-2.5' : 'p-4'} flex flex-col items-center flex-1`}>
+        <div className={`w-full relative pt-[140%] ${compact ? 'mb-2' : 'mb-3'}`}>
           <img src={card.imageUrl} referrerPolicy="no-referrer" referrerPolicy="no-referrer" referrerPolicy="no-referrer" alt={card.name} className="absolute inset-0 w-full h-full object-fill filter drop-shadow-md transition-transform duration-300" />
         </div>
-        <p className="font-bold text-gray-900 text-center line-clamp-1 w-full text-sm">{card.name}</p>
-        <p className="text-[10px] text-gray-500 mb-4 text-center truncate w-full">
-          {card.set} • {card.supertype} • #{(() => {
-            let numStr = (card.number || card.apiId?.split('-')[1] || card.id?.split('-')[1] || '').toString();
-            let totalStr = (card.total || '---').toString();
-            if (/^\d+$/.test(numStr)) numStr = numStr.padStart(3, '0');
-            if (/^\d+$/.test(totalStr)) totalStr = totalStr.padStart(3, '0');
-            return `${numStr}/${totalStr}`;
-          })()}
+        <p className={`font-bold text-gray-900 text-center line-clamp-1 w-full ${compact ? 'text-xs' : 'text-sm'}`}>{card.name}</p>
+        <p className={`text-[10px] text-gray-500 text-center truncate w-full ${compact ? 'mb-2' : 'mb-4'}`}>
+          {compact ? card.set : (
+            <>
+              {card.set} • {card.supertype} • #{(() => {
+                let numStr = (card.number || card.apiId?.split('-')[1] || card.id?.split('-')[1] || '').toString();
+                let totalStr = (card.total || '---').toString();
+                if (/^\d+$/.test(numStr)) numStr = numStr.padStart(3, '0');
+                if (/^\d+$/.test(totalStr)) totalStr = totalStr.padStart(3, '0');
+                return `${numStr}/${totalStr}`;
+              })()}
+            </>
+          )}
         </p>
         
-        <div className="flex flex-col gap-2 w-full mt-auto">
-           <div className="flex justify-between items-center w-full bg-gray-50 px-2 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+        <div className={`${compact ? 'gap-1.5' : 'gap-2'} flex flex-col w-full mt-auto`}>
+           <div className={`w-full bg-gray-50 px-2 ${compact ? 'py-1.5' : 'py-1.5'} rounded-lg border border-gray-200 shadow-sm ${compact ? 'flex flex-col gap-1' : 'flex justify-between items-center'}`}>
               <label className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Stock</label>
-              <div className="flex items-center shadow-sm rounded-md overflow-hidden border border-gray-300">
-                <button onClick={() => setStock(Math.max(0, parseInt(stock) - 1))} className="w-6 h-6 flex items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors font-bold text-xs text-gray-700">-</button>
-                <input type="number" min="0" value={stock} onChange={e=>setStock(e.target.value)} className="w-10 h-6 text-center bg-white focus:outline-none px-0 text-xs font-bold border-x border-gray-300 text-gray-900"/>
-                <button onClick={() => setStock(parseInt(stock) + 1)} className="w-6 h-6 flex items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors font-bold text-xs text-gray-700">+</button>
+              <div className={`${compact ? 'w-full' : ''} flex items-center shadow-sm rounded-md overflow-hidden border border-gray-300`}>
+                <button type="button" onClick={() => setStock(Math.max(0, parseInt(stock) - 1))} className={`${compact ? 'w-8' : 'w-6'} h-7 flex items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors font-black text-sm text-gray-700`}>-</button>
+                <input type="number" min="0" value={stock} onChange={e=>setStock(e.target.value)} className={`${compact ? 'flex-1 min-w-0' : 'w-10'} h-7 text-center bg-white focus:outline-none px-0 text-xs font-bold border-x border-gray-300 text-gray-900`}/>
+                <button type="button" onClick={() => setStock(parseInt(stock) + 1)} className={`${compact ? 'w-8' : 'w-6'} h-7 flex items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors font-black text-sm text-gray-700`}>+</button>
               </div>
            </div>
-           <div className="flex justify-between items-center w-full bg-gray-50 px-2 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+           <div className={`w-full bg-gray-50 px-2 ${compact ? 'py-1.5' : 'py-1.5'} rounded-lg border border-gray-200 shadow-sm ${compact ? 'flex flex-col gap-1' : 'flex justify-between items-center'}`}>
               <label className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Precio</label>
-              <div className="relative w-24">
+              <div className={`relative ${compact ? 'w-full' : 'w-24'}`}>
                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-xs">$</span>
-                <input type="number" min="0" value={price} onChange={e=>setPrice(e.target.value)} className="w-full h-6 pl-6 pr-2 bg-white focus:outline-none text-xs font-bold rounded-md border border-gray-300 shadow-sm text-right text-gray-900"/>
+                <input type="number" min="0" value={price} onChange={e=>setPrice(e.target.value)} className="w-full h-7 pl-6 pr-2 bg-white focus:outline-none text-xs font-bold rounded-md border border-gray-300 shadow-sm text-right text-gray-900"/>
               </div>
            </div>
         </div>
@@ -94,7 +143,7 @@ const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
       <button 
         onClick={handleSave} 
         disabled={saving || !hasChanges} 
-        className={"w-full py-3 font-bold text-xs tracking-wide transition-colors border-t border-gray-200 flex items-center justify-center gap-1.5 " + (hasChanges ? 'bg-[#1e40af] text-white hover:bg-blue-800' : 'bg-gray-100 text-gray-500 opacity-60')}
+        className={`w-full ${compact ? 'py-2' : 'py-3'} font-bold text-xs tracking-wide transition-colors border-t border-gray-200 flex items-center justify-center gap-1.5 ` + (hasChanges ? 'bg-[#1e40af] text-white hover:bg-blue-800' : 'bg-gray-100 text-gray-500 opacity-60')}
       >
         <span translate="no" className="material-symbols-outlined text-[16px]">{saving ? 'hourglass_empty' : 'save'}</span>
         {saving ? 'Guardando...' : hasChanges ? 'Guardar' : 'Guardado'}
@@ -350,13 +399,86 @@ function FolderPokemonInner() {
   
   const [catQuery, setCatQuery] = useState('');
   const [catSet, setCatSet] = useState('');
+  const [catalogViewMode, setCatalogViewMode] = useState('grid');
   const [isCatSetDropdownOpen, setIsCatSetDropdownOpen] = useState(false);
+  const [draggedCatalogCardId, setDraggedCatalogCardId] = useState(null);
+  const [dropCatalogIndex, setDropCatalogIndex] = useState(null);
+  const [catalogDragFloatingPreview, setCatalogDragFloatingPreview] = useState(null);
+  const [savingCatalogOrder, setSavingCatalogOrder] = useState(false);
+  const [hasUnsavedCatalogOrder, setHasUnsavedCatalogOrder] = useState(false);
+  const catalogDragScrollFrameRef = useRef(null);
+  const catalogDragScrollSpeedRef = useRef(0);
+  const catalogDragFloatingPreviewRef = useRef(null);
+  const touchCatalogCardIdRef = useRef(null);
+  const touchCatalogDropIndexRef = useRef(null);
+  const isTouchDragRef = useRef(false);
+
+  useEffect(() => {
+    // Evita que la previsualización se quede pegada si se cambia de vista (grid <-> album) mientras se arrastra
+    setDraggedCatalogCardId(null);
+    setDropCatalogIndex(null);
+    setCatalogDragFloatingPreview(null);
+    touchCatalogCardIdRef.current = null;
+    touchCatalogDropIndexRef.current = null;
+  }, [catalogViewMode]);
+
+  const moveCatalogDragFloatingPreview = (clientX, clientY) => {
+    if (!catalogDragFloatingPreviewRef.current || !Number.isFinite(clientX) || !Number.isFinite(clientY)) return;
+    catalogDragFloatingPreviewRef.current.style.transform = `translate3d(${clientX}px, ${clientY}px, 0) translate(-50%, -50%)`;
+  };
 
   // --- SALES & HISTORY STATE ---
   const [pendingOrders, setPendingOrders] = useState([]);
   const [history, setHistory] = useState([]);
   const [cards, setCards] = useState([]);
   const [isProcessingOrder, setIsProcessingOrder] = useState(false);
+
+  useEffect(() => {
+    if (!draggedCatalogCardId) return undefined;
+
+    const updateScrollSpeed = (clientY) => {
+      if (!Number.isFinite(clientY) || clientY <= 0) {
+        catalogDragScrollSpeedRef.current = 0;
+        return;
+      }
+
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+      if (clientY < DRAG_SCROLL_EDGE_PX) {
+        const intensity = (DRAG_SCROLL_EDGE_PX - clientY) / DRAG_SCROLL_EDGE_PX;
+        catalogDragScrollSpeedRef.current = -Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED);
+      } else if (clientY > viewportHeight - DRAG_SCROLL_EDGE_PX) {
+        const intensity = (clientY - (viewportHeight - DRAG_SCROLL_EDGE_PX)) / DRAG_SCROLL_EDGE_PX;
+        catalogDragScrollSpeedRef.current = Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED);
+      } else {
+        catalogDragScrollSpeedRef.current = 0;
+      }
+    };
+
+    const handleWindowDragOver = (event) => {
+      updateScrollSpeed(event.clientY);
+      moveCatalogDragFloatingPreview(event.clientX, event.clientY);
+    };
+
+    const tick = () => {
+      const speed = catalogDragScrollSpeedRef.current;
+      if (speed !== 0) {
+        window.scrollBy({ top: speed, left: 0, behavior: 'auto' });
+      }
+      catalogDragScrollFrameRef.current = window.requestAnimationFrame(tick);
+    };
+
+    window.addEventListener('dragover', handleWindowDragOver);
+    catalogDragScrollFrameRef.current = window.requestAnimationFrame(tick);
+
+    return () => {
+      window.removeEventListener('dragover', handleWindowDragOver);
+      catalogDragScrollSpeedRef.current = 0;
+      if (catalogDragScrollFrameRef.current) {
+        window.cancelAnimationFrame(catalogDragScrollFrameRef.current);
+        catalogDragScrollFrameRef.current = null;
+      }
+    };
+  }, [draggedCatalogCardId]);
 
   // Fetch logic
   
@@ -367,8 +489,9 @@ function FolderPokemonInner() {
     try {
       const res = await api.getFolder(id);
       if(res.success && res.folder) {
-        const mappedCards = (res.folder.cards || []).map(c => ({ ...c, ...(c.data || {}) }));
+        const mappedCards = sortCatalogCards((res.folder.cards || []).map(c => ({ ...c, ...(c.data || {}), data: c.data || {} })));
         setCards(mappedCards);
+        setHasUnsavedCatalogOrder(false);
       }
     } catch (err) { console.error('Error fetching cards:', err); }
   };
@@ -391,8 +514,9 @@ function FolderPokemonInner() {
           if (res.folder.tcg && tcgMap[res.folder.tcg]) {
             setSearchCategory(tcgMap[res.folder.tcg]);
           }
-          const mappedCards = (res.folder.cards || []).map(c => ({ ...c, ...(c.data || {}) }));
+          const mappedCards = sortCatalogCards((res.folder.cards || []).map(c => ({ ...c, ...(c.data || {}), data: c.data || {} })));
           setCards(mappedCards);
+          setHasUnsavedCatalogOrder(false);
         }
       } catch (e) { console.error(e); } finally { setLoadingFolder(false); }
     };
@@ -474,7 +598,9 @@ function FolderPokemonInner() {
     }
   };
 
-  const filteredCatalog = cards.filter(card => {
+  const orderedCatalogCards = sortCatalogCards(cards);
+
+  const filteredCatalog = orderedCatalogCards.filter(card => {
     const matchesQuery = catQuery === '' || card.name.toLowerCase().includes(catQuery.toLowerCase());
     const matchesSupertype = true;
     const matchesType = true;
@@ -498,6 +624,178 @@ function FolderPokemonInner() {
     }
     
     return matchesQuery && matchesSupertype && matchesType && matchesSet && matchesMyl;
+  });
+
+  const previewCatalog = getPreviewReorderedCards(filteredCatalog, draggedCatalogCardId, dropCatalogIndex);
+  const catalogPages = chunkCardsByPage(previewCatalog);
+
+  const saveCatalogOrder = async () => {
+    const nextCards = sortCatalogCards(cards);
+    if (!hasUnsavedCatalogOrder || savingCatalogOrder) return;
+
+    setSavingCatalogOrder(true);
+    try {
+      await Promise.all(nextCards.map((card, index) => (
+        api.updateCard(id, card.id, {
+          data: {
+            ...(card.data || {}),
+            catalogOrder: index
+          }
+        })
+      )));
+      setHasUnsavedCatalogOrder(false);
+      showToast('Orden actualizado correctamente', 'success');
+    } catch (error) {
+      console.error(error);
+      showToast('No se pudo guardar el nuevo orden.', 'error');
+      fetchCards();
+    } finally {
+      setSavingCatalogOrder(false);
+    }
+  };
+
+  const handleCatalogReorder = (dragCardId, targetVisibleIndex) => {
+    if (!dragCardId || targetVisibleIndex === null || targetVisibleIndex === undefined) return;
+
+    const visibleCards = filteredCatalog;
+    const targetCard = visibleCards[targetVisibleIndex] || null;
+    if (targetCard?.id === dragCardId) return;
+
+    const currentOrdered = sortCatalogCards(cards);
+    const fromIndex = currentOrdered.findIndex(card => card.id === dragCardId);
+    const toIndex = targetCard
+      ? currentOrdered.findIndex(card => card.id === targetCard.id)
+      : currentOrdered.length;
+    if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
+
+    const nextOrdered = [...currentOrdered];
+    const [movedCard] = nextOrdered.splice(fromIndex, 1);
+    const dropIndex = Math.min(toIndex, nextOrdered.length);
+    nextOrdered.splice(dropIndex, 0, movedCard);
+
+    const reorderedCards = nextOrdered.map((card, index) => ({
+      ...card,
+      catalogOrder: index,
+      data: {
+        ...(card.data || {}),
+        catalogOrder: index
+      }
+    }));
+
+    setCards(reorderedCards);
+    setHasUnsavedCatalogOrder(true);
+    setDraggedCatalogCardId(null);
+    setDropCatalogIndex(null);
+  };
+
+  useEffect(() => {
+    if (!draggedCatalogCardId || !touchCatalogCardIdRef.current) return;
+
+    const handleTouchMove = (event) => {
+      const touch = event.touches?.[0];
+      if (!touch) return;
+      event.preventDefault(); // Prevent native scroll to stop touchcancel
+      moveCatalogDragFloatingPreview(touch.clientX, touch.clientY);
+
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+      if (touch.clientY < DRAG_SCROLL_EDGE_PX) {
+        const intensity = (DRAG_SCROLL_EDGE_PX - touch.clientY) / DRAG_SCROLL_EDGE_PX;
+        window.scrollBy({ top: -Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED), left: 0, behavior: 'auto' });
+      } else if (touch.clientY > viewportHeight - DRAG_SCROLL_EDGE_PX) {
+        const intensity = (touch.clientY - (viewportHeight - DRAG_SCROLL_EDGE_PX)) / DRAG_SCROLL_EDGE_PX;
+        window.scrollBy({ top: Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED), left: 0, behavior: 'auto' });
+      }
+
+      const dropEl = document.elementFromPoint(touch.clientX, touch.clientY)?.closest?.('[data-catalog-drop-index]');
+      if (dropEl?.dataset?.catalogDropIndex !== undefined) {
+        const nextIndex = Number(dropEl.dataset.catalogDropIndex);
+        if (Number.isFinite(nextIndex)) {
+          touchCatalogDropIndexRef.current = nextIndex;
+          setDropCatalogIndex(nextIndex);
+        }
+      }
+    };
+
+    const handleTouchEnd = () => {
+      const targetIndex = touchCatalogDropIndexRef.current;
+      const dragId = touchCatalogCardIdRef.current;
+      if (dragId && Number.isFinite(targetIndex)) {
+        handleCatalogReorder(dragId, targetIndex);
+      }
+      cleanup();
+    };
+
+    const cleanup = () => {
+      isTouchDragRef.current = false;
+      touchCatalogCardIdRef.current = null;
+      touchCatalogDropIndexRef.current = null;
+      setDraggedCatalogCardId(null);
+      setCatalogDragFloatingPreview(null);
+      setDropCatalogIndex(null);
+    };
+
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener('touchcancel', cleanup);
+
+    return () => {
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchcancel', cleanup);
+    };
+  }, [draggedCatalogCardId]);
+
+  const getCatalogDragHandleProps = (card, visibleIndex) => ({
+    draggable: !savingCatalogOrder,
+    onDragStart: (event) => {
+      if (isTouchDragRef.current) {
+        event.preventDefault();
+        return;
+      }
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', card.id);
+      const emptyImg = new Image(); emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+      event.dataTransfer.setDragImage(emptyImg, 0, 0);
+      setDraggedCatalogCardId(card.id);
+      setCatalogDragFloatingPreview({ card });
+      requestAnimationFrame(() => moveCatalogDragFloatingPreview(event.clientX, event.clientY));
+      setDropCatalogIndex(visibleIndex);
+    },
+    onDragEnd: () => {
+      setDraggedCatalogCardId(null);
+      setCatalogDragFloatingPreview(null);
+      setDropCatalogIndex(null);
+    },
+    onTouchStart: (event) => {
+      if (savingCatalogOrder) return;
+      isTouchDragRef.current = true;
+      event.stopPropagation();
+      touchCatalogCardIdRef.current = card.id;
+      setDraggedCatalogCardId(card.id);
+      const touch = event.touches?.[0];
+      setCatalogDragFloatingPreview({ card });
+      if (touch) requestAnimationFrame(() => moveCatalogDragFloatingPreview(touch.clientX, touch.clientY));
+      setDropCatalogIndex(visibleIndex);
+      touchCatalogDropIndexRef.current = visibleIndex;
+    }
+  });
+
+  const getCatalogDropProps = (visibleIndex) => ({
+    onDragEnter: (event) => {
+      event.preventDefault();
+      setDropCatalogIndex(visibleIndex);
+    },
+    onDragOver: (event) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'move';
+      setDropCatalogIndex(visibleIndex);
+    },
+    onDrop: (event) => {
+      event.preventDefault();
+      const dragId = event.dataTransfer.getData('text/plain') || draggedCatalogCardId;
+      setCatalogDragFloatingPreview(null);
+      handleCatalogReorder(dragId, visibleIndex);
+    }
   });
 
   const renderCatalogTab = () => (
@@ -628,17 +926,147 @@ function FolderPokemonInner() {
         </div>
       )}      </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-        {filteredCatalog.map(card => (
-          <AdminCardEdit key={card.id} card={card} onUpdate={handleUpdateCard} onDelete={handleDeleteRequest} />
-        ))}
-        {filteredCatalog.length === 0 && (
-          <div className="col-span-full py-12 text-center text-on-surface-variant flex flex-col items-center">
+      <div className="fixed bottom-[5.75rem] right-6 z-[1200] flex justify-end md:static md:mb-6 md:border-b md:border-gray-100 md:pb-4">
+        <div className="w-14 bg-white/95 p-1 rounded-full flex flex-col items-center shadow-2xl ring-4 ring-white/70 backdrop-blur md:w-auto md:flex-row md:items-center md:rounded-xl md:bg-gray-100 md:shadow-inner md:ring-0 md:backdrop-blur-0">
+          <button
+            type="button"
+            onClick={() => setCatalogViewMode('album')}
+            className={`h-12 w-12 rounded-full text-xs font-bold transition-all flex items-center justify-center md:h-auto md:w-auto md:gap-2 md:rounded-lg md:px-4 md:py-2 md:text-sm ${
+              catalogViewMode === 'album'
+                ? 'bg-[#1e40af] text-white shadow-md md:bg-white md:text-[#1e40af] md:shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <span translate="no" className="material-symbols-outlined text-[21px] md:text-[18px]">auto_stories</span>
+            <span className="sr-only md:not-sr-only">Álbum</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setCatalogViewMode('grid')}
+            className={`h-12 w-12 rounded-full text-xs font-bold transition-all flex items-center justify-center md:h-auto md:w-auto md:gap-2 md:rounded-lg md:px-4 md:py-2 md:text-sm ${
+              catalogViewMode === 'grid'
+                ? 'bg-[#1e40af] text-white shadow-md md:bg-white md:text-[#1e40af] md:shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <span translate="no" className="material-symbols-outlined text-[21px] md:text-[18px]">grid_view</span>
+            <span className="sr-only md:not-sr-only">Cuadrícula</span>
+          </button>
+        </div>
+      </div>
+
+      {hasUnsavedCatalogOrder && (
+        <div className="fixed bottom-6 right-[5.75rem] z-[1200] md:bottom-8 md:right-8">
+          <button
+            type="button"
+            onClick={saveCatalogOrder}
+            disabled={savingCatalogOrder}
+            className="inline-flex h-14 whitespace-nowrap items-center gap-2 rounded-full bg-[#1e40af] px-4 text-xs font-black text-white shadow-2xl ring-4 ring-white/70 transition-all hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-70 sm:px-5 sm:text-sm"
+          >
+            <span translate="no" className="material-symbols-outlined text-[20px]">
+              {savingCatalogOrder ? 'hourglass_empty' : 'save'}
+            </span>
+            <span className="hidden min-[360px]:inline">
+              {savingCatalogOrder ? 'Guardando posiciones...' : 'Guardar posiciones'}
+            </span>
+            <span className="min-[360px]:hidden">
+              {savingCatalogOrder ? 'Guardando...' : 'Guardar'}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {filteredCatalog.length === 0 ? (
+        <div className="py-12 text-center text-on-surface-variant flex flex-col items-center">
             <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-30">search_off</span>
             <p>No se encontraron cartas que coincidan con los filtros.</p>
+        </div>
+      ) : catalogViewMode === 'album' ? (
+        <div className="rounded-2xl bg-[#dbeafe] py-6 overflow-hidden">
+          <AlbumView
+            tcg={folderData?.tcg}
+            cards={previewCatalog}
+            binderColor={folderData?.color || '#2f7336'}
+            emptyMessage="No se encontraron cartas que coincidan con los filtros."
+            reorderEnabled={!savingCatalogOrder}
+            onReorderCard={handleCatalogReorder}
+          />
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {savingCatalogOrder && (
+            <div className="sticky top-24 z-20 mx-auto w-fit rounded-full bg-[#1e40af] px-4 py-2 text-sm font-bold text-white shadow-lg">
+              Guardando nuevo orden...
+            </div>
+          )}
+
+          {catalogPages.map((pageCards, pageIndex) => (
+            <section
+              key={`catalog-page-${pageIndex}`}
+              className="rounded-3xl border-2 border-blue-100 bg-gradient-to-br from-blue-50 via-white to-blue-50 p-4 shadow-sm"
+            >
+              <div className="mb-4 flex items-center justify-between gap-3 border-b border-blue-100 pb-3">
+                <div>
+                  <h3 className="text-lg font-black text-[#1a2b4b]">Página {pageIndex + 1}</h3>
+                  <p className="text-xs font-medium text-gray-500">
+                    Estas {pageCards.length} carta{pageCards.length === 1 ? '' : 's'} se verán juntas en esta página del álbum.
+                  </p>
+                </div>
+                <span className="rounded-full bg-[#1e40af] px-3 py-1 text-xs font-bold text-white">
+                  {pageCards.length}/{CATALOG_CARDS_PER_PAGE}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 xl:gap-4">
+                {pageCards.map((card, cardIndex) => {
+                  const visibleIndex = pageIndex * CATALOG_CARDS_PER_PAGE + cardIndex;
+                  const isDragging = draggedCatalogCardId === card.id;
+                  const isDropTarget = dropCatalogIndex === visibleIndex && draggedCatalogCardId && draggedCatalogCardId !== card.id;
+
+                  return (
+                    <div
+                      key={card.id || `catalog-${visibleIndex}`}
+                      data-catalog-drop-index={visibleIndex}
+                      {...getCatalogDropProps(visibleIndex)}
+                      className={`rounded-2xl transition-all ${
+                        isDragging ? 'ring-4 ring-emerald-400/80 bg-emerald-50/80 scale-[1.02]' : ''
+                      } ${
+                        isDropTarget ? 'ring-4 ring-[#1e40af]/30 bg-blue-100/70 scale-[1.02]' : ''
+                      }`}
+                    >
+                      <AdminCardEdit
+                        card={card}
+                        onUpdate={handleUpdateCard}
+                        onDelete={handleDeleteRequest}
+                        dragHandleProps={getCatalogDragHandleProps(card, visibleIndex)}
+                        compact
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+
+      {catalogDragFloatingPreview && (
+        <div
+          ref={catalogDragFloatingPreviewRef}
+          className="fixed top-0 left-0 z-[5000] pointer-events-none -translate-x-1/2 -translate-y-1/2 will-change-transform"
+        >
+          <div className="relative w-24 md:w-32 rotate-3 scale-105 rounded-xl bg-black/80 p-1 shadow-xl ring-2 ring-white/30">
+            <img
+              src={catalogDragFloatingPreview.card.imageUrl}
+              alt={catalogDragFloatingPreview.card.name}
+              className="block w-full rounded-[5%] object-contain opacity-90"
+            />
+            <div className="absolute -top-2 -right-2 rounded-full bg-black px-2.5 py-1 text-xs font-black text-white shadow ring-2 ring-white/30">
+              x{catalogDragFloatingPreview.card.stock || 0}
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 
@@ -855,7 +1283,8 @@ function FolderPokemonInner() {
             supertype: selectedCard.extData ? selectedCard.extData['Card Type / HP / Stage']?.split(' / ')[0] || 'Unknown' : 'Unknown',
             number: selectedCard.extData?.Number || '',
             total: '',
-            language: isMylFolder ? 'Spanish' : language
+            language: isMylFolder ? 'Spanish' : language,
+            catalogOrder: cards.length
           }
         };
         await api.addCard(id, cardData);
@@ -1130,11 +1559,11 @@ function FolderPokemonInner() {
             </div>
           ) : searchResults.length > 0 ? (
             <>
-            {searchResults.slice(0, visibleCount).map(card => {
+            {searchResults.slice(0, visibleCount).map((card, index) => {
               const queuedCount = selectedQueueCountByCard[getCardSelectionKey(card)] || 0;
               const isCardSelected = selectedCard?.id === card.id || queuedCount > 0;
               return (
-            <div key={card.id} className={`relative cursor-pointer flex flex-col justify-between rounded-xl overflow-hidden border-2 transition-all duration-200 bg-blue-50 shadow-sm ${gridCols === 1 ? 'max-w-[255px] mx-auto w-full' : gridCols === 2 ? 'max-w-[350px] mx-auto w-full' : 'w-full'} ${isCardSelected ? 'border-[#1e40af] shadow-md scale-[1.02] ring-2 ring-[#1e40af]/20' : 'border-gray-200 hover:border-[#1e40af]/50'}`} onClick={() => handleResultCardClick(card)} onContextMenu={(e) => handleRightClickResultCard(e, card)} title={multiSelectMode ? "Clic izquierdo: Añadir 1 copia | Clic derecho: Quitar 1 copia" : ""}>
+            <div key={card.id || `search-${index}`} className={`relative cursor-pointer flex flex-col justify-between rounded-xl overflow-hidden border-2 transition-all duration-200 bg-blue-50 shadow-sm ${gridCols === 1 ? 'max-w-[255px] mx-auto w-full' : gridCols === 2 ? 'max-w-[350px] mx-auto w-full' : 'w-full'} ${isCardSelected ? 'border-[#1e40af] shadow-md scale-[1.02] ring-2 ring-[#1e40af]/20' : 'border-gray-200 hover:border-[#1e40af]/50'}`} onClick={() => handleResultCardClick(card)} onContextMenu={(e) => handleRightClickResultCard(e, card)} title={multiSelectMode ? "Clic izquierdo: Añadir 1 copia | Clic derecho: Quitar 1 copia" : ""}>
               {queuedCount > 0 && (
                 <div className="absolute top-2 right-2 z-20 bg-[#1e40af] text-white text-xs font-bold rounded-full min-w-7 h-7 px-2 flex items-center justify-center border-2 border-white shadow-md">
                   x{queuedCount}
@@ -1577,5 +2006,6 @@ const FolderPokemon = (props) => (
   </ErrorBoundary>
 );
 export default FolderPokemon;
+
 
 
