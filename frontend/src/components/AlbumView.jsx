@@ -28,6 +28,8 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
   const touchAlbumCardIdRef = useRef(null);
   const touchAlbumDropIndexRef = useRef(null);
   const isTouchAlbumDragRef = useRef(false);
+  const longPressTimeoutRef = useRef(null);
+  const touchStartPosRef = useRef({ x: 0, y: 0 });
 
   const moveDragFloatingPreview = (clientX, clientY) => {
     if (!dragFloatingPreviewRef.current || !Number.isFinite(clientX) || !Number.isFinite(clientY)) return;
@@ -704,108 +706,127 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                   }}
                   onTouchStart={(e) => {
                     if (!reorderEnabled || !card) return;
-                    isTouchAlbumDragRef.current = true;
-                    e.stopPropagation();
-                    touchAlbumCardIdRef.current = card.id;
-                    setDraggingReorderCardId(card.id);
-                    const touch = e.touches?.[0];
-                    setDragFloatingCard(card);
-                    requestAnimationFrame(() => moveDragFloatingPreview(touch?.clientX ?? 0, touch?.clientY ?? 0));
-                    setDropPreviewIndex(targetIndex);
-                    touchAlbumDropIndexRef.current = targetIndex;
-                    dragPageTurnDirectionRef.current = 0;
-                    dragPageTurnEnteredAtRef.current = 0;
-                    setActiveCardId(null);
-                    setPreviewCard(null);
-                  }}
-                  onTouchMove={(e) => {
-                    if (!reorderEnabled || !touchAlbumCardIdRef.current) return;
                     const touch = e.touches?.[0];
                     if (!touch) return;
-                    e.stopPropagation();
-                    moveDragFloatingPreview(touch.clientX, touch.clientY);
+                    
+                    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+                    if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
+                    
+                    longPressTimeoutRef.current = setTimeout(() => {
+                      if (navigator.vibrate) navigator.vibrate(50);
+                      isTouchAlbumDragRef.current = true;
+                      touchAlbumCardIdRef.current = card.id;
+                      setDraggingReorderCardId(card.id);
+                      setDragFloatingCard(card);
+                      requestAnimationFrame(() => moveDragFloatingPreview(touchStartPosRef.current.x, touchStartPosRef.current.y));
+                      setDropPreviewIndex(targetIndex);
+                      touchAlbumDropIndexRef.current = targetIndex;
+                      dragPageTurnDirectionRef.current = 0;
+                      dragPageTurnEnteredAtRef.current = 0;
+                      setActiveCardId(null);
+                      setPreviewCard(null);
 
-                    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-                    if (touch.clientY < DRAG_SCROLL_EDGE_PX) {
-                      const intensity = (DRAG_SCROLL_EDGE_PX - touch.clientY) / DRAG_SCROLL_EDGE_PX;
-                      window.scrollBy({ top: -Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED), left: 0, behavior: 'auto' });
-                    } else if (touch.clientY > viewportHeight - DRAG_SCROLL_EDGE_PX) {
-                      const intensity = (touch.clientY - (viewportHeight - DRAG_SCROLL_EDGE_PX)) / DRAG_SCROLL_EDGE_PX;
-                      window.scrollBy({ top: Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED), left: 0, behavior: 'auto' });
-                    }
+                      const handleTouchMove = (ev) => {
+                        const t = ev.touches?.[0];
+                        if (!t) return;
+                        if (ev.cancelable) ev.preventDefault(); // Stop native scroll
+                        moveDragFloatingPreview(t.clientX, t.clientY);
 
-                    const rect = albumDragNavRef.current?.getBoundingClientRect();
-                    const navWidth = rect?.width || window.innerWidth || document.documentElement.clientWidth;
-                    const navLeft = rect?.left || 0;
-                    const navRight = rect?.right || navWidth;
-                    const edgeWidth = Math.max(90, navWidth * DRAG_PAGE_TURN_EDGE_RATIO);
-                    const now = Date.now();
+                        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+                        if (t.clientY < DRAG_SCROLL_EDGE_PX) {
+                          const intensity = (DRAG_SCROLL_EDGE_PX - t.clientY) / DRAG_SCROLL_EDGE_PX;
+                          dragScrollSpeedRef.current = -Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED);
+                        } else if (t.clientY > viewportHeight - DRAG_SCROLL_EDGE_PX) {
+                          const intensity = (t.clientY - (viewportHeight - DRAG_SCROLL_EDGE_PX)) / DRAG_SCROLL_EDGE_PX;
+                          dragScrollSpeedRef.current = Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED);
+                        } else {
+                          dragScrollSpeedRef.current = 0;
+                        }
 
-                    let nextDirection = 0;
-                    if (touch.clientX <= navLeft + edgeWidth && currentPage > 0) {
-                      nextDirection = -1;
-                    } else if (touch.clientX >= navRight - edgeWidth && currentPage < totalPages - 1) {
-                      nextDirection = 1;
-                    }
+                        const rect = albumDragNavRef.current?.getBoundingClientRect();
+                        const navWidth = rect?.width || window.innerWidth || document.documentElement.clientWidth;
+                        const navLeft = rect?.left || 0;
+                        const navRight = rect?.right || navWidth;
+                        const edgeWidth = Math.max(90, navWidth * DRAG_PAGE_TURN_EDGE_RATIO);
+                        const now = Date.now();
 
-                    if (dragPageTurnDirectionRef.current !== nextDirection) {
-                      dragPageTurnDirectionRef.current = nextDirection;
-                      dragPageTurnEnteredAtRef.current = nextDirection === 0 ? 0 : now;
-                    }
+                        let nextDirection = 0;
+                        if (t.clientX <= navLeft + edgeWidth && currentPage > 0) {
+                          nextDirection = -1;
+                        } else if (t.clientX >= navRight - edgeWidth && currentPage < totalPages - 1) {
+                          nextDirection = 1;
+                        }
 
-                    if (
-                      nextDirection !== 0 &&
-                      dragPageTurnEnteredAtRef.current > 0 &&
-                      now - dragPageTurnEnteredAtRef.current >= DRAG_PAGE_TURN_HOLD_MS &&
-                      now - lastDragPageTurnAtRef.current >= DRAG_PAGE_TURN_HOLD_MS &&
-                      targetPage === null
-                    ) {
-                      if (nextDirection < 0) {
-                        lastDragPageTurnAtRef.current = now;
-                        dragPageTurnEnteredAtRef.current = now;
-                        turnToPage(currentPage - 1);
-                      } else if (nextDirection > 0) {
-                        lastDragPageTurnAtRef.current = now;
-                        dragPageTurnEnteredAtRef.current = now;
-                        turnToPage(currentPage + 1);
-                      }
-                    }
+                        if (dragPageTurnDirectionRef.current !== nextDirection) {
+                          dragPageTurnDirectionRef.current = nextDirection;
+                          dragPageTurnEnteredAtRef.current = nextDirection === 0 ? 0 : now;
+                        }
 
-                    const dropEl = document.elementFromPoint(touch.clientX, touch.clientY)?.closest?.('[data-album-drop-index]');
-                    if (dropEl?.dataset?.albumDropIndex !== undefined) {
-                      const nextIndex = Number(dropEl.dataset.albumDropIndex);
-                      if (Number.isFinite(nextIndex)) {
-                        touchAlbumDropIndexRef.current = nextIndex;
-                        setDropPreviewIndex(nextIndex);
+                        const dropEl = document.elementFromPoint(t.clientX, t.clientY)?.closest?.('[data-album-drop-index]');
+                        if (dropEl?.dataset?.albumDropIndex !== undefined) {
+                          const nextIndex = Number(dropEl.dataset.albumDropIndex);
+                          if (Number.isFinite(nextIndex)) {
+                            if (touchAlbumDropIndexRef.current !== nextIndex) {
+                              touchAlbumDropIndexRef.current = nextIndex;
+                              setDropPreviewIndex(nextIndex);
+                            }
+                          }
+                        }
+                      };
+
+                      const handleTouchEnd = () => {
+                        const targetIdx = touchAlbumDropIndexRef.current;
+                        const dragId = touchAlbumCardIdRef.current;
+                        if (dragId && Number.isFinite(targetIdx) && onReorderCard) {
+                          onReorderCard(dragId, targetIdx);
+                        }
+                        cleanup();
+                      };
+
+                      const cleanup = () => {
+                        isTouchAlbumDragRef.current = false;
+                        dragScrollSpeedRef.current = 0;
+                        touchAlbumCardIdRef.current = null;
+                        touchAlbumDropIndexRef.current = null;
+                        dragPageTurnDirectionRef.current = 0;
+                        dragPageTurnEnteredAtRef.current = 0;
+                        setDraggingReorderCardId(null);
+                        setDragFloatingCard(null);
+                        setDropPreviewIndex(null);
+                        window.removeEventListener('touchmove', handleTouchMove);
+                        window.removeEventListener('touchend', handleTouchEnd);
+                        window.removeEventListener('touchcancel', cleanup);
+                      };
+
+                      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+                      window.addEventListener('touchend', handleTouchEnd);
+                      window.addEventListener('touchcancel', cleanup);
+                    }, 500);
+                  }}
+                  onTouchMove={(e) => {
+                    if (isTouchAlbumDragRef.current) return;
+                    const touch = e.touches?.[0];
+                    if (!touch) return;
+                    const dx = touch.clientX - touchStartPosRef.current.x;
+                    const dy = touch.clientY - touchStartPosRef.current.y;
+                    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                      if (longPressTimeoutRef.current) {
+                        clearTimeout(longPressTimeoutRef.current);
+                        longPressTimeoutRef.current = null;
                       }
                     }
                   }}
-                  onTouchEnd={(e) => {
-                    if (!reorderEnabled || !onReorderCard) return;
-                    e.stopPropagation();
-                    const targetTouchIndex = touchAlbumDropIndexRef.current;
-                    const dragId = touchAlbumCardIdRef.current;
-                    if (dragId && Number.isFinite(targetTouchIndex)) {
-                      onReorderCard(dragId, targetTouchIndex);
+                  onTouchEnd={() => {
+                    if (longPressTimeoutRef.current) {
+                      clearTimeout(longPressTimeoutRef.current);
+                      longPressTimeoutRef.current = null;
                     }
-                    isTouchAlbumDragRef.current = false;
-                    touchAlbumCardIdRef.current = null;
-                    touchAlbumDropIndexRef.current = null;
-                    dragPageTurnDirectionRef.current = 0;
-                    dragPageTurnEnteredAtRef.current = 0;
-                    setDraggingReorderCardId(null);
-                    setDragFloatingCard(null);
-                    setDropPreviewIndex(null);
                   }}
-                  onTouchCancel={(e) => {
-                    isTouchAlbumDragRef.current = false;
-                    touchAlbumCardIdRef.current = null;
-                    touchAlbumDropIndexRef.current = null;
-                    dragPageTurnDirectionRef.current = 0;
-                    dragPageTurnEnteredAtRef.current = 0;
-                    setDraggingReorderCardId(null);
-                    setDragFloatingCard(null);
-                    setDropPreviewIndex(null);
+                  onTouchCancel={() => {
+                    if (longPressTimeoutRef.current) {
+                      clearTimeout(longPressTimeoutRef.current);
+                      longPressTimeoutRef.current = null;
+                    }
                   }}
                   onDragOver={(e) => {
                     if (!reorderEnabled) return;
@@ -835,7 +856,6 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                     if (dragId) onReorderCard(dragId, targetIndex);
                   }}
                   className={`bg-[#222] rounded-xl border border-white/10 shadow-[inset_0_4px_15px_rgba(0,0,0,0.6)] flex flex-col items-center justify-center relative transition-all duration-300 min-h-0 min-w-0 ${reorderEnabled ? 'cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-blue-300/70' : ''} ${isDropPreview ? 'ring-4 ring-emerald-400 border-emerald-300 bg-emerald-950/40 scale-[1.04]' : ''} ${cardIsActive ? 'z-50' : 'z-auto hover:z-50'}`}
-                  style={reorderEnabled ? { touchAction: 'none' } : undefined}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (reorderEnabled && e.detail > 1) return;
