@@ -626,7 +626,11 @@ function FolderPokemonInner() {
     return matchesQuery && matchesSupertype && matchesType && matchesSet && matchesMyl;
   });
 
-  const previewCatalog = getPreviewReorderedCards(filteredCatalog, draggedCatalogCardId, dropCatalogIndex);
+  // IMPORTANT: We do NOT pass draggedCatalogCardId or dropCatalogIndex to getPreviewReorderedCards
+  // during Grid Mode. If we shift the array live, cards move across <section> boundaries, unmount,
+  // and completely destroy the browser's touch/drag event context, causing permanent freezes.
+  // The drop target is visually indicated by the 'isDropTarget' CSS highlight instead.
+  const previewCatalog = filteredCatalog;
   const catalogPages = chunkCardsByPage(previewCatalog);
 
   const saveCatalogOrder = async () => {
