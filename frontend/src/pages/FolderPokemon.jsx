@@ -817,15 +817,6 @@ function FolderPokemonInner() {
           className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]"
         />
         
-        {(folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') && (
-          <select value={catBlock} onChange={(e) => { setCatBlock(e.target.value); setCatSet(''); scrollToTopIfNeeded(); }} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]">
-            <option value="">Selecciona un bloque (Todos)</option>
-              <option value="2">Primer Bloque</option>
-              <option value="3">Primera Era</option>
-              <option value="1">Furia Extendido</option>
-          </select>
-        )}
-        
         <div className="w-full">
             <div className="relative w-full h-full">
               <div 
@@ -865,68 +856,7 @@ function FolderPokemonInner() {
               )}
             </div>
         </div>
-      
-      {/* MYL Custom Filters UI for Catalog Tab */}
-      {(folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') && (
-        <div className="flex flex-col mb-2">
-          
-          <div className="grid grid-cols-3 gap-2">
-            <select value={mylType} onChange={(e) => { setMylType(e.target.value); scrollToTopIfNeeded(); }} className="w-full px-3 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 font-medium shadow-sm transition-all">
-              <option value="">Tipo</option>
-              <option value="ALIADO">Aliado</option>
-              <option value="ARMA">Arma</option>
-              <option value="ORO">Oro</option>
-              <option value="TALISMAN">Talismán</option>
-              <option value="TOTEM">Tótem</option>
-            </select>
-            <select value={mylRace} onChange={(e) => { setMylRace(e.target.value); scrollToTopIfNeeded(); }} className="w-full px-3 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] font-medium shadow-sm transition-all">
-                    <option value="">Raza</option>
-                    {searchBlock === '2' ? (
-                      <>
-                        <option value="CABALLERO">Caballero</option>
-                        <option value="DEFENSOR">Defensor</option>
-                        <option value="DESAFIANTE">Desafiante</option>
-                        <option value="DRAGON">Dragón</option>
-                        <option value="ETERNO">Eterno</option>
-                        <option value="FAERIE">Faerie</option>
-                        <option value="FARAON">Faraón</option>
-                        <option value="HEROE">Héroe</option>
-                        <option value="OLIMPICO">Olímpico</option>
-                        <option value="SACERDOTE">Sacerdote</option>
-                        <option value="SOMBRA">Sombra</option>
-                        <option value="TITAN">Titán</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="CABALLERO">Caballero</option>
-                        <option value="DRAGON">Dragón</option>
-                        <option value="FAERIE">Faerie</option>
-                        <option value="GUERRERO">Guerrero</option>
-                        <option value="SOMBRA">Sombra</option>
-                        <option value="BESTIA">Bestia</option>
-                        <option value="DIOS">Dios</option>
-                        <option value="HEROE">Héroe</option>
-                        <option value="SACERDOTE">Sacerdote</option>
-                        <option value="SIN_RAZA">Sin Raza</option>
-                        <option value="DESAFIANTE">Desafiante</option>
-                        <option value="ANCESTRAL">Ancestral</option>
-                      </>
-                    )}
-                  </select>
-            
-            <select 
-                value={mylCost} 
-                onChange={(e) => { setMylCost(e.target.value); scrollToTopIfNeeded(); }} 
-                className="w-full px-3 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] font-medium shadow-sm transition-all"
-              >
-                <option value="">Costo</option>
-                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
-                  <option key={i} value={i}>{i}</option>
-                ))}
-              </select>
-          </div>
-        </div>
-      )}      </div>
+      </div>
 
       <div className="fixed bottom-[5.75rem] right-6 z-[1200] flex justify-end md:static md:mb-6 md:border-b md:border-gray-100 md:pb-4">
         <div className="w-14 bg-white/95 p-1 rounded-full flex flex-col items-center shadow-2xl ring-4 ring-white/70 backdrop-blur md:w-auto md:flex-row md:items-center md:rounded-xl md:bg-gray-100 md:shadow-inner md:ring-0 md:backdrop-blur-0">
