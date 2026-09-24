@@ -688,63 +688,6 @@ function FolderPokemonInner() {
     setDropCatalogIndex(null);
   };
 
-  useEffect(() => {
-    if (!draggedCatalogCardId || !touchCatalogCardIdRef.current) return;
-
-    const handleTouchMove = (event) => {
-      const touch = event.touches?.[0];
-      if (!touch) return;
-      event.preventDefault(); // Prevent native scroll to stop touchcancel
-      moveCatalogDragFloatingPreview(touch.clientX, touch.clientY);
-
-      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-      if (touch.clientY < DRAG_SCROLL_EDGE_PX) {
-        const intensity = (DRAG_SCROLL_EDGE_PX - touch.clientY) / DRAG_SCROLL_EDGE_PX;
-        window.scrollBy({ top: -Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED), left: 0, behavior: 'auto' });
-      } else if (touch.clientY > viewportHeight - DRAG_SCROLL_EDGE_PX) {
-        const intensity = (touch.clientY - (viewportHeight - DRAG_SCROLL_EDGE_PX)) / DRAG_SCROLL_EDGE_PX;
-        window.scrollBy({ top: Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED), left: 0, behavior: 'auto' });
-      }
-
-      const dropEl = document.elementFromPoint(touch.clientX, touch.clientY)?.closest?.('[data-catalog-drop-index]');
-      if (dropEl?.dataset?.catalogDropIndex !== undefined) {
-        const nextIndex = Number(dropEl.dataset.catalogDropIndex);
-        if (Number.isFinite(nextIndex)) {
-          touchCatalogDropIndexRef.current = nextIndex;
-          setDropCatalogIndex(nextIndex);
-        }
-      }
-    };
-
-    const handleTouchEnd = () => {
-      const targetIndex = touchCatalogDropIndexRef.current;
-      const dragId = touchCatalogCardIdRef.current;
-      if (dragId && Number.isFinite(targetIndex)) {
-        handleCatalogReorder(dragId, targetIndex);
-      }
-      cleanup();
-    };
-
-    const cleanup = () => {
-      isTouchDragRef.current = false;
-      touchCatalogCardIdRef.current = null;
-      touchCatalogDropIndexRef.current = null;
-      setDraggedCatalogCardId(null);
-      setCatalogDragFloatingPreview(null);
-      setDropCatalogIndex(null);
-    };
-
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
-    window.addEventListener('touchend', handleTouchEnd);
-    window.addEventListener('touchcancel', cleanup);
-
-    return () => {
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleTouchEnd);
-      window.removeEventListener('touchcancel', cleanup);
-    };
-  }, [draggedCatalogCardId]);
-
   const getCatalogDragHandleProps = (card, visibleIndex) => ({
     draggable: !savingCatalogOrder,
     onDragStart: (event) => {
@@ -772,11 +715,61 @@ function FolderPokemonInner() {
       event.stopPropagation();
       touchCatalogCardIdRef.current = card.id;
       setDraggedCatalogCardId(card.id);
-      const touch = event.touches?.[0];
+      const startTouch = event.touches?.[0];
       setCatalogDragFloatingPreview({ card });
-      if (touch) requestAnimationFrame(() => moveCatalogDragFloatingPreview(touch.clientX, touch.clientY));
+      if (startTouch) requestAnimationFrame(() => moveCatalogDragFloatingPreview(startTouch.clientX, startTouch.clientY));
       setDropCatalogIndex(visibleIndex);
       touchCatalogDropIndexRef.current = visibleIndex;
+
+      const handleTouchMove = (e) => {
+        const touch = e.touches?.[0];
+        if (!touch) return;
+        if (e.cancelable) e.preventDefault(); // Prevent native scroll to stop touchcancel
+        moveCatalogDragFloatingPreview(touch.clientX, touch.clientY);
+
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        if (touch.clientY < DRAG_SCROLL_EDGE_PX) {
+          const intensity = (DRAG_SCROLL_EDGE_PX - touch.clientY) / DRAG_SCROLL_EDGE_PX;
+          window.scrollBy({ top: -Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED), left: 0, behavior: 'auto' });
+        } else if (touch.clientY > viewportHeight - DRAG_SCROLL_EDGE_PX) {
+          const intensity = (touch.clientY - (viewportHeight - DRAG_SCROLL_EDGE_PX)) / DRAG_SCROLL_EDGE_PX;
+          window.scrollBy({ top: Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED), left: 0, behavior: 'auto' });
+        }
+
+        const dropEl = document.elementFromPoint(touch.clientX, touch.clientY)?.closest?.('[data-catalog-drop-index]');
+        if (dropEl?.dataset?.catalogDropIndex !== undefined) {
+          const nextIndex = Number(dropEl.dataset.catalogDropIndex);
+          if (Number.isFinite(nextIndex)) {
+            touchCatalogDropIndexRef.current = nextIndex;
+            setDropCatalogIndex(nextIndex);
+          }
+        }
+      };
+
+      const handleTouchEnd = () => {
+        const targetIndex = touchCatalogDropIndexRef.current;
+        const dragId = touchCatalogCardIdRef.current;
+        if (dragId && Number.isFinite(targetIndex)) {
+          handleCatalogReorder(dragId, targetIndex);
+        }
+        cleanup();
+      };
+
+      const cleanup = () => {
+        isTouchDragRef.current = false;
+        touchCatalogCardIdRef.current = null;
+        touchCatalogDropIndexRef.current = null;
+        setDraggedCatalogCardId(null);
+        setCatalogDragFloatingPreview(null);
+        setDropCatalogIndex(null);
+        window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('touchend', handleTouchEnd);
+        window.removeEventListener('touchcancel', cleanup);
+      };
+
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('touchend', handleTouchEnd);
+      window.addEventListener('touchcancel', cleanup);
     }
   });
 
