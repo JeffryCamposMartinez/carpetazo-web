@@ -904,7 +904,7 @@ function FolderPokemonInner() {
     <div className="flex flex-col-reverse lg:flex-row gap-6">
       {/* Lado Izquierdo: Buscador de API */}
       <div className="flex-1 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-        <div className="sticky top-[60px] lg:top-[140px] bg-white z-30 pb-2 pt-6 -mx-6 px-6 -mt-6 border-b border-gray-200 shadow-sm rounded-t-2xl mb-4" style={{ boxShadow: '0 10px 15px -3px rgba(255,255,255,1), 0 4px 6px -2px rgba(255,255,255,1)' }}>
+        <div className="bg-white pb-4 mb-4 border-b border-gray-200">
             <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 mb-4">
           <span translate="no" className="material-symbols-outlined text-[#1e40af]">search</span>
             Buscar en {folderData?.tcg || "Carpeta"}
