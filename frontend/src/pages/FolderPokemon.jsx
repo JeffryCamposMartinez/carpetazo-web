@@ -21,14 +21,24 @@ class ErrorBoundary extends React.Component {
 
 
 import { useParams, useNavigate } from 'react-router-dom';
-import { db } from '../firebase';
 import { api } from '../utils/api';
+import { getTcgConfig } from '../config/tcgConfig';
 
-import Filters from '../components/Filters';
 import Toast from '../components/Toast';
 import ConfirmModal from '../components/ConfirmModal';
 import AlbumView from '../components/AlbumView';
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import AdminCardEdit from '../components/folder/AdminCardEdit';
+import FolderAddSearchFilters from '../components/folder/filters/FolderAddSearchFilters';
+import {
+  DragFloatingPreview,
+  DuplicateCardNotice,
+  FolderInventorySummary,
+  InventoryEmptyState,
+  InventoryFilters,
+  InventoryStatusBar,
+  InventoryViewSwitcher,
+} from '../components/folder/FolderInventoryComponents';
+
 const CATALOG_CARDS_PER_PAGE = 9;
 const DRAG_SCROLL_EDGE_PX = 120;
 const DRAG_SCROLL_MAX_SPEED = 28;
@@ -66,91 +76,15 @@ const getPreviewReorderedCards = (cardArray = [], dragCardId, targetIndex) => {
   return nextCards;
 };
 
-const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, compact = false }) => {
-  const [price, setPrice] = useState(card.price);
-  const [stock, setStock] = useState(card.stock);
-  const [saving, setSaving] = useState(false);
-
-  // Sync state if card updates externally
-  useEffect(() => {
-    setPrice(card.price);
-    setStock(card.stock);
-  }, [card.price, card.stock]);
-
-  const handleSave = async () => {
-    setSaving(true);
-    await onUpdate(card.id, price, stock);
-    setSaving(false);
-  };
-
-  const hasChanges = price != card.price || stock != card.stock;
-
-  return (
-    <div className="bg-blue-50 rounded-2xl border border-gray-200 flex flex-col shadow-sm hover:shadow-md transition-shadow overflow-hidden relative group">
-      <div
-        {...dragHandleProps}
-        className={`${compact ? 'top-1.5 left-1.5 w-7 h-7' : 'top-2 left-2 w-8 h-8'} absolute z-10 rounded-full bg-white/90 text-[#1e40af] shadow-sm border border-blue-100 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-100 transition-opacity`}
-        style={{ touchAction: 'none' }}
-        title="Mantén y arrastra para ordenar"
-      >
-        <span translate="no" className="material-symbols-outlined text-[18px]">drag_indicator</span>
-      </div>
-      <button 
-        onClick={() => onDelete(card.id)}
-        className={`${compact ? 'top-1.5 right-1.5 w-7 h-7' : 'top-2 right-2 w-8 h-8'} absolute z-10 flex items-center justify-center rounded-full bg-red-600 hover:bg-red-700 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-sm`}
-        title="Eliminar carta"
-      >
-        <span translate="no" className="material-symbols-outlined text-[18px]">delete</span>
-      </button>
-      <div className={`${compact ? 'p-2.5' : 'p-4'} flex flex-col items-center flex-1`}>
-        <div className={`w-full relative pt-[140%] ${compact ? 'mb-2' : 'mb-3'}`}>
-          <img src={card.imageUrl} referrerPolicy="no-referrer" referrerPolicy="no-referrer" referrerPolicy="no-referrer" alt={card.name} className="absolute inset-0 w-full h-full object-fill filter drop-shadow-md transition-transform duration-300" />
-        </div>
-        <p className={`font-bold text-gray-900 text-center line-clamp-1 w-full ${compact ? 'text-xs' : 'text-sm'}`}>{card.name}</p>
-        <p className={`text-[10px] text-gray-500 text-center truncate w-full ${compact ? 'mb-2' : 'mb-4'}`}>
-          {compact ? card.set : (
-            <>
-              {card.set} • {card.supertype} • #{(() => {
-                let numStr = (card.number || card.apiId?.split('-')[1] || card.id?.split('-')[1] || '').toString();
-                let totalStr = (card.total || '---').toString();
-                if (/^\d+$/.test(numStr)) numStr = numStr.padStart(3, '0');
-                if (/^\d+$/.test(totalStr)) totalStr = totalStr.padStart(3, '0');
-                return `${numStr}/${totalStr}`;
-              })()}
-            </>
-          )}
-        </p>
-        
-        <div className={`${compact ? 'gap-1.5' : 'gap-2'} flex flex-col w-full mt-auto`}>
-           <div className={`w-full bg-gray-50 px-2 ${compact ? 'py-1.5' : 'py-1.5'} rounded-lg border border-gray-200 shadow-sm ${compact ? 'flex flex-col gap-1' : 'flex justify-between items-center'}`}>
-              <label className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Stock</label>
-              <div className={`${compact ? 'w-full' : ''} flex items-center shadow-sm rounded-md overflow-hidden border border-gray-300`}>
-                <button type="button" onClick={() => setStock(Math.max(0, parseInt(stock) - 1))} className={`${compact ? 'w-8' : 'w-6'} h-7 flex items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors font-black text-sm text-gray-700`}>-</button>
-                <input type="number" min="0" value={stock} onChange={e=>setStock(e.target.value)} className={`${compact ? 'flex-1 min-w-0' : 'w-10'} h-7 text-center bg-white focus:outline-none px-0 text-xs font-bold border-x border-gray-300 text-gray-900`}/>
-                <button type="button" onClick={() => setStock(parseInt(stock) + 1)} className={`${compact ? 'w-8' : 'w-6'} h-7 flex items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors font-black text-sm text-gray-700`}>+</button>
-              </div>
-           </div>
-           <div className={`w-full bg-gray-50 px-2 ${compact ? 'py-1.5' : 'py-1.5'} rounded-lg border border-gray-200 shadow-sm ${compact ? 'flex flex-col gap-1' : 'flex justify-between items-center'}`}>
-              <label className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Precio</label>
-              <div className={`relative ${compact ? 'w-full' : 'w-24'}`}>
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-xs">$</span>
-                <input type="number" min="0" value={price} onChange={e=>setPrice(e.target.value)} className="w-full h-7 pl-6 pr-2 bg-white focus:outline-none text-xs font-bold rounded-md border border-gray-300 shadow-sm text-right text-gray-900"/>
-              </div>
-           </div>
-        </div>
-      </div>
-      
-      <button 
-        onClick={handleSave} 
-        disabled={saving || !hasChanges} 
-        className={`w-full ${compact ? 'py-2' : 'py-3'} font-bold text-xs tracking-wide transition-colors border-t border-gray-200 flex items-center justify-center gap-1.5 ` + (hasChanges ? 'bg-[#1e40af] text-white hover:bg-blue-800' : 'bg-gray-100 text-gray-500 opacity-60')}
-      >
-        <span translate="no" className="material-symbols-outlined text-[16px]">{saving ? 'hourglass_empty' : 'save'}</span>
-        {saving ? 'Guardando...' : hasChanges ? 'Guardar' : 'Guardado'}
-      </button>
-    </div>
-  );
-}, (prev, next) => prev.card === next.card && prev.compact === next.compact);
+const getExtDataValue = (extData, fieldName) => {
+  if (Array.isArray(extData)) {
+    return extData.find(item => String(item?.name || '').toLowerCase() === fieldName.toLowerCase())?.value || '';
+  }
+  if (extData && typeof extData === 'object') {
+    return extData[fieldName] || extData[fieldName.toLowerCase()] || '';
+  }
+  return '';
+};
 
 function FolderPokemonInner() {
 
@@ -173,7 +107,6 @@ function FolderPokemonInner() {
   const [searchQuery, setSearchQuery] = useState('');
   const [gridCols, setGridCols] = useState(typeof window !== 'undefined' && window.innerWidth <= 768 ? 2 : 3);
   const [searchCategory, setSearchCategory] = useState('3');
-  const [availableCategories, setAvailableCategories] = useState([]);
   const [searchSet, setSearchSet] = useState('');
   const [availableSets, setAvailableSets] = useState([]);
   const [availablePhysicalProducts, setAvailablePhysicalProducts] = useState([]);
@@ -213,7 +146,8 @@ function FolderPokemonInner() {
   const [price, setPrice] = useState('');
   const [visibleCount, setVisibleCount] = useState(30);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const isMylFolder = folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99';
+  const folderTcgConfig = getTcgConfig(folderData?.tcg);
+  const isMylFolder = folderTcgConfig.categoryId === '99' || searchCategory === '99';
 
   const scrollToTopIfNeeded = () => {
     if (window.scrollY > 0) {
@@ -400,6 +334,7 @@ function FolderPokemonInner() {
   const [catQuery, setCatQuery] = useState('');
   const [catSet, setCatSet] = useState('');
   const [catalogViewMode, setCatalogViewMode] = useState('grid');
+  const [catalogGridDensity, setCatalogGridDensity] = useState(2);
   const [isCatSetDropdownOpen, setIsCatSetDropdownOpen] = useState(false);
   const [draggedCatalogCardId, setDraggedCatalogCardId] = useState(null);
   const [dropCatalogIndex, setDropCatalogIndex] = useState(null);
@@ -480,6 +415,12 @@ function FolderPokemonInner() {
     };
   }, [draggedCatalogCardId]);
 
+  useEffect(() => {
+    if (activeTab !== 'sales') return;
+    fetchOrders();
+    fetchHistory();
+  }, [activeTab]);
+
   // Fetch logic
   
 
@@ -503,17 +444,7 @@ function FolderPokemonInner() {
         const res = await api.getFolder(id);
         if (res.success && res.folder) {
           setFolderData(res.folder);
-          // Set searchCategory based on the folder's TCG
-          const tcgMap = {
-            'Pokemon': '3',
-            'YuGiOh': '2',
-            'Magic': '1',
-            'Mitos y Leyendas': '99',
-            'OnePiece': '62'
-          };
-          if (res.folder.tcg && tcgMap[res.folder.tcg]) {
-            setSearchCategory(tcgMap[res.folder.tcg]);
-          }
+          setSearchCategory(getTcgConfig(res.folder.tcg).categoryId);
           const mappedCards = sortCatalogCards((res.folder.cards || []).map(c => ({ ...c, ...(c.data || {}), data: c.data || {} })));
           setCards(mappedCards);
           setHasUnsavedCatalogOrder(false);
@@ -522,15 +453,6 @@ function FolderPokemonInner() {
     };
     init();
   }, [id]);
-
-  // Categories and Sets caching
-  useEffect(() => {
-    api.getTcgCategories()
-      .then(res => {
-        if (res.success) setAvailableCategories(res.data);
-      })
-      .catch(console.error);
-  }, []);
 
   useEffect(() => {
     if (!searchCategory) {
@@ -557,12 +479,6 @@ function FolderPokemonInner() {
       })
       .catch(console.error);
   }, [searchCategory]);
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (password === 'admin123') setIsAuthenticated(true);
-    else showToast('Contraseña incorrecta', 'error');
-  };
 
   // --- MANEJO DE CATÁLOGO LOGIC ---
   const handleUpdateCard = async (cardIdToUpdate, newPrice, newStock) => {
@@ -601,14 +517,16 @@ function FolderPokemonInner() {
   const orderedCatalogCards = sortCatalogCards(cards);
 
   const filteredCatalog = orderedCatalogCards.filter(card => {
-    const matchesQuery = catQuery === '' || card.name.toLowerCase().includes(catQuery.toLowerCase());
+    const normalizedQuery = catQuery.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const normalizedName = (card.name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const matchesQuery = catQuery === '' || normalizedName.includes(normalizedQuery);
     const matchesSupertype = true;
     const matchesType = true;
     const matchesSet = catSet === '' 
       ? true 
       : catSet === 'otros' 
         ? !availableSets.some(s => s.name === card.set)
-        : card.set === availableSets.find(s => s.id === catSet)?.name;
+        : card.set === availableSets.find(s => s.groupId === catSet)?.name;
     
     // Client-side MYL filtering
     let matchesMyl = true;
@@ -800,91 +718,153 @@ function FolderPokemonInner() {
     }
   });
 
+  const hasCatalogFilters = Boolean(catQuery || catSet || searchPhysicalProduct || mylType || mylRace || mylCost);
+
+  const clearCatalogFilters = () => {
+    setCatQuery('');
+    setCatSet('');
+    setSearchPhysicalProduct('');
+    setMylType('');
+    setMylRace('');
+    setMylCost('');
+    setIsCatSetDropdownOpen(false);
+    scrollToTopIfNeeded();
+  };
+
+  const cycleCatalogGridDensity = () => {
+    setCatalogGridDensity(prev => (prev >= 3 ? 1 : prev + 1));
+  };
+
+  const catalogGridClass = {
+    1: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 2xl:grid-cols-4',
+    2: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5',
+    3: 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6',
+  }[catalogGridDensity] || 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5';
+
+  const fetchOrders = async () => {
+    try {
+      const result = await api.getOrders();
+      if (result.success) setPendingOrders(result.data || []);
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+    }
+  };
+
+  const fetchHistory = async () => {
+    try {
+      const result = await api.getHistory();
+      if (result.success) setHistory(result.data || []);
+    } catch (err) {
+      console.error('Error fetching history:', err);
+    }
+  };
+
+  const openBuyerPreview = () => {
+    window.open(`/c/${id}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const copyBuyerLink = async () => {
+    const url = `${window.location.origin}/c/${id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast('Enlace público copiado', 'success');
+    } catch (error) {
+      console.error(error);
+      showToast('No se pudo copiar el enlace.', 'error');
+    }
+  };
+
   const renderCatalogTab = () => (
-    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-      <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 mb-6">
-        <span translate="no" className="material-symbols-outlined text-[#1e40af]">inventory_2</span>
-        Inventario Actual
-      </h2>
-      
-      {/* Buscador Local */}
-      <div className="flex flex-col gap-4 mb-8 bg-gray-50/50 p-4 rounded-xl border border-gray-200">
-        <input 
-          type="text" 
-          value={catQuery}
-          onChange={(e) => { setCatQuery(e.target.value); scrollToTopIfNeeded(); }}
-          placeholder="Buscar por nombre en tu catálogo..."
-          className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]"
-        />
-        
-        <div className="w-full">
-            <div className="relative w-full h-full">
-              <div 
-                className="w-full h-full px-3 py-1.5 text-sm rounded-xl border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-all hover:border-[#1e40af]"
-                onClick={() => setIsCatSetDropdownOpen(!isCatSetDropdownOpen)}
-              >
-                <span className="truncate font-bold text-sm lg:text-xs">
-                  {catSet === '' ? 'Todas las ediciones' :  availableSets.find(s => s.id === catSet)?.name || 'Seleccionado'}
-                </span>
-                <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
-              </div>
-              
-              {isCatSetDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-[100]" onClick={() => setIsCatSetDropdownOpen(false)}></div>
-                  <div className="absolute z-[110] w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
-                    <div 
-                      className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${catSet === '' ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
-                      onClick={() => { setCatSet(''); setIsCatSetDropdownOpen(false); scrollToTopIfNeeded(); }}
-                    >
-                      {catSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
-                      <span className={catSet !== '' ? 'ml-6' : ''}>Todas las ediciones</span>
-                    </div>
-                    
-                    {filteredCatSets.map(set => (
-                      <div 
-                        key={set.id}
-                        className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${catSet === set.id ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
-                        onClick={() => { setCatSet(set.id); setIsCatSetDropdownOpen(false); scrollToTopIfNeeded(); }}
-                      >
-                        {catSet === set.id && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
-                        <span className={catSet !== set.id ? 'ml-6' : ''}>{set.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
+    <div className="bg-white p-3 sm:p-6 rounded-2xl border border-gray-200 shadow-sm">
+      <div className="mb-4 flex flex-col gap-3 sm:mb-6 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h2 className="flex items-center gap-2 text-xl font-black text-[#1a2b4b] sm:font-headline-md sm:text-headline-md">
+            <span translate="no" className="material-symbols-outlined text-[23px] text-[#1e40af] sm:text-[28px]">inventory_2</span>
+            Inventario Actual
+          </h2>
+          <p className="mt-1 text-xs text-gray-500 sm:text-sm">Carpeta de {folderData?.tcg || 'este TCG'}.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+          <button
+            type="button"
+            onClick={openBuyerPreview}
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-black text-[#1e40af] shadow-sm transition-colors hover:bg-blue-100 sm:gap-2 sm:px-4 sm:text-sm"
+          >
+            <span translate="no" className="material-symbols-outlined text-[18px]">visibility</span>
+            <span className="truncate">Vista</span>
+            <span className="hidden sm:inline">comprador</span>
+          </button>
+          <button
+            type="button"
+            onClick={copyBuyerLink}
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-black text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-[#1e40af] sm:gap-2 sm:px-4 sm:text-sm"
+          >
+            <span translate="no" className="material-symbols-outlined text-[18px]">link</span>
+            <span className="truncate">Copiar</span>
+            <span className="hidden sm:inline">enlace</span>
+          </button>
         </div>
       </div>
 
-      <div className="fixed bottom-[5.75rem] right-6 z-[1200] flex justify-end md:static md:mb-6 md:border-b md:border-gray-100 md:pb-4">
-        <div className="w-14 bg-white/95 p-1 rounded-full flex flex-col items-center shadow-2xl ring-4 ring-white/70 backdrop-blur md:w-auto md:flex-row md:items-center md:rounded-xl md:bg-gray-100 md:shadow-inner md:ring-0 md:backdrop-blur-0">
+      <FolderInventorySummary
+        cards={cards}
+        filteredCards={filteredCatalog}
+        tcg={folderData?.tcg}
+        hasUnsavedCatalogOrder={hasUnsavedCatalogOrder}
+        catalogViewMode={catalogViewMode}
+      />
+
+      <InventoryStatusBar
+        hasUnsavedCatalogOrder={hasUnsavedCatalogOrder}
+        savingCatalogOrder={savingCatalogOrder}
+        onSave={saveCatalogOrder}
+      />
+
+      <InventoryFilters
+        query={catQuery}
+        onQueryChange={(e) => { setCatQuery(e.target.value); scrollToTopIfNeeded(); }}
+        selectedSet={catSet}
+        availableSets={availableSets}
+        filteredSets={filteredCatSets}
+        isOpen={isCatSetDropdownOpen}
+        setIsOpen={setIsCatSetDropdownOpen}
+        onSelectSet={(nextSet) => { setCatSet(nextSet); setIsCatSetDropdownOpen(false); scrollToTopIfNeeded(); }}
+        onClearFilters={clearCatalogFilters}
+      />
+
+      <InventoryViewSwitcher mode={catalogViewMode} onChange={setCatalogViewMode} />
+
+      <div className="fixed right-8 top-1/2 z-[1190] hidden -translate-y-1/2 flex-col gap-3 md:flex">
+        {catalogViewMode === 'grid' && (
           <button
             type="button"
-            onClick={() => setCatalogViewMode('album')}
-            className={`h-12 w-12 rounded-full text-xs font-bold transition-all flex items-center justify-center md:h-auto md:w-auto md:gap-2 md:rounded-lg md:px-4 md:py-2 md:text-sm ${
-              catalogViewMode === 'album'
-                ? 'bg-[#1e40af] text-white shadow-md md:bg-white md:text-[#1e40af] md:shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
+            onClick={cycleCatalogGridDensity}
+            className="relative flex h-12 w-12 items-center justify-center rounded-full border border-blue-100 bg-white text-sm font-black text-[#1e40af] shadow-lg transition-all hover:scale-105 hover:bg-blue-50 active:scale-95"
+            title="Cambiar tamaño de cuadrícula"
+            aria-label="Cambiar tamaño de cuadrícula"
           >
-            <span translate="no" className="material-symbols-outlined text-[21px] md:text-[18px]">auto_stories</span>
-            <span className="sr-only md:not-sr-only">Álbum</span>
+            <span translate="no" className="material-symbols-outlined text-[20px]">grid_view</span>
+            <span className="ml-0.5">{catalogGridDensity}</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setCatalogViewMode('grid')}
-            className={`h-12 w-12 rounded-full text-xs font-bold transition-all flex items-center justify-center md:h-auto md:w-auto md:gap-2 md:rounded-lg md:px-4 md:py-2 md:text-sm ${
-              catalogViewMode === 'grid'
-                ? 'bg-[#1e40af] text-white shadow-md md:bg-white md:text-[#1e40af] md:shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <span translate="no" className="material-symbols-outlined text-[21px] md:text-[18px]">grid_view</span>
-            <span className="sr-only md:not-sr-only">Cuadrícula</span>
-          </button>
-        </div>
+        )}
+        <button
+          type="button"
+          onClick={clearCatalogFilters}
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-lg transition-all hover:scale-105 hover:bg-red-50 hover:text-red-500 active:scale-95"
+          title="Limpiar filtros"
+          aria-label="Limpiar filtros"
+        >
+          <span translate="no" className="material-symbols-outlined text-[21px]">filter_alt_off</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className={`flex h-12 w-12 items-center justify-center rounded-full border-2 border-white/20 bg-[#1e40af] text-white shadow-lg transition-all hover:scale-105 hover:bg-blue-800 active:scale-95 ${showScrollTop ? 'opacity-100 scale-100' : 'pointer-events-none scale-0 opacity-0'}`}
+          title="Volver arriba"
+          aria-label="Volver arriba"
+        >
+          <span translate="no" className="material-symbols-outlined text-[24px]">arrow_upward</span>
+        </button>
       </div>
 
       {hasUnsavedCatalogOrder && (
@@ -899,20 +879,21 @@ function FolderPokemonInner() {
               {savingCatalogOrder ? 'hourglass_empty' : 'save'}
             </span>
             <span className="hidden min-[360px]:inline">
-              {savingCatalogOrder ? 'Guardando posiciones...' : 'Guardar posiciones'}
+              {savingCatalogOrder ? 'Guardando orden...' : 'Guardar orden del álbum'}
             </span>
             <span className="min-[360px]:hidden">
-              {savingCatalogOrder ? 'Guardando...' : 'Guardar'}
+              {savingCatalogOrder ? 'Guardando...' : 'Orden'}
             </span>
           </button>
         </div>
       )}
 
       {filteredCatalog.length === 0 ? (
-        <div className="py-12 text-center text-on-surface-variant flex flex-col items-center">
-            <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-30">search_off</span>
-            <p>No se encontraron cartas que coincidan con los filtros.</p>
-        </div>
+        <InventoryEmptyState
+          hasFilters={hasCatalogFilters}
+          onClearFilters={clearCatalogFilters}
+          onAddCards={() => setActiveTab('add')}
+        />
       ) : catalogViewMode === 'album' ? (
         <div className="rounded-2xl bg-[#dbeafe] py-6 overflow-hidden">
           <AlbumView
@@ -949,7 +930,7 @@ function FolderPokemonInner() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 xl:gap-4">
+              <div className={`grid ${catalogGridClass} gap-3 xl:gap-4`}>
                 {pageCards.map((card, cardIndex) => {
                   const visibleIndex = pageIndex * CATALOG_CARDS_PER_PAGE + cardIndex;
                   const isDragging = draggedCatalogCardId === card.id;
@@ -982,23 +963,7 @@ function FolderPokemonInner() {
         </div>
       )}
 
-      {catalogDragFloatingPreview && (
-        <div
-          ref={catalogDragFloatingPreviewRef}
-          className="fixed top-0 left-0 z-[5000] pointer-events-none -translate-x-1/2 -translate-y-1/2 will-change-transform"
-        >
-          <div className="relative w-24 md:w-32 rotate-3 scale-105 rounded-xl bg-black/80 p-1 shadow-xl ring-2 ring-white/30">
-            <img
-              src={catalogDragFloatingPreview.card.imageUrl}
-              alt={catalogDragFloatingPreview.card.name}
-              className="block w-full rounded-[5%] object-contain opacity-90"
-            />
-            <div className="absolute -top-2 -right-2 rounded-full bg-black px-2.5 py-1 text-xs font-black text-white shadow ring-2 ring-white/30">
-              x{catalogDragFloatingPreview.card.stock || 0}
-            </div>
-          </div>
-        </div>
-      )}
+      <DragFloatingPreview preview={catalogDragFloatingPreview} previewRef={catalogDragFloatingPreviewRef} />
     </div>
   );
 
@@ -1211,9 +1176,13 @@ function FolderPokemonInner() {
           data: {
             pseudoName: isBatchAdding ? '' : pseudoName.trim(),
             set: availableSets.find(s => s.groupId == (searchSet || selectedCard.groupId))?.name || 'Unknown',
-            rarity: selectedCard.extData?.Rarity || selectedCard.extData?.['Card Number / Rarity'] || 'Unknown',
-            supertype: selectedCard.extData ? selectedCard.extData['Card Type / HP / Stage']?.split(' / ')[0] || 'Unknown' : 'Unknown',
-            number: selectedCard.extData?.Number || '',
+            rarity: getExtDataValue(selectedCard.extData, 'Rarity') || getExtDataValue(selectedCard.extData, 'Card Number / Rarity') || getExtDataValue(selectedCard.extData, 'Frequency') || 'Unknown',
+            supertype: getExtDataValue(selectedCard.extData, 'Card Type / HP / Stage')?.split(' / ')[0] || getExtDataValue(selectedCard.extData, 'Type') || 'Unknown',
+            type: getExtDataValue(selectedCard.extData, 'Type'),
+            race: getExtDataValue(selectedCard.extData, 'Race'),
+            cost: getExtDataValue(selectedCard.extData, 'Cost'),
+            effect: getExtDataValue(selectedCard.extData, 'Effect'),
+            number: getExtDataValue(selectedCard.extData, 'Number') || '',
             total: '',
             language: isMylFolder ? 'Spanish' : language,
             catalogOrder: cards.length
@@ -1259,6 +1228,13 @@ function FolderPokemonInner() {
     }
   };
 
+  const selectedCardTcgId = selectedCard
+    ? selectedCard.productId?.toString() || selectedCard.id?.toString() || selectedCard.tcgProductId?.toString()
+    : null;
+  const selectedExistingCard = selectedCardTcgId
+    ? cards.find(c => c.tcgId === selectedCardTcgId)
+    : null;
+
 
 
   const renderAddTab = () => (
@@ -1272,151 +1248,35 @@ function FolderPokemonInner() {
         </h2>
         
         <form onSubmit={handleSearchAPI} className="flex flex-col gap-2 mb-3">
-          <input 
-            type="text" 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={searchCategory === "99" ? "Nombre de la carta (ej. Oseye)" : "Nombre (ej. Pikachu) o Código"}
-            className="w-full px-3 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] transition-colors"
+          <FolderAddSearchFilters
+            tcg={folderData?.tcg}
+            searchCategory={searchCategory}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            searchSet={searchSet}
+            setSearchSet={setSearchSet}
+            availableSets={availableSets}
+            filteredSearchSets={filteredSearchSets}
+            isSetDropdownOpen={isSetDropdownOpen}
+            setIsSetDropdownOpen={setIsSetDropdownOpen}
+            filterType={filterType}
+            setFilterType={setFilterType}
+            availableRarities={availableRarities}
+            filterRarity={filterRarity}
+            setFilterRarity={setFilterRarity}
+            searchBlock={searchBlock}
+            setSearchBlock={setSearchBlock}
+            searchPhysicalProduct={searchPhysicalProduct}
+            setSearchPhysicalProduct={setSearchPhysicalProduct}
+            availablePhysicalProducts={availablePhysicalProducts}
+            mylType={mylType}
+            setMylType={setMylType}
+            mylRace={mylRace}
+            setMylRace={setMylRace}
+            mylCost={mylCost}
+            setMylCost={setMylCost}
+            scrollToTopIfNeeded={scrollToTopIfNeeded}
           />
-          <div className="grid grid-cols-3 gap-2 mb-2">
-              
-            {searchCategory === '99' && (
-                <select value={searchBlock} onChange={(e) => { setSearchBlock(e.target.value); setSearchSet(''); setSearchPhysicalProduct(''); scrollToTopIfNeeded(); }} className="w-full px-2 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors truncate">
-                  <option value="2">Primer Bloque</option>
-                    <option value="3">Primera Era</option>
-                    <option value="1">Furia Extendido</option>
-                </select>
-              )}
-              {searchCategory === '99' && (
-                <select value={searchPhysicalProduct} onChange={(e) => { setSearchPhysicalProduct(e.target.value); scrollToTopIfNeeded(); }} disabled={!searchBlock} className="w-full px-2 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed truncate">
-                  <option value="">Producto</option>
-                  {availablePhysicalProducts.filter(p => !searchBlock || p.blockId === parseInt(searchBlock)).map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              )}
-
-            <div className="relative w-full">
-              <div className="w-full px-2 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-300 bg-white text-gray-900 cursor-pointer flex justify-between items-center transition-colors hover:border-[#1e40af]" onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}>
-                <span className="truncate font-bold text-sm lg:text-xs">{searchSet === '' ? 'Edición' : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
-                <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
-              </div>
-              {isSetDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setIsSetDropdownOpen(false)}></div>
-                  <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
-                    
-                    <div 
-                      className={`px-3 py-1.5 text-sm lg:text-xs cursor-pointer hover:bg-gray-50 transition-colors flex items-center gap-2 ${searchSet === '' ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`}
-                      onClick={() => { setSearchSet(''); setIsSetDropdownOpen(false); scrollToTopIfNeeded(); }}
-                    >
-                      {searchSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
-                      <span className={searchSet !== '' ? 'ml-6' : ''}>Edición</span>
-                    </div>
-                    {filteredSearchSets.map(set => (
-                      <div key={set.groupId} className={`px-3 py-1.5 text-sm lg:text-xs cursor-pointer hover:bg-gray-50 flex items-center gap-2 ${searchSet == set.groupId ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(set.groupId); setIsSetDropdownOpen(false); scrollToTopIfNeeded(); }}>
-                        {searchSet == set.groupId && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
-                        <span className={searchSet != set.groupId ? 'ml-6' : ''}>{set.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-          
-            {/* MYL Custom Filters UI */}
-            {searchCategory === '99' && (
-              <div className="flex flex-col mt-2">
-                
-                <div className="grid grid-cols-3 gap-2">
-                  <select value={mylType} onChange={(e) => { setMylType(e.target.value); scrollToTopIfNeeded(); }} className="w-full px-3 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-blue-500 font-medium shadow-sm transition-all">
-                    <option value="">Tipo</option>
-                    <option value="ALIADO">Aliado</option>
-                    <option value="ARMA">Arma</option>
-                    <option value="ORO">Oro</option>
-                    <option value="TALISMAN">Talismán</option>
-                    <option value="TOTEM">Tótem</option>
-                  </select>
-                  <select value={mylRace} onChange={(e) => { setMylRace(e.target.value); scrollToTopIfNeeded(); }} className="w-full px-3 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] font-medium shadow-sm transition-all">
-                    <option value="">Raza</option>
-                    {searchBlock === '2' ? (
-                      <>
-                        <option value="CABALLERO">Caballero</option>
-                        <option value="DEFENSOR">Defensor</option>
-                        <option value="DESAFIANTE">Desafiante</option>
-                        <option value="DRAGON">Dragón</option>
-                        <option value="ETERNO">Eterno</option>
-                        <option value="FAERIE">Faerie</option>
-                        <option value="FARAON">Faraón</option>
-                        <option value="HEROE">Héroe</option>
-                        <option value="OLIMPICO">Olímpico</option>
-                        <option value="SACERDOTE">Sacerdote</option>
-                        <option value="SOMBRA">Sombra</option>
-                        <option value="TITAN">Titán</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="CABALLERO">Caballero</option>
-                        <option value="DRAGON">Dragón</option>
-                        <option value="FAERIE">Faerie</option>
-                        <option value="GUERRERO">Guerrero</option>
-                        <option value="SOMBRA">Sombra</option>
-                        <option value="BESTIA">Bestia</option>
-                        <option value="DIOS">Dios</option>
-                        <option value="HEROE">Héroe</option>
-                        <option value="SACERDOTE">Sacerdote</option>
-                        <option value="SIN_RAZA">Sin Raza</option>
-                        <option value="DESAFIANTE">Desafiante</option>
-                        <option value="ANCESTRAL">Ancestral</option>
-                      </>
-                    )}
-                  </select>
-                  
-                  <select 
-                value={mylCost} 
-                onChange={(e) => { setMylCost(e.target.value); scrollToTopIfNeeded(); }} 
-                className="w-full px-3 py-1.5 text-sm lg:text-xs rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:border-[#1e40af] font-medium shadow-sm transition-all"
-              >
-                <option value="">Costo</option>
-                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
-                  <option key={i} value={i}>{i}</option>
-                ))}
-              </select>
-                </div>
-              </div>
-            )}
-            
-          {(searchCategory !== '99' || availableRarities.length > 0) && (
-          <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex flex-col gap-4 mt-2">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              {searchCategory !== '99' && (
-                <div className="flex items-center w-full sm:w-auto bg-white p-1 rounded-lg border border-gray-200">
-                  <button type="button" onClick={() => { setFilterType('all'); scrollToTopIfNeeded(); }} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${filterType === 'all' ? 'bg-[#1e40af] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>Todos</button>
-                  <button type="button" onClick={() => { setFilterType('cards'); scrollToTopIfNeeded(); }} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${filterType === 'cards' ? 'bg-[#1e40af] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>Cartas</button>
-                  <button type="button" onClick={() => { setFilterType('sealed'); scrollToTopIfNeeded(); }} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${filterType === 'sealed' ? 'bg-[#1e40af] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>Sellado</button>
-                </div>
-              )}
-              
-              {availableRarities.length > 0 && (
-                <div className="flex items-center gap-2 w-full sm:w-auto sm:min-w-[200px]">
-                  <span className="text-sm font-bold text-gray-700">Rareza:</span>
-                  <select 
-                    value={filterRarity} 
-                    onChange={(e) => { setFilterRarity(e.target.value); scrollToTopIfNeeded(); }}
-                    className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-sm"
-                  >
-                    <option value="">Todas</option>
-                    {availableRarities.map(r => (
-                      <option key={r} value={r}>{r}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
           <div className="fixed bottom-[88px] right-6 flex flex-col gap-3 z-[60] lg:hidden">
             <button 
@@ -1620,6 +1480,8 @@ function FolderPokemonInner() {
                   </p>
                 )}
               </div>
+
+              <DuplicateCardNotice existingCard={selectedExistingCard} selectedCard={selectedCard} />
               
               {!isBatchAdding && (
                 <div className="flex flex-col gap-1">
@@ -1657,7 +1519,7 @@ function FolderPokemonInner() {
 
               <button type="submit" disabled={isSaving} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-[15px]">
                 {isSaving ? <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span> : <span translate="no" className="material-symbols-outlined">add_circle</span>}
-                {isSaving ? 'Guardando...' : isBatchAdding ? 'Guardar y continuar' : 'Guardar Carta'}
+                {isSaving ? 'Guardando...' : isBatchAdding ? 'Guardar y continuar' : selectedExistingCard ? 'Sumar stock' : 'Guardar Carta'}
               </button>
             </div>
           </form>
@@ -1734,12 +1596,7 @@ function FolderPokemonInner() {
     if (!code) return;
     setIsProcessingOrder(true);
     try {
-      const response = await fetch(`${API_BASE}/api/process-order`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
-      });
-      const result = await response.json();
+      const result = await api.processOrder(code);
       if (result.success) { fetchCards(); fetchOrders(); fetchHistory(); }
     } catch (err) { console.error(err); } finally { setIsProcessingOrder(false); }
   };
@@ -1747,12 +1604,7 @@ function FolderPokemonInner() {
   const handleRejectOrder = async (code) => {
     if (!code) return;
     try {
-      const response = await fetch(`${API_BASE}/api/reject-order`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
-      });
-      const result = await response.json();
+      const result = await api.rejectOrder(code);
       if (result.success) { fetchOrders(); fetchHistory(); }
     } catch (err) { console.error(err); }
   };
@@ -1880,7 +1732,7 @@ function FolderPokemonInner() {
       </div>
 
       {/* Tabs */}
-      <div className="grid grid-cols-2 gap-1 border-b border-gray-300 mb-8 pb-0">
+      <div className="grid grid-cols-3 gap-1 border-b border-gray-300 mb-8 pb-0">
         <button 
           onClick={() => setActiveTab('add')} 
           className={`px-2 sm:px-6 py-4 rounded-t-xl font-bold transition-colors flex items-center justify-center gap-1 sm:gap-2 ${activeTab === 'add' ? 'bg-white text-[#1e40af] border-b-4 border-[#1e40af] shadow-sm' : 'bg-gray-50/50 hover:bg-gray-100 text-gray-500'}`}
@@ -1892,8 +1744,15 @@ function FolderPokemonInner() {
           onClick={() => setActiveTab('catalog')} 
           className={`px-2 sm:px-6 py-4 rounded-t-xl font-bold transition-colors flex items-center justify-center gap-1 sm:gap-2 ${activeTab === 'catalog' ? 'bg-white text-[#1e40af] border-b-4 border-[#1e40af] shadow-sm' : 'bg-gray-50/50 hover:bg-gray-100 text-gray-500'}`}
         >
-          <span translate="no" className="material-symbols-outlined text-[18px] sm:text-[24px]">inventory_2</span>
+          <span translate="no" className="material-symbols-outlined text-[18px] sm:text-[24px]">auto_stories</span>
           <span className="text-xs sm:text-sm">Carpeta</span>
+        </button>
+        <button 
+          onClick={() => setActiveTab('sales')} 
+          className={`px-2 sm:px-6 py-4 rounded-t-xl font-bold transition-colors flex items-center justify-center gap-1 sm:gap-2 ${activeTab === 'sales' ? 'bg-white text-[#1e40af] border-b-4 border-[#1e40af] shadow-sm' : 'bg-gray-50/50 hover:bg-gray-100 text-gray-500'}`}
+        >
+          <span translate="no" className="material-symbols-outlined text-[18px] sm:text-[24px]">receipt_long</span>
+          <span className="text-xs sm:text-sm">Ventas</span>
         </button>
       </div>
 
@@ -1901,6 +1760,7 @@ function FolderPokemonInner() {
       <div>
         {activeTab === 'catalog' && renderCatalogTab()}
         {activeTab === 'add' && renderAddTab()}
+        {activeTab === 'sales' && renderSalesTab()}
         
       </div>
 

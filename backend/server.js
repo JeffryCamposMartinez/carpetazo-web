@@ -936,6 +936,115 @@ app.get('/api/tcg/:categoryId/groups', async (req, res) => {
   }
 });
 
+app.get('/api/tcg/:categoryId/filter-options', async (req, res) => {
+  try {
+    const categoryId = parseInt(req.params.categoryId);
+    if (!Number.isFinite(categoryId)) {
+      return res.status(400).json({ success: false, message: 'Invalid category id' });
+    }
+
+    const products = await prisma.tcgProduct.findMany({
+      where: { categoryId },
+      select: { extData: true },
+    });
+
+    const types = new Set();
+    const races = new Set();
+    const costs = new Set();
+    const rarities = new Set();
+
+    const addValue = (target, rawValue) => {
+      if (rawValue === undefined || rawValue === null) return;
+      String(rawValue)
+        .split(',')
+        .map(value => value.trim())
+        .filter(Boolean)
+        .forEach(value => target.add(value));
+    };
+
+    products.forEach((product) => {
+      const extData = Array.isArray(product.extData) ? product.extData : [];
+      extData.forEach((item) => {
+        if (!item || !item.name) return;
+        const name = String(item.name).toLowerCase();
+        if (name === 'type') addValue(types, item.value);
+        if (name === 'race') addValue(races, item.value);
+        if (name === 'cost') {
+          const cost = Number(item.value);
+          if (Number.isFinite(cost) && cost >= 0 && cost <= 10) addValue(costs, String(cost));
+        }
+        if (name === 'frequency' || name === 'rarity' || name === 'card number / rarity') addValue(rarities, item.value);
+      });
+    });
+
+    const sortText = (a, b) => a.localeCompare(b, 'es');
+    const sortNumberText = (a, b) => {
+      const numA = Number(a);
+      const numB = Number(b);
+      if (Number.isFinite(numA) && Number.isFinite(numB)) return numA - numB;
+      return sortText(a, b);
+    };
+
+    res.json({
+      success: true,
+      data: {
+        types: [...types].sort(sortText),
+        races: [...races].sort(sortText),
+        costs: [...costs].sort(sortNumberText),
+        rarities: [...rarities].sort(sortText),
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching TCG filter options:', error);
+    res.status(500).json({ success: false, message: 'Error fetching filter options' });
+  }
+});
+
+app.post('/api/tcg/products/metadata', async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+    const productIds = [...new Set(ids.map(id => parseInt(id)).filter(id => Number.isFinite(id)))];
+
+    if (productIds.length === 0) {
+      return res.json({ success: true, data: {} });
+    }
+
+    const products = await prisma.tcgProduct.findMany({
+      where: { productId: { in: productIds } },
+      select: {
+        productId: true,
+        extData: true,
+        group: { select: { name: true, groupId: true } },
+      },
+    });
+
+    const getExtValue = (extData, fieldName) => {
+      if (!Array.isArray(extData)) return '';
+      const item = extData.find(entry => String(entry?.name || '').toLowerCase() === fieldName.toLowerCase());
+      return item?.value || '';
+    };
+
+    const data = {};
+    products.forEach((product) => {
+      data[String(product.productId)] = {
+        set: product.group?.name || '',
+        groupId: product.group?.groupId || null,
+        type: getExtValue(product.extData, 'Type'),
+        race: getExtValue(product.extData, 'Race'),
+        cost: getExtValue(product.extData, 'Cost'),
+        effect: getExtValue(product.extData, 'Effect'),
+        rarity: getExtValue(product.extData, 'Frequency') || getExtValue(product.extData, 'Rarity') || getExtValue(product.extData, 'Card Number / Rarity'),
+        number: getExtValue(product.extData, 'Number'),
+      };
+    });
+
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching product metadata:', error);
+    res.status(500).json({ success: false, message: 'Error fetching product metadata' });
+  }
+});
+
 app.get('/api/tcg/:categoryId/:groupId/products', async (req, res) => {
   try {
     const { categoryId, groupId } = req.params;

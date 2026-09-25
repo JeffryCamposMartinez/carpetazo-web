@@ -5,6 +5,31 @@ const DRAG_SCROLL_MAX_SPEED = 28;
 const DRAG_PAGE_TURN_EDGE_RATIO = 0.18;
 const DRAG_PAGE_TURN_HOLD_MS = 1000;
 
+const stripHtml = (value = '') => String(value || '').replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+
+const getExtDataValue = (extData, fieldName) => {
+  if (Array.isArray(extData)) {
+    return extData.find(item => String(item?.name || '').toLowerCase() === fieldName.toLowerCase())?.value || '';
+  }
+  if (extData && typeof extData === 'object') {
+    return extData[fieldName] || extData[fieldName.toLowerCase()] || '';
+  }
+  return '';
+};
+
+const getCardAbilityText = (card) => {
+  if (!card) return '';
+  return stripHtml(
+    card.effect ||
+    card.ability ||
+    card.text ||
+    getExtDataValue(card.extData, 'Effect') ||
+    getExtDataValue(card.extData, 'Ability') ||
+    getExtDataValue(card.extData, 'Text') ||
+    getExtDataValue(card.extData, 'Habilidad')
+  );
+};
+
 export default function AlbumView({ cards = [], renderCardActions, renderCardOverlays, binderColor = '#2f7336', emptyMessage, topRightControls, tcg, reorderEnabled = false, onReorderCard }) {
   const [currentPage, setCurrentPage] = useState(0);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
@@ -227,6 +252,13 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
 
   useEffect(() => {
     if (previewCard && tcg === 'Mitos y Leyendas') {
+      const embeddedAbility = getCardAbilityText(previewCard);
+      if (embeddedAbility) {
+        setFetchedAbility(embeddedAbility);
+        setFetchingAbility(false);
+        return;
+      }
+
       const fetchAbility = async () => {
         setFetchingAbility(true);
         setFetchedAbility(null);
@@ -236,8 +268,9 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
           if (json.success && json.data) {
             let match = json.data.find(c => c.productId == previewCard.tcgId || c.productId == previewCard.apiId);
             if (!match) match = json.data.find(c => c.name.toLowerCase() === previewCard.name.toLowerCase());
-            if (match && match.extData && match.extData.effect) {
-              setFetchedAbility(match.extData.effect.replace(/<[^>]*>?/gm, ''));
+            const ability = getCardAbilityText({ ...match, extData: match?.extData });
+            if (ability) {
+              setFetchedAbility(ability);
             } else {
               setFetchedAbility('Sin habilidad (Carta Vainilla)');
             }
@@ -411,6 +444,15 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
     </div>
   );
 
+  const previewSubtitle = previewCard
+    ? (tcg === 'Mitos y Leyendas'
+      ? ''
+      : `${previewCard.set} • ${(previewCard.supertype === 'Unknown' || !previewCard.supertype) ? 'Pokémon' : previewCard.supertype} • #${(() => {
+          let numStr = (previewCard.number || previewCard.apiId?.split('-')[1] || previewCard.id?.split('-')[1] || '').toString();
+          return numStr.padStart(3, '0');
+        })()}`)
+    : '';
+
   return (
     <div ref={albumDragNavRef} className="w-full flex flex-col items-center py-2 md:pt-4 md:pb-10 md:overflow-visible relative" onClick={() => { setActiveCardId(null); setPreviewCard(null); }}>
       
@@ -505,21 +547,22 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
             {/* IN-ALBUM SPREAD PREVIEW */}
             {previewCard && (
               <div 
-                className="absolute rounded-2xl md:rounded-3xl shadow-[0_30px_60px_rgba(0,0,0,0.95)] z-[1000] flex flex-col md:flex-row overflow-hidden border border-white/10 bg-[#0a0a0a]/80 backdrop-blur-md"
+                className="absolute rounded-2xl md:rounded-3xl shadow-[0_24px_48px_rgba(0,0,0,0.85)] md:shadow-[0_30px_60px_rgba(0,0,0,0.95)] z-[1000] flex flex-col md:flex-row overflow-hidden border border-white/10 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.10),transparent_34%),linear-gradient(135deg,rgba(12,12,12,0.96),rgba(3,3,3,0.92))] backdrop-blur-md"
                 style={{
-                  top: isDesktop ? '-20px' : '-8px',
-                  bottom: isDesktop ? '-20px' : '-8px',
-                  right: isDesktop ? '-28px' : '-10px',
-                  left: isDesktop ? 'calc(-100% - 28px)' : '-10px',
+                  top: isDesktop ? '7%' : '8px',
+                  bottom: isDesktop ? '7%' : '18px',
+                  right: isDesktop ? '8%' : '12px',
+                  left: isDesktop ? 'calc(-82% - 18px)' : '12px',
+                  height: isDesktop ? undefined : 'auto',
                   transform: 'translateZ(100px)'
                 }}
-                onClick={(e) => { e.stopPropagation(); setPreviewCard(null); }}
+                onClick={(e) => { e.stopPropagation(); setPreviewCard(null); setActiveCardId(null); }}
               >
                 <style>{`
                   .album-preview-actions > div > button.w-full {
-                    padding-top: 10px !important;
-                    padding-bottom: 10px !important;
-                    font-size: 14px !important;
+                    padding-top: 8px !important;
+                    padding-bottom: 8px !important;
+                    font-size: 13px !important;
                   }
                   @media (min-width: 768px) {
                     .album-preview-actions > div > button.w-full {
@@ -543,56 +586,108 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                 `}</style>
 
                 <button 
-                  className="absolute top-2 right-2 md:top-4 md:right-4 w-8 h-8 md:w-10 md:h-10 bg-white/10 hover:bg-white/20 flex items-center justify-center rounded-full text-white transition-colors z-[1010]"
-                  onClick={(e) => { e.stopPropagation(); setPreviewCard(null); }}
+                  className="absolute top-2 right-2 md:top-4 md:right-4 w-8 h-8 md:w-10 md:h-10 bg-white/10 hover:bg-white/20 flex items-center justify-center rounded-full text-white transition-colors z-[1010] border border-white/10 shadow-lg"
+                  onClick={(e) => { e.stopPropagation(); setPreviewCard(null); setActiveCardId(null); }}
                 >
                   <span translate="no" className="material-symbols-outlined text-xl md:text-2xl">close</span>
                 </button>
 
                 {/* Left Side (Image) */}
-                <div className="w-full md:w-1/2 h-[45%] md:h-full bg-black/20 flex items-center justify-center p-4 md:p-8 relative" onClick={(e) => e.stopPropagation()}>
+                <div className="w-full md:w-[52%] h-[46%] md:h-full bg-black/20 flex items-center justify-center p-2 md:p-8 relative" onClick={(e) => e.stopPropagation()}>
                   {isDesktop && <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-black/80 to-transparent pointer-events-none z-10" />}
+                  <div className="absolute inset-3 md:inset-6 rounded-2xl border border-white/10 bg-white/[0.03] shadow-[inset_0_0_28px_rgba(255,255,255,0.04)]" />
+                  <div className="absolute right-1 top-[62%] z-30 flex w-[44%] -translate-y-1/2 flex-col items-start gap-2 md:hidden">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="rounded-full border border-yellow-300/30 bg-yellow-300/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-yellow-200">
+                        {tcg || 'Carta'}
+                      </span>
+                      {(tcg === 'Mitos y Leyendas' ? previewCard.set : previewCard.number) && (
+                        <span className="max-w-[92px] truncate rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9px] font-bold text-slate-300">
+                          {tcg === 'Mitos y Leyendas' ? previewCard.set : `#${previewCard.number}`}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="rounded-xl bg-yellow-400 px-2.5 py-1 text-[15px] font-black leading-none text-black shadow-lg">
+                        {previewCard.price ? '$' + Number(previewCard.price).toLocaleString('es-CL') : 'Sin precio'}
+                      </span>
+                      <span className="flex items-center gap-1 rounded-xl border border-slate-700 bg-slate-800/90 px-2.5 py-1.5 text-[10.5px] font-bold leading-none text-white shadow-md">
+                        <span translate="no" className="material-symbols-outlined text-[14px]">inventory_2</span>
+                        x{previewCard.stock || 0}
+                      </span>
+                    </div>
+                  </div>
                   <img 
                     src={previewCard.imageUrl} 
                     alt={previewCard.name} 
-                    className="max-h-full max-w-full object-contain rounded-xl md:rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.7)] relative z-20"
+                    className="max-h-full md:max-h-[92%] max-w-[69%] md:max-w-full object-contain rounded-xl md:rounded-2xl shadow-[0_14px_32px_rgba(0,0,0,0.7)] md:shadow-[0_18px_45px_rgba(0,0,0,0.78)] relative z-20 -translate-x-[52%] md:translate-x-0"
                   />
                 </div>
 
                 {/* Right Side (Info) */}
-                <div className="w-full md:w-1/2 h-[55%] md:h-full flex flex-col justify-between p-4 md:p-8 text-white relative bg-transparent" onClick={(e) => e.stopPropagation()}>
+                <div className="w-full md:w-[48%] h-[54%] md:h-full flex flex-col justify-between p-2.5 md:p-6 pt-5 md:pt-6 text-white relative bg-transparent" onClick={(e) => e.stopPropagation()}>
                   {isDesktop && <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-black/80 to-transparent pointer-events-none z-10" />}
                   
-                  <div className="flex flex-col gap-2 md:gap-4 h-full md:pl-6 relative z-20 overflow-y-auto">
-                    <div className="flex flex-col gap-1">
-                      <h2 className="text-2xl md:text-4xl font-black leading-tight text-white drop-shadow-md">{previewCard.name}</h2>
-                      <p className="text-slate-400 text-xs md:text-base italic leading-tight">
-                        {previewCard.set} • {(previewCard.supertype === 'Unknown' || !previewCard.supertype) ? (tcg === 'Mitos y Leyendas' ? 'Carta' : 'Pokémon') : previewCard.supertype} {tcg !== 'Mitos y Leyendas' && ` • #${(() => {
-                            let numStr = (previewCard.number || previewCard.apiId?.split('-')[1] || previewCard.id?.split('-')[1] || '').toString();
-                            return numStr.padStart(3, '0');
-                        })()}`}
-                      </p>
+                  <div className="flex flex-col gap-1.5 md:gap-4 h-full md:pl-6 relative z-20 pr-1">
+                    <div className="flex flex-col gap-1 md:gap-2">
+                      <div className="hidden md:flex flex-wrap items-center gap-1.5 md:gap-2">
+                        <span className="rounded-full border border-yellow-300/30 bg-yellow-300/10 px-2 py-0.5 md:px-2.5 md:py-1 text-[9px] md:text-xs font-black uppercase tracking-[0.12em] md:tracking-[0.14em] text-yellow-200">
+                          {tcg || 'Carta'}
+                        </span>
+                        {(tcg === 'Mitos y Leyendas' ? previewCard.set : previewCard.number) && (
+                          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 md:px-2.5 md:py-1 text-[9px] md:text-xs font-bold text-slate-300 truncate max-w-[150px] md:max-w-[220px]">
+                            {tcg === 'Mitos y Leyendas' ? previewCard.set : `#${previewCard.number}`}
+                          </span>
+                        )}
+                      </div>
+                      <h2 className="text-[18px] md:text-3xl font-black leading-[1] text-white drop-shadow-md line-clamp-1">{previewCard.name}</h2>
+                      {previewSubtitle && (
+                        <p className="text-slate-400 text-[11px] md:text-sm italic leading-tight line-clamp-1">
+                          {previewSubtitle}
+                        </p>
+                      )}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 md:gap-4 my-1 md:my-2">
-                      <span className="bg-yellow-400 text-black px-3 py-1 md:px-5 md:py-2.5 rounded-lg font-black text-xl md:text-3xl shadow-lg leading-none">
+                    <div className="hidden md:flex flex-wrap items-center gap-1.5 md:gap-3">
+                      <span className="bg-yellow-400 text-black px-2.5 py-1 md:px-4 md:py-2.5 rounded-xl font-black text-base md:text-2xl shadow-lg leading-none">
                         {previewCard.price ? '$' + Number(previewCard.price).toLocaleString('es-CL') : 'Sin precio'}
                       </span>
-                      <span className="bg-slate-800 border border-slate-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-white font-medium text-xs md:text-lg flex items-center gap-1.5 leading-none shadow-md">
-                          <span translate="no" className="material-symbols-outlined text-[16px] md:text-xl">inventory_2</span>
+                      <span className="bg-slate-800/90 border border-slate-700 px-2.5 py-1.5 md:px-3.5 md:py-2.5 rounded-xl text-white font-bold text-[11px] md:text-sm flex items-center gap-1.5 leading-none shadow-md">
+                          <span translate="no" className="material-symbols-outlined text-[14px] md:text-xl">inventory_2</span>
                           x{previewCard.stock || 0} Disponibles
                       </span>
                     </div>
 
                     {tcg === 'Mitos y Leyendas' ? (
-                      <div className="w-full bg-black/40 p-3 md:p-5 rounded-xl border border-white/5 shadow-inner overflow-y-auto max-h-[120px] md:max-h-[200px]">
-                        <p className="flex flex-col">
-                          <strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-1">Habilidad</strong> 
-                          <span className="font-medium text-white text-[11px] md:text-sm leading-relaxed whitespace-pre-wrap">
+                      <>
+                        <div className="grid grid-cols-3 gap-1.5 md:gap-2">
+                          <p className="rounded-xl border border-white/10 bg-white/[0.05] px-2.5 py-1.5 md:px-3 md:py-2">
+                            <strong className="block text-white/45 text-[9px] md:text-[10px] uppercase tracking-wider">Tipo</strong>
+                            <span className="block text-[11px] md:text-sm font-extrabold text-white leading-tight">{previewCard.type || previewCard.supertype || 'Carta'}</span>
+                          </p>
+                          <p className="rounded-xl border border-white/10 bg-white/[0.05] px-2.5 py-1.5 md:px-3 md:py-2">
+                            <strong className="block text-white/45 text-[9px] md:text-[10px] uppercase tracking-wider">Raza</strong>
+                            <span className="block text-[11px] md:text-sm font-extrabold text-white leading-tight">{previewCard.race || '—'}</span>
+                          </p>
+                          <p className="rounded-xl border border-white/10 bg-white/[0.05] px-2.5 py-1.5 md:px-3 md:py-2">
+                            <strong className="block text-white/45 text-[9px] md:text-[10px] uppercase tracking-wider">Coste</strong>
+                            <span className="block text-[11px] md:text-sm font-extrabold text-white leading-tight">{previewCard.cost ?? '—'}</span>
+                          </p>
+                        </div>
+
+                        <div className="w-full bg-black/45 p-2 md:p-4 rounded-2xl border border-white/10 shadow-inner overflow-hidden flex-1 min-h-0">
+                          <p className="flex flex-col">
+                            <strong className="flex items-center gap-1.5 text-yellow-100/80 text-[9px] md:text-sm uppercase tracking-wider mb-1 md:mb-2">
+                              <span translate="no" className="material-symbols-outlined text-[14px] md:text-[16px]">auto_fix_high</span>
+                              Habilidad
+                            </strong> 
+                            <span className="font-medium text-white text-[10px] md:text-sm leading-snug md:leading-relaxed whitespace-pre-wrap line-clamp-3 md:line-clamp-4">
                             {fetchingAbility ? 'Buscando habilidad ancestral...' : (fetchedAbility || 'Sin habilidad registrada')}
-                          </span>
-                        </p>
-                      </div>
+                            </span>
+                          </p>
+                        </div>
+                      </>
                     ) : (
                       <div className="grid grid-cols-2 gap-x-3 gap-y-2 md:gap-y-3 text-xs md:text-base bg-black/40 p-3 md:p-5 rounded-xl border border-white/5 shadow-inner">
                         <p className="flex flex-col"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Rareza</strong> <span className="font-medium text-white truncate">{previewCard.rarity || 'Desconocida'}</span></p>
@@ -601,8 +696,8 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                       </div>
                     )}
 
-                    <div className="mt-auto pt-4 md:pt-6 w-full flex justify-center">
-                      <div className="w-full max-w-[280px] md:max-w-[320px] album-preview-actions bg-white/5 p-2 md:p-3 rounded-xl border border-white/10">
+                    <div className="flex mt-auto pt-1 md:pt-6 pb-8 md:pb-0 w-full justify-center">
+                      <div className="w-full max-w-[280px] md:max-w-[320px] album-preview-actions bg-white/5 p-1 md:p-3 rounded-xl border border-white/10">
                         {renderCardActions && renderCardActions(previewCard)}
                       </div>
                     </div>
@@ -860,9 +955,8 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                     e.stopPropagation();
                     if (reorderEnabled && e.detail > 1) return;
                     if (card) {
-                      setActiveCardId(cardIsActive ? null : uniqueId);
+                      setActiveCardId(null);
                         setPreviewCard(card);
-                        console.log('PreviewCard Data:', card);
                     }
                   }}
                   onMouseEnter={() => {
@@ -886,7 +980,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                       className="w-full h-full relative z-30 flex items-center justify-center cursor-pointer"
                       style={{ transform: cardIsActive ? 'translateZ(80px)' : 'translateZ(0px)', transition: 'transform 300ms ease-out', transformStyle: 'preserve-3d' }}
                     >
-                      <div className={`relative w-full h-full flex flex-col items-center justify-center transition-all duration-300 ease-out min-h-0 min-w-0 ${cardIsActive ? 'scale-[1.25] md:scale-[1.4] -translate-y-4 md:-translate-y-6 z-[100]' : ''}`}>
+                      <div className={`relative w-full h-full flex flex-col items-center justify-center transition-all duration-300 ease-out min-h-0 min-w-0 ${cardIsActive && !previewCard ? 'scale-[1.25] md:scale-[1.4] -translate-y-4 md:-translate-y-6 z-[100]' : ''}`}>
                         <div className="relative w-[95%] h-[95%] flex items-center justify-center">
                           <img
                             src={card.imageUrl}
@@ -895,11 +989,11 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                             className="max-w-full max-h-full object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] rounded-[4%]"
                           />
                           
-                          <div className="absolute top-1 right-1 md:top-1.5 md:right-1.5 bg-black/80 text-white text-[12px] md:text-[14px] font-bold px-3 py-1 md:py-1.5 rounded-full shadow-lg border border-white/20 z-[120] inline-block text-center pointer-events-none transition-all backdrop-blur-sm">
-                            <span className="relative -top-[5px]">x{card.stock || 0}</span>
+                          <div className="absolute top-1 right-1 md:top-1.5 md:right-1.5 z-[120] flex min-w-8 items-center justify-center rounded-full border border-white/20 bg-slate-950/85 px-2 py-0.5 text-[10px] md:text-xs font-black leading-none text-white shadow-lg backdrop-blur-sm pointer-events-none">
+                            x{card.stock || 0}
                           </div>
-                          <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black/80 text-yellow-400 text-[12px] md:text-[14px] font-bold px-4 py-1 md:py-1.5 rounded-full shadow-md z-[120] inline-block text-center border border-white/10 whitespace-nowrap pointer-events-none transition-opacity duration-300 ${cardIsActive ? 'opacity-0' : 'opacity-100'}`}>
-                            <span className="relative -top-[5px]">{card.price ? '$' + Number(card.price).toLocaleString('es-CL') : 'Sin precio'}</span>
+                          <div className={`absolute -bottom-1 left-1/2 z-[120] flex -translate-x-1/2 items-center justify-center rounded-full border border-yellow-300/40 bg-yellow-400 px-3 py-0.5 text-[10px] md:text-xs font-black leading-none text-slate-950 shadow-md whitespace-nowrap pointer-events-none transition-opacity duration-300 ${cardIsActive || previewCard ? 'opacity-0' : 'opacity-100'}`}>
+                            {card.price ? '$' + Number(card.price).toLocaleString('es-CL') : 'Sin precio'}
                           </div>
 
                           {renderCardOverlays && (

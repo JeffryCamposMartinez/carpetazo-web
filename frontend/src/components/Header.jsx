@@ -143,13 +143,24 @@ export default function Header() {
             <div className="relative profile-dropdown pb-3">
               <button 
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="focus:outline-none transition-all"
+                aria-label="Abrir menú de cuenta"
+                aria-expanded={isDropdownOpen}
+                className="group flex items-center gap-2 rounded-full border border-white/15 bg-white/10 py-1 pl-1 pr-3 text-white shadow-sm transition-all hover:bg-white/15 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-white/60"
               >
-                <img src={userAvatar || currentUser.photoURL} alt="Profile" className="w-10 h-10 rounded-full border-2 border-primary object-cover bg-white shadow-md hover:ring-4 hover:ring-primary/40 transition-all" />
+                <img src={userAvatar || currentUser.photoURL} alt="Profile" className="w-10 h-10 rounded-full border-2 border-primary object-cover bg-white shadow-md transition-all group-hover:ring-4 group-hover:ring-primary/40" />
+                <span className="hidden lg:flex flex-col items-start leading-none">
+                  <span className="text-[13px] font-extrabold">Mi cuenta</span>
+                  <span className="mt-1 text-[10px] font-semibold text-blue-100">Ver menú</span>
+                </span>
+                <span translate="no" className={`material-symbols-outlined hidden lg:block text-[18px] text-blue-100 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}>expand_more</span>
               </button>
               
               {isDropdownOpen && (
-                <div className="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 flex flex-col py-2 animate-[fadeIn_0.2s_ease-out]">
+                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 flex flex-col py-2 animate-[fadeIn_0.2s_ease-out]">
+                  <div className="px-4 pb-2 pt-1 border-b border-gray-100 mb-1">
+                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-gray-400">Tu cuenta</p>
+                    <p className="mt-1 truncate text-sm font-extrabold text-[#1a2b4b]">{userUsername || currentUser.displayName || 'Usuario'}</p>
+                  </div>
                   <Link to="/dashboard" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 font-semibold flex items-center gap-3">
                     <span translate="no" className="material-symbols-outlined text-[20px]">folder</span> Mis carpetas
                   </Link>
@@ -198,9 +209,14 @@ export default function Header() {
             {/* Left: Profile and Hamburger Menu */}
             <div className="flex items-center gap-2 z-10">
               {currentUser ? (
-                <button onClick={() => setIsMobileMenuOpen(true)} className="flex items-center gap-2 focus:outline-none">
+                <button
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  aria-label="Abrir menú de cuenta"
+                  className="relative flex items-center gap-1.5 rounded-full bg-white/10 py-1 pl-1 pr-2 text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-white/60"
+                >
                   <img src={userAvatar || currentUser.photoURL} alt="Profile" className="w-9 h-9 rounded-full border border-gray-200 object-cover bg-white shadow-sm" />
-                  <span translate="no" className="material-symbols-outlined text-[28px] text-white">menu</span>
+                  <span translate="no" className="material-symbols-outlined text-[24px] text-white">menu</span>
+                  <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-white px-2 py-0.5 text-[9px] font-black uppercase leading-none tracking-wide text-[#1e40af] shadow-sm">Menú</span>
                 </button>
               ) : (
                 <button onClick={() => setIsMobileMenuOpen(true)} className="p-1 text-white hover:opacity-80">

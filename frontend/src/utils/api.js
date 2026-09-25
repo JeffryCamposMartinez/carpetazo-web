@@ -64,6 +64,8 @@ export const api = {
   // TCG Proxy
   getTcgCategories: () => apiFetch('/tcg/categories'),
   getTcgGroups: (categoryId) => apiFetch('/tcg/' + categoryId + '/groups'),
+  getTcgFilterOptions: (categoryId) => apiFetch('/tcg/' + categoryId + '/filter-options'),
+  getTcgProductsMetadata: (ids = []) => apiFetch('/tcg/products/metadata', { method: 'POST', body: JSON.stringify({ ids }) }),
     getTcgPhysicalProducts: () => apiFetch('/tcg/physical-products'),
   getTcgProducts: (categoryId, groupId, mylFilters = {}) => {
     let qs = new URLSearchParams();
@@ -91,6 +93,10 @@ export const api = {
 
   // Orders
   updateOrder: (id, data) => apiFetch('/orders/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  getOrders: () => apiFetch('/orders'),
+  getHistory: () => apiFetch('/history'),
+  processOrder: (code) => apiFetch('/process-order', { method: 'POST', body: JSON.stringify({ code }) }),
+  rejectOrder: (code) => apiFetch('/reject-order', { method: 'POST', body: JSON.stringify({ code }) }),
 };
 
 export default api;

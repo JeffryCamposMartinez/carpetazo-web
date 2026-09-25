@@ -1,18 +1,25 @@
-import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api, { apiFetch } from '../utils/api';
-import Filters from '../components/Filters';
 import PokemonCard from '../components/PokemonCard';
 import AlbumView from '../components/AlbumView';
 import Toast from '../components/Toast';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import PublicCatalogFilters from '../components/folder/filters/PublicCatalogFilters';
+
+const isLocalhostWithProductionApi = () => {
+  if (typeof window === 'undefined') return false;
+  const apiUrl = import.meta.env.VITE_API_URL || 'https://api.carpetazo.cl/api';
+  return ['localhost', '127.0.0.1'].includes(window.location.hostname) && apiUrl.includes('api.carpetazo.cl');
+};
 
 function PublicCatalog() {
   const { folderId } = useParams();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const [cards, setCards] = useState([]);
   const [folderData, setFolderData] = useState(null);
@@ -32,10 +39,40 @@ function PublicCatalog() {
   const [searchSet, setSearchSet] = useState('');
   const [isSetDropdownOpen, setIsSetDropdownOpen] = useState(false);
   const [viewMode, setViewMode] = useState('album');
+  const [mylType, setMylType] = useState('');
+  const [mylRace, setMylRace] = useState('');
+  const [mylCost, setMylCost] = useState('');
+  const [mylFilterOptions, setMylFilterOptions] = useState({ types: [], races: [], costs: [], rarities: [] });
   
   const [appliedFilters, setAppliedFilters] = useState({
-    query: '', set: '', supertype: '', type: ''
+    query: '', set: '', supertype: '', type: '', mylType: '', mylRace: '', mylCost: ''
   });
+
+  useEffect(() => {
+    const queryParam = searchParams.get('q') || '';
+    const setParam = searchParams.get('set') || '';
+    const supertypeParam = searchParams.get('supertype') || '';
+    const typeParam = searchParams.get('type') || '';
+    const raceParam = searchParams.get('race') || '';
+    const costParam = searchParams.get('cost') || '';
+
+    setSearchQuery(queryParam);
+    setSearchSet(setParam);
+    setSelectedSupertype(supertypeParam);
+    setSelectedType(typeParam);
+    setMylType(typeParam);
+    setMylRace(raceParam);
+    setMylCost(costParam);
+    setAppliedFilters({
+      query: queryParam,
+      set: setParam,
+      supertype: supertypeParam,
+      type: typeParam,
+      mylType: typeParam,
+      mylRace: raceParam,
+      mylCost: costParam,
+    });
+  }, [folderId]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -62,7 +99,7 @@ function PublicCatalog() {
             displayName: folder.user.name || folder.user.username,
             avatarBase64: folder.user.photoURL
           };
-          if (folder.user.firebaseUid) {
+          if (folder.user.firebaseUid && window.location.protocol !== 'http:') {
             try {
               
               const userSnap = await getDoc(doc(db, 'users', folder.user.firebaseUid));
@@ -70,13 +107,40 @@ function PublicCatalog() {
                 mergedUser = { ...mergedUser, ...userSnap.data() };
               }
             } catch (e) {
-              console.error("Error fetching firestore user data:", e);
+              console.warn("No se pudieron cargar datos extendidos del vendedor desde Firestore; usando datos públicos del backend.", e?.message || e);
             }
           }
           setSellerData(mergedUser);
         }
 
-        const cardsList = (folder.cards || []).map(c => ({ ...c, apiId: c.tcgId || c.id, ...(c.data || {}) }));
+        let cardsList = (folder.cards || []).map(c => ({ ...c, apiId: c.tcgId || c.id, ...(c.data || {}) }));
+
+        if (folder.tcg === 'Mitos y Leyendas') {
+          const ids = cardsList.map(card => card.tcgId || card.apiId).filter(Boolean);
+          const needsMetadata = cardsList.some(card => !card.type || !card.race || card.cost === undefined || card.cost === null || !card.effect);
+          try {
+            if (needsMetadata && ids.length > 0 && !isLocalhostWithProductionApi()) {
+              const metadataResponse = await api.getTcgProductsMetadata(ids);
+              const metadataById = metadataResponse?.data || {};
+              cardsList = cardsList.map(card => {
+                const metadata = metadataById[String(card.tcgId || card.apiId)] || {};
+                return {
+                  ...card,
+                  set: card.set && card.set !== 'Unknown' ? card.set : metadata.set || card.set,
+                  type: card.type || metadata.type || card.supertype,
+                  race: card.race || metadata.race || card.subtype,
+                  cost: card.cost ?? metadata.cost,
+                  effect: card.effect || metadata.effect,
+                  rarity: card.rarity && card.rarity !== 'Unknown' ? card.rarity : metadata.rarity || card.rarity,
+                  number: card.number || metadata.number,
+                };
+              });
+            }
+          } catch (metadataError) {
+            console.warn('No se pudieron enriquecer las cartas MYL con metadatos TCG.', metadataError?.message || metadataError);
+          }
+        }
+
         setCards(cardsList);
         
       } catch (error) {
@@ -90,7 +154,38 @@ function PublicCatalog() {
     if (folderId) fetchCatalogData();
   }, [folderId]);
 
-  const addToCart = (card) => {
+  useEffect(() => {
+    if (folderData?.tcg !== 'Mitos y Leyendas') return;
+    const localOptions = {
+      types: [...new Set(cards.map(card => card.type || card.supertype).filter(Boolean))].sort(),
+      races: [...new Set(cards.flatMap(card => String(card.race || '').split(',').map(value => value.trim())).filter(Boolean))].sort(),
+      costs: [...new Set(cards.map(card => card.cost).filter(value => value !== undefined && value !== null && value !== '').map(String))]
+        .sort((a, b) => Number(a) - Number(b)),
+      rarities: [...new Set(cards.map(card => card.rarity).filter(Boolean))].sort(),
+    };
+
+    if (localOptions.types.length || localOptions.races.length || localOptions.costs.length) {
+      setMylFilterOptions(localOptions);
+      return;
+    }
+
+    if (isLocalhostWithProductionApi()) {
+      setMylFilterOptions({ types: [], races: [], costs: [], rarities: [] });
+      return;
+    }
+
+    api.getTcgFilterOptions('99')
+      .then((result) => {
+        if (result.success) {
+          setMylFilterOptions(result.data || { types: [], races: [], costs: [], rarities: [] });
+        }
+      })
+      .catch((error) => {
+        console.warn('No se pudieron cargar opciones MYL desde la base de datos.', error?.message || error);
+      });
+  }, [folderData?.tcg, cards]);
+
+  const addToCart = useCallback((card) => {
     setCart(prev => {
       const existing = prev.find(item => item.id === card.id);
       if (existing) {
@@ -103,11 +198,11 @@ function PublicCatalog() {
       }
       return [...prev, { ...card, quantity: 1 }];
     });
-  };
+  }, []);
 
-  const removeFromCart = (cardId) => setCart(prev => prev.filter(item => item.id !== cardId));
+  const removeFromCart = useCallback((cardId) => setCart(prev => prev.filter(item => item.id !== cardId)), []);
 
-  const decrementCart = (cardId) => {
+  const decrementCart = useCallback((cardId) => {
     setCart(prev => {
       const existing = prev.find(item => item.id === cardId);
       if (existing) {
@@ -119,12 +214,27 @@ function PublicCatalog() {
       }
       return prev;
     });
-  };
+  }, []);
 
-  const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-  const cartItemsCount = cart.reduce((count, item) => count + item.quantity, 0);
+  const cartTotal = useMemo(() => cart.reduce((total, item) => total + (Number(item.price || 0) * item.quantity), 0), [cart]);
+  const cartItemsCount = useMemo(() => cart.reduce((count, item) => count + item.quantity, 0), [cart]);
 
   const formatCLP = (price) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(price);
+
+  const clearFilters = useCallback(() => {
+    setSearchQuery('');
+    setSearchSet('');
+    setSelectedSupertype('');
+    setSelectedType('');
+    setMylType('');
+    setMylRace('');
+    setMylCost('');
+  }, []);
+
+  const scrollCatalogTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
 
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
 
@@ -165,7 +275,7 @@ function PublicCatalog() {
       // 2. Generar el mensaje y redirigir
       let message = `¡Hola! Vengo de Carpetazo. Me interesa comprar estas cartas de la carpeta "${folderData?.name || 'Catálogo'}":\n\n`;
       cart.forEach(item => {
-        message += `Ã¢â‚¬Â¢ ${item.quantity}x ${item.name} (${item.set}) - ${formatCLP(item.price * item.quantity)}\n`;
+        message += `• ${item.quantity}x ${item.name} (${item.set}) - ${formatCLP(Number(item.price || 0) * item.quantity)}\n`;
       });
       message += `\nTotal: ${formatCLP(cartTotal)}\n\n¿Tienes disponibilidad?`;
       
@@ -189,28 +299,68 @@ function PublicCatalog() {
     }
   };
 
-  const counts = {
+  const counts = useMemo(() => ({
     pokemon: cards.filter(c => c.supertype === 'Pokémon').length,
     trainers: cards.filter(c => c.supertype === 'Trainer').length,
     energy: cards.filter(c => c.supertype === 'Energy').length
-  };
+  }), [cards]);
 
-  const availableSets = [...new Set(cards.map(c => c.set).filter(Boolean))].sort();
+  const availableSets = useMemo(() => [...new Set(cards.map(c => c.set).filter(Boolean))].sort(), [cards]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setAppliedFilters({ query: searchQuery, set: searchSet, supertype: selectedSupertype, type: selectedType });
-  };
+  useEffect(() => {
+    const nextFilters = {
+      query: searchQuery,
+      set: searchSet,
+      supertype: selectedSupertype,
+      type: selectedType,
+      mylType,
+      mylRace,
+      mylCost,
+    };
+    setAppliedFilters(nextFilters);
 
-  const filteredCards = cards
-    .filter(card => appliedFilters.supertype === '' || card.supertype === appliedFilters.supertype)
-    .filter(card => appliedFilters.type === '' || (card.types && card.types.includes(appliedFilters.type)) || (card.supertype === 'Energy' && card.name && card.name.includes(appliedFilters.type)))
+    const nextParams = new URLSearchParams();
+    if (nextFilters.query) nextParams.set('q', nextFilters.query);
+    if (nextFilters.set) nextParams.set('set', nextFilters.set);
+    if (folderData?.tcg === 'Mitos y Leyendas') {
+      if (nextFilters.mylType) nextParams.set('type', nextFilters.mylType);
+      if (nextFilters.mylRace) nextParams.set('race', nextFilters.mylRace);
+      if (nextFilters.mylCost) nextParams.set('cost', nextFilters.mylCost);
+    } else {
+      if (nextFilters.supertype) nextParams.set('supertype', nextFilters.supertype);
+      if (nextFilters.type) nextParams.set('type', nextFilters.type);
+    }
+    setSearchParams(nextParams, { replace: true });
+  }, [searchQuery, searchSet, selectedSupertype, selectedType, mylType, mylRace, mylCost, folderData?.tcg, setSearchParams]);
+
+  const filteredCards = useMemo(() => cards
+    .filter(card => folderData?.tcg === 'Mitos y Leyendas' || appliedFilters.supertype === '' || card.supertype === appliedFilters.supertype)
+    .filter(card => folderData?.tcg === 'Mitos y Leyendas' || appliedFilters.type === '' || (card.types && card.types.includes(appliedFilters.type)) || (card.supertype === 'Energy' && card.name && card.name.includes(appliedFilters.type)))
+    .filter(card => folderData?.tcg !== 'Mitos y Leyendas' || appliedFilters.mylType === '' || [card.type, card.cardType, card.supertype].filter(Boolean).includes(appliedFilters.mylType))
+    .filter(card => {
+      if (folderData?.tcg !== 'Mitos y Leyendas' || appliedFilters.mylRace === '') return true;
+      const races = [card.race, card.subtype, ...(card.types || [])]
+        .filter(Boolean)
+        .flatMap(value => String(value).split(',').map(item => item.trim()));
+      return races.includes(appliedFilters.mylRace);
+    })
+    .filter(card => folderData?.tcg !== 'Mitos y Leyendas' || appliedFilters.mylCost === '' || String(card.cost ?? card.manaCost ?? '') === String(appliedFilters.mylCost))
     .filter(card => appliedFilters.set === '' || card.set === appliedFilters.set)
     .filter(card => {
       if (!appliedFilters.query) return true;
-      const query = appliedFilters.query.toLowerCase();
-      return card.name.toLowerCase().includes(query) || (card.id && card.id.toLowerCase().includes(query));
-    });
+      const query = appliedFilters.query.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const haystack = [
+        card.name,
+        card.id,
+        card.number,
+        card.set,
+        card.type,
+        card.cardType,
+        card.race,
+        card.subtype,
+      ].filter(Boolean).join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      return haystack.includes(query);
+    }), [cards, appliedFilters, folderData?.tcg]);
 
   if (loading) {
     return (
@@ -370,16 +520,45 @@ function PublicCatalog() {
 
       <button 
         onClick={() => setIsCartOpen(true)}
-        className="fixed bottom-[80px] right-4 md:bottom-8 md:right-8 bg-primary text-on-primary p-4 rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.3)] z-30 flex items-center gap-2 hover:scale-105 transition-transform"
+        className="fixed bottom-[80px] right-4 z-30 flex min-h-14 items-center gap-2 rounded-full bg-primary px-4 py-3 text-on-primary shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-transform hover:scale-105 md:bottom-8 md:right-8"
       >
         <span translate="no" className="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
-        {cartItemsCount > 0 && <span className="font-bold bg-white text-primary rounded-full w-6 h-6 flex items-center justify-center text-xs">{cartItemsCount}</span>}
+        {cartItemsCount > 0 ? (
+          <>
+            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1 text-xs font-bold text-primary">{cartItemsCount}</span>
+            <span className="hidden text-xs font-black leading-tight min-[390px]:block">{formatCLP(cartTotal)}</span>
+          </>
+        ) : (
+          <span className="sr-only">Abrir carrito</span>
+        )}
       </button>
+
+      <div className="fixed bottom-[150px] right-5 z-30 flex flex-col items-center gap-2.5 md:bottom-[104px] md:right-10">
+        <button
+          type="button"
+          onClick={clearFilters}
+          title="Limpiar filtros"
+          aria-label="Limpiar filtros"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-500 shadow-lg ring-1 ring-slate-100 transition-all hover:-translate-y-0.5 hover:text-[#1e40af] hover:shadow-xl md:h-12 md:w-12"
+        >
+          <span translate="no" className="material-symbols-outlined text-[22px] md:text-[24px]">filter_alt_off</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={scrollCatalogTop}
+          title="Subir al inicio"
+          aria-label="Subir al inicio"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#1e40af] text-white shadow-lg ring-2 ring-white/30 transition-all hover:-translate-y-0.5 hover:bg-blue-800 hover:shadow-xl md:h-12 md:w-12"
+        >
+          <span translate="no" className="material-symbols-outlined text-[25px] md:text-[27px]">arrow_upward</span>
+        </button>
+      </div>
         <div className="w-full overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x md:border-b border-gray-300 flex flex-col relative z-10 min-h-[calc(100vh-200px)] bg-[#DBEAFE]">
           <main className="flex-1 text-gray-900 px-4 sm:px-8 py-8 flex flex-col relative z-20">
-            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm mb-6">
-          <form onSubmit={handleSearch} className="flex flex-col gap-2">
-            <div className="flex flex-col md:flex-row gap-2">
+            <div className="bg-white p-3 md:p-4 rounded-2xl border border-gray-200 shadow-sm mb-6">
+          <form onSubmit={(event) => event.preventDefault()} className="flex flex-col gap-2">
+            <div className="grid grid-cols-[1fr_auto] gap-2 md:flex md:flex-row">
               <div className="flex-1 relative">
                 <span translate="no" className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">search</span>
                 <input 
@@ -387,56 +566,49 @@ function PublicCatalog() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar nombre de carta o número..."
-                  className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] transition-all text-sm font-medium"
+                  className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] transition-all text-xs font-medium md:rounded-xl md:pl-11 md:pr-4 md:py-2.5 md:text-sm"
                 />
               </div>
-              <button type="submit" className="bg-[#1e40af] hover:bg-blue-800 text-white font-bold px-8 py-2.5 rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center gap-2 flex-shrink-0 w-full md:w-auto text-sm">
-                <span translate="no" className="material-symbols-outlined text-[18px]">search</span> Buscar
+              <button type="button" onClick={() => setSearchQuery(searchQuery.trim())} className="bg-[#1e40af] hover:bg-blue-800 text-white font-bold px-3 py-2 rounded-lg transition-all shadow-sm hover:shadow flex items-center justify-center gap-1.5 flex-shrink-0 md:w-auto md:rounded-xl md:px-8 md:py-2.5 text-xs md:text-sm">
+                <span translate="no" className="material-symbols-outlined text-[17px] md:text-[18px]">search</span>
+                <span className="hidden min-[360px]:inline">Aplicar</span>
               </button>
             </div>
             
-            <div className="flex flex-col gap-2">
-              <Filters 
-                title=""
-                subtitle=""
-                selectedSupertype={selectedSupertype}
-                onSupertypeChange={setSelectedSupertype}
-                selectedType={selectedType} 
-                onTypeChange={setSelectedType} 
-                counts={counts}
-                showCounts={false}
-                segmentedControlAddon={
-                  <div className="relative w-full h-full">
-                    <div 
-                      className="w-full h-full px-4 py-2.5 rounded-xl border border-gray-300 bg-gray-50 text-gray-900 cursor-pointer flex justify-between items-center transition-all hover:border-[#1e40af] hover:bg-blue-50/30"
-                      onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}
-                    >
-                      <span className="truncate font-bold text-xs">{searchSet === '' ? 'Todas las ediciones' : searchSet}</span>
-                      <span translate="no" className="material-symbols-outlined ml-2 text-gray-500 text-[20px]">expand_more</span>
-                    </div>
-                    {isSetDropdownOpen && (
-                      <>
-                        <div className="fixed inset-0 z-[100]" onClick={() => setIsSetDropdownOpen(false)}></div>
-                        <div className="absolute z-[110] w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
-                          <div className={`px-4 py-2 cursor-pointer hover:bg-gray-50 flex items-center gap-2 text-sm ${searchSet === '' ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(''); setIsSetDropdownOpen(false); }}>
-                            {searchSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
-                            <span className={searchSet !== '' ? 'ml-6' : ''}>Todas las ediciones</span>
-                          </div>
-                          {availableSets.map(setName => (
-                            <div key={setName} className={`px-4 py-2 cursor-pointer hover:bg-gray-50 flex items-center gap-2 text-sm ${searchSet === setName ? 'text-[#1e40af] font-bold' : 'text-gray-700'}`} onClick={() => { setSearchSet(setName); setIsSetDropdownOpen(false); }}>
-                              {searchSet === setName && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
-                              <span className={searchSet !== setName ? 'ml-6' : ''}>{setName}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                }
-              />
-            </div>
+            <PublicCatalogFilters
+              tcg={folderData?.tcg}
+              cards={cards}
+              counts={counts}
+              selectedSupertype={selectedSupertype}
+              onSupertypeChange={setSelectedSupertype}
+              selectedType={selectedType}
+              onTypeChange={setSelectedType}
+              searchSet={searchSet}
+              setSearchSet={setSearchSet}
+              availableSets={availableSets}
+              isSetDropdownOpen={isSetDropdownOpen}
+              setIsSetDropdownOpen={setIsSetDropdownOpen}
+              mylType={mylType}
+              setMylType={setMylType}
+              mylRace={mylRace}
+              setMylRace={setMylRace}
+              mylCost={mylCost}
+              setMylCost={setMylCost}
+              mylFilterOptions={mylFilterOptions}
+            />
           </form>
         </div>
+
+          {filteredCards.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-blue-100 bg-white/80 px-4 py-3 text-sm shadow-sm">
+              <p className="font-bold text-[#1a2b4b]">
+                {filteredCards.length} carta{filteredCards.length === 1 ? '' : 's'} disponible{filteredCards.length === 1 ? '' : 's'}
+              </p>
+              <p className="text-xs font-semibold text-gray-500">
+                {cartItemsCount > 0 ? `${cartItemsCount} en el carrito · ${formatCLP(cartTotal)}` : 'Selecciona cartas para armar tu pedido'}
+              </p>
+            </div>
+          )}
 
           {/* View Toggle */}
           <div className="flex justify-end mb-4 border-b border-gray-100 pb-4">
