@@ -496,8 +496,9 @@ export default function SellerProfile() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: `linear-gradient(135deg, ${publicTheme.text}, ${publicTheme.primary})`, fontFamily: getFontStack(publicTheme.font) }}>
-      <div className="mx-auto min-h-screen w-full max-w-[1600px] overflow-hidden shadow-[0_0_90px_rgba(0,0,0,0.22)]" style={{ backgroundColor: publicTheme.surface }}>
+    <div className="min-h-screen" style={{ fontFamily: getFontStack(publicTheme.font) }}>
+      <div className="mx-auto w-full max-w-[1600px] xl:px-12 2xl:px-16">
+      <div className="min-h-screen w-full overflow-hidden shadow-[0_0_90px_rgba(0,0,0,0.22)]" style={{ backgroundColor: publicTheme.surface }}>
       <section className="relative overflow-visible shadow-sm" style={{ backgroundColor: publicTheme.card }}>
         {seller?.bannerBase64 ? (
           <div className="absolute inset-x-0 top-0 h-[270px] bg-cover bg-center sm:h-[340px] md:inset-0 md:h-auto" style={{ backgroundImage: `url(${seller.bannerBase64})` }} />
@@ -778,6 +779,7 @@ export default function SellerProfile() {
           </div>
         )}
       </main>
+      </div>
       </div>
     </div>
   );
