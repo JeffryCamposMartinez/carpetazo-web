@@ -71,6 +71,19 @@ const defaultPublicTheme = {
   text: '#1a2b4b'
 };
 
+const profileThemes = [
+  defaultPublicTheme,
+  { id: 'royal-purple', name: 'Púrpura Real', primary: '#6d28d9', secondary: '#c4b5fd', accent: '#f0abfc', surface: '#ede9fe', text: '#2e1065' },
+  { id: 'emerald-market', name: 'Esmeralda', primary: '#047857', secondary: '#6ee7b7', accent: '#fbbf24', surface: '#d1fae5', text: '#064e3b' },
+  { id: 'crimson-fire', name: 'Fuego Carmesí', primary: '#b91c1c', secondary: '#fca5a5', accent: '#fb923c', surface: '#fee2e2', text: '#450a0a' },
+  { id: 'midnight-gold', name: 'Medianoche Oro', primary: '#111827', secondary: '#334155', accent: '#facc15', surface: '#e2e8f0', text: '#0f172a' },
+  { id: 'ocean-cyan', name: 'Océano', primary: '#0e7490', secondary: '#67e8f9', accent: '#22d3ee', surface: '#cffafe', text: '#164e63' },
+  { id: 'rose-pop', name: 'Rosa Pop', primary: '#be185d', secondary: '#f9a8d4', accent: '#f472b6', surface: '#fce7f3', text: '#831843' },
+  { id: 'amber-sun', name: 'Sol Ámbar', primary: '#b45309', secondary: '#fcd34d', accent: '#fb7185', surface: '#fef3c7', text: '#78350f' },
+  { id: 'slate-neon', name: 'Neón Slate', primary: '#334155', secondary: '#94a3b8', accent: '#38bdf8', surface: '#e2e8f0', text: '#0f172a' },
+  { id: 'mythic-green', name: 'Mítico Verde', primary: '#365314', secondary: '#bef264', accent: '#84cc16', surface: '#ecfccb', text: '#1a2e05' }
+];
+
 export default function SellerProfile() {
   const { sellerUsername } = useParams();
   const { currentUser } = useAuth();
@@ -83,6 +96,8 @@ export default function SellerProfile() {
   const [tempBio, setTempBio] = useState('');
   const [savingBio, setSavingBio] = useState(false);
   const [savingImage, setSavingImage] = useState(false);
+  const [themePanelOpen, setThemePanelOpen] = useState(false);
+  const [savingTheme, setSavingTheme] = useState(false);
 
   const isOwner = currentUser?.uid && seller?.firebaseUid === currentUser.uid;
   const displayName = seller?.name || seller?.fullName || seller?.username || 'Vendedor Anónimo';
@@ -204,6 +219,21 @@ export default function SellerProfile() {
     }
   };
 
+  const handleThemeChange = async (theme) => {
+    if (!isOwner) return;
+    setSeller(prev => ({ ...prev, publicTheme: theme }));
+    setSavingTheme(true);
+    try {
+      const response = await api.updateProfile({ publicTheme: theme });
+      setSeller(prev => ({ ...prev, ...(response.user || {}), publicTheme: theme }));
+    } catch (error) {
+      console.error('Error saving public theme:', error);
+      alert('No se pudo guardar el tema.');
+    } finally {
+      setSavingTheme(false);
+    }
+  };
+
   const contactSeller = () => {
     if (!currentUser) return navigate('/login');
     navigate('/mensajes', {
@@ -252,11 +282,57 @@ export default function SellerProfile() {
         )}
 
         {isOwner && (
-          <label className="absolute right-3 top-3 z-20 inline-flex cursor-pointer items-center gap-2 rounded-full bg-black/45 px-3 py-2 text-xs font-black text-white shadow-lg ring-1 ring-white/25 backdrop-blur hover:bg-black/60 sm:right-4 sm:top-4 sm:rounded-2xl sm:bg-white/90 sm:text-[#1a2b4b] sm:ring-white/80 sm:hover:bg-white sm:text-sm">
-            <span translate="no" className="material-symbols-outlined text-[18px]">add_photo_alternate</span>
-            <span className="hidden sm:inline">Cambiar fondo</span>
-            <input type="file" accept="image/*" className="hidden" onChange={event => handleImageUpload(event, 'banner')} />
-          </label>
+          <div className="absolute right-3 top-3 z-20 flex flex-col items-end gap-2 sm:right-4 sm:top-4">
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setThemePanelOpen(prev => !prev)} className="inline-flex items-center gap-2 rounded-full bg-black/45 px-3 py-2 text-xs font-black text-white shadow-lg ring-1 ring-white/25 backdrop-blur hover:bg-black/60 sm:rounded-2xl sm:bg-white/90 sm:text-[#1a2b4b] sm:ring-white/80 sm:hover:bg-white sm:text-sm">
+                <span translate="no" className="material-symbols-outlined text-[18px]">palette</span>
+                <span className="hidden sm:inline">Personalizar</span>
+              </button>
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-black/45 px-3 py-2 text-xs font-black text-white shadow-lg ring-1 ring-white/25 backdrop-blur hover:bg-black/60 sm:rounded-2xl sm:bg-white/90 sm:text-[#1a2b4b] sm:ring-white/80 sm:hover:bg-white sm:text-sm">
+                <span translate="no" className="material-symbols-outlined text-[18px]">add_photo_alternate</span>
+                <span className="hidden sm:inline">Cambiar fondo</span>
+                <input type="file" accept="image/*" className="hidden" onChange={event => handleImageUpload(event, 'banner')} />
+              </label>
+            </div>
+
+            {themePanelOpen && (
+              <div className="w-[min(340px,calc(100vw-1.5rem))] rounded-[1.5rem] bg-white/95 p-3 text-left shadow-2xl ring-1 ring-white/80 backdrop-blur">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-black text-slate-900">Tema público</p>
+                    <p className="text-xs font-bold text-slate-500">{savingTheme ? 'Guardando...' : 'Toca una paleta para aplicarla'}</p>
+                  </div>
+                  <button type="button" onClick={() => setThemePanelOpen(false)} className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100">
+                    <span translate="no" className="material-symbols-outlined text-[18px]">close</span>
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {profileThemes.map(theme => {
+                    const selected = publicTheme.id === theme.id;
+                    return (
+                      <button
+                        key={theme.id}
+                        type="button"
+                        disabled={savingTheme}
+                        onClick={() => handleThemeChange(theme)}
+                        className={`overflow-hidden rounded-2xl border bg-white p-2 text-left transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 ${selected ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-slate-200'}`}
+                      >
+                        <div className="h-10 rounded-xl" style={{ background: `linear-gradient(135deg, ${theme.primary}, ${theme.secondary})` }}>
+                          <div className="flex h-full items-end justify-end p-1.5">
+                            <span className="h-4 w-4 rounded-full ring-2 ring-white/70" style={{ backgroundColor: theme.accent }} />
+                          </div>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <span className="truncate text-[11px] font-black" style={{ color: theme.text }}>{theme.name}</span>
+                          {selected && <span translate="no" className="material-symbols-outlined text-[16px]" style={{ color: theme.primary }}>check_circle</span>}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         <div className="relative z-10 mx-auto flex min-h-[430px] w-full max-w-[1300px] flex-col justify-end gap-4 px-4 pb-6 pt-[185px] sm:min-h-[520px] sm:px-6 sm:pt-[260px] md:min-h-0 md:flex-row md:items-end md:gap-5 md:px-10 md:py-12">
