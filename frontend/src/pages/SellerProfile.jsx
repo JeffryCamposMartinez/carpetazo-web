@@ -225,11 +225,11 @@ export default function SellerProfile() {
     <div className="min-h-screen bg-[#DBEAFE]">
       <section className="relative overflow-hidden bg-white shadow-sm">
         {seller?.bannerBase64 ? (
-          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${seller.bannerBase64})` }} />
+          <div className="absolute inset-x-0 top-0 h-[270px] bg-cover bg-center sm:h-[340px] md:inset-0 md:h-auto" style={{ backgroundImage: `url(${seller.bannerBase64})` }} />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-[#102a56] via-[#1e40af] to-[#93c5fd]" />
+          <div className="absolute inset-x-0 top-0 h-[270px] bg-gradient-to-br from-[#102a56] via-[#1e40af] to-[#93c5fd] sm:h-[340px] md:inset-0 md:h-auto" />
         )}
-        <div className={`absolute inset-0 ${seller?.bannerBase64 ? 'bg-gradient-to-t from-black/25 via-transparent to-black/10' : 'bg-white/75 backdrop-blur-[2px]'}`} />
+        <div className={`absolute inset-x-0 top-0 h-[270px] sm:h-[340px] md:inset-0 md:h-auto ${seller?.bannerBase64 ? 'bg-gradient-to-b from-black/20 via-transparent to-black/35 md:bg-gradient-to-t md:from-black/25 md:via-transparent md:to-black/10' : 'bg-white/30 md:bg-white/75 md:backdrop-blur-[2px]'}`} />
 
         {savingImage && (
           <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/70">
@@ -238,15 +238,15 @@ export default function SellerProfile() {
         )}
 
         {isOwner && (
-          <label className="absolute right-4 top-4 z-20 inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-white/90 px-3 py-2 text-xs font-black text-[#1a2b4b] shadow-lg ring-1 ring-white/80 backdrop-blur hover:bg-white sm:text-sm">
+          <label className="absolute right-3 top-3 z-20 inline-flex cursor-pointer items-center gap-2 rounded-full bg-black/45 px-3 py-2 text-xs font-black text-white shadow-lg ring-1 ring-white/25 backdrop-blur hover:bg-black/60 sm:right-4 sm:top-4 sm:rounded-2xl sm:bg-white/90 sm:text-[#1a2b4b] sm:ring-white/80 sm:hover:bg-white sm:text-sm">
             <span translate="no" className="material-symbols-outlined text-[18px]">add_photo_alternate</span>
             <span className="hidden sm:inline">Cambiar fondo</span>
             <input type="file" accept="image/*" className="hidden" onChange={event => handleImageUpload(event, 'banner')} />
           </label>
         )}
 
-        <div className="relative z-10 mx-auto flex w-full max-w-[1300px] flex-col gap-5 px-4 py-8 sm:px-6 md:flex-row md:items-end md:px-10 md:py-12">
-          <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-[2rem] bg-white shadow-2xl ring-4 ring-white md:h-40 md:w-40">
+        <div className="relative z-10 mx-auto flex min-h-[430px] w-full max-w-[1300px] flex-col justify-end gap-4 px-4 pb-6 pt-[185px] sm:min-h-[520px] sm:px-6 sm:pt-[260px] md:min-h-0 md:flex-row md:items-end md:gap-5 md:px-10 md:py-12">
+          <div className="relative z-20 -mb-10 ml-3 h-28 w-28 shrink-0 overflow-hidden rounded-[2rem] bg-white shadow-2xl ring-4 ring-white sm:ml-5 sm:h-32 sm:w-32 md:mb-0 md:ml-0 md:h-40 md:w-40">
             {avatarUrl ? (
               <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
             ) : (
@@ -262,29 +262,29 @@ export default function SellerProfile() {
             )}
           </div>
 
-          <div className="min-w-0 flex-1 rounded-[2rem] bg-white/70 p-4 shadow-xl ring-1 ring-white/80 backdrop-blur md:p-6">
+          <div className="min-w-0 flex-1 rounded-[2rem] bg-white/92 p-4 pt-12 shadow-2xl ring-1 ring-white/80 backdrop-blur-sm sm:p-5 sm:pt-14 md:bg-white/70 md:p-6 md:pt-6 md:backdrop-blur">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="break-words text-3xl font-black leading-tight text-[#1a2b4b] md:text-5xl">{displayName}</h1>
+                  <h1 className="break-words text-[1.9rem] font-black leading-[0.95] text-[#1a2b4b] sm:text-4xl md:text-5xl">{displayName}</h1>
                   <span translate="no" className="material-symbols-outlined text-[#3b82f6]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
                 </div>
                 <p className="mt-1 text-sm font-black text-slate-500">@{seller?.username || seller?.firebaseUid}</p>
                 {seller?.fullName && <p className="mt-1 text-sm font-semibold text-slate-600">{seller.fullName}</p>}
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                 {!isOwner && (
-                  <button onClick={contactSeller} className="inline-flex items-center gap-2 rounded-full bg-[#1e40af] px-4 py-2 text-sm font-black text-white shadow-lg hover:bg-blue-800">
+                  <button onClick={contactSeller} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1e40af] px-4 py-2.5 text-sm font-black text-white shadow-lg hover:bg-blue-800">
                     <span translate="no" className="material-symbols-outlined text-[18px]">chat</span>
                     Mensaje
                   </button>
                 )}
                 {seller?.phone && (
-                  <a href={`https://wa.me/${seller.phone.replace(/[^0-9]/g, '').startsWith('56') ? seller.phone.replace(/[^0-9]/g, '') : `56${seller.phone.replace(/[^0-9]/g, '')}`}`} target="_blank" rel="noopener noreferrer" className="rounded-full bg-green-50 px-4 py-2 text-sm font-black text-green-700 ring-1 ring-green-200">WhatsApp</a>
+                  <a href={`https://wa.me/${seller.phone.replace(/[^0-9]/g, '').startsWith('56') ? seller.phone.replace(/[^0-9]/g, '') : `56${seller.phone.replace(/[^0-9]/g, '')}`}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center rounded-full bg-green-50 px-4 py-2.5 text-sm font-black text-green-700 ring-1 ring-green-200">WhatsApp</a>
                 )}
                 {seller?.instagramUrl && (
-                  <a href={`https://instagram.com/${seller.instagramUrl.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="rounded-full bg-pink-50 px-4 py-2 text-sm font-black text-pink-600 ring-1 ring-pink-200">Instagram</a>
+                  <a href={`https://instagram.com/${seller.instagramUrl.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center rounded-full bg-pink-50 px-4 py-2.5 text-sm font-black text-pink-600 ring-1 ring-pink-200">Instagram</a>
                 )}
               </div>
             </div>
@@ -300,7 +300,7 @@ export default function SellerProfile() {
                 </div>
               ) : (
                 <div className="group flex items-start gap-2">
-                  <p className="min-h-6 flex-1 border-l-4 border-[#1e40af]/30 pl-3 text-sm font-semibold italic leading-relaxed text-slate-600 md:text-base">
+                  <p className="min-h-6 flex-1 border-l-4 border-[#1e40af]/30 pl-3 text-sm font-semibold italic leading-relaxed text-slate-600 line-clamp-4 md:line-clamp-none md:text-base">
                     {seller?.bio ? `"${seller.bio}"` : isOwner ? 'Aún no has escrito una biografía.' : 'Este vendedor aún no tiene biografía.'}
                   </p>
                   {isOwner && (
@@ -322,15 +322,15 @@ export default function SellerProfile() {
         </div>
       </section>
 
-      <main className="mx-auto w-full max-w-[1300px] px-4 py-8 sm:px-6 md:px-10">
-        <div className="mb-6 flex items-center justify-between border-b border-[#1a2b4b]/10 pb-4">
+      <main className="mx-auto w-full max-w-[1300px] px-4 py-6 sm:px-6 sm:py-8 md:px-10">
+        <div className="mb-5 flex items-center justify-between rounded-3xl bg-white/70 p-4 shadow-sm ring-1 ring-blue-100 sm:mb-6 sm:border-b sm:border-[#1a2b4b]/10 sm:bg-transparent sm:p-0 sm:pb-4 sm:shadow-none sm:ring-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#1a2b4b]/10">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1a2b4b]/10">
               <span translate="no" className="material-symbols-outlined text-[#1e40af]">auto_stories</span>
             </div>
-            <div>
-              <h2 className="text-2xl font-black text-[#1a2b4b]">Carpetas públicas</h2>
-              <p className="text-sm font-semibold text-slate-500">Catálogos publicados por este vendedor.</p>
+            <div className="min-w-0">
+              <h2 className="text-xl font-black leading-tight text-[#1a2b4b] sm:text-2xl">Carpetas públicas</h2>
+              <p className="text-xs font-semibold text-slate-500 sm:text-sm">Catálogos publicados por este vendedor.</p>
             </div>
           </div>
           <span className="rounded-full bg-[#1e40af] px-3 py-1 text-xs font-black text-white">{folders.length}</span>
