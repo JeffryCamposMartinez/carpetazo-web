@@ -229,7 +229,7 @@ export default function SellerProfile() {
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-[#102a56] via-[#1e40af] to-[#93c5fd]" />
         )}
-        <div className="absolute inset-0 bg-white/75 backdrop-blur-[2px]" />
+        <div className={`absolute inset-0 ${seller?.bannerBase64 ? 'bg-gradient-to-t from-black/25 via-transparent to-black/10' : 'bg-white/75 backdrop-blur-[2px]'}`} />
 
         {savingImage && (
           <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/70">
