@@ -370,7 +370,7 @@ export default function SellerProfile() {
         )}
 
         {isOwner && (
-          <div className="absolute right-3 top-3 z-[120] flex flex-col items-end gap-2 sm:right-4 sm:top-4">
+          <div className="absolute right-3 top-3 z-30 flex flex-col items-end gap-2 sm:right-4 sm:top-4">
             <div className="flex gap-2">
               <button type="button" onClick={() => setThemePanelOpen(prev => !prev)} className="inline-flex items-center gap-2 rounded-full bg-black/45 px-3 py-2 text-xs font-black text-white shadow-lg ring-1 ring-white/25 backdrop-blur hover:bg-black/60 sm:rounded-2xl sm:bg-white/90 sm:text-[#1a2b4b] sm:ring-white/80 sm:hover:bg-white sm:text-sm">
                 <span translate="no" className="material-symbols-outlined text-[18px]">palette</span>
@@ -384,7 +384,7 @@ export default function SellerProfile() {
             </div>
 
             {themePanelOpen && (
-              <div className="relative z-[130] w-[min(380px,calc(100vw-1.5rem))] rounded-[1.5rem] p-3 text-left shadow-2xl ring-1 ring-white/80 backdrop-blur" style={{ backgroundColor: `${publicTheme.card}f2`, color: publicTheme.text }}>
+              <div className="relative z-[35] w-[min(380px,calc(100vw-1.5rem))] rounded-[1.5rem] p-3 text-left shadow-2xl ring-1 ring-white/80 backdrop-blur" style={{ backgroundColor: `${publicTheme.card}f2`, color: publicTheme.text }}>
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-black">Tema público</p>
