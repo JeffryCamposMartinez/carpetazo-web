@@ -1030,7 +1030,7 @@ app.post('/api/users/upload-image', authenticateToken, upload.single('image'), a
     }
 
     const hash = crypto.randomBytes(16).toString('hex');
-    const filename = "profiles/" + req.user.sub + "/" + type + "_" + hash + ".webp";
+    const filename = "Carpetazo.cl/users/" + req.user.sub + "/" + type + "_" + hash + ".webp";
 
     await r2Client.send(new PutObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
@@ -1475,6 +1475,7 @@ app.listen(port, () => {
 
 
 
+
 
 
 
