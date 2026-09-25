@@ -1,4 +1,5 @@
-﻿import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { api } from '../utils/api';
 
 const DRAG_SCROLL_EDGE_PX = 120;
 const DRAG_SCROLL_MAX_SPEED = 28;
@@ -263,8 +264,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
         setFetchingAbility(true);
         setFetchedAbility(null);
         try {
-          const res = await fetch('https://api.carpetazo.cl/api/tcg/search?q=' + encodeURIComponent(previewCard.name));
-          const json = await res.json();
+          const json = await api.searchTcgProducts(previewCard.name);
           if (json.success && json.data) {
             let match = json.data.find(c => c.productId == previewCard.tcgId || c.productId == previewCard.apiId);
             if (!match) match = json.data.find(c => c.name.toLowerCase() === previewCard.name.toLowerCase());

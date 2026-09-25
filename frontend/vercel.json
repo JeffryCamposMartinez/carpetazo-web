@@ -5,10 +5,6 @@
       "destination": "https://carpetazo-db9d7.firebaseapp.com/__/auth/$1"
     },
     {
-      "source": "/api/:path*",
-      "destination": "http://euipeh6ysbeenndtc41ksvgo.185.173.110.158.sslip.io/api/:path*"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

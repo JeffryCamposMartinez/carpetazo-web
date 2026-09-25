@@ -1,84 +1,92 @@
-# Carpetazo 🗂️
+# Carpetazo
 
-Carpetazo es una plataforma web diseñada para vendedores y coleccionistas de Trading Card Games (TCG) como Pokémon, Yu-Gi-Oh!, Magic, entre otros. Permite a los usuarios crear "carpetas" (catálogos virtuales) de sus cartas, administrar su stock y precios, y compartir enlaces públicos para que compradores puedan revisar su inventario fácilmente.
+Carpetazo es una plataforma para vendedores y coleccionistas de Trading Card Games. Permite crear carpetas públicas, administrar stock/precios, compartir catálogos y recibir mensajes o pedidos.
 
-## 🚀 Tecnologías Principales
+## Stack
 
-El proyecto está dividido en dos partes principales: Frontend y Backend.
+### Frontend
 
-### Frontend (Carpeta `/frontend`)
-- **Framework:** React + Vite
-- **Estilos:** Tailwind CSS
-- **Autenticación:** Firebase Authentication (Google Login)
-- **Despliegue:** Vercel
+- React + Vite
+- Tailwind CSS
+- Firebase Authentication
+- API principal vía `VITE_API_URL` o, por defecto, `https://api.carpetazo.cl/api`
 
-### Backend (Carpeta `/backend`)
-- **Entorno:** Node.js + Express
-- **Base de Datos:** Firebase Cloud Firestore (NoSQL)
-- **Funcionalidad:** Sincronización de precios, actualización en bloque, limpieza de inventario.
+### Backend
 
----
+- Node.js + Express
+- PostgreSQL + Prisma
+- Firebase Admin para validar tokens de Firebase Auth
+- API pública en `https://api.carpetazo.cl/api`
 
-## 📂 Estructura del Proyecto
+## Estructura
 
 ```text
-├── backend/                  # Código del servidor Node.js
-│   ├── package.json          # Dependencias del servidor
-│   ├── server.js             # Punto de entrada de la API
-│   └── update_totals.js      # Scripts para sincronizar totales
-├── frontend/                 # Aplicación React
-│   ├── public/               # Imágenes, iconos y assets estáticos
-│   ├── src/                  
-│   │   ├── components/       # Componentes reutilizables (Header, Toast, Footer, etc.)
-│   │   ├── contexts/         # Contextos de React (AuthContext)
-│   │   ├── pages/            # Vistas principales (Dashboard, Explorar, etc.)
-│   │   ├── App.jsx           # Enrutamiento de la aplicación
-│   │   └── firebase.js       # Configuración e inicialización de Firebase
-│   ├── index.html            # Plantilla HTML base
-│   ├── package.json          # Dependencias de React
-│   ├── tailwind.config.js    # Configuración de estilos
-│   └── vite.config.js        # Configuración del bundler
-├── .gitignore                # Archivos ignorados por Git
-└── README.md                 # Documentación del proyecto
+backend/                 API Express, Prisma y endpoints
+frontend/                App React/Vite
+.github/workflows/ci.yml Validación y deploy a VPS
 ```
 
-## 🛠️ Instalación y Uso Local
+## Desarrollo local
 
-Para correr este proyecto en tu máquina local, necesitas tener instalado **Node.js**.
+### Frontend
 
-### 1. Clonar el repositorio
-```bash
-git clone <URL_DEL_REPOSITORIO>
-cd "Publicar mis cartas"
-```
-
-### 2. Configurar el Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Esto levantará la interfaz visual en `http://localhost:5173`.
 
-### 3. Configurar el Backend (Opcional para desarrollo local)
+Por defecto el frontend local usa `https://api.carpetazo.cl/api`. Si quieres apuntar a otro backend:
+
 ```bash
-cd ../backend
-npm install
-node server.js
+VITE_API_URL=http://localhost:8000/api npm run dev
 ```
-El servidor backend correrá en `http://localhost:3000`.
 
----
+### Backend
 
-## ✨ Características de la Aplicación
+```bash
+cd backend
+npm install
+npm run build
+npm start
+```
 
-- **Catálogos Personalizables:** Crea múltiples carpetas por categorías (TCG) y colores.
-- **Top Destacados:** Sistema de ranking semanal que destaca las carpetas más visitadas públicamente (Optimizada con carga asíncrona concurrente).
-- **Sistema de Búsqueda:** Búsqueda rápida de cartas con autocompletado desde la API pública de Pokémon TCG.
-- **Gestión de Stock:** Cambios rápidos de precios, aumento/disminución de stock.
-- **Vistas Públicas:** Enlaces únicos (Ej: `/c/ID_CARPETA`) para compartir con compradores.
+El backend necesita `DATABASE_URL` y las variables/señales propias del entorno de producción. No subas archivos `.env`.
 
-## 📄 Licencia
-Este proyecto es privado y todos sus derechos están reservados a sus creadores.
+## Deploy
 
+El workflow `.github/workflows/ci.yml` valida frontend, backend y Prisma. En pushes a `main` intenta desplegar por SSH a la VPS.
 
+Debes configurar estos secretos en GitHub:
+
+- `VPS_HOST`
+- `VPS_USER`
+- `VPS_SSH_KEY`
+- `VPS_PROJECT_PATH`
+- `VPS_RESTART_COMMAND`
+- `VITE_API_URL` recomendado: `https://api.carpetazo.cl/api`
+- `VPS_PORT` opcional si no usas puerto 22
+
+El deploy ejecuta:
+
+```bash
+git pull --ff-only origin main
+cd backend
+npm ci
+npm run build
+cd ../frontend
+npm ci
+npm run build
+```
+
+Después ejecuta el comando definido en `VPS_RESTART_COMMAND`, por ejemplo un reinicio con PM2 o systemd.
+
+## Healthcheck
+
+La API expone:
+
+```text
+GET /api/health
+```
+
+Sirve para comprobar si la VPS está viva y qué entorno/commit está corriendo.

@@ -21,7 +21,7 @@ class ErrorBoundary extends React.Component {
 
 
 import { useParams, useNavigate } from 'react-router-dom';
-import { api } from '../utils/api';
+import { api, apiUrl } from '../utils/api';
 import { getTcgConfig } from '../config/tcgConfig';
 
 import Toast from '../components/Toast';
@@ -93,7 +93,7 @@ function FolderPokemonInner() {
     if (originalUrl.includes('api.carpetazo.cl/images') || originalUrl.includes('r2.dev') || originalUrl.includes('imagenes.carpetazo.cl')) return originalUrl;
     if (originalUrl.startsWith('blob:')) return originalUrl;
     if (originalUrl.startsWith('data:')) return originalUrl;
-    return `https://api.carpetazo.cl/api/proxy-image?productId=${productId}`;
+    return apiUrl('/proxy-image?productId=' + encodeURIComponent(productId));
   };
 
   const { id } = useParams();

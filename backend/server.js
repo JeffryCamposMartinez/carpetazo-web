@@ -42,6 +42,16 @@ const prisma = new PrismaClient();
 const app = express();
 const port = process.env.PORT || 8000;
 
+app.get('/api/health', (_req, res) => {
+  res.json({
+    success: true,
+    service: 'carpetazo-api',
+    environment: process.env.NODE_ENV || 'development',
+    commit: process.env.GIT_COMMIT || null,
+    time: new Date().toISOString()
+  });
+});
+
 app.set('trust proxy', 1);
 
 const rateLimitMax = Number.parseInt(process.env.RATE_LIMIT_MAX || '2000', 10);
@@ -757,7 +767,17 @@ app.get('/api/messages/me', authenticateToken, async (req, res) => {
       where: { receiverId: user.id },
       orderBy: { createdAt: 'desc' }
     });
-    res.json({ success: true, messages });
+    res.json({
+      success: true,
+      messages,
+      otherUser: {
+        id: otherUser.id,
+        firebaseUid: otherUser.firebaseUid,
+        name: otherUser.name,
+        username: otherUser.username,
+        photoURL: otherUser.photoURL
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -784,13 +804,23 @@ app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
 });
 
 
-// GET messages between current user and another
-app.get('/api/messages/:otherId', authenticateToken, async (req, res) => {
-  try {
-    const currentUser = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    if (!currentUser) return res.status(401).json({ success: false });
-    
-    const otherId = req.params.otherId; // Use actual User ID (UUID)
+const resolveUserByAnyId = async (identifier) => {
+  const value = String(identifier || '').trim();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  const where = [{ firebaseUid: value }, { username: value }];
+  if (isUuid) where.push({ id: value });
+  return prisma.user.findFirst({ where: { OR: where } });
+};
+
+// GET messages between current user and another
+app.get('/api/messages/:otherId', authenticateToken, async (req, res) => {
+  try {
+    const currentUser = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    if (!currentUser) return res.status(401).json({ success: false });
+
+    const otherUser = await resolveUserByAnyId(req.params.otherId);
+    if (!otherUser) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const otherId = otherUser.id;
     
     const messages = await prisma.message.findMany({
       where: {
@@ -810,12 +840,14 @@ app.get('/api/messages/:otherId', authenticateToken, async (req, res) => {
 });
 
 // POST new message
-app.post('/api/messages/:otherId', authenticateToken, async (req, res) => {
-  try {
-    const currentUser = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    if (!currentUser) return res.status(401).json({ success: false });
-    
-    const otherId = req.params.otherId;
+app.post('/api/messages/:otherId', authenticateToken, async (req, res) => {
+  try {
+    const currentUser = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    if (!currentUser) return res.status(401).json({ success: false });
+
+    const otherUser = await resolveUserByAnyId(req.params.otherId);
+    if (!otherUser) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const otherId = otherUser.id;
     const { content } = req.body;
     
     if (!content) return res.status(400).json({ success: false });
@@ -828,7 +860,17 @@ app.post('/api/messages/:otherId', authenticateToken, async (req, res) => {
       }
     });
     
-    res.json({ success: true, message });
+    res.json({
+      success: true,
+      message,
+      otherUser: {
+        id: otherUser.id,
+        firebaseUid: otherUser.firebaseUid,
+        name: otherUser.name,
+        username: otherUser.username,
+        photoURL: otherUser.photoURL
+      }
+    });
   } catch (error) {
     console.error('Error sending message:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
@@ -868,7 +910,7 @@ app.get('/api/chats', authenticateToken, async (req, res) => {
     
     const users = await prisma.user.findMany({
       where: { id: { in: otherIds } },
-      select: { id: true, name: true, username: true, photoURL: true }
+      select: { id: true, firebaseUid: true, name: true, username: true, photoURL: true }
     });
     
     const enrichedChats = chats.map(c => {
@@ -876,8 +918,9 @@ app.get('/api/chats', authenticateToken, async (req, res) => {
       const partner = users.find(u => u.id === partnerId) || {};
       return {
         ...c,
-        partner
-      };
+        partner,
+        otherUser: partner
+      };
     });
     
     res.json({ success: true, chats: enrichedChats });
@@ -1200,7 +1243,7 @@ app.get('/api/tcg/:categoryId/:groupId/products', async (req, res) => {
   try {
     const { categoryId, groupId } = req.params;
     const { mylType, mylRace, mylFrequency, mylCost, physicalProductId } = req.query;
-    
+
     let whereClause = { categoryId: parseInt(categoryId) };
     if (physicalProductId) whereClause.physicalProductId = parseInt(physicalProductId);
     if (groupId === 'otros') {
@@ -1210,13 +1253,13 @@ app.get('/api/tcg/:categoryId/:groupId/products', async (req, res) => {
     } else {
       whereClause.groupId = parseInt(groupId);
     }
-    
+
     let andConditions = [];
     if (mylType) andConditions.push({ extData: { array_contains: [{ name: 'Type', value: mylType }] } });
     if (mylRace) andConditions.push({ extData: { array_contains: [{ name: 'Race', value: mylRace }] } });
     if (mylFrequency) andConditions.push({ extData: { array_contains: [{ name: 'Frequency', value: mylFrequency }] } });
     if (mylCost !== undefined && mylCost !== '') andConditions.push({ extData: { array_contains: [{ name: 'Cost', value: mylCost.toString() }] } });
-    
+
     if (andConditions.length > 0) {
       whereClause.AND = andConditions;
     }
@@ -1257,7 +1300,7 @@ app.get('/api/tcg/physical-products', async (req, res) => {
 app.get('/api/tcg/search', async (req, res) => {
   try {
     const { q, categoryId, groupId, blockId, mylType, mylRace, mylFrequency, mylCost, physicalProductId } = req.query;
-    
+
     let whereClause = {};
     if (q) {
       const cleanQ = q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, "");
@@ -1295,7 +1338,7 @@ app.get('/api/tcg/search', async (req, res) => {
     if (mylRace) andConditions.push({ extData: { array_contains: [{ name: 'Race', value: mylRace }] } });
     if (mylFrequency) andConditions.push({ extData: { array_contains: [{ name: 'Frequency', value: mylFrequency }] } });
     if (mylCost !== undefined && mylCost !== '') andConditions.push({ extData: { array_contains: [{ name: 'Cost', value: mylCost.toString() }] } });
-    
+
     if (andConditions.length > 0) {
       whereClause.AND = andConditions;
     }

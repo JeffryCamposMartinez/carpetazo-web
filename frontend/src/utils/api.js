@@ -1,6 +1,11 @@
 import { auth } from '../firebase';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.carpetazo.cl/api';
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://api.carpetazo.cl/api').replace(/\/$/, '');
+
+export const apiUrl = (endpoint = '') => {
+  const normalizedEndpoint = String(endpoint).startsWith('/') ? endpoint : '/' + endpoint;
+  return API_BASE_URL + normalizedEndpoint;
+};
 
 /**
  * Función genérica para hacer peticiones al backend.
@@ -22,7 +27,7 @@ export const apiFetch = async (endpoint, options = {}) => {
     headers['Authorization'] = 'Bearer ' + token;
   }
 
-  const response = await fetch(API_BASE_URL + endpoint, {
+  const response = await fetch(apiUrl(endpoint), {
     ...options,
     headers,
   });

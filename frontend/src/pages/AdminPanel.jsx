@@ -3,7 +3,7 @@ import Filters from '../components/Filters';
 import Toast from '../components/Toast';
 import ConfirmModal from '../components/ConfirmModal';
 import { useAuth } from '../contexts/AuthContext';
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import { apiFetch, apiUrl } from '../utils/api';
 
 const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
   const [price, setPrice] = useState(card.price);
@@ -85,7 +85,7 @@ function AdminPanel() {
     if (!originalUrl) return '';
     if (originalUrl.includes('api.carpetazo.cl/images') || originalUrl.includes('r2.dev') || originalUrl.includes('imagenes.carpetazo.cl')) return originalUrl;
     if (originalUrl.startsWith('blob:')) return originalUrl;
-    return `https://api.carpetazo.cl/api/proxy-image?productId=${productId}`;
+    return apiUrl('/proxy-image?productId=' + encodeURIComponent(productId));
   };
 
   const { getAuthToken } = useAuth();
@@ -135,33 +135,21 @@ function AdminPanel() {
   // Fetch logic
   const fetchOrders = async () => {
     try {
-      const token = await getAuthToken();
-      const response = await fetch(`${API_BASE}/api/orders`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await response.json();
+      const result = await apiFetch('/orders');
       if (result.success) setPendingOrders(result.data);
     } catch (err) { console.error('Error fetching orders:', err); }
   };
 
   const fetchHistory = async () => {
     try {
-      const token = await getAuthToken();
-      const response = await fetch(`${API_BASE}/api/history`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await response.json();
+      const result = await apiFetch('/history');
       if (result.success) setHistory(result.data);
     } catch (err) { console.error('Error fetching history:', err); }
   };
 
   const fetchCards = async () => {
     try {
-      const token = await getAuthToken();
-      const response = await fetch(`${API_BASE}/api/cards`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await response.json();
+      const result = await apiFetch('/cards');
       if (result.success) setCards(result.data);
     } catch (err) { console.error('Error fetching cards:', err); }
   };
@@ -214,16 +202,10 @@ function AdminPanel() {
   // --- MANEJO DE CATÁLOGO LOGIC ---
   const handleUpdateCard = async (id, newPrice, newStock) => {
     try {
-      const token = await getAuthToken();
-      const response = await fetch(`${API_BASE}/api/cards/update`, {
+      const result = await apiFetch('/cards/update', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({ id, price: newPrice, stock: newStock })
       });
-      const result = await response.json();
       if (result.success) {
         // Optimistic update locally
         setCards(cards.map(c => c.id === id ? { ...c, price: parseFloat(newPrice), stock: parseInt(newStock) } : c));
@@ -245,16 +227,10 @@ function AdminPanel() {
     const id = confirmDialog.targetId;
     setConfirmDialog({ show: false, message: '', targetId: null });
     try {
-      const token = await getAuthToken();
-      const response = await fetch(`${API_BASE}/api/cards/delete`, {
+      const result = await apiFetch('/cards/delete', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({ id })
       });
-      const result = await response.json();
       if (result.success) {
         setCards(cards.filter(c => c.id !== id));
         showToast('Carta eliminada exitosamente', 'success');
@@ -464,16 +440,10 @@ function AdminPanel() {
       language: language
     };
     try {
-      const token = await getAuthToken();
-      const response = await fetch(`${API_BASE}/api/cards`, {
+      const result = await apiFetch('/cards', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify(cardData)
       });
-      const result = await response.json();
       if (result.success) {
         showToast('¡Carta guardada en el catálogo exitosamente!', 'success');
         setSelectedCard(null);
@@ -749,12 +719,10 @@ function AdminPanel() {
     if (!code) return;
     setIsProcessingOrder(true);
     try {
-      const response = await fetch(`${API_BASE}/api/process-order`, {
+      const result = await apiFetch('/process-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code })
       });
-      const result = await response.json();
       if (result.success) { fetchCards(); fetchOrders(); fetchHistory(); }
     } catch (err) { console.error(err); } finally { setIsProcessingOrder(false); }
   };
@@ -762,12 +730,10 @@ function AdminPanel() {
   const handleRejectOrder = async (code) => {
     if (!code) return;
     try {
-      const response = await fetch(`${API_BASE}/api/reject-order`, {
+      const result = await apiFetch('/reject-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code })
       });
-      const result = await response.json();
       if (result.success) { fetchOrders(); fetchHistory(); }
     } catch (err) { console.error(err); }
   };

@@ -1,18 +1,15 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
-import api, { apiFetch } from '../utils/api';
+import api, { API_BASE_URL, apiFetch } from '../utils/api';
 import PokemonCard from '../components/PokemonCard';
 import AlbumView from '../components/AlbumView';
 import Toast from '../components/Toast';
 import { useAuth } from '../contexts/AuthContext';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
 import PublicCatalogFilters from '../components/folder/filters/PublicCatalogFilters';
 
 const isLocalhostWithProductionApi = () => {
   if (typeof window === 'undefined') return false;
-  const apiUrl = import.meta.env.VITE_API_URL || 'https://api.carpetazo.cl/api';
-  return ['localhost', '127.0.0.1'].includes(window.location.hostname) && apiUrl.includes('api.carpetazo.cl');
+  return ['localhost', '127.0.0.1'].includes(window.location.hostname) && API_BASE_URL.includes('api.carpetazo.cl');
 };
 
 function PublicCatalog() {
@@ -99,17 +96,6 @@ function PublicCatalog() {
             displayName: folder.user.name || folder.user.username,
             avatarBase64: folder.user.photoURL
           };
-          if (folder.user.firebaseUid && window.location.protocol !== 'http:') {
-            try {
-              
-              const userSnap = await getDoc(doc(db, 'users', folder.user.firebaseUid));
-              if (userSnap.exists()) {
-                mergedUser = { ...mergedUser, ...userSnap.data() };
-              }
-            } catch (e) {
-              console.warn("No se pudieron cargar datos extendidos del vendedor desde Firestore; usando datos públicos del backend.", e?.message || e);
-            }
-          }
           setSellerData(mergedUser);
         }
 
