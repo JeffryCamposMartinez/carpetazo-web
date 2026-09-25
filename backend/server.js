@@ -889,17 +889,73 @@ app.get('/api/chats', authenticateToken, async (req, res) => {
 
 
 // GET user profile and their folders
-app.get('/api/users/:username', async (req, res) => {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { username: req.params.username },
-      include: {
-        folders: {
-          where: { isPublic: true },
-          include: { cards: true }
-        }
-      }
-    });
+app.get('/api/users/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { firebaseUid: req.user.sub }
+    });
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error('Error fetching my profile:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch profile' });
+  }
+});
+
+app.put('/api/users/me', authenticateToken, async (req, res) => {
+  try {
+    const firebaseUid = req.user.sub;
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.firebaseUid;
+    delete updateData.createdAt;
+    delete updateData.updatedAt;
+    
+    // Convert undefined to null for Prisma
+    for (let key in updateData) {
+      if (updateData[key] === undefined) delete updateData[key];
+    }
+
+    const user = await prisma.user.update({
+      where: { firebaseUid },
+      data: updateData
+    });
+
+app.delete('/api/users/me', authenticateToken, async (req, res) => {
+  try {
+    const firebaseUid = req.user.sub;
+    
+    // Deactivate user instead of hard delete
+    const user = await prisma.user.update({
+      where: { firebaseUid },
+      data: {
+        username: deleted__,
+        name: 'Usuario Eliminado',
+        photoURL: null,
+        bio: 'Cuenta eliminada'
+      }
+    });
+
+    // Make all their folders private
+    await prisma.folder.updateMany({
+      where: { userId: user.id },
+      data: { isPublic: false }
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete account' });
+  }
+});
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ success: false, error: 'Failed to update profile' });
+  }
+});
+
+
     
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -1173,6 +1229,8 @@ app.listen(port, () => {
 
 
 
+
+
 
 
 

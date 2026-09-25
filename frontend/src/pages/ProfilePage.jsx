@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { db } from '../firebase';
 import { api } from '../utils/api';
 import { deleteUser } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
@@ -126,10 +125,13 @@ const ProfilePage = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       if (currentUser) {
-        const docRef = doc(db, 'users', currentUser.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setProfileData(prev => ({ ...prev, ...docSnap.data() }));
+        try {
+          const res = await api.getMe();
+          if (res.success && res.user) {
+            setProfileData(prev => ({ ...prev, ...res.user }));
+          }
+        } catch (error) {
+          console.error('Error fetching profile from API', error);
         }
       }
     };
@@ -172,25 +174,21 @@ const ProfilePage = () => {
       
       const cleanUsername = profileData.username.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
       
-      // Prevent searching if it's the same as what the user currently has in DB
-      if (currentUser && currentUser.uid) {
-         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-         if (userDoc.exists() && (userDoc.data().username === cleanUsername || userDoc.data().displayName === profileData.displayName)) {
-            setUsernameAvailable(true);
-            setCheckingUsername(false);
-            return;
-         }
-      }
+      try {
+        const meRes = await api.getMe();
+        if (meRes.success && meRes.user && meRes.user.username === cleanUsername) {
+          setUsernameAvailable(true);
+          setCheckingUsername(false);
+          return;
+        }
 
-      const qUsername = query(collection(db, 'users'), where('username', '==', cleanUsername));
-      const usernameSnap = await getDocs(qUsername);
-      const existingUsernameDoc = usernameSnap.docs.find(doc => doc.id !== currentUser.uid);
-
-      const existingDisplayNameDoc = false;
-      
-      if (existingUsernameDoc || existingDisplayNameDoc) {
-        setUsernameAvailable(false);
-      } else {
+        const res = await api.getUserProfile(cleanUsername);
+        if (res.success && res.user) {
+          setUsernameAvailable(false);
+        } else {
+          setUsernameAvailable(true);
+        }
+      } catch (err) {
         setUsernameAvailable(true);
       }
       setCheckingUsername(false);
@@ -223,41 +221,14 @@ const ProfilePage = () => {
     if (rutError) return;
     setSavingProfile(true);
     try {
-      if (profileData.username) {
-        // Enforce lowercase and remove invalid characters just in case
-        const cleanUsername = profileData.username.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-        
-        // Validate uniqueness for both username and displayName
-        const qUsername = query(collection(db, 'users'), where('username', '==', cleanUsername));
-        const usernameSnap = await getDocs(qUsername);
-        const existingUsernameDoc = usernameSnap.docs.find(doc => doc.id !== currentUser.uid);
-
-        const existingDisplayNameDoc = false;
-        
-        if (existingUsernameDoc || existingDisplayNameDoc) {
-          alert("Ese nombre de usuario ya está en uso. Por favor, elige otro.");
-          setSavingProfile(false);
-          return;
-        }
-        
-        profileData.username = cleanUsername; // Ensure cleaned version is saved
-      }
-
-      const docRef = doc(db, 'users', currentUser.uid);
-      await setDoc(docRef, profileData, { merge: true });
-
-      // Update Firebase Auth profile
-      if (currentUser) {
-        const { updateProfile } = await import('firebase/auth');
-        await updateProfile(currentUser, {
-          displayName: profileData.displayName
-        });
-      }
-
+      const cleanUsername = profileData.username ? profileData.username.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') : null;
+      
+      await api.updateProfile({ ...profileData, username: cleanUsername || profileData.username });
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
-      console.error("Error saving profile:", error);
+      console.error('Error saving profile:', error);
+      alert('Error al guardar el perfil');
     } finally {
       setSavingProfile(false);
     }
@@ -375,8 +346,7 @@ const ProfilePage = () => {
     setIsAddressModalOpen(false);
     
     // Auto save
-    const docRef = doc(db, 'users', currentUser.uid);
-    await setDoc(docRef, { addresses: newAddresses }, { merge: true });
+    await api.updateProfile({ addresses: newAddresses });
   };
 
   const handleDeleteAddress = (idx) => {
@@ -395,8 +365,7 @@ const ProfilePage = () => {
     setProfileData(prev => ({ ...prev, addresses: newAddresses }));
     setDeleteConfirmationIndex(null);
     
-    const docRef = doc(db, 'users', currentUser.uid);
-    await setDoc(docRef, { addresses: newAddresses }, { merge: true });
+    await api.updateProfile({ addresses: newAddresses });
   };
 
   const confirmSetDefaultAddress = async () => {
@@ -407,70 +376,25 @@ const ProfilePage = () => {
     setProfileData(prev => ({ ...prev, addresses: newAddresses }));
     setDefaultConfirmationIndex(null);
     
-    const docRef = doc(db, 'users', currentUser.uid);
-    await setDoc(docRef, { addresses: newAddresses }, { merge: true });
+    await api.updateProfile({ addresses: newAddresses });
   };
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirmationText.toLowerCase() !== 'eliminar') return;
-    
-    setIsDeletingAccount(true);
-    try {
-      const foldersRef = collection(db, 'folders');
-      const qFolders = query(foldersRef, where('userId', '==', currentUser.uid));
-      const foldersSnap = await getDocs(qFolders);
+      if (deleteConfirmationText.toLowerCase() !== 'eliminar') return;
       
-      for (const folderDoc of foldersSnap.docs) {
-        await setDoc(folderDoc.ref, { isPublic: false, isDeactivated: true }, { merge: true });
-      }
-
-      await setDoc(doc(db, 'users', currentUser.uid), {
-        isActive: false,
-        isDeactivated: true,
-        deactivatedAt: new Date().toISOString(),
-        username: `deleted_${Date.now()}_${currentUser.uid.substring(0, 5)}`,
-        displayName: 'Usuario Eliminado',
-        avatarBase64: null,
-        photoURL: null
-      }, { merge: true });
-      
-      // Update all chats to notify the other person
-      const chatsRef = collection(db, 'chats');
-      const qChats = query(chatsRef, where('participants', 'array-contains', currentUser.uid));
-      const chatsSnap = await getDocs(qChats);
-      
-      for (const chatDoc of chatsSnap.docs) {
-        await setDoc(chatDoc.ref, {
-          participantDeactivated: {
-            [currentUser.uid]: true
-          }
-        }, { merge: true });
-      }
-      
-      await deleteUser(currentUser);
-      
-      navigate('/');
-    } catch (error) {
-      console.error("Error al eliminar la cuenta:", error);
-      if (error.code === 'auth/requires-recent-login') {
-        try {
-          // Si Firebase pide re-autenticación por seguridad, abrimos el popup de Google
-          const { reauthenticateWithPopup } = await import('firebase/auth');
-          const { googleProvider } = await import('../firebase');
-          await reauthenticateWithPopup(currentUser, googleProvider);
-          // Si tiene éxito, intentamos borrar de nuevo
+      setIsDeletingAccount(true);
+      try {
+        await api.deleteProfile();
+        if (currentUser) {
           await deleteUser(currentUser);
-          navigate('/');
-        } catch (reauthError) {
-          console.error("Error al re-autenticar:", reauthError);
-          alert("Debes completar el inicio de sesión para confirmar la eliminación de tu cuenta.");
         }
-      } else {
-        alert("Error al eliminar la cuenta: " + error.message);
+        navigate('/');
+      } catch (error) {
+        console.error('Error deleting account:', error);
+        alert('Hubo un error al eliminar tu cuenta.');
+      } finally {
+        setIsDeletingAccount(false);
       }
-    } finally {
-      setIsDeletingAccount(false);
-    }
   };
 
   return (

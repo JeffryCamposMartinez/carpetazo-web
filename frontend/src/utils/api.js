@@ -39,6 +39,9 @@ export const api = {
   // Users
   syncUser: (data = {}) => apiFetch('/users/sync', { method: 'POST', body: JSON.stringify(data) }),
   getUserProfile: (username) => apiFetch('/users/' + username),
+  getMe: () => apiFetch('/users/me'),
+  updateProfile: (data) => apiFetch('/users/me', { method: 'PUT', body: JSON.stringify(data) }),
+  deleteProfile: () => apiFetch('/users/me', { method: 'DELETE' }),
   
   // Folders
   getPublicFolders: () => apiFetch('/folders'),
@@ -100,5 +103,7 @@ export const api = {
 };
 
 export default api;
+
+
 
 

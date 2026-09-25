@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+﻿import React, { useState, useMemo, useEffect, useRef } from 'react';
 
 const DRAG_SCROLL_EDGE_PX = 120;
 const DRAG_SCROLL_MAX_SPEED = 28;
@@ -375,7 +375,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
       {!inverted && (
         <div className="md:hidden flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs mb-3 font-medium bg-slate-200/50 dark:bg-slate-800/50 px-3 py-1 rounded-full">
           <span translate="no" className="material-symbols-outlined text-[16px]">swipe</span>
-          Desliza para cambiar de página
+          Desliza para cambiar de pÃ¡gina
         </div>
       )}
 
@@ -447,7 +447,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
   const previewSubtitle = previewCard
     ? (tcg === 'Mitos y Leyendas'
       ? ''
-      : `${previewCard.set} • ${(previewCard.supertype === 'Unknown' || !previewCard.supertype) ? 'Pokémon' : previewCard.supertype} • #${(() => {
+      : `${previewCard.set} â€¢ ${(previewCard.supertype === 'Unknown' || !previewCard.supertype) ? 'PokÃ©mon' : previewCard.supertype} â€¢ #${(() => {
           let numStr = (previewCard.number || previewCard.apiId?.split('-')[1] || previewCard.id?.split('-')[1] || '').toString();
           return numStr.padStart(3, '0');
         })()}`)
@@ -661,28 +661,30 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
 
                     {tcg === 'Mitos y Leyendas' ? (
                       <>
-                        <div className="grid grid-cols-3 gap-1.5 md:gap-2">
-                          <p className="rounded-xl border border-white/10 bg-white/[0.05] px-2.5 py-1.5 md:px-3 md:py-2">
-                            <strong className="block text-white/45 text-[9px] md:text-[10px] uppercase tracking-wider">Tipo</strong>
-                            <span className="block text-[11px] md:text-sm font-extrabold text-white leading-tight">{previewCard.type || previewCard.supertype || 'Carta'}</span>
-                          </p>
-                          <p className="rounded-xl border border-white/10 bg-white/[0.05] px-2.5 py-1.5 md:px-3 md:py-2">
-                            <strong className="block text-white/45 text-[9px] md:text-[10px] uppercase tracking-wider">Raza</strong>
-                            <span className="block text-[11px] md:text-sm font-extrabold text-white leading-tight">{previewCard.race || '—'}</span>
-                          </p>
-                          <p className="rounded-xl border border-white/10 bg-white/[0.05] px-2.5 py-1.5 md:px-3 md:py-2">
-                            <strong className="block text-white/45 text-[9px] md:text-[10px] uppercase tracking-wider">Coste</strong>
-                            <span className="block text-[11px] md:text-sm font-extrabold text-white leading-tight">{previewCard.cost ?? '—'}</span>
-                          </p>
-                        </div>
-
-                        <div className="w-full bg-black/45 p-2 md:p-4 rounded-2xl border border-white/10 shadow-inner overflow-hidden flex-1 min-h-0">
+                                                  <div className="flex gap-1.5 md:gap-2">
+                            <p className="flex-1 rounded-xl border border-white/10 bg-white/[0.05] px-2.5 py-1.5 md:px-3 md:py-2">
+                              <strong className="block text-white/45 text-[9px] md:text-[10px] uppercase tracking-wider">Tipo</strong>
+                              <span className="block text-[11px] md:text-sm font-extrabold text-white leading-tight">{previewCard.type || previewCard.supertype || 'Carta'}</span>
+                            </p>
+                            {previewCard.race && previewCard.race !== 'SIN_RAZA' && previewCard.race !== '—' && previewCard.race !== '-' && (
+                              <p className="flex-1 rounded-xl border border-white/10 bg-white/[0.05] px-2.5 py-1.5 md:px-3 md:py-2">
+                                <strong className="block text-white/45 text-[9px] md:text-[10px] uppercase tracking-wider">Raza</strong>
+                                <span className="block text-[11px] md:text-sm font-extrabold text-white leading-tight">{previewCard.race}</span>
+                              </p>
+                            )}
+                            {previewCard.cost !== null && previewCard.cost !== undefined && previewCard.cost !== '' && (
+                              <p className="flex-1 rounded-xl border border-white/10 bg-white/[0.05] px-2.5 py-1.5 md:px-3 md:py-2">
+                                <strong className="block text-white/45 text-[9px] md:text-[10px] uppercase tracking-wider">Coste</strong>
+                                <span className="block text-[11px] md:text-sm font-extrabold text-white leading-tight">{previewCard.cost}</span>
+                              </p>
+                            )}
+                          </div><div className="w-full bg-black/45 p-2 md:p-4 rounded-2xl border border-white/10 shadow-inner overflow-y-auto custom-scrollbar flex-shrink">
                           <p className="flex flex-col">
                             <strong className="flex items-center gap-1.5 text-yellow-100/80 text-[9px] md:text-sm uppercase tracking-wider mb-1 md:mb-2">
                               <span translate="no" className="material-symbols-outlined text-[14px] md:text-[16px]">auto_fix_high</span>
                               Habilidad
                             </strong> 
-                            <span className="font-medium text-white text-[10px] md:text-sm leading-snug md:leading-relaxed whitespace-pre-wrap line-clamp-3 md:line-clamp-4">
+                            <span className="font-medium text-white text-[10px] md:text-sm leading-snug md:leading-relaxed whitespace-pre-wrap">
                             {fetchingAbility ? 'Buscando habilidad ancestral...' : (fetchedAbility || 'Sin habilidad registrada')}
                             </span>
                           </p>
@@ -696,7 +698,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                       </div>
                     )}
 
-                    <div className="flex mt-auto pt-1 md:pt-6 pb-8 md:pb-0 w-full justify-center">
+                    <div className="flex mt-auto pt-1 md:pt-6 pb-0 w-full justify-center">
                       <div className="w-full max-w-[280px] md:max-w-[320px] album-preview-actions bg-white/5 p-1 md:p-3 rounded-xl border border-white/10">
                         {renderCardActions && renderCardActions(previewCard)}
                       </div>
@@ -969,7 +971,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                   {isDropPreview && (
                     <div className="absolute inset-0 z-[130] flex items-center justify-center rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-400/15 pointer-events-none">
                       <div className="rounded-full bg-emerald-500 px-3 py-1 text-[10px] md:text-xs font-black uppercase tracking-wide text-white shadow-lg">
-                        Soltar aquí
+                        Soltar aquÃ­
                       </div>
                     </div>
                   )}
@@ -1111,5 +1113,9 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
     </div>
   );
 }
+
+
+
+
 
 

@@ -11,15 +11,24 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  firebaseUid String @unique
-  email     String   @unique
-  name      String?
-  username  String?  @unique
-  photoURL  String?
-  folders   Folder[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(uuid())
+  firebaseUid   String   @unique
+  email         String   @unique
+  name          String?
+  fullName      String?
+  username      String?  @unique
+  photoURL      String?
+  bio           String?
+  phone         String?
+  rut           String?
+  facebookUrl   String?
+  instagramUrl  String?
+  youtubeUrl    String?
+  addresses     Json?
+  bankDetails   Json?
+  folders       Folder[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Folder {
