@@ -8,8 +8,8 @@ export const apiUrl = (endpoint = '') => {
 };
 
 /**
- * Función genérica para hacer peticiones al backend.
- * Automáticamente inyecta el token de Firebase.
+ * FunciÃ³n genÃ©rica para hacer peticiones al backend.
+ * AutomÃ¡ticamente inyecta el token de Firebase.
  */
 export const apiFetch = async (endpoint, options = {}) => {
   let token = null;

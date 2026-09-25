@@ -49,12 +49,12 @@ const emptyProfile = {
 };
 
 const tabs = [
-  { id: 'general', label: 'Perfil', icon: 'person', description: 'Tu identidad pública y cómo te ven otros usuarios.' },
+  { id: 'general', label: 'Perfil', icon: 'person', description: 'Tu identidad pÃºblica y cÃ³mo te ven otros usuarios.' },
   { id: 'personal', label: 'Privado', icon: 'badge', description: 'Datos privados para contacto, compras y validaciones.' },
   { id: 'addresses', label: 'Direcciones', icon: 'location_on', description: 'Lugares donde puedes recibir pedidos.' },
   { id: 'payments', label: 'Pagos', icon: 'account_balance', description: 'Datos bancarios para recibir ventas.' },
-  { id: 'social', label: 'Redes', icon: 'share', description: 'Enlaces visibles en tu perfil público.' },
-  { id: 'security', label: 'Cuenta', icon: 'shield', description: 'Estado de sesión y acciones sensibles.' }
+  { id: 'social', label: 'Redes', icon: 'share', description: 'Enlaces visibles en tu perfil pÃºblico.' },
+  { id: 'security', label: 'Cuenta', icon: 'shield', description: 'Estado de sesiÃ³n y acciones sensibles.' }
 ];
 
 const normalizeUsername = (value = '') => (
@@ -213,7 +213,7 @@ const ProfilePage = () => {
       setUsernameState({ checking: false, available: true, message: '' });
     } catch (error) {
       console.error('Error loading profile:', error);
-      setProfileError('No pudimos cargar tu perfil. Revisa la conexión e intenta nuevamente.');
+      setProfileError('No pudimos cargar tu perfil. Revisa la conexiÃ³n e intenta nuevamente.');
     } finally {
       setLoadingProfile(false);
     }
@@ -230,7 +230,7 @@ const ProfilePage = () => {
       return undefined;
     }
     if (!/^[a-z0-9_]{3,20}$/.test(username)) {
-      setUsernameState({ checking: false, available: false, message: 'Usa 3 a 20 caracteres: letras, números o _.' });
+      setUsernameState({ checking: false, available: false, message: 'Usa 3 a 20 caracteres: letras, nÃºmeros o _.' });
       return undefined;
     }
     if (username === originalUsername) {
@@ -244,7 +244,7 @@ const ProfilePage = () => {
         setUsernameState({
           checking: false,
           available: Boolean(result.available),
-          message: result.available ? 'Usuario disponible.' : 'Ese usuario ya está en uso.'
+          message: result.available ? 'Usuario disponible.' : 'Ese usuario ya estÃ¡ en uso.'
         });
       } catch (error) {
         setUsernameState({ checking: false, available: false, message: error.message || 'No se pudo verificar el usuario.' });
@@ -277,7 +277,7 @@ const ProfilePage = () => {
   };
 
   const handleSaveProfile = async (section = 'profile') => {
-    if (!rutIsValid) return showFeedback('error', 'El RUT ingresado no es válido.');
+    if (!rutIsValid) return showFeedback('error', 'El RUT ingresado no es vÃ¡lido.');
     if (usernameState.available === false || usernameState.checking) return showFeedback('error', 'Revisa el nombre de usuario antes de guardar.');
     const payload = compactProfilePayload(profileData);
     const ok = await persistProfile(payload, 'Perfil actualizado correctamente.', section);
@@ -293,7 +293,7 @@ const ProfilePage = () => {
   const handleAvatarUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) return showFeedback('error', 'Sube una imagen v�lida.');
+    if (!file.type.startsWith('image/')) return showFeedback('error', 'Sube una imagen válida.');
     if (file.size > 10 * 1024 * 1024) return showFeedback('error', 'La imagen debe pesar menos de 10 MB.');
     
     showFeedback('info', 'Subiendo foto...');
@@ -333,13 +333,13 @@ const ProfilePage = () => {
   const saveAddress = async (event) => {
     event.preventDefault();
     if (!addressForm.region || !addressForm.comuna || !addressForm.street || !addressForm.number) {
-      return showFeedback('error', 'Completa región, comuna, calle y número.');
+      return showFeedback('error', 'Completa regiÃ³n, comuna, calle y nÃºmero.');
     }
     const nextAddresses = [...(profileData.addresses || [])];
     const nextAddress = { ...addressForm, isDefault: addressModal.index === null ? nextAddresses.length === 0 : Boolean(nextAddresses[addressModal.index]?.isDefault) };
     if (addressModal.index === null) nextAddresses.push(nextAddress);
     else nextAddresses[addressModal.index] = nextAddress;
-    const ok = await persistProfile({ addresses: nextAddresses }, 'Dirección guardada.', 'addresses');
+    const ok = await persistProfile({ addresses: nextAddresses }, 'DirecciÃ³n guardada.', 'addresses');
     if (ok) setAddressModal({ open: false, index: null });
   };
 
@@ -348,13 +348,13 @@ const ProfilePage = () => {
     const removed = nextAddresses[deleteAddressIndex];
     nextAddresses.splice(deleteAddressIndex, 1);
     if (removed?.isDefault && nextAddresses.length > 0) nextAddresses[0].isDefault = true;
-    const ok = await persistProfile({ addresses: nextAddresses }, 'Dirección eliminada.', 'addresses');
+    const ok = await persistProfile({ addresses: nextAddresses }, 'DirecciÃ³n eliminada.', 'addresses');
     if (ok) setDeleteAddressIndex(null);
   };
 
   const confirmDefaultAddress = async () => {
     const nextAddresses = (profileData.addresses || []).map((address, index) => ({ ...address, isDefault: index === defaultAddressIndex }));
-    const ok = await persistProfile({ addresses: nextAddresses }, 'Dirección principal actualizada.', 'addresses');
+    const ok = await persistProfile({ addresses: nextAddresses }, 'DirecciÃ³n principal actualizada.', 'addresses');
     if (ok) setDefaultAddressIndex(null);
   };
 
@@ -382,8 +382,8 @@ const ProfilePage = () => {
       <div className="mx-auto max-w-xl px-4 py-16 text-center">
         <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-blue-100">
           <span translate="no" className="material-symbols-outlined text-5xl text-[#1e40af]">lock</span>
-          <h1 className="mt-4 text-2xl font-black text-[#1a2b4b]">Inicia sesión para ver tu perfil</h1>
-          <p className="mt-2 text-sm font-medium text-slate-500">Esta sección usa tu sesión para cargar y guardar datos de forma segura.</p>
+          <h1 className="mt-4 text-2xl font-black text-[#1a2b4b]">Inicia sesiÃ³n para ver tu perfil</h1>
+          <p className="mt-2 text-sm font-medium text-slate-500">Esta secciÃ³n usa tu sesiÃ³n para cargar y guardar datos de forma segura.</p>
         </div>
       </div>
     );
@@ -467,17 +467,17 @@ const ProfilePage = () => {
                 <section className="space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
                     <Field label="Nombre completo"><TextInput value={profileData.fullName} onChange={e => updateProfileField('fullName', e.target.value)} placeholder="Ej. Jeffry Campos" /></Field>
-                    <Field label="Nombre visible"><TextInput value={profileData.displayName} onChange={e => updateProfileField('displayName', e.target.value)} placeholder="Nombre público" /></Field>
-                    <Field label="Usuario público" hint={usernameState.message}>
+                    <Field label="Nombre visible"><TextInput value={profileData.displayName} onChange={e => updateProfileField('displayName', e.target.value)} placeholder="Nombre pÃºblico" /></Field>
+                    <Field label="Usuario pÃºblico" hint={usernameState.message}>
                       <div className="relative">
                         <TextInput value={profileData.username} onChange={e => updateProfileField('username', normalizeUsername(e.target.value))} placeholder="mi_usuario" className={usernameState.available === false ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : usernameState.available ? 'border-emerald-300 focus:border-emerald-500 focus:ring-emerald-100' : ''} />
                         <span translate="no" className={`material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[20px] ${usernameState.checking ? 'animate-spin text-slate-400' : usernameState.available === false ? 'text-red-500' : usernameState.available ? 'text-emerald-500' : 'text-slate-300'}`}>{usernameState.checking ? 'sync' : usernameState.available === false ? 'cancel' : usernameState.available ? 'check_circle' : 'alternate_email'}</span>
                       </div>
                     </Field>
-                    <Field label="Correo de acceso" hint="El correo viene desde tu autenticación y no se edita aquí."><TextInput value={profileData.email || currentUser.email || ''} disabled /></Field>
+                    <Field label="Correo de acceso" hint="El correo viene desde tu autenticaciÃ³n y no se edita aquÃ­."><TextInput value={profileData.email || currentUser.email || ''} disabled /></Field>
                   </div>
-                  <Field label="Biografía">
-                    <textarea value={profileData.bio} onChange={e => updateProfileField('bio', e.target.value.slice(0, 500))} placeholder="Cuéntale a la comunidad qué coleccionas, vendes o buscas..." className="min-h-32 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-[#1e40af] focus:ring-4 focus:ring-blue-100" />
+                  <Field label="BiografÃ­a">
+                    <textarea value={profileData.bio} onChange={e => updateProfileField('bio', e.target.value.slice(0, 500))} placeholder="CuÃ©ntale a la comunidad quÃ© coleccionas, vendes o buscas..." className="min-h-32 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-[#1e40af] focus:ring-4 focus:ring-blue-100" />
                   </Field>
                   <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('general')} disabled={Boolean(savingKey) || usernameState.checking || usernameState.available === false}>{savingKey === 'general' ? 'Guardando...' : 'Guardar perfil'}</ActionButton></div>
                 </section>
@@ -486,10 +486,10 @@ const ProfilePage = () => {
               {activeTab === 'personal' && (
                 <section className="space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
-                    <Field label="RUT" hint={!rutIsValid ? 'El RUT ingresado no es válido.' : 'Dato privado, solo para operaciones internas.'}><TextInput value={profileData.rut} onChange={e => updateProfileField('rut', formatRut(e.target.value))} placeholder="12345678-9" className={!rutIsValid ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : ''} /></Field>
-                    <Field label="Teléfono"><TextInput value={profileData.phone} onChange={e => updateProfileField('phone', e.target.value)} placeholder="+56 9 1234 5678" /></Field>
+                    <Field label="RUT" hint={!rutIsValid ? 'El RUT ingresado no es vÃ¡lido.' : 'Dato privado, solo para operaciones internas.'}><TextInput value={profileData.rut} onChange={e => updateProfileField('rut', formatRut(e.target.value))} placeholder="12345678-9" className={!rutIsValid ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : ''} /></Field>
+                    <Field label="TelÃ©fono"><TextInput value={profileData.phone} onChange={e => updateProfileField('phone', e.target.value)} placeholder="+56 9 1234 5678" /></Field>
                   </div>
-                  <div className="rounded-2xl bg-blue-50 p-4 text-sm font-semibold text-[#1a2b4b] ring-1 ring-blue-100">Estos datos no se muestran públicamente. Se guardan asociados solamente a tu usuario autenticado.</div>
+                  <div className="rounded-2xl bg-blue-50 p-4 text-sm font-semibold text-[#1a2b4b] ring-1 ring-blue-100">Estos datos no se muestran pÃºblicamente. Se guardan asociados solamente a tu usuario autenticado.</div>
                   <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('personal')} disabled={Boolean(savingKey) || !rutIsValid}>{savingKey === 'personal' ? 'Guardando...' : 'Guardar datos privados'}</ActionButton></div>
                 </section>
               )}
@@ -497,16 +497,16 @@ const ProfilePage = () => {
               {activeTab === 'addresses' && (
                 <section className="space-y-5">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div><h3 className="text-lg font-black text-[#1a2b4b]">Direcciones guardadas</h3><p className="text-sm font-semibold text-slate-500">{profileData.addresses.length} dirección{profileData.addresses.length === 1 ? '' : 'es'} registrada{profileData.addresses.length === 1 ? '' : 's'}.</p></div>
-                    <ActionButton onClick={() => openAddressModal()}><span translate="no" className="material-symbols-outlined text-[18px]">add_location</span>Agregar dirección</ActionButton>
+                    <div><h3 className="text-lg font-black text-[#1a2b4b]">Direcciones guardadas</h3><p className="text-sm font-semibold text-slate-500">{profileData.addresses.length} direcciÃ³n{profileData.addresses.length === 1 ? '' : 'es'} registrada{profileData.addresses.length === 1 ? '' : 's'}.</p></div>
+                    <ActionButton onClick={() => openAddressModal()}><span translate="no" className="material-symbols-outlined text-[18px]">add_location</span>Agregar direcciÃ³n</ActionButton>
                   </div>
                   {profileData.addresses.length === 0 ? (
-                    <div className="rounded-3xl border border-dashed border-blue-200 bg-blue-50/60 p-8 text-center"><span translate="no" className="material-symbols-outlined text-5xl text-[#1e40af]/50">location_off</span><h3 className="mt-3 text-lg font-black text-[#1a2b4b]">No tienes direcciones todavía</h3><p className="mt-1 text-sm font-semibold text-slate-500">Agrega una para acelerar compras y coordinación de envíos.</p></div>
+                    <div className="rounded-3xl border border-dashed border-blue-200 bg-blue-50/60 p-8 text-center"><span translate="no" className="material-symbols-outlined text-5xl text-[#1e40af]/50">location_off</span><h3 className="mt-3 text-lg font-black text-[#1a2b4b]">No tienes direcciones todavÃ­a</h3><p className="mt-1 text-sm font-semibold text-slate-500">Agrega una para acelerar compras y coordinaciÃ³n de envÃ­os.</p></div>
                   ) : (
                     <div className="grid gap-3 md:grid-cols-2">
                       {profileData.addresses.map((address, index) => (
                         <article key={`${address.street}-${index}`} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                          <div className="mb-3 flex items-start justify-between gap-3"><div><p className="font-black text-[#1a2b4b]">{address.name || `Dirección ${index + 1}`}</p>{address.isDefault && <span className="mt-1 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-black text-emerald-700">Principal</span>}</div><span translate="no" className="material-symbols-outlined text-[#1e40af]">home_pin</span></div>
+                          <div className="mb-3 flex items-start justify-between gap-3"><div><p className="font-black text-[#1a2b4b]">{address.name || `DirecciÃ³n ${index + 1}`}</p>{address.isDefault && <span className="mt-1 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-black text-emerald-700">Principal</span>}</div><span translate="no" className="material-symbols-outlined text-[#1e40af]">home_pin</span></div>
                           <p className="text-sm font-bold text-slate-700">{address.street} {address.number}{address.depto ? `, Depto ${address.depto}` : ''}</p><p className="mt-1 text-sm font-semibold text-slate-500">{address.comuna}, {address.region}</p>{address.reference && <p className="mt-2 text-xs font-semibold text-slate-400">{address.reference}</p>}
                           <div className="mt-4 flex flex-wrap gap-2"><ActionButton variant="secondary" className="px-3 py-2 text-xs" onClick={() => openAddressModal(index)}>Editar</ActionButton>{!address.isDefault && <ActionButton variant="secondary" className="px-3 py-2 text-xs" onClick={() => setDefaultAddressIndex(index)}>Principal</ActionButton>}<ActionButton variant="secondary" className="px-3 py-2 text-xs text-red-600 hover:bg-red-50" onClick={() => setDeleteAddressIndex(index)}>Eliminar</ActionButton></div>
                         </article>
@@ -521,7 +521,7 @@ const ProfilePage = () => {
                   <div className="grid gap-4 md:grid-cols-2">
                     <Field label="Banco"><SelectInput value={profileData.bankDetails?.bank || ''} onChange={e => updateBankField('bank', e.target.value)}><option value="">Selecciona banco</option>{chileBanks.map(bank => <option key={bank} value={bank}>{bank}</option>)}</SelectInput></Field>
                     <Field label="Tipo de cuenta"><SelectInput value={profileData.bankDetails?.accountType || ''} onChange={e => updateBankField('accountType', e.target.value)}><option value="">Selecciona tipo</option>{accountTypes.map(type => <option key={type} value={type}>{type}</option>)}</SelectInput></Field>
-                    <Field label="Número de cuenta"><TextInput value={profileData.bankDetails?.accountNumber || ''} onChange={e => updateBankField('accountNumber', e.target.value)} placeholder="000000000" /></Field>
+                    <Field label="NÃºmero de cuenta"><TextInput value={profileData.bankDetails?.accountNumber || ''} onChange={e => updateBankField('accountNumber', e.target.value)} placeholder="000000000" /></Field>
                   </div>
                   <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('payments')} disabled={Boolean(savingKey)}>{savingKey === 'payments' ? 'Guardando...' : 'Guardar datos bancarios'}</ActionButton></div>
                 </section>
@@ -538,7 +538,7 @@ const ProfilePage = () => {
 
               {activeTab === 'security' && (
                 <section className="space-y-6">
-                  <div className="rounded-3xl bg-slate-50 p-5 ring-1 ring-slate-200"><h3 className="text-lg font-black text-[#1a2b4b]">Sesión actual</h3><p className="mt-2 text-sm font-semibold text-slate-500">ID Firebase: <span className="break-all font-mono text-xs">{currentUser.uid}</span></p><p className="mt-1 text-sm font-semibold text-slate-500">Correo: {currentUser.email}</p></div>
+                  <div className="rounded-3xl bg-slate-50 p-5 ring-1 ring-slate-200"><h3 className="text-lg font-black text-[#1a2b4b]">SesiÃ³n actual</h3><p className="mt-2 text-sm font-semibold text-slate-500">ID Firebase: <span className="break-all font-mono text-xs">{currentUser.uid}</span></p><p className="mt-1 text-sm font-semibold text-slate-500">Correo: {currentUser.email}</p></div>
                   <div className="rounded-3xl border border-red-200 bg-red-50 p-5"><h3 className="text-lg font-black text-red-700">Zona de peligro</h3><p className="mt-2 text-sm font-semibold text-red-600">Esto desactiva tu perfil en la base de datos y deja tus carpetas privadas. Para confirmar escribe <b>eliminar</b>.</p><div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]"><TextInput value={deleteConfirmationText} onChange={e => setDeleteConfirmationText(e.target.value)} placeholder="eliminar" className="border-red-200 focus:border-red-500 focus:ring-red-100" /><ActionButton variant="danger" onClick={handleDeleteAccount} disabled={deleteConfirmationText.toLowerCase() !== 'eliminar' || savingKey === 'delete-account'}>{savingKey === 'delete-account' ? 'Eliminando...' : 'Eliminar cuenta'}</ActionButton></div></div>
                 </section>
               )}
@@ -550,28 +550,28 @@ const ProfilePage = () => {
       {addressModal.open && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
           <form onSubmit={saveAddress} className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
-            <div className="mb-5 flex items-start justify-between gap-4"><div><h3 className="text-xl font-black text-[#1a2b4b]">{addressModal.index === null ? 'Agregar dirección' : 'Editar dirección'}</h3><p className="mt-1 text-sm font-semibold text-slate-500">Estos datos se guardan en tu perfil.</p></div><button type="button" onClick={() => setAddressModal({ open: false, index: null })} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200"><span translate="no" className="material-symbols-outlined">close</span></button></div>
+            <div className="mb-5 flex items-start justify-between gap-4"><div><h3 className="text-xl font-black text-[#1a2b4b]">{addressModal.index === null ? 'Agregar direcciÃ³n' : 'Editar direcciÃ³n'}</h3><p className="mt-1 text-sm font-semibold text-slate-500">Estos datos se guardan en tu perfil.</p></div><button type="button" onClick={() => setAddressModal({ open: false, index: null })} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200"><span translate="no" className="material-symbols-outlined">close</span></button></div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Nombre de referencia"><TextInput value={addressForm.name} onChange={e => setAddressForm(prev => ({ ...prev, name: e.target.value }))} placeholder="Casa, oficina..." /></Field>
-              <Field label="Región"><SelectInput value={addressForm.region} onChange={e => setAddressForm(prev => ({ ...prev, region: e.target.value, comuna: '' }))}><option value="">Selecciona región</option>{chileData.map(region => <option key={region.region} value={region.region}>{region.region}</option>)}</SelectInput></Field>
+              <Field label="RegiÃ³n"><SelectInput value={addressForm.region} onChange={e => setAddressForm(prev => ({ ...prev, region: e.target.value, comuna: '' }))}><option value="">Selecciona regiÃ³n</option>{chileData.map(region => <option key={region.region} value={region.region}>{region.region}</option>)}</SelectInput></Field>
               <Field label="Comuna"><SelectInput value={addressForm.comuna} onChange={e => setAddressForm(prev => ({ ...prev, comuna: e.target.value }))} disabled={!addressForm.region}><option value="">Selecciona comuna</option>{availableComunas.map(comuna => <option key={comuna} value={comuna}>{comuna}</option>)}</SelectInput></Field>
               <Field label="Calle"><TextInput value={addressForm.street} onChange={e => setAddressForm(prev => ({ ...prev, street: e.target.value }))} placeholder="Av. Principal" /></Field>
-              <Field label="Número"><TextInput value={addressForm.number} onChange={e => setAddressForm(prev => ({ ...prev, number: e.target.value }))} placeholder="1234" /></Field>
+              <Field label="NÃºmero"><TextInput value={addressForm.number} onChange={e => setAddressForm(prev => ({ ...prev, number: e.target.value }))} placeholder="1234" /></Field>
               <Field label="Piso"><TextInput value={addressForm.floor} onChange={e => setAddressForm(prev => ({ ...prev, floor: e.target.value }))} placeholder="Opcional" /></Field>
               <Field label="Depto / Casa"><TextInput value={addressForm.depto} onChange={e => setAddressForm(prev => ({ ...prev, depto: e.target.value }))} placeholder="Opcional" /></Field>
-              <Field label="Referencia"><TextInput value={addressForm.reference} onChange={e => setAddressForm(prev => ({ ...prev, reference: e.target.value }))} placeholder="Portón azul, conserjería..." /></Field>
+              <Field label="Referencia"><TextInput value={addressForm.reference} onChange={e => setAddressForm(prev => ({ ...prev, reference: e.target.value }))} placeholder="PortÃ³n azul, conserjerÃ­a..." /></Field>
             </div>
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><ActionButton type="button" variant="secondary" onClick={() => setAddressModal({ open: false, index: null })}>Cancelar</ActionButton><ActionButton type="submit" disabled={savingKey === 'addresses'}>{savingKey === 'addresses' ? 'Guardando...' : 'Guardar dirección'}</ActionButton></div>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><ActionButton type="button" variant="secondary" onClick={() => setAddressModal({ open: false, index: null })}>Cancelar</ActionButton><ActionButton type="submit" disabled={savingKey === 'addresses'}>{savingKey === 'addresses' ? 'Guardando...' : 'Guardar direcciÃ³n'}</ActionButton></div>
           </form>
         </div>
       )}
 
       {deleteAddressIndex !== null && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"><div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"><h3 className="text-xl font-black text-[#1a2b4b]">Eliminar dirección</h3><p className="mt-2 text-sm font-semibold text-slate-500">Esta acción eliminará la dirección de tu perfil.</p><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><ActionButton variant="secondary" onClick={() => setDeleteAddressIndex(null)}>Cancelar</ActionButton><ActionButton variant="danger" onClick={confirmDeleteAddress} disabled={savingKey === 'addresses'}>Eliminar</ActionButton></div></div></div>
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"><div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"><h3 className="text-xl font-black text-[#1a2b4b]">Eliminar direcciÃ³n</h3><p className="mt-2 text-sm font-semibold text-slate-500">Esta acciÃ³n eliminarÃ¡ la direcciÃ³n de tu perfil.</p><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><ActionButton variant="secondary" onClick={() => setDeleteAddressIndex(null)}>Cancelar</ActionButton><ActionButton variant="danger" onClick={confirmDeleteAddress} disabled={savingKey === 'addresses'}>Eliminar</ActionButton></div></div></div>
       )}
 
       {defaultAddressIndex !== null && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"><div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"><h3 className="text-xl font-black text-[#1a2b4b]">Cambiar dirección principal</h3><p className="mt-2 text-sm font-semibold text-slate-500">La dirección seleccionada quedará como predeterminada.</p><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><ActionButton variant="secondary" onClick={() => setDefaultAddressIndex(null)}>Cancelar</ActionButton><ActionButton onClick={confirmDefaultAddress} disabled={savingKey === 'addresses'}>Confirmar</ActionButton></div></div></div>
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"><div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"><h3 className="text-xl font-black text-[#1a2b4b]">Cambiar direcciÃ³n principal</h3><p className="mt-2 text-sm font-semibold text-slate-500">La direcciÃ³n seleccionada quedarÃ¡ como predeterminada.</p><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><ActionButton variant="secondary" onClick={() => setDefaultAddressIndex(null)}>Cancelar</ActionButton><ActionButton onClick={confirmDefaultAddress} disabled={savingKey === 'addresses'}>Confirmar</ActionButton></div></div></div>
       )}
     </div>
   );
