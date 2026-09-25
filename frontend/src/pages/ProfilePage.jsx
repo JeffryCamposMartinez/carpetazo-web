@@ -290,26 +290,29 @@ const ProfilePage = () => {
     }
   };
 
-  const handleAvatarUpload = (event) => {
+  const handleAvatarUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) return showFeedback('error', 'Sube una imagen vÃ¡lida.');
-    if (file.size > 4 * 1024 * 1024) return showFeedback('error', 'La imagen debe pesar menos de 4 MB.');
-    const reader = new FileReader();
-    reader.onload = (readerEvent) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const maxSize = 420;
-        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        updateProfileField('photoURL', canvas.toDataURL('image/webp', 0.72));
-      };
-      img.src = readerEvent.target.result;
-    };
-    reader.readAsDataURL(file);
+    if (!file.type.startsWith('image/')) return showFeedback('error', 'Sube una imagen válida.');
+    if (file.size > 10 * 1024 * 1024) return showFeedback('error', 'La imagen debe pesar menos de 10 MB.');
+    
+    showFeedback('info', 'Subiendo foto...');
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('type', 'avatar');
+
+      const response = await api.uploadImage(formData);
+      if (response.success) {
+        setProfileData(prev => ({ ...prev, photoURL: response.url }));
+        showFeedback('success', 'Foto actualizada correctamente.');
+      } else {
+        showFeedback('error', response.message || 'Error al subir la imagen');
+      }
+    } catch (error) {
+      console.error('Error saving image:', error);
+      showFeedback('error', 'No se pudo subir la foto.');
+    }
   };
 
   const openAddressModal = (index = null) => {
@@ -575,3 +578,4 @@ const ProfilePage = () => {
 };
 
 export default ProfilePage;
+

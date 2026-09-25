@@ -135,22 +135,29 @@ export default function SellerProfile() {
   const handleImageUpload = async (event, type) => {
     const file = event.target.files?.[0];
     if (!file || !isOwner) return;
-    if (!file.type.startsWith('image/')) return alert('Sube una imagen vÃ¡lida.');
-    if (file.size > 10 * 1024 * 1024) return alert('La imagen es demasiado grande. MÃ¡ximo 10MB.');
+    if (!file.type.startsWith('image/')) return alert('Sube una imagen válida.');
+    if (file.size > 10 * 1024 * 1024) return alert('La imagen es demasiado grande. Máximo 10MB.');
 
     setSavingImage(true);
     try {
-      const image = await compressImage(file, type);
-      const payload = type === 'banner'
-        ? {
-          bannerBase64: image.base64,
-          bannerDominantColor: image.dominantColor,
-          bannerComplementaryColor: image.complementaryColor
-        }
-        : { photoURL: image.base64 };
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('type', type);
 
-      const response = await api.updateProfile(payload);
-      setSeller(prev => ({ ...prev, ...(response.user || {}), ...payload }));
+      const response = await api.uploadImage(formData);
+      if (response.success) {
+        const payload = type === 'banner'
+          ? {
+            bannerBase64: response.url,
+            bannerDominantColor: response.dominantColor,
+            bannerComplementaryColor: response.complementaryColor
+          }
+          : { photoURL: response.url };
+
+        setSeller(prev => ({ ...prev, ...payload }));
+      } else {
+        alert(response.message || 'Error al subir la imagen');
+      }
     } catch (error) {
       console.error('Error saving image:', error);
       alert('No se pudo guardar la imagen.');
@@ -350,3 +357,4 @@ export default function SellerProfile() {
     </div>
   );
 }
+

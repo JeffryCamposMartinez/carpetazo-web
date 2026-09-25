@@ -19,7 +19,7 @@ export const apiFetch = async (endpoint, options = {}) => {
   }
 
   const headers = {
-    'Content-Type': 'application/json',
+    ...(options.isMultipart ? {} : { 'Content-Type': 'application/json' }),
     ...(options.headers || {}),
   };
 
@@ -47,6 +47,7 @@ export const api = {
   getMe: () => apiFetch('/users/me'),
   checkUsername: (username) => apiFetch('/users/username/check?username=' + encodeURIComponent(username || '')),
   updateProfile: (data) => apiFetch('/users/me', { method: 'PUT', body: JSON.stringify(data) }),
+  uploadImage: (formData) => apiFetch('/users/upload-image', { method: 'POST', body: formData, isMultipart: true }),
   deleteProfile: () => apiFetch('/users/me', { method: 'DELETE' }),
   
   // Folders
@@ -109,6 +110,7 @@ export const api = {
 };
 
 export default api;
+
 
 
 

@@ -1,7 +1,11 @@
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import express from 'express';
-import cors from 'cors';
+import cors from 'cors';
+import multer from 'multer';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import sharp from 'sharp';
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -97,7 +101,8 @@ app.use(cors({
   credentials: true
 }));
 app.use('/api', limiter);
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Sincronizar o crear usuario en la BD al iniciar sesin
 app.post('/api/users/sync', authenticateToken, async (req, res) => {
@@ -980,6 +985,78 @@ app.get('/api/users/me', authenticateToken, async (req, res) => {
   }
 });
 
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB
+
+// Initialize S3 client for Cloudflare R2
+const r2Client = new S3Client({
+  region: 'auto',
+  endpoint: process.env.R2_ACCOUNT_ID ? "https://" + process.env.R2_ACCOUNT_ID + ".r2.cloudflarestorage.com" : '',
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+  },
+});
+
+app.post('/api/users/upload-image', authenticateToken, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No se envi ninguna imagen' });
+    }
+
+    if (!process.env.R2_ACCOUNT_ID || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY || !process.env.R2_BUCKET_NAME || !process.env.R2_PUBLIC_URL) {
+      return res.status(500).json({ success: false, message: 'El servidor no tiene configuradas las credenciales de R2. Configura R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME y R2_PUBLIC_URL en el backend.' });
+    }
+
+    const type = req.body.type; // 'avatar' or 'banner'
+    const isBanner = type === 'banner';
+    
+    // Process image with sharp -> webp
+    const imageProcessor = sharp(req.file.buffer).webp({ quality: 85 });
+    
+    if (isBanner) {
+      imageProcessor.resize({ width: 1200, height: 400, fit: 'cover' });
+    } else {
+      imageProcessor.resize({ width: 400, height: 400, fit: 'cover' });
+    }
+
+    const processedBuffer = await imageProcessor.toBuffer();
+    
+    let dominantColor = null;
+    let complementaryColor = null;
+    if (isBanner) {
+      const { dominant } = await sharp(processedBuffer).stats();
+      dominantColor = "rgb(" + dominant.r + ", " + dominant.g + ", " + dominant.b + ")";
+      complementaryColor = "rgb(" + (255 - dominant.r) + ", " + (255 - dominant.g) + ", " + (255 - dominant.b) + ")";
+    }
+
+    const hash = crypto.randomBytes(16).toString('hex');
+    const filename = "profiles/" + req.user.sub + "/" + type + "_" + hash + ".webp";
+
+    await r2Client.send(new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: filename,
+      Body: processedBuffer,
+      ContentType: 'image/webp',
+    }));
+
+    const publicUrl = process.env.R2_PUBLIC_URL.replace(/\/$/, '') + "/" + filename;
+
+    const updateData = isBanner 
+      ? { bannerBase64: publicUrl, bannerDominantColor: dominantColor, bannerComplementaryColor: complementaryColor }
+      : { photoURL: publicUrl };
+
+    await prisma.user.update({
+      where: { firebaseUid: req.user.sub },
+      data: updateData
+    });
+
+    res.json({ success: true, url: publicUrl, dominantColor, complementaryColor });
+  } catch (error) {
+    console.error('Upload Error:', error);
+    res.status(500).json({ success: false, message: 'Error procesando o subiendo la imagen' });
+  }
+});
+
 app.put('/api/users/me', authenticateToken, async (req, res) => {
   try {
     const firebaseUid = req.user.sub;
@@ -1398,6 +1475,7 @@ app.listen(port, () => {
 
 
 
+
 
 
 
