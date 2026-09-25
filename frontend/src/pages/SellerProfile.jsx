@@ -70,7 +70,8 @@ const defaultPublicTheme = {
   surface: '#DBEAFE',
   card: '#ffffff',
   text: '#1a2b4b',
-  font: 'Inter'
+  font: 'Inter',
+  cardStyle: 'soft'
 };
 
 const profileThemes = [
@@ -87,10 +88,57 @@ const profileThemes = [
 ];
 
 const fontOptions = ['Inter', 'Montserrat', 'Nunito', 'Poppins', 'Rubik', 'Quicksand', 'Merriweather', 'Oswald', 'Space Grotesk', 'Cinzel'];
+const cardStyleOptions = [
+  { id: 'soft', name: 'Suave', description: 'Bordes grandes y efecto vidrio.' },
+  { id: 'solid', name: 'Sólido', description: 'Contenedores fuertes y definidos.' },
+  { id: 'neon', name: 'Neón', description: 'Brillo/acento alrededor de tarjetas.' },
+  { id: 'minimal', name: 'Minimal', description: 'Limpio, plano y elegante.' }
+];
 
 const getFontStack = (font = defaultPublicTheme.font) => {
   const safeFont = fontOptions.includes(font) ? font : defaultPublicTheme.font;
   return `'${safeFont}', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+};
+
+const getCardStyle = (theme) => {
+  const style = theme.cardStyle || defaultPublicTheme.cardStyle;
+  const common = { backgroundColor: `${theme.card}e8` };
+
+  if (style === 'solid') {
+    return {
+      ...common,
+      backgroundColor: theme.card,
+      borderRadius: '1.25rem',
+      boxShadow: `0 18px 45px ${theme.text}24`,
+      borderColor: `${theme.primary}66`
+    };
+  }
+
+  if (style === 'neon') {
+    return {
+      ...common,
+      borderRadius: '2rem',
+      boxShadow: `0 0 0 1px ${theme.accent}88, 0 0 32px ${theme.accent}55, 0 22px 60px ${theme.primary}35`,
+      borderColor: `${theme.accent}88`
+    };
+  }
+
+  if (style === 'minimal') {
+    return {
+      ...common,
+      backgroundColor: theme.card,
+      borderRadius: '0.9rem',
+      boxShadow: 'none',
+      borderColor: `${theme.text}18`
+    };
+  }
+
+  return {
+    ...common,
+    borderRadius: '2rem',
+    boxShadow: `0 24px 70px ${theme.text}24`,
+    borderColor: 'rgba(255,255,255,0.4)'
+  };
 };
 
 export default function SellerProfile() {
@@ -106,6 +154,7 @@ export default function SellerProfile() {
   const [savingBio, setSavingBio] = useState(false);
   const [savingImage, setSavingImage] = useState(false);
   const [themePanelOpen, setThemePanelOpen] = useState(false);
+  const [themePanelTab, setThemePanelTab] = useState('theme');
   const [savingTheme, setSavingTheme] = useState(false);
 
   const isOwner = currentUser?.uid && seller?.firebaseUid === currentUser.uid;
@@ -333,58 +382,118 @@ export default function SellerProfile() {
                     <span translate="no" className="material-symbols-outlined text-[18px]">close</span>
                   </button>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {profileThemes.map(theme => {
-                    const selected = publicTheme.id === theme.id;
-                    return (
-                      <button
-                        key={theme.id}
-                        type="button"
-                        disabled={savingTheme}
-                        onClick={() => handleThemeChange(theme)}
-                        className={`overflow-hidden rounded-2xl border p-2 text-left transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 ${selected ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-slate-200'}`}
-                        style={{ backgroundColor: theme.card || '#ffffff' }}
-                      >
-                        <div className="h-10 rounded-xl" style={{ background: `linear-gradient(135deg, ${theme.primary}, ${theme.secondary})` }}>
-                          <div className="flex h-full items-end justify-end p-1.5">
-                            <span className="h-4 w-4 rounded-full ring-2 ring-white/70" style={{ backgroundColor: theme.accent }} />
-                          </div>
-                        </div>
-                        <div className="mt-2 flex items-center justify-between gap-2">
-                          <span className="truncate text-[11px] font-black" style={{ color: theme.text }}>{theme.name}</span>
-                          {selected && <span translate="no" className="material-symbols-outlined text-[16px]" style={{ color: theme.primary }}>check_circle</span>}
-                        </div>
-                      </button>
-                    );
-                  })}
+                <div className="grid grid-cols-3 gap-2 rounded-2xl bg-black/5 p-1">
+                  {[
+                    ['theme', 'Tema', 'palette'],
+                    ['font', 'Tipografía', 'text_fields'],
+                    ['cards', 'Tarjetas', 'dashboard_customize']
+                  ].map(([id, label, icon]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setThemePanelTab(id)}
+                      className={`flex flex-col items-center justify-center rounded-xl px-2 py-2 text-[10px] font-black transition ${themePanelTab === id ? 'bg-white shadow-sm' : 'opacity-70 hover:opacity-100'}`}
+                      style={themePanelTab === id ? { color: publicTheme.primary } : undefined}
+                    >
+                      <span translate="no" className="material-symbols-outlined text-[18px]">{icon}</span>
+                      {label}
+                    </button>
+                  ))}
                 </div>
-                <div className="mt-4 border-t border-black/10 pt-3">
-                  <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] opacity-60">Colores manuales</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      ['primary', 'Principal'],
-                      ['secondary', 'Secundario'],
-                      ['accent', 'Acento'],
-                      ['surface', 'Fondo'],
-                      ['card', 'Contenedor'],
-                      ['text', 'Texto']
-                    ].map(([field, label]) => (
-                      <label key={field} className="rounded-2xl border border-black/10 bg-white/55 p-2 text-[10px] font-black uppercase tracking-wide">
-                        <span className="mb-1 block truncate opacity-70">{label}</span>
-                        <input type="color" value={publicTheme[field] || defaultPublicTheme[field]} onChange={event => handleThemeFieldChange(field, event.target.value)} className="h-9 w-full cursor-pointer rounded-xl border-0 bg-transparent p-0" />
-                      </label>
-                    ))}
+
+                {themePanelTab === 'theme' && (
+                  <div className="mt-3 space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      {profileThemes.map(theme => {
+                        const selected = publicTheme.id === theme.id;
+                        return (
+                          <button
+                            key={theme.id}
+                            type="button"
+                            disabled={savingTheme}
+                            onClick={() => handleThemeChange(theme)}
+                            className={`overflow-hidden rounded-2xl border p-2 text-left transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 ${selected ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-slate-200'}`}
+                            style={{ backgroundColor: theme.card || '#ffffff' }}
+                          >
+                            <div className="h-10 rounded-xl" style={{ background: `linear-gradient(135deg, ${theme.primary}, ${theme.secondary})` }}>
+                              <div className="flex h-full items-end justify-end p-1.5">
+                                <span className="h-4 w-4 rounded-full ring-2 ring-white/70" style={{ backgroundColor: theme.accent }} />
+                              </div>
+                            </div>
+                            <div className="mt-2 flex items-center justify-between gap-2">
+                              <span className="truncate text-[11px] font-black" style={{ color: theme.text }}>{theme.name}</span>
+                              {selected && <span translate="no" className="material-symbols-outlined text-[16px]" style={{ color: theme.primary }}>check_circle</span>}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 border-t border-black/10 pt-3">
+                      {[
+                        ['primary', 'Principal'],
+                        ['secondary', 'Secundario'],
+                        ['accent', 'Acento'],
+                        ['surface', 'Fondo'],
+                        ['card', 'Contenedor'],
+                        ['text', 'Texto']
+                      ].map(([field, label]) => (
+                        <label key={field} className="rounded-2xl border border-black/10 bg-white/55 p-2 text-[10px] font-black uppercase tracking-wide">
+                          <span className="mb-1 block truncate opacity-70">{label}</span>
+                          <input type="color" value={publicTheme[field] || defaultPublicTheme[field]} onChange={event => handleThemeFieldChange(field, event.target.value)} className="h-9 w-full cursor-pointer rounded-xl border-0 bg-transparent p-0" />
+                        </label>
+                      ))}
+                    </div>
+                    <button type="button" onClick={saveCurrentTheme} disabled={savingTheme} className="w-full rounded-2xl px-4 py-2.5 text-sm font-black text-white shadow-lg disabled:opacity-60" style={{ backgroundColor: publicTheme.primary }}>
+                      {savingTheme ? 'Guardando...' : 'Guardar tema'}
+                    </button>
                   </div>
-                  <label className="mt-3 block rounded-2xl border border-black/10 bg-white/55 p-2 text-xs font-black">
-                    <span className="mb-1 block uppercase tracking-wide opacity-70">Tipografía</span>
-                    <select value={publicTheme.font || defaultPublicTheme.font} onChange={event => handleThemeFieldChange('font', event.target.value)} className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 font-black outline-none" style={{ fontFamily: getFontStack(publicTheme.font) }}>
-                      {fontOptions.map(font => <option key={font} value={font}>{font}</option>)}
-                    </select>
-                  </label>
-                  <button type="button" onClick={saveCurrentTheme} disabled={savingTheme} className="mt-3 w-full rounded-2xl px-4 py-2.5 text-sm font-black text-white shadow-lg disabled:opacity-60" style={{ backgroundColor: publicTheme.primary }}>
-                    {savingTheme ? 'Guardando...' : 'Guardar personalización'}
-                  </button>
-                </div>
+                )}
+
+                {themePanelTab === 'font' && (
+                  <div className="mt-3 space-y-3">
+                    <p className="text-xs font-bold opacity-70">Elige cómo se leen tu nombre, biografía y carpetas.</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {fontOptions.map(font => (
+                        <button
+                          key={font}
+                          type="button"
+                          onClick={() => handleThemeFieldChange('font', font)}
+                          className={`rounded-2xl border bg-white/70 px-3 py-3 text-left transition hover:-translate-y-0.5 ${publicTheme.font === font ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}
+                          style={{ fontFamily: getFontStack(font), color: publicTheme.text }}
+                        >
+                          <span className="block text-sm font-black">{font}</span>
+                          <span className="text-[11px] opacity-60">Carpetazo único</span>
+                        </button>
+                      ))}
+                    </div>
+                    <button type="button" onClick={saveCurrentTheme} disabled={savingTheme} className="w-full rounded-2xl px-4 py-2.5 text-sm font-black text-white shadow-lg disabled:opacity-60" style={{ backgroundColor: publicTheme.primary }}>
+                      {savingTheme ? 'Guardando...' : 'Guardar tipografía'}
+                    </button>
+                  </div>
+                )}
+
+                {themePanelTab === 'cards' && (
+                  <div className="mt-3 space-y-3">
+                    <p className="text-xs font-bold opacity-70">Cambia la personalidad de los contenedores del perfil.</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {cardStyleOptions.map(option => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => handleThemeFieldChange('cardStyle', option.id)}
+                          className={`rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 ${publicTheme.cardStyle === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}
+                          style={{ ...getCardStyle({ ...publicTheme, cardStyle: option.id }), color: publicTheme.text }}
+                        >
+                          <span className="block text-sm font-black">{option.name}</span>
+                          <span className="mt-1 block text-[11px] font-bold opacity-60">{option.description}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <button type="button" onClick={saveCurrentTheme} disabled={savingTheme} className="w-full rounded-2xl px-4 py-2.5 text-sm font-black text-white shadow-lg disabled:opacity-60" style={{ backgroundColor: publicTheme.primary }}>
+                      {savingTheme ? 'Guardando...' : 'Guardar estilo de tarjetas'}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -407,7 +516,7 @@ export default function SellerProfile() {
             )}
           </div>
 
-          <div className="min-w-0 flex-1 rounded-[2rem] p-4 pt-12 shadow-2xl ring-1 ring-white/40 backdrop-blur-sm sm:p-5 sm:pt-14 md:p-6 md:pt-6 md:backdrop-blur" style={{ backgroundColor: `${publicTheme.card}e8` }}>
+          <div className="min-w-0 flex-1 p-4 pt-12 ring-1 backdrop-blur-sm sm:p-5 sm:pt-14 md:p-6 md:pt-6 md:backdrop-blur" style={getCardStyle(publicTheme)}>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
@@ -468,7 +577,7 @@ export default function SellerProfile() {
       </section>
 
       <main className="mx-auto w-full max-w-[1300px] px-4 py-6 sm:px-6 sm:py-8 md:px-10">
-        <div className="mb-5 flex items-center justify-between rounded-3xl p-4 shadow-sm ring-1 sm:mb-6 sm:border-b sm:bg-transparent sm:p-0 sm:pb-4 sm:shadow-none sm:ring-0" style={{ backgroundColor: `${publicTheme.card}cc`, borderColor: `${publicTheme.primary}20` }}>
+        <div className="mb-5 flex items-center justify-between p-4 ring-1 sm:mb-6 sm:border-b sm:bg-transparent sm:p-0 sm:pb-4 sm:shadow-none sm:ring-0" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}20` }}>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${publicTheme.primary}18` }}>
               <span translate="no" className="material-symbols-outlined" style={{ color: publicTheme.primary }}>auto_stories</span>
@@ -482,7 +591,7 @@ export default function SellerProfile() {
         </div>
 
         {folders.length === 0 ? (
-          <div className="rounded-3xl border border-dashed p-10 text-center shadow-sm" style={{ backgroundColor: `${publicTheme.card}cc`, borderColor: `${publicTheme.primary}44` }}>
+          <div className="border border-dashed p-10 text-center" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}44` }}>
             <span translate="no" className="material-symbols-outlined text-6xl" style={{ color: `${publicTheme.primary}88` }}>inventory_2</span>
             <p className="mt-3 text-lg font-black text-slate-500">Este vendedor aún no tiene carpetas públicas.</p>
           </div>
