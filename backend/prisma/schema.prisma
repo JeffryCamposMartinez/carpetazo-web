@@ -18,6 +18,9 @@ model User {
   fullName      String?
   username      String?  @unique
   photoURL      String?
+  bannerBase64  String?
+  bannerDominantColor String?
+  bannerComplementaryColor String?
   bio           String?
   phone         String?
   rut           String?

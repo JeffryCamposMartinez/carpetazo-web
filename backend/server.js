@@ -914,6 +914,9 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
       'fullName',
       'username',
       'photoURL',
+      'bannerBase64',
+      'bannerDominantColor',
+      'bannerComplementaryColor',
       'bio',
       'phone',
       'rut',
@@ -1024,12 +1027,28 @@ app.get('/api/users/username/check', authenticateToken, async (req, res) => {
 
 app.get('/api/users/:username', async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { username: req.params.username },
+    const identifier = String(req.params.username || '').trim();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier);
+    const publicUserLookup = [
+      { username: identifier },
+      { firebaseUid: identifier }
+    ];
+
+    if (isUuid) {
+      publicUserLookup.push({ id: identifier });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: publicUserLookup
+      },
       include: {
         folders: {
           where: { isPublic: true },
-          include: { _count: { select: { cards: true } } },
+          include: {
+            _count: { select: { cards: true } },
+            user: { select: { name: true, username: true, photoURL: true, firebaseUid: true } }
+          },
           orderBy: { createdAt: 'desc' }
         }
       }
