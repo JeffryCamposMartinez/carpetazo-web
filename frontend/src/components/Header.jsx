@@ -6,7 +6,7 @@ import { api } from '../utils/api';
 import AuthModal from './AuthModal';
 
 export default function Header() {
-  const { currentUser, logout, loginWithGoogle } = useAuth();
+  const { currentUser, appUser, logout, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [userAvatar, setUserAvatar] = useState(null);
@@ -61,13 +61,13 @@ export default function Header() {
 
     useEffect(() => {
     if (currentUser) {
-      setUserAvatar(currentUser.photoURL);
-      // Fetch user profile from API if needed
-      // For now, we'll just use the auth info to prevent crashes
+      setUserAvatar(appUser?.photoURL || currentUser.photoURL || null);
+      setUserUsername(appUser?.username || appUser?.name || currentUser.displayName || currentUser.email?.split('@')[0] || null);
     } else {
       setUserAvatar(null);
+      setUserUsername(null);
     }
-  }, [currentUser]);
+  }, [currentUser, appUser]);
 
   const handleLogin = () => {
     setIsAuthModalOpen(true);

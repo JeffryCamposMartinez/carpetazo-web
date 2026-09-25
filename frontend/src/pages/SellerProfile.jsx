@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { updateProfile as updateFirebaseProfile } from 'firebase/auth';
 import { api } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import { getFolderFilter } from './Dashboard';
@@ -290,7 +291,7 @@ const getCardStyle = (theme) => {
 
 export default function SellerProfile() {
   const { sellerUsername } = useParams();
-  const { currentUser } = useAuth();
+  const { currentUser, refreshAppUser } = useAuth();
   const navigate = useNavigate();
   const [seller, setSeller] = useState(null);
   const [folders, setFolders] = useState([]);
@@ -397,6 +398,14 @@ export default function SellerProfile() {
           : { photoURL: response.url };
 
         setSeller(prev => ({ ...prev, ...payload }));
+        if (type === 'avatar') {
+          try {
+            await updateFirebaseProfile(currentUser, { photoURL: response.url });
+          } catch (error) {
+            console.warn('Firebase photo update skipped:', error);
+          }
+          await refreshAppUser?.();
+        }
       } else {
         alert(response.message || 'Error al subir la imagen');
       }

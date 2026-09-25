@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { auth, googleProvider } from '../firebase';
 import { api } from '../utils/api';
 import { 
@@ -20,6 +20,7 @@ export function useAuth() {
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
+  const [appUser, setAppUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Iniciar sesión con Google
@@ -82,8 +83,32 @@ export function AuthProvider({ children }) {
 
   // Cerrar sesión
   function logout() {
+    setAppUser(null);
     return signOut(auth);
   }
+
+  const refreshAppUser = useCallback(async () => {
+    if (!auth.currentUser) {
+      setAppUser(null);
+      return null;
+    }
+
+    try {
+      const response = await api.getMe();
+      setAppUser(response.user || null);
+      return response.user || null;
+    } catch (error) {
+      if (String(error.message || '').includes('404')) {
+        const response = await api.syncUser({
+          displayName: auth.currentUser.displayName,
+          photoURL: auth.currentUser.photoURL
+        });
+        setAppUser(response.user || null);
+        return response.user || null;
+      }
+      throw error;
+    }
+  }, []);
 
   useEffect(() => {
     // Suscribirse a los cambios en el estado de autenticación
@@ -92,6 +117,7 @@ export function AuthProvider({ children }) {
       if (user && !user.emailVerified && user.providerData.some(p => p.providerId === 'password')) {
         await signOut(auth);
         setCurrentUser(null);
+        setAppUser(null);
         setLoading(false);
         return;
       }
@@ -104,7 +130,9 @@ export function AuthProvider({ children }) {
         api.syncUser({
           displayName: user.displayName,
           photoURL: user.photoURL
-        }).catch(console.error);
+        }).then(response => setAppUser(response.user || null)).catch(console.error);
+      } else {
+        setAppUser(null);
       }
     });
 
@@ -113,6 +141,9 @@ export function AuthProvider({ children }) {
 
   const value = {
     currentUser,
+    appUser,
+    refreshAppUser,
+    setAppUser,
     loginWithGoogle,
     loginWithEmail,
     registerWithEmail,

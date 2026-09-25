@@ -132,7 +132,7 @@ app.post('/api/users/sync', authenticateToken, async (req, res) => {
         data: {
           name: req.body.displayName || user.name,
           username: req.body.username || user.username || user.name?.toLowerCase().replace(/\s+/g, '_'),
-          photoURL: req.body.photoURL || user.photoURL,
+          photoURL: user.photoURL || req.body.photoURL || null,
           ...(isAdminEmail(email) && user.role !== 'admin' ? { role: 'admin' } : {})
         }
       });

@@ -182,7 +182,7 @@ const ActionButton = ({ children, variant = 'primary', className = '', ...props 
 };
 
 const ProfilePage = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, refreshAppUser } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('general');
   const [profileData, setProfileData] = useState(emptyProfile);
@@ -286,6 +286,7 @@ const ProfilePage = () => {
         const mapped = mapUserToProfile(response.user, currentUser);
         setProfileData(mapped);
         setOriginalUsername(mapped.username);
+        await refreshAppUser?.();
       }
       showFeedback('success', successMessage);
       return true;
@@ -306,6 +307,7 @@ const ProfilePage = () => {
     if (ok) {
       try {
         await updateFirebaseProfile(currentUser, { displayName: payload.name || undefined, photoURL: payload.photoURL || undefined });
+        await refreshAppUser?.();
       } catch (error) {
         console.warn('Firebase profile update skipped:', error);
       }
@@ -326,7 +328,14 @@ const ProfilePage = () => {
 
       const response = await api.uploadImage(formData);
       if (response.success) {
-        setProfileData(prev => ({ ...prev, photoURL: response.url }));
+        const nextPhotoURL = response.url;
+        setProfileData(prev => ({ ...prev, photoURL: nextPhotoURL }));
+        try {
+          await updateFirebaseProfile(currentUser, { photoURL: nextPhotoURL });
+        } catch (error) {
+          console.warn('Firebase photo update skipped:', error);
+        }
+        await refreshAppUser?.();
         showFeedback('success', 'Foto actualizada correctamente.');
       } else {
         showFeedback('error', response.message || 'Error al subir la imagen');
