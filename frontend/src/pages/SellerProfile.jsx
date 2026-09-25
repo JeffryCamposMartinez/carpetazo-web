@@ -117,13 +117,19 @@ export default function SellerProfile() {
         canvas.width = width;
         canvas.height = height;
         canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        const base64 = canvas.toDataURL('image/webp', type === 'banner' ? 0.72 : 0.7);
         const rgb = type === 'banner' ? getAverageRGB(img, width, height) : null;
-        resolve({
-          base64,
-          dominantColor: rgb ? `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})` : null,
-          complementaryColor: rgb ? getComplementaryHex(rgb.r, rgb.g, rgb.b) : null
-        });
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error('No se pudo preparar la imagen.'));
+            return;
+          }
+
+          resolve({
+            file: new File([blob], `${type}-${Date.now()}.webp`, { type: blob.type || 'image/webp' }),
+            dominantColor: rgb ? `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})` : null,
+            complementaryColor: rgb ? getComplementaryHex(rgb.r, rgb.g, rgb.b) : null
+          });
+        }, 'image/webp', type === 'banner' ? 0.72 : 0.7);
       };
       img.onerror = reject;
       img.src = event.target.result;
@@ -140,8 +146,10 @@ export default function SellerProfile() {
 
     setSavingImage(true);
     try {
+      const processedImage = await compressImage(file, type);
+
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('image', processedImage.file);
       formData.append('type', type);
 
       const response = await api.uploadImage(formData);
@@ -149,8 +157,8 @@ export default function SellerProfile() {
         const payload = type === 'banner'
           ? {
             bannerBase64: response.url,
-            bannerDominantColor: response.dominantColor,
-            bannerComplementaryColor: response.complementaryColor
+            bannerDominantColor: response.dominantColor || processedImage.dominantColor,
+            bannerComplementaryColor: response.complementaryColor || processedImage.complementaryColor
           }
           : { photoURL: response.url };
 
@@ -160,8 +168,9 @@ export default function SellerProfile() {
       }
     } catch (error) {
       console.error('Error saving image:', error);
-      alert('No se pudo guardar la imagen.');
+      alert(error?.message || 'No se pudo guardar la imagen.');
     } finally {
+      event.target.value = '';
       setSavingImage(false);
     }
   };

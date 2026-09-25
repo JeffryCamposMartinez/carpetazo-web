@@ -41,6 +41,11 @@ export const apiFetch = async (endpoint, options = {}) => {
 };
 
 export const api = {
+  get: (endpoint) => apiFetch(endpoint),
+  post: (endpoint, data = {}) => apiFetch(endpoint, { method: 'POST', body: JSON.stringify(data) }),
+  put: (endpoint, data = {}) => apiFetch(endpoint, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (endpoint) => apiFetch(endpoint, { method: 'DELETE' }),
+
   // Users
   syncUser: (data = {}) => apiFetch('/users/sync', { method: 'POST', body: JSON.stringify(data) }),
   getUserProfile: (username) => apiFetch('/users/' + username),
@@ -102,6 +107,7 @@ export const api = {
   },
 
   // Orders
+  createOrder: (data) => apiFetch('/orders/create', { method: 'POST', body: JSON.stringify(data) }),
   updateOrder: (id, data) => apiFetch('/orders/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   getOrders: () => apiFetch('/orders'),
   getHistory: () => apiFetch('/history'),

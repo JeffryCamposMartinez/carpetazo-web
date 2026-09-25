@@ -1,4 +1,5 @@
 import helmet from 'helmet';
+import 'dotenv/config';
 import rateLimit from 'express-rate-limit';
 import express from 'express';
 import cors from 'cors';
@@ -215,6 +216,83 @@ const saveHistory = (history) => {
     fs.writeFileSync(historyPath, JSON.stringify(history, null, 2));
 };
 
+
+const isUuid = (value = '') => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
+const normalizeOrderItems = (items = []) => {
+  if (!Array.isArray(items)) return [];
+
+  return items.map((item) => {
+    const quantity = Number(item.quantity ?? item.q ?? 1);
+    const price = Number(item.price ?? 0);
+
+    return {
+      ...item,
+      quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
+      q: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
+      price: Number.isFinite(price) ? price : 0
+    };
+  });
+};
+
+const formatOrderForUi = (order) => {
+  const items = normalizeOrderItems(order.items || []);
+  const createdAt = order.createdAt instanceof Date ? order.createdAt.toISOString() : order.createdAt;
+  const updatedAt = order.updatedAt instanceof Date ? order.updatedAt.toISOString() : order.updatedAt;
+
+  return {
+    ...order,
+    code: order.code || order.id,
+    items,
+    totalAmount: order.total,
+    total: order.total,
+    createdAt,
+    updatedAt,
+    processedAt: order.status !== 'pending' ? updatedAt : undefined
+  };
+};
+
+const generateOrderCode = async () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const code = Array.from({ length: 5 }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+    const existing = await prisma.order.findUnique({ where: { code } });
+    if (!existing) return code;
+  }
+
+  return crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+};
+
+const findOrderByCodeOrId = async (codeOrId) => {
+  if (!codeOrId) return null;
+
+  return prisma.order.findFirst({
+    where: {
+      OR: [
+        { code: codeOrId },
+        ...(isUuid(codeOrId) ? [{ id: codeOrId }] : [])
+      ]
+    }
+  });
+};
+
+const deductOrderStock = async (order) => {
+  const items = normalizeOrderItems(order.items || []);
+
+  for (const item of items) {
+    if (!item.id) continue;
+
+    const card = await prisma.card.findUnique({ where: { id: item.id } }).catch(() => null);
+    if (!card) continue;
+
+    await prisma.card.update({
+      where: { id: item.id },
+      data: { stock: Math.max(0, Number(card.stock || 0) - Number(item.quantity || 1)) }
+    });
+  }
+};
+
 // PUT update card in folder
 app.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res) => {
   try {
@@ -303,48 +381,39 @@ app.put('/api/folders/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// PUT update order status
-app.put('/api/orders/:id', authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const { status } = req.body;
-    
-    const existingOrder = await prisma.order.findUnique({
-      where: { id: req.params.id }
-    });
-    
-    if (!existingOrder) return res.status(404).json({ success: false, message: 'Order not found' });
-    
-    // Only deduct stock when changing from pending/processing to completed
-    if (status === 'completed' && existingOrder.status !== 'completed') {
-      let items = [];
-      try {
-        items = typeof existingOrder.items === 'string' ? JSON.parse(existingOrder.items) : existingOrder.items;
-      } catch (e) {
-        items = existingOrder.items || [];
-      }
-      
-      for (const item of items) {
-        if (item.id) {
-          const purchasedQty = parseInt(item.quantity) || 1;
-          await prisma.card.update({
-            where: { id: item.id },
-            data: { stock: { decrement: purchasedQty } }
-          }).catch(err => console.error("Could not decrement stock for card", item.id, err));
-        }
-      }
-    }
-    
-    const order = await prisma.order.update({
-      where: { id: req.params.id },
-      data: { status }
-    });
-    res.json({ success: true, order });
-  } catch (error) {
-    console.error('Error al actualizar orden:', error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
+// PUT update order status
+
+app.put('/api/orders/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ success: false, message: 'Estado requerido' });
+    }
+
+    const existingOrder = await findOrderByCodeOrId(req.params.id);
+
+    if (!existingOrder) {
+      return res.status(404).json({ success: false, message: 'Pedido no encontrado' });
+    }
+
+    if (status === 'completed' && existingOrder.status !== 'completed') {
+      await deductOrderStock(existingOrder);
+    }
+
+    const order = await prisma.order.update({
+      where: { id: existingOrder.id },
+      data: { status }
+    });
+
+    res.json({ success: true, order: formatOrderForUi(order) });
+  } catch (error) {
+    console.error('Error al actualizar orden:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+
 // GET all cards
 app.get('/api/cards', authenticateToken, requireAdmin, (req, res) => {
     const cards = getCards();
@@ -433,119 +502,143 @@ app.post('/api/cards/delete', authenticateToken, requireAdmin, (req, res) => {
     }
 });
 
-// GET all pending orders
-app.get('/api/orders', authenticateToken, requireAdmin, (req, res) => {
-    const orders = getOrders();
-    // Return them as an array mapped with the key as the code
-    const orderList = Object.keys(orders).map(code => ({
-        code,
-        ...orders[code]
-    })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Newest first
-    
-    res.json({ success: true, data: orderList });
-});
-
-// GET history
-app.get('/api/history', authenticateToken, requireAdmin, (req, res) => {
-    const history = getHistory();
-    res.json({ success: true, data: history });
-});
-
-// POST create short order code
-app.post('/api/orders/create', (req, res) => {
-    const { orderItems, totalAmount } = req.body;
-    if (!orderItems || !Array.isArray(orderItems) || orderItems.length === 0) {
-        return res.status(400).json({ success: false, message: 'Invalid order data' });
-    }
-
-    // Generate 5 char random alphanumeric code for easy reference
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = '';
-    for (let i = 0; i < 5; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-
-    const orders = getOrders();
-    orders[code] = {
-        items: orderItems,
-        totalAmount: totalAmount || 0,
-        createdAt: new Date().toISOString()
-    };
-    saveOrders(orders);
-
-    res.json({ success: true, code });
-});
-
-// POST process order (discount stock using 10-digit code)
-app.post('/api/process-order', authenticateToken, requireAdmin, (req, res) => {
-    const { code } = req.body;
-    
-    if (!code) {
-        return res.status(400).json({ success: false, message: 'Missing order code' });
-    }
-
-    const orders = getOrders();
-    const order = orders[code];
-    
-    if (!order) {
-        return res.status(404).json({ success: false, message: 'CÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³digo de pedido no encontrado o ya procesado' });
-    }
-
-    const cards = getCards();
-    
-    order.items.forEach(item => {
-        const existingIndex = cards.findIndex(c => c.id === item.id);
-        if (existingIndex >= 0) {
-            cards[existingIndex].stock = Math.max(0, cards[existingIndex].stock - item.q);
-        }
-    });
-
-    saveCards(cards);
-    
-    // Add to history
-    const history = getHistory();
-    history.unshift({
-        ...order,
-        code,
-        status: 'completed',
-        processedAt: new Date().toISOString()
-    });
-    saveHistory(history);
-
-    // Remove the order so it can't be processed twice
-    delete orders[code];
-    saveOrders(orders);
-    
-    res.json({ success: true, message: 'Order processed successfully' });
-});
-
-// POST reject order (just delete from pending list)
-app.post('/api/reject-order', authenticateToken, requireAdmin, (req, res) => {
-    const { code } = req.body;
-    
-    if (!code) {
-        return res.status(400).json({ success: false, message: 'Missing order code' });
-    }
-
-    const orders = getOrders();
-    if (orders[code]) {
-        // Add to history
-        const history = getHistory();
-        history.unshift({
-            ...orders[code],
-            code,
-            status: 'rejected',
-            processedAt: new Date().toISOString()
-        });
-        saveHistory(history);
-
-        delete orders[code];
-        saveOrders(orders);
-    }
-    
-    res.json({ success: true, message: 'Order rejected successfully' });
-});
-
+// GET all pending orders
+
+app.get('/api/orders', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const orders = await prisma.order.findMany({
+      where: { status: 'pending' },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({ success: true, data: orders.map(formatOrderForUi) });
+  } catch (error) {
+    console.error('Error loading orders:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+
+// GET history
+
+app.get('/api/history', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const history = await prisma.order.findMany({
+      where: { status: { not: 'pending' } },
+      orderBy: { updatedAt: 'desc' }
+    });
+
+    res.json({ success: true, data: history.map(formatOrderForUi) });
+  } catch (error) {
+    console.error('Error loading order history:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+
+// POST create short order code
+
+app.post('/api/orders/create', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const items = normalizeOrderItems(body.items || body.orderItems || []);
+    const total = Number(body.total ?? body.totalAmount ?? 0);
+
+    if (!items.length) {
+      return res.status(400).json({ success: false, message: 'El pedido no tiene cartas' });
+    }
+
+    let sellerId = body.sellerId || null;
+    let folderName = body.folderName || 'Catálogo';
+
+    if ((!sellerId || !body.folderName) && body.folderId) {
+      const folder = await prisma.folder.findUnique({ where: { id: body.folderId } });
+      sellerId = sellerId || folder?.userId || null;
+      folderName = body.folderName || folder?.name || folderName;
+    }
+
+    const code = await generateOrderCode();
+    const order = await prisma.order.create({
+      data: {
+        code,
+        sellerId: sellerId || 'legacy',
+        buyerName: body.buyerName || 'Cliente por WhatsApp',
+        folderId: body.folderId || 'legacy',
+        folderName,
+        items,
+        total: Number.isFinite(total) ? total : 0,
+        status: 'pending'
+      }
+    });
+
+    res.json({ success: true, code, order: formatOrderForUi(order) });
+  } catch (error) {
+    console.error('Error creating order:', error);
+    res.status(500).json({ success: false, message: 'Error interno al crear el pedido' });
+  }
+});
+
+
+// POST process order (discount stock using order code)
+
+app.post('/api/process-order', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { code } = req.body || {};
+
+    if (!code) {
+      return res.status(400).json({ success: false, message: 'Código de pedido requerido' });
+    }
+
+    const order = await findOrderByCodeOrId(code);
+
+    if (!order || order.status !== 'pending') {
+      return res.status(404).json({ success: false, message: 'Pedido no encontrado o ya procesado' });
+    }
+
+    await deductOrderStock(order);
+
+    const updatedOrder = await prisma.order.update({
+      where: { id: order.id },
+      data: { status: 'completed' }
+    });
+
+    res.json({ success: true, message: 'Pedido procesado correctamente', order: formatOrderForUi(updatedOrder) });
+  } catch (error) {
+    console.error('Error processing order:', error);
+    res.status(500).json({ success: false, message: 'Error interno al procesar el pedido' });
+  }
+});
+
+
+// POST reject order
+
+app.post('/api/reject-order', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { code } = req.body || {};
+
+    if (!code) {
+      return res.status(400).json({ success: false, message: 'Código de pedido requerido' });
+    }
+
+    const order = await findOrderByCodeOrId(code);
+
+    if (!order || order.status !== 'pending') {
+      return res.status(404).json({ success: false, message: 'Pedido no encontrado o ya procesado' });
+    }
+
+    const updatedOrder = await prisma.order.update({
+      where: { id: order.id },
+      data: { status: 'rejected' }
+    });
+
+    res.json({ success: true, message: 'Pedido rechazado correctamente', order: formatOrderForUi(updatedOrder) });
+  } catch (error) {
+    console.error('Error rejecting order:', error);
+    res.status(500).json({ success: false, message: 'Error interno al rechazar el pedido' });
+  }
+});
+
+
 // --- POKEMON TCG API PROXY CON CACHÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â° ---
 const tcgCache = new Map();
 const CACHE_DURATION = 1000 * 60 * 60; // 1 hora en milisegundos
@@ -985,7 +1078,16 @@ app.get('/api/users/me', authenticateToken, async (req, res) => {
   }
 });
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype?.startsWith('image/')) {
+      return cb(new Error('Sube una imagen válida.'));
+    }
+    cb(null, true);
+  }
+}); // 10MB
 
 // Initialize S3 client for Cloudflare R2
 const r2Client = new S3Client({
@@ -997,17 +1099,35 @@ const r2Client = new S3Client({
   },
 });
 
-app.post('/api/users/upload-image', authenticateToken, upload.single('image'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No se envi ninguna imagen' });
+const hasR2Config = () => Boolean(
+  process.env.R2_ACCOUNT_ID &&
+  process.env.R2_ACCESS_KEY_ID &&
+  process.env.R2_SECRET_ACCESS_KEY &&
+  process.env.R2_BUCKET_NAME &&
+  process.env.R2_PUBLIC_URL
+);
+
+app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
+  upload.single('image')(req, res, (error) => {
+    if (!error) return next();
+
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ success: false, message: 'La imagen debe pesar menos de 10 MB.' });
     }
 
-    if (!process.env.R2_ACCOUNT_ID || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY || !process.env.R2_BUCKET_NAME || !process.env.R2_PUBLIC_URL) {
-      return res.status(500).json({ success: false, message: 'El servidor no tiene configuradas las credenciales de R2. Configura R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME y R2_PUBLIC_URL en el backend.' });
+    return res.status(400).json({ success: false, message: error.message || 'No se pudo leer la imagen.' });
+  });
+}, async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No se envió ninguna imagen.' });
     }
 
     const type = req.body.type; // 'avatar' or 'banner'
+    if (!['avatar', 'banner'].includes(type)) {
+      return res.status(400).json({ success: false, message: 'Tipo de imagen inválido.' });
+    }
+
     const isBanner = type === 'banner';
     
     // Process image with sharp -> webp
@@ -1031,15 +1151,20 @@ app.post('/api/users/upload-image', authenticateToken, upload.single('image'), a
 
     const hash = crypto.randomBytes(16).toString('hex');
     const filename = "Carpetazo.cl/users/" + req.user.sub + "/" + type + "_" + hash + ".webp";
+    let publicUrl;
 
-    await r2Client.send(new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
-      Key: filename,
-      Body: processedBuffer,
-      ContentType: 'image/webp',
-    }));
-
-    const publicUrl = process.env.R2_PUBLIC_URL.replace(/\/$/, '') + "/" + filename;
+    if (hasR2Config()) {
+      await r2Client.send(new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: filename,
+        Body: processedBuffer,
+        ContentType: 'image/webp',
+      }));
+      publicUrl = process.env.R2_PUBLIC_URL.replace(/\/$/, '') + "/" + filename;
+    } else {
+      console.warn('R2 no configurado. Guardando imagen de perfil como data URL temporal.');
+      publicUrl = "data:image/webp;base64," + processedBuffer.toString('base64');
+    }
 
     const updateData = isBanner 
       ? { bannerBase64: publicUrl, bannerDominantColor: dominantColor, bannerComplementaryColor: complementaryColor }

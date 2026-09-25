@@ -77,6 +77,7 @@ model Message {
 
 model Order {
   id          String   @id @default(uuid())
+  code        String?  @unique
   sellerId    String
   buyerName   String
   folderId    String

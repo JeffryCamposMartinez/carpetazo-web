@@ -244,7 +244,7 @@ function PublicCatalog() {
     setIsProcessingCheckout(true);
     try {
             // 1. Guardar la orden en la base de datos
-      await api.post('/orders/create', {
+      await api.createOrder({
         sellerId: folderData.userId,
         buyerName: 'Cliente por WhatsApp',
         folderId: folderId,
@@ -253,6 +253,7 @@ function PublicCatalog() {
           id: item.id,
           name: item.name,
           quantity: item.quantity,
+          q: item.quantity,
           price: item.price
         })),
         total: cartTotal
