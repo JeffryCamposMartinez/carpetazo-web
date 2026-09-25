@@ -1149,22 +1149,26 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
       complementaryColor = "rgb(" + (255 - dominant.r) + ", " + (255 - dominant.g) + ", " + (255 - dominant.b) + ")";
     }
 
-    const hash = crypto.randomBytes(16).toString('hex');
-    const filename = "Carpetazo.cl/users/" + req.user.sub + "/" + type + "_" + hash + ".webp";
-    let publicUrl;
-
-    if (hasR2Config()) {
-      await r2Client.send(new PutObjectCommand({
-        Bucket: process.env.R2_BUCKET_NAME,
-        Key: filename,
-        Body: processedBuffer,
-        ContentType: 'image/webp',
-      }));
-      publicUrl = process.env.R2_PUBLIC_URL.replace(/\/$/, '') + "/" + filename;
-    } else {
-      console.warn('R2 no configurado. Guardando imagen de perfil como data URL temporal.');
-      publicUrl = "data:image/webp;base64," + processedBuffer.toString('base64');
+    if (!hasR2Config()) {
+      return res.status(503).json({
+        success: false,
+        message: 'El servidor no tiene configurado R2 para guardar imágenes permanentes.',
+        missingConfig: true
+      });
     }
+
+    const hash = crypto.randomBytes(16).toString('hex');
+    const safeUid = String(req.user.sub || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = "Carpetazo.cl/Usuarios/" + safeUid + "/" + type + "/" + hash + ".webp";
+
+    await r2Client.send(new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: filename,
+      Body: processedBuffer,
+      ContentType: 'image/webp',
+      CacheControl: 'public, max-age=31536000, immutable'
+    }));
+    const publicUrl = process.env.R2_PUBLIC_URL.replace(/\/$/, '') + "/" + filename;
 
     const updateData = isBanner 
       ? { bannerBase64: publicUrl, bannerDominantColor: dominantColor, bannerComplementaryColor: complementaryColor }
