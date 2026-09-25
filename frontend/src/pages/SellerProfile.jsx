@@ -451,6 +451,13 @@ export default function SellerProfile() {
     }));
   };
 
+  const previewPublicTheme = (theme) => {
+    setSeller(prev => ({
+      ...prev,
+      publicTheme: theme
+    }));
+  };
+
   const saveCurrentTheme = () => handleThemeChange({
     ...publicTheme,
     id: publicTheme.id === 'custom' ? 'custom' : publicTheme.id,
@@ -523,11 +530,16 @@ export default function SellerProfile() {
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-black">Tema público</p>
-                    <p className="text-xs font-bold opacity-70">{savingTheme ? 'Guardando...' : 'Paletas, colores y tipografía'}</p>
+                    <p className="text-xs font-bold opacity-70">{savingTheme ? 'Guardando...' : 'Edita y guarda cuando termines'}</p>
                   </div>
-                  <button type="button" onClick={() => setThemePanelOpen(false)} className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100">
-                    <span translate="no" className="material-symbols-outlined text-[18px]">close</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={saveCurrentTheme} disabled={savingTheme} className="rounded-full px-3 py-1.5 text-xs font-black text-white shadow-lg disabled:cursor-wait disabled:opacity-60" style={{ backgroundColor: publicTheme.primary }}>
+                      {savingTheme ? 'Guardando...' : 'Guardar'}
+                    </button>
+                    <button type="button" onClick={() => setThemePanelOpen(false)} className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100">
+                      <span translate="no" className="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2 rounded-2xl bg-black/5 p-1">
                   {[
@@ -558,7 +570,7 @@ export default function SellerProfile() {
                             key={theme.id}
                             type="button"
                             disabled={savingTheme}
-                            onClick={() => handleThemeChange(theme)}
+                            onClick={() => previewPublicTheme(theme)}
                             className={`overflow-hidden rounded-2xl border p-2 text-left transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 ${selected ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-slate-200'}`}
                             style={{ backgroundColor: theme.card || '#ffffff' }}
                           >
@@ -590,9 +602,6 @@ export default function SellerProfile() {
                         </label>
                       ))}
                     </div>
-                    <button type="button" onClick={saveCurrentTheme} disabled={savingTheme} className="w-full rounded-2xl px-4 py-2.5 text-sm font-black text-white shadow-lg disabled:opacity-60" style={{ backgroundColor: publicTheme.primary }}>
-                      {savingTheme ? 'Guardando...' : 'Guardar tema'}
-                    </button>
                   </div>
                 )}
 
@@ -617,9 +626,6 @@ export default function SellerProfile() {
                         </button>
                       ))}
                     </div>
-                    <button type="button" onClick={saveCurrentTheme} disabled={savingTheme} className="w-full rounded-2xl px-4 py-2.5 text-sm font-black text-white shadow-lg disabled:opacity-60" style={{ backgroundColor: publicTheme.primary }}>
-                      {savingTheme ? 'Guardando...' : 'Guardar tipografía'}
-                    </button>
                   </div>
                 )}
 
@@ -640,9 +646,6 @@ export default function SellerProfile() {
                         </button>
                       ))}
                     </div>
-                    <button type="button" onClick={saveCurrentTheme} disabled={savingTheme} className="w-full rounded-2xl px-4 py-2.5 text-sm font-black text-white shadow-lg disabled:opacity-60" style={{ backgroundColor: publicTheme.primary }}>
-                      {savingTheme ? 'Guardando...' : 'Guardar estilo de tarjetas'}
-                    </button>
                   </div>
                 )}
               </div>
