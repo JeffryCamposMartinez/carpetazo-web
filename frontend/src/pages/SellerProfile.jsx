@@ -68,21 +68,30 @@ const defaultPublicTheme = {
   secondary: '#93c5fd',
   accent: '#facc15',
   surface: '#DBEAFE',
-  text: '#1a2b4b'
+  card: '#ffffff',
+  text: '#1a2b4b',
+  font: 'Inter'
 };
 
 const profileThemes = [
   defaultPublicTheme,
-  { id: 'royal-purple', name: 'Púrpura Real', primary: '#6d28d9', secondary: '#c4b5fd', accent: '#f0abfc', surface: '#ede9fe', text: '#2e1065' },
-  { id: 'emerald-market', name: 'Esmeralda', primary: '#047857', secondary: '#6ee7b7', accent: '#fbbf24', surface: '#d1fae5', text: '#064e3b' },
-  { id: 'crimson-fire', name: 'Fuego Carmesí', primary: '#b91c1c', secondary: '#fca5a5', accent: '#fb923c', surface: '#fee2e2', text: '#450a0a' },
-  { id: 'midnight-gold', name: 'Medianoche Oro', primary: '#111827', secondary: '#334155', accent: '#facc15', surface: '#e2e8f0', text: '#0f172a' },
-  { id: 'ocean-cyan', name: 'Océano', primary: '#0e7490', secondary: '#67e8f9', accent: '#22d3ee', surface: '#cffafe', text: '#164e63' },
-  { id: 'rose-pop', name: 'Rosa Pop', primary: '#be185d', secondary: '#f9a8d4', accent: '#f472b6', surface: '#fce7f3', text: '#831843' },
-  { id: 'amber-sun', name: 'Sol Ámbar', primary: '#b45309', secondary: '#fcd34d', accent: '#fb7185', surface: '#fef3c7', text: '#78350f' },
-  { id: 'slate-neon', name: 'Neón Slate', primary: '#334155', secondary: '#94a3b8', accent: '#38bdf8', surface: '#e2e8f0', text: '#0f172a' },
-  { id: 'mythic-green', name: 'Mítico Verde', primary: '#365314', secondary: '#bef264', accent: '#84cc16', surface: '#ecfccb', text: '#1a2e05' }
+  { id: 'royal-purple', name: 'Púrpura Real', primary: '#5b21b6', secondary: '#7c3aed', accent: '#f0abfc', surface: '#2e1065', card: '#ede9fe', text: '#1e1b4b', font: 'Montserrat' },
+  { id: 'emerald-market', name: 'Esmeralda', primary: '#047857', secondary: '#059669', accent: '#fbbf24', surface: '#064e3b', card: '#d1fae5', text: '#052e16', font: 'Nunito' },
+  { id: 'crimson-fire', name: 'Fuego Carmesí', primary: '#991b1b', secondary: '#dc2626', accent: '#fb923c', surface: '#450a0a', card: '#fee2e2', text: '#450a0a', font: 'Oswald' },
+  { id: 'midnight-gold', name: 'Medianoche Oro', primary: '#020617', secondary: '#1e293b', accent: '#facc15', surface: '#0f172a', card: '#f8fafc', text: '#020617', font: 'Merriweather' },
+  { id: 'ocean-cyan', name: 'Océano', primary: '#155e75', secondary: '#0891b2', accent: '#22d3ee', surface: '#164e63', card: '#cffafe', text: '#083344', font: 'Poppins' },
+  { id: 'rose-pop', name: 'Rosa Pop', primary: '#be185d', secondary: '#db2777', accent: '#f472b6', surface: '#831843', card: '#fce7f3', text: '#500724', font: 'Quicksand' },
+  { id: 'amber-sun', name: 'Sol Ámbar', primary: '#92400e', secondary: '#d97706', accent: '#fb7185', surface: '#78350f', card: '#fef3c7', text: '#451a03', font: 'Rubik' },
+  { id: 'slate-neon', name: 'Neón Slate', primary: '#0f172a', secondary: '#334155', accent: '#38bdf8', surface: '#020617', card: '#e2e8f0', text: '#0f172a', font: 'Space Grotesk' },
+  { id: 'mythic-green', name: 'Mítico Verde', primary: '#365314', secondary: '#4d7c0f', accent: '#84cc16', surface: '#1a2e05', card: '#ecfccb', text: '#1a2e05', font: 'Cinzel' }
 ];
+
+const fontOptions = ['Inter', 'Montserrat', 'Nunito', 'Poppins', 'Rubik', 'Quicksand', 'Merriweather', 'Oswald', 'Space Grotesk', 'Cinzel'];
+
+const getFontStack = (font = defaultPublicTheme.font) => {
+  const safeFont = fontOptions.includes(font) ? font : defaultPublicTheme.font;
+  return `'${safeFont}', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+};
 
 export default function SellerProfile() {
   const { sellerUsername } = useParams();
@@ -234,6 +243,24 @@ export default function SellerProfile() {
     }
   };
 
+  const handleThemeFieldChange = (field, value) => {
+    setSeller(prev => ({
+      ...prev,
+      publicTheme: {
+        ...publicTheme,
+        id: 'custom',
+        name: 'Tema personalizado',
+        [field]: value
+      }
+    }));
+  };
+
+  const saveCurrentTheme = () => handleThemeChange({
+    ...publicTheme,
+    id: publicTheme.id === 'custom' ? 'custom' : publicTheme.id,
+    name: publicTheme.id === 'custom' ? 'Tema personalizado' : publicTheme.name
+  });
+
   const contactSeller = () => {
     if (!currentUser) return navigate('/login');
     navigate('/mensajes', {
@@ -266,8 +293,8 @@ export default function SellerProfile() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: publicTheme.surface }}>
-      <section className="relative overflow-hidden bg-white shadow-sm">
+    <div className="min-h-screen" style={{ backgroundColor: publicTheme.surface, fontFamily: getFontStack(publicTheme.font) }}>
+      <section className="relative overflow-hidden shadow-sm" style={{ backgroundColor: publicTheme.card }}>
         {seller?.bannerBase64 ? (
           <div className="absolute inset-x-0 top-0 h-[270px] bg-cover bg-center sm:h-[340px] md:inset-0 md:h-auto" style={{ backgroundImage: `url(${seller.bannerBase64})` }} />
         ) : (
@@ -296,11 +323,11 @@ export default function SellerProfile() {
             </div>
 
             {themePanelOpen && (
-              <div className="w-[min(340px,calc(100vw-1.5rem))] rounded-[1.5rem] bg-white/95 p-3 text-left shadow-2xl ring-1 ring-white/80 backdrop-blur">
+              <div className="w-[min(380px,calc(100vw-1.5rem))] rounded-[1.5rem] p-3 text-left shadow-2xl ring-1 ring-white/80 backdrop-blur" style={{ backgroundColor: `${publicTheme.card}f2`, color: publicTheme.text }}>
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-black text-slate-900">Tema público</p>
-                    <p className="text-xs font-bold text-slate-500">{savingTheme ? 'Guardando...' : 'Toca una paleta para aplicarla'}</p>
+                    <p className="text-sm font-black">Tema público</p>
+                    <p className="text-xs font-bold opacity-70">{savingTheme ? 'Guardando...' : 'Paletas, colores y tipografía'}</p>
                   </div>
                   <button type="button" onClick={() => setThemePanelOpen(false)} className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100">
                     <span translate="no" className="material-symbols-outlined text-[18px]">close</span>
@@ -315,7 +342,8 @@ export default function SellerProfile() {
                         type="button"
                         disabled={savingTheme}
                         onClick={() => handleThemeChange(theme)}
-                        className={`overflow-hidden rounded-2xl border bg-white p-2 text-left transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 ${selected ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-slate-200'}`}
+                        className={`overflow-hidden rounded-2xl border p-2 text-left transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 ${selected ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-slate-200'}`}
+                        style={{ backgroundColor: theme.card || '#ffffff' }}
                       >
                         <div className="h-10 rounded-xl" style={{ background: `linear-gradient(135deg, ${theme.primary}, ${theme.secondary})` }}>
                           <div className="flex h-full items-end justify-end p-1.5">
@@ -329,6 +357,33 @@ export default function SellerProfile() {
                       </button>
                     );
                   })}
+                </div>
+                <div className="mt-4 border-t border-black/10 pt-3">
+                  <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] opacity-60">Colores manuales</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      ['primary', 'Principal'],
+                      ['secondary', 'Secundario'],
+                      ['accent', 'Acento'],
+                      ['surface', 'Fondo'],
+                      ['card', 'Contenedor'],
+                      ['text', 'Texto']
+                    ].map(([field, label]) => (
+                      <label key={field} className="rounded-2xl border border-black/10 bg-white/55 p-2 text-[10px] font-black uppercase tracking-wide">
+                        <span className="mb-1 block truncate opacity-70">{label}</span>
+                        <input type="color" value={publicTheme[field] || defaultPublicTheme[field]} onChange={event => handleThemeFieldChange(field, event.target.value)} className="h-9 w-full cursor-pointer rounded-xl border-0 bg-transparent p-0" />
+                      </label>
+                    ))}
+                  </div>
+                  <label className="mt-3 block rounded-2xl border border-black/10 bg-white/55 p-2 text-xs font-black">
+                    <span className="mb-1 block uppercase tracking-wide opacity-70">Tipografía</span>
+                    <select value={publicTheme.font || defaultPublicTheme.font} onChange={event => handleThemeFieldChange('font', event.target.value)} className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 font-black outline-none" style={{ fontFamily: getFontStack(publicTheme.font) }}>
+                      {fontOptions.map(font => <option key={font} value={font}>{font}</option>)}
+                    </select>
+                  </label>
+                  <button type="button" onClick={saveCurrentTheme} disabled={savingTheme} className="mt-3 w-full rounded-2xl px-4 py-2.5 text-sm font-black text-white shadow-lg disabled:opacity-60" style={{ backgroundColor: publicTheme.primary }}>
+                    {savingTheme ? 'Guardando...' : 'Guardar personalización'}
+                  </button>
                 </div>
               </div>
             )}
@@ -352,7 +407,7 @@ export default function SellerProfile() {
             )}
           </div>
 
-          <div className="min-w-0 flex-1 rounded-[2rem] bg-white/92 p-4 pt-12 shadow-2xl ring-1 ring-white/80 backdrop-blur-sm sm:p-5 sm:pt-14 md:bg-white/70 md:p-6 md:pt-6 md:backdrop-blur">
+          <div className="min-w-0 flex-1 rounded-[2rem] p-4 pt-12 shadow-2xl ring-1 ring-white/40 backdrop-blur-sm sm:p-5 sm:pt-14 md:p-6 md:pt-6 md:backdrop-blur" style={{ backgroundColor: `${publicTheme.card}e8` }}>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
@@ -382,10 +437,10 @@ export default function SellerProfile() {
             <div className="mt-5">
               {isEditingBio ? (
                 <div className="space-y-3">
-                  <textarea value={tempBio} onChange={event => setTempBio(event.target.value)} className="min-h-24 w-full rounded-2xl border border-blue-100 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-[#1e40af] focus:ring-4 focus:ring-blue-100" placeholder="Cuéntale a la comunidad sobre ti..." />
+                  <textarea value={tempBio} onChange={event => setTempBio(event.target.value)} className="min-h-24 w-full rounded-2xl border px-4 py-3 text-sm font-semibold outline-none focus:ring-4" style={{ backgroundColor: publicTheme.card, borderColor: `${publicTheme.primary}33`, color: publicTheme.text }} placeholder="Cuéntale a la comunidad sobre ti..." />
                   <div className="flex justify-end gap-2">
                     <button onClick={() => setIsEditingBio(false)} className="rounded-xl px-4 py-2 text-sm font-black text-slate-500 hover:bg-slate-100">Cancelar</button>
-                    <button onClick={handleSaveBio} disabled={savingBio} className="rounded-xl bg-[#1e40af] px-4 py-2 text-sm font-black text-white disabled:opacity-60">{savingBio ? 'Guardando...' : 'Guardar'}</button>
+                    <button onClick={handleSaveBio} disabled={savingBio} className="rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60" style={{ backgroundColor: publicTheme.primary }}>{savingBio ? 'Guardando...' : 'Guardar'}</button>
                   </div>
                 </div>
               ) : (
@@ -403,7 +458,7 @@ export default function SellerProfile() {
             </div>
 
             {primaryAddress && (
-              <div className="mt-4 inline-flex max-w-full items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-black text-blue-800 ring-1 ring-blue-100">
+              <div className="mt-4 inline-flex max-w-full items-center gap-2 rounded-full px-3 py-1.5 text-xs font-black ring-1" style={{ backgroundColor: `${publicTheme.secondary}26`, color: publicTheme.text, borderColor: `${publicTheme.secondary}66` }}>
                 <span translate="no" className="material-symbols-outlined text-[16px]">location_on</span>
                 <span className="truncate">{[primaryAddress.name, primaryAddress.comuna, primaryAddress.region].filter(Boolean).join(' · ')}</span>
               </div>
@@ -413,7 +468,7 @@ export default function SellerProfile() {
       </section>
 
       <main className="mx-auto w-full max-w-[1300px] px-4 py-6 sm:px-6 sm:py-8 md:px-10">
-        <div className="mb-5 flex items-center justify-between rounded-3xl bg-white/70 p-4 shadow-sm ring-1 ring-blue-100 sm:mb-6 sm:border-b sm:border-[#1a2b4b]/10 sm:bg-transparent sm:p-0 sm:pb-4 sm:shadow-none sm:ring-0">
+        <div className="mb-5 flex items-center justify-between rounded-3xl p-4 shadow-sm ring-1 sm:mb-6 sm:border-b sm:bg-transparent sm:p-0 sm:pb-4 sm:shadow-none sm:ring-0" style={{ backgroundColor: `${publicTheme.card}cc`, borderColor: `${publicTheme.primary}20` }}>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${publicTheme.primary}18` }}>
               <span translate="no" className="material-symbols-outlined" style={{ color: publicTheme.primary }}>auto_stories</span>
@@ -427,8 +482,8 @@ export default function SellerProfile() {
         </div>
 
         {folders.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-blue-200 bg-white/70 p-10 text-center shadow-sm">
-            <span translate="no" className="material-symbols-outlined text-6xl text-blue-300">inventory_2</span>
+          <div className="rounded-3xl border border-dashed p-10 text-center shadow-sm" style={{ backgroundColor: `${publicTheme.card}cc`, borderColor: `${publicTheme.primary}44` }}>
+            <span translate="no" className="material-symbols-outlined text-6xl" style={{ color: `${publicTheme.primary}88` }}>inventory_2</span>
             <p className="mt-3 text-lg font-black text-slate-500">Este vendedor aún no tiene carpetas públicas.</p>
           </div>
         ) : (
