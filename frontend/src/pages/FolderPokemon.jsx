@@ -526,7 +526,7 @@ function FolderPokemonInner() {
       ? true 
       : catSet === 'otros' 
         ? !availableSets.some(s => s.name === card.set)
-        : card.set === availableSets.find(s => s.groupId === catSet)?.name;
+        : availableSets.some(s => s.groupId == catSet && s.name === card.set);
     
     // Client-side MYL filtering
     let matchesMyl = true;
@@ -1798,6 +1798,7 @@ const FolderPokemon = (props) => (
   </ErrorBoundary>
 );
 export default FolderPokemon;
+
 
 
 

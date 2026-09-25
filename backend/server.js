@@ -39,6 +39,31 @@ const authenticateToken = async (req, res, next) => {
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
+const adminEmails = (process.env.ADMIN_EMAILS || '')
+  .split(',')
+  .map(email => email.trim().toLowerCase())
+  .filter(Boolean);
+
+const isAdminEmail = (email) => Boolean(email && adminEmails.includes(String(email).toLowerCase()));
+
+const requireAdmin = async (req, res, next) => {
+  try {
+    const firebaseAdminClaim = req.user?.admin === true || req.user?.role === 'admin';
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const databaseAdmin = user?.role === 'admin';
+    const envAdmin = isAdminEmail(req.user.email || user?.email);
+
+    if (!firebaseAdminClaim && !databaseAdmin && !envAdmin) {
+      return res.status(403).json({ success: false, message: 'Acceso administrativo requerido' });
+    }
+
+    req.dbUser = user;
+    next();
+  } catch (error) {
+    console.error('Error checking admin permissions:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+};
 const app = express();
 const port = process.env.PORT || 8000;
 
@@ -67,7 +92,7 @@ const limiter = rateLimit({
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({
-  origin: ['https://carpetazo.cl', 'https://www.carpetazo.cl', 'http://localhost:5173', 'http://192.168.1.15:5173'],
+  origin: ['https://carpetazo.cl', 'https://www.carpetazo.cl', 'http://localhost:5173'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true
 }));
@@ -91,7 +116,8 @@ app.post('/api/users/sync', authenticateToken, async (req, res) => {
           email,
           name: req.body.displayName || '',
           username: req.body.username || req.body.displayName?.toLowerCase().replace(/\s+/g, '_') || firebaseUid,
-          photoURL: req.body.photoURL || null
+          photoURL: req.body.photoURL || null,
+          role: isAdminEmail(email) ? 'admin' : 'user'
         }
       });
     } else {
@@ -100,7 +126,8 @@ app.post('/api/users/sync', authenticateToken, async (req, res) => {
         data: {
           name: req.body.displayName || user.name,
           username: req.body.username || user.username || user.name?.toLowerCase().replace(/\s+/g, '_'),
-          photoURL: req.body.photoURL || user.photoURL
+          photoURL: req.body.photoURL || user.photoURL,
+          ...(isAdminEmail(email) && user.role !== 'admin' ? { role: 'admin' } : {})
         }
       });
     }
@@ -142,6 +169,10 @@ const getCards = () => {
     }
 };
 
+
+app.get('/api/admin/me', authenticateToken, requireAdmin, async (req, res) => {
+  res.json({ success: true, isAdmin: true, user: req.dbUser || null });
+});
 // Helper to write data
 const saveCards = (cards) => {
     fs.writeFileSync(dataPath, JSON.stringify(cards, null, 2));
@@ -268,7 +299,7 @@ app.put('/api/folders/:id', authenticateToken, async (req, res) => {
 });
 
 // PUT update order status
-app.put('/api/orders/:id', authenticateToken, async (req, res) => {
+app.put('/api/orders/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { status } = req.body;
     
@@ -310,7 +341,7 @@ app.put('/api/orders/:id', authenticateToken, async (req, res) => {
 });
 
 // GET all cards
-app.get('/api/cards', authenticateToken, (req, res) => {
+app.get('/api/cards', authenticateToken, requireAdmin, (req, res) => {
     const cards = getCards();
     res.json({
         success: true,
@@ -319,7 +350,7 @@ app.get('/api/cards', authenticateToken, (req, res) => {
 });
 
 // POST new card
-app.post('/api/cards', authenticateToken, (req, res) => {
+app.post('/api/cards', authenticateToken, requireAdmin, (req, res) => {
     const { id, name, pseudoName, hp, price, stock, imageUrl, types, set, rarity, supertype, number, total, language } = req.body;
     
     if (!id || !name || price === undefined || stock === undefined) {
@@ -360,7 +391,7 @@ app.post('/api/cards', authenticateToken, (req, res) => {
 });
 
 // POST update existing card stock and price
-app.post('/api/cards/update', authenticateToken, (req, res) => {
+app.post('/api/cards/update', authenticateToken, requireAdmin, (req, res) => {
     const { id, price, stock } = req.body;
     
     if (!id || price === undefined || stock === undefined) {
@@ -381,7 +412,7 @@ app.post('/api/cards/update', authenticateToken, (req, res) => {
 });
 
 // POST delete a card
-app.post('/api/cards/delete', authenticateToken, (req, res) => {
+app.post('/api/cards/delete', authenticateToken, requireAdmin, (req, res) => {
     const { id } = req.body;
     if (!id) {
         return res.status(400).json({ success: false, message: 'Missing card ID' });
@@ -398,7 +429,7 @@ app.post('/api/cards/delete', authenticateToken, (req, res) => {
 });
 
 // GET all pending orders
-app.get('/api/orders', authenticateToken, (req, res) => {
+app.get('/api/orders', authenticateToken, requireAdmin, (req, res) => {
     const orders = getOrders();
     // Return them as an array mapped with the key as the code
     const orderList = Object.keys(orders).map(code => ({
@@ -410,7 +441,7 @@ app.get('/api/orders', authenticateToken, (req, res) => {
 });
 
 // GET history
-app.get('/api/history', authenticateToken, (req, res) => {
+app.get('/api/history', authenticateToken, requireAdmin, (req, res) => {
     const history = getHistory();
     res.json({ success: true, data: history });
 });
@@ -441,7 +472,7 @@ app.post('/api/orders/create', (req, res) => {
 });
 
 // POST process order (discount stock using 10-digit code)
-app.post('/api/process-order', authenticateToken, (req, res) => {
+app.post('/api/process-order', authenticateToken, requireAdmin, (req, res) => {
     const { code } = req.body;
     
     if (!code) {
@@ -484,7 +515,7 @@ app.post('/api/process-order', authenticateToken, (req, res) => {
 });
 
 // POST reject order (just delete from pending list)
-app.post('/api/reject-order', authenticateToken, (req, res) => {
+app.post('/api/reject-order', authenticateToken, requireAdmin, (req, res) => {
     const { code } = req.body;
     
     if (!code) {

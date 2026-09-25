@@ -88,9 +88,9 @@ function AdminPanel() {
     return apiUrl('/proxy-image?productId=' + encodeURIComponent(productId));
   };
 
-  const { getAuthToken } = useAuth();
+  const { currentUser } = useAuth();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
   
   const [activeTab, setActiveTab] = useState('catalog'); // 'catalog', 'add', 'sales'
 
@@ -155,6 +155,34 @@ function AdminPanel() {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
+    const checkAdmin = async () => {
+      if (!currentUser) {
+        setIsAuthenticated(false);
+        setIsCheckingAdmin(false);
+        return;
+      }
+
+      setIsCheckingAdmin(true);
+      try {
+        const result = await apiFetch('/admin/me');
+        if (!cancelled) setIsAuthenticated(Boolean(result.isAdmin));
+      } catch (error) {
+        console.error('Error checking admin access:', error);
+        if (!cancelled) setIsAuthenticated(false);
+      } finally {
+        if (!cancelled) setIsCheckingAdmin(false);
+      }
+    };
+
+    checkAdmin();
+    return () => { cancelled = true; };
+  }, [currentUser?.uid]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
     fetchOrders();
     fetchHistory();
     fetchCards();
@@ -163,7 +191,7 @@ function AdminPanel() {
       fetchHistory();
     }, 10000); // Poll every 10s
     return () => clearInterval(interval);
-  }, []);
+  }, [isAuthenticated]);
 
   // Categories and Sets caching
   useEffect(() => {
@@ -192,12 +220,6 @@ function AdminPanel() {
       })
       .catch(console.error);
   }, [searchCategory]);
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (password === 'admin123') setIsAuthenticated(true);
-    else showToast('Contraseña incorrecta', 'error');
-  };
 
   // --- MANEJO DE CATÁLOGO LOGIC ---
   const handleUpdateCard = async (id, newPrice, newStock) => {
@@ -827,18 +849,24 @@ function AdminPanel() {
     </div>
   );
 
-  if (!isAuthenticated) {
+  if (isCheckingAdmin) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] px-4">
-        <div className="bg-surface-container-lowest p-8 rounded-2xl shadow-lg border border-surface-container w-full max-w-sm">
-          <div className="flex flex-col items-center mb-6">
-            <span translate="no" className="material-symbols-outlined text-4xl text-primary mb-2">lock</span>
-            <h2 className="font-headline-md text-headline-md text-on-background">Acceso Administrativo</h2>
-          </div>
-          <form onSubmit={handleLogin} className="flex flex-col gap-4">
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Contraseña" className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface text-on-surface focus:outline-none focus:border-primary" />
-            <button type="submit" className="bg-primary hover:bg-primary/90 text-on-primary font-label-md py-3 rounded-lg transition-colors shadow-sm">Entrar al Panel</button>
-          </form>
+      <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center">
+        <span translate="no" className="material-symbols-outlined text-5xl text-primary mb-3 animate-pulse">admin_panel_settings</span>
+        <h2 className="font-headline-md text-headline-md text-on-background">Verificando acceso administrativo...</h2>
+      </div>
+    );
+  }
+
+  if (!currentUser || !isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center">
+        <div className="bg-surface-container-lowest p-8 rounded-2xl shadow-lg border border-surface-container w-full max-w-md">
+          <span translate="no" className="material-symbols-outlined text-5xl text-error mb-3">lock</span>
+          <h2 className="font-headline-md text-headline-md text-on-background mb-2">Acceso administrativo requerido</h2>
+          <p className="text-on-surface-variant text-sm">
+            Inicia sesión con una cuenta autorizada. El acceso se controla desde el backend con rol admin o la variable ADMIN_EMAILS.
+          </p>
         </div>
         <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: 'info' })} />
       </div>

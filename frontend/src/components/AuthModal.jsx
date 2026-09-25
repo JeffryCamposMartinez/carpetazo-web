@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { auth, db } from '../firebase';
+import { auth } from '../firebase';
 // import removed
 import { fetchSignInMethodsForEmail } from 'firebase/auth';
 

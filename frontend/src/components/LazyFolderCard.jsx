@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-// import { db } from '../firebase';
-// import { collection, doc, getDoc, getCountFromServer } from 'firebase/firestore';
 import { getFolderFilter } from '../pages/Dashboard';
 
 export default function LazyFolderCard({ folder }) {
