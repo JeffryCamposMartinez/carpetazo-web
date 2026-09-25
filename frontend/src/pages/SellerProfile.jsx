@@ -87,7 +87,7 @@ const profileThemes = [
   { id: 'mythic-green', name: 'Mítico Verde', primary: '#365314', secondary: '#4d7c0f', accent: '#84cc16', surface: '#1a2e05', card: '#ecfccb', text: '#1a2e05', font: 'Cinzel' }
 ];
 
-const fontOptions = ['Inter', 'Montserrat', 'Nunito', 'Poppins', 'Rubik', 'Quicksand', 'Merriweather', 'Oswald', 'Space Grotesk', 'Cinzel'];
+const fontOptions = ['Inter', 'Montserrat', 'Nunito', 'Poppins', 'Rubik', 'Quicksand', 'Merriweather', 'Oswald', 'Space Grotesk', 'Cinzel', 'Orbitron', 'Bebas Neue', 'Bungee', 'Audiowide', 'Permanent Marker', 'Press Start 2P', 'Rubik Glitch', 'Unbounded', 'DM Serif Display'];
 const fontExamples = {
   Inter: 'Perfil limpio y moderno',
   Montserrat: 'Vendedor destacado',
@@ -98,13 +98,34 @@ const fontExamples = {
   Merriweather: 'Elegante y clásico',
   Oswald: 'Fuerte y directo',
   'Space Grotesk': 'Futurista y único',
-  Cinzel: 'Mítico y legendario'
+  Cinzel: 'Mítico y legendario',
+  Orbitron: 'Tecnología orbital',
+  'Bebas Neue': 'Impacto de vitrina',
+  Bungee: 'Estilo arcade urbano',
+  Audiowide: 'Ciencia ficción premium',
+  'Permanent Marker': 'Firma de coleccionista',
+  'Press Start 2P': 'Retro videojuego',
+  'Rubik Glitch': 'Error dimensional',
+  Unbounded: 'Perfil experimental',
+  'DM Serif Display': 'Editorial sofisticado'
 };
 const cardStyleOptions = [
   { id: 'soft', name: 'Suave', description: 'Bordes grandes y efecto vidrio.' },
   { id: 'solid', name: 'Sólido', description: 'Contenedores fuertes y definidos.' },
   { id: 'neon', name: 'Neón', description: 'Brillo/acento alrededor de tarjetas.' },
-  { id: 'minimal', name: 'Minimal', description: 'Limpio, plano y elegante.' }
+  { id: 'minimal', name: 'Minimal', description: 'Limpio, plano y elegante.' },
+  { id: 'holographic', name: 'Holográfico', description: 'Brillos diagonales tipo carta foil.' },
+  { id: 'comic', name: 'Comic', description: 'Borde grueso y sombra ilustrada.' },
+  { id: 'crystal', name: 'Cristal', description: 'Glassmorphism transparente.' },
+  { id: 'brutalist', name: 'Brutalista', description: 'Bloques duros, crudos y raros.' },
+  { id: 'sticker', name: 'Sticker', description: 'Como pegatina flotante.' },
+  { id: 'terminal', name: 'Terminal', description: 'Oscuro, técnico y digital.' },
+  { id: 'sunset', name: 'Atardecer', description: 'Gradiente cálido abstracto.' },
+  { id: 'cosmic', name: 'Cósmico', description: 'Profundo, espacial y brillante.' },
+  { id: 'toxic', name: 'Tóxico', description: 'Acentos intensos y mutantes.' },
+  { id: 'paper', name: 'Papel', description: 'Suave, coleccionable y artesanal.' },
+  { id: 'metal', name: 'Metal', description: 'Plateado, duro y premium.' },
+  { id: 'prism', name: 'Prisma', description: 'Gradiente angular multicolor.' }
 ];
 
 const getFontStack = (font = defaultPublicTheme.font) => {
@@ -142,6 +163,120 @@ const getCardStyle = (theme) => {
       borderRadius: '0.9rem',
       boxShadow: 'none',
       borderColor: `${theme.text}18`
+    };
+  }
+
+  if (style === 'holographic') {
+    return {
+      borderRadius: '2rem',
+      backgroundImage: `linear-gradient(135deg, ${theme.card}ee, ${theme.secondary}55 32%, ${theme.accent}66 48%, ${theme.card}ee 68%), linear-gradient(45deg, transparent, rgba(255,255,255,0.55), transparent)`,
+      boxShadow: `0 22px 70px ${theme.primary}33`,
+      borderColor: `${theme.accent}99`
+    };
+  }
+
+  if (style === 'comic') {
+    return {
+      backgroundColor: theme.card,
+      borderRadius: '1.3rem',
+      boxShadow: `8px 8px 0 ${theme.text}, 0 18px 35px ${theme.primary}30`,
+      borderColor: theme.text,
+      borderWidth: '3px'
+    };
+  }
+
+  if (style === 'crystal') {
+    return {
+      backgroundColor: `${theme.card}9c`,
+      borderRadius: '2.4rem',
+      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.7), 0 28px 70px ${theme.text}2c`,
+      borderColor: 'rgba(255,255,255,0.65)',
+      backdropFilter: 'blur(18px) saturate(1.25)'
+    };
+  }
+
+  if (style === 'brutalist') {
+    return {
+      backgroundColor: theme.card,
+      borderRadius: '0.15rem',
+      boxShadow: `12px 12px 0 ${theme.accent}`,
+      borderColor: theme.text,
+      borderWidth: '4px'
+    };
+  }
+
+  if (style === 'sticker') {
+    return {
+      backgroundColor: theme.card,
+      borderRadius: '2.25rem 1rem 2.25rem 1rem',
+      boxShadow: `0 0 0 5px #fff, 0 20px 45px ${theme.text}33`,
+      borderColor: `${theme.primary}33`,
+      transform: 'rotate(-0.45deg)'
+    };
+  }
+
+  if (style === 'terminal') {
+    return {
+      backgroundColor: '#07110f',
+      borderRadius: '1rem',
+      boxShadow: `0 0 0 1px ${theme.accent}99, inset 0 0 30px ${theme.primary}30`,
+      borderColor: `${theme.accent}99`,
+      color: '#d9ffe5'
+    };
+  }
+
+  if (style === 'sunset') {
+    return {
+      borderRadius: '2rem',
+      backgroundImage: `linear-gradient(135deg, ${theme.accent}cc, ${theme.primary}dd 48%, ${theme.secondary}dd)`,
+      boxShadow: `0 22px 55px ${theme.accent}40`,
+      borderColor: 'rgba(255,255,255,0.35)'
+    };
+  }
+
+  if (style === 'cosmic') {
+    return {
+      borderRadius: '2rem',
+      backgroundImage: `radial-gradient(circle at 20% 10%, ${theme.accent}88, transparent 26%), radial-gradient(circle at 80% 0%, ${theme.secondary}66, transparent 28%), linear-gradient(135deg, #050816, ${theme.primary})`,
+      boxShadow: `0 0 42px ${theme.secondary}55, 0 28px 70px #0008`,
+      borderColor: `${theme.secondary}88`
+    };
+  }
+
+  if (style === 'toxic') {
+    return {
+      borderRadius: '1.6rem',
+      backgroundImage: `linear-gradient(135deg, ${theme.card}, ${theme.accent}77), repeating-linear-gradient(45deg, transparent 0 10px, ${theme.primary}22 10px 20px)`,
+      boxShadow: `0 0 0 2px ${theme.accent}, 0 18px 60px ${theme.accent}66`,
+      borderColor: theme.accent
+    };
+  }
+
+  if (style === 'paper') {
+    return {
+      backgroundColor: theme.card,
+      borderRadius: '1.1rem',
+      backgroundImage: 'linear-gradient(0deg, rgba(255,255,255,0.45), rgba(0,0,0,0.025))',
+      boxShadow: `0 14px 30px ${theme.text}18`,
+      borderColor: `${theme.text}22`
+    };
+  }
+
+  if (style === 'metal') {
+    return {
+      borderRadius: '1.4rem',
+      backgroundImage: `linear-gradient(135deg, #ffffff, ${theme.card}, #94a3b8, ${theme.card}, #ffffff)`,
+      boxShadow: `inset 0 1px 0 #fff, 0 22px 50px ${theme.text}30`,
+      borderColor: '#cbd5e1'
+    };
+  }
+
+  if (style === 'prism') {
+    return {
+      borderRadius: '2rem',
+      backgroundImage: `conic-gradient(from 180deg at 50% 50%, ${theme.primary}, ${theme.secondary}, ${theme.accent}, ${theme.card}, ${theme.primary})`,
+      boxShadow: `0 24px 60px ${theme.primary}40`,
+      borderColor: 'rgba(255,255,255,0.5)'
     };
   }
 
@@ -414,7 +549,7 @@ export default function SellerProfile() {
                 </div>
 
                 {themePanelTab === 'theme' && (
-                  <div className="mt-3 space-y-3">
+                  <div className="mt-3 max-h-[58vh] space-y-3 overflow-y-auto overscroll-contain pr-1">
                     <div className="grid grid-cols-2 gap-2">
                       {profileThemes.map(theme => {
                         const selected = publicTheme.id === theme.id;
@@ -462,7 +597,7 @@ export default function SellerProfile() {
                 )}
 
                 {themePanelTab === 'font' && (
-                  <div className="mt-3 space-y-3">
+                  <div className="mt-3 max-h-[58vh] space-y-3 overflow-y-auto overscroll-contain pr-1">
                     <p className="text-xs font-bold opacity-70">Elige cómo se leen tu nombre, biografía y carpetas.</p>
                     <div className="grid grid-cols-2 gap-2">
                       {fontOptions.map(font => (
@@ -489,7 +624,7 @@ export default function SellerProfile() {
                 )}
 
                 {themePanelTab === 'cards' && (
-                  <div className="mt-3 space-y-3">
+                  <div className="mt-3 max-h-[58vh] space-y-3 overflow-y-auto overscroll-contain pr-1">
                     <p className="text-xs font-bold opacity-70">Cambia la personalidad de los contenedores del perfil.</p>
                     <div className="grid grid-cols-2 gap-2">
                       {cardStyleOptions.map(option => (
