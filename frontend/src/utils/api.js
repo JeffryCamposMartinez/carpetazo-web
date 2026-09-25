@@ -29,7 +29,7 @@ export const apiFetch = async (endpoint, options = {}) => {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Error: ' + response.status);
+    throw new Error(errorData.message || errorData.error || 'Error: ' + response.status);
   }
 
   return response.json();
@@ -40,6 +40,7 @@ export const api = {
   syncUser: (data = {}) => apiFetch('/users/sync', { method: 'POST', body: JSON.stringify(data) }),
   getUserProfile: (username) => apiFetch('/users/' + username),
   getMe: () => apiFetch('/users/me'),
+  checkUsername: (username) => apiFetch('/users/username/check?username=' + encodeURIComponent(username || '')),
   updateProfile: (data) => apiFetch('/users/me', { method: 'PUT', body: JSON.stringify(data) }),
   deleteProfile: () => apiFetch('/users/me', { method: 'DELETE' }),
   

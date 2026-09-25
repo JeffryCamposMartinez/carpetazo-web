@@ -1,1169 +1,577 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { deleteUser, updateProfile as updateFirebaseProfile } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../utils/api';
-import { deleteUser } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
 import { chileData } from '../utils/chileData';
 
 const chileBanks = [
-  "Banco de Chile - Edwards",
-  "Banco Internacional",
-  "Banco Estado",
-  "ScotiaBank",
-  "BCI",
-  "Banco Do Brasil",
-  "Corpbanca",
-  "BICE",
-  "HSBC Bank",
-  "Banco Santander",
-  "Banco Itau",
-  "Banco Security",
-  "Banco Falabella",
-  "Banco Ripley",
-  "Rabobank",
-  "Banco Consorcio",
-  "Banco Paris",
-  "BBVA",
-  "COOPEUCH",
-  "Mercado Pago",
-  "Global66",
-  "Tenpo"
+  'Banco de Chile - Edwards',
+  'Banco Internacional',
+  'Banco Estado',
+  'ScotiaBank',
+  'BCI',
+  'Banco Do Brasil',
+  'Corpbanca',
+  'BICE',
+  'HSBC Bank',
+  'Banco Santander',
+  'Banco Itau',
+  'Banco Security',
+  'Banco Falabella',
+  'Banco Ripley',
+  'Rabobank',
+  'Banco Consorcio',
+  'Banco Paris',
+  'BBVA',
+  'COOPEUCH',
+  'Mercado Pago',
+  'Global66',
+  'Tenpo'
 ];
 
-const accountTypes = [
-  "Cuenta corriente", 
-  "Cuenta vista", 
-  "Cuenta de ahorro",
-  "Cuenta Rut"
+const accountTypes = ['Cuenta corriente', 'Cuenta vista', 'Cuenta de ahorro', 'Cuenta Rut'];
+
+const emptyProfile = {
+  fullName: '',
+  displayName: '',
+  username: '',
+  email: '',
+  photoURL: '',
+  bio: '',
+  phone: '',
+  rut: '',
+  facebookUrl: '',
+  instagramUrl: '',
+  youtubeUrl: '',
+  addresses: [],
+  bankDetails: { bank: '', accountType: '', accountNumber: '' }
+};
+
+const tabs = [
+  { id: 'general', label: 'Perfil', icon: 'person', description: 'Tu identidad pública y cómo te ven otros usuarios.' },
+  { id: 'personal', label: 'Privado', icon: 'badge', description: 'Datos privados para contacto, compras y validaciones.' },
+  { id: 'addresses', label: 'Direcciones', icon: 'location_on', description: 'Lugares donde puedes recibir pedidos.' },
+  { id: 'payments', label: 'Pagos', icon: 'account_balance', description: 'Datos bancarios para recibir ventas.' },
+  { id: 'social', label: 'Redes', icon: 'share', description: 'Enlaces visibles en tu perfil público.' },
+  { id: 'security', label: 'Cuenta', icon: 'shield', description: 'Estado de sesión y acciones sensibles.' }
 ];
 
-const CustomDropdown = ({ options, value, onChange, placeholder }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
+const normalizeUsername = (value = '') => (
+  String(value).toLowerCase().trim().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').slice(0, 20)
+);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+const formatRut = (value = '') => {
+  const cleanRut = value.replace(/[^0-9kK]/g, '').toUpperCase();
+  if (cleanRut.length <= 1) return cleanRut;
+  return `${cleanRut.slice(0, -1)}-${cleanRut.slice(-1)}`;
+};
 
+const validateRut = (rut = '') => {
+  if (!rut) return true;
+  const cleanRut = rut.replace(/[^0-9kK]/g, '').toUpperCase();
+  if (cleanRut.length < 8) return false;
+  const body = cleanRut.slice(0, -1);
+  const dv = cleanRut.slice(-1);
+  let sum = 0;
+  let multiplier = 2;
+  for (let i = body.length - 1; i >= 0; i -= 1) {
+    sum += Number.parseInt(body[i], 10) * multiplier;
+    multiplier = multiplier < 7 ? multiplier + 1 : 2;
+  }
+  const remainder = 11 - (sum % 11);
+  const expectedDv = remainder === 11 ? '0' : remainder === 10 ? 'K' : String(remainder);
+  return dv === expectedDv;
+};
+
+const mapUserToProfile = (user = {}, currentUser = null) => ({
+  ...emptyProfile,
+  fullName: user.fullName || user.name || currentUser?.displayName || '',
+  displayName: user.name || user.fullName || currentUser?.displayName || '',
+  username: user.username || '',
+  email: user.email || currentUser?.email || '',
+  photoURL: user.photoURL || currentUser?.photoURL || '',
+  bio: user.bio || '',
+  phone: user.phone || '',
+  rut: user.rut || '',
+  facebookUrl: user.facebookUrl || '',
+  instagramUrl: user.instagramUrl || '',
+  youtubeUrl: user.youtubeUrl || '',
+  addresses: Array.isArray(user.addresses) ? user.addresses : [],
+  bankDetails: {
+    ...emptyProfile.bankDetails,
+    ...(user.bankDetails && typeof user.bankDetails === 'object' ? user.bankDetails : {})
+  }
+});
+
+const compactProfilePayload = (profile) => ({
+  fullName: profile.fullName?.trim() || null,
+  name: profile.displayName?.trim() || profile.fullName?.trim() || null,
+  username: normalizeUsername(profile.username),
+  photoURL: profile.photoURL || null,
+  bio: profile.bio?.trim() || null,
+  phone: profile.phone?.trim() || null,
+  rut: profile.rut?.trim() || null,
+  facebookUrl: profile.facebookUrl?.trim() || null,
+  instagramUrl: profile.instagramUrl?.trim() || null,
+  youtubeUrl: profile.youtubeUrl?.trim() || null,
+  addresses: profile.addresses || [],
+  bankDetails: profile.bankDetails || {}
+});
+
+const Field = ({ label, hint, children }) => (
+  <label className="block">
+    <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-500">{label}</span>
+    {children}
+    {hint && <span className="mt-2 block text-xs font-semibold text-slate-400">{hint}</span>}
+  </label>
+);
+
+const TextInput = ({ className = '', ...props }) => (
+  <input
+    {...props}
+    className={`w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 shadow-sm outline-none transition focus:border-[#1e40af] focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 ${className}`}
+  />
+);
+
+const SelectInput = ({ children, className = '', ...props }) => (
+  <select
+    {...props}
+    className={`w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 shadow-sm outline-none transition focus:border-[#1e40af] focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 ${className}`}
+  >
+    {children}
+  </select>
+);
+
+const ActionButton = ({ children, variant = 'primary', className = '', ...props }) => {
+  const variants = {
+    primary: 'bg-[#1e40af] text-white hover:bg-[#1d4ed8] disabled:bg-slate-300',
+    secondary: 'bg-white text-[#1e40af] ring-1 ring-blue-100 hover:bg-blue-50 disabled:text-slate-400',
+    danger: 'bg-red-600 text-white hover:bg-red-700 disabled:bg-red-200'
+  };
   return (
-    <div className="relative w-full" ref={dropdownRef}>
-      <div 
-        className="w-full px-5 py-3.5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 flex justify-between items-center cursor-pointer focus:outline-none focus:border-[#2563eb] transition-all"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <span className={value ? "text-slate-800 font-bold" : "text-slate-400 font-medium"}>
-          {value || placeholder}
-        </span>
-        <span translate="no" className="material-symbols-outlined text-slate-400 transition-transform duration-200" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-          expand_more
-        </span>
-      </div>
-      {isOpen && (
-        <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 max-h-60 overflow-y-auto">
-          {options.map((opt, i) => (
-            <div 
-              key={i} 
-              className={`px-5 py-3 hover:bg-blue-50 cursor-pointer text-sm transition-colors ${value === opt ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-700 font-medium'}`}
-              onClick={() => {
-                onChange(opt);
-                setIsOpen(false);
-              }}
-            >
-              {opt}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <button
+      {...props}
+      className={`inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black shadow-sm transition active:scale-[0.99] disabled:cursor-not-allowed disabled:shadow-none ${variants[variant]} ${className}`}
+    >
+      {children}
+    </button>
   );
 };
 
 const ProfilePage = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('general');
-  const [profileData, setProfileData] = useState({
-    fullName: '', displayName: '', username: '', bio: '', phone: '', rut: '', 
-    facebookUrl: '', instagramUrl: '', youtubeUrl: '', 
-    addresses: [], bankDetails: {}
-  });
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [rutError, setRutError] = useState('');
-  const [usernameAvailable, setUsernameAvailable] = useState(null);
-  const [checkingUsername, setCheckingUsername] = useState(false);
-  
-  // Modal states
-  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
-  const [addressFormData, setAddressFormData] = useState({ region: '', comuna: '', street: '', number: '', floor: '', depto: '', name: '', reference: '' });
+  const [profileData, setProfileData] = useState(emptyProfile);
+  const [originalUsername, setOriginalUsername] = useState('');
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [profileError, setProfileError] = useState('');
+  const [savingKey, setSavingKey] = useState('');
+  const [feedback, setFeedback] = useState(null);
+  const [usernameState, setUsernameState] = useState({ checking: false, available: null, message: '' });
+  const [addressModal, setAddressModal] = useState({ open: false, index: null });
+  const [addressForm, setAddressForm] = useState({ name: '', region: '', comuna: '', street: '', number: '', floor: '', depto: '', reference: '' });
+  const [deleteAddressIndex, setDeleteAddressIndex] = useState(null);
+  const [defaultAddressIndex, setDefaultAddressIndex] = useState(null);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
-  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-  const [availableComunas, setAvailableComunas] = useState([]);
-  const [editingAddressIndex, setEditingAddressIndex] = useState(null);
-  const [deleteConfirmationIndex, setDeleteConfirmationIndex] = useState(null);
-  const [defaultConfirmationIndex, setDefaultConfirmationIndex] = useState(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-  
-  const tabsContainerRef = useRef(null);
 
-  const tabs = [
-    { id: 'general', label: 'General', icon: 'person' },
-    { id: 'avatar', label: 'Avatar', icon: 'image' },
-    { id: 'personal', label: 'Información Personal', icon: 'badge' },
-    { id: 'redes', label: 'Redes Sociales', icon: 'share' },
-    { id: 'direcciones', label: 'Direcciones', icon: 'location_on' },
-    { id: 'bancarios', label: 'Datos Bancarios', icon: 'account_balance' },
-    { id: 'cuenta', label: 'Cuenta', icon: 'settings' }
-  ];
+  const rutIsValid = validateRut(profileData.rut);
+  const publicUrl = profileData.username ? `${window.location.origin}/${profileData.username}` : '';
+  const selectedTab = tabs.find(tab => tab.id === activeTab) || tabs[0];
+  const availableComunas = useMemo(() => (
+    chileData.find(region => region.region === addressForm.region)?.comunas || []
+  ), [addressForm.region]);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (currentUser) {
-        try {
-          const res = await api.getMe();
-          if (res.success && res.user) {
-            setProfileData(prev => ({ ...prev, ...res.user }));
-          }
-        } catch (error) {
-          console.error('Error fetching profile from API', error);
+  const showFeedback = (type, message) => {
+    setFeedback({ type, message });
+    window.setTimeout(() => setFeedback(null), 3500);
+  };
+
+  const loadProfile = async () => {
+    if (!currentUser) return;
+    setLoadingProfile(true);
+    setProfileError('');
+    try {
+      let response;
+      try {
+        response = await api.getMe();
+      } catch (error) {
+        if (String(error.message || '').includes('404')) {
+          response = await api.syncUser({
+            displayName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Usuario',
+            username: normalizeUsername(currentUser.displayName || currentUser.email?.split('@')[0] || currentUser.uid),
+            photoURL: currentUser.photoURL || ''
+          });
+        } else {
+          throw error;
         }
       }
-    };
-    fetchProfile();
+      const mapped = mapUserToProfile(response.user || {}, currentUser);
+      setProfileData(mapped);
+      setOriginalUsername(mapped.username);
+      setUsernameState({ checking: false, available: true, message: '' });
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      setProfileError('No pudimos cargar tu perfil. Revisa la conexión e intenta nuevamente.');
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProfile();
   }, [currentUser]);
 
   useEffect(() => {
-    const handleTabsScroll = () => {
-      if (tabsContainerRef.current) {
-        const { scrollLeft, scrollWidth, clientWidth } = tabsContainerRef.current;
-        setCanScrollLeft(scrollLeft > 0);
-        setCanScrollRight(Math.ceil(scrollLeft + clientWidth) < scrollWidth);
-      }
-    };
-    
-    // Initial check and event listeners
-    handleTabsScroll();
-    window.addEventListener('resize', handleTabsScroll);
-    
-    // Also attach to the ref directly for robust mobile tracking
-    const currentRef = tabsContainerRef.current;
-    if (currentRef) {
-      currentRef.addEventListener('scroll', handleTabsScroll);
+    const username = normalizeUsername(profileData.username);
+    if (!username) {
+      setUsernameState({ checking: false, available: null, message: '' });
+      return undefined;
     }
-
-    return () => {
-      window.removeEventListener('resize', handleTabsScroll);
-      if (currentRef) {
-        currentRef.removeEventListener('scroll', handleTabsScroll);
-      }
-    };
-  }, [tabsContainerRef.current]);
-
-  useEffect(() => {
-    const checkUsername = async () => {
-      if (!profileData.username) {
-        setUsernameAvailable(null);
-        return;
-      }
-      
-      const cleanUsername = profileData.username.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-      
+    if (!/^[a-z0-9_]{3,20}$/.test(username)) {
+      setUsernameState({ checking: false, available: false, message: 'Usa 3 a 20 caracteres: letras, números o _.' });
+      return undefined;
+    }
+    if (username === originalUsername) {
+      setUsernameState({ checking: false, available: true, message: 'Es tu usuario actual.' });
+      return undefined;
+    }
+    setUsernameState({ checking: true, available: null, message: 'Verificando disponibilidad...' });
+    const timer = window.setTimeout(async () => {
       try {
-        const meRes = await api.getMe();
-        if (meRes.success && meRes.user && meRes.user.username === cleanUsername) {
-          setUsernameAvailable(true);
-          setCheckingUsername(false);
-          return;
-        }
-
-        const res = await api.getUserProfile(cleanUsername);
-        if (res.success && res.user) {
-          setUsernameAvailable(false);
-        } else {
-          setUsernameAvailable(true);
-        }
-      } catch (err) {
-        setUsernameAvailable(true);
+        const result = await api.checkUsername(username);
+        setUsernameState({
+          checking: false,
+          available: Boolean(result.available),
+          message: result.available ? 'Usuario disponible.' : 'Ese usuario ya está en uso.'
+        });
+      } catch (error) {
+        setUsernameState({ checking: false, available: false, message: error.message || 'No se pudo verificar el usuario.' });
       }
-      setCheckingUsername(false);
-    };
+    }, 450);
+    return () => window.clearTimeout(timer);
+  }, [profileData.username, originalUsername]);
 
-    setCheckingUsername(true);
-    const timeoutId = setTimeout(() => {
-      checkUsername();
-    }, 500);
+  const updateProfileField = (field, value) => setProfileData(prev => ({ ...prev, [field]: value }));
+  const updateBankField = (field, value) => setProfileData(prev => ({ ...prev, bankDetails: { ...(prev.bankDetails || {}), [field]: value } }));
 
-    return () => clearTimeout(timeoutId);
-  }, [profileData.username, currentUser]);
-
-  const handleInputChange = (field, value) => {
-    setProfileData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleBankInputChange = (field, value) => {
-    setProfileData(prev => ({
-      ...prev,
-      bankDetails: {
-        ...(prev.bankDetails || {}),
-        [field]: value
-      }
-    }));
-  };
-
-  const handleSaveProfile = async (e) => {
-    if (e) e.preventDefault();
-    if (rutError) return;
-    setSavingProfile(true);
+  const persistProfile = async (payload, successMessage, key = 'profile') => {
+    setSavingKey(key);
     try {
-      const cleanUsername = profileData.username ? profileData.username.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') : null;
-      
-      await api.updateProfile({ ...profileData, username: cleanUsername || profileData.username });
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+      const response = await api.updateProfile(payload);
+      if (response.success && response.user) {
+        const mapped = mapUserToProfile(response.user, currentUser);
+        setProfileData(mapped);
+        setOriginalUsername(mapped.username);
+      }
+      showFeedback('success', successMessage);
+      return true;
     } catch (error) {
       console.error('Error saving profile:', error);
-      alert('Error al guardar el perfil');
+      showFeedback('error', error.message || 'No se pudo guardar. Intenta nuevamente.');
+      return false;
     } finally {
-      setSavingProfile(false);
+      setSavingKey('');
     }
   };
 
-  const formatRut = (value) => {
-    let cleanRut = value.replace(/[^0-9kK]/g, '').toUpperCase();
-    if (cleanRut.length <= 1) return cleanRut;
-    let body = cleanRut.slice(0, -1);
-    let dv = cleanRut.slice(-1);
-    return `${body}-${dv}`;
-  };
-
-  const validateRut = (rut) => {
-    if (!rut) return true;
-    const cleanRut = rut.replace(/[^0-9kK]/g, '').toUpperCase();
-    if (cleanRut.length < 8) return false;
-    let body = cleanRut.slice(0, -1);
-    let dv = cleanRut.slice(-1);
-    let sum = 0;
-    let multiplier = 2;
-    for (let i = body.length - 1; i >= 0; i--) {
-      sum += parseInt(body[i]) * multiplier;
-      multiplier = multiplier < 7 ? multiplier + 1 : 2;
-    }
-    let expectedDv = 11 - (sum % 11);
-    if (expectedDv === 11) expectedDv = '0';
-    else if (expectedDv === 10) expectedDv = 'K';
-    else expectedDv = expectedDv.toString();
-    return dv === expectedDv;
-  };
-
-  const handleRutChange = (e) => {
-    const formatted = formatRut(e.target.value);
-    setProfileData(prev => ({ ...prev, rut: formatted }));
-    if (formatted && !validateRut(formatted)) {
-      setRutError('El RUT ingresado no es válido');
-    } else {
-      setRutError('');
+  const handleSaveProfile = async (section = 'profile') => {
+    if (!rutIsValid) return showFeedback('error', 'El RUT ingresado no es válido.');
+    if (usernameState.available === false || usernameState.checking) return showFeedback('error', 'Revisa el nombre de usuario antes de guardar.');
+    const payload = compactProfilePayload(profileData);
+    const ok = await persistProfile(payload, 'Perfil actualizado correctamente.', section);
+    if (ok) {
+      try {
+        await updateFirebaseProfile(currentUser, { displayName: payload.name || undefined, photoURL: payload.photoURL || undefined });
+      } catch (error) {
+        console.warn('Firebase profile update skipped:', error);
+      }
     }
   };
 
-  const handleAvatarUpload = (e) => {
-    const file = e.target.files[0];
+  const handleAvatarUpload = (event) => {
+    const file = event.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith('image/')) return showFeedback('error', 'Sube una imagen válida.');
+    if (file.size > 4 * 1024 * 1024) return showFeedback('error', 'La imagen debe pesar menos de 4 MB.');
     const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
+    reader.onload = (readerEvent) => {
       const img = new Image();
-      img.src = event.target.result;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 300;
-        const MAX_HEIGHT = 300;
-        let width = img.width;
-        let height = img.height;
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        const compressedBase64 = canvas.toDataURL('image/webp', 0.5);
-        setProfileData(prev => ({
-          ...prev,
-          avatarBase64: compressedBase64
-        }));
+        const maxSize = 420;
+        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        updateProfileField('photoURL', canvas.toDataURL('image/webp', 0.72));
       };
+      img.src = readerEvent.target.result;
     };
+    reader.readAsDataURL(file);
   };
 
-  const openAddAddressModal = () => {
-    setAddressFormData({ region: '', comuna: '', street: '', number: '', floor: '', depto: '', name: '', reference: '' });
-    setEditingAddressIndex(null);
-    setIsAddressModalOpen(true);
+  const openAddressModal = (index = null) => {
+    const address = index === null ? {} : profileData.addresses[index] || {};
+    setAddressForm({
+      name: address.name || '',
+      region: address.region || '',
+      comuna: address.comuna || '',
+      street: address.street || '',
+      number: address.number || '',
+      floor: address.floor || '',
+      depto: address.depto || '',
+      reference: address.reference || ''
+    });
+    setAddressModal({ open: true, index });
   };
 
-  const handleEditAddressClick = (idx) => {
-    const addr = profileData.addresses[idx];
-    setAddressFormData(addr);
-    const regionData = chileData.find(r => r.region === addr.region);
-    setAvailableComunas(regionData ? regionData.comunas : []);
-    setEditingAddressIndex(idx);
-    setIsAddressModalOpen(true);
-  };
-
-  const handleAddressInputChange = (field, value) => {
-    setAddressFormData(prev => ({ ...prev, [field]: value }));
-    if (field === 'region') {
-      const regionData = chileData.find(r => r.region === value);
-      setAvailableComunas(regionData ? regionData.comunas : []);
-      setAddressFormData(prev => ({ ...prev, comuna: '' }));
+  const saveAddress = async (event) => {
+    event.preventDefault();
+    if (!addressForm.region || !addressForm.comuna || !addressForm.street || !addressForm.number) {
+      return showFeedback('error', 'Completa región, comuna, calle y número.');
     }
-  };
-
-  const handleSaveAddress = async (e) => {
-    e.preventDefault();
-    const newAddresses = [...(profileData.addresses || [])];
-    if (editingAddressIndex !== null) {
-      newAddresses[editingAddressIndex] = { ...newAddresses[editingAddressIndex], ...addressFormData };
-    } else {
-      const newAddr = { ...addressFormData, isDefault: newAddresses.length === 0 };
-      newAddresses.push(newAddr);
-    }
-    setProfileData(prev => ({ ...prev, addresses: newAddresses }));
-    setIsAddressModalOpen(false);
-    
-    // Auto save
-    await api.updateProfile({ addresses: newAddresses });
-  };
-
-  const handleDeleteAddress = (idx) => {
-    setDeleteConfirmationIndex(idx);
+    const nextAddresses = [...(profileData.addresses || [])];
+    const nextAddress = { ...addressForm, isDefault: addressModal.index === null ? nextAddresses.length === 0 : Boolean(nextAddresses[addressModal.index]?.isDefault) };
+    if (addressModal.index === null) nextAddresses.push(nextAddress);
+    else nextAddresses[addressModal.index] = nextAddress;
+    const ok = await persistProfile({ addresses: nextAddresses }, 'Dirección guardada.', 'addresses');
+    if (ok) setAddressModal({ open: false, index: null });
   };
 
   const confirmDeleteAddress = async () => {
-    const newAddresses = [...(profileData.addresses || [])];
-    const wasDefault = newAddresses[deleteConfirmationIndex].isDefault;
-    newAddresses.splice(deleteConfirmationIndex, 1);
-    
-    if (wasDefault && newAddresses.length > 0) {
-      newAddresses[0].isDefault = true;
-    }
-    
-    setProfileData(prev => ({ ...prev, addresses: newAddresses }));
-    setDeleteConfirmationIndex(null);
-    
-    await api.updateProfile({ addresses: newAddresses });
+    const nextAddresses = [...(profileData.addresses || [])];
+    const removed = nextAddresses[deleteAddressIndex];
+    nextAddresses.splice(deleteAddressIndex, 1);
+    if (removed?.isDefault && nextAddresses.length > 0) nextAddresses[0].isDefault = true;
+    const ok = await persistProfile({ addresses: nextAddresses }, 'Dirección eliminada.', 'addresses');
+    if (ok) setDeleteAddressIndex(null);
   };
 
-  const confirmSetDefaultAddress = async () => {
-    const newAddresses = [...(profileData.addresses || [])].map((addr, idx) => ({
-      ...addr,
-      isDefault: idx === defaultConfirmationIndex
-    }));
-    setProfileData(prev => ({ ...prev, addresses: newAddresses }));
-    setDefaultConfirmationIndex(null);
-    
-    await api.updateProfile({ addresses: newAddresses });
+  const confirmDefaultAddress = async () => {
+    const nextAddresses = (profileData.addresses || []).map((address, index) => ({ ...address, isDefault: index === defaultAddressIndex }));
+    const ok = await persistProfile({ addresses: nextAddresses }, 'Dirección principal actualizada.', 'addresses');
+    if (ok) setDefaultAddressIndex(null);
   };
 
   const handleDeleteAccount = async () => {
-      if (deleteConfirmationText.toLowerCase() !== 'eliminar') return;
-      
-      setIsDeletingAccount(true);
+    if (deleteConfirmationText.toLowerCase() !== 'eliminar') return;
+    setSavingKey('delete-account');
+    try {
+      await api.deleteProfile();
       try {
-        await api.deleteProfile();
-        if (currentUser) {
-          await deleteUser(currentUser);
-        }
-        navigate('/');
+        await deleteUser(currentUser);
       } catch (error) {
-        console.error('Error deleting account:', error);
-        alert('Hubo un error al eliminar tu cuenta.');
-      } finally {
-        setIsDeletingAccount(false);
+        console.warn('Firebase account deletion needs reauth or failed:', error);
       }
+      navigate('/');
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      showFeedback('error', error.message || 'No se pudo eliminar la cuenta.');
+    } finally {
+      setSavingKey('');
+    }
   };
 
+  if (!currentUser) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-16 text-center">
+        <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-blue-100">
+          <span translate="no" className="material-symbols-outlined text-5xl text-[#1e40af]">lock</span>
+          <h1 className="mt-4 text-2xl font-black text-[#1a2b4b]">Inicia sesión para ver tu perfil</h1>
+          <p className="mt-2 text-sm font-medium text-slate-500">Esta sección usa tu sesión para cargar y guardar datos de forma segura.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <>
-      <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
-        <div className="w-full rounded-none flex flex-col relative z-10 min-h-[calc(100vh-80px)] pb-12">
-          <div className="flex-1 bg-transparent p-4 md:p-8 flex flex-col relative z-20">
-            
-            <div className="flex flex-col lg:flex-row gap-8 relative z-10 w-full h-full max-w-[1200px] mx-auto">
-              
-              {/* Sidebar Menu */}
-              <div className="lg:w-[320px] shrink-0 flex flex-col gap-6">
-                
-                {/* Avatar / User Info Card */}
-                <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-5 lg:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 flex flex-row lg:flex-col items-center lg:text-center relative overflow-hidden group gap-4 lg:gap-0">
-                  <div className="absolute inset-0 bg-gradient-to-b from-blue-50/50 to-transparent -z-10"></div>
-                  
-                  <div className="relative cursor-pointer lg:mb-5 shrink-0">
-                    <div className="w-20 h-20 lg:w-32 lg:h-32 rounded-full bg-slate-100 border-4 border-white shadow-lg overflow-hidden flex items-center justify-center relative z-10">
-                      {profileData.avatarBase64 || currentUser?.photoURL ? (
-                        <img src={profileData.avatarBase64 || currentUser.photoURL} alt="Avatar" className="w-full h-full object-cover" />
-                      ) : (
-                        <span translate="no" className="material-symbols-outlined text-[64px] text-slate-300">person</span>
-                      )}
-                    </div>
-                    {/* Hover overlay for changing avatar */}
-                    <div className="absolute inset-0 bg-[#1a2b4b]/60 backdrop-blur-sm rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 z-20">
-                      <span translate="no" className="material-symbols-outlined text-white text-3xl mb-1">photo_camera</span>
-                      <span className="text-white text-xs font-bold">Cambiar Foto</span>
-                      <input 
-                        type="file" 
-                        accept="image/png, image/jpeg, image/gif, image/webp" 
-                        onChange={handleAvatarUpload}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      />
-                    </div>
-                    <div className="absolute -inset-4 bg-blue-400 rounded-full blur-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 -z-10"></div>
-                  </div>
-                  
-                  <div className="flex flex-col items-start lg:items-center min-w-0">
-                    <h2 className="text-xl lg:text-2xl font-black text-[#1a2b4b] truncate w-full leading-tight mb-0.5 lg:mb-1">
-                      {profileData.displayName || currentUser?.displayName || 'Usuario'}
-                    </h2>
-                    <p className="text-xs lg:text-sm text-slate-500 truncate w-full font-medium">{currentUser?.email}</p>
-                  </div>
-                </div>
-
-                {/* Vertical Tabs */}
-                <div className="relative w-full">
-                  <div className="lg:hidden flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-3 opacity-80">
-                    <span translate="no" className="material-symbols-outlined text-[14px] animate-[bounce_1s_infinite_horizontal]">swipe</span>
-                    Desliza para más opciones
-                  </div>
-                  <div 
-                    ref={tabsContainerRef}
-                    className="bg-white/95 backdrop-blur-xl rounded-3xl p-3 lg:p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 flex flex-row lg:flex-col gap-2 overflow-x-auto hide-scrollbar lg:overflow-visible relative scroll-smooth"
-                  >
-                    <div className="hidden lg:block px-4 py-2">
-                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Ajustes de Cuenta</h3>
-                    </div>
-                    {tabs.filter(t => t.id !== 'avatar').map(tab => (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`min-w-[115px] flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-4 py-3 lg:py-4 px-3 lg:px-5 font-bold text-xs lg:text-sm transition-all duration-300 rounded-2xl shrink-0 lg:w-full lg:text-left ${
-                          activeTab === tab.id 
-                            ? 'bg-[#1a2b4b] text-white shadow-[0_8px_16px_-6px_rgba(26,43,75,0.4)] lg:scale-[1.02] border border-[#1a2b4b]/10' 
-                            : 'bg-transparent text-slate-500 hover:text-[#1a2b4b] hover:bg-slate-50 hover:shadow-sm'
-                        }`}
-                      >
-                        <span className={`material-symbols-outlined text-[20px] lg:text-[24px] transition-colors duration-300 ${activeTab === tab.id ? 'text-[#ffcb05]' : 'text-slate-400'}`}>{tab.icon}</span>
-                        <span className="truncate w-full text-center lg:text-left">{tab.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                  
-                  {/* Left fade indicator - mobile only */}
-                  <div className={`absolute left-0 top-7 bottom-0 w-12 bg-gradient-to-r from-[#1a2b4b]/40 to-transparent rounded-l-3xl pointer-events-none lg:hidden flex items-center justify-start pl-1.5 transition-opacity duration-300 ${canScrollLeft ? 'opacity-100' : 'opacity-0'}`}>
-                    <span translate="no" className="material-symbols-outlined text-white animate-pulse text-xl drop-shadow-md">chevron_left</span>
-                  </div>
-
-                  {/* Right fade indicator - mobile only */}
-                  <div className={`absolute right-0 top-7 bottom-0 w-12 bg-gradient-to-l from-[#1a2b4b]/40 to-transparent rounded-r-3xl pointer-events-none lg:hidden flex items-center justify-end pr-1.5 transition-opacity duration-300 ${canScrollRight ? 'opacity-100' : 'opacity-0'}`}>
-                    <span translate="no" className="material-symbols-outlined text-white animate-pulse text-xl drop-shadow-md">chevron_right</span>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Dynamic Content Area */}
-              <div className="flex-1 flex flex-col">
-                <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-5 md:p-8 lg:p-12 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 relative overflow-hidden min-h-[500px] lg:min-h-[600px] flex flex-col">
-                  {/* Decorative blobs */}
-                  <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-100/40 rounded-full blur-[80px] -z-10 transform translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
-                  <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-100/30 rounded-full blur-[60px] -z-10 transform -translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
-
-                  <div className="flex items-center justify-between mb-8 lg:mb-10 relative z-10 border-b border-slate-100 pb-6 lg:pb-8">
-                    <div>
-                      <h1 className="text-3xl lg:text-4xl font-black text-[#1a2b4b] tracking-tight mb-2">
-                        {tabs.find(t => t.id === activeTab)?.label}
-                      </h1>
-                      <p className="text-slate-500 font-medium text-sm">
-                        {activeTab === 'general' && 'Información básica de tu perfil público'}
-                        {activeTab === 'personal' && 'Datos privados para facturación y seguridad'}
-                        {activeTab === 'direcciones' && 'Gestiona dónde quieres recibir tus compras'}
-                        {activeTab === 'bancarios' && 'Configura tus cuentas para recibir pagos'}
-                        {activeTab === 'redes' && 'Conecta tus plataformas favoritas'}
-                        {activeTab === 'cuenta' && 'Opciones avanzadas y zona de peligro'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {showSuccess && (
-                    <div className="mb-8 bg-emerald-50 text-emerald-700 p-5 rounded-2xl border border-emerald-200 flex items-center gap-3 animate-[fadeIn_0.3s_ease-out] shadow-sm">
-                      <span translate="no" className="material-symbols-outlined text-[24px]">check_circle</span>
-                      <span className="font-bold">¡Cambios guardados con éxito!</span>
-                    </div>
-                  )}
-
-                  <div className="w-full relative z-10 flex-1">
-                    
-                    {/* GENERAL TAB */}
-                    {activeTab === 'general' && (
-                      <form onSubmit={handleSaveProfile} className="flex flex-col h-full justify-between">
-                        <div className="flex flex-col gap-8 max-w-3xl">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                            <div className="flex flex-col gap-3">
-                              <label className="text-sm font-black text-slate-700 uppercase tracking-wide">Nombre completo</label>
-                              <input 
-                                type="text" 
-                                value={profileData.fullName || ''}
-                                onChange={(e) => { handleInputChange('fullName', e.target.value); handleInputChange('displayName', e.target.value); }}
-                                className="w-full px-5 py-3.5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-[#2563eb] transition-all font-bold text-slate-800 placeholder:text-slate-400 placeholder:font-medium"
-                                placeholder="Ej. Juan Pérez"
-                              />
-                            </div>
-                            
-                            <div className="flex flex-col gap-6">
-                              <div className="flex flex-col gap-3">
-                                <label className="text-sm font-black text-slate-700 uppercase tracking-wide">Nombre de Usuario</label>
-                                <div className="relative flex items-center">
-                                  <span className="absolute left-5 text-slate-400 font-bold material-symbols-outlined text-[20px]">person</span>
-                                  <input 
-                                    type="text" 
-                                    value={profileData.displayName || ''}
-                                    onChange={(e) => {
-                                      // Forbid spaces but allow uppercase
-                                      const val = e.target.value.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-                                      handleInputChange('username', val.toLowerCase());
-                                    }}
-                                    className={`w-full pl-12 pr-12 py-3.5 rounded-2xl border-2 transition-all font-bold text-slate-800 placeholder:text-slate-400 placeholder:font-medium ${
-                                      profileData.username 
-                                        ? (usernameAvailable === false ? 'border-red-400 bg-red-50/50 focus:border-red-500 focus:outline-none' : usernameAvailable === true ? 'border-green-400 bg-green-50/50 focus:border-green-500 focus:outline-none' : 'border-slate-100 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-[#2563eb]')
-                                        : 'border-slate-100 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-[#2563eb]'
-                                    }`}
-                                    placeholder="mi_usuario_unico"
-                                  />
-                                  {profileData.username && (
-                                    <div className="absolute right-4 flex items-center">
-                                      {checkingUsername ? (
-                                        <span translate="no" className="material-symbols-outlined animate-spin text-slate-400 text-[20px]">sync</span>
-                                      ) : usernameAvailable === true ? (
-                                        <span translate="no" className="material-symbols-outlined text-green-500 text-[20px] font-bold">check_circle</span>
-                                      ) : usernameAvailable === false ? (
-                                        <span translate="no" className="material-symbols-outlined text-red-500 text-[20px] font-bold">cancel</span>
-                                      ) : null}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="flex flex-col gap-3">
-                                <label className="text-sm font-black text-slate-700 uppercase tracking-wide">Enlace de perfil</label>
-                                <div className="relative flex items-center">
-                                  <span className="absolute left-5 text-slate-400 font-bold">@</span>
-                                  <input 
-                                    type="text" 
-                                    value={profileData.username || ''}
-                                    readOnly
-                                    disabled
-                                    className={`w-full pl-10 pr-12 py-3.5 rounded-2xl border-2 transition-all font-bold text-slate-500 placeholder:text-slate-400 placeholder:font-medium cursor-not-allowed ${
-                                      profileData.username 
-                                        ? (usernameAvailable === false ? 'border-red-400 bg-red-50/50' : usernameAvailable === true ? 'border-green-400 bg-green-50/50' : 'border-slate-100 bg-slate-100/80')
-                                        : 'border-slate-100 bg-slate-100/80'
-                                    }`}
-                                    placeholder="mi_usuario"
-                                  />
-                                  {profileData.username && (
-                                    <div className="absolute right-4 flex items-center">
-                                      {checkingUsername ? (
-                                        <span translate="no" className="material-symbols-outlined animate-spin text-slate-400 text-[20px]">sync</span>
-                                      ) : usernameAvailable === true ? (
-                                        <span translate="no" className="material-symbols-outlined text-green-500 text-[20px] font-bold">check_circle</span>
-                                      ) : usernameAvailable === false ? (
-                                        <span translate="no" className="material-symbols-outlined text-red-500 text-[20px] font-bold">cancel</span>
-                                      ) : null}
-                                    </div>
-                                  )}
-                                </div>
-                                {usernameAvailable === false && !checkingUsername && (
-                                  <span className="text-red-500 text-xs font-bold ml-2 flex items-center gap-1">
-                                    <span translate="no" className="material-symbols-outlined text-[14px]">error</span> Este usuario ya está en uso.
-                                  </span>
-                                )}
-                                {usernameAvailable === true && !checkingUsername && profileData.username && (
-                                  <span className="text-green-500 text-xs font-bold ml-2 flex items-center gap-1">
-                                    <span translate="no" className="material-symbols-outlined text-[14px]">check_circle</span> Usuario disponible.
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="flex flex-col gap-3">
-                              <label className="text-sm font-black text-slate-700 uppercase tracking-wide">Correo de acceso</label>
-                              <div className="relative">
-                                <input 
-                                  type="email" 
-                                  value={currentUser.email || ''}
-                                  disabled
-                                  className="w-full px-5 py-3.5 rounded-2xl border-2 border-slate-100 bg-slate-100/80 text-slate-500 cursor-not-allowed font-medium pr-24"
-                                />
-                                <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-[#2563eb] text-sm font-bold hover:underline">Cambiar</button>
-                              </div>
-                            </div>
-                            <div className="flex flex-col gap-3">
-                              <label className="text-sm font-black text-slate-700 uppercase tracking-wide">Contraseña</label>
-                              <div className="relative">
-                                <input 
-                                  type="password" 
-                                  value="****************"
-                                  disabled
-                                  className="w-full px-5 py-3.5 rounded-2xl border-2 border-slate-100 bg-slate-100/80 text-slate-400 cursor-not-allowed font-medium pr-32"
-                                />
-                                <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-[#2563eb] text-sm font-bold hover:underline">Actualizar</button>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col gap-3">
-                            <label className="text-sm font-black text-slate-700 uppercase tracking-wide">Biografía / Acerca de mí</label>
-                            <textarea 
-                              value={profileData.bio || ''}
-                              onChange={(e) => handleInputChange('bio', e.target.value)}
-                              className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-[#2563eb] transition-all font-medium text-slate-800 placeholder:text-slate-400 h-32 resize-none"
-                              placeholder="Cuéntale a la comunidad sobre ti y tus colecciones..."
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex justify-end pt-8 mt-12">
-                          <button type="submit" disabled={savingProfile} className="w-full md:w-auto px-10 py-4 bg-gradient-to-r from-[#1a2b4b] to-[#2563eb] hover:from-[#111c33] hover:to-[#1d4ed8] text-white font-black rounded-2xl shadow-[0_10px_20px_-10px_rgba(37,99,235,0.6)] hover:shadow-[0_15px_30px_-10px_rgba(37,99,235,0.7)] transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:transform-none text-base tracking-wide">
-                            {savingProfile ? 'Guardando cambios...' : 'Guardar Información'}
-                          </button>
-                        </div>
-                      </form>
-                    )}
-
-                    {/* PERSONAL TAB */}
-                    {activeTab === 'personal' && (
-                      <form onSubmit={handleSaveProfile} className="flex flex-col h-full justify-between">
-                        <div className="flex flex-col gap-8 max-w-3xl">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="flex flex-col gap-3">
-                              <label className="text-sm font-black text-slate-700 uppercase tracking-wide">RUT Chileno</label>
-                              <input 
-                                type="text" 
-                                value={profileData.rut || ''}
-                                onChange={handleRutChange}
-                                className={`w-full px-5 py-3.5 rounded-2xl border-2 transition-all font-bold text-slate-800 placeholder:text-slate-400 ${
-                                  rutError 
-                                    ? 'border-red-400 focus:border-red-500 bg-red-50/50 focus:bg-red-50' 
-                                    : 'border-slate-100 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-[#2563eb]'
-                                }`}
-                                placeholder="12.345.678-9"
-                              />
-                              {rutError && <span className="text-sm text-red-500 font-bold flex items-center gap-1"><span translate="no" className="material-symbols-outlined text-[16px]">error</span> {rutError}</span>}
-                            </div>
-                            <div className="flex flex-col gap-3">
-                              <label className="text-sm font-black text-slate-700 uppercase tracking-wide">Teléfono de contacto</label>
-                              <div className="relative flex items-center">
-                                <input 
-                                  type="text" 
-                                  value={profileData.phone || ''}
-                                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                                  className="w-full px-5 py-3.5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-[#2563eb] transition-all font-bold text-slate-800 placeholder:text-slate-400"
-                                  placeholder="+56 9 1234 5678"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-end pt-8 mt-12">
-                          <button 
-                            type="submit" 
-                            disabled={savingProfile || rutError != ''} 
-                            className="w-full md:w-auto px-10 py-4 bg-gradient-to-r from-[#1a2b4b] to-[#2563eb] hover:from-[#111c33] hover:to-[#1d4ed8] text-white font-black rounded-2xl shadow-[0_10px_20px_-10px_rgba(37,99,235,0.6)] hover:shadow-[0_15px_30px_-10px_rgba(37,99,235,0.7)] transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:transform-none text-base tracking-wide"
-                          >
-                            {savingProfile ? 'Guardando cambios...' : 'Guardar Datos Privados'}
-                          </button>
-                        </div>
-                      </form>
-                    )}
-
-                    {/* SOCIAL NETWORKS TAB */}
-                    {activeTab === 'redes' && (
-                      <form onSubmit={handleSaveProfile} className="flex flex-col h-full justify-between">
-                        <div className="flex flex-col gap-6 max-w-3xl">
-                          
-                          <div className="bg-slate-50 border-2 border-slate-100 rounded-2xl p-5 flex items-center gap-5 transition-all focus-within:border-[#1877F2] focus-within:bg-white">
-                            <div className="w-12 h-12 bg-[#1877F2]/10 rounded-xl flex items-center justify-center text-[#1877F2]">
-                              <span translate="no" className="material-symbols-outlined text-[28px]">thumb_up</span>
-                            </div>
-                            <div className="flex-1">
-                              <label className="text-xs font-black text-slate-500 uppercase tracking-wide block mb-1">Perfil de Facebook</label>
-                              <div className="flex items-center text-slate-400 font-medium">
-                                facebook.com/
-                                <input 
-                                  type="text" 
-                                  value={profileData.facebookUrl || ''}
-                                  onChange={(e) => handleInputChange('facebookUrl', e.target.value)}
-                                  className="flex-1 bg-transparent border-none outline-none text-slate-900 font-bold ml-1 placeholder:text-slate-300"
-                                  placeholder="tu-pagina"
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="bg-slate-50 border-2 border-slate-100 rounded-2xl p-5 flex items-center gap-5 transition-all focus-within:border-[#E4405F] focus-within:bg-white">
-                            <div className="w-12 h-12 bg-[#E4405F]/10 rounded-xl flex items-center justify-center text-[#E4405F]">
-                              <span translate="no" className="material-symbols-outlined text-[28px]">photo_camera</span>
-                            </div>
-                            <div className="flex-1">
-                              <label className="text-xs font-black text-slate-500 uppercase tracking-wide block mb-1">Perfil de Instagram</label>
-                              <div className="flex items-center text-slate-400 font-medium">
-                                instagram.com/
-                                <input 
-                                  type="text" 
-                                  value={profileData.instagramUrl || ''}
-                                  onChange={(e) => handleInputChange('instagramUrl', e.target.value)}
-                                  className="flex-1 bg-transparent border-none outline-none text-slate-900 font-bold ml-1 placeholder:text-slate-300"
-                                  placeholder="tu_usuario"
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="bg-slate-50 border-2 border-slate-100 rounded-2xl p-5 flex items-center gap-5 transition-all focus-within:border-[#FF0000] focus-within:bg-white">
-                            <div className="w-12 h-12 bg-[#FF0000]/10 rounded-xl flex items-center justify-center text-[#FF0000]">
-                              <span translate="no" className="material-symbols-outlined text-[28px]">play_circle</span>
-                            </div>
-                            <div className="flex-1">
-                              <label className="text-xs font-black text-slate-500 uppercase tracking-wide block mb-1">Canal de Youtube</label>
-                              <div className="flex items-center text-slate-400 font-medium">
-                                youtube.com/
-                                <input 
-                                  type="text" 
-                                  value={profileData.youtubeUrl || ''}
-                                  onChange={(e) => handleInputChange('youtubeUrl', e.target.value)}
-                                  className="flex-1 bg-transparent border-none outline-none text-slate-900 font-bold ml-1 placeholder:text-slate-300"
-                                  placeholder="c/tu_canal"
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                        </div>
-
-                        <div className="flex justify-end pt-8 mt-12">
-                          <button type="submit" disabled={savingProfile} className="w-full md:w-auto px-10 py-4 bg-gradient-to-r from-[#1a2b4b] to-[#2563eb] hover:from-[#111c33] hover:to-[#1d4ed8] text-white font-black rounded-2xl shadow-[0_10px_20px_-10px_rgba(37,99,235,0.6)] hover:shadow-[0_15px_30px_-10px_rgba(37,99,235,0.7)] transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:transform-none text-base tracking-wide">
-                            {savingProfile ? 'Vinculando redes...' : 'Guardar Redes'}
-                          </button>
-                        </div>
-                      </form>
-                    )}
-
-                    {/* DIRECCIONES TAB */}
-                    {activeTab === 'direcciones' && (
-                      <div className="flex flex-col h-full justify-between">
-                        <div className="flex flex-col">
-                          
-                          <div className="flex justify-between items-center mb-6">
-                            <h3 className="font-bold text-slate-400 uppercase tracking-widest text-sm">Libreta de Direcciones</h3>
-                            <button 
-                              onClick={openAddAddressModal}
-                              className="flex items-center gap-2 text-sm font-black bg-[#eef2ff] text-[#2563eb] hover:bg-[#2563eb] hover:text-white rounded-xl px-4 py-2.5 transition-all shadow-sm hover:shadow-md"
-                            >
-                              <span translate="no" className="material-symbols-outlined text-[18px]">add_location</span>
-                              Nueva Dirección
-                            </button>
-                          </div>
-
-                          {(!profileData.addresses || profileData.addresses.length === 0) ? (
-                            <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-200">
-                              <div className="w-20 h-20 bg-white rounded-full shadow-sm flex items-center justify-center mb-4">
-                                <span translate="no" className="material-symbols-outlined text-4xl text-slate-300">location_off</span>
-                              </div>
-                              <h3 className="text-lg font-bold text-slate-700 mb-2">No tienes direcciones</h3>
-                              <p className="text-slate-500 font-medium mb-6">Agrega al menos una dirección para tus compras y envíos.</p>
-                              <button 
-                                onClick={openAddAddressModal}
-                                className="px-6 py-3 bg-[#1a2b4b] text-white font-bold rounded-xl hover:bg-[#2563eb] transition-colors shadow-md"
-                              >
-                                Agregar mi primera dirección
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-                              {profileData.addresses.map((addr, idx) => (
-                                <div 
-                                  key={idx} 
-                                  onClick={() => { if(!addr.isDefault) setDefaultConfirmationIndex(idx); }}
-                                  className={`border-2 rounded-2xl p-5 relative group transition-all flex flex-col justify-between ${!addr.isDefault ? 'cursor-pointer border-slate-100 hover:border-blue-300 bg-white hover:shadow-md' : 'border-blue-500 bg-blue-50/20 shadow-sm'}`}
-                                >
-                                  <div>
-                                    <div className="flex justify-between items-start mb-3">
-                                      <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${addr.isDefault ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' : 'bg-slate-100 text-slate-400'}`}>
-                                          <span translate="no" className="material-symbols-outlined">{addr.isDefault ? 'home' : 'location_on'}</span>
-                                        </div>
-                                        <div>
-                                          <h4 className="font-black text-slate-800 text-lg leading-tight">{addr.name || 'Sin nombre'}</h4>
-                                          {addr.isDefault && (
-                                            <span className="text-blue-600 text-xs font-black uppercase tracking-wider">Dirección Principal</span>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="text-slate-600 font-medium text-sm space-y-1 ml-13">
-                                      <p>{addr.street} {addr.number}{addr.depto ? `, Depto ${addr.depto}` : ''}{addr.floor ? `, Piso ${addr.floor}` : ''}</p>
-                                      <p>{addr.comuna}, {addr.region}</p>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
-                                    <button onClick={() => handleEditAddressClick(idx)} className="flex items-center justify-center w-10 h-10 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-[#2563eb] transition-colors">
-                                      <span translate="no" className="material-symbols-outlined text-[20px]">edit</span>
-                                    </button>
-                                    <button onClick={() => handleDeleteAddress(idx)} className="flex items-center justify-center w-10 h-10 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors">
-                                      <span translate="no" className="material-symbols-outlined text-[20px]">delete</span>
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* BANCARIOS TAB */}
-                    {activeTab === 'bancarios' && (
-                      <form onSubmit={handleSaveProfile} className="flex flex-col h-full justify-between">
-                        <div className="flex flex-col gap-8 max-w-3xl">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="flex flex-col gap-3 relative">
-                              <label className="text-sm font-black text-slate-700 uppercase tracking-wide">Institución Bancaria</label>
-                              <CustomDropdown 
-                                options={chileBanks}
-                                value={profileData.bankDetails?.bank || ''}
-                                onChange={(val) => handleBankInputChange('bank', val)}
-                                placeholder="Seleccionar Banco"
-                              />
-                            </div>
-                            <div className="flex flex-col gap-3 relative">
-                              <label className="text-sm font-black text-slate-700 uppercase tracking-wide">Tipo de cuenta</label>
-                              <CustomDropdown 
-                                options={accountTypes}
-                                value={profileData.bankDetails?.accountType || ''}
-                                onChange={(val) => handleBankInputChange('accountType', val)}
-                                placeholder="Seleccionar Tipo de Cuenta"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="flex flex-col gap-3">
-                              <label className="text-sm font-black text-slate-700 uppercase tracking-wide">Número de cuenta</label>
-                              <input 
-                                type="text" 
-                                value={profileData.bankDetails?.accountNumber || ''}
-                                onChange={(e) => handleBankInputChange('accountNumber', e.target.value)}
-                                className="w-full px-5 py-3.5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:outline-none focus:border-[#2563eb] transition-all font-bold text-slate-800 placeholder:text-slate-400 placeholder:font-medium tracking-wider"
-                                placeholder="Ej. 123456789"
-                              />
-                            </div>
-                          </div>
-                          
-                          <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 flex items-start gap-4 mt-4">
-                            <span translate="no" className="material-symbols-outlined text-blue-500 mt-0.5">info</span>
-                            <p className="text-sm text-blue-800/80 font-medium leading-relaxed">Estos datos son estrictamente confidenciales y solo se utilizarán para transferirte el dinero de tus ventas de manera segura a tu cuenta personal.</p>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-end pt-8 mt-12">
-                          <button type="submit" disabled={savingProfile} className="w-full md:w-auto px-10 py-4 bg-gradient-to-r from-[#1a2b4b] to-[#2563eb] hover:from-[#111c33] hover:to-[#1d4ed8] text-white font-black rounded-2xl shadow-[0_10px_20px_-10px_rgba(37,99,235,0.6)] hover:shadow-[0_15px_30px_-10px_rgba(37,99,235,0.7)] transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:transform-none text-base tracking-wide">
-                            {savingProfile ? 'Guardando datos...' : 'Guardar Datos Bancarios'}
-                          </button>
-                        </div>
-                      </form>
-                    )}
-
-                    {/* CUENTA SETTINGS */}
-                    {activeTab === 'cuenta' && (
-                      <div className="flex flex-col gap-6 animate-[fadeIn_0.3s_ease-out]">
-                        <div className="bg-red-50/50 border border-red-200 rounded-3xl p-6 md:p-8 relative overflow-hidden">
-                          <div className="absolute top-0 right-0 w-64 h-64 bg-red-100 rounded-full blur-[60px] -z-10 transform translate-x-1/3 -translate-y-1/3 opacity-50 pointer-events-none"></div>
-                          
-                          <div className="flex items-start gap-4 mb-6">
-                            <div className="w-12 h-12 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
-                              <span translate="no" className="material-symbols-outlined text-[28px]">warning</span>
-                            </div>
-                            <div>
-                              <h2 className="text-xl font-black text-red-700 mb-1">Zona de Peligro</h2>
-                              <p className="text-sm text-red-900/80 font-medium">Las acciones en esta sección no se pueden deshacer.</p>
-                            </div>
-                          </div>
-
-                          <div className="bg-white/80 backdrop-blur-sm border border-red-100 rounded-2xl p-6">
-                            <h3 className="text-lg font-bold text-slate-800 mb-2">Eliminar mi cuenta</h3>
-                            <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-                              Se cerrará tu sesión, se desactivarán todas tus publicaciones y se deshabilitará tu cuenta. Tu historial de compras y ventas se conserva por motivos legales. Esta acción no se puede deshacer.
-                            </p>
-                            
-                            <div className="flex flex-col gap-4">
-                              <label className="text-sm font-bold text-slate-700">
-                                Para confirmar, escribe <span className="text-red-600 font-black px-1.5 py-0.5 bg-red-50 rounded">eliminar</span> a continuación:
-                              </label>
-                              <input 
-                                type="text"
-                                value={deleteConfirmationText}
-                                onChange={(e) => setDeleteConfirmationText(e.target.value)}
-                                className="w-full max-w-sm px-5 py-3.5 rounded-xl border-2 border-slate-200 focus:outline-none focus:border-red-500 transition-colors font-bold text-slate-800"
-                                placeholder="Escribe 'eliminar'"
-                                disabled={isDeletingAccount}
-                              />
-                              
-                              <div className="pt-2">
-                                <button 
-                                  onClick={handleDeleteAccount}
-                                  disabled={deleteConfirmationText.toLowerCase() !== 'eliminar' || isDeletingAccount}
-                                  className="w-full md:w-auto px-8 py-3.5 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl shadow-lg hover:shadow-red-500/30 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none disabled:shadow-none flex items-center justify-center gap-2"
-                                >
-                                  <span translate="no" className="material-symbols-outlined text-[20px]">delete_forever</span>
-                                  {isDeletingAccount ? 'Eliminando cuenta...' : 'Eliminar mi cuenta'}
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                  </div>
-                </div>
-              </div>
+    <div className="mx-auto w-full max-w-[1400px] overflow-hidden px-3 py-4 sm:px-5 lg:px-8">
+      <div className="mb-4 overflow-hidden rounded-[1.5rem] bg-[#102a56] text-white shadow-xl sm:rounded-[2rem]">
+        <div className="grid gap-4 p-4 sm:p-7 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-white/10 ring-4 ring-white/10 sm:h-24 sm:w-24 sm:rounded-3xl">
+              {profileData.photoURL ? <img src={profileData.photoURL} alt="Avatar" className="h-full w-full object-cover" /> : <span translate="no" className="material-symbols-outlined flex h-full w-full items-center justify-center text-5xl text-white/50">person</span>}
             </div>
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-200">Mi Perfil</p>
+              <h1 className="truncate text-xl font-black sm:text-4xl">{profileData.displayName || profileData.fullName || 'Usuario'}</h1>
+              <p className="mt-1 truncate text-sm font-semibold text-blue-100">{profileData.email || currentUser.email}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:flex">
+            <ActionButton variant="secondary" className="px-3 py-2 text-xs bg-white/10 text-white ring-white/20 hover:bg-white/15 sm:px-5 sm:py-3 sm:text-sm" onClick={loadProfile} disabled={loadingProfile}>
+              <span translate="no" className="material-symbols-outlined text-[18px]">refresh</span>
+              Recargar
+            </ActionButton>
+            <ActionButton variant="secondary" className="px-3 py-2 text-xs bg-white text-[#1e40af] sm:px-5 sm:py-3 sm:text-sm" onClick={() => publicUrl && navigator.clipboard?.writeText(publicUrl)} disabled={!publicUrl}>
+              <span translate="no" className="material-symbols-outlined text-[18px]">link</span>
+              Copiar perfil
+            </ActionButton>
           </div>
         </div>
       </div>
 
-      {/* Address Modal */}
-      {isAddressModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
-          <div className="bg-white p-8 rounded-xl w-full max-w-3xl shadow-2xl relative max-h-[90vh] overflow-y-auto hide-scrollbar">
-            <button 
-              onClick={() => setIsAddressModalOpen(false)}
-              className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <span translate="no" className="material-symbols-outlined">close</span>
-            </button>
-            <h2 className="text-2xl font-bold text-[#1a2b4b] mb-6">
-              {editingAddressIndex !== null ? 'Editar dirección' : 'Agregar dirección'}
-            </h2>
-            
-            <form onSubmit={handleSaveAddress} className="flex flex-col gap-6">
-              <div>
-                <h3 className="text-sm font-bold text-[#1a2b4b] mb-4">Dirección *</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-bold text-[#1a2b4b]">País</label>
-                    <input type="text" value="Chile" disabled className="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-gray-100 text-gray-600" />
+      {feedback && (
+        <div className={`mb-4 rounded-2xl px-4 py-3 text-sm font-black shadow-sm ${feedback.type === 'success' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-red-50 text-red-700 ring-1 ring-red-100'}`}>
+          {feedback.message}
+        </div>
+      )}
+      {profileError && <div className="mb-4 rounded-2xl bg-red-50 p-4 text-sm font-bold text-red-700 ring-1 ring-red-100">{profileError}</div>}
+
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[290px_1fr] lg:gap-5">
+        <aside className="min-w-0 space-y-3 lg:space-y-4">
+          <div className="hidden rounded-[1.75rem] bg-white p-4 shadow-sm ring-1 ring-blue-100 lg:block">
+            <div className="relative mx-auto h-32 w-32 overflow-hidden rounded-[2rem] bg-slate-100 ring-4 ring-white">
+              {profileData.photoURL ? <img src={profileData.photoURL} alt="Avatar" className="h-full w-full object-cover" /> : <span translate="no" className="material-symbols-outlined flex h-full w-full items-center justify-center text-6xl text-slate-300">person</span>}
+              <label className="absolute inset-x-0 bottom-0 cursor-pointer bg-black/60 py-2 text-center text-xs font-black text-white backdrop-blur">
+                Cambiar foto
+                <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+              </label>
+            </div>
+            <div className="mt-4 text-center">
+              <p className="truncate text-lg font-black text-[#1a2b4b]">{profileData.displayName || 'Usuario'}</p>
+              <p className="truncate text-sm font-bold text-slate-500">@{profileData.username || 'sin_usuario'}</p>
+            </div>
+          </div>
+
+          <nav className="flex max-w-full gap-2 overflow-x-auto rounded-2xl bg-white p-2 shadow-sm ring-1 ring-blue-100 lg:flex-col lg:overflow-visible lg:rounded-[1.75rem]">
+            {tabs.map(tab => (
+              <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`flex min-w-[92px] items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-[11px] font-black transition sm:min-w-[110px] sm:gap-2 sm:rounded-2xl sm:px-3 sm:py-3 sm:text-xs lg:min-w-0 lg:justify-start lg:text-sm ${activeTab === tab.id ? 'bg-[#1e40af] text-white shadow-md' : 'text-slate-500 hover:bg-blue-50 hover:text-[#1e40af]'}`}>
+                <span translate="no" className="material-symbols-outlined text-[20px]">{tab.icon}</span>
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        <main className="min-w-0 overflow-hidden rounded-2xl bg-white p-4 shadow-sm ring-1 ring-blue-100 sm:p-6 lg:rounded-[1.75rem] lg:p-8">
+          {loadingProfile ? (
+            <div className="flex min-h-[420px] flex-col items-center justify-center text-center">
+              <span translate="no" className="material-symbols-outlined animate-spin text-5xl text-[#1e40af]">sync</span>
+              <h2 className="mt-4 text-xl font-black text-[#1a2b4b]">Cargando tu perfil</h2>
+              <p className="mt-2 text-sm font-semibold text-slate-500">Leyendo datos desde la base de datos.</p>
+            </div>
+          ) : (
+            <>
+              <div className="mb-6 border-b border-slate-100 pb-5">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#1e40af]">{selectedTab.label}</p>
+                <h2 className="mt-1 break-words text-xl font-black leading-tight text-[#1a2b4b] sm:text-3xl">{selectedTab.description}</h2>
+              </div>
+
+              {activeTab === 'general' && (
+                <section className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field label="Nombre completo"><TextInput value={profileData.fullName} onChange={e => updateProfileField('fullName', e.target.value)} placeholder="Ej. Jeffry Campos" /></Field>
+                    <Field label="Nombre visible"><TextInput value={profileData.displayName} onChange={e => updateProfileField('displayName', e.target.value)} placeholder="Nombre público" /></Field>
+                    <Field label="Usuario público" hint={usernameState.message}>
+                      <div className="relative">
+                        <TextInput value={profileData.username} onChange={e => updateProfileField('username', normalizeUsername(e.target.value))} placeholder="mi_usuario" className={usernameState.available === false ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : usernameState.available ? 'border-emerald-300 focus:border-emerald-500 focus:ring-emerald-100' : ''} />
+                        <span translate="no" className={`material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[20px] ${usernameState.checking ? 'animate-spin text-slate-400' : usernameState.available === false ? 'text-red-500' : usernameState.available ? 'text-emerald-500' : 'text-slate-300'}`}>{usernameState.checking ? 'sync' : usernameState.available === false ? 'cancel' : usernameState.available ? 'check_circle' : 'alternate_email'}</span>
+                      </div>
+                    </Field>
+                    <Field label="Correo de acceso" hint="El correo viene desde tu autenticación y no se edita aquí."><TextInput value={profileData.email || currentUser.email || ''} disabled /></Field>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-bold text-[#1a2b4b]">Región *</label>
-                    <select 
-                      required
-                      value={addressFormData.region}
-                      onChange={(e) => handleAddressInputChange('region', e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 bg-white text-gray-900" 
-                    >
-                      <option value="" disabled className="text-gray-500">Seleccionar región</option>
-                      {chileData.map((reg, idx) => (
-                        <option key={idx} value={reg.region} className="text-gray-900">{reg.region}</option>
+                  <Field label="Biografía">
+                    <textarea value={profileData.bio} onChange={e => updateProfileField('bio', e.target.value.slice(0, 500))} placeholder="Cuéntale a la comunidad qué coleccionas, vendes o buscas..." className="min-h-32 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-[#1e40af] focus:ring-4 focus:ring-blue-100" />
+                  </Field>
+                  <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('general')} disabled={Boolean(savingKey) || usernameState.checking || usernameState.available === false}>{savingKey === 'general' ? 'Guardando...' : 'Guardar perfil'}</ActionButton></div>
+                </section>
+              )}
+
+              {activeTab === 'personal' && (
+                <section className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field label="RUT" hint={!rutIsValid ? 'El RUT ingresado no es válido.' : 'Dato privado, solo para operaciones internas.'}><TextInput value={profileData.rut} onChange={e => updateProfileField('rut', formatRut(e.target.value))} placeholder="12345678-9" className={!rutIsValid ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : ''} /></Field>
+                    <Field label="Teléfono"><TextInput value={profileData.phone} onChange={e => updateProfileField('phone', e.target.value)} placeholder="+56 9 1234 5678" /></Field>
+                  </div>
+                  <div className="rounded-2xl bg-blue-50 p-4 text-sm font-semibold text-[#1a2b4b] ring-1 ring-blue-100">Estos datos no se muestran públicamente. Se guardan asociados solamente a tu usuario autenticado.</div>
+                  <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('personal')} disabled={Boolean(savingKey) || !rutIsValid}>{savingKey === 'personal' ? 'Guardando...' : 'Guardar datos privados'}</ActionButton></div>
+                </section>
+              )}
+
+              {activeTab === 'addresses' && (
+                <section className="space-y-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div><h3 className="text-lg font-black text-[#1a2b4b]">Direcciones guardadas</h3><p className="text-sm font-semibold text-slate-500">{profileData.addresses.length} dirección{profileData.addresses.length === 1 ? '' : 'es'} registrada{profileData.addresses.length === 1 ? '' : 's'}.</p></div>
+                    <ActionButton onClick={() => openAddressModal()}><span translate="no" className="material-symbols-outlined text-[18px]">add_location</span>Agregar dirección</ActionButton>
+                  </div>
+                  {profileData.addresses.length === 0 ? (
+                    <div className="rounded-3xl border border-dashed border-blue-200 bg-blue-50/60 p-8 text-center"><span translate="no" className="material-symbols-outlined text-5xl text-[#1e40af]/50">location_off</span><h3 className="mt-3 text-lg font-black text-[#1a2b4b]">No tienes direcciones todavía</h3><p className="mt-1 text-sm font-semibold text-slate-500">Agrega una para acelerar compras y coordinación de envíos.</p></div>
+                  ) : (
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {profileData.addresses.map((address, index) => (
+                        <article key={`${address.street}-${index}`} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="mb-3 flex items-start justify-between gap-3"><div><p className="font-black text-[#1a2b4b]">{address.name || `Dirección ${index + 1}`}</p>{address.isDefault && <span className="mt-1 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-black text-emerald-700">Principal</span>}</div><span translate="no" className="material-symbols-outlined text-[#1e40af]">home_pin</span></div>
+                          <p className="text-sm font-bold text-slate-700">{address.street} {address.number}{address.depto ? `, Depto ${address.depto}` : ''}</p><p className="mt-1 text-sm font-semibold text-slate-500">{address.comuna}, {address.region}</p>{address.reference && <p className="mt-2 text-xs font-semibold text-slate-400">{address.reference}</p>}
+                          <div className="mt-4 flex flex-wrap gap-2"><ActionButton variant="secondary" className="px-3 py-2 text-xs" onClick={() => openAddressModal(index)}>Editar</ActionButton>{!address.isDefault && <ActionButton variant="secondary" className="px-3 py-2 text-xs" onClick={() => setDefaultAddressIndex(index)}>Principal</ActionButton>}<ActionButton variant="secondary" className="px-3 py-2 text-xs text-red-600 hover:bg-red-50" onClick={() => setDeleteAddressIndex(index)}>Eliminar</ActionButton></div>
+                        </article>
                       ))}
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-bold text-[#1a2b4b]">Comuna *</label>
-                    <select 
-                      required
-                      disabled={!addressFormData.region}
-                      value={addressFormData.comuna}
-                      onChange={(e) => handleAddressInputChange('comuna', e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 bg-white text-gray-900 disabled:bg-gray-100 disabled:text-gray-400" 
-                    >
-                      <option value="" disabled className="text-gray-500">Seleccionar comuna</option>
-                      {availableComunas.map((com, idx) => (
-                        <option key={idx} value={com} className="text-gray-900">{com}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                    </div>
+                  )}
+                </section>
+              )}
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <div className="col-span-2 md:col-span-2 flex flex-col gap-2">
-                    <label className="text-sm font-bold text-[#1a2b4b]">Calle/Avenida (Opcional)</label>
-                    <input 
-                      type="text" 
-                      value={addressFormData.street}
-                      onChange={(e) => handleAddressInputChange('street', e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 bg-white text-gray-900" 
-                      placeholder="Ej: Av. Providencia" 
-                    />
+              {activeTab === 'payments' && (
+                <section className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field label="Banco"><SelectInput value={profileData.bankDetails?.bank || ''} onChange={e => updateBankField('bank', e.target.value)}><option value="">Selecciona banco</option>{chileBanks.map(bank => <option key={bank} value={bank}>{bank}</option>)}</SelectInput></Field>
+                    <Field label="Tipo de cuenta"><SelectInput value={profileData.bankDetails?.accountType || ''} onChange={e => updateBankField('accountType', e.target.value)}><option value="">Selecciona tipo</option>{accountTypes.map(type => <option key={type} value={type}>{type}</option>)}</SelectInput></Field>
+                    <Field label="Número de cuenta"><TextInput value={profileData.bankDetails?.accountNumber || ''} onChange={e => updateBankField('accountNumber', e.target.value)} placeholder="000000000" /></Field>
                   </div>
-                  <div className="col-span-1 flex flex-col gap-2">
-                    <label className="text-sm font-bold text-[#1a2b4b]">Número (Opcional)</label>
-                    <input 
-                      type="text" 
-                      value={addressFormData.number}
-                      onChange={(e) => handleAddressInputChange('number', e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 bg-white text-gray-900" 
-                      placeholder="1234" 
-                    />
-                  </div>
-                  <div className="col-span-1 flex flex-col gap-2">
-                    <label className="text-sm font-bold text-[#1a2b4b]">Piso (Opcional)</label>
-                    <input 
-                      type="text" 
-                      value={addressFormData.floor}
-                      onChange={(e) => handleAddressInputChange('floor', e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 bg-white text-gray-900" 
-                      placeholder="5" 
-                    />
-                  </div>
-                </div>
+                  <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('payments')} disabled={Boolean(savingKey)}>{savingKey === 'payments' ? 'Guardando...' : 'Guardar datos bancarios'}</ActionButton></div>
+                </section>
+              )}
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="col-span-2 md:col-span-1 flex flex-col gap-2">
-                    <label className="text-sm font-bold text-[#1a2b4b]">Depto/Oficina (Opcional)</label>
-                    <input 
-                      type="text" 
-                      value={addressFormData.depto}
-                      onChange={(e) => handleAddressInputChange('depto', e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 bg-white text-gray-900" 
-                      placeholder="501" 
-                    />
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">Los datos específicos (Calle, Número, Piso) son necesarios solo si tienes una tienda física.</p>
-              </div>
+              {activeTab === 'social' && (
+                <section className="space-y-5">
+                  {[['facebookUrl', 'Facebook', 'facebook.com/'], ['instagramUrl', 'Instagram', 'instagram.com/'], ['youtubeUrl', 'YouTube', 'youtube.com/']].map(([field, label, prefix]) => (
+                    <Field key={field} label={label}><div className="flex overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm focus-within:border-[#1e40af] focus-within:ring-4 focus-within:ring-blue-100"><span className="flex items-center bg-slate-50 px-4 text-sm font-black text-slate-400">{prefix}</span><input value={profileData[field] || ''} onChange={e => updateProfileField(field, e.target.value)} className="min-w-0 flex-1 px-4 py-3 text-sm font-bold text-slate-800 outline-none" placeholder="tu_usuario" /></div></Field>
+                  ))}
+                  <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('social')} disabled={Boolean(savingKey)}>{savingKey === 'social' ? 'Guardando...' : 'Guardar redes'}</ActionButton></div>
+                </section>
+              )}
 
-              <div className="flex flex-col gap-2 border-t border-gray-100 pt-6">
-                <label className="text-sm font-bold text-[#1a2b4b]">Nombre de la dirección *</label>
-                <input 
-                  required
-                  type="text" 
-                  value={addressFormData.name}
-                  onChange={(e) => handleAddressInputChange('name', e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 bg-white text-gray-900"
-                  placeholder="Ej: Nombre de tu tienda, Casa, Trabajo..."
-                />
-                <p className="text-xs text-gray-500">Útil si tienes una tienda física o quieres darle un alias a esta dirección.</p>
-              </div>
+              {activeTab === 'security' && (
+                <section className="space-y-6">
+                  <div className="rounded-3xl bg-slate-50 p-5 ring-1 ring-slate-200"><h3 className="text-lg font-black text-[#1a2b4b]">Sesión actual</h3><p className="mt-2 text-sm font-semibold text-slate-500">ID Firebase: <span className="break-all font-mono text-xs">{currentUser.uid}</span></p><p className="mt-1 text-sm font-semibold text-slate-500">Correo: {currentUser.email}</p></div>
+                  <div className="rounded-3xl border border-red-200 bg-red-50 p-5"><h3 className="text-lg font-black text-red-700">Zona de peligro</h3><p className="mt-2 text-sm font-semibold text-red-600">Esto desactiva tu perfil en la base de datos y deja tus carpetas privadas. Para confirmar escribe <b>eliminar</b>.</p><div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]"><TextInput value={deleteConfirmationText} onChange={e => setDeleteConfirmationText(e.target.value)} placeholder="eliminar" className="border-red-200 focus:border-red-500 focus:ring-red-100" /><ActionButton variant="danger" onClick={handleDeleteAccount} disabled={deleteConfirmationText.toLowerCase() !== 'eliminar' || savingKey === 'delete-account'}>{savingKey === 'delete-account' ? 'Eliminando...' : 'Eliminar cuenta'}</ActionButton></div></div>
+                </section>
+              )}
+            </>
+          )}
+        </main>
+      </div>
 
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-bold text-[#1a2b4b]">Referencia adicional (Opcional)</label>
-                <textarea 
-                  value={addressFormData.reference}
-                  onChange={(e) => handleAddressInputChange('reference', e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 bg-white text-gray-900 resize-none h-24"
-                  placeholder="Frente al metro, edificio azul, portón negro, etc."
-                />
-                <p className="text-xs text-gray-500">Puntos de referencia, descripción de la fachada, indicaciones especiales, etc.</p>
-              </div>
-
-              <div className="flex justify-end gap-4 pt-6 mt-2">
-                <button 
-                  type="button" 
-                  onClick={() => setIsAddressModalOpen(false)}
-                  className="px-6 py-2.5 text-gray-700 font-bold hover:bg-gray-50 border border-gray-300 rounded-lg transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={savingProfile}
-                  className="px-8 py-2.5 bg-[#2563eb] hover:bg-blue-700 text-white font-bold rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {savingProfile ? 'Guardando...' : (editingAddressIndex !== null ? 'Actualizar' : 'Agregar')}
-                </button>
-              </div>
-            </form>
-          </div>
+      {addressModal.open && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+          <form onSubmit={saveAddress} className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
+            <div className="mb-5 flex items-start justify-between gap-4"><div><h3 className="text-xl font-black text-[#1a2b4b]">{addressModal.index === null ? 'Agregar dirección' : 'Editar dirección'}</h3><p className="mt-1 text-sm font-semibold text-slate-500">Estos datos se guardan en tu perfil.</p></div><button type="button" onClick={() => setAddressModal({ open: false, index: null })} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200"><span translate="no" className="material-symbols-outlined">close</span></button></div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Nombre de referencia"><TextInput value={addressForm.name} onChange={e => setAddressForm(prev => ({ ...prev, name: e.target.value }))} placeholder="Casa, oficina..." /></Field>
+              <Field label="Región"><SelectInput value={addressForm.region} onChange={e => setAddressForm(prev => ({ ...prev, region: e.target.value, comuna: '' }))}><option value="">Selecciona región</option>{chileData.map(region => <option key={region.region} value={region.region}>{region.region}</option>)}</SelectInput></Field>
+              <Field label="Comuna"><SelectInput value={addressForm.comuna} onChange={e => setAddressForm(prev => ({ ...prev, comuna: e.target.value }))} disabled={!addressForm.region}><option value="">Selecciona comuna</option>{availableComunas.map(comuna => <option key={comuna} value={comuna}>{comuna}</option>)}</SelectInput></Field>
+              <Field label="Calle"><TextInput value={addressForm.street} onChange={e => setAddressForm(prev => ({ ...prev, street: e.target.value }))} placeholder="Av. Principal" /></Field>
+              <Field label="Número"><TextInput value={addressForm.number} onChange={e => setAddressForm(prev => ({ ...prev, number: e.target.value }))} placeholder="1234" /></Field>
+              <Field label="Piso"><TextInput value={addressForm.floor} onChange={e => setAddressForm(prev => ({ ...prev, floor: e.target.value }))} placeholder="Opcional" /></Field>
+              <Field label="Depto / Casa"><TextInput value={addressForm.depto} onChange={e => setAddressForm(prev => ({ ...prev, depto: e.target.value }))} placeholder="Opcional" /></Field>
+              <Field label="Referencia"><TextInput value={addressForm.reference} onChange={e => setAddressForm(prev => ({ ...prev, reference: e.target.value }))} placeholder="Portón azul, conserjería..." /></Field>
+            </div>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><ActionButton type="button" variant="secondary" onClick={() => setAddressModal({ open: false, index: null })}>Cancelar</ActionButton><ActionButton type="submit" disabled={savingKey === 'addresses'}>{savingKey === 'addresses' ? 'Guardando...' : 'Guardar dirección'}</ActionButton></div>
+          </form>
         </div>
       )}
 
-      {/* Custom Delete Confirmation Modal */}
-      {deleteConfirmationIndex !== null && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
-          <div className="bg-white p-8 rounded-[24px] w-full max-w-[400px] shadow-2xl flex flex-col items-center text-center animate-[scaleIn_0.2s_ease-out]">
-            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6">
-              <span translate="no" className="material-symbols-outlined text-[32px]">warning</span>
-            </div>
-            <h2 className="text-[22px] font-bold text-[#1a2b4b] mb-3">¿Eliminar dirección?</h2>
-            <p className="text-gray-600 mb-8 text-[15px] leading-relaxed">
-              Estás a punto de eliminar esta dirección. <br />Esta acción no se puede deshacer.
-            </p>
-            <div className="flex gap-3 w-full">
-              <button 
-                onClick={() => setDeleteConfirmationIndex(null)}
-                className="flex-1 py-3 text-[#1a2b4b] font-bold border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={confirmDeleteAddress}
-                className="flex-1 py-3 bg-[#e32c2b] text-white font-bold rounded-xl hover:bg-red-700 transition-colors"
-              >
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
+      {deleteAddressIndex !== null && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"><div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"><h3 className="text-xl font-black text-[#1a2b4b]">Eliminar dirección</h3><p className="mt-2 text-sm font-semibold text-slate-500">Esta acción eliminará la dirección de tu perfil.</p><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><ActionButton variant="secondary" onClick={() => setDeleteAddressIndex(null)}>Cancelar</ActionButton><ActionButton variant="danger" onClick={confirmDeleteAddress} disabled={savingKey === 'addresses'}>Eliminar</ActionButton></div></div></div>
       )}
 
-      {/* Custom Set Default Confirmation Modal */}
-      {defaultConfirmationIndex !== null && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
-          <div className="bg-white p-8 rounded-[24px] w-full max-w-[400px] shadow-2xl flex flex-col items-center text-center animate-[scaleIn_0.2s_ease-out]">
-            <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6">
-              <span translate="no" className="material-symbols-outlined text-[32px]">home_pin</span>
-            </div>
-            <h2 className="text-[22px] font-bold text-[#1a2b4b] mb-3">¿Dirección principal?</h2>
-            <p className="text-gray-600 mb-8 text-[15px] leading-relaxed">
-              ¿Quieres establecer esta dirección como tu dirección por defecto para futuros envíos?
-            </p>
-            <div className="flex gap-3 w-full">
-              <button 
-                onClick={() => setDefaultConfirmationIndex(null)}
-                className="flex-1 py-3 text-[#1a2b4b] font-bold border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={confirmSetDefaultAddress}
-                className="flex-1 py-3 bg-[#2563eb] text-white font-bold rounded-xl hover:bg-blue-700 transition-colors"
-              >
-                Aceptar
-              </button>
-            </div>
-          </div>
-        </div>
+      {defaultAddressIndex !== null && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"><div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"><h3 className="text-xl font-black text-[#1a2b4b]">Cambiar dirección principal</h3><p className="mt-2 text-sm font-semibold text-slate-500">La dirección seleccionada quedará como predeterminada.</p><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><ActionButton variant="secondary" onClick={() => setDefaultAddressIndex(null)}>Cancelar</ActionButton><ActionButton onClick={confirmDefaultAddress} disabled={savingKey === 'addresses'}>Confirmar</ActionButton></div></div></div>
       )}
-    </>
+    </div>
   );
-}
+};
 
 export default ProfilePage;

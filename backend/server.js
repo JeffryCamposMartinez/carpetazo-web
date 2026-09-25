@@ -58,7 +58,7 @@ const limiter = rateLimit({
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({
   origin: ['https://carpetazo.cl', 'https://www.carpetazo.cl', 'http://localhost:5173', 'http://192.168.1.15:5173'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true
 }));
 app.use('/api', limiter);
@@ -888,13 +888,17 @@ app.get('/api/chats', authenticateToken, async (req, res) => {
 });
 
 
-// GET user profile and their folders
+// User profile management
 app.get('/api/users/me', authenticateToken, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { firebaseUid: req.user.sub }
     });
-    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
     res.json({ success: true, user });
   } catch (error) {
     console.error('Error fetching my profile:', error);
@@ -905,15 +909,34 @@ app.get('/api/users/me', authenticateToken, async (req, res) => {
 app.put('/api/users/me', authenticateToken, async (req, res) => {
   try {
     const firebaseUid = req.user.sub;
-    const updateData = { ...req.body };
-    delete updateData.id;
-    delete updateData.firebaseUid;
-    delete updateData.createdAt;
-    delete updateData.updatedAt;
-    
-    // Convert undefined to null for Prisma
-    for (let key in updateData) {
-      if (updateData[key] === undefined) delete updateData[key];
+    const allowedFields = [
+      'name',
+      'fullName',
+      'username',
+      'photoURL',
+      'bio',
+      'phone',
+      'rut',
+      'facebookUrl',
+      'instagramUrl',
+      'youtubeUrl',
+      'addresses',
+      'bankDetails'
+    ];
+
+    const updateData = {};
+    for (const field of allowedFields) {
+      if (Object.prototype.hasOwnProperty.call(req.body, field) && req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
+    }
+
+    if (updateData.username) {
+      updateData.username = String(updateData.username)
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '_')
+        .replace(/[^a-z0-9_]/g, '');
     }
 
     const user = await prisma.user.update({
@@ -921,22 +944,31 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
       data: updateData
     });
 
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    if (error.code === 'P2002') {
+      return res.status(409).json({ success: false, error: 'Username already in use' });
+    }
+    res.status(500).json({ success: false, error: 'Failed to update profile' });
+  }
+});
+
 app.delete('/api/users/me', authenticateToken, async (req, res) => {
   try {
     const firebaseUid = req.user.sub;
-    
-    // Deactivate user instead of hard delete
+
     const user = await prisma.user.update({
       where: { firebaseUid },
       data: {
-        username: deleted__,
+        username: `deleted_${Date.now()}_${firebaseUid.slice(0, 8)}`,
         name: 'Usuario Eliminado',
+        fullName: null,
         photoURL: null,
         bio: 'Cuenta eliminada'
       }
     });
 
-    // Make all their folders private
     await prisma.folder.updateMany({
       where: { userId: user.id },
       data: { isPublic: false }
@@ -948,27 +980,71 @@ app.delete('/api/users/me', authenticateToken, async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to delete account' });
   }
 });
-    res.json({ success: true, user });
+
+app.get('/api/users/username/check', authenticateToken, async (req, res) => {
+  try {
+    const username = String(req.query.username || '')
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_]/g, '');
+
+    if (!/^[a-z0-9_]{3,20}$/.test(username)) {
+      return res.status(400).json({
+        success: false,
+        available: false,
+        message: 'El usuario debe tener entre 3 y 20 caracteres: letras, números o _.'
+      });
+    }
+
+    const currentUser = await prisma.user.findUnique({
+      where: { firebaseUid: req.user.sub },
+      select: { id: true, username: true }
+    });
+
+    if (!currentUser) {
+      return res.status(404).json({ success: false, available: false, message: 'User not found' });
+    }
+
+    if (currentUser.username === username) {
+      return res.json({ success: true, available: true });
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { username },
+      select: { id: true }
+    });
+
+    res.json({ success: true, available: !existingUser });
   } catch (error) {
-    console.error('Error updating profile:', error);
-    res.status(500).json({ success: false, error: 'Failed to update profile' });
+    console.error('Error checking username:', error);
+    res.status(500).json({ success: false, available: false, message: 'Error interno' });
   }
 });
 
-
-    
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-    
-    res.json({ success: true, user });
-  } catch (error) {
-    console.error('Error fetching user:', error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
+app.get('/api/users/:username', async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { username: req.params.username },
+      include: {
+        folders: {
+          where: { isPublic: true },
+          include: { _count: { select: { cards: true } } },
+          orderBy: { createdAt: 'desc' }
+        }
+      }
+    });
 
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
 // --- TCGCSV LOCAL DB ---
 app.get('/api/tcg/categories', async (req, res) => {
   try {
