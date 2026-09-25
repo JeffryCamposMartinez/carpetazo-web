@@ -75,7 +75,7 @@ export default function SellerProfile() {
   const [savingImage, setSavingImage] = useState(false);
 
   const isOwner = currentUser?.uid && seller?.firebaseUid === currentUser.uid;
-  const displayName = seller?.name || seller?.fullName || seller?.username || 'Vendedor AnÃ³nimo';
+  const displayName = seller?.name || seller?.fullName || seller?.username || 'Vendedor Anónimo';
   const avatarUrl = seller?.photoURL;
   const primaryAddress = useMemo(() => (
     seller?.addresses?.find(address => address.isDefault) || seller?.addresses?.[0] || null
@@ -91,7 +91,7 @@ export default function SellerProfile() {
       setFolders((user.folders || []).map(normalizeFolder));
     } catch (error) {
       console.error('Error loading public seller profile:', error);
-      setErrorMsg('El vendedor no existe o el perfil no estÃ¡ disponible.');
+      setErrorMsg('El vendedor no existe o el perfil no está disponible.');
     } finally {
       setLoading(false);
     }
@@ -175,7 +175,7 @@ export default function SellerProfile() {
       setIsEditingBio(false);
     } catch (error) {
       console.error('Error saving bio:', error);
-      alert('No se pudo guardar la biografÃ­a.');
+      alert('No se pudo guardar la biografía.');
     } finally {
       setSavingBio(false);
     }
@@ -283,7 +283,7 @@ export default function SellerProfile() {
             <div className="mt-5">
               {isEditingBio ? (
                 <div className="space-y-3">
-                  <textarea value={tempBio} onChange={event => setTempBio(event.target.value)} className="min-h-24 w-full rounded-2xl border border-blue-100 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-[#1e40af] focus:ring-4 focus:ring-blue-100" placeholder="CuÃ©ntale a la comunidad sobre ti..." />
+                  <textarea value={tempBio} onChange={event => setTempBio(event.target.value)} className="min-h-24 w-full rounded-2xl border border-blue-100 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-[#1e40af] focus:ring-4 focus:ring-blue-100" placeholder="Cuéntale a la comunidad sobre ti..." />
                   <div className="flex justify-end gap-2">
                     <button onClick={() => setIsEditingBio(false)} className="rounded-xl px-4 py-2 text-sm font-black text-slate-500 hover:bg-slate-100">Cancelar</button>
                     <button onClick={handleSaveBio} disabled={savingBio} className="rounded-xl bg-[#1e40af] px-4 py-2 text-sm font-black text-white disabled:opacity-60">{savingBio ? 'Guardando...' : 'Guardar'}</button>
@@ -292,7 +292,7 @@ export default function SellerProfile() {
               ) : (
                 <div className="group flex items-start gap-2">
                   <p className="min-h-6 flex-1 border-l-4 border-[#1e40af]/30 pl-3 text-sm font-semibold italic leading-relaxed text-slate-600 md:text-base">
-                    {seller?.bio ? `"${seller.bio}"` : isOwner ? 'AÃºn no has escrito una biografÃ­a.' : 'Este vendedor aÃºn no tiene biografÃ­a.'}
+                    {seller?.bio ? `"${seller.bio}"` : isOwner ? 'Aún no has escrito una biografía.' : 'Este vendedor aún no tiene biografía.'}
                   </p>
                   {isOwner && (
                     <button onClick={() => { setTempBio(seller?.bio || ''); setIsEditingBio(true); }} className="rounded-full p-2 text-slate-400 hover:bg-blue-50 hover:text-[#1e40af]">
@@ -306,7 +306,7 @@ export default function SellerProfile() {
             {primaryAddress && (
               <div className="mt-4 inline-flex max-w-full items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-black text-blue-800 ring-1 ring-blue-100">
                 <span translate="no" className="material-symbols-outlined text-[16px]">location_on</span>
-                <span className="truncate">{[primaryAddress.name, primaryAddress.comuna, primaryAddress.region].filter(Boolean).join(' Â· ')}</span>
+                <span className="truncate">{[primaryAddress.name, primaryAddress.comuna, primaryAddress.region].filter(Boolean).join(' · ')}</span>
               </div>
             )}
           </div>
@@ -320,8 +320,8 @@ export default function SellerProfile() {
               <span translate="no" className="material-symbols-outlined text-[#1e40af]">auto_stories</span>
             </div>
             <div>
-              <h2 className="text-2xl font-black text-[#1a2b4b]">Carpetas pÃºblicas</h2>
-              <p className="text-sm font-semibold text-slate-500">CatÃ¡logos publicados por este vendedor.</p>
+              <h2 className="text-2xl font-black text-[#1a2b4b]">Carpetas públicas</h2>
+              <p className="text-sm font-semibold text-slate-500">Catálogos publicados por este vendedor.</p>
             </div>
           </div>
           <span className="rounded-full bg-[#1e40af] px-3 py-1 text-xs font-black text-white">{folders.length}</span>
@@ -330,7 +330,7 @@ export default function SellerProfile() {
         {folders.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-blue-200 bg-white/70 p-10 text-center shadow-sm">
             <span translate="no" className="material-symbols-outlined text-6xl text-blue-300">inventory_2</span>
-            <p className="mt-3 text-lg font-black text-slate-500">Este vendedor aÃºn no tiene carpetas pÃºblicas.</p>
+            <p className="mt-3 text-lg font-black text-slate-500">Este vendedor aún no tiene carpetas públicas.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
@@ -357,4 +357,3 @@ export default function SellerProfile() {
     </div>
   );
 }
-
