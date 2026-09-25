@@ -88,6 +88,18 @@ const profileThemes = [
 ];
 
 const fontOptions = ['Inter', 'Montserrat', 'Nunito', 'Poppins', 'Rubik', 'Quicksand', 'Merriweather', 'Oswald', 'Space Grotesk', 'Cinzel'];
+const fontExamples = {
+  Inter: 'Perfil limpio y moderno',
+  Montserrat: 'Vendedor destacado',
+  Nunito: 'Amigable y cercano',
+  Poppins: 'Colección premium',
+  Rubik: 'Cartas con carácter',
+  Quicksand: 'Suave y juvenil',
+  Merriweather: 'Elegante y clásico',
+  Oswald: 'Fuerte y directo',
+  'Space Grotesk': 'Futurista y único',
+  Cinzel: 'Mítico y legendario'
+};
 const cardStyleOptions = [
   { id: 'soft', name: 'Suave', description: 'Bordes grandes y efecto vidrio.' },
   { id: 'solid', name: 'Sólido', description: 'Contenedores fuertes y definidos.' },
@@ -461,8 +473,12 @@ export default function SellerProfile() {
                           className={`rounded-2xl border bg-white/70 px-3 py-3 text-left transition hover:-translate-y-0.5 ${publicTheme.font === font ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}
                           style={{ fontFamily: getFontStack(font), color: publicTheme.text }}
                         >
-                          <span className="block text-sm font-black">{font}</span>
-                          <span className="text-[11px] opacity-60">Carpetazo único</span>
+                          <span className="flex items-center justify-between gap-2 text-sm font-black">
+                            {font}
+                            {publicTheme.font === font && <span translate="no" className="material-symbols-outlined text-[16px]" style={{ color: publicTheme.primary }}>check_circle</span>}
+                          </span>
+                          <span className="mt-1 block text-[15px] font-bold leading-tight">{fontExamples[font]}</span>
+                          <span className="mt-1 block text-[10px] font-black uppercase tracking-wide opacity-50">Así se verá en tu perfil</span>
                         </button>
                       ))}
                     </div>
