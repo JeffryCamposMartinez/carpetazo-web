@@ -496,7 +496,8 @@ export default function SellerProfile() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: publicTheme.surface, fontFamily: getFontStack(publicTheme.font) }}>
+    <div className="min-h-screen" style={{ background: `linear-gradient(135deg, ${publicTheme.text}, ${publicTheme.primary})`, fontFamily: getFontStack(publicTheme.font) }}>
+      <div className="mx-auto min-h-screen w-full max-w-[1600px] overflow-hidden shadow-[0_0_90px_rgba(0,0,0,0.22)]" style={{ backgroundColor: publicTheme.surface }}>
       <section className="relative overflow-visible shadow-sm" style={{ backgroundColor: publicTheme.card }}>
         {seller?.bannerBase64 ? (
           <div className="absolute inset-x-0 top-0 h-[270px] bg-cover bg-center sm:h-[340px] md:inset-0 md:h-auto" style={{ backgroundImage: `url(${seller.bannerBase64})` }} />
@@ -654,17 +655,23 @@ export default function SellerProfile() {
         )}
 
         <div className="relative z-10 mx-auto flex min-h-[430px] w-full max-w-[1300px] flex-col justify-end gap-4 px-4 pb-6 pt-[185px] sm:min-h-[520px] sm:px-6 sm:pt-[260px] md:min-h-0 md:flex-row md:items-end md:gap-5 md:px-10 md:py-12">
-          <div className="relative z-20 -mb-10 ml-3 h-28 w-28 shrink-0 overflow-hidden rounded-[2rem] bg-white shadow-2xl ring-4 ring-white sm:ml-5 sm:h-32 sm:w-32 md:mb-0 md:ml-0 md:h-40 md:w-40">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-5xl font-black text-white" style={{ backgroundImage: `linear-gradient(135deg, ${publicTheme.text}, ${publicTheme.primary})` }}>
-                {displayName[0]?.toUpperCase() || 'V'}
+          <div className="relative z-20 -mb-10 ml-3 h-32 w-32 shrink-0 sm:ml-5 sm:h-36 sm:w-36 md:mb-0 md:ml-0 md:h-44 md:w-44">
+            <div className="absolute -inset-3 rounded-[2.7rem] opacity-70 blur-2xl" style={{ background: `linear-gradient(135deg, ${publicTheme.primary}, ${publicTheme.accent}, ${publicTheme.secondary})` }} />
+            <div className="relative h-full w-full rounded-[2.35rem] p-[5px] shadow-[0_24px_60px_rgba(0,0,0,0.42)]" style={{ background: `linear-gradient(135deg, #ffffff 0%, ${publicTheme.accent} 42%, ${publicTheme.primary} 100%)` }}>
+              <div className="h-full w-full overflow-hidden rounded-[2rem] bg-white ring-2 ring-white/90">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-5xl font-black text-white" style={{ backgroundImage: `linear-gradient(135deg, ${publicTheme.text}, ${publicTheme.primary})` }}>
+                    {displayName[0]?.toUpperCase() || 'V'}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
             {isOwner && (
-              <label className="absolute inset-x-0 bottom-0 cursor-pointer bg-black/60 py-2 text-center text-xs font-black text-white">
-                Foto
+              <label className="absolute inset-x-5 bottom-2 z-10 flex cursor-pointer items-center justify-center gap-1 rounded-full bg-black/70 px-3 py-1.5 text-center text-[11px] font-black text-white shadow-lg ring-1 ring-white/30 backdrop-blur transition hover:bg-black/85">
+                <span translate="no" className="material-symbols-outlined text-[14px]">photo_camera</span>
+                <span>Foto</span>
                 <input type="file" accept="image/*" className="hidden" onChange={event => handleImageUpload(event, 'avatar')} />
               </label>
             )}
@@ -771,6 +778,7 @@ export default function SellerProfile() {
           </div>
         )}
       </main>
+      </div>
     </div>
   );
 }
