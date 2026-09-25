@@ -1199,6 +1199,7 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
       'facebookUrl',
       'instagramUrl',
       'youtubeUrl',
+      'publicTheme',
       'addresses',
       'bankDetails'
     ];
@@ -1216,6 +1217,19 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
         .trim()
         .replace(/\s+/g, '_')
         .replace(/[^a-z0-9_]/g, '');
+    }
+
+    if (updateData.publicTheme !== undefined) {
+      if (!updateData.publicTheme || typeof updateData.publicTheme !== 'object' || Array.isArray(updateData.publicTheme)) {
+        return res.status(400).json({ success: false, error: 'Invalid public theme' });
+      }
+
+      const allowedThemeFields = ['id', 'name', 'primary', 'secondary', 'accent', 'surface', 'text'];
+      updateData.publicTheme = Object.fromEntries(
+        Object.entries(updateData.publicTheme)
+          .filter(([key, value]) => allowedThemeFields.includes(key) && typeof value === 'string')
+          .map(([key, value]) => [key, value.slice(0, 40)])
+      );
     }
 
     const user = await prisma.user.update({

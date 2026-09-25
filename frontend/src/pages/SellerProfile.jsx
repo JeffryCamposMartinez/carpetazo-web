@@ -61,6 +61,16 @@ const normalizeFolder = (folder) => ({
   color: folder.color || 'red'
 });
 
+const defaultPublicTheme = {
+  id: 'classic-blue',
+  name: 'Azul Carpetazo',
+  primary: '#1e40af',
+  secondary: '#93c5fd',
+  accent: '#facc15',
+  surface: '#DBEAFE',
+  text: '#1a2b4b'
+};
+
 export default function SellerProfile() {
   const { sellerUsername } = useParams();
   const { currentUser } = useAuth();
@@ -77,6 +87,10 @@ export default function SellerProfile() {
   const isOwner = currentUser?.uid && seller?.firebaseUid === currentUser.uid;
   const displayName = seller?.name || seller?.fullName || seller?.username || 'Vendedor Anónimo';
   const avatarUrl = seller?.photoURL;
+  const publicTheme = useMemo(() => ({
+    ...defaultPublicTheme,
+    ...(seller?.publicTheme && typeof seller.publicTheme === 'object' ? seller.publicTheme : {})
+  }), [seller?.publicTheme]);
   const primaryAddress = useMemo(() => (
     seller?.addresses?.find(address => address.isDefault) || seller?.addresses?.[0] || null
   ), [seller?.addresses]);
@@ -222,12 +236,12 @@ export default function SellerProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-[#DBEAFE]">
+    <div className="min-h-screen" style={{ backgroundColor: publicTheme.surface }}>
       <section className="relative overflow-hidden bg-white shadow-sm">
         {seller?.bannerBase64 ? (
           <div className="absolute inset-x-0 top-0 h-[270px] bg-cover bg-center sm:h-[340px] md:inset-0 md:h-auto" style={{ backgroundImage: `url(${seller.bannerBase64})` }} />
         ) : (
-          <div className="absolute inset-x-0 top-0 h-[270px] bg-gradient-to-br from-[#102a56] via-[#1e40af] to-[#93c5fd] sm:h-[340px] md:inset-0 md:h-auto" />
+          <div className="absolute inset-x-0 top-0 h-[270px] bg-gradient-to-br sm:h-[340px] md:inset-0 md:h-auto" style={{ backgroundImage: `linear-gradient(135deg, ${publicTheme.text}, ${publicTheme.primary}, ${publicTheme.secondary})` }} />
         )}
         <div className={`absolute inset-x-0 top-0 h-[270px] sm:h-[340px] md:inset-0 md:h-auto ${seller?.bannerBase64 ? 'bg-gradient-to-b from-black/20 via-transparent to-black/35 md:bg-gradient-to-t md:from-black/25 md:via-transparent md:to-black/10' : 'bg-white/30 md:bg-white/75 md:backdrop-blur-[2px]'}`} />
 
@@ -250,7 +264,7 @@ export default function SellerProfile() {
             {avatarUrl ? (
               <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#1a2b4b] to-[#3b82f6] text-5xl font-black text-white">
+              <div className="flex h-full w-full items-center justify-center text-5xl font-black text-white" style={{ backgroundImage: `linear-gradient(135deg, ${publicTheme.text}, ${publicTheme.primary})` }}>
                 {displayName[0]?.toUpperCase() || 'V'}
               </div>
             )}
@@ -266,8 +280,8 @@ export default function SellerProfile() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="break-words text-[1.9rem] font-black leading-[0.95] text-[#1a2b4b] sm:text-4xl md:text-5xl">{displayName}</h1>
-                  <span translate="no" className="material-symbols-outlined text-[#3b82f6]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                  <h1 className="break-words text-[1.9rem] font-black leading-[0.95] sm:text-4xl md:text-5xl" style={{ color: publicTheme.text }}>{displayName}</h1>
+                  <span translate="no" className="material-symbols-outlined" style={{ color: publicTheme.primary, fontVariationSettings: "'FILL' 1" }}>verified</span>
                 </div>
                 <p className="mt-1 text-sm font-black text-slate-500">@{seller?.username || seller?.firebaseUid}</p>
                 {seller?.fullName && <p className="mt-1 text-sm font-semibold text-slate-600">{seller.fullName}</p>}
@@ -275,16 +289,16 @@ export default function SellerProfile() {
 
               <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                 {!isOwner && (
-                  <button onClick={contactSeller} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1e40af] px-4 py-2.5 text-sm font-black text-white shadow-lg hover:bg-blue-800">
+                  <button onClick={contactSeller} className="inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-black text-white shadow-lg transition hover:brightness-90" style={{ backgroundColor: publicTheme.primary }}>
                     <span translate="no" className="material-symbols-outlined text-[18px]">chat</span>
                     Mensaje
                   </button>
                 )}
                 {seller?.phone && (
-                  <a href={`https://wa.me/${seller.phone.replace(/[^0-9]/g, '').startsWith('56') ? seller.phone.replace(/[^0-9]/g, '') : `56${seller.phone.replace(/[^0-9]/g, '')}`}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center rounded-full bg-green-50 px-4 py-2.5 text-sm font-black text-green-700 ring-1 ring-green-200">WhatsApp</a>
+                  <a href={`https://wa.me/${seller.phone.replace(/[^0-9]/g, '').startsWith('56') ? seller.phone.replace(/[^0-9]/g, '') : `56${seller.phone.replace(/[^0-9]/g, '')}`}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-black ring-1" style={{ backgroundColor: `${publicTheme.secondary}33`, color: publicTheme.text, borderColor: publicTheme.secondary }}>WhatsApp</a>
                 )}
                 {seller?.instagramUrl && (
-                  <a href={`https://instagram.com/${seller.instagramUrl.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center rounded-full bg-pink-50 px-4 py-2.5 text-sm font-black text-pink-600 ring-1 ring-pink-200">Instagram</a>
+                  <a href={`https://instagram.com/${seller.instagramUrl.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-black ring-1" style={{ backgroundColor: `${publicTheme.accent}22`, color: publicTheme.text, borderColor: publicTheme.accent }}>Instagram</a>
                 )}
               </div>
             </div>
@@ -300,7 +314,7 @@ export default function SellerProfile() {
                 </div>
               ) : (
                 <div className="group flex items-start gap-2">
-                  <p className="min-h-6 flex-1 border-l-4 border-[#1e40af]/30 pl-3 text-sm font-semibold italic leading-relaxed text-slate-600 line-clamp-4 md:line-clamp-none md:text-base">
+                  <p className="min-h-6 flex-1 border-l-4 pl-3 text-sm font-semibold italic leading-relaxed text-slate-600 line-clamp-4 md:line-clamp-none md:text-base" style={{ borderColor: `${publicTheme.primary}55` }}>
                     {seller?.bio ? `"${seller.bio}"` : isOwner ? 'Aún no has escrito una biografía.' : 'Este vendedor aún no tiene biografía.'}
                   </p>
                   {isOwner && (
@@ -325,15 +339,15 @@ export default function SellerProfile() {
       <main className="mx-auto w-full max-w-[1300px] px-4 py-6 sm:px-6 sm:py-8 md:px-10">
         <div className="mb-5 flex items-center justify-between rounded-3xl bg-white/70 p-4 shadow-sm ring-1 ring-blue-100 sm:mb-6 sm:border-b sm:border-[#1a2b4b]/10 sm:bg-transparent sm:p-0 sm:pb-4 sm:shadow-none sm:ring-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1a2b4b]/10">
-              <span translate="no" className="material-symbols-outlined text-[#1e40af]">auto_stories</span>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${publicTheme.primary}18` }}>
+              <span translate="no" className="material-symbols-outlined" style={{ color: publicTheme.primary }}>auto_stories</span>
             </div>
             <div className="min-w-0">
-              <h2 className="text-xl font-black leading-tight text-[#1a2b4b] sm:text-2xl">Carpetas públicas</h2>
+              <h2 className="text-xl font-black leading-tight sm:text-2xl" style={{ color: publicTheme.text }}>Carpetas públicas</h2>
               <p className="text-xs font-semibold text-slate-500 sm:text-sm">Catálogos publicados por este vendedor.</p>
             </div>
           </div>
-          <span className="rounded-full bg-[#1e40af] px-3 py-1 text-xs font-black text-white">{folders.length}</span>
+          <span className="rounded-full px-3 py-1 text-xs font-black text-white" style={{ backgroundColor: publicTheme.primary }}>{folders.length}</span>
         </div>
 
         {folders.length === 0 ? (

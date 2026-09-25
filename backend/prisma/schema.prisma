@@ -28,6 +28,7 @@ model User {
   facebookUrl   String?
   instagramUrl  String?
   youtubeUrl    String?
+  publicTheme   Json?
   addresses     Json?
   bankDetails   Json?
   folders       Folder[]

@@ -32,6 +32,21 @@ const chileBanks = [
 
 const accountTypes = ['Cuenta corriente', 'Cuenta vista', 'Cuenta de ahorro', 'Cuenta Rut'];
 
+const profileThemes = [
+  { id: 'classic-blue', name: 'Azul Carpetazo', primary: '#1e40af', secondary: '#93c5fd', accent: '#facc15', surface: '#DBEAFE', text: '#1a2b4b' },
+  { id: 'royal-purple', name: 'Púrpura Real', primary: '#6d28d9', secondary: '#c4b5fd', accent: '#f0abfc', surface: '#ede9fe', text: '#2e1065' },
+  { id: 'emerald-market', name: 'Esmeralda', primary: '#047857', secondary: '#6ee7b7', accent: '#fbbf24', surface: '#d1fae5', text: '#064e3b' },
+  { id: 'crimson-fire', name: 'Fuego Carmesí', primary: '#b91c1c', secondary: '#fca5a5', accent: '#fb923c', surface: '#fee2e2', text: '#450a0a' },
+  { id: 'midnight-gold', name: 'Medianoche Oro', primary: '#111827', secondary: '#334155', accent: '#facc15', surface: '#e2e8f0', text: '#0f172a' },
+  { id: 'ocean-cyan', name: 'Océano', primary: '#0e7490', secondary: '#67e8f9', accent: '#22d3ee', surface: '#cffafe', text: '#164e63' },
+  { id: 'rose-pop', name: 'Rosa Pop', primary: '#be185d', secondary: '#f9a8d4', accent: '#f472b6', surface: '#fce7f3', text: '#831843' },
+  { id: 'amber-sun', name: 'Sol Ámbar', primary: '#b45309', secondary: '#fcd34d', accent: '#fb7185', surface: '#fef3c7', text: '#78350f' },
+  { id: 'slate-neon', name: 'Neón Slate', primary: '#334155', secondary: '#94a3b8', accent: '#38bdf8', surface: '#e2e8f0', text: '#0f172a' },
+  { id: 'mythic-green', name: 'Mítico Verde', primary: '#365314', secondary: '#bef264', accent: '#84cc16', surface: '#ecfccb', text: '#1a2e05' }
+];
+
+const defaultPublicTheme = profileThemes[0];
+
 const emptyProfile = {
   fullName: '',
   displayName: '',
@@ -44,12 +59,14 @@ const emptyProfile = {
   facebookUrl: '',
   instagramUrl: '',
   youtubeUrl: '',
+  publicTheme: defaultPublicTheme,
   addresses: [],
   bankDetails: { bank: '', accountType: '', accountNumber: '' }
 };
 
 const tabs = [
   { id: 'general', label: 'Perfil', icon: 'person', description: 'Tu identidad pública y cómo te ven otros usuarios.' },
+  { id: 'style', label: 'Estilo', icon: 'palette', description: 'Personaliza colores y presencia de tu perfil público.' },
   { id: 'personal', label: 'Privado', icon: 'badge', description: 'Datos privados para contacto, compras y validaciones.' },
   { id: 'addresses', label: 'Direcciones', icon: 'location_on', description: 'Lugares donde puedes recibir pedidos.' },
   { id: 'payments', label: 'Pagos', icon: 'account_balance', description: 'Datos bancarios para recibir ventas.' },
@@ -97,6 +114,10 @@ const mapUserToProfile = (user = {}, currentUser = null) => ({
   facebookUrl: user.facebookUrl || '',
   instagramUrl: user.instagramUrl || '',
   youtubeUrl: user.youtubeUrl || '',
+  publicTheme: {
+    ...defaultPublicTheme,
+    ...(user.publicTheme && typeof user.publicTheme === 'object' ? user.publicTheme : {})
+  },
   addresses: Array.isArray(user.addresses) ? user.addresses : [],
   bankDetails: {
     ...emptyProfile.bankDetails,
@@ -115,6 +136,7 @@ const compactProfilePayload = (profile) => ({
   facebookUrl: profile.facebookUrl?.trim() || null,
   instagramUrl: profile.instagramUrl?.trim() || null,
   youtubeUrl: profile.youtubeUrl?.trim() || null,
+  publicTheme: profile.publicTheme || defaultPublicTheme,
   addresses: profile.addresses || [],
   bankDetails: profile.bankDetails || {}
 });
@@ -480,6 +502,74 @@ const ProfilePage = () => {
                     <textarea value={profileData.bio} onChange={e => updateProfileField('bio', e.target.value.slice(0, 500))} placeholder="Cuéntale a la comunidad qué coleccionas, vendes o buscas..." className="min-h-32 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-[#1e40af] focus:ring-4 focus:ring-blue-100" />
                   </Field>
                   <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('general')} disabled={Boolean(savingKey) || usernameState.checking || usernameState.available === false}>{savingKey === 'general' ? 'Guardando...' : 'Guardar perfil'}</ActionButton></div>
+                </section>
+              )}
+
+              {activeTab === 'style' && (
+                <section className="space-y-6">
+                  <div
+                    className="overflow-hidden rounded-[2rem] shadow-xl ring-1 ring-slate-200"
+                    style={{ backgroundColor: profileData.publicTheme?.surface || defaultPublicTheme.surface }}
+                  >
+                    <div
+                      className="relative min-h-40 p-5 text-white"
+                      style={{
+                        background: `linear-gradient(135deg, ${profileData.publicTheme?.primary || defaultPublicTheme.primary}, ${profileData.publicTheme?.secondary || defaultPublicTheme.secondary})`
+                      }}
+                    >
+                      <div className="absolute right-4 top-4 h-20 w-20 rounded-full opacity-70 blur-2xl" style={{ backgroundColor: profileData.publicTheme?.accent || defaultPublicTheme.accent }} />
+                      <p className="relative text-xs font-black uppercase tracking-[0.2em] opacity-80">Vista previa</p>
+                      <h3 className="relative mt-2 text-3xl font-black">{profileData.displayName || 'Tu perfil'}</h3>
+                      <p className="relative mt-1 text-sm font-bold opacity-85">@{profileData.username || 'tu_usuario'}</p>
+                    </div>
+                    <div className="grid gap-3 bg-white/80 p-5 sm:grid-cols-3">
+                      <div className="rounded-2xl bg-white p-4 shadow-sm">
+                        <p className="text-xs font-black uppercase tracking-wider text-slate-400">Tema</p>
+                        <p className="mt-1 font-black" style={{ color: profileData.publicTheme?.text || defaultPublicTheme.text }}>{profileData.publicTheme?.name || defaultPublicTheme.name}</p>
+                      </div>
+                      <div className="rounded-2xl bg-white p-4 shadow-sm">
+                        <p className="text-xs font-black uppercase tracking-wider text-slate-400">Botón</p>
+                        <span className="mt-2 inline-flex rounded-full px-4 py-2 text-sm font-black text-white" style={{ backgroundColor: profileData.publicTheme?.primary || defaultPublicTheme.primary }}>Mensaje</span>
+                      </div>
+                      <div className="rounded-2xl bg-white p-4 shadow-sm">
+                        <p className="text-xs font-black uppercase tracking-wider text-slate-400">Acento</p>
+                        <div className="mt-2 h-8 rounded-full" style={{ backgroundColor: profileData.publicTheme?.accent || defaultPublicTheme.accent }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-black text-[#1a2b4b]">Elige una paleta</h3>
+                    <p className="mt-1 text-sm font-semibold text-slate-500">Estos colores se aplican a tu perfil público para que se sienta único.</p>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      {profileThemes.map(theme => {
+                        const selected = (profileData.publicTheme?.id || defaultPublicTheme.id) === theme.id;
+                        return (
+                          <button
+                            key={theme.id}
+                            type="button"
+                            onClick={() => updateProfileField('publicTheme', theme)}
+                            className={`group overflow-hidden rounded-3xl border bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg ${selected ? 'border-[#1e40af] ring-4 ring-blue-100' : 'border-slate-200'}`}
+                          >
+                            <div className="h-20 rounded-2xl" style={{ background: `linear-gradient(135deg, ${theme.primary}, ${theme.secondary})` }}>
+                              <div className="flex h-full items-end justify-end p-3">
+                                <span className="h-8 w-8 rounded-full ring-4 ring-white/60" style={{ backgroundColor: theme.accent }} />
+                              </div>
+                            </div>
+                            <div className="mt-3 flex items-center justify-between gap-3">
+                              <div>
+                                <p className="font-black" style={{ color: theme.text }}>{theme.name}</p>
+                                <p className="text-xs font-bold text-slate-400">{theme.primary} · {theme.accent}</p>
+                              </div>
+                              {selected && <span translate="no" className="material-symbols-outlined text-[#1e40af]">check_circle</span>}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('style')} disabled={Boolean(savingKey)}>{savingKey === 'style' ? 'Guardando...' : 'Guardar estilo'}</ActionButton></div>
                 </section>
               )}
 
