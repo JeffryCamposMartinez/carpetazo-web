@@ -891,8 +891,14 @@ export default function SellerProfile() {
 
                 {themePanelTab === 'scene' && (
                   <div className="mt-3 max-h-[58vh] space-y-4 overflow-y-auto overscroll-contain pr-1">
-                    <div>
-                      <p className="mb-2 text-xs font-black uppercase tracking-wide opacity-70">Fondo del perfil</p>
+                    <div className="rounded-3xl border border-black/10 bg-white/45 p-3 shadow-sm">
+                      <div className="mb-3 border-b border-black/10 pb-2">
+                        <div className="flex items-center gap-2">
+                          <span translate="no" className="material-symbols-outlined rounded-xl p-1.5 text-[18px]" style={{ backgroundColor: `${publicTheme.primary}18`, color: publicTheme.primary }}>wallpaper</span>
+                          <p className="text-xs font-black uppercase tracking-wide">Fondo del perfil</p>
+                        </div>
+                        <p className="mt-1 text-[10px] font-bold leading-tight opacity-60">Cambia el escenario central detrás de tu banner, vitrinas y carpetas.</p>
+                      </div>
                       <div className="grid grid-cols-2 gap-2">
                         {backgroundStyleOptions.map(option => (
                           <button
@@ -910,8 +916,14 @@ export default function SellerProfile() {
                       </div>
                     </div>
 
-                    <div>
-                      <p className="mb-2 text-xs font-black uppercase tracking-wide opacity-70">Barras laterales</p>
+                    <div className="rounded-3xl border border-black/10 bg-white/45 p-3 shadow-sm">
+                      <div className="mb-3 border-b border-black/10 pb-2">
+                        <div className="flex items-center gap-2">
+                          <span translate="no" className="material-symbols-outlined rounded-xl p-1.5 text-[18px]" style={{ backgroundColor: `${publicTheme.primary}18`, color: publicTheme.primary }}>view_sidebar</span>
+                          <p className="text-xs font-black uppercase tracking-wide">Barras laterales</p>
+                        </div>
+                        <p className="mt-1 text-[10px] font-bold leading-tight opacity-60">Define qué se ve en las franjas izquierda y derecha de la página.</p>
+                      </div>
                       <div className="grid grid-cols-2 gap-2">
                         {sideBackgroundOptions.map(option => (
                           <button
@@ -929,8 +941,14 @@ export default function SellerProfile() {
                       </div>
                     </div>
 
-                    <div>
-                      <p className="mb-2 text-xs font-black uppercase tracking-wide opacity-70">Marco de avatar</p>
+                    <div className="rounded-3xl border border-black/10 bg-white/45 p-3 shadow-sm">
+                      <div className="mb-3 border-b border-black/10 pb-2">
+                        <div className="flex items-center gap-2">
+                          <span translate="no" className="material-symbols-outlined rounded-xl p-1.5 text-[18px]" style={{ backgroundColor: `${publicTheme.primary}18`, color: publicTheme.primary }}>account_box</span>
+                          <p className="text-xs font-black uppercase tracking-wide">Marco de avatar</p>
+                        </div>
+                        <p className="mt-1 text-[10px] font-bold leading-tight opacity-60">Personaliza el borde que rodea tu foto de perfil pública.</p>
+                      </div>
                       <div className="grid grid-cols-2 gap-2">
                         {avatarFrameOptions.map(option => (
                           <button
@@ -948,8 +966,14 @@ export default function SellerProfile() {
                       </div>
                     </div>
 
-                    <div>
-                      <p className="mb-2 text-xs font-black uppercase tracking-wide opacity-70">Layout y efecto</p>
+                    <div className="rounded-3xl border border-black/10 bg-white/45 p-3 shadow-sm">
+                      <div className="mb-3 border-b border-black/10 pb-2">
+                        <div className="flex items-center gap-2">
+                          <span translate="no" className="material-symbols-outlined rounded-xl p-1.5 text-[18px]" style={{ backgroundColor: `${publicTheme.primary}18`, color: publicTheme.primary }}>dashboard_customize</span>
+                          <p className="text-xs font-black uppercase tracking-wide">Layout y efecto</p>
+                        </div>
+                        <p className="mt-1 text-[10px] font-bold leading-tight opacity-60">Elige la estructura del perfil y una capa visual encima de la escena.</p>
+                      </div>
                       <div className="grid grid-cols-2 gap-2">
                         {profileLayoutOptions.map(option => (
                           <button key={option.id} type="button" onClick={() => handleThemeFieldChange('profileLayout', option.id)} className={`rounded-2xl border bg-white/60 p-3 text-left transition hover:-translate-y-0.5 ${publicTheme.profileLayout === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}>
@@ -966,8 +990,14 @@ export default function SellerProfile() {
                       </div>
                     </div>
 
-                    <div>
-                      <p className="mb-2 text-xs font-black uppercase tracking-wide opacity-70">Vitrina</p>
+                    <div className="rounded-3xl border border-black/10 bg-white/45 p-3 shadow-sm">
+                      <div className="mb-3 border-b border-black/10 pb-2">
+                        <div className="flex items-center gap-2">
+                          <span translate="no" className="material-symbols-outlined rounded-xl p-1.5 text-[18px]" style={{ backgroundColor: `${publicTheme.primary}18`, color: publicTheme.primary }}>trophy</span>
+                          <p className="text-xs font-black uppercase tracking-wide">Vitrina</p>
+                        </div>
+                        <p className="mt-1 text-[10px] font-bold leading-tight opacity-60">Controla qué tipo de módulo destacado aparece bajo tu presentación.</p>
+                      </div>
                       <div className="grid grid-cols-2 gap-2">
                         {showcaseStyleOptions.map(option => (
                           <button key={option.id} type="button" onClick={() => handleThemeFieldChange('showcaseStyle', option.id)} className={`rounded-2xl border bg-white/60 p-3 text-left transition hover:-translate-y-0.5 ${publicTheme.showcaseStyle === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}>
