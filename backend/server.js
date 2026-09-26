@@ -1,5 +1,5 @@
 import helmet from 'helmet';
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import express from 'express';
 import cors from 'cors';
@@ -11,7 +11,9 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config();
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 
