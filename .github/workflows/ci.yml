@@ -57,6 +57,32 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
+      - name: Check required deployment secrets
+        run: |
+          set -euo pipefail
+          missing=0
+          check_secret() {
+            name="$1"
+            value="$2"
+            if [ -z "$value" ]; then
+              echo "Missing $name"
+              missing=1
+            else
+              echo "$name is configured"
+            fi
+          }
+          check_secret "VPS_HOST" "${{ secrets.VPS_HOST }}"
+          check_secret "VPS_USER" "${{ secrets.VPS_USER }}"
+          check_secret "VPS_SSH_KEY" "${{ secrets.VPS_SSH_KEY }}"
+          check_secret "VPS_PROJECT_PATH" "${{ secrets.VPS_PROJECT_PATH }}"
+          check_secret "VPS_RESTART_COMMAND" "${{ secrets.VPS_RESTART_COMMAND }}"
+          check_secret "R2_ACCOUNT_ID" "${{ secrets.R2_ACCOUNT_ID }}"
+          check_secret "R2_ACCESS_KEY_ID" "${{ secrets.R2_ACCESS_KEY_ID }}"
+          check_secret "R2_SECRET_ACCESS_KEY" "${{ secrets.R2_SECRET_ACCESS_KEY }}"
+          check_secret "R2_BUCKET_NAME" "${{ secrets.R2_BUCKET_NAME }}"
+          check_secret "R2_PUBLIC_URL" "${{ secrets.R2_PUBLIC_URL }}"
+          exit "$missing"
+
       - name: Deploy through SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
