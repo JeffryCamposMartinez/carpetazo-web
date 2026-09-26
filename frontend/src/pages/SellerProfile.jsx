@@ -598,6 +598,22 @@ export default function SellerProfile() {
 
   useEffect(() => {
     document.body.classList.add('public-profile-active');
+    
+    const originalBodyBg = document.body.style.backgroundColor;
+    document.body.style.backgroundColor = publicTheme.surface || '#1a2b4b';
+
+    let metaThemeColor = document.querySelector("meta[name=theme-color]");
+    let originalMetaColor = '';
+    if (metaThemeColor) {
+      originalMetaColor = metaThemeColor.getAttribute("content");
+      metaThemeColor.setAttribute("content", publicTheme.primary || '#1a2b4b');
+    } else {
+      metaThemeColor = document.createElement('meta');
+      metaThemeColor.name = "theme-color";
+      metaThemeColor.content = publicTheme.primary || '#1a2b4b';
+      document.head.appendChild(metaThemeColor);
+    }
+
     if (seller?.wallpaperBase64) {
       document.documentElement.style.setProperty('--seller-bg', `url(${seller.wallpaperBase64})`);
       document.documentElement.style.setProperty('--seller-overlay', 'transparent');
@@ -605,12 +621,22 @@ export default function SellerProfile() {
       document.documentElement.style.removeProperty('--seller-bg');
       document.documentElement.style.removeProperty('--seller-overlay');
     }
+    
     return () => {
       document.body.classList.remove('public-profile-active');
       document.documentElement.style.removeProperty('--seller-bg');
       document.documentElement.style.removeProperty('--seller-overlay');
+      document.body.style.backgroundColor = originalBodyBg;
+      
+      if (metaThemeColor) {
+        if (originalMetaColor) {
+          metaThemeColor.setAttribute("content", originalMetaColor);
+        } else {
+          metaThemeColor.remove();
+        }
+      }
     };
-  }, [seller?.wallpaperBase64]);
+  }, [seller?.wallpaperBase64, publicTheme.surface, publicTheme.primary]);
 
   const compressImage = (file, type) => new Promise((resolve, reject) => {
     const reader = new FileReader();
