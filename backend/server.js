@@ -1233,7 +1233,23 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
         return res.status(400).json({ success: false, error: 'Invalid public theme' });
       }
 
-      const allowedThemeFields = ['id', 'name', 'primary', 'secondary', 'accent', 'surface', 'card', 'text', 'font', 'cardStyle'];
+      const allowedThemeFields = [
+        'id',
+        'name',
+        'primary',
+        'secondary',
+        'accent',
+        'surface',
+        'card',
+        'text',
+        'font',
+        'cardStyle',
+        'backgroundStyle',
+        'avatarFrame',
+        'profileLayout',
+        'profileEffect',
+        'showcaseStyle'
+      ];
       updateData.publicTheme = Object.fromEntries(
         Object.entries(updateData.publicTheme)
           .filter(([key, value]) => allowedThemeFields.includes(key) && typeof value === 'string')

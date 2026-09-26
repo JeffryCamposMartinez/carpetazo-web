@@ -72,7 +72,12 @@ const defaultPublicTheme = {
   card: '#ffffff',
   text: '#1a2b4b',
   font: 'Inter',
-  cardStyle: 'soft'
+  cardStyle: 'soft',
+  backgroundStyle: 'banner',
+  avatarFrame: 'gradient',
+  profileLayout: 'classic',
+  profileEffect: 'none',
+  showcaseStyle: 'folders'
 };
 
 const profileThemes = [
@@ -129,9 +134,141 @@ const cardStyleOptions = [
   { id: 'prism', name: 'Prisma', description: 'Gradiente angular multicolor.' }
 ];
 
+const backgroundStyleOptions = [
+  { id: 'banner', name: 'Banner limpio', description: 'Tu banner manda, con fondo suave.' },
+  { id: 'steam-dark', name: 'Steam oscuro', description: 'Negro premium con luces de neón.' },
+  { id: 'arcade', name: 'Arcade geométrico', description: 'Líneas, puntos y bloques retro.' },
+  { id: 'cosmic-room', name: 'Sala cósmica', description: 'Nebulosas, brillos y profundidad.' },
+  { id: 'tcg-table', name: 'Mesa TCG', description: 'Tapete de juego coleccionable.' },
+  { id: 'cyber-grid', name: 'Grid cyber', description: 'Rejilla futurista tipo vitrina.' },
+  { id: 'foil-rain', name: 'Lluvia foil', description: 'Destellos diagonales holográficos.' },
+  { id: 'comic-burst', name: 'Explosión comic', description: 'Rayos gráficos y energía pop.' },
+  { id: 'minimal-gallery', name: 'Galería minimal', description: 'Espacio claro y editorial.' },
+  { id: 'mythic-forest', name: 'Bosque mítico', description: 'Verde profundo y fantasía.' },
+  { id: 'lava', name: 'Lava legendaria', description: 'Oscuro con grietas ardientes.' },
+  { id: 'ice', name: 'Cristal helado', description: 'Azules fríos y transparencias.' }
+];
+
+const avatarFrameOptions = [
+  { id: 'gradient', name: 'Degradado', description: 'Marco premium dinámico.' },
+  { id: 'steam', name: 'Steam', description: 'Marco negro con acento brillante.' },
+  { id: 'neon', name: 'Neón', description: 'Glow intenso alrededor.' },
+  { id: 'gold', name: 'Dorado', description: 'Coleccionista legendario.' },
+  { id: 'holo', name: 'Holo', description: 'Brillo de carta foil.' },
+  { id: 'pixel', name: 'Pixel', description: 'Retro gamer cuadrado.' },
+  { id: 'rune', name: 'Runas', description: 'Fantasía mística.' },
+  { id: 'clean', name: 'Limpio', description: 'Simple y elegante.' }
+];
+
+const profileLayoutOptions = [
+  { id: 'classic', name: 'Clásico', description: 'Hero amplio y carpetas abajo.' },
+  { id: 'steam', name: 'Steam', description: 'Hero + vitrina lateral.' },
+  { id: 'showcase', name: 'Showcase', description: 'Todo centrado como exposición.' },
+  { id: 'compact', name: 'Compacto', description: 'Más información en menos altura.' },
+  { id: 'poster', name: 'Poster', description: 'Nombre grande y teatral.' }
+];
+
+const profileEffectOptions = [
+  { id: 'none', name: 'Sin efecto', description: 'Máximo rendimiento.' },
+  { id: 'scanlines', name: 'Scanlines', description: 'Líneas retro sobre el perfil.' },
+  { id: 'particles', name: 'Partículas', description: 'Puntos luminosos flotantes.' },
+  { id: 'diagonal', name: 'Franjas', description: 'Rayas de energía tipo Steam.' },
+  { id: 'spotlight', name: 'Spotlight', description: 'Luces dramáticas de vitrina.' }
+];
+
+const showcaseStyleOptions = [
+  { id: 'folders', name: 'Carpetas', description: 'Destaca tus carpetas públicas.' },
+  { id: 'collector', name: 'Coleccionista', description: 'Badges y estadísticas primero.' },
+  { id: 'seller', name: 'Vendedor', description: 'Contacto y catálogo al frente.' },
+  { id: 'minimal', name: 'Minimal', description: 'Sin ruido, muy limpio.' }
+];
+
 const getFontStack = (font = defaultPublicTheme.font) => {
   const safeFont = fontOptions.includes(font) ? font : defaultPublicTheme.font;
   return `'${safeFont}', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+};
+
+const getProfileBackgroundStyle = (theme) => {
+  const style = theme.backgroundStyle || defaultPublicTheme.backgroundStyle;
+  const base = { backgroundColor: theme.surface };
+
+  const backgrounds = {
+    banner: { ...base },
+    'steam-dark': {
+      backgroundColor: '#05070d',
+      backgroundImage: `radial-gradient(circle at 18% 12%, ${theme.primary}66, transparent 30%), radial-gradient(circle at 88% 8%, ${theme.accent}44, transparent 26%), linear-gradient(180deg, #101826, #05070d 55%, #020409)`
+    },
+    arcade: {
+      backgroundColor: theme.surface,
+      backgroundImage: `radial-gradient(circle, ${theme.accent}55 1px, transparent 2px), linear-gradient(135deg, ${theme.primary}55 0 8%, transparent 8% 42%, ${theme.secondary}55 42% 46%, transparent 46%), linear-gradient(90deg, ${theme.surface}, ${theme.primary}22)`,
+      backgroundSize: '22px 22px, 100% 100%, 100% 100%'
+    },
+    'cosmic-room': {
+      backgroundColor: '#030712',
+      backgroundImage: `radial-gradient(circle at 20% 20%, ${theme.accent}99, transparent 20%), radial-gradient(circle at 80% 10%, ${theme.secondary}88, transparent 25%), radial-gradient(circle at 50% 90%, ${theme.primary}88, transparent 35%), linear-gradient(135deg, #020617, #111827)`
+    },
+    'tcg-table': {
+      backgroundColor: theme.surface,
+      backgroundImage: `linear-gradient(45deg, ${theme.primary}18 25%, transparent 25%, transparent 75%, ${theme.primary}18 75%), linear-gradient(45deg, ${theme.primary}18 25%, transparent 25%, transparent 75%, ${theme.primary}18 75%), linear-gradient(135deg, ${theme.surface}, ${theme.secondary}44)`,
+      backgroundPosition: '0 0, 18px 18px, 0 0',
+      backgroundSize: '36px 36px, 36px 36px, 100% 100%'
+    },
+    'cyber-grid': {
+      backgroundColor: '#07111f',
+      backgroundImage: `linear-gradient(${theme.accent}26 1px, transparent 1px), linear-gradient(90deg, ${theme.accent}26 1px, transparent 1px), radial-gradient(circle at 50% 0%, ${theme.primary}66, transparent 42%)`,
+      backgroundSize: '42px 42px, 42px 42px, 100% 100%'
+    },
+    'foil-rain': {
+      backgroundColor: theme.surface,
+      backgroundImage: `repeating-linear-gradient(115deg, transparent 0 18px, ${theme.accent}33 18px 22px, transparent 22px 44px), linear-gradient(135deg, ${theme.surface}, ${theme.secondary}55, ${theme.primary}33)`
+    },
+    'comic-burst': {
+      backgroundColor: theme.accent,
+      backgroundImage: `conic-gradient(from 10deg at 50% 45%, ${theme.accent}, ${theme.card}, ${theme.primary}, ${theme.secondary}, ${theme.accent})`
+    },
+    'minimal-gallery': {
+      backgroundColor: '#f8fafc',
+      backgroundImage: `linear-gradient(180deg, #ffffff, ${theme.surface})`
+    },
+    'mythic-forest': {
+      backgroundColor: '#08170d',
+      backgroundImage: `radial-gradient(circle at 15% 20%, ${theme.accent}55, transparent 22%), linear-gradient(135deg, #08170d, ${theme.primary}, #020b05)`
+    },
+    lava: {
+      backgroundColor: '#120506',
+      backgroundImage: `radial-gradient(circle at 25% 20%, ${theme.accent}77, transparent 18%), repeating-linear-gradient(135deg, transparent 0 24px, ${theme.primary}66 24px 28px), linear-gradient(135deg, #120506, #450a0a, #020202)`
+    },
+    ice: {
+      backgroundColor: '#e0f2fe',
+      backgroundImage: `linear-gradient(135deg, #f8fafc, ${theme.secondary}88, ${theme.card}), radial-gradient(circle at 80% 15%, #ffffffaa, transparent 22%)`
+    }
+  };
+
+  return backgrounds[style] || base;
+};
+
+const getAvatarFrameStyle = (theme) => {
+  const frame = theme.avatarFrame || defaultPublicTheme.avatarFrame;
+  const frames = {
+    gradient: `linear-gradient(135deg, #ffffff 0%, ${theme.accent} 42%, ${theme.primary} 100%)`,
+    steam: `linear-gradient(135deg, #050505, ${theme.primary}, #050505)`,
+    neon: `linear-gradient(135deg, ${theme.accent}, ${theme.secondary}, ${theme.primary})`,
+    gold: 'linear-gradient(135deg, #fff7ad, #d97706, #78350f, #facc15)',
+    holo: `conic-gradient(from 180deg, #fff, ${theme.accent}, ${theme.secondary}, #f0abfc, ${theme.primary}, #fff)`,
+    pixel: `repeating-linear-gradient(45deg, ${theme.primary} 0 8px, ${theme.accent} 8px 16px, ${theme.text} 16px 24px)`,
+    rune: `radial-gradient(circle, ${theme.accent}, ${theme.primary} 42%, #020617 70%)`,
+    clean: 'linear-gradient(135deg, #ffffff, #e2e8f0)'
+  };
+  return frames[frame] || frames.gradient;
+};
+
+const getEffectClassName = (theme) => {
+  const effect = theme.profileEffect || defaultPublicTheme.profileEffect;
+  if (effect === 'scanlines') return 'before:pointer-events-none before:absolute before:inset-0 before:z-[1] before:bg-[repeating-linear-gradient(0deg,rgba(255,255,255,0.08)_0_1px,transparent_1px_5px)] before:mix-blend-overlay';
+  if (effect === 'particles') return 'before:pointer-events-none before:absolute before:inset-0 before:z-[1] before:bg-[radial-gradient(circle,rgba(255,255,255,0.45)_1px,transparent_2px)] before:bg-[length:34px_34px] before:opacity-35';
+  if (effect === 'diagonal') return 'before:pointer-events-none before:absolute before:inset-0 before:z-[1] before:bg-[repeating-linear-gradient(135deg,transparent_0_34px,rgba(255,255,255,0.16)_34px_38px)] before:opacity-50';
+  if (effect === 'spotlight') return 'before:pointer-events-none before:absolute before:inset-0 before:z-[1] before:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.45),transparent_36%)] before:mix-blend-overlay';
+  return '';
 };
 
 const getCardStyle = (theme) => {
@@ -315,6 +452,13 @@ export default function SellerProfile() {
   const primaryAddress = useMemo(() => (
     seller?.addresses?.find(address => address.isDefault) || seller?.addresses?.[0] || null
   ), [seller?.addresses]);
+  const totalCards = useMemo(() => folders.reduce((total, folder) => total + (Number(folder.cardsCount) || 0), 0), [folders]);
+  const profileLevel = Math.max(1, Math.min(99, Math.round((folders.length * 4) + (totalCards / 12) + 1)));
+  const spotlightFolders = folders.slice(0, 3);
+  const showSteamShowcase = folders.length > 0 && publicTheme.showcaseStyle !== 'minimal';
+  const isSteamLayout = publicTheme.profileLayout === 'steam';
+  const isPosterLayout = publicTheme.profileLayout === 'poster';
+  const isCompactLayout = publicTheme.profileLayout === 'compact';
 
   const loadSeller = async () => {
     setLoading(true);
@@ -507,7 +651,7 @@ export default function SellerProfile() {
   return (
     <div className="min-h-screen" style={{ fontFamily: getFontStack(publicTheme.font) }}>
       <div className="mx-auto w-full max-w-[1600px] xl:px-12 2xl:px-16">
-      <div className="min-h-screen w-full overflow-hidden shadow-[0_0_90px_rgba(0,0,0,0.22)]" style={{ backgroundColor: publicTheme.surface }}>
+      <div className={`relative min-h-screen w-full overflow-hidden shadow-[0_0_90px_rgba(0,0,0,0.22)] ${getEffectClassName(publicTheme)}`} style={getProfileBackgroundStyle(publicTheme)}>
       <section className="relative overflow-visible shadow-sm" style={{ backgroundColor: publicTheme.card }}>
         {seller?.bannerBase64 ? (
           <div className="absolute inset-x-0 top-0 h-[270px] bg-cover bg-center sm:h-[340px] md:inset-0 md:h-auto" style={{ backgroundImage: `url(${seller.bannerBase64})` }} />
@@ -552,11 +696,12 @@ export default function SellerProfile() {
                     </button>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 rounded-2xl bg-black/5 p-1">
+                <div className="grid grid-cols-4 gap-2 rounded-2xl bg-black/5 p-1">
                   {[
                     ['theme', 'Tema', 'palette'],
                     ['font', 'Tipografía', 'text_fields'],
-                    ['cards', 'Tarjetas', 'dashboard_customize']
+                    ['cards', 'Tarjetas', 'dashboard_customize'],
+                    ['scene', 'Escena', 'auto_awesome']
                   ].map(([id, label, icon]) => (
                     <button
                       key={id}
@@ -659,15 +804,87 @@ export default function SellerProfile() {
                     </div>
                   </div>
                 )}
+
+                {themePanelTab === 'scene' && (
+                  <div className="mt-3 max-h-[58vh] space-y-4 overflow-y-auto overscroll-contain pr-1">
+                    <div>
+                      <p className="mb-2 text-xs font-black uppercase tracking-wide opacity-70">Fondo del perfil</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {backgroundStyleOptions.map(option => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => handleThemeFieldChange('backgroundStyle', option.id)}
+                            className={`overflow-hidden rounded-2xl border p-2 text-left transition hover:-translate-y-0.5 ${publicTheme.backgroundStyle === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}
+                            style={{ color: publicTheme.text }}
+                          >
+                            <div className="h-12 rounded-xl" style={getProfileBackgroundStyle({ ...publicTheme, backgroundStyle: option.id })} />
+                            <span className="mt-2 block text-xs font-black">{option.name}</span>
+                            <span className="block text-[10px] font-bold opacity-60">{option.description}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="mb-2 text-xs font-black uppercase tracking-wide opacity-70">Marco de avatar</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {avatarFrameOptions.map(option => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => handleThemeFieldChange('avatarFrame', option.id)}
+                            className={`rounded-2xl border bg-white/60 p-3 text-left transition hover:-translate-y-0.5 ${publicTheme.avatarFrame === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}
+                            style={{ color: publicTheme.text }}
+                          >
+                            <span className="mb-2 block h-10 w-10 rounded-2xl shadow-lg" style={{ background: getAvatarFrameStyle({ ...publicTheme, avatarFrame: option.id }) }} />
+                            <span className="block text-xs font-black">{option.name}</span>
+                            <span className="block text-[10px] font-bold opacity-60">{option.description}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="mb-2 text-xs font-black uppercase tracking-wide opacity-70">Layout y efecto</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {profileLayoutOptions.map(option => (
+                          <button key={option.id} type="button" onClick={() => handleThemeFieldChange('profileLayout', option.id)} className={`rounded-2xl border bg-white/60 p-3 text-left transition hover:-translate-y-0.5 ${publicTheme.profileLayout === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}>
+                            <span className="block text-xs font-black">{option.name}</span>
+                            <span className="block text-[10px] font-bold opacity-60">{option.description}</span>
+                          </button>
+                        ))}
+                        {profileEffectOptions.map(option => (
+                          <button key={option.id} type="button" onClick={() => handleThemeFieldChange('profileEffect', option.id)} className={`rounded-2xl border bg-white/60 p-3 text-left transition hover:-translate-y-0.5 ${publicTheme.profileEffect === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}>
+                            <span className="block text-xs font-black">{option.name}</span>
+                            <span className="block text-[10px] font-bold opacity-60">{option.description}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="mb-2 text-xs font-black uppercase tracking-wide opacity-70">Vitrina</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {showcaseStyleOptions.map(option => (
+                          <button key={option.id} type="button" onClick={() => handleThemeFieldChange('showcaseStyle', option.id)} className={`rounded-2xl border bg-white/60 p-3 text-left transition hover:-translate-y-0.5 ${publicTheme.showcaseStyle === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}>
+                            <span className="block text-xs font-black">{option.name}</span>
+                            <span className="block text-[10px] font-bold opacity-60">{option.description}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
 
-        <div className="relative z-10 mx-auto flex min-h-[430px] w-full max-w-[1300px] flex-col justify-end gap-4 px-4 pb-6 pt-[185px] sm:min-h-[520px] sm:px-6 sm:pt-[260px] md:min-h-0 md:flex-row md:items-end md:gap-5 md:px-10 md:py-12">
+        <div className={`relative z-10 mx-auto flex w-full max-w-[1300px] flex-col justify-end gap-4 px-4 pb-6 pt-[185px] sm:px-6 sm:pt-[260px] md:min-h-0 md:flex-row md:items-end md:gap-5 md:px-10 ${isCompactLayout ? 'min-h-[380px] sm:min-h-[460px] md:py-8' : 'min-h-[430px] sm:min-h-[520px] md:py-12'} ${isPosterLayout ? 'md:items-center' : ''}`}>
           <div className="relative z-20 -mb-10 ml-3 h-32 w-32 shrink-0 sm:ml-5 sm:h-36 sm:w-36 md:mb-0 md:ml-0 md:h-44 md:w-44">
             <div className="absolute -inset-3 rounded-[2.7rem] opacity-70 blur-2xl" style={{ background: `linear-gradient(135deg, ${publicTheme.primary}, ${publicTheme.accent}, ${publicTheme.secondary})` }} />
-            <div className="relative h-full w-full rounded-[2.35rem] p-[5px] shadow-[0_24px_60px_rgba(0,0,0,0.42)]" style={{ background: `linear-gradient(135deg, #ffffff 0%, ${publicTheme.accent} 42%, ${publicTheme.primary} 100%)` }}>
+            <div className="relative h-full w-full rounded-[2.35rem] p-[5px] shadow-[0_24px_60px_rgba(0,0,0,0.42)]" style={{ background: getAvatarFrameStyle(publicTheme) }}>
               <div className="h-full w-full overflow-hidden rounded-[2rem] bg-white ring-2 ring-white/90">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
@@ -687,15 +904,28 @@ export default function SellerProfile() {
             )}
           </div>
 
-          <div className="min-w-0 flex-1 p-4 pt-12 ring-1 backdrop-blur-sm sm:p-5 sm:pt-14 md:p-6 md:pt-6 md:backdrop-blur" style={getCardStyle(publicTheme)}>
+          <div className={`min-w-0 flex-1 p-4 pt-12 ring-1 backdrop-blur-sm sm:p-5 sm:pt-14 md:p-6 md:pt-6 md:backdrop-blur ${isPosterLayout ? 'md:text-center' : ''}`} style={getCardStyle(publicTheme)}>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="break-words text-[1.9rem] font-black leading-[0.95] sm:text-4xl md:text-5xl" style={{ color: publicTheme.text }}>{displayName}</h1>
+                  <h1 className={`break-words font-black leading-[0.95] ${isPosterLayout ? 'text-[2.5rem] sm:text-6xl md:text-7xl' : 'text-[1.9rem] sm:text-4xl md:text-5xl'}`} style={{ color: publicTheme.text }}>{displayName}</h1>
                   <span translate="no" className="material-symbols-outlined" style={{ color: publicTheme.primary, fontVariationSettings: "'FILL' 1" }}>verified</span>
                 </div>
                 <p className="mt-1 text-sm font-black text-slate-500">@{seller?.username || seller?.firebaseUid}</p>
                 {seller?.fullName && <p className="mt-1 text-sm font-semibold text-slate-600">{seller.fullName}</p>}
+                <div className={`mt-3 flex flex-wrap gap-2 ${isPosterLayout ? 'justify-center lg:justify-start' : ''}`}>
+                  {[
+                    ['Nivel', profileLevel],
+                    ['Carpetas', folders.length],
+                    ['Cartas', totalCards],
+                    ['Estilo', publicTheme.showcaseStyle]
+                  ].map(([label, value]) => (
+                    <span key={label} className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wide ring-1" style={{ backgroundColor: `${publicTheme.primary}18`, borderColor: `${publicTheme.primary}55`, color: publicTheme.text }}>
+                      <span className="opacity-60">{label}</span>
+                      {value}
+                    </span>
+                  ))}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
@@ -747,7 +977,63 @@ export default function SellerProfile() {
         </div>
       </section>
 
-      <main className="mx-auto w-full max-w-[1300px] px-4 py-6 sm:px-6 sm:py-8 md:px-10">
+      <main className="relative z-10 mx-auto w-full max-w-[1300px] px-4 py-6 sm:px-6 sm:py-8 md:px-10">
+        {showSteamShowcase && (
+          <div className={`mb-5 grid gap-4 sm:mb-6 ${isSteamLayout ? 'lg:grid-cols-[1.5fr_0.85fr]' : 'lg:grid-cols-3'}`}>
+            <div className={`border p-4 ring-1 ${isSteamLayout ? 'lg:col-span-1' : 'lg:col-span-2'}`} style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}33` }}>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.22em]" style={{ color: publicTheme.primary }}>Vitrina pública</p>
+                  <h2 className="text-2xl font-black leading-tight" style={{ color: publicTheme.text }}>
+                    {publicTheme.showcaseStyle === 'seller' ? 'Catálogo destacado del vendedor' : publicTheme.showcaseStyle === 'collector' ? 'Colección destacada' : 'Carpetas favoritas'}
+                  </h2>
+                </div>
+                <span className="rounded-full px-3 py-1 text-xs font-black text-white" style={{ backgroundColor: publicTheme.primary }}>{folders.length}</span>
+              </div>
+
+              <div className={`grid gap-3 ${publicTheme.showcaseStyle === 'collector' ? 'sm:grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-3'}`}>
+                {spotlightFolders.map(folder => (
+                  <Link key={folder.id} to={`/c/${folder.id}`} className="group overflow-hidden rounded-2xl border bg-black/5 p-3 transition hover:-translate-y-1 hover:shadow-xl" style={{ borderColor: `${publicTheme.primary}26` }}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="h-14 w-11 shrink-0 rounded-lg bg-[url('/images/carpeta_v4.webp')] bg-[length:100%_100%] bg-no-repeat shadow-md" style={{ filter: getFolderFilter(folder.color) }} />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-black" style={{ color: publicTheme.text }}>{folder.name}</p>
+                          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{folder.tcg}</p>
+                        </div>
+                      </div>
+                      <span className="rounded-full px-2 py-1 text-[11px] font-black text-white" style={{ backgroundColor: publicTheme.primary }}>{folder.cardsCount}</span>
+                    </div>
+                    {publicTheme.showcaseStyle === 'seller' && (
+                      <p className="mt-3 text-xs font-bold text-slate-500">Disponible para compradores desde este perfil público.</p>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div className="border p-4 ring-1" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.accent}44` }}>
+              <p className="text-xs font-black uppercase tracking-[0.22em]" style={{ color: publicTheme.primary }}>Panel estilo Steam</p>
+              <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-1">
+                {[
+                  ['Nivel de perfil', profileLevel, 'military_tech'],
+                  ['Carpetas públicas', folders.length, 'auto_stories'],
+                  ['Cartas mostradas', totalCards, 'style'],
+                  ['Marco', avatarFrameOptions.find(option => option.id === publicTheme.avatarFrame)?.name || 'Personalizado', 'account_box']
+                ].map(([label, value, icon]) => (
+                  <div key={label} className="flex items-center gap-3 rounded-2xl border bg-black/5 p-3" style={{ borderColor: `${publicTheme.primary}22` }}>
+                    <span translate="no" className="material-symbols-outlined rounded-xl p-2 text-[20px]" style={{ backgroundColor: `${publicTheme.accent}24`, color: publicTheme.primary }}>{icon}</span>
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">{label}</p>
+                      <p className="text-lg font-black leading-tight" style={{ color: publicTheme.text }}>{value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mb-5 flex items-center justify-between p-4 ring-1 sm:mb-6 sm:border-b sm:bg-transparent sm:p-0 sm:pb-4 sm:shadow-none sm:ring-0" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}20` }}>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${publicTheme.primary}18` }}>
