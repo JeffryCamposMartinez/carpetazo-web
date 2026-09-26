@@ -66,12 +66,18 @@ Debes configurar estos secretos en GitHub:
 - `VPS_RESTART_COMMAND`
 - `VITE_API_URL` recomendado: `https://api.carpetazo.cl/api`
 - `VPS_PORT` opcional si no usas puerto 22
+- `R2_ACCOUNT_ID`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_BUCKET_NAME`
+- `R2_PUBLIC_URL`
 
 El deploy ejecuta:
 
 ```bash
 git pull --ff-only origin main
 cd backend
+# actualiza las variables R2_* en backend/.env desde GitHub Secrets
 npm ci
 npm run build
 cd ../frontend

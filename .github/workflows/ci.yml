@@ -74,6 +74,26 @@ jobs:
             git checkout main
             git pull --ff-only origin main
             cd backend
+            touch .env
+            upsert_env() {
+              key="$1"
+              value="$2"
+              if [ -z "$value" ]; then
+                echo "Missing $key secret" >&2
+                exit 1
+              fi
+              escaped_value=$(printf '%s' "$value" | sed 's/[\/&]/\\&/g')
+              if grep -q "^${key}=" .env; then
+                sed -i "s/^${key}=.*/${key}=${escaped_value}/" .env
+              else
+                printf '\n%s=%s\n' "$key" "$value" >> .env
+              fi
+            }
+            upsert_env "R2_ACCOUNT_ID" "${{ secrets.R2_ACCOUNT_ID }}"
+            upsert_env "R2_ACCESS_KEY_ID" "${{ secrets.R2_ACCESS_KEY_ID }}"
+            upsert_env "R2_SECRET_ACCESS_KEY" "${{ secrets.R2_SECRET_ACCESS_KEY }}"
+            upsert_env "R2_BUCKET_NAME" "${{ secrets.R2_BUCKET_NAME }}"
+            upsert_env "R2_PUBLIC_URL" "${{ secrets.R2_PUBLIC_URL }}"
             npm ci
             GIT_COMMIT="${{ github.sha }}" npm run build
             cd ../frontend

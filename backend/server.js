@@ -71,6 +71,15 @@ const requireAdmin = async (req, res, next) => {
 };
 const app = express();
 const port = process.env.PORT || 8000;
+const R2_REQUIRED_ENV = [
+  'R2_ACCOUNT_ID',
+  'R2_ACCESS_KEY_ID',
+  'R2_SECRET_ACCESS_KEY',
+  'R2_BUCKET_NAME',
+  'R2_PUBLIC_URL'
+];
+const missingR2Config = () => R2_REQUIRED_ENV.filter(key => !process.env[key]);
+const hasR2Config = () => missingR2Config().length === 0;
 
 app.get('/api/health', (_req, res) => {
   res.json({
@@ -78,6 +87,8 @@ app.get('/api/health', (_req, res) => {
     service: 'carpetazo-api',
     environment: process.env.NODE_ENV || 'development',
     commit: process.env.GIT_COMMIT || null,
+    r2Configured: hasR2Config(),
+    missingR2: missingR2Config(),
     time: new Date().toISOString()
   });
 });
@@ -1098,14 +1109,6 @@ const r2Client = new S3Client({
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
   },
 });
-
-const hasR2Config = () => Boolean(
-  process.env.R2_ACCOUNT_ID &&
-  process.env.R2_ACCESS_KEY_ID &&
-  process.env.R2_SECRET_ACCESS_KEY &&
-  process.env.R2_BUCKET_NAME &&
-  process.env.R2_PUBLIC_URL
-);
 
 app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
   upload.single('image')(req, res, (error) => {
