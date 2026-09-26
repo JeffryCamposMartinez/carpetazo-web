@@ -216,9 +216,9 @@ const profileDistributionOptions = [
   { id: 'split-stats', name: 'Stats dividido', description: 'Panel y vitrina en dos, carpetas después.', order: ['stats', 'showcase', 'folders'], spans: { stats: 'lg:col-span-6', showcase: 'lg:col-span-6', folders: 'lg:col-span-12' } },
   { id: 'minimal-flow', name: 'Flujo simple', description: 'Orden vertical limpio para perfiles sobrios.', order: ['showcase', 'stats', 'folders'], spans: { showcase: 'lg:col-span-12', stats: 'lg:col-span-12', folders: 'lg:col-span-12' } },
   { id: 'reverse-flow', name: 'Flujo inverso', description: 'Catálogo, panel y vitrina al final.', order: ['folders', 'stats', 'showcase'], spans: { folders: 'lg:col-span-12', stats: 'lg:col-span-12', showcase: 'lg:col-span-12' } },
-  { id: 'compact-shop', name: 'Tienda compacta', description: 'Catálogo ancho con panel y vitrina chicos.', order: ['folders', 'stats', 'showcase'], spans: { folders: 'lg:col-span-8', stats: 'lg:col-span-2', showcase: 'lg:col-span-2' } },
-  { id: 'premium-gallery', name: 'Galería premium', description: 'Vitrina y carpetas grandes con stats pequeño.', order: ['showcase', 'folders', 'stats'], spans: { showcase: 'lg:col-span-7', folders: 'lg:col-span-3', stats: 'lg:col-span-2' } },
-  { id: 'trading-desk', name: 'Mesa de trade', description: 'Panel pequeño, vitrina media, catálogo grande.', order: ['stats', 'showcase', 'folders'], spans: { stats: 'lg:col-span-2', showcase: 'lg:col-span-4', folders: 'lg:col-span-6' } }
+  { id: 'compact-shop', name: 'Tienda compacta', description: 'Catálogo ancho con panel y vitrina chicos.', order: ['folders', 'stats', 'showcase'], spans: { folders: 'lg:col-span-7', stats: 'lg:col-span-3', showcase: 'lg:col-span-2' } },
+  { id: 'premium-gallery', name: 'Galería premium', description: 'Vitrina y carpetas grandes con stats pequeño.', order: ['showcase', 'folders', 'stats'], spans: { showcase: 'lg:col-span-6', folders: 'lg:col-span-3', stats: 'lg:col-span-3' } },
+  { id: 'trading-desk', name: 'Mesa de trade', description: 'Panel pequeño, vitrina media, catálogo grande.', order: ['stats', 'showcase', 'folders'], spans: { stats: 'lg:col-span-3', showcase: 'lg:col-span-4', folders: 'lg:col-span-5' } }
 ];
 
 const getFontStack = (font = defaultPublicTheme.font) => {
@@ -1228,7 +1228,7 @@ export default function SellerProfile() {
           )}
 
           {showProfileShowcase && (
-            <section className={`border p-4 ring-1 ${getDistributionSpan('stats')}`} style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.accent}44`, order: getDistributionOrder('stats') }}>
+            <section className={`min-w-0 max-w-full overflow-hidden border p-4 ring-1 ${getDistributionSpan('stats')}`} style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.accent}44`, order: getDistributionOrder('stats') }}>
               <p className="max-w-full overflow-hidden text-ellipsis text-xs font-black uppercase tracking-[0.18em]" style={{ color: publicTheme.primary }}>Panel del perfil</p>
               <div className={`mt-3 grid gap-3 ${isNarrowStatsPanel ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-1'}`}>
                 {[
@@ -1237,11 +1237,11 @@ export default function SellerProfile() {
                   ['Cartas mostradas', totalCards, 'style'],
                   ['Marco', avatarFrameOptions.find(option => option.id === publicTheme.avatarFrame)?.name || 'Personalizado', 'account_box']
                 ].map(([label, value, icon]) => (
-                  <div key={label} className={`min-w-0 max-w-full overflow-hidden rounded-2xl border bg-black/5 p-3 ${isNarrowStatsPanel ? 'flex flex-col items-start gap-2' : 'flex items-center gap-3'}`} style={{ borderColor: `${publicTheme.primary}22` }}>
+                  <div key={label} className={`min-w-0 max-w-full overflow-hidden rounded-2xl border bg-black/5 p-3 ${isNarrowStatsPanel ? 'flex flex-col items-start gap-2' : 'flex items-center gap-3'}`} style={{ borderColor: `${publicTheme.primary}22`, contain: 'paint' }}>
                     <span translate="no" className="material-symbols-outlined shrink-0 rounded-xl p-2 text-[20px]" style={{ backgroundColor: `${publicTheme.accent}24`, color: publicTheme.primary }}>{icon}</span>
-                    <div className="min-w-0 max-w-full overflow-hidden">
-                      <p className="max-w-full break-words text-[9px] font-black uppercase leading-tight tracking-wide text-slate-500 sm:text-[10px]" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{label}</p>
-                      <p className="max-w-full break-words text-[clamp(0.72rem,1.8vw,1.05rem)] font-black leading-tight" style={{ color: publicTheme.text, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{value}</p>
+                    <div className="min-w-0 max-w-full overflow-hidden" style={{ contain: 'paint' }}>
+                      <p className="max-w-full break-words text-[8px] font-black uppercase leading-tight tracking-normal text-slate-500 sm:text-[9px]" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{label}</p>
+                      <p className="block w-full max-w-full break-words text-[clamp(0.52rem,0.95vw,0.86rem)] font-black leading-[1.05] tracking-tight" style={{ color: publicTheme.text, overflow: 'hidden', overflowWrap: 'anywhere', wordBreak: 'break-word', hyphens: 'auto', contain: 'paint' }}>{value}</p>
                     </div>
                   </div>
                 ))}
