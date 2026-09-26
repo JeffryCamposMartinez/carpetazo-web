@@ -1142,9 +1142,8 @@ export default function SellerProfile() {
                   {[
                     ['Nivel', profileLevel],
                     ['Carpetas', folders.length],
-                    ['Cartas', totalCards],
-                    ['Estilo', publicTheme.showcaseStyle]
-                  ].map(([label, value]) => (
+                    ['Cartas', totalCards]
+                    ].map(([label, value]) => (
                     <span key={label} className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wide ring-1" style={{ backgroundColor: `${publicTheme.primary}18`, borderColor: `${publicTheme.primary}55`, color: publicTheme.text }}>
                       <span className="opacity-60">{label}</span>
                       {value}
