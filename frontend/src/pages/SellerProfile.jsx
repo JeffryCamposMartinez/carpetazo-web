@@ -553,7 +553,7 @@ export default function SellerProfile() {
     seller?.addresses?.find(address => address.isDefault) || seller?.addresses?.[0] || null
   ), [seller?.addresses]);
   const totalCards = useMemo(() => folders.reduce((total, folder) => total + (Number(folder.cardsCount) || 0), 0), [folders]);
-  const profileLevel = Math.max(1, Math.round((folders.length * 4) + (totalCards / 12) + 1));
+  const profileLevel = Math.max(1, Math.round((folders.length * 2) + (totalCards / 12) + 1));
   const spotlightFolders = folders.slice(0, 3);
   const showProfileShowcase = folders.length > 0 && publicTheme.showcaseStyle !== 'minimal';
   const isSideShowcaseLayout = publicTheme.profileLayout === 'side-showcase';
@@ -1150,7 +1150,7 @@ export default function SellerProfile() {
                       {label === 'Nivel' && (
                         <div className="pointer-events-none absolute left-0 top-full z-[9999] mt-2 w-64 rounded-xl p-3 opacity-0 shadow-2xl transition-opacity duration-200 group-hover:opacity-100" style={{ backgroundColor: publicTheme.card || '#ffffff', color: publicTheme.text, border: `1px solid ${publicTheme.primary}44`, boxShadow: '0 10px 40px -10px rgba(0,0,0,0.4)' }}>
                           <ul className="list-disc pl-4 text-[11px] font-bold normal-case tracking-normal opacity-90 space-y-1 text-left">
-                            <li>+4 niveles por cada carpeta pública que tengas creada.</li>
+                            <li>+2 niveles por cada carpeta pública que tengas creada.</li>
                             <li>+1 nivel por cada 12 cartas individuales que tengas subidas.</li>
                             <li>Todos empiezan por defecto en el nivel 1.</li>
                           </ul>
@@ -1253,14 +1253,13 @@ export default function SellerProfile() {
                 {[
                   ['Nivel de perfil', profileLevel, 'military_tech'],
                   ['Carpetas públicas', folders.length, 'auto_stories'],
-                  ['Cartas mostradas', totalCards, 'style'],
-                  ['Marco', avatarFrameOptions.find(option => option.id === publicTheme.avatarFrame)?.name || 'Personalizado', 'account_box']
+                  ['Cartas mostradas', totalCards, 'style']
                 ].map(([label, value, icon]) => (
                   <div key={label} className={`group relative min-w-0 max-w-full overflow-visible rounded-2xl border bg-black/5 p-3 ${isNarrowStatsPanel ? 'flex flex-col items-start gap-2' : 'flex items-center gap-3'} ${label === 'Nivel de perfil' ? 'cursor-help hover:bg-black/10 transition-colors' : ''}`} style={{ borderColor: `${publicTheme.primary}22` }}>
                     {label === 'Nivel de perfil' && (
                       <div className="pointer-events-none absolute left-0 bottom-full z-[9999] mb-2 w-64 rounded-xl p-3 opacity-0 shadow-2xl transition-opacity duration-200 group-hover:opacity-100" style={{ backgroundColor: publicTheme.card || '#ffffff', color: publicTheme.text, border: `1px solid ${publicTheme.primary}44`, boxShadow: '0 10px 40px -10px rgba(0,0,0,0.4)' }}>
                         <ul className="list-disc pl-4 text-[11px] font-bold normal-case tracking-normal opacity-90 space-y-1 text-left">
-                          <li>+4 niveles por cada carpeta pública que tengas creada.</li>
+                          <li>+2 niveles por cada carpeta pública que tengas creada.</li>
                           <li>+1 nivel por cada 12 cartas individuales que tengas subidas.</li>
                           <li>Todos empiezan por defecto en el nivel 1.</li>
                         </ul>
