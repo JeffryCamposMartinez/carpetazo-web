@@ -26,7 +26,7 @@ export default function Footer() {
 
   const themedFooterStyle = publicFooterTheme && publicFooterTheme.id !== 'classic-blue'
     ? {
-      backgroundImage: `linear-gradient(135deg, ${publicFooterTheme.text || '#0f172a'}, ${publicFooterTheme.primary || '#1e40af'} 95%)`,
+      backgroundImage: `linear-gradient(135deg, ${publicFooterTheme.primary || '#1e40af'}, ${publicFooterTheme.secondary || '#1d4ed8'})`,
       color: publicFooterTheme.card || '#ffffff',
       borderTopColor: `${publicFooterTheme.accent || '#facc15'}44`
     }

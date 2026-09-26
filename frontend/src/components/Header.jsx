@@ -93,7 +93,7 @@ export default function Header() {
 
   const themedTopBarStyle = publicHeaderTheme && publicHeaderTheme.id !== 'classic-blue'
       ? {
-        backgroundImage: `linear-gradient(135deg, ${publicHeaderTheme.text || '#0f172a'}, ${publicHeaderTheme.primary || '#1e40af'} 55%, ${publicHeaderTheme.secondary || '#1d4ed8'})`,
+        backgroundImage: `linear-gradient(135deg, ${publicHeaderTheme.primary || '#1e40af'}, ${publicHeaderTheme.secondary || '#1d4ed8'})`,
         color: publicHeaderTheme.card || '#ffffff'
       }
       : undefined;
