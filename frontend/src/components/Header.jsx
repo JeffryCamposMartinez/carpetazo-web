@@ -17,6 +17,7 @@ export default function Header() {
   const [searchCategory, setSearchCategory] = useState('Carpetas');
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [publicHeaderTheme, setPublicHeaderTheme] = useState(null);
 
   const searchCategories = [
     { label: 'Carpetas', route: '/carpetas' },
@@ -36,14 +37,28 @@ export default function Header() {
   };
 
   const getLinkClass = (path) => {
-    const isActive = location.pathname.startsWith(path);
+    const isActive = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
     
     if (isActive) {
       // Active tab: light blue background, rounded top only, text dark blue, touches the bottom
-      return `font-extrabold text-[#1a2b4b] bg-[#DBEAFE] rounded-t-xl px-6 py-3 transition-all duration-300`;
+      return `font-extrabold rounded-t-xl px-6 py-3 transition-all duration-300 ${publicHeaderTheme ? '' : 'text-[#1a2b4b] bg-[#DBEAFE]'}`;
     }
     // Inactive tab: light blue text, transparent, smaller padding
     return `text-blue-200 hover:text-white hover:bg-white/10 rounded-t-xl px-5 py-2 transition-all duration-300 font-bold text-sm mb-1`;
+  };
+
+  const getLinkStyle = (path) => {
+    if (!publicHeaderTheme) return undefined;
+    const isActive = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
+    if (isActive) {
+      return {
+        backgroundColor: publicHeaderTheme.surface || publicHeaderTheme.card,
+        color: publicHeaderTheme.text
+      };
+    }
+    return {
+      color: `${publicHeaderTheme.card || '#ffffff'}dd`
+    };
   };
 
   useEffect(() => {
@@ -58,6 +73,37 @@ export default function Header() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const handlePublicProfileTheme = (event) => {
+      setPublicHeaderTheme(event.detail?.theme || null);
+    };
+    window.addEventListener('carpetazo:public-profile-theme', handlePublicProfileTheme);
+    return () => window.removeEventListener('carpetazo:public-profile-theme', handlePublicProfileTheme);
+  }, []);
+
+  useEffect(() => {
+    const reservedRoutes = ['/', '/bienvenida', '/dashboard', '/perfil', '/carpeta', '/c', '/admin', '/mensajes', '/carpetas', '/cartas', '/vendedores'];
+    const pathname = location.pathname;
+    const isDynamicPublicProfile = pathname.split('/').filter(Boolean).length === 1 && !reservedRoutes.includes(pathname);
+    if (!isDynamicPublicProfile) {
+      setPublicHeaderTheme(null);
+    }
+  }, [location.pathname]);
+
+  const themedTopBarStyle = publicHeaderTheme
+    ? {
+      backgroundImage: `linear-gradient(135deg, ${publicHeaderTheme.text || '#0f172a'}, ${publicHeaderTheme.primary || '#1e40af'} 55%, ${publicHeaderTheme.secondary || '#1d4ed8'})`,
+      color: publicHeaderTheme.card || '#ffffff'
+    }
+    : undefined;
+
+  const themedNavStyle = publicHeaderTheme
+    ? {
+      backgroundImage: `linear-gradient(90deg, ${publicHeaderTheme.primary || '#1e40af'}, ${publicHeaderTheme.secondary || '#1d4ed8'})`,
+      borderColor: `${publicHeaderTheme.accent || '#facc15'}55`
+    }
+    : undefined;
 
     useEffect(() => {
     if (currentUser) {
@@ -84,7 +130,7 @@ export default function Header() {
   return (
     <>
       {/* TopAppBar - Desktop */}
-      <header className="w-full top-0 sticky z-40 bg-surface dark:bg-surface-dim hidden md:block">
+      <header className="w-full top-0 sticky z-40 bg-surface dark:bg-surface-dim hidden md:block" style={themedTopBarStyle}>
         <div className="flex flex-col w-full">
           <div className="flex items-center justify-between px-md py-3 md:py-4 w-full max-w-container-max mx-auto">
             <Link to="/bienvenida" className="flex items-center cursor-pointer hover:opacity-80 transition-opacity">
@@ -193,17 +239,17 @@ export default function Header() {
           )}
           </div>
           
-          <nav className="flex items-end justify-center w-full gap-2 overflow-x-auto px-4 pt-2 bg-[#1e40af] hide-scrollbar whitespace-nowrap shadow-inner border-t border-[#1a2b4b]/20">
-            <Link to="/" className={getLinkClass('/')}>Inicio</Link>
-            <Link to="/carpetas" className={getLinkClass('/carpetas')}>Carpetas</Link>
-            <Link to="/cartas" className={getLinkClass('/cartas')}>Cartas</Link>
-            <Link to="/vendedores" className={getLinkClass('/vendedores')}>Vendedores</Link>
+          <nav className="flex items-end justify-center w-full gap-2 overflow-x-auto px-4 pt-2 bg-[#1e40af] hide-scrollbar whitespace-nowrap shadow-inner border-t border-[#1a2b4b]/20" style={themedNavStyle}>
+            <Link to="/" className={getLinkClass('/')} style={getLinkStyle('/')}>Inicio</Link>
+            <Link to="/carpetas" className={getLinkClass('/carpetas')} style={getLinkStyle('/carpetas')}>Carpetas</Link>
+            <Link to="/cartas" className={getLinkClass('/cartas')} style={getLinkStyle('/cartas')}>Cartas</Link>
+            <Link to="/vendedores" className={getLinkClass('/vendedores')} style={getLinkStyle('/vendedores')}>Vendedores</Link>
           </nav>
         </div>
       </header>
 
       {/* Mobile Header */}
-      <header className="w-full top-0 sticky z-40 bg-surface dark:bg-surface-dim md:hidden block">
+      <header className="w-full top-0 sticky z-40 bg-surface dark:bg-surface-dim md:hidden block" style={themedTopBarStyle}>
         <div className="flex flex-col w-full">
           <div className="flex items-center justify-between px-4 py-3 w-full border-b border-gray-100 relative h-[60px]">
             {/* Left: Profile and Hamburger Menu */}
@@ -242,7 +288,7 @@ export default function Header() {
           </div>
           
           {/* Mobile Search Bar with Category */}
-          <form onSubmit={handleSearch} className="px-3 py-2 bg-white border-b border-gray-100">
+          <form onSubmit={handleSearch} className="px-3 py-2 bg-white border-b border-gray-100" style={publicHeaderTheme ? { backgroundColor: publicHeaderTheme.card, borderColor: `${publicHeaderTheme.primary}33` } : undefined}>
             <div className="flex items-center bg-gray-100 rounded-xl overflow-visible relative">
               {/* Category selector mobile */}
               <div className="relative search-category-dropdown">

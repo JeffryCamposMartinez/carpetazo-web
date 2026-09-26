@@ -1245,6 +1245,7 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
         'font',
         'cardStyle',
         'backgroundStyle',
+        'sideBackgroundStyle',
         'avatarFrame',
         'profileLayout',
         'profileEffect',

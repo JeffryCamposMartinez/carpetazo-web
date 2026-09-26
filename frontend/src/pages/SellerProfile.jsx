@@ -74,6 +74,7 @@ const defaultPublicTheme = {
   font: 'Inter',
   cardStyle: 'soft',
   backgroundStyle: 'banner',
+  sideBackgroundStyle: 'site-wallpaper',
   avatarFrame: 'gradient',
   profileLayout: 'classic',
   profileEffect: 'none',
@@ -147,6 +148,17 @@ const backgroundStyleOptions = [
   { id: 'mythic-forest', name: 'Bosque mítico', description: 'Verde profundo y fantasía.' },
   { id: 'lava', name: 'Lava legendaria', description: 'Oscuro con grietas ardientes.' },
   { id: 'ice', name: 'Cristal helado', description: 'Azules fríos y transparencias.' }
+];
+
+const sideBackgroundOptions = [
+  { id: 'site-wallpaper', name: 'Fondo Carpetazo', description: 'El wallpaper oficial de la página.' },
+  { id: 'theme-glow', name: 'Glow del tema', description: 'Laterales con luces del color elegido.' },
+  { id: 'dark-steam', name: 'Steam oscuro', description: 'Bandas negras con profundidad.' },
+  { id: 'binder-shelf', name: 'Repisa TCG', description: 'Textura de álbum y colección.' },
+  { id: 'pixel-room', name: 'Pixel room', description: 'Patrón gamer retro.' },
+  { id: 'foil-side', name: 'Foil lateral', description: 'Brillos diagonales fuertes.' },
+  { id: 'clean-fade', name: 'Degradado limpio', description: 'Minimal, sin distraer.' },
+  { id: 'comic-wall', name: 'Comic wall', description: 'Puntos y explosiones pop.' }
 ];
 
 const avatarFrameOptions = [
@@ -247,6 +259,50 @@ const getProfileBackgroundStyle = (theme) => {
   return backgrounds[style] || base;
 };
 
+const getSideBackgroundStyle = (theme) => {
+  const style = theme.sideBackgroundStyle || defaultPublicTheme.sideBackgroundStyle;
+  const styles = {
+    'site-wallpaper': {
+      backgroundColor: '#08204a',
+      backgroundImage: "linear-gradient(90deg, rgba(6,18,42,0.2), rgba(6,18,42,0.72), rgba(6,18,42,0.2)), url('/images/background.webp')",
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundAttachment: 'fixed'
+    },
+    'theme-glow': {
+      backgroundColor: theme.text,
+      backgroundImage: `radial-gradient(circle at 12% 20%, ${theme.primary}aa, transparent 28%), radial-gradient(circle at 88% 70%, ${theme.accent}88, transparent 26%), linear-gradient(135deg, ${theme.text}, ${theme.primary})`
+    },
+    'dark-steam': {
+      backgroundColor: '#05070d',
+      backgroundImage: `radial-gradient(circle at 18% 18%, ${theme.secondary}44, transparent 28%), linear-gradient(180deg, #111827, #020617)`
+    },
+    'binder-shelf': {
+      backgroundColor: theme.surface,
+      backgroundImage: `repeating-linear-gradient(90deg, ${theme.primary}55 0 14px, ${theme.text}66 14px 18px, transparent 18px 42px), linear-gradient(135deg, ${theme.surface}, ${theme.secondary}55)`
+    },
+    'pixel-room': {
+      backgroundColor: theme.text,
+      backgroundImage: `linear-gradient(90deg, ${theme.accent}44 2px, transparent 2px), linear-gradient(${theme.primary}44 2px, transparent 2px), linear-gradient(135deg, ${theme.text}, ${theme.primary})`,
+      backgroundSize: '28px 28px, 28px 28px, 100% 100%'
+    },
+    'foil-side': {
+      backgroundColor: theme.surface,
+      backgroundImage: `repeating-linear-gradient(125deg, transparent 0 20px, ${theme.accent}55 20px 24px, transparent 24px 44px), linear-gradient(135deg, ${theme.primary}, ${theme.secondary}, ${theme.card})`
+    },
+    'clean-fade': {
+      backgroundColor: theme.surface,
+      backgroundImage: `linear-gradient(135deg, ${theme.surface}, ${theme.card}, ${theme.secondary}55)`
+    },
+    'comic-wall': {
+      backgroundColor: theme.accent,
+      backgroundImage: `radial-gradient(circle, ${theme.text}22 1px, transparent 2px), conic-gradient(from 180deg at 50% 50%, ${theme.accent}, ${theme.card}, ${theme.primary}, ${theme.accent})`,
+      backgroundSize: '18px 18px, 100% 100%'
+    }
+  };
+  return styles[style] || styles['site-wallpaper'];
+};
+
 const getAvatarFrameStyle = (theme) => {
   const frame = theme.avatarFrame || defaultPublicTheme.avatarFrame;
   const frames = {
@@ -269,6 +325,16 @@ const getEffectClassName = (theme) => {
   if (effect === 'diagonal') return 'before:pointer-events-none before:absolute before:inset-0 before:z-[1] before:bg-[repeating-linear-gradient(135deg,transparent_0_34px,rgba(255,255,255,0.16)_34px_38px)] before:opacity-50';
   if (effect === 'spotlight') return 'before:pointer-events-none before:absolute before:inset-0 before:z-[1] before:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.45),transparent_36%)] before:mix-blend-overlay';
   return '';
+};
+
+const getDisplayFontClass = (font, isPosterLayout = false) => {
+  if (['Press Start 2P', 'Rubik Glitch'].includes(font)) {
+    return isPosterLayout ? 'text-[2rem] sm:text-4xl md:text-5xl' : 'text-[1.55rem] sm:text-3xl md:text-4xl';
+  }
+  if (['Bungee', 'Bebas Neue', 'Orbitron', 'Audiowide', 'Unbounded'].includes(font)) {
+    return isPosterLayout ? 'text-[2.25rem] sm:text-5xl md:text-6xl' : 'text-[1.75rem] sm:text-4xl md:text-[2.9rem]';
+  }
+  return isPosterLayout ? 'text-[2.5rem] sm:text-6xl md:text-7xl' : 'text-[1.9rem] sm:text-4xl md:text-5xl';
 };
 
 const getCardStyle = (theme) => {
@@ -459,6 +525,14 @@ export default function SellerProfile() {
   const isSteamLayout = publicTheme.profileLayout === 'steam';
   const isPosterLayout = publicTheme.profileLayout === 'poster';
   const isCompactLayout = publicTheme.profileLayout === 'compact';
+  const displayNameSizeClass = getDisplayFontClass(publicTheme.font, isPosterLayout);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('carpetazo:public-profile-theme', { detail: { theme: publicTheme } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('carpetazo:public-profile-theme', { detail: { theme: null } }));
+    };
+  }, [publicTheme]);
 
   const loadSeller = async () => {
     setLoading(true);
@@ -650,7 +724,7 @@ export default function SellerProfile() {
 
   return (
     <div className="min-h-screen" style={{ fontFamily: getFontStack(publicTheme.font) }}>
-      <div className="mx-auto w-full max-w-[1600px] xl:px-12 2xl:px-16">
+      <div className="mx-auto w-full max-w-[1600px] xl:px-12 2xl:px-16" style={getSideBackgroundStyle(publicTheme)}>
       <div className={`relative min-h-screen w-full overflow-hidden shadow-[0_0_90px_rgba(0,0,0,0.22)] ${getEffectClassName(publicTheme)}`} style={getProfileBackgroundStyle(publicTheme)}>
       <section className="relative overflow-visible shadow-sm" style={{ backgroundColor: publicTheme.card }}>
         {seller?.bannerBase64 ? (
@@ -681,7 +755,7 @@ export default function SellerProfile() {
             </div>
 
             {themePanelOpen && (
-              <div className="relative z-[35] w-[min(380px,calc(100vw-1.5rem))] rounded-[1.5rem] p-3 text-left shadow-2xl ring-1 ring-white/80 backdrop-blur" style={{ backgroundColor: `${publicTheme.card}f2`, color: publicTheme.text }}>
+              <div className="relative z-[35] w-[min(380px,calc(100vw-1.5rem))] rounded-[1.5rem] p-3 text-left shadow-2xl ring-1 ring-white/80 backdrop-blur" style={{ backgroundColor: `${publicTheme.card}f2`, color: publicTheme.text, fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-black">Tema público</p>
@@ -707,7 +781,7 @@ export default function SellerProfile() {
                       key={id}
                       type="button"
                       onClick={() => setThemePanelTab(id)}
-                      className={`flex flex-col items-center justify-center rounded-xl px-2 py-2 text-[10px] font-black transition ${themePanelTab === id ? 'bg-white shadow-sm' : 'opacity-70 hover:opacity-100'}`}
+                      className={`flex flex-col items-center justify-center rounded-xl px-1.5 py-2 text-[9px] font-black leading-none transition sm:text-[10px] ${themePanelTab === id ? 'bg-white shadow-sm' : 'opacity-70 hover:opacity-100'}`}
                       style={themePanelTab === id ? { color: publicTheme.primary } : undefined}
                     >
                       <span translate="no" className="material-symbols-outlined text-[18px]">{icon}</span>
@@ -787,18 +861,28 @@ export default function SellerProfile() {
 
                 {themePanelTab === 'cards' && (
                   <div className="mt-3 max-h-[58vh] space-y-3 overflow-y-auto overscroll-contain pr-1">
-                    <p className="text-xs font-bold opacity-70">Cambia la personalidad de los contenedores del perfil.</p>
+                    <p className="text-xs font-bold opacity-70">Galería de contenedores: cada estilo cambia tarjetas, vitrinas y módulos.</p>
                     <div className="grid grid-cols-2 gap-2">
                       {cardStyleOptions.map(option => (
                         <button
                           key={option.id}
                           type="button"
                           onClick={() => handleThemeFieldChange('cardStyle', option.id)}
-                          className={`rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 ${publicTheme.cardStyle === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}
+                          className={`overflow-hidden rounded-2xl border p-2 text-left transition hover:-translate-y-0.5 ${publicTheme.cardStyle === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}
                           style={{ ...getCardStyle({ ...publicTheme, cardStyle: option.id }), color: publicTheme.text }}
                         >
-                          <span className="block text-sm font-black">{option.name}</span>
-                          <span className="mt-1 block text-[11px] font-bold opacity-60">{option.description}</span>
+                          <span className="relative mb-2 block h-16 overflow-hidden rounded-xl border border-white/45 bg-black/5">
+                            <span className="absolute left-2 top-2 h-5 w-12 rounded-lg" style={{ backgroundColor: publicTheme.primary }} />
+                            <span className="absolute bottom-2 left-2 h-2 w-16 rounded-full bg-white/65" />
+                            <span className="absolute bottom-5 left-2 h-2 w-10 rounded-full bg-white/45" />
+                            <span className="absolute right-2 top-2 h-10 w-7 rounded-lg shadow-lg" style={{ background: `linear-gradient(135deg, ${publicTheme.accent}, ${publicTheme.secondary})` }} />
+                            <span className="absolute -right-5 -top-6 h-14 w-14 rounded-full bg-white/25 blur-sm" />
+                          </span>
+                          <span className="flex items-center justify-between gap-2 text-sm font-black">
+                            {option.name}
+                            {publicTheme.cardStyle === option.id && <span translate="no" className="material-symbols-outlined text-[16px]" style={{ color: publicTheme.primary }}>check_circle</span>}
+                          </span>
+                          <span className="mt-1 block text-[10px] font-bold leading-tight opacity-65">{option.description}</span>
                         </button>
                       ))}
                     </div>
@@ -819,6 +903,25 @@ export default function SellerProfile() {
                             style={{ color: publicTheme.text }}
                           >
                             <div className="h-12 rounded-xl" style={getProfileBackgroundStyle({ ...publicTheme, backgroundStyle: option.id })} />
+                            <span className="mt-2 block text-xs font-black">{option.name}</span>
+                            <span className="block text-[10px] font-bold opacity-60">{option.description}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="mb-2 text-xs font-black uppercase tracking-wide opacity-70">Barras laterales</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {sideBackgroundOptions.map(option => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => handleThemeFieldChange('sideBackgroundStyle', option.id)}
+                            className={`overflow-hidden rounded-2xl border p-2 text-left transition hover:-translate-y-0.5 ${publicTheme.sideBackgroundStyle === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}
+                            style={{ color: publicTheme.text }}
+                          >
+                            <div className="h-12 rounded-xl" style={getSideBackgroundStyle({ ...publicTheme, sideBackgroundStyle: option.id })} />
                             <span className="mt-2 block text-xs font-black">{option.name}</span>
                             <span className="block text-[10px] font-bold opacity-60">{option.description}</span>
                           </button>
@@ -908,7 +1011,7 @@ export default function SellerProfile() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className={`break-words font-black leading-[0.95] ${isPosterLayout ? 'text-[2.5rem] sm:text-6xl md:text-7xl' : 'text-[1.9rem] sm:text-4xl md:text-5xl'}`} style={{ color: publicTheme.text }}>{displayName}</h1>
+                  <h1 className={`break-words font-black leading-[0.95] ${displayNameSizeClass}`} style={{ color: publicTheme.text }}>{displayName}</h1>
                   <span translate="no" className="material-symbols-outlined" style={{ color: publicTheme.primary, fontVariationSettings: "'FILL' 1" }}>verified</span>
                 </div>
                 <p className="mt-1 text-sm font-black text-slate-500">@{seller?.username || seller?.firebaseUid}</p>
