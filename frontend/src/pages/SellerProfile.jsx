@@ -1144,9 +1144,18 @@ export default function SellerProfile() {
                     ['Carpetas', folders.length],
                     ['Cartas', totalCards]
                     ].map(([label, value]) => (
-                    <span key={label} title={label === "Nivel" ? "+4 niveles por cada carpeta pública que tengas creada.\n+1 nivel por cada 12 cartas individuales que tengas subidas en total.\nTodos empiezan por defecto en el nivel 1" : undefined} className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wide ring-1 cursor-help hover:brightness-110 transition-all" style={{ backgroundColor: `${publicTheme.primary}18`, borderColor: `${publicTheme.primary}55`, color: publicTheme.text }}>
+                    <span key={label} className={`group relative inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wide ring-1 transition-all ${label === 'Nivel' ? 'cursor-help hover:brightness-110' : ''}`} style={{ backgroundColor: `${publicTheme.primary}18`, borderColor: `${publicTheme.primary}55`, color: publicTheme.text }}>
                       <span className="opacity-60">{label}</span>
                       {value}
+                      {label === 'Nivel' && (
+                        <div className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-xl p-3 opacity-0 shadow-2xl transition-opacity duration-200 group-hover:opacity-100" style={{ backgroundColor: publicTheme.surface || '#fff', color: publicTheme.text, border: `1px solid ${publicTheme.primary}44` }}>
+                          <ul className="list-disc pl-4 text-[11px] font-bold normal-case tracking-normal opacity-90 space-y-1 text-left">
+                            <li>+4 niveles por cada carpeta pública que tengas creada.</li>
+                            <li>+1 nivel por cada 12 cartas individuales que tengas subidas.</li>
+                            <li>Todos empiezan por defecto en el nivel 1.</li>
+                          </ul>
+                        </div>
+                      )}
                     </span>
                   ))}
                 </div>
@@ -1247,7 +1256,16 @@ export default function SellerProfile() {
                   ['Cartas mostradas', totalCards, 'style'],
                   ['Marco', avatarFrameOptions.find(option => option.id === publicTheme.avatarFrame)?.name || 'Personalizado', 'account_box']
                 ].map(([label, value, icon]) => (
-                  <div key={label} title={label === "Nivel de perfil" ? "+4 niveles por cada carpeta pública que tengas creada.\n+1 nivel por cada 12 cartas individuales que tengas subidas en total.\nTodos empiezan por defecto en el nivel 1" : undefined} className={`min-w-0 max-w-full overflow-hidden rounded-2xl border bg-black/5 p-3 ${isNarrowStatsPanel ? 'flex flex-col items-start gap-2' : 'flex items-center gap-3'}`} style={{ borderColor: `${publicTheme.primary}22`, contain: 'paint' }}>
+                  <div key={label} className={`group relative min-w-0 max-w-full overflow-visible rounded-2xl border bg-black/5 p-3 ${isNarrowStatsPanel ? 'flex flex-col items-start gap-2' : 'flex items-center gap-3'} ${label === 'Nivel de perfil' ? 'cursor-help hover:bg-black/10 transition-colors' : ''}`} style={{ borderColor: `${publicTheme.primary}22` }}>
+                    {label === 'Nivel de perfil' && (
+                      <div className="pointer-events-none absolute left-1/2 bottom-full z-50 mb-2 w-64 -translate-x-1/2 rounded-xl p-3 opacity-0 shadow-2xl transition-opacity duration-200 group-hover:opacity-100" style={{ backgroundColor: publicTheme.surface || '#fff', color: publicTheme.text, border: `1px solid ${publicTheme.primary}44` }}>
+                        <ul className="list-disc pl-4 text-[11px] font-bold normal-case tracking-normal opacity-90 space-y-1 text-left">
+                          <li>+4 niveles por cada carpeta pública que tengas creada.</li>
+                          <li>+1 nivel por cada 12 cartas individuales que tengas subidas.</li>
+                          <li>Todos empiezan por defecto en el nivel 1.</li>
+                        </ul>
+                      </div>
+                    )}
                     <span translate="no" className="material-symbols-outlined shrink-0 rounded-xl p-2 text-[20px]" style={{ backgroundColor: `${publicTheme.accent}24`, color: publicTheme.primary }}>{icon}</span>
                     <div className="min-w-0 max-w-full overflow-hidden" style={{ contain: 'paint' }}>
                       <p className="max-w-full break-words text-[8px] font-black uppercase leading-tight tracking-normal text-slate-500 sm:text-[9px]" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{label}</p>
