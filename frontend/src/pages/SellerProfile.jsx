@@ -78,7 +78,8 @@ const defaultPublicTheme = {
   avatarFrame: 'gradient',
   profileLayout: 'classic',
   profileEffect: 'none',
-  showcaseStyle: 'folders'
+  showcaseStyle: 'folders',
+  profileDistribution: 'classic-gallery'
 };
 
 const profileThemes = [
@@ -137,7 +138,7 @@ const cardStyleOptions = [
 
 const backgroundStyleOptions = [
   { id: 'banner', name: 'Banner limpio', description: 'Tu banner manda, con fondo suave.' },
-  { id: 'steam-dark', name: 'Steam oscuro', description: 'Negro premium con luces de neón.' },
+  { id: 'dark-premium', name: 'Oscuro premium', description: 'Negro premium con luces de neón.' },
   { id: 'arcade', name: 'Arcade geométrico', description: 'Líneas, puntos y bloques retro.' },
   { id: 'cosmic-room', name: 'Sala cósmica', description: 'Nebulosas, brillos y profundidad.' },
   { id: 'tcg-table', name: 'Mesa TCG', description: 'Tapete de juego coleccionable.' },
@@ -153,7 +154,7 @@ const backgroundStyleOptions = [
 const sideBackgroundOptions = [
   { id: 'site-wallpaper', name: 'Fondo Carpetazo', description: 'El wallpaper oficial de la página.' },
   { id: 'theme-glow', name: 'Glow del tema', description: 'Laterales con luces del color elegido.' },
-  { id: 'dark-steam', name: 'Steam oscuro', description: 'Bandas negras con profundidad.' },
+  { id: 'premium-dark', name: 'Oscuro premium', description: 'Bandas negras con profundidad.' },
   { id: 'binder-shelf', name: 'Repisa TCG', description: 'Textura de álbum y colección.' },
   { id: 'pixel-room', name: 'Pixel room', description: 'Patrón gamer retro.' },
   { id: 'foil-side', name: 'Foil lateral', description: 'Brillos diagonales fuertes.' },
@@ -163,7 +164,7 @@ const sideBackgroundOptions = [
 
 const avatarFrameOptions = [
   { id: 'gradient', name: 'Degradado', description: 'Marco premium dinámico.' },
-  { id: 'steam', name: 'Steam', description: 'Marco negro con acento brillante.' },
+  { id: 'dark-frame', name: 'Oscuro', description: 'Marco negro con acento brillante.' },
   { id: 'neon', name: 'Neón', description: 'Glow intenso alrededor.' },
   { id: 'gold', name: 'Dorado', description: 'Coleccionista legendario.' },
   { id: 'holo', name: 'Holo', description: 'Brillo de carta foil.' },
@@ -174,7 +175,7 @@ const avatarFrameOptions = [
 
 const profileLayoutOptions = [
   { id: 'classic', name: 'Clásico', description: 'Hero amplio y carpetas abajo.' },
-  { id: 'steam', name: 'Steam', description: 'Hero + vitrina lateral.' },
+  { id: 'side-showcase', name: 'Gamer', description: 'Hero + vitrina lateral.' },
   { id: 'showcase', name: 'Showcase', description: 'Todo centrado como exposición.' },
   { id: 'compact', name: 'Compacto', description: 'Más información en menos altura.' },
   { id: 'poster', name: 'Poster', description: 'Nombre grande y teatral.' }
@@ -184,7 +185,7 @@ const profileEffectOptions = [
   { id: 'none', name: 'Sin efecto', description: 'Máximo rendimiento.' },
   { id: 'scanlines', name: 'Scanlines', description: 'Líneas retro sobre el perfil.' },
   { id: 'particles', name: 'Partículas', description: 'Puntos luminosos flotantes.' },
-  { id: 'diagonal', name: 'Franjas', description: 'Rayas de energía tipo Steam.' },
+  { id: 'diagonal', name: 'Franjas', description: 'Rayas de energía tipo gamer.' },
   { id: 'spotlight', name: 'Spotlight', description: 'Luces dramáticas de vitrina.' }
 ];
 
@@ -193,6 +194,31 @@ const showcaseStyleOptions = [
   { id: 'collector', name: 'Coleccionista', description: 'Badges y estadísticas primero.' },
   { id: 'seller', name: 'Vendedor', description: 'Contacto y catálogo al frente.' },
   { id: 'minimal', name: 'Minimal', description: 'Sin ruido, muy limpio.' }
+];
+
+const profileDistributionOptions = [
+  { id: 'classic-gallery', name: 'Clásico gamer', description: 'Vitrina grande + panel lateral + carpetas.', order: ['showcase', 'stats', 'folders'], spans: { showcase: 'lg:col-span-8', stats: 'lg:col-span-4', folders: 'lg:col-span-12' } },
+  { id: 'stats-first', name: 'Stats primero', description: 'Panel de datos arriba y catálogo después.', order: ['stats', 'showcase', 'folders'], spans: { stats: 'lg:col-span-4', showcase: 'lg:col-span-8', folders: 'lg:col-span-12' } },
+  { id: 'folders-first', name: 'Carpetas primero', description: 'El catálogo manda sobre la vitrina.', order: ['folders', 'showcase', 'stats'], spans: { folders: 'lg:col-span-12', showcase: 'lg:col-span-8', stats: 'lg:col-span-4' } },
+  { id: 'showcase-wide', name: 'Vitrina panorámica', description: 'Vitrina a todo ancho antes de todo.', order: ['showcase', 'folders', 'stats'], spans: { showcase: 'lg:col-span-12', folders: 'lg:col-span-8', stats: 'lg:col-span-4' } },
+  { id: 'stats-wide', name: 'Panel panorámico', description: 'Estadísticas grandes y vitrinas abajo.', order: ['stats', 'folders', 'showcase'], spans: { stats: 'lg:col-span-12', folders: 'lg:col-span-8', showcase: 'lg:col-span-4' } },
+  { id: 'magazine', name: 'Revista', description: 'Carpetas amplias con vitrina lateral.', order: ['folders', 'stats', 'showcase'], spans: { folders: 'lg:col-span-8', stats: 'lg:col-span-4', showcase: 'lg:col-span-12' } },
+  { id: 'duo-top', name: 'Dúo superior', description: 'Vitrina y stats arriba, carpetas abajo.', order: ['showcase', 'stats', 'folders'], spans: { showcase: 'lg:col-span-6', stats: 'lg:col-span-6', folders: 'lg:col-span-12' } },
+  { id: 'duo-bottom', name: 'Dúo inferior', description: 'Carpetas arriba, vitrina y stats abajo.', order: ['folders', 'showcase', 'stats'], spans: { folders: 'lg:col-span-12', showcase: 'lg:col-span-6', stats: 'lg:col-span-6' } },
+  { id: 'sidebar-left', name: 'Sidebar izquierda', description: 'Panel de datos compacto antes de vitrinas.', order: ['stats', 'folders', 'showcase'], spans: { stats: 'lg:col-span-3', folders: 'lg:col-span-9', showcase: 'lg:col-span-12' } },
+  { id: 'sidebar-right', name: 'Sidebar derecha', description: 'Catálogo con stats a la derecha.', order: ['folders', 'stats', 'showcase'], spans: { folders: 'lg:col-span-9', stats: 'lg:col-span-3', showcase: 'lg:col-span-12' } },
+  { id: 'collector-grid', name: 'Grid coleccionista', description: 'Tres módulos balanceados tipo museo.', order: ['showcase', 'folders', 'stats'], spans: { showcase: 'lg:col-span-4', folders: 'lg:col-span-4', stats: 'lg:col-span-4' } },
+  { id: 'market-grid', name: 'Grid vendedor', description: 'Carpetas, vitrina y panel al mismo nivel.', order: ['folders', 'showcase', 'stats'], spans: { folders: 'lg:col-span-4', showcase: 'lg:col-span-4', stats: 'lg:col-span-4' } },
+  { id: 'spotlight', name: 'Spotlight', description: 'Vitrina protagonista y soporte abajo.', order: ['showcase', 'stats', 'folders'], spans: { showcase: 'lg:col-span-12', stats: 'lg:col-span-5', folders: 'lg:col-span-7' } },
+  { id: 'catalog-hero', name: 'Catálogo héroe', description: 'Carpetas protagonistas con panel abajo.', order: ['folders', 'showcase', 'stats'], spans: { folders: 'lg:col-span-12', showcase: 'lg:col-span-7', stats: 'lg:col-span-5' } },
+  { id: 'identity-first', name: 'Identidad primero', description: 'Panel de perfil antes de catálogo.', order: ['stats', 'folders', 'showcase'], spans: { stats: 'lg:col-span-5', folders: 'lg:col-span-7', showcase: 'lg:col-span-12' } },
+  { id: 'split-catalog', name: 'Catálogo dividido', description: 'Carpetas y vitrina partidas en dos.', order: ['folders', 'showcase', 'stats'], spans: { folders: 'lg:col-span-6', showcase: 'lg:col-span-6', stats: 'lg:col-span-12' } },
+  { id: 'split-stats', name: 'Stats dividido', description: 'Panel y vitrina en dos, carpetas después.', order: ['stats', 'showcase', 'folders'], spans: { stats: 'lg:col-span-6', showcase: 'lg:col-span-6', folders: 'lg:col-span-12' } },
+  { id: 'minimal-flow', name: 'Flujo simple', description: 'Orden vertical limpio para perfiles sobrios.', order: ['showcase', 'stats', 'folders'], spans: { showcase: 'lg:col-span-12', stats: 'lg:col-span-12', folders: 'lg:col-span-12' } },
+  { id: 'reverse-flow', name: 'Flujo inverso', description: 'Catálogo, panel y vitrina al final.', order: ['folders', 'stats', 'showcase'], spans: { folders: 'lg:col-span-12', stats: 'lg:col-span-12', showcase: 'lg:col-span-12' } },
+  { id: 'compact-shop', name: 'Tienda compacta', description: 'Catálogo ancho con panel y vitrina chicos.', order: ['folders', 'stats', 'showcase'], spans: { folders: 'lg:col-span-8', stats: 'lg:col-span-2', showcase: 'lg:col-span-2' } },
+  { id: 'premium-gallery', name: 'Galería premium', description: 'Vitrina y carpetas grandes con stats pequeño.', order: ['showcase', 'folders', 'stats'], spans: { showcase: 'lg:col-span-7', folders: 'lg:col-span-3', stats: 'lg:col-span-2' } },
+  { id: 'trading-desk', name: 'Mesa de trade', description: 'Panel pequeño, vitrina media, catálogo grande.', order: ['stats', 'showcase', 'folders'], spans: { stats: 'lg:col-span-2', showcase: 'lg:col-span-4', folders: 'lg:col-span-6' } }
 ];
 
 const getFontStack = (font = defaultPublicTheme.font) => {
@@ -206,7 +232,7 @@ const getProfileBackgroundStyle = (theme) => {
 
   const backgrounds = {
     banner: { ...base },
-    'steam-dark': {
+    'dark-premium': {
       backgroundColor: '#05070d',
       backgroundImage: `radial-gradient(circle at 18% 12%, ${theme.primary}66, transparent 30%), radial-gradient(circle at 88% 8%, ${theme.accent}44, transparent 26%), linear-gradient(180deg, #101826, #05070d 55%, #020409)`
     },
@@ -273,7 +299,7 @@ const getSideBackgroundStyle = (theme) => {
       backgroundColor: theme.text,
       backgroundImage: `radial-gradient(circle at 12% 20%, ${theme.primary}aa, transparent 28%), radial-gradient(circle at 88% 70%, ${theme.accent}88, transparent 26%), linear-gradient(135deg, ${theme.text}, ${theme.primary})`
     },
-    'dark-steam': {
+    'premium-dark': {
       backgroundColor: '#05070d',
       backgroundImage: `radial-gradient(circle at 18% 18%, ${theme.secondary}44, transparent 28%), linear-gradient(180deg, #111827, #020617)`
     },
@@ -307,7 +333,7 @@ const getAvatarFrameStyle = (theme) => {
   const frame = theme.avatarFrame || defaultPublicTheme.avatarFrame;
   const frames = {
     gradient: `linear-gradient(135deg, #ffffff 0%, ${theme.accent} 42%, ${theme.primary} 100%)`,
-    steam: `linear-gradient(135deg, #050505, ${theme.primary}, #050505)`,
+    'dark-frame': `linear-gradient(135deg, #050505, ${theme.primary}, #050505)`,
     neon: `linear-gradient(135deg, ${theme.accent}, ${theme.secondary}, ${theme.primary})`,
     gold: 'linear-gradient(135deg, #fff7ad, #d97706, #78350f, #facc15)',
     holo: `conic-gradient(from 180deg, #fff, ${theme.accent}, ${theme.secondary}, #f0abfc, ${theme.primary}, #fff)`,
@@ -521,11 +547,17 @@ export default function SellerProfile() {
   const totalCards = useMemo(() => folders.reduce((total, folder) => total + (Number(folder.cardsCount) || 0), 0), [folders]);
   const profileLevel = Math.max(1, Math.min(99, Math.round((folders.length * 4) + (totalCards / 12) + 1)));
   const spotlightFolders = folders.slice(0, 3);
-  const showSteamShowcase = folders.length > 0 && publicTheme.showcaseStyle !== 'minimal';
-  const isSteamLayout = publicTheme.profileLayout === 'steam';
+  const showProfileShowcase = folders.length > 0 && publicTheme.showcaseStyle !== 'minimal';
+  const isSideShowcaseLayout = publicTheme.profileLayout === 'side-showcase';
   const isPosterLayout = publicTheme.profileLayout === 'poster';
   const isCompactLayout = publicTheme.profileLayout === 'compact';
   const displayNameSizeClass = getDisplayFontClass(publicTheme.font, isPosterLayout);
+  const selectedDistribution = profileDistributionOptions.find(option => option.id === publicTheme.profileDistribution) || profileDistributionOptions[0];
+  const getDistributionOrder = (moduleName) => {
+    const index = selectedDistribution.order.indexOf(moduleName);
+    return index === -1 ? 99 : index + 1;
+  };
+  const getDistributionSpan = (moduleName) => selectedDistribution.spans?.[moduleName] || 'lg:col-span-12';
 
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('carpetazo:public-profile-theme', { detail: { theme: publicTheme } }));
@@ -770,12 +802,13 @@ export default function SellerProfile() {
                     </button>
                   </div>
                 </div>
-                <div className="grid grid-cols-4 gap-2 rounded-2xl bg-black/5 p-1">
+                <div className="grid grid-cols-5 gap-1 rounded-2xl bg-black/5 p-1">
                   {[
                     ['theme', 'Tema', 'palette'],
                     ['font', 'Tipografía', 'text_fields'],
                     ['cards', 'Tarjetas', 'dashboard_customize'],
-                    ['scene', 'Escena', 'auto_awesome']
+                    ['scene', 'Escena', 'auto_awesome'],
+                    ['layout', 'Distribución', 'view_quilt']
                   ].map(([id, label, icon]) => (
                     <button
                       key={id}
@@ -1009,6 +1042,53 @@ export default function SellerProfile() {
                     </div>
                   </div>
                 )}
+
+                {themePanelTab === 'layout' && (
+                  <div className="mt-3 max-h-[58vh] space-y-3 overflow-y-auto overscroll-contain pr-1">
+                    <div className="rounded-3xl border border-black/10 bg-white/45 p-3 shadow-sm">
+                      <div className="mb-3 border-b border-black/10 pb-2">
+                        <div className="flex items-center gap-2">
+                          <span translate="no" className="material-symbols-outlined rounded-xl p-1.5 text-[18px]" style={{ backgroundColor: `${publicTheme.primary}18`, color: publicTheme.primary }}>view_quilt</span>
+                          <p className="text-xs font-black uppercase tracking-wide">Distribución del perfil</p>
+                        </div>
+                        <p className="mt-1 text-[10px] font-bold leading-tight opacity-60">Elige el orden y tamaño de vitrinas, estadísticas y carpetas públicas.</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-2">
+                        {profileDistributionOptions.map(option => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => handleThemeFieldChange('profileDistribution', option.id)}
+                            className={`rounded-2xl border bg-white/60 p-3 text-left transition hover:-translate-y-0.5 ${publicTheme.profileDistribution === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}
+                            style={{ color: publicTheme.text }}
+                          >
+                            <div className="mb-2 grid grid-cols-12 gap-1 overflow-hidden rounded-xl bg-black/5 p-1">
+                              {option.order.map(moduleName => (
+                                <span
+                                  key={moduleName}
+                                  className={`h-7 rounded-lg ${moduleName === 'showcase' ? 'bg-blue-500/75' : moduleName === 'stats' ? 'bg-amber-400/80' : 'bg-emerald-500/75'} ${option.spans?.[moduleName] || 'lg:col-span-12'}`}
+                                />
+                              ))}
+                            </div>
+                            <span className="flex items-center justify-between gap-2 text-xs font-black">
+                              {option.name}
+                              {publicTheme.profileDistribution === option.id && <span translate="no" className="material-symbols-outlined text-[16px]" style={{ color: publicTheme.primary }}>check_circle</span>}
+                            </span>
+                            <span className="mt-1 block text-[10px] font-bold leading-tight opacity-60">{option.description}</span>
+                            <span className="mt-2 flex flex-wrap gap-1 text-[9px] font-black uppercase tracking-wide opacity-60">
+                              {option.order.map(moduleName => (
+                                <span key={moduleName} className="rounded-full bg-black/5 px-2 py-0.5">
+                                  {moduleName === 'showcase' ? 'Vitrina' : moduleName === 'stats' ? 'Stats' : 'Carpetas'}
+                                </span>
+                              ))}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1111,9 +1191,9 @@ export default function SellerProfile() {
       </section>
 
       <main className="relative z-10 mx-auto w-full max-w-[1300px] px-4 py-6 sm:px-6 sm:py-8 md:px-10">
-        {showSteamShowcase && (
-          <div className={`mb-5 grid gap-4 sm:mb-6 ${isSteamLayout ? 'lg:grid-cols-[1.5fr_0.85fr]' : 'lg:grid-cols-3'}`}>
-            <div className={`border p-4 ring-1 ${isSteamLayout ? 'lg:col-span-1' : 'lg:col-span-2'}`} style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}33` }}>
+        <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-12">
+          {showProfileShowcase && (
+            <section className={`border p-4 ring-1 ${getDistributionSpan('showcase')}`} style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}33`, order: getDistributionOrder('showcase') }}>
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.22em]" style={{ color: publicTheme.primary }}>Vitrina pública</p>
@@ -1124,7 +1204,7 @@ export default function SellerProfile() {
                 <span className="rounded-full px-3 py-1 text-xs font-black text-white" style={{ backgroundColor: publicTheme.primary }}>{folders.length}</span>
               </div>
 
-              <div className={`grid gap-3 ${publicTheme.showcaseStyle === 'collector' ? 'sm:grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-3'}`}>
+              <div className={`grid gap-3 ${publicTheme.showcaseStyle === 'collector' ? 'sm:grid-cols-3' : 'sm:grid-cols-2 xl:grid-cols-3'}`}>
                 {spotlightFolders.map(folder => (
                   <Link key={folder.id} to={`/c/${folder.id}`} className="group overflow-hidden rounded-2xl border bg-black/5 p-3 transition hover:-translate-y-1 hover:shadow-xl" style={{ borderColor: `${publicTheme.primary}26` }}>
                     <div className="flex items-center justify-between gap-3">
@@ -1143,10 +1223,12 @@ export default function SellerProfile() {
                   </Link>
                 ))}
               </div>
-            </div>
+            </section>
+          )}
 
-            <div className="border p-4 ring-1" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.accent}44` }}>
-              <p className="text-xs font-black uppercase tracking-[0.22em]" style={{ color: publicTheme.primary }}>Panel estilo Steam</p>
+          {showProfileShowcase && (
+            <section className={`border p-4 ring-1 ${getDistributionSpan('stats')}`} style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.accent}44`, order: getDistributionOrder('stats') }}>
+              <p className="text-xs font-black uppercase tracking-[0.22em]" style={{ color: publicTheme.primary }}>Panel del perfil</p>
               <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-1">
                 {[
                   ['Nivel de perfil', profileLevel, 'military_tech'],
@@ -1163,49 +1245,51 @@ export default function SellerProfile() {
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-        )}
+            </section>
+          )}
 
-        <div className="mb-5 flex items-center justify-between p-4 ring-1 sm:mb-6 sm:border-b sm:bg-transparent sm:p-0 sm:pb-4 sm:shadow-none sm:ring-0" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}20` }}>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${publicTheme.primary}18` }}>
-              <span translate="no" className="material-symbols-outlined" style={{ color: publicTheme.primary }}>auto_stories</span>
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-xl font-black leading-tight sm:text-2xl" style={{ color: publicTheme.text }}>Carpetas públicas</h2>
-              <p className="text-xs font-semibold text-slate-500 sm:text-sm">Catálogos publicados por este vendedor.</p>
-            </div>
-          </div>
-          <span className="rounded-full px-3 py-1 text-xs font-black text-white" style={{ backgroundColor: publicTheme.primary }}>{folders.length}</span>
-        </div>
-
-        {folders.length === 0 ? (
-          <div className="border border-dashed p-10 text-center" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}44` }}>
-            <span translate="no" className="material-symbols-outlined text-6xl" style={{ color: `${publicTheme.primary}88` }}>inventory_2</span>
-            <p className="mt-3 text-lg font-black text-slate-500">Este vendedor aún no tiene carpetas públicas.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
-            {folders.map(folder => (
-              <Link to={`/c/${folder.id}`} key={folder.id} className="@container group relative mx-auto flex aspect-[32/37] w-full max-w-[320px] cursor-pointer flex-col transition-transform duration-300 hover:-translate-y-2">
-                <div className="absolute inset-0 bg-[url('/images/carpeta_v4.webp')] bg-[length:100%_100%] bg-no-repeat drop-shadow-lg transition-all group-hover:drop-shadow-2xl" style={{ filter: getFolderFilter(folder.color) }} />
-                <div className="relative z-10 flex h-full w-full flex-col justify-between pb-[15%] pl-[18%] pr-[16%] pt-[5%]">
-                  <div>
-                    <div className="flex justify-end">
-                      <div className="flex items-center gap-[1.5cqi] rounded-[3cqi] bg-black/30 px-[3cqi] py-[1.5cqi] text-[4.5cqi] font-bold text-white shadow-sm">
-                        <span translate="no" className="material-symbols-outlined text-[5cqi]">style</span>
-                        {folder.cardsCount}
-                      </div>
-                    </div>
-                    <h3 className="mt-[2cqi] line-clamp-3 w-full break-words text-[11cqi] font-extrabold leading-tight text-white drop-shadow-md" title={folder.name}>{folder.name}</h3>
-                  </div>
-                  <span className="w-fit rounded-[2cqi] border border-white/60 px-[3cqi] py-[1cqi] text-[3.5cqi] font-bold uppercase tracking-wider text-white drop-shadow-sm">{folder.tcg}</span>
+          <section className={`space-y-5 ${getDistributionSpan('folders')}`} style={{ order: getDistributionOrder('folders') }}>
+            <div className="flex items-center justify-between p-4 ring-1 sm:border-b sm:bg-transparent sm:p-0 sm:pb-4 sm:shadow-none sm:ring-0" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}20` }}>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${publicTheme.primary}18` }}>
+                  <span translate="no" className="material-symbols-outlined" style={{ color: publicTheme.primary }}>auto_stories</span>
                 </div>
-              </Link>
-            ))}
-          </div>
-        )}
+                <div className="min-w-0">
+                  <h2 className="text-xl font-black leading-tight sm:text-2xl" style={{ color: publicTheme.text }}>Carpetas públicas</h2>
+                  <p className="text-xs font-semibold text-slate-500 sm:text-sm">Catálogos publicados por este vendedor.</p>
+                </div>
+              </div>
+              <span className="rounded-full px-3 py-1 text-xs font-black text-white" style={{ backgroundColor: publicTheme.primary }}>{folders.length}</span>
+            </div>
+
+            {folders.length === 0 ? (
+              <div className="border border-dashed p-10 text-center" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}44` }}>
+                <span translate="no" className="material-symbols-outlined text-6xl" style={{ color: `${publicTheme.primary}88` }}>inventory_2</span>
+                <p className="mt-3 text-lg font-black text-slate-500">Este vendedor aún no tiene carpetas públicas.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
+                {folders.map(folder => (
+                  <Link to={`/c/${folder.id}`} key={folder.id} className="@container group relative mx-auto flex aspect-[32/37] w-full max-w-[320px] cursor-pointer flex-col transition-transform duration-300 hover:-translate-y-2">
+                    <div className="absolute inset-0 bg-[url('/images/carpeta_v4.webp')] bg-[length:100%_100%] bg-no-repeat drop-shadow-lg transition-all group-hover:drop-shadow-2xl" style={{ filter: getFolderFilter(folder.color) }} />
+                    <div className="relative z-10 flex h-full w-full flex-col justify-between pb-[15%] pl-[18%] pr-[16%] pt-[5%]">
+                      <div>
+                        <div className="flex justify-end">
+                          <div className="flex items-center gap-[1.5cqi] rounded-[3cqi] bg-black/30 px-[3cqi] py-[1.5cqi] text-[4.5cqi] font-bold text-white shadow-sm">
+                            <span translate="no" className="material-symbols-outlined text-[5cqi]">style</span>
+                            {folder.cardsCount}
+                          </div>
+                        </div>
+                        <h3 className="mt-[2cqi] line-clamp-3 w-full break-words text-[11cqi] font-extrabold leading-tight text-white drop-shadow-md" title={folder.name}>{folder.name}</h3>
+                      </div>
+                      <span className="w-fit rounded-[2cqi] border border-white/60 px-[3cqi] py-[1cqi] text-[3.5cqi] font-bold uppercase tracking-wider text-white drop-shadow-sm">{folder.tcg}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
       </main>
       </div>
       </div>

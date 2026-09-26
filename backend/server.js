@@ -1249,7 +1249,8 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
         'avatarFrame',
         'profileLayout',
         'profileEffect',
-        'showcaseStyle'
+        'showcaseStyle',
+        'profileDistribution'
       ];
       updateData.publicTheme = Object.fromEntries(
         Object.entries(updateData.publicTheme)
