@@ -553,7 +553,7 @@ export default function SellerProfile() {
     seller?.addresses?.find(address => address.isDefault) || seller?.addresses?.[0] || null
   ), [seller?.addresses]);
   const totalCards = useMemo(() => folders.reduce((total, folder) => total + (Number(folder.cardsCount) || 0), 0), [folders]);
-  const profileLevel = Math.max(1, Math.min(99, Math.round((folders.length * 4) + (totalCards / 12) + 1)));
+  const profileLevel = Math.max(1, Math.round((folders.length * 4) + (totalCards / 12) + 1));
   const spotlightFolders = folders.slice(0, 3);
   const showProfileShowcase = folders.length > 0 && publicTheme.showcaseStyle !== 'minimal';
   const isSideShowcaseLayout = publicTheme.profileLayout === 'side-showcase';
@@ -1144,7 +1144,7 @@ export default function SellerProfile() {
                     ['Carpetas', folders.length],
                     ['Cartas', totalCards]
                     ].map(([label, value]) => (
-                    <span key={label} className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wide ring-1" style={{ backgroundColor: `${publicTheme.primary}18`, borderColor: `${publicTheme.primary}55`, color: publicTheme.text }}>
+                    <span key={label} title={label === "Nivel" ? "+4 niveles por cada carpeta pública que tengas creada.\n+1 nivel por cada 12 cartas individuales que tengas subidas en total.\nTodos empiezan por defecto en el nivel 1" : undefined} className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wide ring-1 cursor-help hover:brightness-110 transition-all" style={{ backgroundColor: `${publicTheme.primary}18`, borderColor: `${publicTheme.primary}55`, color: publicTheme.text }}>
                       <span className="opacity-60">{label}</span>
                       {value}
                     </span>
@@ -1247,7 +1247,7 @@ export default function SellerProfile() {
                   ['Cartas mostradas', totalCards, 'style'],
                   ['Marco', avatarFrameOptions.find(option => option.id === publicTheme.avatarFrame)?.name || 'Personalizado', 'account_box']
                 ].map(([label, value, icon]) => (
-                  <div key={label} className={`min-w-0 max-w-full overflow-hidden rounded-2xl border bg-black/5 p-3 ${isNarrowStatsPanel ? 'flex flex-col items-start gap-2' : 'flex items-center gap-3'}`} style={{ borderColor: `${publicTheme.primary}22`, contain: 'paint' }}>
+                  <div key={label} title={label === "Nivel de perfil" ? "+4 niveles por cada carpeta pública que tengas creada.\n+1 nivel por cada 12 cartas individuales que tengas subidas en total.\nTodos empiezan por defecto en el nivel 1" : undefined} className={`min-w-0 max-w-full overflow-hidden rounded-2xl border bg-black/5 p-3 ${isNarrowStatsPanel ? 'flex flex-col items-start gap-2' : 'flex items-center gap-3'}`} style={{ borderColor: `${publicTheme.primary}22`, contain: 'paint' }}>
                     <span translate="no" className="material-symbols-outlined shrink-0 rounded-xl p-2 text-[20px]" style={{ backgroundColor: `${publicTheme.accent}24`, color: publicTheme.primary }}>{icon}</span>
                     <div className="min-w-0 max-w-full overflow-hidden" style={{ contain: 'paint' }}>
                       <p className="max-w-full break-words text-[8px] font-black uppercase leading-tight tracking-normal text-slate-500 sm:text-[9px]" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{label}</p>
