@@ -41,14 +41,14 @@ export default function Header() {
     
     if (isActive) {
       // Active tab: light blue background, rounded top only, text dark blue, touches the bottom
-      return `font-extrabold rounded-t-xl px-6 py-3 transition-all duration-300 ${publicHeaderTheme ? '' : 'text-[#1a2b4b] bg-[#DBEAFE]'}`;
+      return `font-extrabold rounded-t-xl px-6 py-3 transition-all duration-300 ${publicHeaderTheme && publicHeaderTheme.id !== 'classic-blue' ? '' : 'text-[#1a2b4b] bg-[#DBEAFE]'}`;
     }
     // Inactive tab: light blue text, transparent, smaller padding
     return `text-blue-200 hover:text-white hover:bg-white/10 rounded-t-xl px-5 py-2 transition-all duration-300 font-bold text-sm mb-1`;
   };
 
   const getLinkStyle = (path) => {
-    if (!publicHeaderTheme) return undefined;
+    if (!publicHeaderTheme || publicHeaderTheme.id === 'classic-blue') return undefined;
     const isActive = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
     if (isActive) {
       return {
@@ -91,19 +91,19 @@ export default function Header() {
     }
   }, [location.pathname]);
 
-  const themedTopBarStyle = publicHeaderTheme
-    ? {
-      backgroundImage: `linear-gradient(135deg, ${publicHeaderTheme.text || '#0f172a'}, ${publicHeaderTheme.primary || '#1e40af'} 55%, ${publicHeaderTheme.secondary || '#1d4ed8'})`,
-      color: publicHeaderTheme.card || '#ffffff'
-    }
-    : undefined;
+  const themedTopBarStyle = publicHeaderTheme && publicHeaderTheme.id !== 'classic-blue'
+      ? {
+        backgroundImage: `linear-gradient(135deg, ${publicHeaderTheme.text || '#0f172a'}, ${publicHeaderTheme.primary || '#1e40af'} 55%, ${publicHeaderTheme.secondary || '#1d4ed8'})`,
+        color: publicHeaderTheme.card || '#ffffff'
+      }
+      : undefined;
 
-  const themedNavStyle = publicHeaderTheme
-    ? {
-      backgroundImage: `linear-gradient(90deg, ${publicHeaderTheme.primary || '#1e40af'}, ${publicHeaderTheme.secondary || '#1d4ed8'})`,
-      borderColor: `${publicHeaderTheme.accent || '#facc15'}55`
-    }
-    : undefined;
+  const themedNavStyle = publicHeaderTheme && publicHeaderTheme.id !== 'classic-blue'
+      ? {
+        backgroundImage: `linear-gradient(90deg, ${publicHeaderTheme.primary || '#1e40af'}, ${publicHeaderTheme.secondary || '#1d4ed8'})`,
+        borderColor: `${publicHeaderTheme.accent || '#facc15'}55`
+      }
+      : undefined;
 
     useEffect(() => {
     if (currentUser) {
@@ -288,7 +288,7 @@ export default function Header() {
           </div>
           
           {/* Mobile Search Bar with Category */}
-          <form onSubmit={handleSearch} className="px-3 py-2 bg-white border-b border-gray-100" style={publicHeaderTheme ? { backgroundColor: publicHeaderTheme.card, borderColor: `${publicHeaderTheme.primary}33` } : undefined}>
+          <form onSubmit={handleSearch} className="px-3 py-2 bg-white border-b border-gray-100" style={publicHeaderTheme && publicHeaderTheme.id !== 'classic-blue' ? { backgroundColor: publicHeaderTheme.card, borderColor: `${publicHeaderTheme.primary}33` } : undefined}>
             <div className="flex items-center bg-gray-100 rounded-xl overflow-visible relative">
               {/* Category selector mobile */}
               <div className="relative search-category-dropdown">

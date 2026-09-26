@@ -74,8 +74,8 @@ const defaultPublicTheme = {
   font: 'Inter',
   cardStyle: 'soft',
   backgroundStyle: 'banner',
-  sideBackgroundStyle: 'site-wallpaper',
-  avatarFrame: 'gradient',
+  sideBackgroundStyle: 'solid-surface',
+  avatarFrame: 'clean',
   profileLayout: 'classic',
   profileEffect: 'none',
   showcaseStyle: 'folders',
@@ -152,6 +152,8 @@ const backgroundStyleOptions = [
 ];
 
 const sideBackgroundOptions = [
+    { id: 'solid-surface', name: 'Original', description: 'El fondo simple oficial.' },
+    { id: 'solid-surface', name: 'Original', description: 'El fondo simple oficial.' },
   { id: 'site-wallpaper', name: 'Fondo Carpetazo', description: 'El wallpaper oficial de la página.' },
   { id: 'theme-glow', name: 'Glow del tema', description: 'Laterales con luces del color elegido.' },
   { id: 'premium-dark', name: 'Oscuro premium', description: 'Bandas negras con profundidad.' },
@@ -288,6 +290,12 @@ const getProfileBackgroundStyle = (theme) => {
 const getSideBackgroundStyle = (theme) => {
   const style = theme.sideBackgroundStyle || defaultPublicTheme.sideBackgroundStyle;
   const styles = {
+      'solid-surface': {
+        backgroundColor: theme.surface
+      },
+      'solid-surface': {
+        backgroundColor: theme.surface
+      },
     'site-wallpaper': {
       backgroundColor: '#08204a',
       backgroundImage: "linear-gradient(90deg, rgba(6,18,42,0.2), rgba(6,18,42,0.72), rgba(6,18,42,0.2)), url('/images/background.webp')",
@@ -795,7 +803,10 @@ export default function SellerProfile() {
                     <p className="text-xs font-bold opacity-70">{savingTheme ? 'Guardando...' : 'Edita y guarda cuando termines'}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button type="button" onClick={saveCurrentTheme} disabled={savingTheme} className="rounded-full px-3 py-1.5 text-xs font-black text-white shadow-lg disabled:cursor-wait disabled:opacity-60" style={{ backgroundColor: publicTheme.primary }}>
+                      <button type="button" onClick={() => previewPublicTheme(defaultPublicTheme)} disabled={savingTheme} className="rounded-full px-3 py-1.5 text-xs font-black text-slate-500 hover:bg-slate-100 disabled:opacity-60">
+                        Restablecer
+                      </button>
+                      <button type="button" onClick={saveCurrentTheme} disabled={savingTheme} className="rounded-full px-3 py-1.5 text-xs font-black text-white shadow-lg disabled:cursor-wait disabled:opacity-60" style={{ backgroundColor: publicTheme.primary }}>
                       {savingTheme ? 'Guardando...' : 'Guardar'}
                     </button>
                     <button type="button" onClick={() => setThemePanelOpen(false)} className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100">
