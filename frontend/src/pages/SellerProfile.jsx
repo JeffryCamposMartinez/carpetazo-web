@@ -1148,7 +1148,7 @@ export default function SellerProfile() {
                       <span className="opacity-60">{label}</span>
                       {value}
                       {label === 'Nivel' && (
-                        <div className="pointer-events-none absolute left-1/2 top-full z-[9999] mt-2 w-64 -translate-x-1/2 rounded-xl p-3 opacity-0 shadow-2xl transition-opacity duration-200 group-hover:opacity-100" style={{ backgroundColor: publicTheme.card || '#ffffff', color: publicTheme.text, border: `1px solid ${publicTheme.primary}44`, boxShadow: '0 10px 40px -10px rgba(0,0,0,0.4)' }}>
+                        <div className="pointer-events-none absolute left-0 top-full z-[9999] mt-2 w-64 rounded-xl p-3 opacity-0 shadow-2xl transition-opacity duration-200 group-hover:opacity-100" style={{ backgroundColor: publicTheme.card || '#ffffff', color: publicTheme.text, border: `1px solid ${publicTheme.primary}44`, boxShadow: '0 10px 40px -10px rgba(0,0,0,0.4)' }}>
                           <ul className="list-disc pl-4 text-[11px] font-bold normal-case tracking-normal opacity-90 space-y-1 text-left">
                             <li>+4 niveles por cada carpeta pública que tengas creada.</li>
                             <li>+1 nivel por cada 12 cartas individuales que tengas subidas.</li>
@@ -1258,7 +1258,7 @@ export default function SellerProfile() {
                 ].map(([label, value, icon]) => (
                   <div key={label} className={`group relative min-w-0 max-w-full overflow-visible rounded-2xl border bg-black/5 p-3 ${isNarrowStatsPanel ? 'flex flex-col items-start gap-2' : 'flex items-center gap-3'} ${label === 'Nivel de perfil' ? 'cursor-help hover:bg-black/10 transition-colors' : ''}`} style={{ borderColor: `${publicTheme.primary}22` }}>
                     {label === 'Nivel de perfil' && (
-                      <div className="pointer-events-none absolute left-1/2 bottom-full z-[9999] mb-2 w-64 -translate-x-1/2 rounded-xl p-3 opacity-0 shadow-2xl transition-opacity duration-200 group-hover:opacity-100" style={{ backgroundColor: publicTheme.card || '#ffffff', color: publicTheme.text, border: `1px solid ${publicTheme.primary}44`, boxShadow: '0 10px 40px -10px rgba(0,0,0,0.4)' }}>
+                      <div className="pointer-events-none absolute left-0 bottom-full z-[9999] mb-2 w-64 rounded-xl p-3 opacity-0 shadow-2xl transition-opacity duration-200 group-hover:opacity-100" style={{ backgroundColor: publicTheme.card || '#ffffff', color: publicTheme.text, border: `1px solid ${publicTheme.primary}44`, boxShadow: '0 10px 40px -10px rgba(0,0,0,0.4)' }}>
                         <ul className="list-disc pl-4 text-[11px] font-bold normal-case tracking-normal opacity-90 space-y-1 text-left">
                           <li>+4 niveles por cada carpeta pública que tengas creada.</li>
                           <li>+1 nivel por cada 12 cartas individuales que tengas subidas.</li>
