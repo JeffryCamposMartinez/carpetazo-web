@@ -128,3 +128,13 @@
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+body.public-profile-active::before {
+  background-image: var(--seller-bg, url('/images/bg_389247.webp'));
+}
+
+body.public-profile-active::after {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background-color: var(--seller-overlay, rgba(17, 39, 74, 0.45));
+}

@@ -1129,17 +1129,20 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
     }
 
     const type = req.body.type; // 'avatar' or 'banner'
-    if (!['avatar', 'banner'].includes(type)) {
+    if (!['avatar', 'banner', 'wallpaper'].includes(type)) {
       return res.status(400).json({ success: false, message: 'Tipo de imagen inválido.' });
     }
 
     const isBanner = type === 'banner';
+    const isWallpaper = type === 'wallpaper';
     
     // Process image with sharp -> webp
     const imageProcessor = sharp(req.file.buffer).webp({ quality: 85 });
     
     if (isBanner) {
       imageProcessor.resize({ width: 1200, height: 400, fit: 'cover' });
+    } else if (isWallpaper) {
+      imageProcessor.resize({ width: 1920, fit: 'inside', withoutEnlargement: true });
     } else {
       imageProcessor.resize({ width: 400, height: 400, fit: 'cover' });
     }
@@ -1202,6 +1205,7 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
       'bannerBase64',
       'bannerDominantColor',
       'bannerComplementaryColor',
+      'wallpaperBase64',
       'bio',
       'phone',
       'rut',

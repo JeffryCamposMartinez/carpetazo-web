@@ -596,6 +596,22 @@ export default function SellerProfile() {
     if (sellerUsername) loadSeller();
   }, [sellerUsername]);
 
+  useEffect(() => {
+    document.body.classList.add('public-profile-active');
+    if (seller?.wallpaperBase64) {
+      document.documentElement.style.setProperty('--seller-bg', `url(${seller.wallpaperBase64})`);
+      document.documentElement.style.setProperty('--seller-overlay', 'transparent');
+    } else {
+      document.documentElement.style.removeProperty('--seller-bg');
+      document.documentElement.style.removeProperty('--seller-overlay');
+    }
+    return () => {
+      document.body.classList.remove('public-profile-active');
+      document.documentElement.style.removeProperty('--seller-bg');
+      document.documentElement.style.removeProperty('--seller-overlay');
+    };
+  }, [seller?.wallpaperBase64]);
+
   const compressImage = (file, type) => new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -654,7 +670,9 @@ export default function SellerProfile() {
             bannerDominantColor: response.dominantColor || processedImage.dominantColor,
             bannerComplementaryColor: response.complementaryColor || processedImage.complementaryColor
           }
-          : { photoURL: response.url };
+          : type === 'wallpaper'
+            ? { wallpaperBase64: response.url }
+            : { photoURL: response.url };
 
         setSeller(prev => ({ ...prev, ...payload }));
         if (type === 'avatar') {
