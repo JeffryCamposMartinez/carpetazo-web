@@ -558,6 +558,7 @@ export default function SellerProfile() {
     return index === -1 ? 99 : index + 1;
   };
   const getDistributionSpan = (moduleName) => selectedDistribution.spans?.[moduleName] || 'lg:col-span-12';
+  const isNarrowStatsPanel = ['compact-shop', 'premium-gallery', 'trading-desk', 'sidebar-left', 'sidebar-right'].includes(selectedDistribution.id);
 
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('carpetazo:public-profile-theme', { detail: { theme: publicTheme } }));
@@ -756,7 +757,7 @@ export default function SellerProfile() {
 
   return (
     <div className="min-h-screen" style={{ fontFamily: getFontStack(publicTheme.font) }}>
-      <div className="mx-auto w-full max-w-[1600px] xl:px-12 2xl:px-16" style={getSideBackgroundStyle(publicTheme)}>
+      <div className="mx-auto w-full max-w-[1470px] xl:px-4 2xl:px-6" style={getSideBackgroundStyle(publicTheme)}>
       <div className={`relative min-h-screen w-full overflow-hidden shadow-[0_0_90px_rgba(0,0,0,0.22)] ${getEffectClassName(publicTheme)}`} style={getProfileBackgroundStyle(publicTheme)}>
       <section className="relative overflow-visible shadow-sm" style={{ backgroundColor: publicTheme.card }}>
         {seller?.bannerBase64 ? (
@@ -1094,7 +1095,7 @@ export default function SellerProfile() {
           </div>
         )}
 
-        <div className={`relative z-10 mx-auto flex w-full max-w-[1300px] flex-col justify-end gap-4 px-4 pb-6 pt-[185px] sm:px-6 sm:pt-[260px] md:min-h-0 md:flex-row md:items-end md:gap-5 md:px-10 ${isCompactLayout ? 'min-h-[380px] sm:min-h-[460px] md:py-8' : 'min-h-[430px] sm:min-h-[520px] md:py-12'} ${isPosterLayout ? 'md:items-center' : ''}`}>
+        <div className={`relative z-10 mx-auto flex w-full max-w-[1220px] flex-col justify-end gap-4 px-4 pb-6 pt-[185px] sm:px-6 sm:pt-[260px] md:min-h-0 md:flex-row md:items-end md:gap-5 md:px-8 ${isCompactLayout ? 'min-h-[380px] sm:min-h-[460px] md:py-8' : 'min-h-[430px] sm:min-h-[520px] md:py-12'} ${isPosterLayout ? 'md:items-center' : ''}`}>
           <div className="relative z-20 -mb-10 ml-3 h-32 w-32 shrink-0 sm:ml-5 sm:h-36 sm:w-36 md:mb-0 md:ml-0 md:h-44 md:w-44">
             <div className="absolute -inset-3 rounded-[2.7rem] opacity-70 blur-2xl" style={{ background: `linear-gradient(135deg, ${publicTheme.primary}, ${publicTheme.accent}, ${publicTheme.secondary})` }} />
             <div className="relative h-full w-full rounded-[2.35rem] p-[5px] shadow-[0_24px_60px_rgba(0,0,0,0.42)]" style={{ background: getAvatarFrameStyle(publicTheme) }}>
@@ -1190,7 +1191,7 @@ export default function SellerProfile() {
         </div>
       </section>
 
-      <main className="relative z-10 mx-auto w-full max-w-[1300px] px-4 py-6 sm:px-6 sm:py-8 md:px-10">
+      <main className="relative z-10 mx-auto w-full max-w-[1220px] px-4 py-6 sm:px-6 sm:py-8 md:px-8">
         <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-12">
           {showProfileShowcase && (
             <section className={`border p-4 ring-1 ${getDistributionSpan('showcase')}`} style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}33`, order: getDistributionOrder('showcase') }}>
@@ -1228,19 +1229,19 @@ export default function SellerProfile() {
 
           {showProfileShowcase && (
             <section className={`border p-4 ring-1 ${getDistributionSpan('stats')}`} style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.accent}44`, order: getDistributionOrder('stats') }}>
-              <p className="text-xs font-black uppercase tracking-[0.22em]" style={{ color: publicTheme.primary }}>Panel del perfil</p>
-              <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-1">
+              <p className="max-w-full overflow-hidden text-ellipsis text-xs font-black uppercase tracking-[0.18em]" style={{ color: publicTheme.primary }}>Panel del perfil</p>
+              <div className={`mt-3 grid gap-3 ${isNarrowStatsPanel ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-1'}`}>
                 {[
                   ['Nivel de perfil', profileLevel, 'military_tech'],
                   ['Carpetas públicas', folders.length, 'auto_stories'],
                   ['Cartas mostradas', totalCards, 'style'],
                   ['Marco', avatarFrameOptions.find(option => option.id === publicTheme.avatarFrame)?.name || 'Personalizado', 'account_box']
                 ].map(([label, value, icon]) => (
-                  <div key={label} className="flex items-center gap-3 rounded-2xl border bg-black/5 p-3" style={{ borderColor: `${publicTheme.primary}22` }}>
-                    <span translate="no" className="material-symbols-outlined rounded-xl p-2 text-[20px]" style={{ backgroundColor: `${publicTheme.accent}24`, color: publicTheme.primary }}>{icon}</span>
-                    <div>
-                      <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">{label}</p>
-                      <p className="text-lg font-black leading-tight" style={{ color: publicTheme.text }}>{value}</p>
+                  <div key={label} className={`min-w-0 max-w-full overflow-hidden rounded-2xl border bg-black/5 p-3 ${isNarrowStatsPanel ? 'flex flex-col items-start gap-2' : 'flex items-center gap-3'}`} style={{ borderColor: `${publicTheme.primary}22` }}>
+                    <span translate="no" className="material-symbols-outlined shrink-0 rounded-xl p-2 text-[20px]" style={{ backgroundColor: `${publicTheme.accent}24`, color: publicTheme.primary }}>{icon}</span>
+                    <div className="min-w-0 max-w-full overflow-hidden">
+                      <p className="max-w-full break-words text-[9px] font-black uppercase leading-tight tracking-wide text-slate-500 sm:text-[10px]" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{label}</p>
+                      <p className="max-w-full break-words text-[clamp(0.72rem,1.8vw,1.05rem)] font-black leading-tight" style={{ color: publicTheme.text, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{value}</p>
                     </div>
                   </div>
                 ))}
