@@ -806,10 +806,15 @@ export default function SellerProfile() {
                 <span translate="no" className="material-symbols-outlined text-[18px]">palette</span>
                 <span className="hidden sm:inline">Personalizar</span>
               </button>
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-black/45 px-3 py-2 text-xs font-black text-white shadow-lg ring-1 ring-white/25 backdrop-blur hover:bg-black/60 sm:rounded-2xl sm:bg-white/90 sm:text-[#1a2b4b] sm:ring-white/80 sm:hover:bg-white sm:text-sm">
-                <span translate="no" className="material-symbols-outlined text-[18px]">add_photo_alternate</span>
-                <span className="hidden sm:inline">Cambiar fondo</span>
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-black/45 px-3 py-2 text-xs font-black text-white shadow-lg ring-1 ring-white/25 backdrop-blur hover:bg-black/60 sm:rounded-2xl sm:bg-white/90 sm:text-[#1a2b4b] sm:ring-white/80 sm:hover:bg-white sm:text-sm" title="Fondo del recuadro principal (Banner)">
+                <span translate="no" className="material-symbols-outlined text-[18px]">panorama</span>
+                <span className="hidden sm:inline">Banner</span>
                 <input type="file" accept="image/*" className="hidden" onChange={event => handleImageUpload(event, 'banner')} />
+              </label>
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-black/45 px-3 py-2 text-xs font-black text-white shadow-lg ring-1 ring-white/25 backdrop-blur hover:bg-black/60 sm:rounded-2xl sm:bg-white/90 sm:text-[#1a2b4b] sm:ring-white/80 sm:hover:bg-white sm:text-sm" title="Fondo global de toda la página web">
+                <span translate="no" className="material-symbols-outlined text-[18px]">wallpaper</span>
+                <span className="hidden sm:inline">Fondo Web</span>
+                <input type="file" accept="image/*" className="hidden" onChange={event => handleImageUpload(event, 'wallpaper')} />
               </label>
             </div>
 
