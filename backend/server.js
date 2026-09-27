@@ -934,17 +934,7 @@ app.get('/api/messages/me', authenticateToken, async (req, res) => {
       where: { receiverId: user.id },
       orderBy: { createdAt: 'desc' }
     });
-    res.json({
-      success: true,
-      messages,
-      otherUser: {
-        id: otherUser.id,
-        firebaseUid: otherUser.firebaseUid,
-        name: otherUser.name,
-        username: otherUser.username,
-        photoURL: otherUser.photoURL
-      }
-    });
+    res.json({ success: true, messages });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1312,6 +1302,7 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
         'showWhatsApp',
         'showInstagram',
         'showFacebook',
+        'showMessageButton',
         'showYoutube'
       ];
       updateData.publicTheme = Object.fromEntries(

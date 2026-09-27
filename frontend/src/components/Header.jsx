@@ -201,7 +201,7 @@ export default function Header() {
         const list = result.messages || result.data || [];
         await Promise.all(
           list
-            .filter(message => message.receiverId && message.receiverId !== message.senderId && !message.isRead)
+            .filter(message => message.senderId === otherId && !message.isRead)
             .map(message => api.markMessageRead(message.id).catch(() => null))
         );
       }));
@@ -244,14 +244,16 @@ export default function Header() {
         onClick={openNotifications}
         aria-label={unreadMessages > 0 ? `${unreadMessages} mensajes sin leer` : 'Ver mensajes'}
         aria-expanded={isNotificationOpen}
-        className={`group relative flex items-center justify-center rounded-full border border-[#facc15]/60 bg-gradient-to-br from-[#fff7c2] via-white to-[#dbeafe] text-[#12315f] shadow-[0_8px_24px_rgba(2,6,23,0.18)] ring-1 ring-white/50 transition hover:-translate-y-0.5 hover:border-[#facc15] hover:shadow-[0_12px_30px_rgba(2,6,23,0.25)] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70 ${compact ? 'h-10 w-10' : 'h-12 w-12'}`}
+        className={`group relative flex items-center justify-center rounded-full text-white transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-white/60 ${compact ? 'h-9 w-9' : 'h-10 w-10'}`}
       >
-        <svg viewBox="0 0 50 30" className={`${compact ? 'h-7 w-9' : 'h-8 w-10'} overflow-visible`} aria-hidden="true">
+        <span className={`${compact ? 'h-9 w-9' : 'h-10 w-10'} flex items-center justify-center rounded-full border-2 border-[#facc15] bg-white text-[#12315f] shadow-md transition-all group-hover:ring-4 group-hover:ring-[#facc15]/30`}>
+        <svg viewBox="0 0 50 30" className={`${compact ? 'h-6 w-8' : 'h-7 w-9'} overflow-visible`} aria-hidden="true">
           <g className="origin-[50%_2px] transition-transform duration-500 group-hover:animate-[bellRing_2.3s_ease-in-out]">
             <path className="transition-transform duration-500 group-hover:animate-[bellBall_2.3s_ease-in-out]" fill="none" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" d="M28.7,25 c0,1.9-1.7,3.5-3.7,3.5s-3.7-1.6-3.7-3.5s1.7-3.5,3.7-3.5S28.7,23,28.7,25z" />
             <path fill="#FFFFFF" stroke="currentColor" strokeWidth="2" strokeMiterlimit="10" d="M35.9,21.8c-1.2-0.7-4.1-3-3.4-8.7c0.1-1,0.1-2.1,0-3.1h0c-0.3-4.1-3.9-7.2-8.1-6.9c-3.7,0.3-6.6,3.2-6.9,6.9h0 c-0.1,1-0.1,2.1,0,3.1c0.6,5.7-2.2,8-3.4,8.7c-0.4,0.2-0.6,0.6-0.6,1v1.8c0,0.2,0.2,0.4,0.4,0.4h22.2c0.2,0,0.4-0.2,0.4-0.4v-1.8 C36.5,22.4,36.3,22,35.9,21.8L35.9,21.8z" />
           </g>
         </svg>
+        </span>
         {unreadMessages > 0 && (
           <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-[#ef233c] px-1.5 text-[11px] font-black text-white shadow-lg ring-2 ring-white">
             {unreadMessages > 99 ? '99+' : unreadMessages}
@@ -387,7 +389,7 @@ export default function Header() {
           </form>
 
           {currentUser ? (
-            <div className="flex items-start gap-3 pb-3">
+            <div className="flex items-center gap-3 pb-3">
             <NotificationBell />
             <div className="relative profile-dropdown">
               <button 

@@ -125,6 +125,7 @@ const defaultPublicTheme = {
   profileEffect: 'none',
   showcaseStyle: 'folders',
   profileDistribution: 'classic-gallery',
+  showMessageButton: 'on',
   showWhatsApp: 'on',
   showInstagram: 'on',
   showFacebook: 'on',
@@ -839,7 +840,7 @@ export default function SellerProfile() {
   });
 
   const contactSeller = () => {
-    if (!currentUser) return navigate('/login');
+    if (!currentUser) return navigate('/bienvenida');
     navigate('/mensajes', {
       state: {
         startChatWith: {
@@ -868,6 +869,8 @@ export default function SellerProfile() {
     return `https://instagram.com/${cleanValue.replace('@', '')}`;
   };
   const getSocialEnabled = (field) => publicTheme[field] !== 'off';
+  const messageButtonEnabled = getSocialEnabled('showMessageButton');
+  const showMessageButton = !isOwner && messageButtonEnabled;
   const socialLinks = [
     {
       id: 'whatsapp',
@@ -1274,6 +1277,25 @@ export default function SellerProfile() {
                       </div>
 
                       <div className="grid grid-cols-1 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleThemeFieldChange('showMessageButton', messageButtonEnabled ? 'off' : 'on')}
+                          className={`flex items-center justify-between gap-3 rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 ${messageButtonEnabled ? 'border-slate-900 bg-white/75 ring-2 ring-slate-900/10' : 'border-black/10 bg-white/40 opacity-70'}`}
+                          style={{ color: publicTheme.text }}
+                        >
+                          <span className="flex min-w-0 items-center gap-3">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-black/10">
+                              <span translate="no" className="material-symbols-outlined text-[22px]" style={{ color: publicTheme.primary }}>chat</span>
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-black">Mensaje privado</span>
+                              <span className="block text-[10px] font-bold opacity-60">{messageButtonEnabled ? 'Visible en tu perfil público' : 'Oculto en tu perfil público'}</span>
+                            </span>
+                          </span>
+                          <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${messageButtonEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                            <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${messageButtonEnabled ? 'left-6' : 'left-1'}`} />
+                          </span>
+                        </button>
                         {socialLinks.map(social => {
                           const enabled = getSocialEnabled(social.field);
                           return (
@@ -1334,8 +1356,20 @@ export default function SellerProfile() {
           </div>
 
           <div className={`relative min-w-0 flex-1 overflow-visible p-4 pt-12 ring-1 backdrop-blur-sm sm:p-5 sm:pt-14 md:p-6 md:pt-6 md:backdrop-blur ${isPosterLayout ? 'md:text-center' : ''}`} style={getCardStyle(publicTheme)}>
-            {socialLinks.some(social => social.available && getSocialEnabled(social.field)) && (
-              <div className="absolute -top-5 right-4 z-30 flex max-w-[calc(100%-2rem)] flex-wrap justify-end gap-2 md:-right-5 md:top-6 md:max-w-none md:flex-col">
+            {(showMessageButton || socialLinks.some(social => social.available && getSocialEnabled(social.field))) && (
+              <div className="absolute -top-6 left-4 right-4 z-30 flex flex-wrap justify-end gap-2 md:left-auto md:-right-5 md:top-6 md:max-w-none md:flex-col">
+                {showMessageButton && (
+                  <button
+                    type="button"
+                    onClick={contactSeller}
+                    aria-label="Enviar mensaje"
+                    title="Mensaje"
+                    className="group flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-slate-950 shadow-[0_12px_30px_rgba(0,0,0,0.22)] ring-2 ring-white/80 backdrop-blur transition hover:-translate-y-1 hover:scale-110 md:h-12 md:w-12"
+                    style={{ border: `2px solid ${publicTheme.primary}` }}
+                  >
+                    <span translate="no" className="material-symbols-outlined text-[22px] md:text-[24px]">chat</span>
+                  </button>
+                )}
                 {socialLinks.filter(social => social.available && getSocialEnabled(social.field)).map(social => (
                   <a
                     key={social.id}
@@ -1383,14 +1417,6 @@ export default function SellerProfile() {
                 </div>
               </div>
 
-              {!isOwner && (
-                <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
-                  <button onClick={contactSeller} className="inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-black text-white shadow-lg transition hover:brightness-90" style={{ backgroundColor: publicTheme.primary }}>
-                    <span translate="no" className="material-symbols-outlined text-[18px]">chat</span>
-                    Mensaje
-                  </button>
-                </div>
-              )}
             </div>
 
             <div className="mt-5">
