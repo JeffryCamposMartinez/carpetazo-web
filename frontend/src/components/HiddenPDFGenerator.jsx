@@ -34,6 +34,14 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
   const [imagesLoaded, setImagesLoaded] = useState(0);
   const [generating, setGenerating] = useState(false);
   const imageRefs = useRef([]);
+  const onCompleteRef = useRef(onComplete);
+  const onProgressRef = useRef(onProgress);
+  const generationStartedRef = useRef(false);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+    onProgressRef.current = onProgress;
+  }, [onComplete, onProgress]);
 
   useEffect(() => {
     if (!folderId) return;
@@ -42,6 +50,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
       setImagesLoaded(0);
       setCards([]);
       imageRefs.current = [];
+      generationStartedRef.current = false;
       try {
         const res = await api.getFolder(folderId);
         if (res.success && res.folder) {
@@ -52,19 +61,19 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
         const totalCards = cardsData.length;
         
         let loadedCount = 0;
-        if (onProgress) onProgress(0, totalCards, false);
+        onProgressRef.current?.(0, totalCards, false);
         
         // Convert all images to Base64 to guarantee html2canvas can render them
         const cardsWithBase64 = await Promise.all(cardsData.map(async (card) => {
           try {
             const b64 = await imageUrlToDataUrl(card.imageUrl);
             loadedCount++;
-            if (onProgress) onProgress(loadedCount, totalCards, false);
+            onProgressRef.current?.(loadedCount, totalCards, false);
             return { ...card, base64: b64 || getPdfImageUrl(card.imageUrl) };
           } catch (e) {
             console.error("Base64 fetch failed for", card.imageUrl, e);
             loadedCount++;
-            if (onProgress) onProgress(loadedCount, totalCards, false);
+            onProgressRef.current?.(loadedCount, totalCards, false);
             return { ...card, base64: getPdfImageUrl(card.imageUrl) || card.imageUrl };
           }
         }));
@@ -72,7 +81,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
         setCards(cardsWithBase64);
       } catch (error) {
         console.error("Error fetching folder data for print:", error);
-        onComplete();
+        onCompleteRef.current?.();
       } finally {
         setLoading(false);
       }
@@ -83,13 +92,14 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
   // Note: We handled progress above, so we don't need this useEffect
   // However, we can keep it to update 'generating' state
   useEffect(() => {
-    if (onProgress && cards.length > 0) {
-      onProgress(cards.length, cards.length, generating);
+    if (cards.length > 0) {
+      onProgressRef.current?.(cards.length, cards.length, generating);
     }
-  }, [generating, cards.length, onProgress]);
+  }, [generating, cards.length]);
 
   const generatePDF = async () => {
     if (generating) return;
+    generationStartedRef.current = true;
     setGenerating(true);
     try {
       // Force decoding of all images before capturing to fix the "blank images" issue
@@ -142,19 +152,22 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
       alert("Hubo un error al generar el PDF. Revisa la consola.");
     } finally {
       setGenerating(false);
-      onComplete();
+      onCompleteRef.current?.();
     }
   };
 
   useEffect(() => {
     if (loading || !folderId) return;
+    if (generationStartedRef.current) return;
 
     if (cards.length > 0) {
       if (imagesLoaded >= cards.length) {
         // Extra timeout ensures images are flushed to screen
+        generationStartedRef.current = true;
         setTimeout(() => generatePDF(), 1500);
       }
     } else {
+      generationStartedRef.current = true;
       setTimeout(() => generatePDF(), 1000);
     }
   }, [loading, imagesLoaded, cards.length]);

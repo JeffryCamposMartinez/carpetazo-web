@@ -125,14 +125,13 @@ function FolderPokemonInner() {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth > 768 && gridCols !== 3) {
+      if (window.innerWidth > 768) {
         setGridCols(3);
       }
     };
-    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [gridCols]);
+  }, []);
   const [searchResults, setSearchResults] = useState([]);
   const [hasSearchedAPI, setHasSearchedAPI] = useState(false);
   const [filterType, setFilterType] = useState('all');
@@ -734,17 +733,18 @@ function FolderPokemonInner() {
   };
 
   const cycleCatalogGridDensity = () => {
-    if (window.innerWidth > 768) {
-      setCatalogGridDensity(3);
-      return;
-    }
-    setCatalogGridDensity(prev => (prev >= 3 ? 1 : prev + 1));
+    const isMobile = window.innerWidth <= 768;
+    const maxDensity = isMobile ? 3 : 5;
+    const minDensity = isMobile ? 1 : 2;
+    setCatalogGridDensity(prev => (prev >= maxDensity ? minDensity : prev + 1));
   };
 
   const catalogGridClass = {
-    1: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 2xl:grid-cols-4',
+    1: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4',
     2: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5',
     3: 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6',
+    4: 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-7',
+    5: 'grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 2xl:grid-cols-8',
   }[catalogGridDensity] || 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5';
 
   const fetchOrders = async () => {
@@ -1320,7 +1320,7 @@ function FolderPokemonInner() {
             </button>
             <button 
               type="button" 
-              onClick={() => { const isMobile = window.innerWidth <= 768; if (!isMobile) { setGridCols(3); return; } const maxCols = 3; const minCols = 1; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }} 
+              onClick={() => { const isMobile = window.innerWidth <= 768; const maxCols = isMobile ? 3 : 5; const minCols = isMobile ? 1 : 2; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }}
               className="bg-white hover:bg-gray-100 text-[#1e40af] border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
               title="Cambiar vista"
             >
@@ -1450,7 +1450,7 @@ function FolderPokemonInner() {
             </button>
             <button 
                 type="button" 
-                onClick={() => { const isMobile = window.innerWidth <= 768; if (!isMobile) { setGridCols(3); return; } const maxCols = 3; const minCols = 1; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }} 
+                onClick={() => { const isMobile = window.innerWidth <= 768; const maxCols = isMobile ? 3 : 5; const minCols = isMobile ? 1 : 2; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }}
                 className="bg-white hover:bg-gray-100 text-[#1e40af] border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
                 title="Cambiar vista"
             >
