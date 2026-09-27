@@ -852,7 +852,26 @@ app.get('/api/folders/:id', async (req, res) => {
   try {
     const folder = await prisma.folder.findUnique({
       where: { id: req.params.id },
-      include: { cards: true, user: { select: { name: true, email: true, username: true, photoURL: true, firebaseUid: true } } }
+      include: {
+        cards: true,
+        user: {
+          select: {
+            name: true,
+            fullName: true,
+            email: true,
+            username: true,
+            photoURL: true,
+            firebaseUid: true,
+            phone: true,
+            facebookUrl: true,
+            instagramUrl: true,
+            youtubeUrl: true,
+            publicTheme: true,
+            addresses: true,
+            bio: true,
+          }
+        }
+      }
     });
     if (!folder) return res.status(404).json({ success: false, message: 'Folder not found' });
     res.json({ success: true, folder });

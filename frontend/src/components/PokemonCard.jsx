@@ -33,17 +33,17 @@ export default function PokemonCard({ card, availableStock, cartQuantity, onAddT
   const mylSetLine = [card.set, mylCode].filter(Boolean).join(' · ');
 
   return (
-    <article className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden border border-gray-200 ${isMyl ? 'min-h-0' : ''} ${isOutOfStock && cartQuantity === 0 ? 'opacity-60 grayscale-[50%]' : ''}`}>
+    <article className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden border border-gray-200 ${isMyl ? 'min-h-0' : ''}`}>
       {/* Top Image Section */}
       <div className={`relative w-full ${isMyl ? 'aspect-[63/86] p-1.5' : 'aspect-[63/88] p-2'} bg-gray-50 flex items-center justify-center`}>
         <img 
-          className="w-full h-full object-fill" 
+          className={`w-full h-full object-fill ${isOutOfStock && cartQuantity === 0 ? 'grayscale opacity-60' : ''}`} 
           src={card.imageUrl} 
           alt={card.name} 
         />
         {isOutOfStock && cartQuantity === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-[2px]">
-            <span className="bg-red-500 text-white font-bold text-xs px-3 py-1 rounded-full shadow-sm">Agotado</span>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="rounded-full bg-slate-950/85 px-4 py-1.5 text-xs font-black text-white shadow-lg ring-2 ring-white/70">Sin stock</span>
           </div>
         )}
       </div>

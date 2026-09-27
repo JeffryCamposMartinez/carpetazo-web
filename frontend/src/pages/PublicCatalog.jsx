@@ -12,6 +12,74 @@ const isLocalhostWithProductionApi = () => {
   return ['localhost', '127.0.0.1'].includes(window.location.hostname) && API_BASE_URL.includes('api.carpetazo.cl');
 };
 
+const formatWhatsAppNumber = (phone = '') => {
+  const cleanPhone = String(phone).replace(/[^0-9]/g, '');
+  if (!cleanPhone) return '';
+  return cleanPhone.startsWith('56') ? cleanPhone : `56${cleanPhone}`;
+};
+
+const ensureExternalUrl = (url = '') => {
+  const cleanUrl = String(url).trim();
+  if (!cleanUrl) return '';
+  return /^https?:\/\//i.test(cleanUrl) ? cleanUrl : `https://${cleanUrl.replace(/^@/, '')}`;
+};
+
+const getInstagramHref = (value = '') => {
+  const cleanValue = String(value).trim();
+  if (!cleanValue) return '';
+  if (/^https?:\/\//i.test(cleanValue)) return cleanValue;
+  return `https://instagram.com/${cleanValue.replace('@', '')}`;
+};
+
+const ContactIcon = ({ type, className = 'h-4 w-4' }) => {
+  if (type === 'whatsapp') {
+    return (
+      <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
+        <path fill="#25D366" d="M16 3.2A12.6 12.6 0 0 0 5.1 22.1L3.7 28.8l6.8-1.8A12.6 12.6 0 1 0 16 3.2Z" />
+        <path fill="#fff" d="M22.9 18.7c-.4-.2-2.2-1.1-2.5-1.2-.3-.1-.6-.2-.8.2-.2.4-.9 1.2-1.1 1.4-.2.2-.4.3-.8.1-.4-.2-1.6-.6-3-1.9-1.1-1-1.9-2.2-2.1-2.6-.2-.4 0-.6.2-.8l.6-.7c.2-.2.2-.4.4-.6.1-.2.1-.5 0-.7-.1-.2-.8-1.9-1.1-2.6-.3-.7-.6-.6-.8-.6h-.7c-.2 0-.7.1-1 .5-.3.4-1.3 1.3-1.3 3.1 0 1.8 1.3 3.6 1.5 3.8.2.2 2.6 4 6.3 5.6.9.4 1.6.6 2.1.8.9.3 1.7.3 2.3.2.7-.1 2.2-.9 2.5-1.8.3-.9.3-1.6.2-1.8-.2-.1-.5-.2-.9-.4Z" />
+      </svg>
+    );
+  }
+
+  if (type === 'instagram') {
+    return (
+      <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
+        <defs>
+          <linearGradient id="catalog-ig-gradient" x1="0" x2="1" y1="1" y2="0">
+            <stop offset="0" stopColor="#f58529" />
+            <stop offset="0.35" stopColor="#dd2a7b" />
+            <stop offset="0.7" stopColor="#8134af" />
+            <stop offset="1" stopColor="#515bd4" />
+          </linearGradient>
+        </defs>
+        <rect width="28" height="28" x="2" y="2" rx="8" fill="url(#catalog-ig-gradient)" />
+        <circle cx="16" cy="16" r="6" fill="none" stroke="#fff" strokeWidth="2.4" />
+        <circle cx="23" cy="9" r="1.8" fill="#fff" />
+      </svg>
+    );
+  }
+
+  if (type === 'facebook') {
+    return (
+      <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
+        <circle cx="16" cy="16" r="14" fill="#1877F2" />
+        <path fill="#fff" d="M18.5 30V18.5h3.8l.6-4.5h-4.4v-2.9c0-1.3.4-2.2 2.3-2.2h2.3v-4c-.4-.1-1.8-.2-3.4-.2-3.4 0-5.7 2.1-5.7 5.9V14h-3.8v4.5H14V30h4.5Z" />
+      </svg>
+    );
+  }
+
+  if (type === 'youtube') {
+    return (
+      <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
+        <rect width="28" height="20" x="2" y="6" rx="6" fill="#FF0000" />
+        <path fill="#fff" d="m14 12 7 4-7 4v-8Z" />
+      </svg>
+    );
+  }
+
+  return <span translate="no" className="material-symbols-outlined text-[18px]">chat</span>;
+};
+
 function PublicCatalog() {
   const { folderId } = useParams();
   const { currentUser } = useAuth();
@@ -36,6 +104,9 @@ function PublicCatalog() {
   const [searchSet, setSearchSet] = useState('');
   const [isSetDropdownOpen, setIsSetDropdownOpen] = useState(false);
   const [viewMode, setViewMode] = useState('album');
+  const [sortBy, setSortBy] = useState('featured');
+  const [onlyAvailable, setOnlyAvailable] = useState(false);
+  const [quickRarity, setQuickRarity] = useState('');
   const [mylType, setMylType] = useState('');
   const [mylRace, setMylRace] = useState('');
   const [mylCost, setMylCost] = useState('');
@@ -215,6 +286,9 @@ function PublicCatalog() {
     setMylType('');
     setMylRace('');
     setMylCost('');
+    setQuickRarity('');
+    setOnlyAvailable(false);
+    setSortBy('featured');
   }, []);
 
   const scrollCatalogTop = useCallback(() => {
@@ -293,6 +367,9 @@ function PublicCatalog() {
   }), [cards]);
 
   const availableSets = useMemo(() => [...new Set(cards.map(c => c.set).filter(Boolean))].sort(), [cards]);
+  const availableRarities = useMemo(() => [...new Set(cards.map(c => c.rarity).filter(Boolean))].sort(), [cards]);
+  const totalStock = useMemo(() => cards.reduce((sum, card) => sum + Number(card.stock || 0), 0), [cards]);
+  const availableCardsCount = useMemo(() => cards.filter(card => Number(card.stock || 0) > 0).length, [cards]);
 
   useEffect(() => {
     const nextFilters = {
@@ -333,6 +410,8 @@ function PublicCatalog() {
     })
     .filter(card => folderData?.tcg !== 'Mitos y Leyendas' || appliedFilters.mylCost === '' || String(card.cost ?? card.manaCost ?? '') === String(appliedFilters.mylCost))
     .filter(card => appliedFilters.set === '' || card.set === appliedFilters.set)
+    .filter(card => quickRarity === '' || card.rarity === quickRarity)
+    .filter(card => !onlyAvailable || Number(card.stock || 0) > 0)
     .filter(card => {
       if (!appliedFilters.query) return true;
       const query = appliedFilters.query.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -347,7 +426,124 @@ function PublicCatalog() {
         card.subtype,
       ].filter(Boolean).join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
       return haystack.includes(query);
-    }), [cards, appliedFilters, folderData?.tcg]);
+    }), [cards, appliedFilters, folderData?.tcg, quickRarity, onlyAvailable]);
+
+  const sortedCards = useMemo(() => {
+    const rarityWeight = {
+      'Common': 1,
+      'Uncommon': 2,
+      'Rare': 3,
+      'Rare Holo': 4,
+      'Rare Holo EX': 5,
+      'Rare Holo GX': 6,
+      'Rare Holo V': 7,
+      'Rare Holo VMAX': 8,
+      'Rare Ultra': 9,
+      'Rare Secret': 10,
+      'Promo': 11,
+    };
+    const normalizeText = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const list = [...filteredCards];
+    list.sort((a, b) => {
+      if (sortBy === 'price_asc') return Number(a.price || 0) - Number(b.price || 0);
+      if (sortBy === 'price_desc') return Number(b.price || 0) - Number(a.price || 0);
+      if (sortBy === 'stock_desc') return Number(b.stock || 0) - Number(a.stock || 0);
+      if (sortBy === 'stock_asc') return Number(a.stock || 0) - Number(b.stock || 0);
+      if (sortBy === 'rarity_desc') {
+        return (rarityWeight[b.rarity] || 0) - (rarityWeight[a.rarity] || 0) || normalizeText(a.name).localeCompare(normalizeText(b.name));
+      }
+      if (sortBy === 'set_asc') {
+        return normalizeText(a.set).localeCompare(normalizeText(b.set)) || normalizeText(a.name).localeCompare(normalizeText(b.name));
+      }
+      return 0;
+    });
+    return list;
+  }, [filteredCards, sortBy]);
+
+  const sellerPublicTheme = sellerData?.publicTheme && typeof sellerData.publicTheme === 'object' ? sellerData.publicTheme : {};
+  const socialEnabled = useCallback((field) => sellerPublicTheme[field] !== 'off', [sellerPublicTheme]);
+  const visibleContactOptions = useMemo(() => {
+    if (!sellerData || !folderData) return [];
+    const options = [];
+    const isOwnerViewing = currentUser?.uid && currentUser.uid === folderData.userId;
+
+    if (!isOwnerViewing && socialEnabled('showMessageButton')) {
+      options.push({
+        id: 'message',
+        label: 'Mensaje privado',
+        type: 'button',
+        className: 'bg-[#ffcb05] text-[#1a2b4b] ring-yellow-200 hover:bg-yellow-300',
+        onClick: () => {
+          if (!currentUser) {
+            navigate('/bienvenida');
+            return;
+          }
+          navigate('/mensajes', {
+            state: {
+              startChatWith: {
+                id: folderData.userId,
+                name: sellerData.displayName || 'Vendedor',
+                avatar: sellerData.avatarBase64 || sellerData.photoURL || null
+              }
+            }
+          });
+        }
+      });
+    }
+
+    if (sellerData.phone && socialEnabled('showWhatsApp')) {
+      options.push({
+        id: 'whatsapp',
+        label: 'WhatsApp',
+        href: `https://wa.me/${formatWhatsAppNumber(sellerData.phone)}?text=${encodeURIComponent(`Hola, vi tu carpeta "${folderData?.name || 'Catálogo'}" en Carpetazo y quiero consultar por tus cartas.`)}`,
+        className: 'bg-green-50 text-green-700 ring-green-100 hover:bg-green-100'
+      });
+    }
+
+    if (sellerData.instagramUrl && socialEnabled('showInstagram')) {
+      options.push({
+        id: 'instagram',
+        label: 'Instagram',
+        href: getInstagramHref(sellerData.instagramUrl),
+        className: 'bg-pink-50 text-pink-600 ring-pink-100 hover:bg-pink-100'
+      });
+    }
+
+    if (sellerData.facebookUrl && socialEnabled('showFacebook')) {
+      options.push({
+        id: 'facebook',
+        label: 'Facebook',
+        href: ensureExternalUrl(sellerData.facebookUrl),
+        className: 'bg-blue-50 text-blue-700 ring-blue-100 hover:bg-blue-100'
+      });
+    }
+
+    if (sellerData.youtubeUrl && socialEnabled('showYoutube')) {
+      options.push({
+        id: 'youtube',
+        label: 'YouTube',
+        href: ensureExternalUrl(sellerData.youtubeUrl),
+        className: 'bg-red-50 text-red-600 ring-red-100 hover:bg-red-100'
+      });
+    }
+
+    return options;
+  }, [sellerData, folderData, currentUser, navigate, socialEnabled]);
+
+  const contactSeller = useCallback(() => {
+    const firstContact = visibleContactOptions[0];
+    if (!firstContact) {
+      showToast('Este vendedor aún no tiene contacto público configurado.', 'info');
+      return;
+    }
+
+    if (firstContact.onClick) {
+      firstContact.onClick();
+      return;
+    }
+
+    if (firstContact.href) window.open(firstContact.href, '_blank', 'noopener,noreferrer');
+  }, [visibleContactOptions]);
 
   if (loading) {
     return (
@@ -371,9 +567,9 @@ function PublicCatalog() {
 
   return (
     <>
-      <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
+      <div className="w-full max-w-[1470px] mx-auto px-4 py-6 sm:px-6 lg:px-8">
       {/* Seller info banner */}
-      <div className="relative border-b border-gray-200 md:border-x shadow-sm py-6 px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-6 overflow-hidden bg-white">
+      <div className="relative mb-5 overflow-hidden rounded-[2rem] border border-white/70 bg-white shadow-[0_22px_55px_-32px_rgba(15,23,42,0.65)]">
         
         {/* Background Image with 100% Opacity */}
         {sellerData?.bannerBase64 && (
@@ -387,21 +583,25 @@ function PublicCatalog() {
           ></div>
         )}
 
-        <div className="relative z-10 flex flex-col md:flex-row items-center gap-5 w-full md:w-auto">
+        <div className="absolute inset-0 z-[1] bg-gradient-to-br from-white/95 via-white/90 to-blue-50/95" />
+        {sellerData?.bannerBase64 && <div className="absolute inset-0 z-[2] bg-gradient-to-r from-white/95 via-white/80 to-white/55" />}
+
+        <div className="relative z-10 grid gap-5 p-5 md:grid-cols-[minmax(520px,1fr)_minmax(360px,0.75fr)] md:items-center md:p-7 lg:p-8">
+        <div className="flex flex-col gap-5 md:flex-row md:items-center">
           {/* Compact card with avatar inside */}
           <div
-            className={"flex items-center gap-4 p-4 w-full md:w-[480px] rounded-2xl border transition-all " +
+            className={"flex w-full items-center gap-5 rounded-[1.75rem] border p-5 transition-all md:min-h-[132px] " +
               (sellerData?.bannerBase64 
-                ? "bg-white/70 backdrop-blur-md shadow-xl border-white/40" 
-                : "bg-gray-50 border-gray-200")}
+                ? "bg-white/80 backdrop-blur-md shadow-xl border-white/70" 
+                : "bg-slate-50 border-slate-200")}
             style={sellerData?.bannerComplementaryColor ? { borderColor: sellerData.bannerComplementaryColor } : {}}
           >
             {/* Avatar inside card */}
-            <Link to={`/${sellerData?.username || folderData.userId}`} className="w-16 h-16 rounded-full border-2 border-white shadow-lg bg-white flex items-center justify-center overflow-hidden flex-shrink-0 hover:scale-105 transition-transform">
+            <Link to={`/${sellerData?.username || folderData.userId}`} className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-full border-4 border-white bg-white shadow-xl transition-transform hover:scale-105 md:h-24 md:w-24">
               {(sellerData?.avatarBase64 || sellerData?.photoURL) ? (
                 <img src={sellerData?.avatarBase64 || sellerData?.photoURL} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-[#1a2b4b] to-[#3b82f6] flex items-center justify-center text-white text-2xl font-black">
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#1a2b4b] to-[#3b82f6] text-3xl font-black text-white">
                   {(sellerData?.displayName || 'V')[0].toUpperCase()}
                 </div>
               )}
@@ -410,14 +610,14 @@ function PublicCatalog() {
             {/* Text info next to avatar */}
             <div className="flex flex-col text-left flex-1 min-w-0">
               <div className="flex items-center gap-1 flex-wrap">
-                <span className="text-base font-black text-[#1a2b4b] leading-tight">
+                <span className="text-xl font-black leading-tight text-[#1a2b4b] md:text-2xl">
                   {sellerData?.displayName || 'Vendedor Anónimo'}
                 </span>
                 {(sellerData?.isVerified || true) && (
                   <span translate="no" className="material-symbols-outlined text-[#3b82f6] text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }} title="Vendedor Verificado">verified</span>
                 )}
               </div>
-              {sellerData?.fullName && <p className="text-gray-500 text-[11px] font-semibold truncate">{sellerData.fullName}</p>}
+              {sellerData?.fullName && <p className="truncate text-sm font-semibold text-gray-500">{sellerData.fullName}</p>}
               
               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                 {(sellerData?.totalTrades > 0) ? (
@@ -429,23 +629,28 @@ function PublicCatalog() {
                     <span className="text-gray-500 text-[10px] font-semibold">{sellerData?.totalTrades} reseñas</span>
                   </>
                 ) : (
-                  <span className="text-gray-500 text-[10px] font-semibold bg-white/50 px-2 py-0.5 rounded-full border border-gray-200">Nuevo Vendedor</span>
+                  <span className="rounded-full border border-gray-200 bg-white/70 px-3 py-1 text-xs font-bold text-gray-500">Nuevo Vendedor</span>
                 )}
               </div>
               {sellerData?.bio && (
-                <p className="text-gray-600 italic text-[10px] mt-1.5 line-clamp-2 border-l-2 border-primary/40 pl-2">"{sellerData.bio}"</p>
+                <p className="mt-2 line-clamp-2 border-l-2 border-primary/40 pl-3 text-sm italic text-gray-600">"{sellerData.bio}"</p>
               )}
             </div>
           </div>
         </div>
 
         {/* Folder Title and Buttons Row */}
-        <div className="relative z-10 flex flex-col items-start md:items-end gap-3 w-full md:w-auto">
-          <h1 className={`text-3xl font-black text-[#1a2b4b] mb-1 ${sellerData?.bannerBase64 ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' : ''}`}>
+        <div className="relative z-10 flex w-full flex-col items-start gap-3 md:items-end">
+          <h1 className="max-w-full text-3xl font-black leading-tight tracking-[-0.04em] text-[#1a2b4b] md:text-4xl">
             {folderData.name}
           </h1>
+          <div className="flex flex-wrap items-center gap-2 text-xs font-black text-slate-600 md:justify-end">
+            <span className="rounded-full border border-blue-100 bg-white/95 px-3 py-1.5 text-[#1a2b4b] shadow-sm">{cards.length} cartas</span>
+            <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-emerald-700 shadow-sm">{availableCardsCount} con stock</span>
+            <span className="rounded-full border border-yellow-100 bg-yellow-50 px-3 py-1.5 text-[#1a2b4b] shadow-sm">{totalStock} copias</span>
+          </div>
           
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 md:justify-end">
             {/* Location (City/Region only) */}
             {(() => {
               const defaultAddress = sellerData?.addresses?.find(a => a.isDefault) || sellerData?.addresses?.[0];
@@ -470,31 +675,28 @@ function PublicCatalog() {
               return null;
             })()}
 
-            {/* Mensaje Privado (Direct Chat) */}
-            {sellerData && currentUser && currentUser.uid !== folderData.userId && (
-              <button 
-                onClick={() => navigate('/mensajes', { state: { startChatWith: { id: folderData.userId, name: sellerData.displayName || 'Vendedor', avatar: sellerData.avatarBase64 || sellerData.photoURL || null } } })}
-                className="flex items-center gap-1 bg-[#1e40af] hover:bg-blue-800 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition-all cursor-pointer"
-              >
-                <span translate="no" className="material-symbols-outlined text-[16px]">chat</span>
-                Mensaje Privado
-              </button>
-            )}
+            {visibleContactOptions.length > 0 ? visibleContactOptions.map((contact, index) => {
+              const baseClass = `flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black shadow-sm ring-1 transition-all hover:-translate-y-0.5 hover:shadow-md ${contact.className || 'bg-white text-[#1a2b4b] ring-slate-200'}`;
+              const content = (
+                <>
+                  <ContactIcon type={contact.id} className="h-4 w-4" />
+                  <span>{index === 0 && contact.id === 'message' ? 'Contactar vendedor' : contact.label}</span>
+                </>
+              );
 
-            {/* WhatsApp */}
-            {sellerData?.phone && (
-              <a href={`https://wa.me/${sellerData.phone.replace(/[^0-9]/g, '').startsWith('56') ? sellerData.phone.replace(/[^0-9]/g, '') : '56' + sellerData.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 bg-green-50 hover:bg-green-100 text-green-700 px-3 py-1.5 rounded-full border border-green-200 shadow-sm transition-colors cursor-pointer text-xs font-bold">
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.553 4.184 1.594 6.02L.05 24l6.115-1.604A11.956 11.956 0 0012.031 24c6.646 0 12.031-5.385 12.031-12.031C24.062 5.385 18.677 0 12.031 0zm0 22.012a9.98 9.98 0 01-5.1-1.393l-.365-.217-3.791.993.993-3.791-.217-.365A9.972 9.972 0 012.019 12.03c0-5.526 4.492-10.018 10.012-10.018s10.012 4.492 10.012 10.018c0 5.526-4.492 10.012-10.012 10.012zm5.496-7.514c-.301-.151-1.782-.88-2.058-.98-.276-.101-.477-.151-.678.151-.201.301-.778.98-.954 1.181-.176.201-.352.226-.653.075-1.428-.713-2.584-1.928-3.23-3.35-.101-.201-.01-.301.14-.452.126-.126.301-.352.452-.528.151-.176.201-.301.301-.502.101-.201.05-.377-.025-.528-.075-.151-.678-1.631-.928-2.234-.251-.603-.502-.528-.678-.528-.176 0-.377-.01-.578-.01-.201 0-.528.075-.803.377-.276.301-1.054 1.03-1.054 2.51 0 1.48 1.079 2.912 1.23 3.113.151.201 2.133 3.263 5.17 4.568 1.958.841 2.684.904 3.588.753.904-.151 2.861-1.168 3.263-2.302.402-1.134.402-2.108.276-2.309-.125-.201-.452-.301-.753-.452z"/></svg>
-                WhatsApp
-              </a>
-            )}
-
-            {/* Instagram */}
-            {sellerData?.instagramUrl && (
-              <a href={`https://instagram.com/${sellerData.instagramUrl.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 bg-pink-50 hover:bg-pink-100 text-pink-600 px-3 py-1.5 rounded-full border border-pink-200 shadow-sm transition-colors cursor-pointer text-xs font-bold">
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" clipRule="evenodd" /></svg>
-                Instagram
-              </a>
+              return contact.href ? (
+                <a key={contact.id} href={contact.href} target="_blank" rel="noopener noreferrer" className={baseClass}>
+                  {content}
+                </a>
+              ) : (
+                <button key={contact.id} type="button" onClick={contact.onClick || contactSeller} className={baseClass}>
+                  {content}
+                </button>
+              );
+            }) : (
+              <span className="rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs font-bold text-slate-500 shadow-sm">
+                Sin contacto público
+              </span>
             )}
           </div>
 
@@ -502,6 +704,7 @@ function PublicCatalog() {
             <span>Ver catálogo completo del vendedor</span>
             <span translate="no" className="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
           </Link>
+        </div>
         </div>
       </div>
 
@@ -541,97 +744,136 @@ function PublicCatalog() {
           <span translate="no" className="material-symbols-outlined text-[25px] md:text-[27px]">arrow_upward</span>
         </button>
       </div>
-        <div className="w-full overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x md:border-b border-gray-300 flex flex-col relative z-10 min-h-[calc(100vh-200px)] bg-[#DBEAFE]">
-          <main className="flex-1 text-gray-900 px-4 sm:px-8 py-8 flex flex-col relative z-20">
-            <div className="bg-white p-3 md:p-4 rounded-2xl border border-gray-200 shadow-sm mb-6">
-          <form onSubmit={(event) => event.preventDefault()} className="flex flex-col gap-2">
-            <div className="grid grid-cols-[1fr_auto] gap-2 md:flex md:flex-row">
-              <div className="flex-1 relative">
-                <span translate="no" className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">search</span>
-                <input 
-                  type="text" 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar nombre de carta o número..."
-                  className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] transition-all text-xs font-medium md:rounded-xl md:pl-11 md:pr-4 md:py-2.5 md:text-sm"
-                />
-              </div>
-              <button type="button" onClick={() => setSearchQuery(searchQuery.trim())} className="bg-[#1e40af] hover:bg-blue-800 text-white font-bold px-3 py-2 rounded-lg transition-all shadow-sm hover:shadow flex items-center justify-center gap-1.5 flex-shrink-0 md:w-auto md:rounded-xl md:px-8 md:py-2.5 text-xs md:text-sm">
-                <span translate="no" className="material-symbols-outlined text-[17px] md:text-[18px]">search</span>
-                <span className="hidden min-[360px]:inline">Aplicar</span>
-              </button>
-            </div>
-            
-            <PublicCatalogFilters
-              tcg={folderData?.tcg}
-              cards={cards}
-              counts={counts}
-              selectedSupertype={selectedSupertype}
-              onSupertypeChange={setSelectedSupertype}
-              selectedType={selectedType}
-              onTypeChange={setSelectedType}
-              searchSet={searchSet}
-              setSearchSet={setSearchSet}
-              availableSets={availableSets}
-              isSetDropdownOpen={isSetDropdownOpen}
-              setIsSetDropdownOpen={setIsSetDropdownOpen}
-              mylType={mylType}
-              setMylType={setMylType}
-              mylRace={mylRace}
-              setMylRace={setMylRace}
-              mylCost={mylCost}
-              setMylCost={setMylCost}
-              mylFilterOptions={mylFilterOptions}
-            />
-          </form>
-        </div>
+        <div className="relative z-10 flex min-h-[calc(100vh-230px)] w-full flex-col overflow-hidden rounded-[2rem] border border-white/70 bg-[#DBEAFE]/95 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)]">
+          <main className="relative z-20 flex flex-1 flex-col px-4 py-5 text-gray-900 sm:px-6 md:px-8 md:py-8">
+            <div className="mb-5 rounded-[1.5rem] border border-white/80 bg-white/95 p-3 shadow-sm md:p-4">
+              <form onSubmit={(event) => event.preventDefault()} className="flex flex-col gap-3">
+                <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+                  <div className="relative">
+                    <span translate="no" className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">search</span>
+                    <input 
+                      type="text" 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Buscar carta..."
+                      className="h-11 w-full rounded-xl border border-gray-300 bg-gray-50 pl-11 pr-3 text-sm font-medium text-gray-900 transition-all focus:border-[#1e40af] focus:outline-none focus:ring-1 focus:ring-[#1e40af]"
+                    />
+                  </div>
+                  <div className="flex items-center rounded-xl bg-blue-50 p-1 shadow-inner">
+                    <button 
+                      type="button"
+                      onClick={() => setViewMode('album')} 
+                      className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-bold transition-all ${viewMode === 'album' ? 'bg-white text-[#1e40af] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      <span translate="no" className="material-symbols-outlined text-[18px]">auto_stories</span> Álbum
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setViewMode('grid')} 
+                      className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-bold transition-all ${viewMode === 'grid' ? 'bg-white text-[#1e40af] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      <span translate="no" className="material-symbols-outlined text-[18px]">grid_view</span> Cuadrícula
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(460px,auto)] xl:items-end">
+                  <PublicCatalogFilters
+                    tcg={folderData?.tcg}
+                    cards={cards}
+                    counts={counts}
+                    selectedSupertype={selectedSupertype}
+                    onSupertypeChange={setSelectedSupertype}
+                    selectedType={selectedType}
+                    onTypeChange={setSelectedType}
+                    searchSet={searchSet}
+                    setSearchSet={setSearchSet}
+                    availableSets={availableSets}
+                    isSetDropdownOpen={isSetDropdownOpen}
+                    setIsSetDropdownOpen={setIsSetDropdownOpen}
+                    mylType={mylType}
+                    setMylType={setMylType}
+                    mylRace={mylRace}
+                    setMylRace={setMylRace}
+                    mylCost={mylCost}
+                    setMylCost={setMylCost}
+                    mylFilterOptions={mylFilterOptions}
+                  />
 
-          {filteredCards.length > 0 && (
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-blue-100 bg-white/80 px-4 py-3 text-sm shadow-sm">
-              <p className="font-bold text-[#1a2b4b]">
-                {filteredCards.length} carta{filteredCards.length === 1 ? '' : 's'} disponible{filteredCards.length === 1 ? '' : 's'}
-              </p>
-              <p className="text-xs font-semibold text-gray-500">
-                {cartItemsCount > 0 ? `${cartItemsCount} en el carrito · ${formatCLP(cartTotal)}` : 'Selecciona cartas para armar tu pedido'}
-              </p>
-            </div>
-          )}
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <label className="flex flex-col gap-1 text-[11px] font-black text-slate-500">
+                      Ordenar
+                      <select
+                        value={sortBy}
+                        onChange={(event) => setSortBy(event.target.value)}
+                        className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-[#1a2b4b] outline-none transition focus:border-[#1e40af] focus:ring-2 focus:ring-blue-100"
+                      >
+                        <option value="featured">Orden carpeta</option>
+                        <option value="price_asc">Precio ↑</option>
+                        <option value="price_desc">Precio ↓</option>
+                        <option value="stock_desc">Más stock</option>
+                        <option value="stock_asc">Menos stock</option>
+                        <option value="rarity_desc">Rareza</option>
+                        <option value="set_asc">Edición A-Z</option>
+                      </select>
+                    </label>
+                    <label className="flex flex-col gap-1 text-[11px] font-black text-slate-500">
+                      Rareza
+                      <select
+                        value={quickRarity}
+                        onChange={(event) => setQuickRarity(event.target.value)}
+                        className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-[#1a2b4b] outline-none transition focus:border-[#1e40af] focus:ring-2 focus:ring-blue-100"
+                      >
+                        <option value="">Todas</option>
+                        {availableRarities.map(rarity => (
+                          <option key={rarity} value={rarity}>{rarity}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setOnlyAvailable(value => !value)}
+                      className={`mt-auto flex h-10 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-black transition-all ${
+                        onlyAvailable
+                          ? 'border-emerald-300 bg-emerald-50 text-emerald-700 shadow-sm'
+                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:text-[#1e40af]'
+                      }`}
+                    >
+                      <span translate="no" className="material-symbols-outlined text-[18px]">{onlyAvailable ? 'visibility' : 'visibility_off'}</span>
+                      Disponibles
+                    </button>
+                  </div>
+                </div>
 
-          {/* View Toggle */}
-          <div className="flex justify-end mb-4 border-b border-gray-100 pb-4">
-            <div className="bg-gray-100 p-1 rounded-xl flex items-center shadow-inner">
-              <button 
-                onClick={() => setViewMode('album')} 
-                className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${viewMode === 'album' ? 'bg-white text-[#1e40af] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                <span translate="no" className="material-symbols-outlined text-lg">auto_stories</span> Álbum
-              </button>
-              <button 
-                onClick={() => setViewMode('grid')} 
-                className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${viewMode === 'grid' ? 'bg-white text-[#1e40af] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                <span translate="no" className="material-symbols-outlined text-lg">grid_view</span> Cuadrícula
-              </button>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2 text-xs font-bold text-slate-500">
+                  <span><strong className="text-[#1a2b4b]">{sortedCards.length}</strong> carta{sortedCards.length === 1 ? '' : 's'} en esta vista</span>
+                  <span>{cartItemsCount > 0 ? `${cartItemsCount} en el carrito · ${formatCLP(cartTotal)}` : 'Filtra, ordena y agrega al pedido sin salir de la carpeta'}</span>
+                </div>
+              </form>
             </div>
-          </div>
 
-          {filteredCards.length === 0 ? (
+          {sortedCards.length === 0 ? (
             <div className="py-12 text-center text-gray-500 flex flex-col items-center">
                 <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-30">inventory_2</span>
                 <p>Este catálogo aún no tiene cartas o no coinciden con tu búsqueda.</p>
             </div>
           ) : viewMode === 'album' ? (
-            <AlbumView tcg={folderData?.tcg} cards={filteredCards} 
+            <AlbumView tcg={folderData?.tcg} cards={sortedCards} 
               binderColor={folderData?.color || '#2f7336'}
+              renderCardOverlays={(card) => Number(card.stock || 0) <= 0 ? (
+                <div className="absolute inset-0 flex items-center justify-center rounded-[4%] bg-transparent">
+                  <span className="relative rounded-full bg-slate-950/85 px-3 py-1 text-[10px] font-black text-white shadow-lg ring-2 ring-white/70 md:text-xs">Sin stock</span>
+                </div>
+              ) : null}
               renderCardActions={(card) => {
                 const cartItem = cart.find(i => i.id === card.id);
-                const availableStock = card.stock - (cartItem ? cartItem.quantity : 0);
+                const availableStock = Number(card.stock || 0) - (cartItem ? cartItem.quantity : 0);
                 return (
                   <div className="flex items-center gap-1 w-full mt-2" onClick={(e) => e.stopPropagation()}>
                     {cartItem ? (
                       <div className="flex items-center justify-between w-full bg-slate-100 rounded-md p-1 border border-slate-200">
                         <button 
-                          onClick={() => decrementCart(card)}
+                          onClick={() => decrementCart(card.id)}
                           className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-slate-700 hover:bg-slate-50 transition-colors"
                         >
                           <span translate="no" className="material-symbols-outlined text-[16px]">remove</span>
@@ -661,9 +903,9 @@ function PublicCatalog() {
             />
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {filteredCards.map(card => {
+            {sortedCards.map(card => {
               const cartItem = cart.find(i => i.id === card.id);
-              const availableStock = card.stock - (cartItem ? cartItem.quantity : 0);
+              const availableStock = Number(card.stock || 0) - (cartItem ? cartItem.quantity : 0);
               return (
                 <PokemonCard 
                   key={card.id} 

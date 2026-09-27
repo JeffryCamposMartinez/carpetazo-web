@@ -614,14 +614,14 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                       </span>
                       <span className="flex items-center gap-1 rounded-xl border border-slate-700 bg-slate-800/90 px-2.5 py-1.5 text-[10.5px] font-bold leading-none text-white shadow-md">
                         <span translate="no" className="material-symbols-outlined text-[14px]">inventory_2</span>
-                        x{previewCard.stock || 0}
+                        {Number(previewCard.stock || 0) <= 0 ? 'Sin stock' : `x${previewCard.stock || 0}`}
                       </span>
                     </div>
                   </div>
                   <img 
                     src={previewCard.imageUrl} 
                     alt={previewCard.name} 
-                    className="max-h-full md:max-h-[92%] max-w-[69%] md:max-w-full object-contain rounded-xl md:rounded-2xl shadow-[0_14px_32px_rgba(0,0,0,0.7)] md:shadow-[0_18px_45px_rgba(0,0,0,0.78)] relative z-20 -translate-x-[52%] md:translate-x-0"
+                    className={`max-h-full md:max-h-[92%] max-w-[69%] md:max-w-full object-contain rounded-xl md:rounded-2xl shadow-[0_14px_32px_rgba(0,0,0,0.7)] md:shadow-[0_18px_45px_rgba(0,0,0,0.78)] relative z-20 -translate-x-[52%] md:translate-x-0 ${Number(previewCard.stock || 0) <= 0 ? 'grayscale opacity-60' : ''}`}
                   />
                 </div>
 
@@ -655,7 +655,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                       </span>
                       <span className="bg-slate-800/90 border border-slate-700 px-2.5 py-1.5 md:px-3.5 md:py-2.5 rounded-xl text-white font-bold text-[11px] md:text-sm flex items-center gap-1.5 leading-none shadow-md">
                           <span translate="no" className="material-symbols-outlined text-[14px] md:text-xl">inventory_2</span>
-                          x{previewCard.stock || 0} Disponibles
+                          {Number(previewCard.stock || 0) <= 0 ? 'Sin stock' : `x${previewCard.stock || 0} Disponibles`}
                       </span>
                     </div>
 
@@ -988,7 +988,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                             src={card.imageUrl}
                             alt={card.name}
                             loading="lazy"
-                            className="max-w-full max-h-full object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] rounded-[4%]"
+                            className={`max-w-full max-h-full object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] rounded-[4%] ${Number(card.stock || 0) <= 0 ? 'grayscale opacity-60' : ''}`}
                           />
                           
                           <div className="absolute top-1 right-1 md:top-1.5 md:right-1.5 z-[120] flex min-w-8 items-center justify-center rounded-full border border-white/20 bg-slate-950/85 px-2 py-0.5 text-[10px] md:text-xs font-black leading-none text-white shadow-lg backdrop-blur-sm pointer-events-none">
