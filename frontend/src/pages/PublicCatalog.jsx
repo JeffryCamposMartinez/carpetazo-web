@@ -44,15 +44,9 @@ const ContactIcon = ({ type, className = 'h-4 w-4' }) => {
   if (type === 'instagram') {
     return (
       <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
-        <defs>
-          <linearGradient id="catalog-ig-gradient" x1="0" x2="1" y1="1" y2="0">
-            <stop offset="0" stopColor="#f58529" />
-            <stop offset="0.35" stopColor="#dd2a7b" />
-            <stop offset="0.7" stopColor="#8134af" />
-            <stop offset="1" stopColor="#515bd4" />
-          </linearGradient>
-        </defs>
-        <rect width="28" height="28" x="2" y="2" rx="8" fill="url(#catalog-ig-gradient)" />
+        <rect width="28" height="28" x="2" y="2" rx="8" fill="#E1306C" />
+        <path fill="#FCAF45" d="M3.8 10.5A8.5 8.5 0 0 1 10.5 3.8h11A8.5 8.5 0 0 1 28.2 10.5v1.2C23.6 8.3 16.4 8.1 3.8 17v-6.5Z" opacity="0.8" />
+        <path fill="#833AB4" d="M3.8 17c7.4-4.6 17.8-5.2 24.4-1.4v5.9a8.5 8.5 0 0 1-8.5 8.5h-7.2A8.5 8.5 0 0 1 4 21.5L3.8 17Z" opacity="0.85" />
         <circle cx="16" cy="16" r="6" fill="none" stroke="#fff" strokeWidth="2.4" />
         <circle cx="23" cy="9" r="1.8" fill="#fff" />
       </svg>
@@ -111,6 +105,7 @@ function PublicCatalog() {
   const [mylRace, setMylRace] = useState('');
   const [mylCost, setMylCost] = useState('');
   const [mylFilterOptions, setMylFilterOptions] = useState({ types: [], races: [], costs: [], rarities: [] });
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   
   const [appliedFilters, setAppliedFilters] = useState({
     query: '', set: '', supertype: '', type: '', mylType: '', mylRace: '', mylCost: ''
@@ -567,9 +562,9 @@ function PublicCatalog() {
 
   return (
     <>
-      <div className="w-full max-w-[1470px] mx-auto px-4 py-6 sm:px-6 lg:px-8">
+      <div className="w-full max-w-[1470px] mx-auto px-3 py-3 sm:px-6 sm:py-6 lg:px-8">
       {/* Seller info banner */}
-      <div className="relative mb-5 overflow-hidden rounded-[2rem] border border-white/70 bg-white shadow-[0_22px_55px_-32px_rgba(15,23,42,0.65)]">
+      <div className="relative mb-3 overflow-hidden rounded-[1.6rem] border border-white/70 bg-white shadow-[0_22px_55px_-32px_rgba(15,23,42,0.65)] md:mb-5 md:rounded-[2rem]">
         
         {/* Background Image with 100% Opacity */}
         {sellerData?.bannerBase64 && (
@@ -586,18 +581,18 @@ function PublicCatalog() {
         <div className="absolute inset-0 z-[1] bg-gradient-to-br from-white/95 via-white/90 to-blue-50/95" />
         {sellerData?.bannerBase64 && <div className="absolute inset-0 z-[2] bg-gradient-to-r from-white/95 via-white/80 to-white/55" />}
 
-        <div className="relative z-10 grid gap-5 p-5 md:grid-cols-[minmax(520px,1fr)_minmax(360px,0.75fr)] md:items-center md:p-7 lg:p-8">
-        <div className="flex flex-col gap-5 md:flex-row md:items-center">
+        <div className="relative z-10 grid gap-3 p-3 md:grid-cols-[minmax(520px,1fr)_minmax(360px,0.75fr)] md:items-center md:gap-5 md:p-7 lg:p-8">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-5">
           {/* Compact card with avatar inside */}
           <div
-            className={"flex w-full items-center gap-5 rounded-[1.75rem] border p-5 transition-all md:min-h-[132px] " +
+            className={"flex w-full items-center gap-3 rounded-[1.35rem] border p-3 transition-all md:min-h-[170px] md:gap-7 md:rounded-[1.75rem] md:p-6 " +
               (sellerData?.bannerBase64 
                 ? "bg-white/80 backdrop-blur-md shadow-xl border-white/70" 
                 : "bg-slate-50 border-slate-200")}
             style={sellerData?.bannerComplementaryColor ? { borderColor: sellerData.bannerComplementaryColor } : {}}
           >
             {/* Avatar inside card */}
-            <Link to={`/${sellerData?.username || folderData.userId}`} className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-full border-4 border-white bg-white shadow-xl transition-transform hover:scale-105 md:h-24 md:w-24">
+            <Link to={`/${sellerData?.username || folderData.userId}`} className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-full border-[3px] border-white bg-white shadow-lg transition-transform hover:scale-105 md:h-32 md:w-32 md:border-4 md:shadow-xl lg:h-36 lg:w-36">
               {(sellerData?.avatarBase64 || sellerData?.photoURL) ? (
                 <img src={sellerData?.avatarBase64 || sellerData?.photoURL} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
@@ -610,16 +605,16 @@ function PublicCatalog() {
             {/* Text info next to avatar */}
             <div className="flex flex-col text-left flex-1 min-w-0">
               <div className="flex items-center gap-1 flex-wrap">
-                <span className="text-xl font-black leading-tight text-[#1a2b4b] md:text-2xl">
+                <span className="text-lg font-black leading-tight text-[#1a2b4b] md:text-2xl">
                   {sellerData?.displayName || 'Vendedor Anónimo'}
                 </span>
                 {(sellerData?.isVerified || true) && (
                   <span translate="no" className="material-symbols-outlined text-[#3b82f6] text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }} title="Vendedor Verificado">verified</span>
                 )}
               </div>
-              {sellerData?.fullName && <p className="truncate text-sm font-semibold text-gray-500">{sellerData.fullName}</p>}
+              {sellerData?.fullName && <p className="truncate text-xs font-semibold text-gray-500 md:text-sm">{sellerData.fullName}</p>}
               
-              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              <div className="mt-0.5 flex flex-wrap items-center gap-1 md:gap-1.5">
                 {(sellerData?.totalTrades > 0) ? (
                   <>
                     <div className="flex items-center gap-0.5 bg-white/60 px-1.5 py-0.5 rounded-md border border-yellow-300">
@@ -629,28 +624,54 @@ function PublicCatalog() {
                     <span className="text-gray-500 text-[10px] font-semibold">{sellerData?.totalTrades} reseñas</span>
                   </>
                 ) : (
-                  <span className="rounded-full border border-gray-200 bg-white/70 px-3 py-1 text-xs font-bold text-gray-500">Nuevo Vendedor</span>
+                  <span className="rounded-full border border-gray-200 bg-white/70 px-2.5 py-0.5 text-[11px] font-bold text-gray-500 md:px-3 md:py-1 md:text-xs">Nuevo Vendedor</span>
                 )}
               </div>
               {sellerData?.bio && (
-                <p className="mt-2 line-clamp-2 border-l-2 border-primary/40 pl-3 text-sm italic text-gray-600">"{sellerData.bio}"</p>
+                <p className="mt-1 line-clamp-1 border-l-2 border-primary/40 pl-2 text-xs italic text-gray-600 md:mt-2 md:line-clamp-2 md:pl-3 md:text-sm">"{sellerData.bio}"</p>
               )}
             </div>
           </div>
         </div>
 
         {/* Folder Title and Buttons Row */}
-        <div className="relative z-10 flex w-full flex-col items-start gap-3 md:items-end">
-          <h1 className="max-w-full text-3xl font-black leading-tight tracking-[-0.04em] text-[#1a2b4b] md:text-4xl">
+        <div className="relative z-10 flex w-full flex-col items-start gap-2 md:items-end md:gap-3">
+          {visibleContactOptions.filter(contact => contact.id !== 'message').length > 0 && (
+            <div className="absolute right-1 top-[-1.35rem] z-20 flex items-center gap-1.5 md:hidden">
+              {visibleContactOptions.filter(contact => contact.id !== 'message').map((contact) => {
+                const socialBubbleClass = {
+                  whatsapp: 'border-slate-950 bg-white text-green-600 ring-white hover:ring-green-300',
+                  instagram: 'border-slate-950 bg-white text-pink-600 ring-[#ffcb05] hover:ring-pink-300',
+                  facebook: 'border-slate-950 bg-white text-blue-600 ring-blue-200 hover:ring-blue-300',
+                  youtube: 'border-slate-950 bg-white text-red-600 ring-red-200 hover:ring-red-300',
+                }[contact.id] || 'border-slate-950 bg-white text-[#1a2b4b] ring-white hover:ring-[#ffcb05]';
+                return (
+                  <a
+                    key={contact.id}
+                    href={contact.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={contact.label}
+                    title={contact.label}
+                    className={`flex h-9 w-9 items-center justify-center rounded-full border-2 p-0 shadow-[0_8px_16px_-10px_rgba(15,23,42,0.9)] ring-2 transition-all hover:-translate-y-0.5 hover:scale-105 hover:shadow-md ${socialBubbleClass}`}
+                  >
+                    <ContactIcon type={contact.id} className="h-5 w-5" />
+                  </a>
+                );
+              })}
+            </div>
+          )}
+
+          <h1 className="max-w-full text-2xl font-black leading-none tracking-[-0.04em] text-[#1a2b4b] md:text-4xl md:leading-tight">
             {folderData.name}
           </h1>
-          <div className="flex flex-wrap items-center gap-2 text-xs font-black text-slate-600 md:justify-end">
-            <span className="rounded-full border border-blue-100 bg-white/95 px-3 py-1.5 text-[#1a2b4b] shadow-sm">{cards.length} cartas</span>
-            <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-emerald-700 shadow-sm">{availableCardsCount} con stock</span>
-            <span className="rounded-full border border-yellow-100 bg-yellow-50 px-3 py-1.5 text-[#1a2b4b] shadow-sm">{totalStock} copias</span>
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-black text-slate-600 md:justify-end md:gap-2 md:text-xs">
+            <span className="rounded-full border border-blue-100 bg-white/95 px-2.5 py-1 text-[#1a2b4b] shadow-sm md:px-3 md:py-1.5">{cards.length} cartas</span>
+            <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-emerald-700 shadow-sm md:px-3 md:py-1.5">{availableCardsCount} con stock</span>
+            <span className="rounded-full border border-yellow-100 bg-yellow-50 px-2.5 py-1 text-[#1a2b4b] shadow-sm md:px-3 md:py-1.5">{totalStock} copias</span>
           </div>
           
-          <div className="flex flex-wrap items-center gap-2 md:justify-end">
+          <div className="flex flex-wrap items-center gap-1.5 md:justify-end md:gap-2">
             {/* Location (City/Region only) */}
             {(() => {
               const defaultAddress = sellerData?.addresses?.find(a => a.isDefault) || sellerData?.addresses?.[0];
@@ -675,34 +696,53 @@ function PublicCatalog() {
               return null;
             })()}
 
-            {visibleContactOptions.length > 0 ? visibleContactOptions.map((contact, index) => {
-              const baseClass = `flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black shadow-sm ring-1 transition-all hover:-translate-y-0.5 hover:shadow-md ${contact.className || 'bg-white text-[#1a2b4b] ring-slate-200'}`;
+            {visibleContactOptions.filter(contact => contact.id === 'message').length > 0 ? visibleContactOptions.filter(contact => contact.id === 'message').map((contact) => {
+              const baseClass = `flex h-8 items-center gap-1.5 rounded-full px-3 text-[11px] font-black shadow-sm ring-1 transition-all hover:-translate-y-0.5 hover:shadow-md md:h-10 md:w-10 md:justify-center md:gap-0 md:border-2 md:border-slate-950 md:bg-white md:p-0 md:text-[#1a2b4b] md:ring-2 md:ring-white md:hover:ring-blue-200 ${contact.className || 'bg-white text-[#1a2b4b] ring-slate-200'}`;
               const content = (
                 <>
                   <ContactIcon type={contact.id} className="h-4 w-4" />
-                  <span>{index === 0 && contact.id === 'message' ? 'Contactar vendedor' : contact.label}</span>
+                  <span className="md:sr-only">Contactar vendedor</span>
                 </>
               );
 
-              return contact.href ? (
-                <a key={contact.id} href={contact.href} target="_blank" rel="noopener noreferrer" className={baseClass}>
-                  {content}
-                </a>
-              ) : (
+              return (
                 <button key={contact.id} type="button" onClick={contact.onClick || contactSeller} className={baseClass}>
                   {content}
                 </button>
               );
-            }) : (
+            }) : visibleContactOptions.length === 0 ? (
               <span className="rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs font-bold text-slate-500 shadow-sm">
                 Sin contacto público
               </span>
-            )}
+            ) : null}
+
+            {visibleContactOptions.filter(contact => contact.id !== 'message').map((contact) => {
+              const socialBubbleClass = {
+                whatsapp: 'border-slate-950 bg-white text-green-600 ring-white hover:ring-green-300',
+                instagram: 'border-slate-950 bg-white text-pink-600 ring-[#ffcb05] hover:ring-pink-300',
+                facebook: 'border-slate-950 bg-white text-blue-600 ring-blue-200 hover:ring-blue-300',
+                youtube: 'border-slate-950 bg-white text-red-600 ring-red-200 hover:ring-red-300',
+              }[contact.id] || 'border-slate-950 bg-white text-[#1a2b4b] ring-white hover:ring-[#ffcb05]';
+              return (
+                <a
+                  key={`desktop-${contact.id}`}
+                  href={contact.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={contact.label}
+                  title={contact.label}
+                  className={`hidden h-10 w-10 items-center justify-center rounded-full border-2 p-0 shadow-[0_8px_16px_-10px_rgba(15,23,42,0.9)] ring-2 transition-all hover:-translate-y-0.5 hover:scale-105 hover:shadow-md md:flex ${socialBubbleClass}`}
+                >
+                  <ContactIcon type={contact.id} className="h-5 w-5" />
+                </a>
+              );
+            })}
           </div>
 
-          <Link to={`/${sellerData?.username || folderData.userId}`} className="flex items-center gap-1.5 text-xs font-bold text-[#1e40af] hover:text-blue-800 transition-colors group mt-2 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-gray-200 shadow-sm">
-            <span>Ver catálogo completo del vendedor</span>
-            <span translate="no" className="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+          <Link to={`/${sellerData?.username || folderData.userId}`} className="group mt-0 flex items-center gap-1.5 rounded-full border border-[#ffcb05]/70 bg-gradient-to-r from-[#ffcb05] via-yellow-300 to-white px-3.5 py-2 text-[11px] font-black text-[#08204a] shadow-[0_10px_24px_-16px_rgba(30,64,175,0.8)] transition-all hover:-translate-y-0.5 hover:shadow-lg md:mt-2 md:px-4 md:text-xs">
+            <span translate="no" className="material-symbols-outlined text-[16px]">storefront</span>
+            <span>Ver más del vendedor</span>
+            <span translate="no" className="material-symbols-outlined text-[16px] transition-transform group-hover:translate-x-1">arrow_forward</span>
           </Link>
         </div>
         </div>
@@ -744,10 +784,109 @@ function PublicCatalog() {
           <span translate="no" className="material-symbols-outlined text-[25px] md:text-[27px]">arrow_upward</span>
         </button>
       </div>
-        <div className="relative z-10 flex min-h-[calc(100vh-230px)] w-full flex-col overflow-hidden rounded-[2rem] border border-white/70 bg-[#DBEAFE]/95 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)]">
-          <main className="relative z-20 flex flex-1 flex-col px-4 py-5 text-gray-900 sm:px-6 md:px-8 md:py-8">
-            <div className="mb-5 rounded-[1.5rem] border border-white/80 bg-white/95 p-3 shadow-sm md:p-4">
-              <form onSubmit={(event) => event.preventDefault()} className="flex flex-col gap-3">
+
+      <aside className="fixed right-5 top-[220px] z-20 hidden w-[218px] min-[1800px]:block">
+        <div className="relative overflow-hidden rounded-[1.7rem] border border-white/20 bg-[#071a3a]/70 p-3 text-white shadow-[0_30px_85px_-35px_rgba(0,0,0,0.95)] ring-1 ring-white/10 backdrop-blur-2xl">
+          <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-[#ffcb05] to-transparent" />
+          <div className="pointer-events-none absolute -left-14 -top-16 h-32 w-32 rounded-full bg-[#ffcb05]/18 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-20 -right-16 h-40 w-40 rounded-full bg-[#38bdf8]/18 blur-3xl" />
+
+          <div className="relative mb-3 flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/12 text-[#ffcb05] shadow-inner ring-1 ring-white/15">
+                <span translate="no" className="material-symbols-outlined text-[21px]">tune</span>
+              </span>
+              <div>
+                <p className="text-sm font-black leading-tight">Filtros</p>
+                <p className="text-[10px] font-bold text-white/60">{sortedCards.length} en vista</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/12 text-white shadow-inner ring-1 ring-white/15 transition hover:-translate-y-0.5 hover:bg-[#ffcb05] hover:text-[#061734]"
+              title="Limpiar filtros"
+              aria-label="Limpiar filtros"
+            >
+              <span translate="no" className="material-symbols-outlined text-[20px]">filter_alt_off</span>
+            </button>
+          </div>
+
+          <div className="relative flex flex-col gap-2">
+            <PublicCatalogFilters
+              variant="sidebar"
+              tcg={folderData?.tcg}
+              cards={cards}
+              counts={counts}
+              selectedSupertype={selectedSupertype}
+              onSupertypeChange={setSelectedSupertype}
+              selectedType={selectedType}
+              onTypeChange={setSelectedType}
+              searchSet={searchSet}
+              setSearchSet={setSearchSet}
+              availableSets={availableSets}
+              isSetDropdownOpen={isSetDropdownOpen}
+              setIsSetDropdownOpen={setIsSetDropdownOpen}
+              mylType={mylType}
+              setMylType={setMylType}
+              mylRace={mylRace}
+              setMylRace={setMylRace}
+              mylCost={mylCost}
+              setMylCost={setMylCost}
+              mylFilterOptions={mylFilterOptions}
+            />
+
+            <label className="flex flex-col gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-white/55">
+              Ordenar
+              <select
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value)}
+                className="h-11 rounded-2xl border border-white/20 bg-white/90 px-3 text-[12px] font-black normal-case tracking-normal text-[#102142] shadow-[0_10px_22px_-18px_rgba(15,23,42,0.9)] outline-none transition hover:bg-white focus:border-[#ffcb05] focus:ring-2 focus:ring-[#ffcb05]/35"
+              >
+                <option value="featured">Orden carpeta</option>
+                <option value="price_asc">Precio ↑</option>
+                <option value="price_desc">Precio ↓</option>
+                <option value="stock_desc">Más stock</option>
+                <option value="stock_asc">Menos stock</option>
+                <option value="rarity_desc">Rareza</option>
+                <option value="set_asc">Edición A-Z</option>
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-white/55">
+              Rareza
+              <select
+                value={quickRarity}
+                onChange={(event) => setQuickRarity(event.target.value)}
+                className="h-11 rounded-2xl border border-white/20 bg-white/90 px-3 text-[12px] font-black normal-case tracking-normal text-[#102142] shadow-[0_10px_22px_-18px_rgba(15,23,42,0.9)] outline-none transition hover:bg-white focus:border-[#ffcb05] focus:ring-2 focus:ring-[#ffcb05]/35"
+              >
+                <option value="">Todas</option>
+                {availableRarities.map(rarity => (
+                  <option key={rarity} value={rarity}>{rarity}</option>
+                ))}
+              </select>
+            </label>
+
+            <button
+              type="button"
+              onClick={() => setOnlyAvailable(value => !value)}
+              className={`mt-1 flex h-11 items-center justify-center gap-2 rounded-2xl border px-3 text-sm font-black shadow-[0_14px_28px_-22px_rgba(0,0,0,0.9)] transition-all hover:-translate-y-0.5 ${
+                onlyAvailable
+                  ? 'border-emerald-300/70 bg-emerald-400/95 text-[#052e1c]'
+                  : 'border-white/20 bg-white/12 text-white hover:border-white/40 hover:bg-white/20'
+              }`}
+            >
+              <span translate="no" className="material-symbols-outlined text-[18px]">{onlyAvailable ? 'visibility' : 'visibility_off'}</span>
+              Disponibles
+            </button>
+          </div>
+        </div>
+      </aside>
+
+        <div className="relative z-10 flex min-h-[calc(100vh-230px)] w-full flex-col overflow-hidden rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] md:rounded-[2rem]">
+          <main className="relative z-20 flex flex-1 flex-col px-3 py-3 text-gray-900 sm:px-6 md:px-8 md:py-8">
+            <div className="mb-3 rounded-[1.35rem] border border-white/80 bg-white/95 p-2.5 shadow-sm md:mb-5 md:rounded-[1.5rem] md:p-4">
+              <form onSubmit={(event) => event.preventDefault()} className="flex flex-col gap-2 md:gap-3">
                 <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
                   <div className="relative">
                     <span translate="no" className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">search</span>
@@ -756,169 +895,187 @@ function PublicCatalog() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Buscar carta..."
-                      className="h-11 w-full rounded-xl border border-gray-300 bg-gray-50 pl-11 pr-3 text-sm font-medium text-gray-900 transition-all focus:border-[#1e40af] focus:outline-none focus:ring-1 focus:ring-[#1e40af]"
+                      className="h-10 w-full rounded-xl border border-gray-300 bg-gray-50 pl-11 pr-3 text-sm font-medium text-gray-900 transition-all focus:border-[#1e40af] focus:outline-none focus:ring-1 focus:ring-[#1e40af] md:h-11"
                     />
                   </div>
                   <div className="flex items-center rounded-xl bg-blue-50 p-1 shadow-inner">
                     <button 
                       type="button"
                       onClick={() => setViewMode('album')} 
-                      className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-bold transition-all ${viewMode === 'album' ? 'bg-white text-[#1e40af] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      className={`flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-bold transition-all md:h-9 md:flex-none ${viewMode === 'album' ? 'bg-white text-[#1e40af] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                       <span translate="no" className="material-symbols-outlined text-[18px]">auto_stories</span> Álbum
                     </button>
                     <button 
                       type="button"
                       onClick={() => setViewMode('grid')} 
-                      className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-bold transition-all ${viewMode === 'grid' ? 'bg-white text-[#1e40af] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      className={`flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-bold transition-all md:h-9 md:flex-none ${viewMode === 'grid' ? 'bg-white text-[#1e40af] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                       <span translate="no" className="material-symbols-outlined text-[18px]">grid_view</span> Cuadrícula
                     </button>
                   </div>
                 </div>
                 
-                <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(460px,auto)] xl:items-end">
-                  <PublicCatalogFilters
-                    tcg={folderData?.tcg}
-                    cards={cards}
-                    counts={counts}
-                    selectedSupertype={selectedSupertype}
-                    onSupertypeChange={setSelectedSupertype}
-                    selectedType={selectedType}
-                    onTypeChange={setSelectedType}
-                    searchSet={searchSet}
-                    setSearchSet={setSearchSet}
-                    availableSets={availableSets}
-                    isSetDropdownOpen={isSetDropdownOpen}
-                    setIsSetDropdownOpen={setIsSetDropdownOpen}
-                    mylType={mylType}
-                    setMylType={setMylType}
-                    mylRace={mylRace}
-                    setMylRace={setMylRace}
-                    mylCost={mylCost}
-                    setMylCost={setMylCost}
-                    mylFilterOptions={mylFilterOptions}
-                  />
+                <div className="xl:hidden">
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileFiltersOpen(value => !value)}
+                    className={`flex h-10 w-full items-center justify-center gap-2 rounded-xl border px-4 text-sm font-black transition-all md:h-11 ${
+                      isMobileFiltersOpen
+                        ? 'border-[#1e40af] bg-[#1e40af] text-white shadow-md'
+                        : 'border-blue-100 bg-blue-50 text-[#1e40af] hover:bg-blue-100'
+                    }`}
+                    aria-expanded={isMobileFiltersOpen}
+                  >
+                    <span translate="no" className="material-symbols-outlined text-[20px]">
+                      {isMobileFiltersOpen ? 'filter_alt_off' : 'filter_alt'}
+                    </span>
+                    {isMobileFiltersOpen ? 'Ocultar filtros' : 'Ver filtros'}
+                  </button>
+                </div>
 
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                    <label className="flex flex-col gap-1 text-[11px] font-black text-slate-500">
-                      Ordenar
-                      <select
-                        value={sortBy}
-                        onChange={(event) => setSortBy(event.target.value)}
-                        className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-[#1a2b4b] outline-none transition focus:border-[#1e40af] focus:ring-2 focus:ring-blue-100"
+                {isMobileFiltersOpen && (
+                  <div className="grid gap-2 border-t border-slate-100 pt-3 xl:hidden">
+                    <PublicCatalogFilters
+                      tcg={folderData?.tcg}
+                      cards={cards}
+                      counts={counts}
+                      selectedSupertype={selectedSupertype}
+                      onSupertypeChange={setSelectedSupertype}
+                      selectedType={selectedType}
+                      onTypeChange={setSelectedType}
+                      searchSet={searchSet}
+                      setSearchSet={setSearchSet}
+                      availableSets={availableSets}
+                      isSetDropdownOpen={isSetDropdownOpen}
+                      setIsSetDropdownOpen={setIsSetDropdownOpen}
+                      mylType={mylType}
+                      setMylType={setMylType}
+                      mylRace={mylRace}
+                      setMylRace={setMylRace}
+                      mylCost={mylCost}
+                      setMylCost={setMylCost}
+                      mylFilterOptions={mylFilterOptions}
+                    />
+
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      <label className="flex flex-col gap-1 text-[11px] font-black text-slate-500">
+                        Ordenar
+                        <select
+                          value={sortBy}
+                          onChange={(event) => setSortBy(event.target.value)}
+                          className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-[#1a2b4b] outline-none transition focus:border-[#1e40af] focus:ring-2 focus:ring-blue-100"
+                        >
+                          <option value="featured">Orden carpeta</option>
+                          <option value="price_asc">Precio ↑</option>
+                          <option value="price_desc">Precio ↓</option>
+                          <option value="stock_desc">Más stock</option>
+                          <option value="stock_asc">Menos stock</option>
+                          <option value="rarity_desc">Rareza</option>
+                          <option value="set_asc">Edición A-Z</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-[11px] font-black text-slate-500">
+                        Rareza
+                        <select
+                          value={quickRarity}
+                          onChange={(event) => setQuickRarity(event.target.value)}
+                          className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-[#1a2b4b] outline-none transition focus:border-[#1e40af] focus:ring-2 focus:ring-blue-100"
+                        >
+                          <option value="">Todas</option>
+                          {availableRarities.map(rarity => (
+                            <option key={rarity} value={rarity}>{rarity}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setOnlyAvailable(value => !value)}
+                        className={`mt-auto flex h-10 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-black transition-all ${
+                          onlyAvailable
+                            ? 'border-emerald-300 bg-emerald-50 text-emerald-700 shadow-sm'
+                            : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:text-[#1e40af]'
+                        }`}
                       >
-                        <option value="featured">Orden carpeta</option>
-                        <option value="price_asc">Precio ↑</option>
-                        <option value="price_desc">Precio ↓</option>
-                        <option value="stock_desc">Más stock</option>
-                        <option value="stock_asc">Menos stock</option>
-                        <option value="rarity_desc">Rareza</option>
-                        <option value="set_asc">Edición A-Z</option>
-                      </select>
-                    </label>
-                    <label className="flex flex-col gap-1 text-[11px] font-black text-slate-500">
-                      Rareza
-                      <select
-                        value={quickRarity}
-                        onChange={(event) => setQuickRarity(event.target.value)}
-                        className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-[#1a2b4b] outline-none transition focus:border-[#1e40af] focus:ring-2 focus:ring-blue-100"
-                      >
-                        <option value="">Todas</option>
-                        {availableRarities.map(rarity => (
-                          <option key={rarity} value={rarity}>{rarity}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setOnlyAvailable(value => !value)}
-                      className={`mt-auto flex h-10 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-black transition-all ${
-                        onlyAvailable
-                          ? 'border-emerald-300 bg-emerald-50 text-emerald-700 shadow-sm'
-                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:text-[#1e40af]'
-                      }`}
-                    >
-                      <span translate="no" className="material-symbols-outlined text-[18px]">{onlyAvailable ? 'visibility' : 'visibility_off'}</span>
-                      Disponibles
-                    </button>
+                        <span translate="no" className="material-symbols-outlined text-[18px]">{onlyAvailable ? 'visibility' : 'visibility_off'}</span>
+                        Disponibles
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2 text-xs font-bold text-slate-500">
+                      <span><strong className="text-[#1a2b4b]">{sortedCards.length}</strong> carta{sortedCards.length === 1 ? '' : 's'} en esta vista</span>
+                      <span>{cartItemsCount > 0 ? `${cartItemsCount} en el carrito · ${formatCLP(cartTotal)}` : 'Filtra, ordena y agrega al pedido sin salir de la carpeta'}</span>
+                    </div>
                   </div>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2 text-xs font-bold text-slate-500">
-                  <span><strong className="text-[#1a2b4b]">{sortedCards.length}</strong> carta{sortedCards.length === 1 ? '' : 's'} en esta vista</span>
-                  <span>{cartItemsCount > 0 ? `${cartItemsCount} en el carrito · ${formatCLP(cartTotal)}` : 'Filtra, ordena y agrega al pedido sin salir de la carpeta'}</span>
-                </div>
+                )}
               </form>
             </div>
 
-          {sortedCards.length === 0 ? (
-            <div className="py-12 text-center text-gray-500 flex flex-col items-center">
-                <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-30">inventory_2</span>
-                <p>Este catálogo aún no tiene cartas o no coinciden con tu búsqueda.</p>
-            </div>
-          ) : viewMode === 'album' ? (
-            <AlbumView tcg={folderData?.tcg} cards={sortedCards} 
-              binderColor={folderData?.color || '#2f7336'}
-              renderCardOverlays={(card) => Number(card.stock || 0) <= 0 ? (
-                <div className="absolute inset-0 flex items-center justify-center rounded-[4%] bg-transparent">
-                  <span className="relative rounded-full bg-slate-950/85 px-3 py-1 text-[10px] font-black text-white shadow-lg ring-2 ring-white/70 md:text-xs">Sin stock</span>
-                </div>
-              ) : null}
-              renderCardActions={(card) => {
-                const cartItem = cart.find(i => i.id === card.id);
-                const availableStock = Number(card.stock || 0) - (cartItem ? cartItem.quantity : 0);
-                return (
-                  <div className="flex items-center gap-1 w-full mt-2" onClick={(e) => e.stopPropagation()}>
-                    {cartItem ? (
-                      <div className="flex items-center justify-between w-full bg-slate-100 rounded-md p-1 border border-slate-200">
-                        <button 
-                          onClick={() => decrementCart(card.id)}
-                          className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                        >
-                          <span translate="no" className="material-symbols-outlined text-[16px]">remove</span>
-                        </button>
-                        <span className="font-bold text-slate-800 text-xs px-2">{cartItem.quantity}</span>
-                        <button 
-                          onClick={() => addToCart(card)}
-                          disabled={availableStock <= 0}
-                          className="w-6 h-6 flex items-center justify-center bg-[#2563eb] rounded shadow-sm text-white hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors"
-                        >
-                          <span translate="no" className="material-symbols-outlined text-[16px]">add</span>
-                        </button>
+          <div className="min-w-0">
+              {sortedCards.length === 0 || viewMode === 'album' ? (
+                <AlbumView tcg={folderData?.tcg} cards={sortedCards} 
+                  binderColor={folderData?.color || '#2f7336'}
+                  emptyMessage="Carpeta vacía con estos filtros. No encontramos cartas que coincidan con tu búsqueda actual."
+                  renderCardOverlays={(card) => Number(card.stock || 0) <= 0 ? (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-[4%] bg-transparent">
+                      <span className="relative rounded-full bg-slate-950/85 px-3 py-1 text-[10px] font-black text-white shadow-lg ring-2 ring-white/70 md:text-xs">Sin stock</span>
+                    </div>
+                  ) : null}
+                  renderCardActions={(card) => {
+                    const cartItem = cart.find(i => i.id === card.id);
+                    const availableStock = Number(card.stock || 0) - (cartItem ? cartItem.quantity : 0);
+                    return (
+                      <div className="flex items-center gap-1 w-full mt-2" onClick={(e) => e.stopPropagation()}>
+                        {cartItem ? (
+                          <div className="flex items-center justify-between w-full bg-slate-100 rounded-md p-1 border border-slate-200">
+                            <button 
+                              onClick={() => decrementCart(card.id)}
+                              className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                            >
+                              <span translate="no" className="material-symbols-outlined text-[16px]">remove</span>
+                            </button>
+                            <span className="font-bold text-slate-800 text-xs px-2">{cartItem.quantity}</span>
+                            <button 
+                              onClick={() => addToCart(card)}
+                              disabled={availableStock <= 0}
+                              className="w-6 h-6 flex items-center justify-center bg-[#2563eb] rounded shadow-sm text-white hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors"
+                            >
+                              <span translate="no" className="material-symbols-outlined text-[16px]">add</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => addToCart(card)}
+                            disabled={availableStock <= 0}
+                            className="w-full flex items-center justify-center gap-1 bg-[#2563eb] hover:bg-[#1d4ed8] text-white py-1.5 rounded-md font-bold transition-all disabled:opacity-50 shadow-sm text-[10px]"
+                          >
+                            <span translate="no" className="material-symbols-outlined text-[14px]">shopping_cart</span>
+                            {availableStock <= 0 ? 'Agotado' : 'Agregar'}
+                          </button>
+                        )}
                       </div>
-                    ) : (
-                      <button 
-                        onClick={() => addToCart(card)}
-                        disabled={availableStock <= 0}
-                        className="w-full flex items-center justify-center gap-1 bg-[#2563eb] hover:bg-[#1d4ed8] text-white py-1.5 rounded-md font-bold transition-all disabled:opacity-50 shadow-sm text-[10px]"
-                      >
-                        <span translate="no" className="material-symbols-outlined text-[14px]">shopping_cart</span>
-                        {availableStock <= 0 ? 'Agotado' : 'Agregar'}
-                      </button>
-                    )}
-                  </div>
-                );
-              }}
-            />
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {sortedCards.map(card => {
-              const cartItem = cart.find(i => i.id === card.id);
-              const availableStock = Number(card.stock || 0) - (cartItem ? cartItem.quantity : 0);
-              return (
-                <PokemonCard 
-                  key={card.id} 
-                  card={card} 
-                  availableStock={availableStock}
-                  cartQuantity={cartItem ? cartItem.quantity : 0}
-                  onAddToCart={addToCart}
-                  onRemoveFromCart={() => decrementCart(card.id)}
+                    );
+                  }}
                 />
-              );
-            })}
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {sortedCards.map(card => {
+                  const cartItem = cart.find(i => i.id === card.id);
+                  const availableStock = Number(card.stock || 0) - (cartItem ? cartItem.quantity : 0);
+                  return (
+                    <PokemonCard 
+                      key={card.id} 
+                      card={card} 
+                      availableStock={availableStock}
+                      cartQuantity={cartItem ? cartItem.quantity : 0}
+                      onAddToCart={addToCart}
+                      onRemoveFromCart={() => decrementCart(card.id)}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
       </main>
         </div>
       </div>

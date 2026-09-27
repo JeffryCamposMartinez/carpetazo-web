@@ -1044,10 +1044,13 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                   
                   {/* Empty Message Overlay */}
                   {cards.length === 0 && emptyMessage && pageIndex === 0 && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-8 z-50">
-                       <div className="bg-[#1a1a1a]/80 backdrop-blur-md text-white p-6 rounded-2xl border border-white/10 shadow-2xl text-center max-w-[80%]">
-                         <span translate="no" className="material-symbols-outlined text-4xl md:text-5xl mb-2 opacity-50">search_off</span>
-                         <p className="font-medium text-sm md:text-lg">{emptyMessage}</p>
+                    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-5 md:p-8">
+                       <div className="max-w-[82%] rounded-[1.6rem] border border-yellow-300/30 bg-slate-950/80 p-5 text-center text-white shadow-2xl backdrop-blur-md md:p-7">
+                         <div className="mx-auto mb-3 flex h-16 w-20 items-center justify-center rounded-2xl border border-white/10 bg-white/10">
+                           <span translate="no" className="material-symbols-outlined text-4xl text-yellow-200/70 md:text-5xl">inventory_2</span>
+                         </div>
+                         <p className="text-base font-black leading-tight text-white md:text-xl">Carpeta vacía</p>
+                         <p className="mt-2 text-xs font-semibold leading-relaxed text-slate-300 md:text-sm">{emptyMessage}</p>
                        </div>
                     </div>
                   )}
