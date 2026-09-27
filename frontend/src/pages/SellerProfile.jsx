@@ -1304,7 +1304,7 @@ export default function SellerProfile() {
                   ['Carpetas públicas', folders.length, 'auto_stories'],
                   ['Cartas mostradas', totalCards, 'style']
                 ].map(([label, value, icon]) => (
-                  <div key={label} className={`group relative min-w-0 max-w-full overflow-visible rounded-2xl border bg-black/5 p-3 ${isNarrowStatsPanel ? 'flex flex-col items-start gap-2' : 'flex items-center gap-3'} ${label === 'Nivel de perfil' ? 'cursor-help hover:bg-black/10 transition-colors' : ''}`} style={{ borderColor: `${publicTheme.primary}22` }}>
+                  <div key={label} className={`group relative min-w-0 max-w-full rounded-2xl border bg-black/5 p-3 ${label === 'Nivel de perfil' ? 'overflow-visible cursor-help transition-colors hover:bg-black/10' : 'overflow-hidden'} ${isNarrowStatsPanel ? 'flex flex-col items-start gap-2' : 'flex items-center gap-2'}`} style={{ borderColor: `${publicTheme.primary}22` }}>
                     {label === 'Nivel de perfil' && (
                       <div className="pointer-events-none absolute left-0 bottom-full z-[9999] mb-2 w-64 rounded-xl p-3 opacity-0 shadow-2xl transition-opacity duration-200 group-hover:opacity-100" style={{ backgroundColor: publicTheme.card || '#ffffff', color: publicTheme.text, border: `1px solid ${publicTheme.primary}44`, boxShadow: '0 10px 40px -10px rgba(0,0,0,0.4)' }}>
                         <ul className="list-disc pl-4 text-[11px] font-bold normal-case tracking-normal opacity-90 space-y-1 text-left">
@@ -1314,10 +1314,10 @@ export default function SellerProfile() {
                         </ul>
                       </div>
                     )}
-                    <span translate="no" className="material-symbols-outlined shrink-0 rounded-xl p-2 text-[20px]" style={{ backgroundColor: `${publicTheme.accent}24`, color: publicTheme.primary }}>{icon}</span>
-                    <div className="min-w-0 max-w-full overflow-hidden" style={{ contain: 'paint' }}>
-                      <p className="max-w-full break-words text-[8px] font-black uppercase leading-tight tracking-normal text-slate-500 sm:text-[9px]" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{label}</p>
-                      <p className="block w-full max-w-full break-words text-[clamp(0.52rem,0.95vw,0.86rem)] font-black leading-[1.05] tracking-tight" style={{ color: publicTheme.text, overflow: 'hidden', overflowWrap: 'anywhere', wordBreak: 'break-word', hyphens: 'auto', contain: 'paint' }}>{value}</p>
+                    <span translate="no" className="material-symbols-outlined shrink-0 rounded-xl p-2 text-[clamp(1rem,1.1vw,1.25rem)]" style={{ backgroundColor: `${publicTheme.accent}24`, color: publicTheme.primary }}>{icon}</span>
+                    <div className="min-w-0 max-w-full flex-1 overflow-hidden" style={{ contain: 'inline-size' }}>
+                      <p className="block max-w-full truncate text-[clamp(0.45rem,0.62vw,0.68rem)] font-black uppercase leading-tight tracking-normal text-slate-500">{label}</p>
+                      <p className="block max-w-full truncate font-black leading-[1.05] tracking-[-0.04em]" style={{ color: publicTheme.text, fontSize: 'clamp(0.58rem, 0.78vw, 1rem)' }} title={String(value)}>{value}</p>
                     </div>
                   </div>
                 ))}

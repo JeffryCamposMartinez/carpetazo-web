@@ -1128,7 +1128,7 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
       return res.status(400).json({ success: false, message: 'No se envió ninguna imagen.' });
     }
 
-    const type = req.body.type; // 'avatar' or 'banner'
+    const type = req.body.type; // 'avatar', 'banner' or 'wallpaper'
     if (!['avatar', 'banner', 'wallpaper'].includes(type)) {
       return res.status(400).json({ success: false, message: 'Tipo de imagen inválido.' });
     }
@@ -1178,9 +1178,11 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
     }));
     const publicUrl = process.env.R2_PUBLIC_URL.replace(/\/$/, '') + "/" + filename;
 
-    const updateData = isBanner 
+    const updateData = isBanner
       ? { bannerBase64: publicUrl, bannerDominantColor: dominantColor, bannerComplementaryColor: complementaryColor }
-      : { photoURL: publicUrl };
+      : isWallpaper
+        ? { wallpaperBase64: publicUrl }
+        : { photoURL: publicUrl };
 
     await prisma.user.update({
       where: { firebaseUid: req.user.sub },
