@@ -644,12 +644,8 @@ export default function SellerProfile() {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const maxWidth = type === 'banner' ? 1920 : 420;
-        const maxHeight = type === 'banner' ? 600 : 420;
-        let { width, height } = img;
-        const scale = Math.min(maxWidth / width, maxHeight / height, 1);
-        width = Math.round(width * scale);
-        height = Math.round(height * scale);
+        const width = img.naturalWidth || img.width;
+        const height = img.naturalHeight || img.height;
         canvas.width = width;
         canvas.height = height;
         canvas.getContext('2d').drawImage(img, 0, 0, width, height);
@@ -665,7 +661,7 @@ export default function SellerProfile() {
             dominantColor: rgb ? `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})` : null,
             complementaryColor: rgb ? getComplementaryHex(rgb.r, rgb.g, rgb.b) : null
           });
-        }, 'image/webp', type === 'banner' ? 0.72 : 0.7);
+        }, 'image/webp', 1);
       };
       img.onerror = reject;
       img.src = event.target.result;

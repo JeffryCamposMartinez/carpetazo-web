@@ -4,7 +4,7 @@ import rateLimit from 'express-rate-limit';
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import sharp from 'sharp';
 import crypto from 'crypto';
 import fs from 'fs';
@@ -82,6 +82,27 @@ const R2_REQUIRED_ENV = [
 ];
 const missingR2Config = () => R2_REQUIRED_ENV.filter(key => !process.env[key]);
 const hasR2Config = () => missingR2Config().length === 0;
+const getR2KeyFromPublicUrl = (url) => {
+  if (!url || !process.env.R2_PUBLIC_URL) return null;
+
+  const publicBaseUrl = process.env.R2_PUBLIC_URL.replace(/\/$/, '') + '/';
+  if (!String(url).startsWith(publicBaseUrl)) return null;
+
+  return decodeURIComponent(String(url).slice(publicBaseUrl.length));
+};
+const deleteR2ObjectByPublicUrl = async (url) => {
+  const key = getR2KeyFromPublicUrl(url);
+  if (!key || !process.env.R2_BUCKET_NAME) return;
+
+  try {
+    await r2Client.send(new DeleteObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: key
+    }));
+  } catch (error) {
+    console.warn('No se pudo eliminar imagen anterior de R2:', error?.message || error);
+  }
+};
 
 app.get('/api/health', (_req, res) => {
   res.json({
@@ -1137,16 +1158,8 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
     const isWallpaper = type === 'wallpaper';
     
     // Process image with sharp -> webp
-    const imageProcessor = sharp(req.file.buffer).webp({ quality: 85 });
+    const imageProcessor = sharp(req.file.buffer).webp({ quality: 100 });
     
-    if (isBanner) {
-      imageProcessor.resize({ width: 1200, height: 400, fit: 'cover' });
-    } else if (isWallpaper) {
-      imageProcessor.resize({ width: 1920, fit: 'inside', withoutEnlargement: true });
-    } else {
-      imageProcessor.resize({ width: 400, height: 400, fit: 'cover' });
-    }
-
     const processedBuffer = await imageProcessor.toBuffer();
     
     let dominantColor = null;
@@ -1164,6 +1177,11 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
         missingConfig: true
       });
     }
+
+    const previousUser = await prisma.user.findUnique({
+      where: { firebaseUid: req.user.sub },
+      select: { photoURL: true, bannerBase64: true, wallpaperBase64: true }
+    });
 
     const hash = crypto.randomBytes(16).toString('hex');
     const safeUid = String(req.user.sub || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -1188,6 +1206,16 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
       where: { firebaseUid: req.user.sub },
       data: updateData
     });
+
+    const previousImageUrl = isBanner
+      ? previousUser?.bannerBase64
+      : isWallpaper
+        ? previousUser?.wallpaperBase64
+        : previousUser?.photoURL;
+
+    if (previousImageUrl && previousImageUrl !== publicUrl) {
+      await deleteR2ObjectByPublicUrl(previousImageUrl);
+    }
 
     res.json({ success: true, url: publicUrl, dominantColor, complementaryColor });
   } catch (error) {
