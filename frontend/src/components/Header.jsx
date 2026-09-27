@@ -57,11 +57,9 @@ export default function Header() {
     const isActive = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
     
     if (isActive) {
-      // Active tab: light blue background, rounded top only, text dark blue, touches the bottom
-      return `font-extrabold rounded-t-xl px-6 py-3 transition-all duration-300 ${publicHeaderTheme && publicHeaderTheme.id !== 'classic-blue' ? '' : 'text-[#1a2b4b] bg-[#DBEAFE]'}`;
+      return `font-bold rounded-full px-5 py-1.5 transition-all duration-300 ${publicHeaderTheme && publicHeaderTheme.id !== 'classic-blue' ? '' : 'text-[#1e40af] bg-white shadow-sm'}`;
     }
-    // Inactive tab: light blue text, transparent, smaller padding
-    return `text-blue-200 hover:text-white hover:bg-white/10 rounded-t-xl px-5 py-2 transition-all duration-300 font-bold text-sm mb-1`;
+    return `text-blue-100 hover:text-white hover:bg-white/10 rounded-full px-5 py-1.5 transition-all duration-300 font-medium text-[15px]`;
   };
 
   const getLinkStyle = (path) => {
@@ -445,7 +443,7 @@ export default function Header() {
           )}
           </div>
           
-          <nav className="flex items-end justify-center w-full gap-2 overflow-x-auto px-4 pt-2 bg-[#1e40af] hide-scrollbar whitespace-nowrap shadow-inner border-t border-[#1a2b4b]/20" style={themedNavStyle}>
+          <nav className="flex items-center justify-center w-full gap-2 md:gap-4 overflow-x-auto px-4 py-2.5 bg-[#1e40af] hide-scrollbar whitespace-nowrap shadow-inner border-t border-black/10" style={themedNavStyle}>
             <Link to="/" className={getLinkClass('/')} style={getLinkStyle('/')}>Inicio</Link>
             <Link to="/carpetas" className={getLinkClass('/carpetas')} style={getLinkStyle('/carpetas')}>Carpetas</Link>
             <Link to="/cartas" className={getLinkClass('/cartas')} style={getLinkStyle('/cartas')}>Cartas</Link>

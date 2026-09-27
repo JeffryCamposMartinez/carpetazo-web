@@ -1,3 +1,4 @@
+import NotFound from './NotFound';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { updateProfile as updateFirebaseProfile } from 'firebase/auth';
@@ -911,13 +912,7 @@ export default function SellerProfile() {
   }
 
   if (errorMsg) {
-    return (
-      <div className="flex min-h-[calc(100vh-80px)] flex-col items-center justify-center bg-[#DBEAFE] p-6 text-center">
-        <span translate="no" className="material-symbols-outlined mb-4 text-6xl text-red-500">error</span>
-        <h2 className="max-w-md text-2xl font-black text-[#1a2b4b]">{errorMsg}</h2>
-        <Link to="/" className="mt-6 rounded-xl bg-[#1e40af] px-6 py-3 font-black text-white shadow-md">Volver al inicio</Link>
-      </div>
-    );
+    return <NotFound />;
   }
 
   return (

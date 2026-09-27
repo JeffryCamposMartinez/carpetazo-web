@@ -11,6 +11,7 @@ import AdminPanel from './pages/AdminPanel';
 import ProfilePage from './pages/ProfilePage';
 import Messages from './pages/Messages';
 import FoldersPage from './pages/FoldersPage';
+import NotFound from './pages/NotFound';
 import ScrollToTop from './components/ScrollToTop';
 import Footer from './components/Footer';
 
@@ -35,6 +36,8 @@ function App() {
               <Route path="/carpetas" element={<FoldersPage />} />
               {/* Dynamic Username Route (Must be last to not override other paths) */}
               <Route path="/:sellerUsername" element={<SellerProfile />} />
+              {/* Global 404 Catch-All Route */}
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
           
