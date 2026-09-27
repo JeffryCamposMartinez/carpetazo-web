@@ -138,3 +138,27 @@ body.public-profile-active::after {
   -webkit-backdrop-filter: none;
   background-color: var(--seller-overlay, rgba(17, 39, 74, 0.45));
 }
+
+@keyframes bellRing {
+  0%, 100% { transform: rotate(-8deg); }
+  17% { transform: rotate(0deg); }
+  35% { transform: rotate(-20deg); }
+  48% { transform: rotate(20deg); }
+  57% { transform: rotate(-20deg); }
+  65% { transform: rotate(8deg); }
+  75% { transform: rotate(-15deg); }
+  79% { transform: rotate(-7deg); }
+}
+
+@keyframes bellBall {
+  0%, 100% { transform: translateX(-6.5%); }
+  17% { transform: translateX(0%); }
+  22% { transform: translateX(-1%); }
+  35% { transform: translateX(11%); }
+  48% { transform: translateX(-11%); }
+  53% { transform: translateX(0%); }
+  60% { transform: translateX(10%); }
+  68% { transform: translateX(-11%); }
+  79% { transform: translateX(11%); }
+  86% { transform: translateX(-11%); }
+}

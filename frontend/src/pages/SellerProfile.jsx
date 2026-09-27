@@ -62,6 +62,51 @@ const normalizeFolder = (folder) => ({
   color: folder.color || 'red'
 });
 
+const SocialLogo = ({ type, className = 'h-4 w-4' }) => {
+  if (type === 'whatsapp') {
+    return (
+      <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
+        <path fill="#25D366" d="M16 3.2A12.6 12.6 0 0 0 5.1 22.1L3.7 28.8l6.8-1.8A12.6 12.6 0 1 0 16 3.2Z" />
+        <path fill="#fff" d="M22.9 18.7c-.4-.2-2.2-1.1-2.5-1.2-.3-.1-.6-.2-.8.2-.2.4-.9 1.2-1.1 1.4-.2.2-.4.3-.8.1-.4-.2-1.6-.6-3-1.9-1.1-1-1.9-2.2-2.1-2.6-.2-.4 0-.6.2-.8l.6-.7c.2-.2.2-.4.4-.6.1-.2.1-.5 0-.7-.1-.2-.8-1.9-1.1-2.6-.3-.7-.6-.6-.8-.6h-.7c-.2 0-.7.1-1 .5-.3.4-1.3 1.3-1.3 3.1 0 1.8 1.3 3.6 1.5 3.8.2.2 2.6 4 6.3 5.6.9.4 1.6.6 2.1.8.9.3 1.7.3 2.3.2.7-.1 2.2-.9 2.5-1.8.3-.9.3-1.6.2-1.8-.2-.1-.5-.2-.9-.4Z" />
+      </svg>
+    );
+  }
+
+  if (type === 'instagram') {
+    return (
+      <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
+        <defs>
+          <linearGradient id="ig-gradient" x1="0" x2="1" y1="1" y2="0">
+            <stop offset="0" stopColor="#f58529" />
+            <stop offset="0.35" stopColor="#dd2a7b" />
+            <stop offset="0.7" stopColor="#8134af" />
+            <stop offset="1" stopColor="#515bd4" />
+          </linearGradient>
+        </defs>
+        <rect width="28" height="28" x="2" y="2" rx="8" fill="url(#ig-gradient)" />
+        <circle cx="16" cy="16" r="6" fill="none" stroke="#fff" strokeWidth="2.4" />
+        <circle cx="23" cy="9" r="1.8" fill="#fff" />
+      </svg>
+    );
+  }
+
+  if (type === 'facebook') {
+    return (
+      <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
+        <circle cx="16" cy="16" r="14" fill="#1877F2" />
+        <path fill="#fff" d="M18.5 30V18.5h3.8l.6-4.5h-4.4v-2.9c0-1.3.4-2.2 2.3-2.2h2.3v-4c-.4-.1-1.8-.2-3.4-.2-3.4 0-5.7 2.1-5.7 5.9V14h-3.8v4.5H14V30h4.5Z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
+      <rect width="28" height="20" x="2" y="6" rx="6" fill="#FF0000" />
+      <path fill="#fff" d="m14 12 7 4-7 4v-8Z" />
+    </svg>
+  );
+};
+
 const defaultPublicTheme = {
   id: 'classic-blue',
   name: 'Azul Carpetazo',
@@ -79,7 +124,11 @@ const defaultPublicTheme = {
   profileLayout: 'classic',
   profileEffect: 'none',
   showcaseStyle: 'folders',
-  profileDistribution: 'classic-gallery'
+  profileDistribution: 'classic-gallery',
+  showWhatsApp: 'on',
+  showInstagram: 'on',
+  showFacebook: 'on',
+  showYoutube: 'on'
 };
 
 const profileThemes = [
@@ -759,10 +808,27 @@ export default function SellerProfile() {
     }));
   };
 
-  const previewPublicTheme = (theme) => {
+  const applyThemePalette = (theme) => {
     setSeller(prev => ({
       ...prev,
-      publicTheme: theme
+      publicTheme: {
+        ...publicTheme,
+        id: theme.id,
+        name: theme.name,
+        primary: theme.primary,
+        secondary: theme.secondary,
+        accent: theme.accent,
+        surface: theme.surface,
+        card: theme.card,
+        text: theme.text
+      }
+    }));
+  };
+
+  const resetPublicTheme = () => {
+    setSeller(prev => ({
+      ...prev,
+      publicTheme: defaultPublicTheme
     }));
   };
 
@@ -784,6 +850,54 @@ export default function SellerProfile() {
       }
     });
   };
+
+  const formatWhatsAppNumber = (phone = '') => {
+    const cleanPhone = String(phone).replace(/[^0-9]/g, '');
+    if (!cleanPhone) return '';
+    return cleanPhone.startsWith('56') ? cleanPhone : `56${cleanPhone}`;
+  };
+  const ensureExternalUrl = (url = '') => {
+    const cleanUrl = String(url).trim();
+    if (!cleanUrl) return '';
+    return /^https?:\/\//i.test(cleanUrl) ? cleanUrl : `https://${cleanUrl.replace(/^@/, '')}`;
+  };
+  const getInstagramHref = (value = '') => {
+    const cleanValue = String(value).trim();
+    if (!cleanValue) return '';
+    if (/^https?:\/\//i.test(cleanValue)) return cleanValue;
+    return `https://instagram.com/${cleanValue.replace('@', '')}`;
+  };
+  const getSocialEnabled = (field) => publicTheme[field] !== 'off';
+  const socialLinks = [
+    {
+      id: 'whatsapp',
+      label: 'WhatsApp',
+      field: 'showWhatsApp',
+      available: Boolean(seller?.phone),
+      href: seller?.phone ? `https://wa.me/${formatWhatsAppNumber(seller.phone)}` : ''
+    },
+    {
+      id: 'instagram',
+      label: 'Instagram',
+      field: 'showInstagram',
+      available: Boolean(seller?.instagramUrl),
+      href: seller?.instagramUrl ? getInstagramHref(seller.instagramUrl) : ''
+    },
+    {
+      id: 'facebook',
+      label: 'Facebook',
+      field: 'showFacebook',
+      available: Boolean(seller?.facebookUrl),
+      href: seller?.facebookUrl ? ensureExternalUrl(seller.facebookUrl) : ''
+    },
+    {
+      id: 'youtube',
+      label: 'YouTube',
+      field: 'showYoutube',
+      available: Boolean(seller?.youtubeUrl),
+      href: seller?.youtubeUrl ? ensureExternalUrl(seller.youtubeUrl) : ''
+    }
+  ];
 
   if (loading) {
     return (
@@ -848,7 +962,7 @@ export default function SellerProfile() {
                     <p className="text-xs font-bold opacity-70">{savingTheme ? 'Guardando...' : 'Edita y guarda cuando termines'}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => previewPublicTheme(defaultPublicTheme)} disabled={savingTheme} className="rounded-full px-3 py-1.5 text-xs font-black text-slate-500 hover:bg-slate-100 disabled:opacity-60">
+                      <button type="button" onClick={resetPublicTheme} disabled={savingTheme} className="rounded-full px-3 py-1.5 text-xs font-black text-slate-500 hover:bg-slate-100 disabled:opacity-60">
                         Restablecer
                       </button>
                       <button type="button" onClick={saveCurrentTheme} disabled={savingTheme} className="rounded-full px-3 py-1.5 text-xs font-black text-white shadow-lg disabled:cursor-wait disabled:opacity-60" style={{ backgroundColor: publicTheme.primary }}>
@@ -859,13 +973,14 @@ export default function SellerProfile() {
                     </button>
                   </div>
                 </div>
-                <div className="grid grid-cols-5 gap-1 rounded-2xl bg-black/5 p-1">
+                <div className="grid grid-cols-6 gap-1 rounded-2xl bg-black/5 p-1">
                   {[
                     ['theme', 'Tema', 'palette'],
                     ['font', 'Tipografía', 'text_fields'],
                     ['cards', 'Tarjetas', 'dashboard_customize'],
                     ['scene', 'Escena', 'auto_awesome'],
-                    ['layout', 'Distribución', 'view_quilt']
+                    ['layout', 'Distribución', 'view_quilt'],
+                    ['social', 'Redes', 'share']
                   ].map(([id, label, icon]) => (
                     <button
                       key={id}
@@ -890,7 +1005,7 @@ export default function SellerProfile() {
                             key={theme.id}
                             type="button"
                             disabled={savingTheme}
-                            onClick={() => previewPublicTheme(theme)}
+                            onClick={() => applyThemePalette(theme)}
                             className={`overflow-hidden rounded-2xl border p-2 text-left transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 ${selected ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-slate-200'}`}
                             style={{ backgroundColor: theme.card || '#ffffff' }}
                           >
@@ -1146,6 +1261,50 @@ export default function SellerProfile() {
                     </div>
                   </div>
                 )}
+
+                {themePanelTab === 'social' && (
+                  <div className="mt-3 max-h-[58vh] space-y-3 overflow-y-auto overscroll-contain pr-1">
+                    <div className="rounded-3xl border border-black/10 bg-white/45 p-3 shadow-sm">
+                      <div className="mb-3 border-b border-black/10 pb-2">
+                        <div className="flex items-center gap-2">
+                          <span translate="no" className="material-symbols-outlined rounded-xl p-1.5 text-[18px]" style={{ backgroundColor: `${publicTheme.primary}18`, color: publicTheme.primary }}>share</span>
+                          <p className="text-xs font-black uppercase tracking-wide">Redes visibles</p>
+                        </div>
+                        <p className="mt-1 text-[10px] font-bold leading-tight opacity-60">Activa o desactiva qué botones sociales aparecen en tu perfil público. Solo se muestran si tienes el dato configurado.</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-2">
+                        {socialLinks.map(social => {
+                          const enabled = getSocialEnabled(social.field);
+                          return (
+                            <button
+                              key={social.id}
+                              type="button"
+                              onClick={() => handleThemeFieldChange(social.field, enabled ? 'off' : 'on')}
+                              className={`flex items-center justify-between gap-3 rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 ${enabled ? 'border-slate-900 bg-white/75 ring-2 ring-slate-900/10' : 'border-black/10 bg-white/40 opacity-70'}`}
+                              style={{ color: publicTheme.text }}
+                            >
+                              <span className="flex min-w-0 items-center gap-3">
+                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-black/10">
+                                  <SocialLogo type={social.id} className="h-6 w-6" />
+                                </span>
+                                <span className="min-w-0">
+                                  <span className="block truncate text-sm font-black">{social.label}</span>
+                                  <span className="block text-[10px] font-bold opacity-60">
+                                    {social.available ? (enabled ? 'Visible en tu perfil' : 'Oculto en tu perfil') : 'Agrega este dato en tu perfil privado'}
+                                  </span>
+                                </span>
+                              </span>
+                              <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${enabled ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                                <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${enabled ? 'left-6' : 'left-1'}`} />
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1174,7 +1333,25 @@ export default function SellerProfile() {
             )}
           </div>
 
-          <div className={`min-w-0 flex-1 p-4 pt-12 ring-1 backdrop-blur-sm sm:p-5 sm:pt-14 md:p-6 md:pt-6 md:backdrop-blur ${isPosterLayout ? 'md:text-center' : ''}`} style={getCardStyle(publicTheme)}>
+          <div className={`relative min-w-0 flex-1 overflow-visible p-4 pt-12 ring-1 backdrop-blur-sm sm:p-5 sm:pt-14 md:p-6 md:pt-6 md:backdrop-blur ${isPosterLayout ? 'md:text-center' : ''}`} style={getCardStyle(publicTheme)}>
+            {socialLinks.some(social => social.available && getSocialEnabled(social.field)) && (
+              <div className="absolute -top-5 right-4 z-30 flex max-w-[calc(100%-2rem)] flex-wrap justify-end gap-2 md:-right-5 md:top-6 md:max-w-none md:flex-col">
+                {socialLinks.filter(social => social.available && getSocialEnabled(social.field)).map(social => (
+                  <a
+                    key={social.id}
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={social.label}
+                    title={social.label}
+                    className="group flex h-11 w-11 items-center justify-center rounded-full bg-white/95 shadow-[0_12px_30px_rgba(0,0,0,0.22)] ring-2 ring-white/80 backdrop-blur transition hover:-translate-y-1 hover:scale-110 md:h-12 md:w-12"
+                    style={{ border: `2px solid ${social.id === 'whatsapp' || social.id === 'facebook' ? publicTheme.secondary : publicTheme.accent}` }}
+                  >
+                    <SocialLogo type={social.id} className="h-6 w-6 md:h-7 md:w-7" />
+                  </a>
+                ))}
+              </div>
+            )}
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
@@ -1206,20 +1383,14 @@ export default function SellerProfile() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                {!isOwner && (
+              {!isOwner && (
+                <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
                   <button onClick={contactSeller} className="inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-black text-white shadow-lg transition hover:brightness-90" style={{ backgroundColor: publicTheme.primary }}>
                     <span translate="no" className="material-symbols-outlined text-[18px]">chat</span>
                     Mensaje
                   </button>
-                )}
-                {seller?.phone && (
-                  <a href={`https://wa.me/${seller.phone.replace(/[^0-9]/g, '').startsWith('56') ? seller.phone.replace(/[^0-9]/g, '') : `56${seller.phone.replace(/[^0-9]/g, '')}`}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-black ring-1" style={{ backgroundColor: `${publicTheme.secondary}33`, color: publicTheme.text, borderColor: publicTheme.secondary }}>WhatsApp</a>
-                )}
-                {seller?.instagramUrl && (
-                  <a href={`https://instagram.com/${seller.instagramUrl.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-black ring-1" style={{ backgroundColor: `${publicTheme.accent}22`, color: publicTheme.text, borderColor: publicTheme.accent }}>Instagram</a>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             <div className="mt-5">

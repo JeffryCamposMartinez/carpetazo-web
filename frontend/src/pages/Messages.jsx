@@ -3,36 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 
-const compressImage = (file) => new Promise((resolve, reject) => {
-  const reader = new FileReader();
-  reader.readAsDataURL(file);
-  reader.onload = (event) => {
-    const img = new Image();
-    img.src = event.target.result;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const maxSize = 900;
-      let { width, height } = img;
-      if (width > height && width > maxSize) {
-        height *= maxSize / width;
-        width = maxSize;
-      } else if (height > maxSize) {
-        width *= maxSize / height;
-        height = maxSize;
-      }
-      canvas.width = width;
-      canvas.height = height;
-      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', 0.72));
-    };
-    img.onerror = reject;
-  };
-  reader.onerror = reject;
-});
-
-const encodeMessage = ({ text, imageBase64 }) => JSON.stringify({
+const encodeMessage = ({ text, imageUrl, imageBase64 }) => JSON.stringify({
   v: 1,
   text: text || '',
+  imageUrl: imageUrl || null,
   imageBase64: imageBase64 || null
 });
 
@@ -42,13 +16,14 @@ const decodeMessage = (content = '') => {
     if (parsed && typeof parsed === 'object' && parsed.v === 1) {
       return {
         text: parsed.text || '',
+        imageUrl: parsed.imageUrl || null,
         imageBase64: parsed.imageBase64 || null
       };
     }
   } catch {
     // Mensajes antiguos en texto plano.
   }
-  return { text: content || '', imageBase64: null };
+  return { text: content || '', imageUrl: null, imageBase64: null };
 };
 
 const getOtherUser = (chat, currentUser) => {
@@ -110,6 +85,7 @@ export default function Messages() {
           .filter(message => message.receiverId && message.receiverId !== message.senderId && !message.isRead)
           .map(message => api.markMessageRead(message.id).catch(() => null))
       );
+      window.dispatchEvent(new Event('carpetazo:messages-updated'));
     } catch (error) {
       console.error('Error loading messages:', error);
       setErrorMsg('No pudimos cargar los mensajes.');
@@ -167,13 +143,28 @@ export default function Messages() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length, activeChat?.id]);
 
+  useEffect(() => () => {
+    if (pendingImage?.previewUrl) URL.revokeObjectURL(pendingImage.previewUrl);
+  }, [pendingImage?.previewUrl]);
+
   const handleImageSelect = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setErrorMsg('Sube una imagen válida.');
+      event.target.value = '';
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorMsg('La imagen debe pesar menos de 10 MB.');
+      event.target.value = '';
+      return;
+    }
     try {
-      setPendingImage(await compressImage(file));
+      if (pendingImage?.previewUrl) URL.revokeObjectURL(pendingImage.previewUrl);
+      setPendingImage({ file, previewUrl: URL.createObjectURL(file) });
     } catch (error) {
-      console.error('Error compressing image:', error);
+      console.error('Error preparing image:', error);
       setErrorMsg('No pudimos procesar la imagen.');
     } finally {
       event.target.value = '';
@@ -184,14 +175,26 @@ export default function Messages() {
     event.preventDefault();
     if ((!newMessage.trim() && !pendingImage) || !activeOther.id || sending) return;
 
-    const payload = encodeMessage({ text: newMessage.trim(), imageBase64: pendingImage });
+    const textToSend = newMessage.trim();
     setSending(true);
     setNewMessage('');
-    setPendingImage(null);
 
     try {
+      let imageUrl = null;
+      if (pendingImage?.file) {
+        const formData = new FormData();
+        formData.append('image', pendingImage.file);
+        formData.append('type', 'message');
+        const uploadResult = await api.uploadImage(formData);
+        imageUrl = uploadResult.url;
+      }
+
+      const payload = encodeMessage({ text: textToSend, imageUrl });
       await api.sendMessage(activeOther.id, payload);
+      if (pendingImage?.previewUrl) URL.revokeObjectURL(pendingImage.previewUrl);
+      setPendingImage(null);
       await Promise.all([loadMessages(activeChat), loadChats()]);
+      window.dispatchEvent(new Event('carpetazo:messages-updated'));
     } catch (error) {
       console.error('Error sending message:', error);
       setErrorMsg('No pudimos enviar el mensaje.');
@@ -235,7 +238,7 @@ export default function Messages() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="font-bold text-slate-900 truncate">{other.name}</p>
-                        <p className="text-sm text-slate-500 truncate">{last.imageBase64 ? '📷 Imagen' : last.text || 'Sin mensajes'}</p>
+                        <p className="text-sm text-slate-500 truncate">{last.imageUrl || last.imageBase64 ? '📷 Imagen' : last.text || 'Sin mensajes'}</p>
                       </div>
                     </button>
                   );
@@ -274,7 +277,7 @@ export default function Messages() {
                       return (
                         <div key={message.id} className={`flex ${own ? 'justify-end' : 'justify-start'}`}>
                           <div className={`max-w-[82%] rounded-2xl px-4 py-3 shadow-sm ${own ? 'bg-blue-600 text-white rounded-br-md' : 'bg-white text-slate-900 rounded-bl-md'}`}>
-                            {body.imageBase64 && <img src={body.imageBase64} alt="Adjunto" className="mb-2 max-h-72 rounded-xl object-contain" />}
+                            {(body.imageUrl || body.imageBase64) && <img src={body.imageUrl || body.imageBase64} alt="Adjunto" className="mb-2 max-h-72 rounded-xl object-contain" />}
                             {body.text && <p className="whitespace-pre-wrap break-words">{body.text}</p>}
                             <p className={`mt-1 text-[10px] ${own ? 'text-blue-100' : 'text-slate-400'}`}>
                               {message.createdAt ? new Date(message.createdAt).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }) : ''}
@@ -289,8 +292,8 @@ export default function Messages() {
 
                 {pendingImage && (
                   <div className="px-4 py-3 border-t border-slate-200 bg-white flex items-center gap-3">
-                    <img src={pendingImage} alt="Imagen pendiente" className="w-16 h-16 rounded-xl object-cover" />
-                    <button onClick={() => setPendingImage(null)} className="text-sm font-bold text-red-600">Quitar imagen</button>
+                    <img src={pendingImage.previewUrl} alt="Imagen pendiente" className="w-16 h-16 rounded-xl object-cover" />
+                    <button onClick={() => { if (pendingImage?.previewUrl) URL.revokeObjectURL(pendingImage.previewUrl); setPendingImage(null); }} className="text-sm font-bold text-red-600">Quitar imagen</button>
                   </div>
                 )}
 
@@ -303,7 +306,7 @@ export default function Messages() {
                     value={newMessage}
                     onChange={event => setNewMessage(event.target.value)}
                     placeholder="Escribe un mensaje..."
-                    className="flex-1 rounded-full border border-slate-300 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 rounded-full border border-slate-300 px-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button disabled={sending || (!newMessage.trim() && !pendingImage)} className="w-11 h-11 rounded-full bg-blue-600 text-white flex items-center justify-center disabled:opacity-50">
                     <span translate="no" className="material-symbols-outlined">{sending ? 'hourglass_empty' : 'send'}</span>

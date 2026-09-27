@@ -1076,17 +1076,29 @@ app.get('/api/chats', authenticateToken, async (req, res) => {
       select: { id: true, firebaseUid: true, name: true, username: true, photoURL: true }
     });
     
-    const enrichedChats = chats.map(c => {
+    const unreadCounts = messages.reduce((counts, msg) => {
+      if (msg.receiverId === currentUser.id && !msg.isRead) {
+        const otherId = msg.senderId;
+        counts.set(otherId, (counts.get(otherId) || 0) + 1);
+      }
+      return counts;
+    }, new Map());
+    const totalUnread = Array.from(unreadCounts.values()).reduce((total, count) => total + count, 0);
+
+    const enrichedChats = chats.map(c => {
+
       const partnerId = c.senderId === currentUser.id ? c.receiverId : c.senderId;
       const partner = users.find(u => u.id === partnerId) || {};
       return {
         ...c,
+        unreadCount: unreadCounts.get(partnerId) || 0,
         partner,
         otherUser: partner
       };
     });
     
-    res.json({ success: true, chats: enrichedChats });
+    res.json({ success: true, chats: enrichedChats, totalUnread });
+
   } catch (error) {
     console.error('Error fetching chats:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
@@ -1149,13 +1161,14 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
       return res.status(400).json({ success: false, message: 'No se envió ninguna imagen.' });
     }
 
-    const type = req.body.type; // 'avatar', 'banner' or 'wallpaper'
-    if (!['avatar', 'banner', 'wallpaper'].includes(type)) {
+    const type = req.body.type; // 'avatar', 'banner', 'wallpaper' or 'message'
+    if (!['avatar', 'banner', 'wallpaper', 'message'].includes(type)) {
       return res.status(400).json({ success: false, message: 'Tipo de imagen inválido.' });
     }
 
     const isBanner = type === 'banner';
     const isWallpaper = type === 'wallpaper';
+    const isMessageImage = type === 'message';
     
     // Process image with sharp -> webp
     const imageProcessor = sharp(req.file.buffer).webp({ quality: 100 });
@@ -1178,7 +1191,7 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
       });
     }
 
-    const previousUser = await prisma.user.findUnique({
+    const previousUser = isMessageImage ? null : await prisma.user.findUnique({
       where: { firebaseUid: req.user.sub },
       select: { photoURL: true, bannerBase64: true, wallpaperBase64: true }
     });
@@ -1202,10 +1215,12 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
         ? { wallpaperBase64: publicUrl }
         : { photoURL: publicUrl };
 
-    await prisma.user.update({
-      where: { firebaseUid: req.user.sub },
-      data: updateData
-    });
+    if (!isMessageImage) {
+      await prisma.user.update({
+        where: { firebaseUid: req.user.sub },
+        data: updateData
+      });
+    }
 
     const previousImageUrl = isBanner
       ? previousUser?.bannerBase64
@@ -1213,7 +1228,7 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
         ? previousUser?.wallpaperBase64
         : previousUser?.photoURL;
 
-    if (previousImageUrl && previousImageUrl !== publicUrl) {
+    if (!isMessageImage && previousImageUrl && previousImageUrl !== publicUrl) {
       await deleteR2ObjectByPublicUrl(previousImageUrl);
     }
 
@@ -1284,7 +1299,11 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
         'profileLayout',
         'profileEffect',
         'showcaseStyle',
-        'profileDistribution'
+        'profileDistribution',
+        'showWhatsApp',
+        'showInstagram',
+        'showFacebook',
+        'showYoutube'
       ];
       updateData.publicTheme = Object.fromEntries(
         Object.entries(updateData.publicTheme)
