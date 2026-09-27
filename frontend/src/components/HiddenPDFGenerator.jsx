@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import api, { apiUrl } from '../utils/api';
 
 const getPdfImageUrl = (imageUrl) => {
@@ -30,30 +32,8 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
   const [folder, setFolder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [imagesLoaded, setImagesLoaded] = useState(0);
-  const [scriptsLoaded, setScriptsLoaded] = useState(false);
   const [generating, setGenerating] = useState(false);
   const imageRefs = useRef([]);
-
-  useEffect(() => {
-    const loadScript = (src) => {
-      return new Promise((resolve, reject) => {
-        if (document.querySelector(`script[src="${src}"]`)) {
-          resolve();
-          return;
-        }
-        const script = document.createElement('script');
-        script.src = src;
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-      });
-    };
-
-    Promise.all([
-      loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"),
-      loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js")
-    ]).then(() => setScriptsLoaded(true)).catch(err => console.error(err));
-  }, []);
 
   useEffect(() => {
     if (!folderId) return;
@@ -127,14 +107,13 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
       // Wait just a bit more for the browser compositor
       await new Promise(r => setTimeout(r, 1000));
 
-      const { jsPDF } = window.jspdf;
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pagesToPrint = document.querySelectorAll('.hidden-print-page');
 
       for (let i = 0; i < pagesToPrint.length; i++) {
         const page = pagesToPrint[i];
         
-        const canvas = await window.html2canvas(page, {
+        const canvas = await html2canvas(page, {
           scale: 2,
           useCORS: true,
           allowTaint: false,
@@ -168,7 +147,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
   };
 
   useEffect(() => {
-    if (!scriptsLoaded || loading || !folderId) return;
+    if (loading || !folderId) return;
 
     if (cards.length > 0) {
       if (imagesLoaded >= cards.length) {
@@ -178,7 +157,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
     } else {
       setTimeout(() => generatePDF(), 1000);
     }
-  }, [loading, imagesLoaded, cards.length, scriptsLoaded]);
+  }, [loading, imagesLoaded, cards.length]);
 
   const chunkArray = (array, size) => {
     const result = [];
