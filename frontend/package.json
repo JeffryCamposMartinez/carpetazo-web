@@ -15,9 +15,7 @@
         "jspdf": "^4.2.1",
         "react": "^19.2.7",
         "react-dom": "^19.2.7",
-        "react-pageflip": "^2.0.3",
-        "react-router-dom": "^7.18.4",
-        "sharp": "^0.35.4"
+        "react-router-dom": "^7.18.4"
     },
     "devDependencies": {
         "@tailwindcss/container-queries": "^0.1.1",
