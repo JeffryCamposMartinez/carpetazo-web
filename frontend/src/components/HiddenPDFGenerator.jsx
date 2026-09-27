@@ -1,5 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
-import api from '../utils/api';
+import api, { apiUrl } from '../utils/api';
+
+const getPdfImageUrl = (imageUrl) => {
+  if (!imageUrl) return '';
+  if (imageUrl.startsWith('data:') || imageUrl.startsWith('blob:')) return imageUrl;
+  return apiUrl('/proxy-image?url=' + encodeURIComponent(imageUrl));
+};
+
+const imageUrlToDataUrl = async (imageUrl) => {
+  const sourceUrl = getPdfImageUrl(imageUrl);
+  if (!sourceUrl) return '';
+
+  const response = await fetch(sourceUrl, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error('No se pudo cargar la imagen para PDF: ' + response.status);
+  }
+
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
 
 export default function HiddenPDFGenerator({ folderId, onComplete, onProgress }) {
   const [cards, setCards] = useState([]);
@@ -35,6 +59,9 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
     if (!folderId) return;
     const fetchFolderData = async () => {
       setLoading(true);
+      setImagesLoaded(0);
+      setCards([]);
+      imageRefs.current = [];
       try {
         const res = await api.getFolder(folderId);
         if (res.success && res.folder) {
@@ -50,22 +77,15 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
         // Convert all images to Base64 to guarantee html2canvas can render them
         const cardsWithBase64 = await Promise.all(cardsData.map(async (card) => {
           try {
-            // Bypass browser cache to ensure CORS headers are received from CDN
-            const resp = await fetch(card.imageUrl + '?t=' + new Date().getTime());
-            const blob = await resp.blob();
-            const b64 = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result);
-              reader.readAsDataURL(blob);
-            });
+            const b64 = await imageUrlToDataUrl(card.imageUrl);
             loadedCount++;
             if (onProgress) onProgress(loadedCount, totalCards, false);
-            return { ...card, base64: b64 };
+            return { ...card, base64: b64 || getPdfImageUrl(card.imageUrl) };
           } catch (e) {
             console.error("Base64 fetch failed for", card.imageUrl, e);
             loadedCount++;
             if (onProgress) onProgress(loadedCount, totalCards, false);
-            return { ...card, base64: card.imageUrl };
+            return { ...card, base64: getPdfImageUrl(card.imageUrl) || card.imageUrl };
           }
         }));
 
@@ -117,7 +137,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
         const canvas = await window.html2canvas(page, {
           scale: 2,
           useCORS: true,
-          allowTaint: true,
+          allowTaint: false,
           backgroundColor: '#111111',
           logging: false
         });
@@ -231,6 +251,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
                               ref={el => imageRefs.current[globalIndex] = el}
                               src={card.base64 || card.imageUrl} 
                               alt={card.name} 
+                              crossOrigin="anonymous"
                               className="w-full h-full object-contain rounded-[4%]"
                               onLoad={() => setImagesLoaded(prev => prev + 1)}
                               onError={() => setImagesLoaded(prev => prev + 1)} 

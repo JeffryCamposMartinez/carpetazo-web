@@ -125,10 +125,11 @@ function FolderPokemonInner() {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth > 768 && gridCols === 1) {
+      if (window.innerWidth > 768 && gridCols !== 3) {
         setGridCols(3);
       }
     };
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [gridCols]);
@@ -334,7 +335,8 @@ function FolderPokemonInner() {
   const [catQuery, setCatQuery] = useState('');
   const [catSet, setCatSet] = useState('');
   const [catalogViewMode, setCatalogViewMode] = useState('grid');
-  const [catalogGridDensity, setCatalogGridDensity] = useState(2);
+  const [catalogGridDensity, setCatalogGridDensity] = useState(3);
+  const [showCardDetails, setShowCardDetails] = useState(false);
   const [isCatSetDropdownOpen, setIsCatSetDropdownOpen] = useState(false);
   const [draggedCatalogCardId, setDraggedCatalogCardId] = useState(null);
   const [dropCatalogIndex, setDropCatalogIndex] = useState(null);
@@ -732,6 +734,10 @@ function FolderPokemonInner() {
   };
 
   const cycleCatalogGridDensity = () => {
+    if (window.innerWidth > 768) {
+      setCatalogGridDensity(3);
+      return;
+    }
     setCatalogGridDensity(prev => (prev >= 3 ? 1 : prev + 1));
   };
 
@@ -832,10 +838,26 @@ function FolderPokemonInner() {
         onClearFilters={clearCatalogFilters}
       />
 
-      <InventoryViewSwitcher mode={catalogViewMode} onChange={setCatalogViewMode} />
+      <InventoryViewSwitcher
+        mode={catalogViewMode}
+        onChange={setCatalogViewMode}
+        showCardDetails={showCardDetails}
+        onToggleCardDetails={() => setShowCardDetails(prev => !prev)}
+      />
 
-      <div className="fixed right-8 top-1/2 z-[1190] hidden -translate-y-1/2 flex-col gap-3 md:flex">
+      <div className="fixed right-[max(1rem,calc((100vw-1470px)/2+1rem))] top-1/2 z-[1190] hidden -translate-y-1/2 flex-col gap-3 md:flex">
         {catalogViewMode === 'grid' && (
+          <>
+          <button
+            type="button"
+            onClick={() => setShowCardDetails(prev => !prev)}
+            className={`flex h-12 w-12 items-center justify-center rounded-full border shadow-lg transition-all hover:scale-105 active:scale-95 ${showCardDetails ? 'border-[#1e40af] bg-[#1e40af] text-white' : 'border-blue-100 bg-white text-[#1e40af] hover:bg-blue-50'}`}
+            title={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
+            aria-label={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
+            aria-pressed={showCardDetails}
+          >
+            <span translate="no" className="material-symbols-outlined text-[21px]">{showCardDetails ? 'visibility' : 'visibility_off'}</span>
+          </button>
           <button
             type="button"
             onClick={cycleCatalogGridDensity}
@@ -846,6 +868,7 @@ function FolderPokemonInner() {
             <span translate="no" className="material-symbols-outlined text-[20px]">grid_view</span>
             <span className="ml-0.5">{catalogGridDensity}</span>
           </button>
+          </>
         )}
         <button
           type="button"
@@ -868,7 +891,7 @@ function FolderPokemonInner() {
       </div>
 
       {hasUnsavedCatalogOrder && (
-        <div className="fixed bottom-6 right-[5.75rem] z-[1200] md:bottom-8 md:right-8">
+        <div className="fixed bottom-6 right-[5.75rem] z-[1200] md:bottom-8 md:right-[max(1rem,calc((100vw-1470px)/2+1rem))]">
           <button
             type="button"
             onClick={saveCatalogOrder}
@@ -953,6 +976,7 @@ function FolderPokemonInner() {
                         onDelete={handleDeleteRequest}
                         dragHandleProps={getCatalogDragHandleProps(card, visibleIndex)}
                         compact
+                        showDetails={showCardDetails}
                       />
                     </div>
                   );
@@ -1271,6 +1295,16 @@ function FolderPokemonInner() {
           />
 
           <div className="fixed bottom-[88px] right-6 flex flex-col gap-3 z-[60] lg:hidden">
+            <button
+              type="button"
+              onClick={() => setShowCardDetails(prev => !prev)}
+              className={`${showCardDetails ? 'bg-[#1e40af] text-white border-[#1e40af]' : 'bg-white text-[#1e40af] border-gray-200 hover:bg-gray-100'} w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95 border`}
+              title={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
+              aria-label={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
+              aria-pressed={showCardDetails}
+            >
+              <span translate="no" className="material-symbols-outlined text-[22px]">{showCardDetails ? 'visibility' : 'visibility_off'}</span>
+            </button>
             <button 
               type="button" 
               onClick={toggleMultiSelectMode}
@@ -1286,7 +1320,7 @@ function FolderPokemonInner() {
             </button>
             <button 
               type="button" 
-              onClick={() => { const isMobile = window.innerWidth <= 768; const maxCols = isMobile ? 3 : 5; const minCols = isMobile ? 1 : 2; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }} 
+              onClick={() => { const isMobile = window.innerWidth <= 768; if (!isMobile) { setGridCols(3); return; } const maxCols = 3; const minCols = 1; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }} 
               className="bg-white hover:bg-gray-100 text-[#1e40af] border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
               title="Cambiar vista"
             >
@@ -1359,10 +1393,12 @@ function FolderPokemonInner() {
                 </div>
                 <img src={card.imageUrl} referrerPolicy="no-referrer" alt={card.name} loading="lazy" className="w-full h-full object-contain filter drop-shadow-sm relative z-10 transition-opacity duration-300 opacity-0" onLoad={(e) => { e.currentTarget.classList.remove('opacity-0'); e.currentTarget.previousSibling.style.display = 'none'; }} />
               </div>
-              <div className={`text-center border-t border-gray-100 w-full ${gridCols <= 2 ? 'p-2' : gridCols === 3 ? 'p-3' : gridCols === 4 ? 'p-2' : 'p-1'}`}>
-                <p className={`font-bold text-gray-900 truncate ${gridCols === 1 ? 'text-base' : gridCols === 2 ? 'text-xl' : gridCols === 3 ? 'text-base' : gridCols === 4 ? 'text-sm' : 'text-xs'}`}>{card.name}</p>
-                <p className={`text-gray-500 truncate mt-1 ${gridCols === 1 ? 'text-xs' : gridCols === 2 ? 'text-lg' : gridCols === 3 ? 'text-sm' : gridCols === 4 ? 'text-xs' : 'text-[10px]'}`}>{availableSets.find(s => s.groupId == (searchSet || card.groupId))?.name}</p>
-              </div>
+              {showCardDetails && (
+                <div className={`text-center border-t border-gray-100 w-full ${gridCols <= 2 ? 'p-2' : gridCols === 3 ? 'p-3' : gridCols === 4 ? 'p-2' : 'p-1'}`}>
+                  <p className={`font-bold text-gray-900 truncate ${gridCols === 1 ? 'text-base' : gridCols === 2 ? 'text-xl' : gridCols === 3 ? 'text-base' : gridCols === 4 ? 'text-sm' : 'text-xs'}`}>{card.name}</p>
+                  <p className={`text-gray-500 truncate mt-1 ${gridCols === 1 ? 'text-xs' : gridCols === 2 ? 'text-lg' : gridCols === 3 ? 'text-sm' : gridCols === 4 ? 'text-xs' : 'text-[10px]'}`}>{availableSets.find(s => s.groupId == (searchSet || card.groupId))?.name}</p>
+                </div>
+              )}
             </div>
           );})}
           {visibleCount < searchResults.length && (
@@ -1389,6 +1425,16 @@ function FolderPokemonInner() {
 
         {/* Columna de Botones FAB (Solo PC) */}
         <div className="hidden lg:flex flex-col gap-3 sticky top-[360px] h-fit z-[60] self-start -mx-2">
+            <button
+                type="button"
+                onClick={() => setShowCardDetails(prev => !prev)}
+                className={`${showCardDetails ? 'bg-[#1e40af] text-white border-[#1e40af]' : 'bg-white text-[#1e40af] border-gray-200 hover:bg-gray-100'} relative w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95 border`}
+                title={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
+                aria-label={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
+                aria-pressed={showCardDetails}
+            >
+                <span translate="no" className="material-symbols-outlined text-[22px]">{showCardDetails ? 'visibility' : 'visibility_off'}</span>
+            </button>
             <button 
                 type="button" 
                 onClick={toggleMultiSelectMode}
@@ -1404,7 +1450,7 @@ function FolderPokemonInner() {
             </button>
             <button 
                 type="button" 
-                onClick={() => { const isMobile = window.innerWidth <= 768; const maxCols = isMobile ? 3 : 5; const minCols = isMobile ? 1 : 2; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }} 
+                onClick={() => { const isMobile = window.innerWidth <= 768; if (!isMobile) { setGridCols(3); return; } const maxCols = 3; const minCols = 1; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }} 
                 className="bg-white hover:bg-gray-100 text-[#1e40af] border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
                 title="Cambiar vista"
             >

@@ -82,6 +82,39 @@ const R2_REQUIRED_ENV = [
 ];
 const missingR2Config = () => R2_REQUIRED_ENV.filter(key => !process.env[key]);
 const hasR2Config = () => missingR2Config().length === 0;
+const getAllowedProxyImageHosts = () => {
+  const hosts = new Set([
+    'api.carpetazo.cl',
+    'carpetazo.cl',
+    'www.carpetazo.cl',
+    'imagenes.carpetazo.cl',
+    'images.pokemontcg.io',
+    'api.pokemontcg.io',
+    'tor.myl.cl',
+    'www.myl.cl',
+    'myl.cl'
+  ]);
+
+  if (process.env.R2_PUBLIC_URL) {
+    try {
+      hosts.add(new URL(process.env.R2_PUBLIC_URL).hostname.toLowerCase());
+    } catch (_error) {
+      // La validación de salud ya reporta si la URL pública de R2 está mal configurada.
+    }
+  }
+
+  return hosts;
+};
+const isAllowedProxyImageUrl = (rawUrl) => {
+  try {
+    const url = new URL(String(rawUrl || ''));
+    if (!['http:', 'https:'].includes(url.protocol)) return false;
+    const host = url.hostname.toLowerCase();
+    return getAllowedProxyImageHosts().has(host) || host.endsWith('.r2.dev');
+  } catch (_error) {
+    return false;
+  }
+};
 const getR2KeyFromPublicUrl = (url) => {
   if (!url || !process.env.R2_PUBLIC_URL) return null;
 
@@ -138,6 +171,44 @@ app.use(cors({
 app.use('/api', limiter);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.get('/api/proxy-image', async (req, res) => {
+  const imageUrl = String(req.query.url || '').trim();
+
+  if (!imageUrl) {
+    return res.status(400).json({ success: false, message: 'URL de imagen requerida' });
+  }
+
+  if (!isAllowedProxyImageUrl(imageUrl)) {
+    return res.status(400).json({ success: false, message: 'URL de imagen no permitida' });
+  }
+
+  try {
+    const response = await fetch(imageUrl, {
+      headers: {
+        'User-Agent': 'Carpetazo/1.0 (+https://carpetazo.cl)',
+        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+      }
+    });
+
+    if (!response.ok) {
+      return res.status(response.status).json({ success: false, message: 'No se pudo obtener la imagen' });
+    }
+
+    const contentType = response.headers.get('content-type') || 'application/octet-stream';
+    if (!contentType.toLowerCase().startsWith('image/')) {
+      return res.status(415).json({ success: false, message: 'El recurso no es una imagen' });
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=604800');
+    return res.send(Buffer.from(arrayBuffer));
+  } catch (error) {
+    console.error('Error proxying image:', error?.message || error);
+    return res.status(500).json({ success: false, message: 'Error obteniendo imagen' });
+  }
+});
+
 
 // Sincronizar o crear usuario en la BD al iniciar sesin
 app.post('/api/users/sync', authenticateToken, async (req, res) => {
@@ -929,13 +1000,63 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
 // Obtener mis mensajes recibidos
 app.get('/api/messages/me', authenticateToken, async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    const messages = await prisma.message.findMany({
-      where: { receiverId: user.id },
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });    if (!user) return res.status(401).json({ success: false, message: 'Usuario no encontrado' });
+
+    const messages = await prisma.message.findMany({
+
+      where: {
+        OR: [
+          { senderId: user.id },
+          { receiverId: user.id }
+        ]
+      },
+
       orderBy: { createdAt: 'desc' }
     });
-    res.json({ success: true, messages });
+    const chatsMap = new Map();
+    for (const msg of messages) {
+      const partnerId = msg.senderId === user.id ? msg.receiverId : msg.senderId;
+      if (partnerId === user.id || chatsMap.has(partnerId)) continue;
+      chatsMap.set(partnerId, msg);
+    }
+
+    const chats = Array.from(chatsMap.values());
+    const partnerIds = chats
+      .map(msg => msg.senderId === user.id ? msg.receiverId : msg.senderId)
+      .filter(Boolean);
+
+    const partners = partnerIds.length
+      ? await prisma.user.findMany({
+          where: { id: { in: partnerIds } },
+          select: { id: true, firebaseUid: true, name: true, username: true, photoURL: true }
+        })
+      : [];
+
+    const unreadCounts = messages.reduce((counts, msg) => {
+      if (msg.senderId !== user.id && msg.receiverId === user.id && !msg.isRead) {
+        counts.set(msg.senderId, (counts.get(msg.senderId) || 0) + 1);
+      }
+      return counts;
+    }, new Map());
+
+    const enrichedChats = chats.map(msg => {
+      const partnerId = msg.senderId === user.id ? msg.receiverId : msg.senderId;
+      const partner = partners.find(partnerUser => partnerUser.id === partnerId) || null;
+      const unreadCount = unreadCounts.get(partnerId) || 0;
+
+      return {
+        ...msg,
+        unreadCount,
+        partner,
+        otherUser: partner
+      };
+    });
+
+    const totalUnread = Array.from(unreadCounts.values()).reduce((total, count) => total + count, 0);
+
+    res.json({ success: true, messages: enrichedChats, chats: enrichedChats, totalUnread });
   } catch (error) {
+    console.error('Error fetching messages/me:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

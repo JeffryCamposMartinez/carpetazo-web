@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, compact = false }) => {
+const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, compact = false, showDetails = false }) => {
   const [price, setPrice] = useState(card.price);
   const [stock, setStock] = useState(card.stock);
   const [saving, setSaving] = useState(false);
@@ -35,10 +35,10 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
       >
         <span translate="no" className="material-symbols-outlined text-[18px]">delete</span>
       </button>
-      <div className={`${compact ? 'p-2.5' : 'p-4'} flex flex-col items-center flex-1`}>
-        <div className={`w-full relative pt-[140%] ${compact ? 'mb-2' : 'mb-3'}`}>
+      <div className={`${compact && !showDetails ? 'p-1.5' : compact ? 'p-2.5' : 'p-4'} flex flex-col items-center flex-1`}>
+        <div className={`w-full relative pt-[140%] ${showDetails ? (compact ? 'mb-2' : 'mb-3') : 'mb-0'}`}>
           <img src={card.imageUrl} referrerPolicy="no-referrer" alt={card.name} className="absolute inset-0 w-full h-full object-fill filter drop-shadow-md transition-transform duration-300" />
-          {(Number(card.stock || 0) <= 0 || Number(card.price || 0) <= 0) && (
+          {showDetails && (Number(card.stock || 0) <= 0 || Number(card.price || 0) <= 0) && (
             <div className="absolute bottom-1 left-1 right-1 z-10 flex flex-wrap justify-center gap-1">
               {Number(card.stock || 0) <= 0 && (
                 <span className="rounded-full bg-red-600/95 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white shadow-sm">Sin stock</span>
@@ -49,22 +49,26 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
             </div>
           )}
         </div>
-        <p className={`font-bold text-gray-900 text-center line-clamp-1 w-full ${compact ? 'text-xs' : 'text-sm'}`}>{card.name}</p>
-        <p className={`text-[10px] text-gray-500 text-center truncate w-full ${compact ? 'mb-2' : 'mb-4'}`}>
-          {compact ? card.set : (
-            <>
-              {card.set} • {card.supertype} • #{(() => {
-                let numStr = (card.number || card.apiId?.split('-')[1] || card.id?.split('-')[1] || '').toString();
-                let totalStr = (card.total || '---').toString();
-                if (/^\d+$/.test(numStr)) numStr = numStr.padStart(3, '0');
-                if (/^\d+$/.test(totalStr)) totalStr = totalStr.padStart(3, '0');
-                return `${numStr}/${totalStr}`;
-              })()}
-            </>
-          )}
-        </p>
+        {showDetails && (
+          <>
+            <p className={`font-bold text-gray-900 text-center line-clamp-1 w-full ${compact ? 'text-xs' : 'text-sm'}`}>{card.name}</p>
+            <p className={`text-[10px] text-gray-500 text-center truncate w-full ${compact ? 'mb-2' : 'mb-4'}`}>
+              {compact ? card.set : (
+                <>
+                  {card.set} • {card.supertype} • #{(() => {
+                    let numStr = (card.number || card.apiId?.split('-')[1] || card.id?.split('-')[1] || '').toString();
+                    let totalStr = (card.total || '---').toString();
+                    if (/^\d+$/.test(numStr)) numStr = numStr.padStart(3, '0');
+                    if (/^\d+$/.test(totalStr)) totalStr = totalStr.padStart(3, '0');
+                    return `${numStr}/${totalStr}`;
+                  })()}
+                </>
+              )}
+            </p>
+          </>
+        )}
 
-        <div className={`${compact ? 'gap-1.5' : 'gap-2'} flex flex-col w-full mt-auto`}>
+        {showDetails && <div className={`${compact ? 'gap-1.5' : 'gap-2'} flex flex-col w-full mt-auto`}>
           <div className={`w-full bg-gray-50 px-2 py-1.5 rounded-lg border border-gray-200 shadow-sm ${compact ? 'flex flex-col gap-1' : 'flex justify-between items-center'}`}>
             <label className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Stock</label>
             <div className={`${compact ? 'w-full' : ''} flex items-center shadow-sm rounded-md overflow-hidden border border-gray-300`}>
@@ -80,22 +84,25 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
               <input type="number" min="0" value={price} onChange={e => setPrice(e.target.value)} className="w-full h-7 pl-6 pr-2 bg-white focus:outline-none text-xs font-bold rounded-md border border-gray-300 shadow-sm text-right text-gray-900" />
             </div>
           </div>
-        </div>
+        </div>}
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={saving || !hasChanges}
-        className={`w-full ${compact ? 'py-2' : 'py-3'} font-bold text-xs tracking-wide transition-colors border-t border-gray-200 flex items-center justify-center gap-1.5 ` + (hasChanges ? 'bg-[#1e40af] text-white hover:bg-blue-800' : 'bg-gray-100 text-gray-500 opacity-60')}
-      >
-        <span translate="no" className="material-symbols-outlined text-[16px]">{saving ? 'hourglass_empty' : 'save'}</span>
-        {saving ? 'Guardando...' : hasChanges ? 'Guardar' : 'Guardado'}
-      </button>
+      {showDetails && (
+        <button
+          onClick={handleSave}
+          disabled={saving || !hasChanges}
+          className={`w-full ${compact ? 'py-2' : 'py-3'} font-bold text-xs tracking-wide transition-colors border-t border-gray-200 flex items-center justify-center gap-1.5 ` + (hasChanges ? 'bg-[#1e40af] text-white hover:bg-blue-800' : 'bg-gray-100 text-gray-500 opacity-60')}
+        >
+          <span translate="no" className="material-symbols-outlined text-[16px]">{saving ? 'hourglass_empty' : 'save'}</span>
+          {saving ? 'Guardando...' : hasChanges ? 'Guardar' : 'Guardado'}
+        </button>
+      )}
     </div>
   );
 }, (prev, next) => (
   prev.card === next.card
   && prev.compact === next.compact
+  && prev.showDetails === next.showDetails
   && prev.onUpdate === next.onUpdate
   && prev.onDelete === next.onDelete
   && prev.dragHandleProps === next.dragHandleProps

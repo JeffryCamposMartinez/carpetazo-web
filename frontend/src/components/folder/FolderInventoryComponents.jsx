@@ -171,9 +171,28 @@ export const InventoryFilters = ({
   </div>
 );
 
-export const InventoryViewSwitcher = ({ mode, onChange }) => (
+export const InventoryViewSwitcher = ({ mode, onChange, showCardDetails = false, onToggleCardDetails }) => (
   <div className="fixed bottom-[5.75rem] right-6 z-[1200] flex justify-end md:static md:mb-6 md:border-b md:border-gray-100 md:pb-4">
     <div className="w-14 rounded-full bg-white/95 p-1 shadow-2xl ring-4 ring-white/70 backdrop-blur md:w-auto md:flex md:flex-row md:items-center md:rounded-xl md:bg-gray-100 md:shadow-inner md:ring-0 md:backdrop-blur-0">
+      {onToggleCardDetails && (
+        <button
+          type="button"
+          onClick={onToggleCardDetails}
+          className={`flex h-12 w-12 items-center justify-center rounded-full text-xs font-bold transition-all md:hidden ${
+            showCardDetails
+              ? 'bg-[#1e40af] text-white shadow-md md:bg-white md:text-[#1e40af] md:shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          title={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
+          aria-label={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
+          aria-pressed={showCardDetails}
+        >
+          <span translate="no" className="material-symbols-outlined text-[21px] md:text-[18px]">
+            {showCardDetails ? 'visibility' : 'visibility_off'}
+          </span>
+          <span className="sr-only md:not-sr-only">Info</span>
+        </button>
+      )}
       {[
         { value: 'album', label: 'Álbum', icon: 'auto_stories' },
         { value: 'grid', label: 'Cuadrícula', icon: 'grid_view' },
