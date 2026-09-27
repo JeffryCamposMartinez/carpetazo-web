@@ -3,7 +3,7 @@ import Filters from '../components/Filters';
 import Toast from '../components/Toast';
 import ConfirmModal from '../components/ConfirmModal';
 import { useAuth } from '../contexts/AuthContext';
-import { apiFetch, apiUrl } from '../utils/api';
+import { api, apiFetch, apiUrl } from '../utils/api';
 
 const AdminCardEdit = ({ card, onUpdate, onDelete }) => {
   const [price, setPrice] = useState(card.price);
@@ -397,48 +397,42 @@ function AdminPanel() {
     }
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_HEIGHT = 600;
-        let width = img.width;
-        let height = img.height;
+    if (!file.type.startsWith('image/')) {
+      showToast('Sube una imagen válida', 'error');
+      return;
+    }
 
-        if (height > MAX_HEIGHT) {
-          width *= MAX_HEIGHT / height;
-          height = MAX_HEIGHT;
-        }
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('type', 'card');
+      const uploadResult = await api.uploadImage(formData);
+      const imageUrl = uploadResult.url;
 
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
-
-        setSelectedCard(prev => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            isCustomImage: true,
-            id: prev.id.includes('-custom-') ? prev.id : `${prev.id}-custom-${Date.now()}`,
-            images: {
-              ...prev.images,
-              large: compressedBase64,
-              small: compressedBase64
-            }
-          };
-        });
-      };
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
+      setSelectedCard(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          isCustomImage: true,
+          id: prev.id.includes('-custom-') ? prev.id : `${prev.id}-custom-${Date.now()}`,
+          imageUrl,
+          images: {
+            ...prev.images,
+            large: imageUrl,
+            small: imageUrl
+          }
+        };
+      });
+    } catch (error) {
+      console.error('Error uploading card image:', error);
+      showToast('No pudimos subir la imagen a R2', 'error');
+    } finally {
+      e.target.value = '';
+    }
   };
 
   const handleSaveCard = async (e) => {

@@ -140,7 +140,7 @@ body.public-profile-active::after {
 }
 
 @keyframes bellRing {
-  0%, 100% { transform: rotate(-8deg); }
+  0%, 100% { transform: rotate(0deg); }
   17% { transform: rotate(0deg); }
   35% { transform: rotate(-20deg); }
   48% { transform: rotate(20deg); }
@@ -151,7 +151,7 @@ body.public-profile-active::after {
 }
 
 @keyframes bellBall {
-  0%, 100% { transform: translateX(-6.5%); }
+  0%, 100% { transform: translateX(0%); }
   17% { transform: translateX(0%); }
   22% { transform: translateX(-1%); }
   35% { transform: translateX(11%); }

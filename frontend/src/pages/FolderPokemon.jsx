@@ -1104,51 +1104,43 @@ function FolderPokemonInner() {
       }
     }, [searchBlock, searchSet, searchPhysicalProduct, mylType, mylRace, mylCost, searchQuery]);
 
-    const handleImageUpload = (e) => {
+    const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_HEIGHT = 600;
-        let width = img.width;
-        let height = img.height;
+    if (!file.type.startsWith('image/')) {
+      showToast('Sube una imagen válida', 'error');
+      return;
+    }
 
-        if (height > MAX_HEIGHT) {
-          width *= MAX_HEIGHT / height;
-          height = MAX_HEIGHT;
-        }
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('type', 'card');
+      const uploadResult = await api.uploadImage(formData);
+      const imageUrl = uploadResult.url;
 
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Ultra-compresión a WebP con calidad del 50%
-        const compressedBase64 = canvas.toDataURL('image/webp', 0.5);
-
-        setSelectedCard(prev => {
-          if (!prev) return prev;
-          const safeId = String(prev.id || prev.productId || prev.tcgProductId || '');
-          return {
-            ...prev,
-            isCustomImage: true,
-            id: safeId.includes('-custom-') ? safeId : `${safeId}-custom-${Date.now()}`,
-            imageUrl: compressedBase64,
-            images: {
-              ...prev.images,
-              large: compressedBase64,
-              small: compressedBase64
-            }
-          };
-        });
-      };
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
+      setSelectedCard(prev => {
+        if (!prev) return prev;
+        const safeId = String(prev.id || prev.productId || prev.tcgProductId || '');
+        return {
+          ...prev,
+          isCustomImage: true,
+          id: safeId.includes('-custom-') ? safeId : `${safeId}-custom-${Date.now()}`,
+          imageUrl,
+          images: {
+            ...prev.images,
+            large: imageUrl,
+            small: imageUrl
+          }
+        };
+      });
+    } catch (error) {
+      console.error('Error uploading card image:', error);
+      showToast('No pudimos subir la imagen a R2', 'error');
+    } finally {
+      e.target.value = '';
+    }
   };
 
   const handleSaveCard = async (e) => {

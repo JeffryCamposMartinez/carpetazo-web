@@ -1,9 +1,22 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../utils/api';
 
 import AuthModal from './AuthModal';
+
+const decodeMessagePreview = (content = '') => {
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed && typeof parsed === 'object' && parsed.v === 1) {
+      if (parsed.imageUrl || parsed.imageBase64) return '📷 Imagen';
+      return parsed.text || 'Mensaje nuevo';
+    }
+  } catch {
+    // Mensajes antiguos en texto plano.
+  }
+  return content || 'Mensaje nuevo';
+};
 
 export default function Header() {
   const { currentUser, appUser, logout, loginWithGoogle } = useAuth();
@@ -19,6 +32,9 @@ export default function Header() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [publicHeaderTheme, setPublicHeaderTheme] = useState(null);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [notificationChats, setNotificationChats] = useState([]);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const markingNotificationsRef = useRef(false);
 
   const searchCategories = [
     { label: 'Carpetas', route: '/carpetas' },
@@ -122,20 +138,32 @@ export default function Header() {
     const loadUnreadMessages = async () => {
       if (!currentUser) {
         setUnreadMessages(0);
+        setNotificationChats([]);
         return;
       }
 
       try {
         const result = await api.getChats();
-        const total = Number(result.totalUnread ?? (result.chats || []).reduce((sum, chat) => sum + Number(chat.unreadCount || 0), 0));
-        if (!cancelled) setUnreadMessages(Number.isFinite(total) ? total : 0);
+        const nextChats = (result.chats || []).filter(chat => {
+          const partner = chat.otherUser || chat.partner || {};
+          return partner.firebaseUid !== currentUser.uid;
+        });
+        const total = Number(result.totalUnread ?? nextChats.reduce((sum, chat) => sum + Number(chat.unreadCount || 0), 0));
+        if (!cancelled) {
+          const filteredTotal = nextChats.reduce((sum, chat) => sum + Number(chat.unreadCount || 0), 0);
+          setUnreadMessages(Number.isFinite(filteredTotal) ? filteredTotal : (Number.isFinite(total) ? total : 0));
+          setNotificationChats(nextChats.filter(chat => Number(chat.unreadCount || 0) > 0));
+        }
       } catch (error) {
-        if (!cancelled) setUnreadMessages(0);
+        if (!cancelled) {
+          setUnreadMessages(0);
+          setNotificationChats([]);
+        }
       }
     };
 
     loadUnreadMessages();
-    const intervalId = window.setInterval(loadUnreadMessages, 30000);
+    const intervalId = window.setInterval(loadUnreadMessages, 8000);
     window.addEventListener('focus', loadUnreadMessages);
     window.addEventListener('carpetazo:messages-updated', loadUnreadMessages);
 
@@ -147,25 +175,145 @@ export default function Header() {
     };
   }, [currentUser?.uid, location.pathname]);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.notification-dropdown')) {
+        setIsNotificationOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const getChatPartner = (chat) => chat?.otherUser || chat?.partner || {};
+
+  const markNotificationChatsRead = async (snapshot = notificationChats) => {
+    if (markingNotificationsRef.current || snapshot.length === 0) return;
+    markingNotificationsRef.current = true;
+    setUnreadMessages(0);
+
+    try {
+      await Promise.all(snapshot.map(async (chat) => {
+        const partner = getChatPartner(chat);
+        const otherId = partner.id || chat.otherId;
+        if (!otherId) return;
+        const result = await api.getMessages(otherId);
+        const list = result.messages || result.data || [];
+        await Promise.all(
+          list
+            .filter(message => message.receiverId && message.receiverId !== message.senderId && !message.isRead)
+            .map(message => api.markMessageRead(message.id).catch(() => null))
+        );
+      }));
+    } catch (error) {
+      console.error('Error marking notification messages as read:', error);
+    } finally {
+      markingNotificationsRef.current = false;
+    }
+  };
+
+  const openNotifications = async () => {
+    const snapshot = notificationChats;
+    setIsNotificationOpen(previous => !previous);
+    if (!isNotificationOpen && unreadMessages > 0) {
+      markNotificationChatsRead(snapshot);
+    }
+  };
+
+  const openNotificationChat = (chat) => {
+    const partner = getChatPartner(chat);
+    setIsNotificationOpen(false);
+    setNotificationChats(previous => previous.filter(item => item.id !== chat.id));
+    navigate('/mensajes', {
+      state: {
+        startChatWith: {
+          id: partner.id || chat.otherId,
+          firebaseUid: partner.firebaseUid,
+          name: partner.name || partner.username || 'Usuario',
+          username: partner.username,
+          avatar: partner.photoURL || ''
+        }
+      }
+    });
+  };
+
   const NotificationBell = ({ compact = false }) => (
-    <button
-      type="button"
-      onClick={() => navigate('/mensajes')}
-      aria-label={unreadMessages > 0 ? `${unreadMessages} mensajes sin leer` : 'Ver mensajes'}
-      className={`group relative flex items-center justify-center rounded-full bg-white text-[#1a2b4b] shadow-sm ring-1 ring-white/40 transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-white/70 ${compact ? 'h-10 w-10' : 'h-12 w-12'}`}
-    >
-      <svg viewBox="0 0 50 30" className={`${compact ? 'h-7 w-9' : 'h-8 w-10'} overflow-visible`} aria-hidden="true">
-        <g className="origin-[50%_2px] -rotate-[8deg] transition-transform duration-500 group-hover:animate-[bellRing_2.3s_ease-in-out]">
-          <path className="transition-transform duration-500 group-hover:animate-[bellBall_2.3s_ease-in-out]" fill="none" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" d="M28.7,25 c0,1.9-1.7,3.5-3.7,3.5s-3.7-1.6-3.7-3.5s1.7-3.5,3.7-3.5S28.7,23,28.7,25z" />
-          <path fill="#FFFFFF" stroke="currentColor" strokeWidth="2" strokeMiterlimit="10" d="M35.9,21.8c-1.2-0.7-4.1-3-3.4-8.7c0.1-1,0.1-2.1,0-3.1h0c-0.3-4.1-3.9-7.2-8.1-6.9c-3.7,0.3-6.6,3.2-6.9,6.9h0 c-0.1,1-0.1,2.1,0,3.1c0.6,5.7-2.2,8-3.4,8.7c-0.4,0.2-0.6,0.6-0.6,1v1.8c0,0.2,0.2,0.4,0.4,0.4h22.2c0.2,0,0.4-0.2,0.4-0.4v-1.8 C36.5,22.4,36.3,22,35.9,21.8L35.9,21.8z" />
-        </g>
-      </svg>
-      {unreadMessages > 0 && (
-        <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-red-600 px-1.5 text-[11px] font-black text-white shadow-lg ring-2 ring-white">
-          {unreadMessages > 99 ? '99+' : unreadMessages}
-        </span>
+    <div className="notification-dropdown relative">
+      <button
+        type="button"
+        onClick={openNotifications}
+        aria-label={unreadMessages > 0 ? `${unreadMessages} mensajes sin leer` : 'Ver mensajes'}
+        aria-expanded={isNotificationOpen}
+        className={`group relative flex items-center justify-center rounded-full border border-[#facc15]/60 bg-gradient-to-br from-[#fff7c2] via-white to-[#dbeafe] text-[#12315f] shadow-[0_8px_24px_rgba(2,6,23,0.18)] ring-1 ring-white/50 transition hover:-translate-y-0.5 hover:border-[#facc15] hover:shadow-[0_12px_30px_rgba(2,6,23,0.25)] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70 ${compact ? 'h-10 w-10' : 'h-12 w-12'}`}
+      >
+        <svg viewBox="0 0 50 30" className={`${compact ? 'h-7 w-9' : 'h-8 w-10'} overflow-visible`} aria-hidden="true">
+          <g className="origin-[50%_2px] transition-transform duration-500 group-hover:animate-[bellRing_2.3s_ease-in-out]">
+            <path className="transition-transform duration-500 group-hover:animate-[bellBall_2.3s_ease-in-out]" fill="none" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" d="M28.7,25 c0,1.9-1.7,3.5-3.7,3.5s-3.7-1.6-3.7-3.5s1.7-3.5,3.7-3.5S28.7,23,28.7,25z" />
+            <path fill="#FFFFFF" stroke="currentColor" strokeWidth="2" strokeMiterlimit="10" d="M35.9,21.8c-1.2-0.7-4.1-3-3.4-8.7c0.1-1,0.1-2.1,0-3.1h0c-0.3-4.1-3.9-7.2-8.1-6.9c-3.7,0.3-6.6,3.2-6.9,6.9h0 c-0.1,1-0.1,2.1,0,3.1c0.6,5.7-2.2,8-3.4,8.7c-0.4,0.2-0.6,0.6-0.6,1v1.8c0,0.2,0.2,0.4,0.4,0.4h22.2c0.2,0,0.4-0.2,0.4-0.4v-1.8 C36.5,22.4,36.3,22,35.9,21.8L35.9,21.8z" />
+          </g>
+        </svg>
+        {unreadMessages > 0 && (
+          <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-[#ef233c] px-1.5 text-[11px] font-black text-white shadow-lg ring-2 ring-white">
+            {unreadMessages > 99 ? '99+' : unreadMessages}
+          </span>
+        )}
+      </button>
+
+      {isNotificationOpen && (
+        <div className={`absolute top-full z-50 mt-3 w-[310px] overflow-hidden rounded-3xl border border-[#facc15]/40 bg-white text-slate-900 shadow-2xl ring-1 ring-slate-900/5 ${compact ? 'right-0' : 'right-0'}`}>
+          <div className="bg-gradient-to-r from-[#0f2b57] to-[#1e40af] px-4 py-3 text-white">
+            <p className="text-sm font-black">Notificaciones</p>
+            <p className="text-xs text-blue-100">Mensajes recientes de Carpetazo</p>
+          </div>
+
+          {notificationChats.length > 0 ? (
+            <div className="max-h-80 overflow-y-auto py-2">
+              {notificationChats.map(chat => {
+                const partner = getChatPartner(chat);
+                const unreadCount = Number(chat.unreadCount || 0);
+                return (
+                  <button
+                    key={chat.id}
+                    type="button"
+                    onClick={() => openNotificationChat(chat)}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-blue-50"
+                  >
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 font-black text-blue-700 ring-2 ring-[#facc15]/40">
+                      {partner.photoURL ? <img src={partner.photoURL} alt="" className="h-full w-full object-cover" /> : (partner.name || partner.username || 'U').charAt(0)}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-black">{partner.name || partner.username || 'Usuario'}</span>
+                      <span className="block truncate text-xs font-semibold text-slate-500">{decodeMessagePreview(chat.lastMessage || chat.content || '')}</span>
+                    </span>
+                    {unreadCount > 0 && (
+                      <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#ef233c] px-1.5 text-[11px] font-black text-white">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="px-4 py-6 text-center">
+              <p className="text-sm font-black text-slate-800">Sin mensajes nuevos</p>
+              <p className="mt-1 text-xs font-semibold text-slate-500">Cuando llegue uno, aparecerá aquí.</p>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsNotificationOpen(false);
+              navigate('/mensajes');
+            }}
+            className="w-full border-t border-slate-100 px-4 py-3 text-sm font-black text-[#1e40af] transition hover:bg-slate-50"
+          >
+            Ver todos los mensajes
+          </button>
+        </div>
       )}
-    </button>
+    </div>
   );
 
   const handleLogin = () => {

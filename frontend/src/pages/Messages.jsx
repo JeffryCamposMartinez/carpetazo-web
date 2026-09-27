@@ -51,28 +51,48 @@ export default function Messages() {
   const [errorMsg, setErrorMsg] = useState('');
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const activeChatRef = useRef(null);
+  const refreshInProgressRef = useRef(false);
 
   const activeOther = useMemo(() => getOtherUser(activeChat, currentUser), [activeChat, currentUser]);
 
-  const loadChats = async () => {
+  useEffect(() => {
+    activeChatRef.current = activeChat;
+  }, [activeChat]);
+
+  const loadChats = async ({ silent = false } = {}) => {
     if (!currentUser) return;
-    setLoadingChats(true);
-    setErrorMsg('');
+    if (!silent) {
+      setLoadingChats(true);
+      setErrorMsg('');
+    }
     try {
       const result = await api.getChats();
-      setChats(result.chats || result.data || []);
+      const nextChats = (result.chats || result.data || []).filter(chat => {
+        const other = getOtherUser(chat, currentUser);
+        return other.firebaseUid !== currentUser.uid;
+      });
+      setChats(nextChats);
+
+      const currentActive = activeChatRef.current;
+      if (currentActive) {
+        const refreshedActive = nextChats.find(chat => chat.id === currentActive.id);
+        if (refreshedActive) {
+          setActiveChat(refreshedActive);
+        }
+      }
     } catch (error) {
       console.error('Error loading chats:', error);
-      setErrorMsg('No pudimos cargar tus conversaciones.');
+      if (!silent) setErrorMsg('No pudimos cargar tus conversaciones.');
     } finally {
-      setLoadingChats(false);
+      if (!silent) setLoadingChats(false);
     }
   };
 
-  const loadMessages = async (chat) => {
+  const loadMessages = async (chat, { silent = false } = {}) => {
     const other = getOtherUser(chat, currentUser);
     if (!other.id) return;
-    setLoadingMessages(true);
+    if (!silent) setLoadingMessages(true);
     try {
       const result = await api.getMessages(other.id);
       const list = result.messages || result.data || [];
@@ -88,9 +108,23 @@ export default function Messages() {
       window.dispatchEvent(new Event('carpetazo:messages-updated'));
     } catch (error) {
       console.error('Error loading messages:', error);
-      setErrorMsg('No pudimos cargar los mensajes.');
+      if (!silent) setErrorMsg('No pudimos cargar los mensajes.');
     } finally {
-      setLoadingMessages(false);
+      if (!silent) setLoadingMessages(false);
+    }
+  };
+
+  const refreshMessagesRealtime = async () => {
+    if (!currentUser || refreshInProgressRef.current) return;
+    refreshInProgressRef.current = true;
+    try {
+      const currentActive = activeChatRef.current;
+      await Promise.all([
+        loadChats({ silent: true }),
+        currentActive ? loadMessages(currentActive, { silent: true }) : Promise.resolve()
+      ]);
+    } finally {
+      refreshInProgressRef.current = false;
     }
   };
 
@@ -138,6 +172,28 @@ export default function Messages() {
   useEffect(() => {
     if (activeChat) loadMessages(activeChat);
   }, [activeChat?.id]);
+
+  useEffect(() => {
+    if (!currentUser) return undefined;
+
+    const handleFocus = () => refreshMessagesRealtime();
+    const handleVisibilityChange = () => {
+      if (!document.hidden) refreshMessagesRealtime();
+    };
+
+    const intervalId = window.setInterval(() => {
+      if (!document.hidden) refreshMessagesRealtime();
+    }, 3000);
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [currentUser?.uid]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

@@ -907,7 +907,11 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
     const sender = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
     const { receiverId, content } = req.body;
     
-    if (!receiverId || !content) return res.status(400).json({ success: false, message: 'Missing fields' });
+    if (!receiverId || !content) return res.status(400).json({ success: false, message: 'Missing fields' });
+    if (!sender) return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
+    if (receiverId === sender.id || receiverId === sender.firebaseUid || receiverId === sender.username) {
+      return res.status(400).json({ success: false, message: 'No puedes enviarte mensajes a ti mismo.' });
+    }
     
     const message = await prisma.message.create({
       data: {
@@ -1013,7 +1017,10 @@ app.post('/api/messages/:otherId', authenticateToken, async (req, res) => {
     const otherId = otherUser.id;
     const { content } = req.body;
     
-    if (!content) return res.status(400).json({ success: false });
+    if (!content) return res.status(400).json({ success: false });
+    if (otherId === currentUser.id) {
+      return res.status(400).json({ success: false, message: 'No puedes enviarte mensajes a ti mismo.' });
+    }
     
     const message = await prisma.message.create({
       data: {
@@ -1060,7 +1067,8 @@ app.get('/api/chats', authenticateToken, async (req, res) => {
     
     const chatsMap = new Map();
     for (const msg of messages) {
-      const otherId = msg.senderId === currentUser.id ? msg.receiverId : msg.senderId;
+      const otherId = msg.senderId === currentUser.id ? msg.receiverId : msg.senderId;
+      if (otherId === currentUser.id) continue;
       if (!chatsMap.has(otherId)) {
         chatsMap.set(otherId, msg);
       }
@@ -1077,7 +1085,7 @@ app.get('/api/chats', authenticateToken, async (req, res) => {
     });
     
     const unreadCounts = messages.reduce((counts, msg) => {
-      if (msg.receiverId === currentUser.id && !msg.isRead) {
+      if (msg.senderId !== currentUser.id && msg.receiverId === currentUser.id && !msg.isRead) {
         const otherId = msg.senderId;
         counts.set(otherId, (counts.get(otherId) || 0) + 1);
       }
@@ -1161,14 +1169,15 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
       return res.status(400).json({ success: false, message: 'No se envió ninguna imagen.' });
     }
 
-    const type = req.body.type; // 'avatar', 'banner', 'wallpaper' or 'message'
-    if (!['avatar', 'banner', 'wallpaper', 'message'].includes(type)) {
+    const type = req.body.type; // 'avatar', 'banner', 'wallpaper', 'message' or 'card'
+    if (!['avatar', 'banner', 'wallpaper', 'message', 'card'].includes(type)) {
       return res.status(400).json({ success: false, message: 'Tipo de imagen inválido.' });
     }
 
     const isBanner = type === 'banner';
     const isWallpaper = type === 'wallpaper';
     const isMessageImage = type === 'message';
+    const isCardImage = type === 'card';
     
     // Process image with sharp -> webp
     const imageProcessor = sharp(req.file.buffer).webp({ quality: 100 });
@@ -1191,7 +1200,7 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
       });
     }
 
-    const previousUser = isMessageImage ? null : await prisma.user.findUnique({
+    const previousUser = isMessageImage || isCardImage ? null : await prisma.user.findUnique({
       where: { firebaseUid: req.user.sub },
       select: { photoURL: true, bannerBase64: true, wallpaperBase64: true }
     });
@@ -1215,7 +1224,7 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
         ? { wallpaperBase64: publicUrl }
         : { photoURL: publicUrl };
 
-    if (!isMessageImage) {
+    if (!isMessageImage && !isCardImage) {
       await prisma.user.update({
         where: { firebaseUid: req.user.sub },
         data: updateData
@@ -1228,7 +1237,7 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
         ? previousUser?.wallpaperBase64
         : previousUser?.photoURL;
 
-    if (!isMessageImage && previousImageUrl && previousImageUrl !== publicUrl) {
+    if (!isMessageImage && !isCardImage && previousImageUrl && previousImageUrl !== publicUrl) {
       await deleteR2ObjectByPublicUrl(previousImageUrl);
     }
 
