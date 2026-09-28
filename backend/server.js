@@ -1109,6 +1109,52 @@ const resolveUserByAnyId = async (identifier) => {
   return prisma.user.findFirst({ where: { OR: where } });
 };
 
+const typingPresence = new Map();
+const TYPING_TTL_MS = 4500;
+
+const typingKey = (senderId, receiverId) => `${senderId}:${receiverId}`;
+
+app.post('/api/messages/:otherId/typing', authenticateToken, async (req, res) => {
+  try {
+    const currentUser = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    if (!currentUser) return res.status(401).json({ success: false });
+
+    const otherUser = await resolveUserByAnyId(req.params.otherId);
+    if (!otherUser) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    if (otherUser.id === currentUser.id) return res.json({ success: true });
+
+    const key = typingKey(currentUser.id, otherUser.id);
+    if (req.body?.isTyping) {
+      typingPresence.set(key, Date.now() + TYPING_TTL_MS);
+    } else {
+      typingPresence.delete(key);
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating typing status:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+app.get('/api/messages/:otherId/typing', authenticateToken, async (req, res) => {
+  try {
+    const currentUser = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    if (!currentUser) return res.status(401).json({ success: false });
+
+    const otherUser = await resolveUserByAnyId(req.params.otherId);
+    if (!otherUser) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+
+    const key = typingKey(otherUser.id, currentUser.id);
+    const expiresAt = typingPresence.get(key) || 0;
+    const isTyping = expiresAt > Date.now();
+    if (!isTyping) typingPresence.delete(key);
+    res.json({ success: true, isTyping });
+  } catch (error) {
+    console.error('Error fetching typing status:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
 // GET messages between current user and another
 app.get('/api/messages/:otherId', authenticateToken, async (req, res) => {
   try {

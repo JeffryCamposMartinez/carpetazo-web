@@ -74,6 +74,8 @@ export const api = {
   getMessages: (otherId) => apiFetch('/messages/' + otherId),
   sendMessage: (otherId, content) => apiFetch('/messages/' + otherId, { method: 'POST', body: JSON.stringify({ content }) }),
   markMessageRead: (id) => apiFetch('/messages/' + id + '/read', { method: 'PUT' }),
+  setTyping: (otherId, isTyping) => apiFetch('/messages/' + otherId + '/typing', { method: 'POST', body: JSON.stringify({ isTyping }) }),
+  getTyping: (otherId) => apiFetch('/messages/' + otherId + '/typing'),
   
   
   // TCG Proxy

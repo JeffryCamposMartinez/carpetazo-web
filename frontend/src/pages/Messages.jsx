@@ -49,6 +49,7 @@ export default function Messages() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [remoteTyping, setRemoteTyping] = useState(false);
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const messagesScrollRef = useRef(null);
@@ -57,8 +58,11 @@ export default function Messages() {
   const refreshInProgressRef = useRef(false);
   const shouldStickToBottomRef = useRef(true);
   const optimisticImageUrlsRef = useRef(new Set());
+  const typingTimeoutRef = useRef(null);
+  const lastTypingSentRef = useRef(false);
 
   const activeOther = useMemo(() => getOtherUser(activeChat, currentUser), [activeChat, currentUser]);
+  const totalUnread = useMemo(() => chats.reduce((total, chat) => total + Number(chat.unreadCount || 0), 0), [chats]);
 
   useEffect(() => {
     activeChatRef.current = activeChat;
@@ -131,7 +135,8 @@ export default function Messages() {
       const currentActive = activeChatRef.current;
       await Promise.all([
         loadChats({ silent: true }),
-        currentActive ? loadMessages(currentActive, { silent: true }) : Promise.resolve()
+        currentActive ? loadMessages(currentActive, { silent: true }) : Promise.resolve(),
+        currentActive ? api.getTyping(getOtherUser(currentActive, currentUser).id).then(result => setRemoteTyping(Boolean(result.isTyping))).catch(() => null) : Promise.resolve()
       ]);
     } finally {
       refreshInProgressRef.current = false;
@@ -180,6 +185,7 @@ export default function Messages() {
 
   useEffect(() => {
     if (activeChat) loadMessages(activeChat);
+    setRemoteTyping(false);
   }, [activeChat?.id]);
 
   useEffect(() => {
@@ -229,6 +235,33 @@ export default function Messages() {
     if (previewUrl && !optimisticImageUrlsRef.current.has(previewUrl)) URL.revokeObjectURL(previewUrl);
   }, [pendingImage?.previewUrl]);
 
+  useEffect(() => () => {
+    if (typingTimeoutRef.current) window.clearTimeout(typingTimeoutRef.current);
+    if (lastTypingSentRef.current && activeOther.id) {
+      api.setTyping(activeOther.id, false).catch(() => null);
+    }
+  }, [activeOther.id]);
+
+  const updateTypingStatus = (isTyping) => {
+    if (!activeOther.id) return;
+    if (typingTimeoutRef.current) window.clearTimeout(typingTimeoutRef.current);
+
+    if (isTyping && !lastTypingSentRef.current) {
+      api.setTyping(activeOther.id, true).catch(() => null);
+      lastTypingSentRef.current = true;
+    }
+
+    if (isTyping) {
+      typingTimeoutRef.current = window.setTimeout(() => {
+        api.setTyping(activeOther.id, false).catch(() => null);
+        lastTypingSentRef.current = false;
+      }, 2200);
+    } else if (lastTypingSentRef.current) {
+      api.setTyping(activeOther.id, false).catch(() => null);
+      lastTypingSentRef.current = false;
+    }
+  };
+
   const handleImageSelect = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -265,6 +298,7 @@ export default function Messages() {
     setSending(true);
     setNewMessage('');
     setPendingImage(null);
+    updateTypingStatus(false);
 
     setMessages(previous => [
       ...previous,
@@ -317,11 +351,20 @@ export default function Messages() {
   return (
     <div className="min-h-[calc(100vh-132px)] bg-transparent px-0 py-0 md:px-6 md:py-6">
       <div className="mx-auto w-full max-w-[1470px]">
-        <div className="grid h-[calc(100vh-132px)] min-h-[620px] grid-cols-1 overflow-hidden bg-white/95 shadow-[0_24px_80px_rgba(2,6,23,0.22)] backdrop-blur md:h-[calc(100vh-180px)] md:rounded-[2rem] md:border md:border-white/60 lg:grid-cols-[360px_minmax(0,1fr)]">
-          <aside className={`min-h-0 border-r border-slate-200 bg-white ${activeChat ? 'hidden lg:flex' : 'flex'} flex-col`}>
-            <div className="shrink-0 border-b border-slate-200 bg-[#f0f2f5] p-4">
-              <h1 className="text-2xl font-black text-slate-900">Mensajes</h1>
-              <p className="text-sm text-slate-500">Tus conversaciones de Carpetazo</p>
+        <div className="grid h-[calc(100vh-132px)] min-h-[620px] grid-cols-1 overflow-hidden bg-white/95 shadow-[0_24px_80px_rgba(2,6,23,0.22)] backdrop-blur md:h-[calc(100vh-180px)] md:rounded-[2rem] md:border md:border-white/60 lg:grid-cols-[380px_minmax(0,1fr)]">
+          <aside className={`min-h-0 border-r border-blue-100 bg-white ${activeChat ? 'hidden lg:flex' : 'flex'} flex-col`}>
+            <div className="shrink-0 border-b border-blue-900/20 bg-gradient-to-r from-[#0b214a] to-[#1e40af] p-4 text-white">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h1 className="text-2xl font-black">Mensajes</h1>
+                  <p className="text-sm font-semibold text-blue-100">Tus conversaciones de Carpetazo</p>
+                </div>
+                {totalUnread > 0 && (
+                  <span className="flex h-8 min-w-8 items-center justify-center rounded-full bg-[#ffcb05] px-2 text-sm font-black text-[#0b214a] shadow">
+                    {totalUnread > 99 ? '99+' : totalUnread}
+                  </span>
+                )}
+              </div>
             </div>
 
             {loadingChats ? (
@@ -338,14 +381,24 @@ export default function Messages() {
                     <button
                       key={chat.id}
                       onClick={() => setActiveChat(chat)}
-                      className={`flex w-full gap-3 px-4 py-3 text-left transition hover:bg-slate-50 ${active ? 'bg-blue-50' : 'bg-white'}`}
+                      className={`flex w-full gap-3 px-4 py-3 text-left transition hover:bg-blue-50/70 ${active ? 'bg-blue-100/80' : 'bg-white'}`}
                     >
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 font-black text-blue-700">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 font-black text-blue-700 ring-2 ring-white shadow">
                         {other.avatar ? <img src={other.avatar} alt="" className="w-full h-full object-cover" /> : other.name.charAt(0)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-bold text-slate-900 truncate">{other.name}</p>
-                        <p className="text-sm text-slate-500 truncate">{last.imageUrl || last.imageBase64 ? '📷 Imagen' : last.text || 'Sin mensajes'}</p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="truncate font-bold text-slate-900">{other.name}</p>
+                          {chat.createdAt && <span className="shrink-0 text-[10px] font-bold text-slate-400">{new Date(chat.createdAt).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</span>}
+                        </div>
+                        <div className="mt-0.5 flex items-center justify-between gap-2">
+                          <p className={`truncate text-sm ${chat.unreadCount ? 'font-black text-[#0b214a]' : 'text-slate-500'}`}>{last.imageUrl || last.imageBase64 ? '📷 Imagen' : last.text || 'Sin mensajes'}</p>
+                          {Number(chat.unreadCount || 0) > 0 && (
+                            <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#ffcb05] px-1.5 text-[11px] font-black text-[#0b214a]">
+                              {Number(chat.unreadCount) > 99 ? '99+' : chat.unreadCount}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </button>
                   );
@@ -354,25 +407,25 @@ export default function Messages() {
             )}
           </aside>
 
-          <section className={`${activeChat ? 'flex' : 'hidden lg:flex'} min-h-0 flex-col bg-[#efeae2]`}>
+          <section className={`${activeChat ? 'flex' : 'hidden lg:flex'} min-h-0 flex-col bg-[#dbeafe]`}>
             {activeChat ? (
               <>
-                <header className="flex h-[72px] shrink-0 items-center gap-3 border-b border-slate-200 bg-[#f0f2f5] px-4">
-                  <button onClick={() => setActiveChat(null)} className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 lg:hidden">
+                <header className="flex h-[68px] shrink-0 items-center gap-3 border-b border-blue-900/20 bg-gradient-to-r from-[#0b214a] to-[#1e40af] px-3 text-white md:h-[72px] md:px-4">
+                  <button onClick={() => setActiveChat(null)} className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/20 lg:hidden">
                     <span translate="no" className="material-symbols-outlined">arrow_back</span>
                   </button>
-                  <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-blue-100 font-black text-blue-700">
+                  <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-white font-black text-[#1e40af] ring-2 ring-[#ffcb05]">
                     {activeOther.avatar ? <img src={activeOther.avatar} alt="" className="w-full h-full object-cover" /> : activeOther.name.charAt(0)}
                   </div>
-                  <div>
-                    <h2 className="font-black text-slate-900">{activeOther.name}</h2>
-                    <p className="text-xs text-slate-500">Conversación privada</p>
+                  <div className="min-w-0">
+                    <h2 className="truncate font-black">{activeOther.name}</h2>
+                    <p className="text-xs font-semibold text-blue-100">{remoteTyping ? 'escribiendo…' : 'Conversación privada'}</p>
                   </div>
                 </header>
 
                 {errorMsg && <div className="m-4 p-3 rounded-xl bg-red-50 text-red-700 text-sm font-semibold">{errorMsg}</div>}
 
-                <div ref={messagesScrollRef} onScroll={handleMessagesScroll} className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[#efeae2] bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.42)_0_1px,transparent_1px),radial-gradient(circle_at_80%_30%,rgba(255,255,255,0.32)_0_1px,transparent_1px)] bg-[length:24px_24px] px-4 py-5 md:px-8">
+                <div ref={messagesScrollRef} onScroll={handleMessagesScroll} className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[#dbeafe] bg-[radial-gradient(circle_at_20%_20%,rgba(30,64,175,0.10)_0_1px,transparent_1px),radial-gradient(circle_at_80%_30%,rgba(255,203,5,0.20)_0_1px,transparent_1px)] bg-[length:24px_24px] px-3 py-4 md:px-8 md:py-5">
                   {loadingMessages && messages.length === 0 ? (
                     <p className="text-center text-slate-500">Cargando mensajes...</p>
                   ) : messages.length === 0 ? (
@@ -389,10 +442,10 @@ export default function Messages() {
                       ) : null;
                       return (
                         <div key={message.id} className={`flex ${own ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-[82%] rounded-2xl px-4 py-3 shadow-sm md:max-w-[68%] ${own ? 'bg-[#d9fdd3] text-slate-900 rounded-br-md' : 'bg-white text-slate-900 rounded-bl-md'} ${message.pending ? 'opacity-75' : ''}`}>
-                            {(body.imageUrl || body.imageBase64) && <img src={body.imageUrl || body.imageBase64} alt="Adjunto" className="mb-2 max-h-72 rounded-xl object-contain" />}
+                          <div className={`max-w-[84%] rounded-2xl px-3 py-2.5 shadow-sm ring-1 md:max-w-[68%] md:px-4 md:py-3 ${own ? 'rounded-br-md bg-[#1e40af] text-white ring-blue-300' : 'rounded-bl-md bg-white text-slate-900 ring-blue-100'} ${message.pending ? 'opacity-75' : ''}`}>
+                            {(body.imageUrl || body.imageBase64) && <img src={body.imageUrl || body.imageBase64} alt="Adjunto" className="mb-2 max-h-72 rounded-xl object-contain ring-1 ring-black/5" />}
                             {body.text && <p className="whitespace-pre-wrap break-words">{body.text}</p>}
-                            <p className="mt-1 text-right text-[10px] text-slate-400">
+                            <p className={`mt-1 text-right text-[10px] ${own ? 'text-blue-100' : 'text-slate-400'}`}>
                               {message.createdAt ? new Date(message.createdAt).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }) : ''}
                               <TickIcon />
                             </p>
@@ -401,28 +454,53 @@ export default function Messages() {
                       );
                     })
                   )}
+                  {remoteTyping && (
+                    <div className="flex justify-start">
+                      <div className="flex items-center gap-1 rounded-2xl rounded-bl-md bg-white px-4 py-3 shadow-sm ring-1 ring-blue-100">
+                        <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.2s]" />
+                        <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.1s]" />
+                        <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" />
+                      </div>
+                    </div>
+                  )}
                   <div ref={messagesEndRef} />
                 </div>
 
                 {pendingImage && (
-                  <div className="flex shrink-0 items-center gap-3 border-t border-slate-200 bg-[#f0f2f5] px-4 py-3">
-                    <img src={pendingImage.previewUrl} alt="Imagen pendiente" className="w-16 h-16 rounded-xl object-cover" />
-                    <button onClick={() => { if (pendingImage?.previewUrl && !optimisticImageUrlsRef.current.has(pendingImage.previewUrl)) URL.revokeObjectURL(pendingImage.previewUrl); setPendingImage(null); }} className="text-sm font-bold text-red-600">Quitar imagen</button>
+                  <div className="shrink-0 border-t border-blue-100 bg-white/95 px-3 py-3 md:px-4">
+                    <div className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-2 shadow-sm">
+                      <img src={pendingImage.previewUrl} alt="Imagen pendiente" className="h-20 w-20 rounded-xl object-cover ring-2 ring-white md:h-24 md:w-24" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-black text-[#0b214a]">Vista previa lista para enviar</p>
+                        <p className="truncate text-xs font-semibold text-slate-500">{pendingImage.file?.name}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { if (pendingImage?.previewUrl && !optimisticImageUrlsRef.current.has(pendingImage.previewUrl)) URL.revokeObjectURL(pendingImage.previewUrl); setPendingImage(null); }}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-red-600 shadow-sm ring-1 ring-red-100"
+                        aria-label="Quitar imagen"
+                      >
+                        <span translate="no" className="material-symbols-outlined">close</span>
+                      </button>
+                    </div>
                   </div>
                 )}
 
-                <form onSubmit={handleSendMessage} className="flex h-[72px] shrink-0 gap-2 border-t border-slate-200 bg-[#f0f2f5] px-3 py-3">
+                <form onSubmit={handleSendMessage} className="flex min-h-[72px] shrink-0 gap-2 border-t border-blue-900/20 bg-[#0b214a] px-3 py-3">
                   <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
-                  <button type="button" onClick={() => fileInputRef.current?.click()} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-white">
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/15 transition hover:bg-white/20">
                     <span translate="no" className="material-symbols-outlined">image</span>
                   </button>
                   <input
                     value={newMessage}
-                    onChange={event => setNewMessage(event.target.value)}
+                    onChange={event => {
+                      setNewMessage(event.target.value);
+                      updateTypingStatus(Boolean(event.target.value.trim()));
+                    }}
                     placeholder="Escribe un mensaje..."
-                    className="min-w-0 flex-1 rounded-full border border-transparent bg-white px-5 text-slate-900 placeholder:text-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="min-w-0 flex-1 rounded-full border border-transparent bg-white px-5 text-slate-900 placeholder:text-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#ffcb05]"
                   />
-                  <button disabled={sending || (!newMessage.trim() && !pendingImage)} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#1e40af] text-white shadow-sm disabled:opacity-50">
+                  <button disabled={sending || (!newMessage.trim() && !pendingImage)} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#ffcb05] text-[#0b214a] shadow-sm disabled:opacity-50">
                     <span translate="no" className="material-symbols-outlined">{sending ? 'hourglass_empty' : 'send'}</span>
                   </button>
                 </form>
