@@ -484,7 +484,16 @@ function FolderPokemonInner() {
       setSearchSet('');
       return;
     }
-    api.getTcgBlocks(searchCategory).then(res => { if(res.success) setAvailableBlocks(res.data); }).catch(console.error);
+    api.getTcgBlocks(searchCategory).then(res => { 
+      if(res.success) {
+        const sorted = res.data.sort((a, b) => {
+          if (a.id === 2) return -1;
+          if (b.id === 2) return 1;
+          return 0;
+        });
+        setAvailableBlocks(sorted);
+      }
+    }).catch(console.error);
     api.getTcgPhysicalProducts().then(res => { if(res.success) setAvailablePhysicalProducts(res.data); }).catch(console.error);
       api.getTcgGroups(searchCategory)
       .then(res => {
