@@ -854,10 +854,7 @@ app.get('/api/folders/:id', async (req, res) => {
       where: { id: req.params.id },
       include: {
         cards: {
-          orderBy: [
-            { catalogOrder: 'asc' },
-            { createdAt: 'asc' },
-          ]
+          orderBy: { createdAt: 'asc' }
         },
         user: {
           select: {
@@ -881,6 +878,7 @@ app.get('/api/folders/:id', async (req, res) => {
     if (!folder) return res.status(404).json({ success: false, message: 'Folder not found' });
     res.json({ success: true, folder });
   } catch (error) {
+    console.error('Error fetching folder:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
