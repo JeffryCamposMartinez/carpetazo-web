@@ -853,7 +853,12 @@ app.get('/api/folders/:id', async (req, res) => {
     const folder = await prisma.folder.findUnique({
       where: { id: req.params.id },
       include: {
-        cards: true,
+        cards: {
+          orderBy: [
+            { catalogOrder: 'asc' },
+            { createdAt: 'asc' },
+          ]
+        },
         user: {
           select: {
             name: true,
@@ -1424,6 +1429,34 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
   }
 });
 
+const sanitizeProfileAddresses = (addresses = []) => {
+  if (!Array.isArray(addresses)) return [];
+
+  const cleaned = addresses
+    .slice(0, 10)
+    .map((address = {}, index) => ({
+      id: String(address.id || `address-${Date.now()}-${index}`).slice(0, 80),
+      name: String(address.name || '').trim().slice(0, 80),
+      region: String(address.region || '').trim().slice(0, 80),
+      comuna: String(address.comuna || '').trim().slice(0, 80),
+      street: String(address.street || '').trim().slice(0, 120),
+      number: String(address.number || '').trim().slice(0, 30),
+      floor: String(address.floor || '').trim().slice(0, 30),
+      depto: String(address.depto || '').trim().slice(0, 30),
+      reference: String(address.reference || '').trim().slice(0, 180),
+      isDefault: Boolean(address.isDefault)
+    }))
+    .filter(address => address.region && address.comuna && address.street && address.number);
+
+  const defaultIndex = cleaned.findIndex(address => address.isDefault);
+  const effectiveDefaultIndex = defaultIndex >= 0 ? defaultIndex : 0;
+
+  return cleaned.map((address, index) => ({
+    ...address,
+    isDefault: index === effectiveDefaultIndex
+  }));
+};
+
 app.put('/api/users/me', authenticateToken, async (req, res) => {
   try {
     const firebaseUid = req.user.sub;
@@ -1496,6 +1529,20 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
           .filter(([key, value]) => allowedThemeFields.includes(key) && typeof value === 'string')
           .map(([key, value]) => [key, value.slice(0, 40)])
       );
+    }
+
+    if (updateData.addresses !== undefined) {
+      updateData.addresses = sanitizeProfileAddresses(updateData.addresses);
+    }
+
+    if (updateData.bankDetails !== undefined) {
+      updateData.bankDetails = updateData.bankDetails && typeof updateData.bankDetails === 'object' && !Array.isArray(updateData.bankDetails)
+        ? {
+            bank: String(updateData.bankDetails.bank || '').trim().slice(0, 80),
+            accountType: String(updateData.bankDetails.accountType || '').trim().slice(0, 80),
+            accountNumber: String(updateData.bankDetails.accountNumber || '').trim().slice(0, 80)
+          }
+        : {};
     }
 
     const user = await prisma.user.update({

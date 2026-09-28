@@ -23,6 +23,7 @@ class ErrorBoundary extends React.Component {
 import { useParams, useNavigate } from 'react-router-dom';
 import { api, apiUrl } from '../utils/api';
 import { getTcgConfig } from '../config/tcgConfig';
+import { useAuth } from '../contexts/AuthContext';
 
 import Toast from '../components/Toast';
 import ConfirmModal from '../components/ConfirmModal';
@@ -98,6 +99,7 @@ function FolderPokemonInner() {
 
   const { id } = useParams();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [folderData, setFolderData] = useState(null);
   const [loadingFolder, setLoadingFolder] = useState(true);
   
@@ -335,7 +337,8 @@ function FolderPokemonInner() {
   const [catSet, setCatSet] = useState('');
   const [catalogViewMode, setCatalogViewMode] = useState('grid');
   const [catalogGridDensity, setCatalogGridDensity] = useState(3);
-  const [showCardDetails, setShowCardDetails] = useState(false);
+  const [showCardDetails, setShowCardDetails] = useState(true);
+  const [cardDetailsPreferenceReady, setCardDetailsPreferenceReady] = useState(false);
   const [isCatSetDropdownOpen, setIsCatSetDropdownOpen] = useState(false);
   const [draggedCatalogCardId, setDraggedCatalogCardId] = useState(null);
   const [dropCatalogIndex, setDropCatalogIndex] = useState(null);
@@ -348,6 +351,25 @@ function FolderPokemonInner() {
   const touchCatalogCardIdRef = useRef(null);
   const touchCatalogDropIndexRef = useRef(null);
   const isTouchDragRef = useRef(false);
+
+  useEffect(() => {
+    if (!currentUser?.uid) {
+      setShowCardDetails(true);
+      setCardDetailsPreferenceReady(false);
+      return;
+    }
+
+    const storageKey = `carpetazo:folder-card-details:${currentUser.uid}`;
+    const savedPreference = window.localStorage.getItem(storageKey);
+    setShowCardDetails(savedPreference === null ? true : savedPreference === 'true');
+    setCardDetailsPreferenceReady(true);
+  }, [currentUser?.uid]);
+
+  useEffect(() => {
+    if (!currentUser?.uid || !cardDetailsPreferenceReady) return;
+    const storageKey = `carpetazo:folder-card-details:${currentUser.uid}`;
+    window.localStorage.setItem(storageKey, String(showCardDetails));
+  }, [showCardDetails, currentUser?.uid, cardDetailsPreferenceReady]);
 
   useEffect(() => {
     // Evita que la previsualización se quede pegada si se cambia de vista (grid <-> album) mientras se arrastra
@@ -781,20 +803,20 @@ function FolderPokemonInner() {
   };
 
   const renderCatalogTab = () => (
-    <div className="bg-white p-3 sm:p-6 rounded-2xl border border-gray-200 shadow-sm">
-      <div className="mb-4 flex flex-col gap-3 sm:mb-6 md:flex-row md:items-start md:justify-between">
+    <div className="rounded-2xl border border-gray-200 bg-white p-2.5 shadow-sm sm:p-4">
+      <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="flex items-center gap-2 text-xl font-black text-[#1a2b4b] sm:font-headline-md sm:text-headline-md">
-            <span translate="no" className="material-symbols-outlined text-[23px] text-[#1e40af] sm:text-[28px]">inventory_2</span>
+          <h2 className="flex items-center gap-2 text-lg font-black leading-tight text-[#1a2b4b] sm:text-xl">
+            <span translate="no" className="material-symbols-outlined text-[22px] text-[#1e40af]">inventory_2</span>
             Inventario Actual
           </h2>
-          <p className="mt-1 text-xs text-gray-500 sm:text-sm">Carpeta de {folderData?.tcg || 'este TCG'}.</p>
+          <p className="text-xs text-gray-500">Carpeta de {folderData?.tcg || 'este TCG'}.</p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <button
             type="button"
             onClick={openBuyerPreview}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-black text-[#1e40af] shadow-sm transition-colors hover:bg-blue-100 sm:gap-2 sm:px-4 sm:text-sm"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-blue-100 bg-blue-50 px-3 text-xs font-black text-[#1e40af] shadow-sm transition-colors hover:bg-blue-100 sm:gap-2 sm:px-4"
           >
             <span translate="no" className="material-symbols-outlined text-[18px]">visibility</span>
             <span className="truncate">Vista</span>
@@ -803,7 +825,7 @@ function FolderPokemonInner() {
           <button
             type="button"
             onClick={copyBuyerLink}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-black text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-[#1e40af] sm:gap-2 sm:px-4 sm:text-sm"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 text-xs font-black text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-[#1e40af] sm:gap-2 sm:px-4"
           >
             <span translate="no" className="material-symbols-outlined text-[18px]">link</span>
             <span className="truncate">Copiar</span>
@@ -843,6 +865,8 @@ function FolderPokemonInner() {
         onChange={setCatalogViewMode}
         showCardDetails={showCardDetails}
         onToggleCardDetails={() => setShowCardDetails(prev => !prev)}
+        gridDensity={catalogGridDensity}
+        onCycleGridDensity={cycleCatalogGridDensity}
       />
 
       <div className="fixed right-[max(1rem,calc((100vw-1470px)/2+1rem))] top-1/2 z-[1190] hidden -translate-y-1/2 flex-col gap-3 md:flex">
@@ -977,6 +1001,7 @@ function FolderPokemonInner() {
                         dragHandleProps={getCatalogDragHandleProps(card, visibleIndex)}
                         compact
                         showDetails={showCardDetails}
+                        dense={catalogGridDensity >= 3}
                       />
                     </div>
                   );
@@ -1757,37 +1782,37 @@ function FolderPokemonInner() {
     <>
       <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
         <div className="w-full rounded-none shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] border-x border-gray-300 flex flex-col relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
-          <main className="flex-1 text-gray-900 px-4 sm:px-8 py-8 flex flex-col relative z-20">
-      <div className="mb-6 flex items-center gap-2 sm:gap-4 pb-4 border-b border-gray-300">
+          <main className="relative z-20 flex flex-1 flex-col px-3 py-4 text-gray-900 sm:px-8 sm:py-5">
+      <div className="mb-3 flex items-center gap-2 border-b border-gray-300 pb-3 sm:gap-4">
         <button 
           onClick={() => navigate('/dashboard')}
-          className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600 bg-white border border-gray-300 shadow-sm hover:text-[#1e40af]"
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-100 hover:text-[#1e40af] sm:h-10 sm:w-10"
           title="Volver a mis carpetas"
         >
-          <span translate="no" className="material-symbols-outlined text-xl sm:text-2xl">arrow_back</span>
+          <span translate="no" className="material-symbols-outlined text-xl">arrow_back</span>
         </button>
-        <h1 className="font-headline-lg md:font-display-lg text-headline-lg md:text-display-lg text-[#1a2b4b] m-0 leading-tight truncate">Carpeta: {folderData.name}</h1>
+        <h1 className="m-0 truncate text-2xl font-black leading-tight text-[#1a2b4b] sm:text-4xl">Carpeta: {folderData.name}</h1>
       </div>
 
       {/* Tabs */}
-      <div className="grid grid-cols-3 gap-1 border-b border-gray-300 mb-8 pb-0">
+      <div className="mb-3 grid grid-cols-3 gap-1 border-b border-gray-300 pb-0 sm:mb-4">
         <button 
           onClick={() => setActiveTab('add')} 
-          className={`px-2 sm:px-6 py-4 rounded-t-xl font-bold transition-colors flex items-center justify-center gap-1 sm:gap-2 ${activeTab === 'add' ? 'bg-white text-[#1e40af] border-b-4 border-[#1e40af] shadow-sm' : 'bg-gray-50/50 hover:bg-gray-100 text-gray-500'}`}
+          className={`flex items-center justify-center gap-1 rounded-t-xl px-2 py-3 font-bold transition-colors sm:gap-2 sm:px-6 ${activeTab === 'add' ? 'bg-white text-[#1e40af] border-b-4 border-[#1e40af] shadow-sm' : 'bg-gray-50/50 hover:bg-gray-100 text-gray-500'}`}
         >
           <span translate="no" className="material-symbols-outlined text-[18px] sm:text-[24px]">add_circle</span>
           <span className="text-xs sm:text-sm">Agregar Cartas</span>
         </button>
         <button 
           onClick={() => setActiveTab('catalog')} 
-          className={`px-2 sm:px-6 py-4 rounded-t-xl font-bold transition-colors flex items-center justify-center gap-1 sm:gap-2 ${activeTab === 'catalog' ? 'bg-white text-[#1e40af] border-b-4 border-[#1e40af] shadow-sm' : 'bg-gray-50/50 hover:bg-gray-100 text-gray-500'}`}
+          className={`flex items-center justify-center gap-1 rounded-t-xl px-2 py-3 font-bold transition-colors sm:gap-2 sm:px-6 ${activeTab === 'catalog' ? 'bg-white text-[#1e40af] border-b-4 border-[#1e40af] shadow-sm' : 'bg-gray-50/50 hover:bg-gray-100 text-gray-500'}`}
         >
           <span translate="no" className="material-symbols-outlined text-[18px] sm:text-[24px]">auto_stories</span>
           <span className="text-xs sm:text-sm">Carpeta</span>
         </button>
         <button 
           onClick={() => setActiveTab('sales')} 
-          className={`px-2 sm:px-6 py-4 rounded-t-xl font-bold transition-colors flex items-center justify-center gap-1 sm:gap-2 ${activeTab === 'sales' ? 'bg-white text-[#1e40af] border-b-4 border-[#1e40af] shadow-sm' : 'bg-gray-50/50 hover:bg-gray-100 text-gray-500'}`}
+          className={`flex items-center justify-center gap-1 rounded-t-xl px-2 py-3 font-bold transition-colors sm:gap-2 sm:px-6 ${activeTab === 'sales' ? 'bg-white text-[#1e40af] border-b-4 border-[#1e40af] shadow-sm' : 'bg-gray-50/50 hover:bg-gray-100 text-gray-500'}`}
         >
           <span translate="no" className="material-symbols-outlined text-[18px] sm:text-[24px]">receipt_long</span>
           <span className="text-xs sm:text-sm">Ventas</span>

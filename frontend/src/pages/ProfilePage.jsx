@@ -66,7 +66,6 @@ const emptyProfile = {
 
 const tabs = [
   { id: 'general', label: 'Perfil', icon: 'person', description: 'Tu identidad pública y cómo te ven otros usuarios.' },
-  { id: 'style', label: 'Estilo', icon: 'palette', description: 'Personaliza colores y presencia de tu perfil público.' },
   { id: 'personal', label: 'Privado', icon: 'badge', description: 'Datos privados para contacto, compras y validaciones.' },
   { id: 'addresses', label: 'Direcciones', icon: 'location_on', description: 'Lugares donde puedes recibir pedidos.' },
   { id: 'payments', label: 'Pagos', icon: 'account_balance', description: 'Datos bancarios para recibir ventas.' },
@@ -193,7 +192,7 @@ const ProfilePage = () => {
   const [feedback, setFeedback] = useState(null);
   const [usernameState, setUsernameState] = useState({ checking: false, available: null, message: '' });
   const [addressModal, setAddressModal] = useState({ open: false, index: null });
-  const [addressForm, setAddressForm] = useState({ name: '', region: '', comuna: '', street: '', number: '', floor: '', depto: '', reference: '' });
+  const [addressForm, setAddressForm] = useState({ id: '', name: '', region: '', comuna: '', street: '', number: '', floor: '', depto: '', reference: '', isDefault: false });
   const [deleteAddressIndex, setDeleteAddressIndex] = useState(null);
   const [defaultAddressIndex, setDefaultAddressIndex] = useState(null);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
@@ -349,6 +348,7 @@ const ProfilePage = () => {
   const openAddressModal = (index = null) => {
     const address = index === null ? {} : profileData.addresses[index] || {};
     setAddressForm({
+      id: address.id || '',
       name: address.name || '',
       region: address.region || '',
       comuna: address.comuna || '',
@@ -356,7 +356,8 @@ const ProfilePage = () => {
       number: address.number || '',
       floor: address.floor || '',
       depto: address.depto || '',
-      reference: address.reference || ''
+      reference: address.reference || '',
+      isDefault: index === null ? (profileData.addresses || []).length === 0 : Boolean(address.isDefault)
     });
     setAddressModal({ open: true, index });
   };
@@ -367,10 +368,25 @@ const ProfilePage = () => {
       return showFeedback('error', 'Completa región, comuna, calle y número.');
     }
     const nextAddresses = [...(profileData.addresses || [])];
-    const nextAddress = { ...addressForm, isDefault: addressModal.index === null ? nextAddresses.length === 0 : Boolean(nextAddresses[addressModal.index]?.isDefault) };
+    const nextAddress = {
+      ...addressForm,
+      id: addressForm.id || `address-${Date.now()}`,
+      name: addressForm.name.trim(),
+      region: addressForm.region.trim(),
+      comuna: addressForm.comuna.trim(),
+      street: addressForm.street.trim(),
+      number: addressForm.number.trim(),
+      floor: addressForm.floor.trim(),
+      depto: addressForm.depto.trim(),
+      reference: addressForm.reference.trim(),
+      isDefault: Boolean(addressForm.isDefault) || (addressModal.index === null && nextAddresses.length === 0)
+    };
     if (addressModal.index === null) nextAddresses.push(nextAddress);
     else nextAddresses[addressModal.index] = nextAddress;
-    const ok = await persistProfile({ addresses: nextAddresses }, 'Dirección guardada.', 'addresses');
+    const normalizedAddresses = nextAddress.isDefault
+      ? nextAddresses.map(address => ({ ...address, isDefault: address.id === nextAddress.id }))
+      : nextAddresses;
+    const ok = await persistProfile({ addresses: normalizedAddresses }, 'Dirección guardada.', 'addresses');
     if (ok) setAddressModal({ open: false, index: null });
   };
 
@@ -422,31 +438,6 @@ const ProfilePage = () => {
 
   return (
     <div className="mx-auto w-full max-w-[1400px] overflow-hidden px-3 py-4 sm:px-5 lg:px-8">
-      <div className="mb-4 overflow-hidden rounded-[1.5rem] bg-[#102a56] text-white shadow-xl sm:rounded-[2rem]">
-        <div className="grid gap-4 p-4 sm:p-7 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-white/10 ring-4 ring-white/10 sm:h-24 sm:w-24 sm:rounded-3xl">
-              {profileData.photoURL ? <img src={profileData.photoURL} alt="Avatar" className="h-full w-full object-cover" /> : <span translate="no" className="material-symbols-outlined flex h-full w-full items-center justify-center text-5xl text-white/50">person</span>}
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-200">Mi Perfil</p>
-              <h1 className="truncate text-xl font-black sm:text-4xl">{profileData.displayName || profileData.fullName || 'Usuario'}</h1>
-              <p className="mt-1 truncate text-sm font-semibold text-blue-100">{profileData.email || currentUser.email}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 sm:flex">
-            <ActionButton variant="secondary" className="px-3 py-2 text-xs bg-white/10 text-white ring-white/20 hover:bg-white/15 sm:px-5 sm:py-3 sm:text-sm" onClick={loadProfile} disabled={loadingProfile}>
-              <span translate="no" className="material-symbols-outlined text-[18px]">refresh</span>
-              Recargar
-            </ActionButton>
-            <ActionButton variant="secondary" className="px-3 py-2 text-xs bg-white text-[#1e40af] sm:px-5 sm:py-3 sm:text-sm" onClick={() => publicUrl && navigator.clipboard?.writeText(publicUrl)} disabled={!publicUrl}>
-              <span translate="no" className="material-symbols-outlined text-[18px]">link</span>
-              Copiar perfil
-            </ActionButton>
-          </div>
-        </div>
-      </div>
-
       {feedback && (
         <div className={`mb-4 rounded-2xl px-4 py-3 text-sm font-black shadow-sm ${feedback.type === 'success' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-red-50 text-red-700 ring-1 ring-red-100'}`}>
           {feedback.message}
@@ -459,7 +450,7 @@ const ProfilePage = () => {
           <div className="hidden rounded-[1.75rem] bg-white p-4 shadow-sm ring-1 ring-blue-100 lg:block">
             <div className="relative mx-auto h-32 w-32 overflow-hidden rounded-[2rem] bg-slate-100 ring-4 ring-white">
               {profileData.photoURL ? <img src={profileData.photoURL} alt="Avatar" className="h-full w-full object-cover" /> : <span translate="no" className="material-symbols-outlined flex h-full w-full items-center justify-center text-6xl text-slate-300">person</span>}
-              <label className="absolute inset-x-0 bottom-0 cursor-pointer bg-black/60 py-2 text-center text-xs font-black text-white backdrop-blur">
+              <label className="absolute inset-x-0 bottom-0 cursor-pointer bg-black/60 py-2 text-center text-xs font-black text-white backdrop-blur transition hover:bg-black/70">
                 Cambiar foto
                 <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
               </label>
@@ -467,6 +458,17 @@ const ProfilePage = () => {
             <div className="mt-4 text-center">
               <p className="truncate text-lg font-black text-[#1a2b4b]">{profileData.displayName || 'Usuario'}</p>
               <p className="truncate text-sm font-bold text-slate-500">@{profileData.username || 'sin_usuario'}</p>
+              <p className="mt-1 truncate text-xs font-semibold text-slate-400">{profileData.email || currentUser.email}</p>
+            </div>
+            <div className="mt-4 grid gap-2">
+              <button type="button" onClick={() => publicUrl && window.open(publicUrl, '_blank', 'noopener,noreferrer')} disabled={!publicUrl} className="flex items-center justify-center gap-2 rounded-2xl bg-blue-50 px-4 py-3 text-sm font-black text-[#1e40af] ring-1 ring-blue-100 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50">
+                <span translate="no" className="material-symbols-outlined text-[18px]">storefront</span>
+                Ver perfil público
+              </button>
+              <button type="button" onClick={loadProfile} disabled={loadingProfile} className="flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
+                <span translate="no" className="material-symbols-outlined text-[18px]">refresh</span>
+                Recargar
+              </button>
             </div>
           </div>
 
@@ -511,74 +513,6 @@ const ProfilePage = () => {
                     <textarea value={profileData.bio} onChange={e => updateProfileField('bio', e.target.value.slice(0, 500))} placeholder="Cuéntale a la comunidad qué coleccionas, vendes o buscas..." className="min-h-32 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-[#1e40af] focus:ring-4 focus:ring-blue-100" />
                   </Field>
                   <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('general')} disabled={Boolean(savingKey) || usernameState.checking || usernameState.available === false}>{savingKey === 'general' ? 'Guardando...' : 'Guardar perfil'}</ActionButton></div>
-                </section>
-              )}
-
-              {activeTab === 'style' && (
-                <section className="space-y-6">
-                  <div
-                    className="overflow-hidden rounded-[2rem] shadow-xl ring-1 ring-slate-200"
-                    style={{ backgroundColor: profileData.publicTheme?.surface || defaultPublicTheme.surface }}
-                  >
-                    <div
-                      className="relative min-h-40 p-5 text-white"
-                      style={{
-                        background: `linear-gradient(135deg, ${profileData.publicTheme?.primary || defaultPublicTheme.primary}, ${profileData.publicTheme?.secondary || defaultPublicTheme.secondary})`
-                      }}
-                    >
-                      <div className="absolute right-4 top-4 h-20 w-20 rounded-full opacity-70 blur-2xl" style={{ backgroundColor: profileData.publicTheme?.accent || defaultPublicTheme.accent }} />
-                      <p className="relative text-xs font-black uppercase tracking-[0.2em] opacity-80">Vista previa</p>
-                      <h3 className="relative mt-2 text-3xl font-black">{profileData.displayName || 'Tu perfil'}</h3>
-                      <p className="relative mt-1 text-sm font-bold opacity-85">@{profileData.username || 'tu_usuario'}</p>
-                    </div>
-                    <div className="grid gap-3 bg-white/80 p-5 sm:grid-cols-3">
-                      <div className="rounded-2xl bg-white p-4 shadow-sm">
-                        <p className="text-xs font-black uppercase tracking-wider text-slate-400">Tema</p>
-                        <p className="mt-1 font-black" style={{ color: profileData.publicTheme?.text || defaultPublicTheme.text }}>{profileData.publicTheme?.name || defaultPublicTheme.name}</p>
-                      </div>
-                      <div className="rounded-2xl bg-white p-4 shadow-sm">
-                        <p className="text-xs font-black uppercase tracking-wider text-slate-400">Botón</p>
-                        <span className="mt-2 inline-flex rounded-full px-4 py-2 text-sm font-black text-white" style={{ backgroundColor: profileData.publicTheme?.primary || defaultPublicTheme.primary }}>Mensaje</span>
-                      </div>
-                      <div className="rounded-2xl bg-white p-4 shadow-sm">
-                        <p className="text-xs font-black uppercase tracking-wider text-slate-400">Acento</p>
-                        <div className="mt-2 h-8 rounded-full" style={{ backgroundColor: profileData.publicTheme?.accent || defaultPublicTheme.accent }} />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-black text-[#1a2b4b]">Elige una paleta</h3>
-                    <p className="mt-1 text-sm font-semibold text-slate-500">Estos colores se aplican a tu perfil público para que se sienta único.</p>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                      {profileThemes.map(theme => {
-                        const selected = (profileData.publicTheme?.id || defaultPublicTheme.id) === theme.id;
-                        return (
-                          <button
-                            key={theme.id}
-                            type="button"
-                            onClick={() => updateProfileField('publicTheme', theme)}
-                            className={`group overflow-hidden rounded-3xl border bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg ${selected ? 'border-[#1e40af] ring-4 ring-blue-100' : 'border-slate-200'}`}
-                          >
-                            <div className="h-20 rounded-2xl" style={{ background: `linear-gradient(135deg, ${theme.primary}, ${theme.secondary})` }}>
-                              <div className="flex h-full items-end justify-end p-3">
-                                <span className="h-8 w-8 rounded-full ring-4 ring-white/60" style={{ backgroundColor: theme.accent }} />
-                              </div>
-                            </div>
-                            <div className="mt-3 flex items-center justify-between gap-3">
-                              <div>
-                                <p className="font-black" style={{ color: theme.text }}>{theme.name}</p>
-                                <p className="text-xs font-bold text-slate-400">{theme.primary} · {theme.accent}</p>
-                              </div>
-                              {selected && <span translate="no" className="material-symbols-outlined text-[#1e40af]">check_circle</span>}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('style')} disabled={Boolean(savingKey)}>{savingKey === 'style' ? 'Guardando...' : 'Guardar estilo'}</ActionButton></div>
                 </section>
               )}
 
@@ -659,6 +593,15 @@ const ProfilePage = () => {
               <Field label="Piso"><TextInput value={addressForm.floor} onChange={e => setAddressForm(prev => ({ ...prev, floor: e.target.value }))} placeholder="Opcional" /></Field>
               <Field label="Depto / Casa"><TextInput value={addressForm.depto} onChange={e => setAddressForm(prev => ({ ...prev, depto: e.target.value }))} placeholder="Opcional" /></Field>
               <Field label="Referencia"><TextInput value={addressForm.reference} onChange={e => setAddressForm(prev => ({ ...prev, reference: e.target.value }))} placeholder="Portón azul, conserjería..." /></Field>
+              <label className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm font-black text-[#1a2b4b] sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={Boolean(addressForm.isDefault)}
+                  onChange={e => setAddressForm(prev => ({ ...prev, isDefault: e.target.checked }))}
+                  className="h-5 w-5 rounded border-blue-200 text-[#1e40af] focus:ring-blue-200"
+                />
+                Usar como dirección principal
+              </label>
             </div>
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><ActionButton type="button" variant="secondary" onClick={() => setAddressModal({ open: false, index: null })}>Cancelar</ActionButton><ActionButton type="submit" disabled={savingKey === 'addresses'}>{savingKey === 'addresses' ? 'Guardando...' : 'Guardar dirección'}</ActionButton></div>
           </form>

@@ -438,19 +438,25 @@ function PublicCatalog() {
       'Promo': 11,
     };
     const normalizeText = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const getCatalogOrder = (card, fallbackIndex = 0) => {
+      const value = Number(card?.catalogOrder);
+      return Number.isFinite(value) ? value : fallbackIndex + 100000;
+    };
     const list = [...filteredCards];
     list.sort((a, b) => {
+      const orderFallback = getCatalogOrder(a) - getCatalogOrder(b) || normalizeText(a.name).localeCompare(normalizeText(b.name));
+      if (sortBy === 'featured') return orderFallback;
       if (sortBy === 'price_asc') return Number(a.price || 0) - Number(b.price || 0);
       if (sortBy === 'price_desc') return Number(b.price || 0) - Number(a.price || 0);
       if (sortBy === 'stock_desc') return Number(b.stock || 0) - Number(a.stock || 0);
       if (sortBy === 'stock_asc') return Number(a.stock || 0) - Number(b.stock || 0);
       if (sortBy === 'rarity_desc') {
-        return (rarityWeight[b.rarity] || 0) - (rarityWeight[a.rarity] || 0) || normalizeText(a.name).localeCompare(normalizeText(b.name));
+        return (rarityWeight[b.rarity] || 0) - (rarityWeight[a.rarity] || 0) || orderFallback;
       }
       if (sortBy === 'set_asc') {
-        return normalizeText(a.set).localeCompare(normalizeText(b.set)) || normalizeText(a.name).localeCompare(normalizeText(b.name));
+        return normalizeText(a.set).localeCompare(normalizeText(b.set)) || orderFallback;
       }
-      return 0;
+      return orderFallback;
     });
     return list;
   }, [filteredCards, sortBy]);

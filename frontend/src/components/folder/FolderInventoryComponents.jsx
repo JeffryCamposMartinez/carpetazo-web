@@ -20,12 +20,12 @@ export const FolderInventorySummary = ({ cards = [], filteredCards = [], tcg, ha
   ];
 
   return (
-    <section className="mb-3 rounded-2xl border border-blue-100 bg-blue-50/60 p-3 shadow-sm sm:mb-6 sm:rounded-3xl sm:bg-gradient-to-br sm:from-blue-50 sm:via-white sm:to-indigo-50 sm:p-4">
-      <div className="mb-2 flex items-center justify-between gap-2 sm:mb-4 sm:flex-row sm:items-start">
+    <section className="mb-2 rounded-2xl border border-blue-100 bg-blue-50/60 p-2.5 shadow-sm sm:mb-3 sm:rounded-2xl sm:bg-gradient-to-br sm:from-blue-50 sm:via-white sm:to-indigo-50 sm:p-3">
+      <div className="mb-2 flex items-center justify-between gap-2 sm:mb-2 sm:flex-row sm:items-start">
         <div>
-          <p className="hidden text-xs font-black uppercase tracking-[0.18em] text-[#1e40af] sm:block">Resumen de carpeta</p>
-          <h3 className="text-sm font-black text-[#1a2b4b] sm:mt-1 sm:text-xl">{tcg || 'TCG'} · {catalogViewMode === 'album' ? 'Álbum' : 'Cuadrícula'}</h3>
-          <p className="mt-1 hidden text-xs text-gray-500 sm:block">Vista rápida de stock, páginas y valor antes de publicar o compartir.</p>
+          <p className="hidden text-[10px] font-black uppercase tracking-[0.18em] text-[#1e40af] sm:block">Resumen de carpeta</p>
+          <h3 className="text-sm font-black leading-tight text-[#1a2b4b] sm:text-lg">{tcg || 'TCG'} · {catalogViewMode === 'album' ? 'Álbum' : 'Cuadrícula'}</h3>
+          <p className="hidden text-[11px] text-gray-500 sm:block">Stock, páginas y valor antes de publicar.</p>
         </div>
         <div className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-black sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs ${hasUnsavedCatalogOrder ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-200' : 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200'}`}>
           <span translate="no" className="material-symbols-outlined text-[16px]">{hasUnsavedCatalogOrder ? 'pending_actions' : 'check_circle'}</span>
@@ -46,22 +46,22 @@ export const FolderInventorySummary = ({ cards = [], filteredCards = [], tcg, ha
         ))}
       </div>
 
-      <div className="hidden grid-cols-2 gap-3 sm:grid lg:grid-cols-4">
+      <div className="hidden grid-cols-4 gap-2 sm:grid">
         {stats.map(stat => (
-          <div key={stat.label} className="rounded-2xl border border-white/70 bg-white/80 p-3 shadow-sm">
-            <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl bg-[#1e40af]/10 text-[#1e40af]">
-              <span translate="no" className="material-symbols-outlined text-[18px]">{stat.icon}</span>
+          <div key={stat.label} className="rounded-xl border border-white/70 bg-white/80 p-2.5 shadow-sm">
+            <div className="mb-1 flex h-7 w-7 items-center justify-center rounded-lg bg-[#1e40af]/10 text-[#1e40af]">
+              <span translate="no" className="material-symbols-outlined text-[16px]">{stat.icon}</span>
             </div>
-            <p className="text-lg font-black leading-none text-[#1a2b4b]">{stat.value}</p>
-            <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-gray-500">{stat.label}</p>
+            <p className="text-base font-black leading-none text-[#1a2b4b]">{stat.value}</p>
+            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-500">{stat.label}</p>
           </div>
         ))}
       </div>
 
       {(zeroStock > 0 || withoutPrice > 0) && (
-        <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold sm:mt-4">
-          {zeroStock > 0 && <span className="rounded-full bg-red-50 px-3 py-1 text-red-600 ring-1 ring-red-100">{zeroStock} sin stock</span>}
-          {withoutPrice > 0 && <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700 ring-1 ring-amber-100">{withoutPrice} sin precio</span>}
+        <div className="mt-2 flex flex-wrap gap-2 text-xs font-bold">
+          {zeroStock > 0 && <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-red-600 ring-1 ring-red-100">{zeroStock} sin stock</span>}
+          {withoutPrice > 0 && <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-amber-700 ring-1 ring-amber-100">{withoutPrice} sin precio</span>}
         </div>
       )}
     </section>
@@ -69,7 +69,7 @@ export const FolderInventorySummary = ({ cards = [], filteredCards = [], tcg, ha
 };
 
 export const InventoryStatusBar = ({ hasUnsavedCatalogOrder, savingCatalogOrder, onSave }) => (
-  <div className="mb-3 flex items-center justify-between gap-2 rounded-2xl border border-gray-200 bg-gray-50/70 px-3 py-2 text-sm sm:mb-5 sm:flex-row sm:p-3">
+  <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-gray-50/70 px-3 py-2 text-sm sm:mb-3">
     <div className="flex min-w-0 items-center gap-2 text-gray-600 sm:items-start">
       <span translate="no" className={`material-symbols-outlined text-[18px] sm:mt-0.5 ${hasUnsavedCatalogOrder ? 'text-amber-600' : 'text-emerald-600'}`}>
         {hasUnsavedCatalogOrder ? 'edit_note' : 'verified'}
@@ -78,7 +78,7 @@ export const InventoryStatusBar = ({ hasUnsavedCatalogOrder, savingCatalogOrder,
         <p className="truncate text-xs font-bold text-gray-800 sm:text-sm">
           {hasUnsavedCatalogOrder ? 'Posiciones sin guardar' : 'Posiciones guardadas'}
         </p>
-        <p className="hidden text-xs text-gray-500 sm:block">Stock y precio se guardan por carta; el orden se guarda con “Guardar orden del álbum”.</p>
+        <p className="hidden text-[11px] text-gray-500 sm:block">Stock, precio y orden quedan guardados.</p>
       </div>
     </div>
     {hasUnsavedCatalogOrder && (
@@ -106,8 +106,8 @@ export const InventoryFilters = ({
   onSelectSet,
   onClearFilters,
 }) => (
-  <div className="mb-4 flex flex-col gap-2 rounded-2xl border border-gray-200 bg-gray-50/70 p-3 sm:mb-6 sm:gap-3 sm:p-4">
-    <div className="flex flex-col gap-2 sm:gap-3 md:flex-row">
+  <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-gray-200 bg-gray-50/70 p-2.5 sm:mb-3 sm:p-3">
+    <div className="flex flex-col gap-2 md:flex-row">
       <div className="relative flex-1">
         <span translate="no" className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-gray-400">search</span>
         <input
@@ -115,14 +115,14 @@ export const InventoryFilters = ({
           value={query}
           onChange={onQueryChange}
           placeholder="Buscar carta..."
-          className="w-full rounded-xl border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm text-gray-900 shadow-sm transition-colors focus:border-[#1e40af] focus:outline-none focus:ring-1 focus:ring-[#1e40af]"
+          className="h-10 w-full rounded-xl border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm text-gray-900 shadow-sm transition-colors focus:border-[#1e40af] focus:outline-none focus:ring-1 focus:ring-[#1e40af]"
         />
       </div>
 
       <div className="relative w-full md:w-72">
         <button
           type="button"
-          className="flex w-full items-center justify-between rounded-xl border border-gray-300 bg-white px-3 py-2 text-left text-sm text-gray-900 shadow-sm transition-colors hover:border-[#1e40af]"
+          className="flex h-10 w-full items-center justify-between rounded-xl border border-gray-300 bg-white px-3 text-left text-sm text-gray-900 shadow-sm transition-colors hover:border-[#1e40af]"
           onClick={() => setIsOpen(!isOpen)}
         >
           <span className="truncate font-bold">
@@ -161,7 +161,7 @@ export const InventoryFilters = ({
       <button
         type="button"
         onClick={onClearFilters}
-        className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-500 shadow-sm transition-colors hover:bg-red-50 hover:text-red-500"
+        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-500 shadow-sm transition-colors hover:bg-red-50 hover:text-red-500"
       >
         <span translate="no" className="material-symbols-outlined text-[18px]">filter_alt_off</span>
         <span className="sm:hidden">Limpiar</span>
@@ -171,8 +171,15 @@ export const InventoryFilters = ({
   </div>
 );
 
-export const InventoryViewSwitcher = ({ mode, onChange, showCardDetails = false, onToggleCardDetails }) => (
-  <div className="fixed bottom-[5.75rem] right-6 z-[1200] flex justify-end md:static md:mb-6 md:border-b md:border-gray-100 md:pb-4">
+export const InventoryViewSwitcher = ({
+  mode,
+  onChange,
+  showCardDetails = false,
+  onToggleCardDetails,
+  gridDensity,
+  onCycleGridDensity,
+}) => (
+  <div className="fixed bottom-[5.75rem] right-6 z-[1200] flex justify-end md:static md:mb-3 md:border-b md:border-gray-100 md:pb-2">
     <div className="w-14 rounded-full bg-white/95 p-1 shadow-2xl ring-4 ring-white/70 backdrop-blur md:w-auto md:flex md:flex-row md:items-center md:rounded-xl md:bg-gray-100 md:shadow-inner md:ring-0 md:backdrop-blur-0">
       {onToggleCardDetails && (
         <button
@@ -191,6 +198,18 @@ export const InventoryViewSwitcher = ({ mode, onChange, showCardDetails = false,
             {showCardDetails ? 'visibility' : 'visibility_off'}
           </span>
           <span className="sr-only md:not-sr-only">Info</span>
+        </button>
+      )}
+      {mode === 'grid' && onCycleGridDensity && (
+        <button
+          type="button"
+          onClick={onCycleGridDensity}
+          className="flex h-12 w-12 items-center justify-center rounded-full text-xs font-black text-[#1e40af] transition-all hover:bg-blue-50 md:hidden"
+          title="Cambiar cartas por fila"
+          aria-label="Cambiar cartas por fila"
+        >
+          <span translate="no" className="material-symbols-outlined text-[21px]">grid_view</span>
+          <span className="ml-0.5">{gridDensity}</span>
         </button>
       )}
       {[
