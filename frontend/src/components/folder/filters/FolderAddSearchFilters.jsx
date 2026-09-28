@@ -84,6 +84,7 @@ const EditionDropdown = ({
 const MylFilters = ({
   searchBlock,
   setSearchBlock,
+  availableBlocks = [],
   searchPhysicalProduct,
   setSearchPhysicalProduct,
   availablePhysicalProducts,
@@ -112,9 +113,10 @@ const MylFilters = ({
           scrollToTopIfNeeded();
         }}
       >
-        <option value="2">Primer Bloque</option>
-        <option value="3">Primera Era</option>
-        <option value="1">Furia Extendido</option>
+        <option value="">Todos los Bloques</option>
+        {availableBlocks.map(block => (
+          <option key={block.id} value={block.id}>{block.name}</option>
+        ))}
       </SelectField>
 
       <SelectField
@@ -244,6 +246,7 @@ const GenericTcgFilters = ({
 };
 
 export default function FolderAddSearchFilters({
+  availableBlocks,
   tcg,
   searchCategory,
   searchQuery,
@@ -292,6 +295,7 @@ export default function FolderAddSearchFilters({
 
       {isMyl ? (
         <MylFilters
+        availableBlocks={availableBlocks}
           searchBlock={searchBlock}
           setSearchBlock={setSearchBlock}
           searchPhysicalProduct={searchPhysicalProduct}

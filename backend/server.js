@@ -1855,6 +1855,20 @@ app.get('/api/tcg/physical-products', async (req, res) => {
   }
 });
 
+app.get('/api/tcg/blocks', async (req, res) => {
+  try {
+    const { categoryId } = req.query;
+    const whereClause = categoryId ? { categoryId: parseInt(categoryId) } : {};
+    const blocks = await prisma.tcgBlock.findMany({
+      where: whereClause,
+      orderBy: { name: 'asc' }
+    });
+    res.json({ success: true, data: blocks });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.get('/api/tcg/search', async (req, res) => {
   try {
     const { q, categoryId, groupId, blockId, mylType, mylRace, mylFrequency, mylCost, physicalProductId } = req.query;

@@ -111,6 +111,7 @@ function FolderPokemonInner() {
   const [searchCategory, setSearchCategory] = useState('3');
   const [searchSet, setSearchSet] = useState('');
   const [availableSets, setAvailableSets] = useState([]);
+  const [availableBlocks, setAvailableBlocks] = useState([]);
   const [availablePhysicalProducts, setAvailablePhysicalProducts] = useState([]);
   const [searchPhysicalProduct, setSearchPhysicalProduct] = useState('');
 
@@ -483,16 +484,14 @@ function FolderPokemonInner() {
       setSearchSet('');
       return;
     }
+    api.getTcgBlocks(searchCategory).then(res => { if(res.success) setAvailableBlocks(res.data); }).catch(console.error);
     api.getTcgPhysicalProducts().then(res => { if(res.success) setAvailablePhysicalProducts(res.data); }).catch(console.error);
       api.getTcgGroups(searchCategory)
       .then(res => {
         if (res.success) {
           let sortedSets = res.data.sort((a,b) => new Date(b.publishedOn || 0) - new Date(a.publishedOn || 0));
           
-          if (searchCategory === '99') {
-            const allowedSets = ['Hijos de Daana', 'Espada Sagrada', 'Helénica', 'Dominios de RA', 'Drácula e Inferno'];
-              sortedSets = allowedSets.map(name => sortedSets.find(s => s.name === name)).filter(Boolean);
-          }
+          
           
           setAvailableSets(sortedSets);
           if (sortedSets.length > 0 && !searchSet) {
@@ -1307,6 +1306,7 @@ function FolderPokemonInner() {
             setFilterRarity={setFilterRarity}
             searchBlock={searchBlock}
             setSearchBlock={setSearchBlock}
+            availableBlocks={availableBlocks}
             searchPhysicalProduct={searchPhysicalProduct}
             setSearchPhysicalProduct={setSearchPhysicalProduct}
             availablePhysicalProducts={availablePhysicalProducts}

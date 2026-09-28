@@ -83,7 +83,8 @@ export const api = {
   getTcgGroups: (categoryId) => apiFetch('/tcg/' + categoryId + '/groups'),
   getTcgFilterOptions: (categoryId) => apiFetch('/tcg/' + categoryId + '/filter-options'),
   getTcgProductsMetadata: (ids = []) => apiFetch('/tcg/products/metadata', { method: 'POST', body: JSON.stringify({ ids }) }),
-    getTcgPhysicalProducts: () => apiFetch('/tcg/physical-products'),
+    getTcgBlocks: (categoryId) => apiFetch(categoryId ? `/tcg/blocks?categoryId=${categoryId}` : '/tcg/blocks'),
+  getTcgPhysicalProducts: () => apiFetch('/tcg/physical-products'),
   getTcgProducts: (categoryId, groupId, mylFilters = {}) => {
     let qs = new URLSearchParams();
     if (mylFilters.type) qs.append('mylType', mylFilters.type);
