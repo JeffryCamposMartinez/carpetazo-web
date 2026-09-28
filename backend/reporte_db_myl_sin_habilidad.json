@@ -1,0 +1,2815 @@
+[
+  {
+    "physicalProductId": 75,
+    "productId": 41543,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Xerxes el Grande",
+    "cleanName": "xerxes el grande",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Invasores/Xerxes%20el%20Grande/Xerxes%20el%20Grande.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "4"
+      },
+      {
+        "name": "Fuerza",
+        "value": "3"
+      },
+      {
+        "name": "Race",
+        "value": "FARAON"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_13"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Invasores"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "xerxes-el-grande"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 76,
+    "productId": 41560,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Zenodoto de Efeso",
+    "cleanName": "zenodoto de efeso",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Sabidur%C3%ADa/Zenodoto%20de%20Efeso/Zenodoto%20de%20Efeso.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "4"
+      },
+      {
+        "name": "Fuerza",
+        "value": "4"
+      },
+      {
+        "name": "Race",
+        "value": "SACERDOTE"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_30"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Sabiduría"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "zenodoto-de-efeso"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 227,
+    "productId": 41578,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Amkh",
+    "cleanName": "amkh",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/ARA/Amkh/Amkh.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ORO"
+      },
+      {
+        "name": "Cost",
+        "value": "0"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REWORK"
+      },
+      {
+        "name": "Number",
+        "value": "ARA-408-364"
+      },
+      {
+        "name": "Product",
+        "value": "Generales"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "amkh"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41574,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Ojos de Serpiente",
+    "cleanName": "ojos de serpiente",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Ojos%20de%20Serpiente/Ojos%20de%20Serpiente.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TALISMAN"
+      },
+      {
+        "name": "Cost",
+        "value": "1"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REWORK"
+      },
+      {
+        "name": "Number",
+        "value": "ARA-403-364"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "ojos-de-serpiente"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41567,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Sobek",
+    "cleanName": "sobek",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Sobek/Sobek.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Fuerza",
+        "value": "4"
+      },
+      {
+        "name": "Race",
+        "value": "ETERNO"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REWORK"
+      },
+      {
+        "name": "Number",
+        "value": "ARA-396-364"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "sobek"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41577,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Templo Sombrio",
+    "cleanName": "templo sombrio",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Templo%20Sombrio/Templo%20Sombrio.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TOTEM"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REWORK"
+      },
+      {
+        "name": "Number",
+        "value": "ARA-406-364"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "templo-sombrio"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41542,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Tyet",
+    "cleanName": "tyet",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Tyet/Tyet.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ORO"
+      },
+      {
+        "name": "Cost",
+        "value": "0"
+      },
+      {
+        "name": "Fuerza",
+        "value": "0"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_12"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "arax-12"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41575,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Espada Diamante",
+    "cleanName": "espada diamante",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Espada%20Diamante/Espada%20Diamante.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ARMA"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REWORK"
+      },
+      {
+        "name": "Number",
+        "value": "ARA-404-364"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "espada-diamante"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41541,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Akhet",
+    "cleanName": "akhet",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Akhet/Akhet.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TOTEM"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Fuerza",
+        "value": "0"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_11"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "arax-11"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41568,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Wepwawet",
+    "cleanName": "wepwawet",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Wepwawet/Wepwawet.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Fuerza",
+        "value": "3"
+      },
+      {
+        "name": "Race",
+        "value": "ETERNO"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REWORK"
+      },
+      {
+        "name": "Number",
+        "value": "ARA-397-364"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "wepwawet"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41536,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Jueces del Maat",
+    "cleanName": "jueces del maat",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Jueces%20del%20Maat/Jueces%20del%20Maat.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Fuerza",
+        "value": "1"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_06"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "arax-06"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41540,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Lanza de Horus",
+    "cleanName": "lanza de horus",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Lanza%20de%20Horus/Lanza%20de%20Horus.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ARMA"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Fuerza",
+        "value": "0"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_10"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "arax-10"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 76,
+    "productId": 41565,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Biblioteca Alejandrina",
+    "cleanName": "biblioteca alejandrina",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Sabidur%C3%ADa/Biblioteca%20Alejandrina/Biblioteca%20Alejandrina.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TOTEM"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_35"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Sabiduría"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "biblioteca-alejandrina"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 76,
+    "productId": 41566,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Busto Imperial",
+    "cleanName": "busto imperial",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Sabidur%C3%ADa/Busto%20Imperial/Busto%20Imperial.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ORO"
+      },
+      {
+        "name": "Cost",
+        "value": "0"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_36"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Sabiduría"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "busto-imperial"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 76,
+    "productId": 41562,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Canto del Veneno",
+    "cleanName": "canto del veneno",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Sabidur%C3%ADa/Canto%20del%20Veneno/Canto%20del%20Veneno.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TALISMAN"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_32"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Sabiduría"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "canto-del-veneno"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 76,
+    "productId": 41564,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Kopis Alexandrino",
+    "cleanName": "kopis alexandrino",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Sabidur%C3%ADa/Kopis%20Alexandrino/Kopis%20Alexandrino.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ARMA"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_34"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Sabiduría"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "kopis-alexandrino"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 76,
+    "productId": 41572,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Dagi",
+    "cleanName": "dagi",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Sabidur%C3%ADa/Dagi/Dagi.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Fuerza",
+        "value": "2"
+      },
+      {
+        "name": "Race",
+        "value": "SACERDOTE"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REWORK"
+      },
+      {
+        "name": "Number",
+        "value": "ARA-401-364"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Sabiduría"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "dagi"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 76,
+    "productId": 41556,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Hipatia",
+    "cleanName": "hipatia",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Sabidur%C3%ADa/Hipatia/Hipatia.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Fuerza",
+        "value": "2"
+      },
+      {
+        "name": "Race",
+        "value": "SACERDOTE"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_26"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Sabiduría"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "hipatia"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 76,
+    "productId": 41571,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Kawit",
+    "cleanName": "kawit",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Sabidur%C3%ADa/Kawit/Kawit.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Fuerza",
+        "value": "2"
+      },
+      {
+        "name": "Race",
+        "value": "SACERDOTE"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REWORK"
+      },
+      {
+        "name": "Number",
+        "value": "ARA-400-364"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Sabiduría"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "kawit"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 76,
+    "productId": 41555,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Ayu del Veneno",
+    "cleanName": "ayu del veneno",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Sabidur%C3%ADa/Ayu%20del%20Veneno/Ayu%20del%20Veneno.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Fuerza",
+        "value": "2"
+      },
+      {
+        "name": "Race",
+        "value": "SACERDOTE"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_25"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Sabiduría"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "ayu-del-veneno"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 76,
+    "productId": 41558,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Apoloniode Rodas",
+    "cleanName": "apoloniode rodas",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Sabidur%C3%ADa/Apoloniode%20Rodas/Apoloniode%20Rodas.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Fuerza",
+        "value": "2"
+      },
+      {
+        "name": "Race",
+        "value": "SACERDOTE"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_28"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Sabiduría"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "apoloniode-rodas"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 76,
+    "productId": 41561,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Ataque a la Biblioteca",
+    "cleanName": "ataque a la biblioteca",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Sabidur%C3%ADa/Ataque%20a%20la%20Biblioteca/Ataque%20a%20la%20Biblioteca.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TALISMAN"
+      },
+      {
+        "name": "Cost",
+        "value": "5"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_31"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Sabiduría"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "ataque-a-la-biblioteca"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 76,
+    "productId": 41559,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Licofron",
+    "cleanName": "licofron",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Sabidur%C3%ADa/Licofron/Licofron.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "1"
+      },
+      {
+        "name": "Fuerza",
+        "value": "1"
+      },
+      {
+        "name": "Race",
+        "value": "SACERDOTE"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_29"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Sabiduría"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "licofron"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 153,
+    "productId": 3697,
+    "groupId": 25027,
+    "categoryId": 99,
+    "name": "Draig Ifanc",
+    "cleanName": "draig ifanc",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Draig%20Ifanc/Draig%20Ifanc.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Fuerza",
+        "value": "2"
+      },
+      {
+        "name": "Race",
+        "value": "DRAGON"
+      },
+      {
+        "name": "Edition",
+        "value": "Espada Sagrada"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "LPB3-072-300"
+      },
+      {
+        "name": "Product",
+        "value": "Display Sobres Leyendas Primer Bloque 3.0"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "draig-ifanc"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 276,
+    "productId": 3533,
+    "groupId": 25027,
+    "categoryId": 99,
+    "name": "Capa de Invisibilidad",
+    "cleanName": "capa de invisibilidad",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Dr%C3%A1cula%20Canci%C3%B3n%20de%20Sangre/Capa%20de%20Invisibilidad/Capa%20de%20Invisibilidad.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TALISMAN"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Fuerza",
+        "value": "0"
+      },
+      {
+        "name": "Edition",
+        "value": "Espada Sagrada"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "DRA-21-20"
+      },
+      {
+        "name": "Product",
+        "value": "Drácula: Canción de Sangre"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "capa-de-invisibilidad"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 276,
+    "productId": 3525,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Neferura",
+    "cleanName": "neferura",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Dr%C3%A1cula%20Canci%C3%B3n%20de%20Sangre/Neferura/Neferura.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Fuerza",
+        "value": "2"
+      },
+      {
+        "name": "Race",
+        "value": "SACERDOTE"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "DRA-13-20"
+      },
+      {
+        "name": "Product",
+        "value": "Drácula: Canción de Sangre"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "neferura"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41533,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Hator la Dorada",
+    "cleanName": "hator la dorada",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Hator%20la%20Dorada/Hator%20la%20Dorada.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Fuerza",
+        "value": "3"
+      },
+      {
+        "name": "Race",
+        "value": "ETERNO"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_03"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "arax-03"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 75,
+    "productId": 41570,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Kush el Guerrero",
+    "cleanName": "kush el guerrero",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Invasores/Kush%20el%20Guerrero/Kush%20el%20Guerrero.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Fuerza",
+        "value": "3"
+      },
+      {
+        "name": "Race",
+        "value": "FARAON"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REWORK"
+      },
+      {
+        "name": "Number",
+        "value": "ARA-399-364"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Invasores"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "kush-el-guerrero"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 75,
+    "productId": 41548,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Roxana de Bactria",
+    "cleanName": "roxana de bactria",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Invasores/Roxana%20de%20Bactria/Roxana%20de%20Bactria.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Fuerza",
+        "value": "2"
+      },
+      {
+        "name": "Race",
+        "value": "FARAON"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_18"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Invasores"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "roxana-de-bactria"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 75,
+    "productId": 41547,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Nastasen",
+    "cleanName": "nastasen",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Invasores/Nastasen/Nastasen.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Fuerza",
+        "value": "2"
+      },
+      {
+        "name": "Race",
+        "value": "FARAON"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_17"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Invasores"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "nastasen"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 75,
+    "productId": 41552,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Pesh-Kabz",
+    "cleanName": "peshkabz",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Invasores/Pesh-Kabz/Pesh-Kabz.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ARMA"
+      },
+      {
+        "name": "Cost",
+        "value": "1"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_22"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Invasores"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "pesh-kabz"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 75,
+    "productId": 41550,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Quemar los Templos",
+    "cleanName": "quemar los templos",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Invasores/Quemar%20los%20Templos/Quemar%20los%20Templos.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TALISMAN"
+      },
+      {
+        "name": "Cost",
+        "value": "4"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_20"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Invasores"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "quemar-los-templos"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 75,
+    "productId": 41554,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Ritón Arquemenida",
+    "cleanName": "riton arquemenida",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Invasores/Rit%C3%B3n%20Arquemenida/Rit%C3%B3n%20Arquemenida.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ORO"
+      },
+      {
+        "name": "Cost",
+        "value": "0"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_24"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Invasores"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "riton-arquemenida"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 75,
+    "productId": 41553,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Taposiris Magna",
+    "cleanName": "taposiris magna",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Invasores/Taposiris%20Magna/Taposiris%20Magna.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TOTEM"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_23"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Invasores"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "taposiris-magna"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 199,
+    "productId": 1949,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Esna",
+    "cleanName": "esna",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%202.0/Esna/Esna.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TOTEM"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Fuerza",
+        "value": "0"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "VASALLO"
+      },
+      {
+        "name": "Number",
+        "value": "LPB2-300-300"
+      },
+      {
+        "name": "Product",
+        "value": "Display Sobres Leyendas Primer Bloque 2.0"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "esna"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 199,
+    "productId": 1948,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Necropolis Popular",
+    "cleanName": "necropolis popular",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%202.0/Necropolis%20Popular/Necropolis%20Popular.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TOTEM"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Fuerza",
+        "value": "0"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "VASALLO"
+      },
+      {
+        "name": "Number",
+        "value": "LPB2-299-300"
+      },
+      {
+        "name": "Product",
+        "value": "Display Sobres Leyendas Primer Bloque 2.0"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "necropolis-popular"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41573,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Demonio de Piedra",
+    "cleanName": "demonio de piedra",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Demonio%20de%20Piedra/Demonio%20de%20Piedra.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TALISMAN"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REWORK"
+      },
+      {
+        "name": "Number",
+        "value": "ARA-402-364"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "demonio-de-piedra"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41576,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Escudo de la Tormenta",
+    "cleanName": "escudo de la tormenta",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Escudo%20de%20la%20Tormenta/Escudo%20de%20la%20Tormenta.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ARMA"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REWORK"
+      },
+      {
+        "name": "Number",
+        "value": "ARA-405-364"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "escudo-de-la-tormenta"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41532,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Hauron",
+    "cleanName": "hauron",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Hauron/Hauron.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Fuerza",
+        "value": "4"
+      },
+      {
+        "name": "Race",
+        "value": "ETERNO"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_02"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "hauron"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41531,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Horus en el Viento",
+    "cleanName": "horus en el viento",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Horus%20en%20el%20Viento/Horus%20en%20el%20Viento.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "4"
+      },
+      {
+        "name": "Fuerza",
+        "value": "4"
+      },
+      {
+        "name": "Race",
+        "value": "ETERNO"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_01"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "horus-en-el-viento"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41539,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Madre del Sol",
+    "cleanName": "madre del sol",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Madre%20del%20Sol/Madre%20del%20Sol.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TALISMAN"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Fuerza",
+        "value": "0"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_09"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "arax-09"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 153,
+    "productId": 3716,
+    "groupId": 25026,
+    "categoryId": 99,
+    "name": "Slaine",
+    "cleanName": "slaine",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Slaine/Slaine.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Fuerza",
+        "value": "3"
+      },
+      {
+        "name": "Race",
+        "value": "DEFENSOR"
+      },
+      {
+        "name": "Edition",
+        "value": "Hijos de Daana"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "LPB3-091-300"
+      },
+      {
+        "name": "Product",
+        "value": "Display Sobres Leyendas Primer Bloque 3.0"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "slaine"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 276,
+    "productId": 3531,
+    "groupId": 25026,
+    "categoryId": 99,
+    "name": "Aplastar Fomor",
+    "cleanName": "aplastar fomor",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Dr%C3%A1cula%20Canci%C3%B3n%20de%20Sangre/Aplastar%20Fomor/Aplastar%20Fomor.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TALISMAN"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Fuerza",
+        "value": "0"
+      },
+      {
+        "name": "Edition",
+        "value": "Hijos de Daana"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "DRA-19-20"
+      },
+      {
+        "name": "Product",
+        "value": "Drácula: Canción de Sangre"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "aplastar-fomor"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 276,
+    "productId": 3526,
+    "groupId": 25027,
+    "categoryId": 99,
+    "name": "Draig Ifanc",
+    "cleanName": "draig ifanc",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Dr%C3%A1cula%20Canci%C3%B3n%20de%20Sangre/Draig%20Ifanc/Draig%20Ifanc.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Fuerza",
+        "value": "2"
+      },
+      {
+        "name": "Race",
+        "value": "DRAGON"
+      },
+      {
+        "name": "Edition",
+        "value": "Espada Sagrada"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "DRA-14-20"
+      },
+      {
+        "name": "Product",
+        "value": "Drácula: Canción de Sangre"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "draig-ifanc"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 276,
+    "productId": 3532,
+    "groupId": 25026,
+    "categoryId": 99,
+    "name": "Martillo Pesado",
+    "cleanName": "martillo pesado",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Dr%C3%A1cula%20Canci%C3%B3n%20de%20Sangre/Martillo%20Pesado/Martillo%20Pesado.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ARMA"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Fuerza",
+        "value": "0"
+      },
+      {
+        "name": "Edition",
+        "value": "Hijos de Daana"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "DRA-20-20"
+      },
+      {
+        "name": "Product",
+        "value": "Drácula: Canción de Sangre"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "martillo-pesado"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 276,
+    "productId": 3529,
+    "groupId": 25027,
+    "categoryId": 99,
+    "name": "Plaga",
+    "cleanName": "plaga",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Dr%C3%A1cula%20Canci%C3%B3n%20de%20Sangre/Plaga/Plaga.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TALISMAN"
+      },
+      {
+        "name": "Cost",
+        "value": "5"
+      },
+      {
+        "name": "Fuerza",
+        "value": "0"
+      },
+      {
+        "name": "Edition",
+        "value": "Espada Sagrada"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "DRA-17-20"
+      },
+      {
+        "name": "Product",
+        "value": "Drácula: Canción de Sangre"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "plaga"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 276,
+    "productId": 3528,
+    "groupId": 25026,
+    "categoryId": 99,
+    "name": "Slaine",
+    "cleanName": "slaine",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Dr%C3%A1cula%20Canci%C3%B3n%20de%20Sangre/Slaine/Slaine.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Fuerza",
+        "value": "3"
+      },
+      {
+        "name": "Race",
+        "value": "DEFENSOR"
+      },
+      {
+        "name": "Edition",
+        "value": "Hijos de Daana"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "DRA-16-20"
+      },
+      {
+        "name": "Product",
+        "value": "Drácula: Canción de Sangre"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "slaine"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 75,
+    "productId": 41545,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Artabano el Guerrero",
+    "cleanName": "artabano el guerrero",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Invasores/Artabano%20el%20Guerrero/Artabano%20el%20Guerrero.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Fuerza",
+        "value": "3"
+      },
+      {
+        "name": "Race",
+        "value": "FARAON"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_15"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Invasores"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "artabano-el-guerrero"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 75,
+    "productId": 41549,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Juramento del Asesino",
+    "cleanName": "juramento del asesino",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Invasores/Juramento%20del%20Asesino/Juramento%20del%20Asesino.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TALISMAN"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_19"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Invasores"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "juramento-del-asesino"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 75,
+    "productId": 41546,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Khababash",
+    "cleanName": "khababash",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Invasores/Khababash/Khababash.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "1"
+      },
+      {
+        "name": "Fuerza",
+        "value": "2"
+      },
+      {
+        "name": "Race",
+        "value": "FARAON"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_16"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Invasores"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "khababash"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 75,
+    "productId": 41544,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Dario III",
+    "cleanName": "dario iii",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Invasores/Dario%20III/Dario%20III.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Fuerza",
+        "value": "4"
+      },
+      {
+        "name": "Race",
+        "value": "FARAON"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_14"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Invasores"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "dario-iii"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41535,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Nun del Abismo",
+    "cleanName": "nun del abismo",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Nun%20del%20Abismo/Nun%20del%20Abismo.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "4"
+      },
+      {
+        "name": "Fuerza",
+        "value": "4"
+      },
+      {
+        "name": "Race",
+        "value": "ETERNO"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_05"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "arax-05"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 75,
+    "productId": 41551,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Entra Alejandro",
+    "cleanName": "entra alejandro",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Invasores/Entra%20Alejandro/Entra%20Alejandro.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TALISMAN"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_21"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Invasores"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "entra-alejandro"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41537,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Robar el Fuego",
+    "cleanName": "robar el fuego",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Robar%20el%20Fuego/Robar%20el%20Fuego.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TALISMAN"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Fuerza",
+        "value": "0"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_07"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "arax-07"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41538,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Circulo de Renacimiento",
+    "cleanName": "circulo de renacimiento",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Circulo%20de%20Renacimiento/Circulo%20de%20Renacimiento.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TALISMAN"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Fuerza",
+        "value": "0"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_08"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "circulo-de-renacimiento"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 74,
+    "productId": 41534,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Wadjet la Protectora",
+    "cleanName": "wadjet la protectora",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Amanecer/Wadjet%20la%20Protectora/Wadjet%20la%20Protectora.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Fuerza",
+        "value": "3"
+      },
+      {
+        "name": "Race",
+        "value": "ETERNO"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_04"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Amanecer"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "arax-04"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 75,
+    "productId": 41569,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Tutankamon",
+    "cleanName": "tutankamon",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Invasores/Tutankamon/Tutankamon.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "3"
+      },
+      {
+        "name": "Fuerza",
+        "value": "3"
+      },
+      {
+        "name": "Race",
+        "value": "FARAON"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REWORK"
+      },
+      {
+        "name": "Number",
+        "value": "ARA-398-364"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Invasores"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "tutankamon"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 76,
+    "productId": 41557,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Iuwlot del Veneno",
+    "cleanName": "iuwlot del veneno",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Sabidur%C3%ADa/Iuwlot%20del%20Veneno/Iuwlot%20del%20Veneno.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "ALIADO"
+      },
+      {
+        "name": "Cost",
+        "value": "2"
+      },
+      {
+        "name": "Fuerza",
+        "value": "2"
+      },
+      {
+        "name": "Race",
+        "value": "SACERDOTE"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_27"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Sabiduría"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "iuwlot-del-veneno"
+      }
+    ]
+  },
+  {
+    "physicalProductId": 76,
+    "productId": 41563,
+    "groupId": 25029,
+    "categoryId": 99,
+    "name": "Luz del Saber",
+    "cleanName": "luz del saber",
+    "imageUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_Images/Relatos%20de%20Dominios%20de%20Ra%20-%20Sabidur%C3%ADa/Luz%20del%20Saber/Luz%20del%20Saber.webp",
+    "extData": [
+      {
+        "name": "Type",
+        "value": "TALISMAN"
+      },
+      {
+        "name": "Cost",
+        "value": "1"
+      },
+      {
+        "name": "Edition",
+        "value": "Dominios de RA"
+      },
+      {
+        "name": "Frequency",
+        "value": "REAL"
+      },
+      {
+        "name": "Number",
+        "value": "ARAX_33"
+      },
+      {
+        "name": "Product",
+        "value": "Relatos de Dominios de Ra - Sabiduría"
+      },
+      {
+        "name": "Format",
+        "value": "Primer Bloque"
+      },
+      {
+        "name": "Slug",
+        "value": "luz-del-saber"
+      }
+    ]
+  }
+]

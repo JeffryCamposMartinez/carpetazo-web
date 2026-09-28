@@ -114,7 +114,7 @@ const MylFilters = ({
         }}
       >
         <option value="">Todos los Bloques</option>
-        {availableBlocks.map(block => (
+        {[...availableBlocks].sort((a, b) => a.id === 2 ? -1 : b.id === 2 ? 1 : a.name.localeCompare(b.name)).map(block => (
           <option key={block.id} value={block.id}>{block.name}</option>
         ))}
       </SelectField>
