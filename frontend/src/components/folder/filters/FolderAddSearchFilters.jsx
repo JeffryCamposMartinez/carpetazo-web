@@ -239,6 +239,8 @@ export default function FolderAddSearchFilters({
   isSetDropdownOpen,
   setIsSetDropdownOpen,
   setSearchSet,
+  searchLang,
+  setSearchLang,
   filterType,
   setFilterType,
   selectedType,
@@ -314,6 +316,8 @@ export default function FolderAddSearchFilters({
           searchSet={searchSet}
           availableSets={availableSets}
           onSelectSet={onSelectSet}
+          searchLang={searchLang}
+          onLangChange={(l) => { setSearchLang(l); setSearchSet(''); }}
         />
       )}
     </div>

@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useRef } from 'react';
+﻿import LiquidTabs from '../components/LiquidTabs';
+import { useState, useEffect, useRef } from 'react';
 
 import React from 'react';
 class ErrorBoundary extends React.Component {
@@ -79,6 +80,35 @@ const getPreviewReorderedCards = (cardArray = [], dragCardId, targetIndex) => {
 
 const normalizeTcgProductId = (value) => (value === undefined || value === null ? '' : String(value));
 
+// Clasifica una carta de TCGCSV (Card Type / CardType) en la categoría y tipos que usan los filtros
+const TCGCSV_TYPE_ES = {
+  grass: 'Planta', fire: 'Fuego', water: 'Agua', lightning: 'Rayo', psychic: 'Psíquico', fighting: 'Lucha',
+  darkness: 'Oscura', dark: 'Oscura', metal: 'Metálica', fairy: 'Hada', dragon: 'Dragón', colorless: 'Incolora',
+};
+const classifyTcgcsvCard = (name, ext) => {
+  const ct = String(ext['Card Type'] || ext.CardType || '');
+  const types = [...new Set((ct.match(/[A-Za-z]+/g) || []).map(w => TCGCSV_TYPE_ES[w.toLowerCase()]).filter(Boolean))];
+  let category;
+  if (/energy|^special$/i.test(ct)) category = 'Energía';
+  else if (/trainer|supporter|item|stadium|tool|machine/i.test(ct)) category = 'Entrenador';
+  else if (ct || ext.HP || ext.Stage) category = 'Pokémon';
+  else if (/\bEnergy\b/i.test(name)) category = 'Energía'; // ediciones sin metadatos
+  // Energías básicas japonesas vienen como "Basic Energy": el tipo está en el nombre
+  const nameTypes = category === 'Energía' && types.length === 0
+    ? [...new Set((name.match(/[A-Za-z]+/g) || []).map(w => TCGCSV_TYPE_ES[w.toLowerCase()]).filter(Boolean))]
+    : types;
+  return { category, types: nameTypes };
+};
+
+const PAGE_SIZE = 20;
+
+// Nombre + numeración (xxx/xxx); no duplica el número si el nombre ya lo trae
+const cardLabel = (card) => {
+  const num = card?.extData?.Number;
+  const name = card?.name || '';
+  return num && !name.includes(num) ? `${name} - ${num}` : name;
+};
+
 const getExtDataValue = (extData, fieldName) => {
   if (Array.isArray(extData)) {
     return extData.find(item => String(item?.name || '').toLowerCase() === fieldName.toLowerCase())?.value || '';
@@ -96,7 +126,7 @@ const getExtDataValue = (extData, fieldName) => {
 const SafeImage = React.memo(({ src, alt, className, fallbackType = 'grid' }) => {
   const [error, setError] = React.useState(false);
   const [loaded, setLoaded] = React.useState(false);
-  
+
   if (!src || error) {
     if (fallbackType === 'queue') {
       return (
@@ -146,11 +176,15 @@ function FolderPokemonInner(props) {
 
 
 
+  // La edición se toma de la propia carta (así no cambia al cambiar de idioma/lista de ediciones)
+  const getCardSetName = (card) => card?.group?.name || availableSets.find(s => s.groupId == (searchSet || card?.groupId))?.name;
+
   const getProxyImageUrl = (productId, originalUrl) => {
     if (!originalUrl) return '';
     if (originalUrl.includes('api.carpetazo.cl/images') || originalUrl.includes('r2.dev') || originalUrl.includes('imagenes.carpetazo.cl')) return originalUrl;
     if (originalUrl.startsWith('blob:')) return originalUrl;
     if (originalUrl.startsWith('data:')) return originalUrl;
+    if (originalUrl.includes('tcgplayer-cdn.tcgplayer.com')) return originalUrl;
     return apiUrl('/proxy-image?productId=' + encodeURIComponent(productId));
   };
 
@@ -167,6 +201,7 @@ function FolderPokemonInner(props) {
   const [gridCols, setGridCols] = useState(typeof window !== 'undefined' && window.innerWidth <= 768 ? 2 : 3);
   const [searchCategory, setSearchCategory] = useState('1');
   const [searchSet, setSearchSet] = useState('');
+  const [searchLang, setSearchLang] = useState('en');
   const [availableSets, setAvailableSets] = useState([]);
   const [availableBlocks, setAvailableBlocks] = useState([]);
   const [availablePhysicalProducts, setAvailablePhysicalProducts] = useState([]);
@@ -220,7 +255,8 @@ const [isSearching, setIsSearching] = useState(false);
   const [selectedQueue, setSelectedQueue] = useState([]);
   const [activeQueueItemId, setActiveQueueItemId] = useState(null);
   const [price, setPrice] = useState('');
-  const [visibleCount, setVisibleCount] = useState(30);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [hasMoreGroups, setHasMoreGroups] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const folderTcgConfig = getTcgConfig(folderData?.tcg);
   const isMylFolder = folderTcgConfig.categoryId === '99' || searchCategory === '99';
@@ -242,7 +278,7 @@ const [isSearching, setIsSearching] = useState(false);
 
   const resetCardForm = () => {
     setPrice('');
-    setStock('');
+    setStock('1');
     setPseudoName('');
   };
 
@@ -368,15 +404,17 @@ const [isSearching, setIsSearching] = useState(false);
   }, []);
   const observerTarget = useRef(null);
 
+  // Vuelve a 20 solo cuando cambia la búsqueda/filtros (no cuando se anexan más ediciones)
   useEffect(() => {
-    setVisibleCount(30);
-  }, [searchResults]);
+    setVisibleCount(PAGE_SIZE);
+  }, [searchQuery, searchSet, searchLang, selectedSupertype, selectedType, filterRarity, filterType]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       entries => {
         if (entries[0].isIntersecting) {
-          setVisibleCount(prev => prev + 30);
+          if (visibleCount < searchResults.length) setVisibleCount(prev => prev + PAGE_SIZE);
+          else if (hasMoreGroups) loadMorePokemonRef.current?.();
         }
       },
       { threshold: 0.1 }
@@ -390,10 +428,14 @@ const [isSearching, setIsSearching] = useState(false);
         observer.unobserve(target);
       }
     };
-  }, [searchResults, visibleCount]);
-  const [stock, setStock] = useState('');
+  }, [searchResults, visibleCount, hasMoreGroups]);
+  const [stock, setStock] = useState('1');
   const [pseudoName, setPseudoName] = useState('');
   const [language, setLanguage] = useState('English');
+  // Al seleccionar una carta, el idioma parte igual al idioma de esa carta (no al del filtro actual)
+  useEffect(() => {
+    if (selectedCard?.cardLanguage) setLanguage(selectedCard.cardLanguage);
+  }, [selectedCard?.id]);
   const [isSaving, setIsSaving] = useState(false);
   const abortControllerRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -569,14 +611,33 @@ const [isSearching, setIsSearching] = useState(false);
     }).catch(console.error);
     api.getTcgPhysicalProducts().then(res => { if(res.success) setAvailablePhysicalProducts(res.data); }).catch(console.error);
     if (searchCategory === '1') {
-      fetch('/tcgcsv/tcgplayer/3/groups')
-        .then(r => r.json())
-        .then(json => setAvailableSets(
-          (json.results || [])
+      setAvailableSets([]);
+      // Cancelar cualquier carga en curso del idioma anterior y limpiar sus resultados
+      pokeGenRef.current++;
+      pokeQueueRef.current = [];
+      pokeLoadingRef.current = false;
+      abortControllerRef.current?.abort();
+      setHasMoreGroups(false);
+      setRawSearchResults([]);
+      setSearchResults([]);
+      setIsSearching(false);
+      const catId = searchLang === 'ja' ? 85 : 3;
+      // Ediciones sin cartas (solo sellado), generado con scripts/find_empty_tcgcsv_groups.cjs
+      Promise.all([
+        fetch(`/tcgcsv/tcgplayer/${catId}/groups`).then(r => r.json()),
+        fetch('/empty-groups-tcgcsv.json').then(r => r.json()).catch(() => ({})),
+      ])
+        .then(([json, emptyGroups]) => {
+          const groups = (json.results || [])
             .filter(g => new Date(g.publishedOn) <= new Date())
-            .sort((a, b) => new Date(b.publishedOn) - new Date(a.publishedOn))
-            .map(g => ({ groupId: g.groupId, id: g.groupId, name: g.name, publishedOn: g.publishedOn }))
-        ))
+            .filter(g => emptyGroups[catId]?.[g.groupId] !== g.modifiedOn);
+          // TCGCSV pone la fecha de importación a promos/varios: si muchas ediciones comparten día, van al final por nombre
+          const perDay = {};
+          (json.results || []).forEach(g => { const d = g.publishedOn.slice(0, 10); perDay[d] = (perDay[d] || 0) + 1; });
+          const undated = g => perDay[g.publishedOn.slice(0, 10)] >= 8;
+          groups.sort((a, b) => (undated(a) - undated(b)) || (undated(a) ? a.name.localeCompare(b.name) : new Date(b.publishedOn) - new Date(a.publishedOn)));
+          setAvailableSets(groups.map(g => ({ groupId: g.groupId, id: g.groupId, name: g.name, publishedOn: g.publishedOn })));
+        })
         .catch(console.error);
       return;
     }
@@ -594,7 +655,7 @@ const [isSearching, setIsSearching] = useState(false);
         }
       })
       .catch(console.error);
-  }, [searchCategory]);
+  }, [searchCategory, searchLang]);
 
   // --- MANEJO DE CATÃLOGO LOGIC ---
   const handleUpdateCard = async (cardIdToUpdate, newPrice, newStock) => {
@@ -1131,42 +1192,7 @@ const [isSearching, setIsSearching] = useState(false);
       );
     }
 
-    if (selectedSupertype) {
-        const catMap = { "Pokémon": "Pokémon", "Trainer": "Entrenador", "Energy": "Energía" };
-        filtered = filtered.filter(c => c.extData?.category === catMap[selectedSupertype]);
-      }
-      
-      if (selectedType) {
-          const typeMap = {
-            "Grass": "Planta", "Fire": "Fuego", "Water": "Agua", "Lightning": "Rayo",
-            "Psychic": "Psíquico", "Fighting": "Lucha", "Darkness": "Oscura", 
-            "Metal": "Metálica", "Fairy": "Hada", "Dragon": "Dragón", "Colorless": "Incolora"
-          };
-          const energyMap = {
-            "Grass": "Planta", "Fire": "Fuego", "Water": "Agua", "Lightning": "Rayo",
-            "Psychic": "Psíquic", "Fighting": "Lucha", "Darkness": "Oscura", 
-            "Metal": "Metálic", "Fairy": "Hada", "Dragon": "Dragón", "Colorless": "Incolora"
-          };
-          
-          const targetType = typeMap[selectedType] || selectedType;
-          const targetEnergy = energyMap[selectedType] || targetType;
-          
-          filtered = filtered.filter(c => {
-             if (c.extData?.category === "Energía") {
-                 return (c.name || "").includes(targetEnergy);
-             }
-             if (c.extData?.types && Array.isArray(c.extData.types)) {
-                return c.extData.types.includes(targetType);
-             }
-             return false;
-          });
-        }
-
-    if (filterRarity) {
-      filtered = filtered.filter(c => {
-        const rVal = getExtDataValue(c.extData, 'Rarity') || getExtDataValue(c.extData, 'Card Number / Rarity'); return rVal === filterRarity;
-      });
-    }
+    filtered = applyCardFilters(filtered);
 
     // Custom Sorting for Mitos y Leyendas
     if (searchCategory === '99') {
@@ -1191,8 +1217,22 @@ const [isSearching, setIsSearching] = useState(false);
     }
 
     setSearchResults(filtered);
-  }, [rawSearchResults, filterType, filterRarity, searchQuery, mylType, mylRace, mylCost, searchPhysicalProduct]);
+  }, [rawSearchResults, filterType, filterRarity, searchQuery, mylType, mylRace, mylCost, searchPhysicalProduct, selectedSupertype, selectedType]);
 
+
+  // Si con los filtros actuales no alcanzan resultados para llenar la primera página, seguir cargando ediciones
+  useEffect(() => {
+    if (searchCategory === '1' && hasMoreGroups && !isSearching && searchResults.length < PAGE_SIZE) {
+      loadMorePokemonRef.current?.();
+    }
+  }, [searchResults, hasMoreGroups, isSearching, selectedSupertype, selectedType, filterRarity]);
+
+  // Al cargar las ediciones de Pokémon con "Todas las ediciones", buscar solo para no dejar la lista en blanco
+  useEffect(() => {
+    if (searchCategory === '1' && availableSets.length > 0 && !searchSet && activeTab === 'add' && !loadingFolder) {
+      handleSearchAPI({ preventDefault: () => {} });
+    }
+  }, [availableSets]);
 
   const [initialSearchTriggered, setInitialSearchTriggered] = useState(false);
   useEffect(() => {
@@ -1201,6 +1241,123 @@ const [isSearching, setIsSearching] = useState(false);
       handleSearchAPI({ preventDefault: () => {} });
     }
   }, [loadingFolder, searchCategory, initialSearchTriggered, activeTab]);
+
+  // --- Pokémon (TCGCSV): en "Todas las ediciones" se cargan ediciones de a poco, de la más nueva a la más vieja ---
+  const pokeQueueRef = useRef([]);
+  const pokeGroupCacheRef = useRef(new Map());
+  const pokeGenRef = useRef(0);
+  const pokeLoadingRef = useRef(false);
+  const pokeCatRef = useRef(3);
+  const loadMorePokemonRef = useRef(null);
+
+  const fetchPokemonGroup = async (group, catId, signal) => {
+    const key = `${catId}-${group.groupId}`;
+    if (pokeGroupCacheRef.current.has(key)) return pokeGroupCacheRef.current.get(key);
+    const json = await (await fetch(`/tcgcsv/tcgplayer/${catId}/${group.groupId}/products`, { signal })).json();
+    const list = (json.results || [])
+      .map(p => {
+        const ext = {};
+        (p.extendedData || []).forEach(e => { ext[e.name] = e.value; });
+        return { p, ext };
+      })
+      .filter(({ ext }) => ext.Number)
+      .map(({ p, ext }) => ({
+        id: p.productId,
+        tcgProductId: p.productId,
+        name: p.name,
+        imageUrl: (p.imageUrl || '').replace('_200w', '_400w'),
+        categoryId: 1,
+        cardLanguage: catId === 85 ? 'Japanese' : 'English',
+        groupId: p.groupId,
+        group: { id: p.groupId, name: group?.name || '', publishedOn: group?.publishedOn },
+        extData: { ...ext, localId: ext.Number, ...classifyTcgcsvCard(p.name, ext) },
+      }));
+    const extractNum = (str) => { const m = (str || '').match(/\d+/); return m ? parseInt(m[0], 10) : 0; };
+    list.sort((a, b) => {
+      const idA = String(a.extData.localId), idB = String(b.extData.localId);
+      return extractNum(idA) - extractNum(idB) || idA.localeCompare(idB);
+    });
+    pokeGroupCacheRef.current.set(key, list);
+    return list;
+  };
+
+  // Filtros de categoría, tipo y rareza (también los usa la carga por ediciones para saber cuándo hay suficientes resultados)
+  const applyCardFilters = (list) => {
+    if (selectedSupertype) {
+        const catMap = { "Pokémon": "Pokémon", "Trainer": "Entrenador", "Energy": "Energía" };
+        list = list.filter(c => c.extData?.category === catMap[selectedSupertype]);
+      }
+      
+      if (selectedType) {
+          const typeMap = {
+            "Grass": "Planta", "Fire": "Fuego", "Water": "Agua", "Lightning": "Rayo",
+            "Psychic": "Psíquico", "Fighting": "Lucha", "Darkness": "Oscura", 
+            "Metal": "Metálica", "Fairy": "Hada", "Dragon": "Dragón", "Colorless": "Incolora"
+          };
+          const energyMap = {
+            "Grass": "Planta", "Fire": "Fuego", "Water": "Agua", "Lightning": "Rayo",
+            "Psychic": "Psíquic", "Fighting": "Lucha", "Darkness": "Oscura", 
+            "Metal": "Metálic", "Fairy": "Hada", "Dragon": "Dragón", "Colorless": "Incolora"
+          };
+          
+          const targetType = typeMap[selectedType] || selectedType;
+          const targetEnergy = energyMap[selectedType] || targetType;
+          
+          list = list.filter(c => {
+             if (c.extData?.types && Array.isArray(c.extData.types) && c.extData.types.length > 0) {
+                return c.extData.types.includes(targetType);
+             }
+             if (c.extData?.category === "Energía") {
+                 return (c.name || "").includes(targetEnergy);
+             }
+             return false;
+          });
+        }
+
+    if (filterRarity) {
+      list = list.filter(c => {
+        const rVal = getExtDataValue(c.extData, 'Rarity') || getExtDataValue(c.extData, 'Card Number / Rarity'); return rVal === filterRarity;
+      });
+    }
+    return list;
+  };
+
+  // Carga ediciones de la cola hasta juntar `target` cartas que coincidan con el texto buscado
+  const loadPokemonGroups = async (target, gen, signal, q) => {
+    const catId = pokeCatRef.current;
+    const all = [];
+    let matches = 0;
+    while (matches < target && pokeQueueRef.current.length > 0 && gen === pokeGenRef.current) {
+      const batch = pokeQueueRef.current.splice(0, 3);
+      const lists = await Promise.all(batch.map(g => fetchPokemonGroup(g, catId, signal).catch(err => { if (err.name === 'AbortError') throw err; return []; })));
+      if (gen !== pokeGenRef.current) return [];
+      lists.forEach(l => {
+        const byText = l.filter(c => !q || c.name.toLowerCase().includes(q) || String(c.extData.Number).toLowerCase().includes(q));
+        all.push(...byText);
+        matches += applyCardFilters(byText).length;
+      });
+    }
+    if (gen === pokeGenRef.current) setHasMoreGroups(pokeQueueRef.current.length > 0);
+    return all;
+  };
+
+  const loadMorePokemon = async () => {
+    if (pokeLoadingRef.current || pokeQueueRef.current.length === 0) return;
+    pokeLoadingRef.current = true;
+    const gen = pokeGenRef.current;
+    try {
+      const added = await loadPokemonGroups(10, gen, abortControllerRef.current?.signal, searchQuery.trim().toLowerCase());
+      if (gen === pokeGenRef.current && added.length) {
+        setRawSearchResults(prev => [...prev, ...added]);
+        setAvailableRarities(prev => [...new Set([...prev, ...added.map(c => c.extData.Rarity).filter(Boolean)])].sort());
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') console.error(err);
+    } finally {
+      pokeLoadingRef.current = false;
+    }
+  };
+  loadMorePokemonRef.current = loadMorePokemon;
 
   const handleSearchAPI = async (e) => {
     e.preventDefault();
@@ -1217,33 +1374,27 @@ const [isSearching, setIsSearching] = useState(false);
     try {
       let cards = [];
       if (searchCategory === '1') {
-          // TCGCSV (vía proxy /tcgcsv, la API no envía CORS). Pokémon = categoría 3 en TCGplayer.
-          if (!searchSet) {
-            showToast('Selecciona una edición para buscar en Pokémon.', 'error');
-            setIsSearching(false);
-            return;
-          }
-          const response = await fetch(`/tcgcsv/tcgplayer/3/${searchSet}/products`, { signal: abortControllerRef.current.signal });
-          const json = await response.json();
-          const group = availableSets.find(s => s.groupId == searchSet);
           const q = searchQuery.trim().toLowerCase();
-          cards = (json.results || [])
-            .map(p => {
-              const ext = {};
-              (p.extendedData || []).forEach(e => { ext[e.name] = e.value; });
-              return { p, ext };
-            })
-            .filter(({ p, ext }) => ext.Number && (!q || p.name.toLowerCase().includes(q) || String(ext.Number).toLowerCase().includes(q)))
-            .map(({ p, ext }) => ({
-              id: p.productId,
-              tcgProductId: p.productId,
-              name: p.name,
-              imageUrl: (p.imageUrl || '').replace('_200w', '_400w'),
-              categoryId: 1,
-              groupId: p.groupId,
-              group: { id: p.groupId, name: group?.name || '', publishedOn: group?.publishedOn },
-              extData: { ...ext, localId: ext.Number },
-            }));
+          const catId = searchLang === 'ja' ? 85 : 3;
+          const gen = ++pokeGenRef.current;
+          pokeLoadingRef.current = false;
+          setHasMoreGroups(false);
+          if (searchSet) {
+            pokeQueueRef.current = [];
+            const group = availableSets.find(s => s.groupId == searchSet) || { groupId: searchSet };
+            cards = (await fetchPokemonGroup(group, catId, abortControllerRef.current.signal))
+              .filter(c => !q || c.name.toLowerCase().includes(q) || String(c.extData.Number).toLowerCase().includes(q));
+          } else {
+            // Todas las ediciones: esperar a que cargue la lista de ediciones (la búsqueda se relanza sola)
+            if (availableSets.length === 0) {
+              setIsSearching(false);
+              return;
+            }
+            pokeQueueRef.current = [...availableSets];
+            pokeCatRef.current = catId;
+            cards = await loadPokemonGroups(1, gen, abortControllerRef.current.signal, q);
+            if (gen !== pokeGenRef.current) return;
+          }
         } else {
           const mylFilters = searchCategory === '99' ? { type: mylType, race: mylRace, cost: mylCost, blockId: searchBlock, physicalProductId: searchPhysicalProduct } : {};
           
@@ -1387,7 +1538,7 @@ const [isSearching, setIsSearching] = useState(false);
           imageUrl: selectedCard.imageUrl || '',
           data: {
             pseudoName: isBatchAdding ? '' : pseudoName.trim(),
-            set: availableSets.find(s => s.groupId == (searchSet || selectedCard.groupId))?.name || 'Unknown',
+            set: getCardSetName(selectedCard) || 'Unknown',
             rarity: getExtDataValue(selectedCard.extData, 'Rarity') || getExtDataValue(selectedCard.extData, 'Card Number / Rarity') || getExtDataValue(selectedCard.extData, 'Frequency') || 'Unknown',
             supertype: getExtDataValue(selectedCard.extData, 'Card Type / HP / Stage')?.split(' / ')[0] || getExtDataValue(selectedCard.extData, 'Type') || 'Unknown',
             type: getExtDataValue(selectedCard.extData, 'Type'),
@@ -1415,7 +1566,7 @@ const [isSearching, setIsSearching] = useState(false);
           } else {
             setActiveQueueItemId(null);
             setSelectedCard(null);
-            setStock('');
+            setStock('1');
             setMultiSelectMode(false);
           }
           return remaining;
@@ -1467,6 +1618,8 @@ const [isSearching, setIsSearching] = useState(false);
             setSearchQuery={setSearchQuery}
             searchSet={searchSet}
             setSearchSet={setSearchSet}
+            searchLang={searchLang}
+            setSearchLang={setSearchLang}
             availableSets={availableSets}
             filteredSearchSets={filteredSearchSets}
             isSetDropdownOpen={isSetDropdownOpen}
@@ -1584,23 +1737,28 @@ const [isSearching, setIsSearching] = useState(false);
                   x{queuedCount}
                 </div>
               )}
-              <div className="relative w-full aspect-[63/88] flex items-center justify-center bg-gray-50 p-2">
-                <SafeImage src={card.imageUrl} alt={card.name} className="w-full h-full object-contain filter drop-shadow-sm relative z-10 transition-opacity duration-300" fallbackType="grid" />
+              <div className={`relative w-full ${isMylFolder ? 'aspect-[709/1016]' : 'aspect-[63/88]'} flex items-center justify-center bg-gray-50 overflow-hidden`}>
+                <SafeImage src={card.imageUrl} alt={card.name} className="w-full h-full object-cover relative z-10 transition-opacity duration-300" fallbackType="grid" />
               </div>
               {showCardDetails && (
                 <div className={`text-center border-t border-gray-100 w-full ${gridCols <= 2 ? 'p-2' : gridCols === 3 ? 'p-3' : gridCols === 4 ? 'p-2' : 'p-1'}`}>
-                  <p className={`font-bold text-gray-900 truncate ${gridCols === 1 ? 'text-base' : gridCols === 2 ? 'text-xl' : gridCols === 3 ? 'text-base' : gridCols === 4 ? 'text-sm' : 'text-xs'}`}>{card.name}</p>
-                  <p className={`text-gray-500 truncate mt-1 ${gridCols === 1 ? 'text-xs' : gridCols === 2 ? 'text-lg' : gridCols === 3 ? 'text-sm' : gridCols === 4 ? 'text-xs' : 'text-[10px]'}`}>{availableSets.find(s => s.groupId == (searchSet || card.groupId))?.name}</p>
+                  <p className={`font-bold text-gray-900 truncate ${gridCols === 1 ? 'text-base' : gridCols === 2 ? 'text-xl' : gridCols === 3 ? 'text-base' : gridCols === 4 ? 'text-sm' : 'text-xs'}`}>{cardLabel(card)}</p>
+                  <p className={`text-gray-500 truncate mt-1 ${gridCols === 1 ? 'text-xs' : gridCols === 2 ? 'text-lg' : gridCols === 3 ? 'text-sm' : gridCols === 4 ? 'text-xs' : 'text-[10px]'}`}>{getCardSetName(card)}</p>
                 </div>
               )}
             </div>
           );})}
-          {visibleCount < searchResults.length && (
+          {(visibleCount < searchResults.length || hasMoreGroups) && (
             <div ref={observerTarget} className="col-span-full h-10 w-full flex items-center justify-center mt-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e40af]"></div>
             </div>
           )}
           </>
+          ) : hasSearchedAPI && hasMoreGroups ? (
+              <div className="col-span-full flex flex-col items-center justify-center py-16">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-[#1e40af] mb-3"></div>
+                <p className="text-gray-500 font-bold animate-pulse">Buscando en más ediciones...</p>
+              </div>
           ) : hasSearchedAPI ? (
               <div className="col-span-full py-12 text-center text-gray-500 flex flex-col items-center">
                   <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-50">search_off</span>
@@ -1679,7 +1837,7 @@ const [isSearching, setIsSearching] = useState(false);
           <form onSubmit={handleSaveCard} className="flex min-h-[610px] lg:min-h-0 lg:h-[calc(100%-58px)] flex-col justify-between gap-4 mt-2">
             <div className="flex justify-center relative z-50 mt-4 lg:flex-1 lg:min-h-0 w-full">
               <div className="relative inline-block lg:h-full flex justify-center items-center">
-                <div className="relative h-72 sm:h-80 lg:h-full lg:max-h-full lg:w-full aspect-[63/88]"><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} className="w-full h-full object-contain rounded-lg shadow-md hover:scale-[1.55] transition-transform duration-300 cursor-zoom-in relative z-50 hover:z-[70] origin-center" fallbackType="zoom-main" /></div>
+                <div className="relative h-72 sm:h-80 lg:h-full lg:max-h-full lg:w-full aspect-[63/88]"><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} className="w-full h-full object-contain rounded-lg shadow-md hover:scale-[1.2] transition-transform duration-300 cursor-zoom-in relative z-50 hover:z-[70] origin-center" fallbackType="zoom-main" /></div>
                 <button 
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -1700,8 +1858,8 @@ const [isSearching, setIsSearching] = useState(false);
             </div>
             <div className="flex flex-col gap-3">
               <div className="text-center px-2">
-                <p className="font-bold text-gray-900 leading-tight">{selectedCard.name}</p>
-                <p className="text-sm text-gray-500 mt-1">{availableSets.find(s => s.groupId == (searchSet || selectedCard.groupId))?.name} â€¢ {selectedCard.rarity}</p>
+                <p className="font-bold text-gray-900 leading-tight">{cardLabel(selectedCard)}</p>
+                <p className="text-sm text-gray-500 mt-1">{getCardSetName(selectedCard)} • {selectedCard.rarity || getExtDataValue(selectedCard.extData, 'Rarity')}</p>
                 {isBatchAdding && (
                   <p className="text-xs font-bold text-[#1e40af] mt-2">
                     Carta {selectedQueue.findIndex(item => item.queueId === activeQueueItemId) + 1} de {selectedQueue.length}
@@ -1729,12 +1887,16 @@ const [isSearching, setIsSearching] = useState(false);
                 {!isBatchAdding && (
                   <div className="w-1/3">
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Stock*</label>
-                    <input type="number" required min="1" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-center" placeholder="1" />
+                    <div className="flex items-stretch overflow-hidden rounded-lg border border-gray-300 bg-gray-50 focus-within:border-[#1e40af] focus-within:ring-1 focus-within:ring-[#1e40af]">
+                      <button type="button" aria-label="Restar stock" disabled={(parseInt(stock, 10) || 1) <= 1} onClick={() => setStock(prev => String(Math.max(1, (parseInt(prev, 10) || 1) - 1)))} className="flex w-8 shrink-0 items-center justify-center text-lg font-bold text-gray-600 transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-40">−</button>
+                      <input type="number" required min="1" step="1" inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} onBlur={() => { if (!(parseInt(stock, 10) >= 1)) setStock('1'); }} className="min-w-0 flex-1 bg-transparent px-1 py-1.5 text-center text-sm font-bold text-gray-900 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" placeholder="1" />
+                      <button type="button" aria-label="Sumar stock" onClick={() => setStock(prev => String((parseInt(prev, 10) || 0) + 1))} className="flex w-8 shrink-0 items-center justify-center text-lg font-bold text-gray-600 transition-colors hover:bg-gray-200">+</button>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {!isMylFolder && !isBatchAdding && (
+              {!isMylFolder && (
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Idioma</label>
                   <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-sm">
@@ -1956,28 +2118,30 @@ const [isSearching, setIsSearching] = useState(false);
       </div>
 
       {/* Tabs */}
-      <div className="mb-3 grid grid-cols-3 gap-1 border-b border-gray-300 pb-0 sm:mb-4">
-        <button 
-          onClick={() => setActiveTab('add')} 
-          className={`flex items-center justify-center gap-1 rounded-t-xl px-2 py-3 font-bold transition-colors sm:gap-2 sm:px-6 ${activeTab === 'add' ? 'bg-white text-[#1e40af] border-b-4 border-[#1e40af] shadow-sm' : 'bg-gray-50/50 hover:bg-gray-100 text-gray-500'}`}
-        >
-          <span translate="no" className="material-symbols-outlined text-[18px] sm:text-[24px]">add_circle</span>
-          <span className="text-xs sm:text-sm">Agregar Cartas</span>
-        </button>
-        <button 
-          onClick={() => setActiveTab('catalog')} 
-          className={`flex items-center justify-center gap-1 rounded-t-xl px-2 py-3 font-bold transition-colors sm:gap-2 sm:px-6 ${activeTab === 'catalog' ? 'bg-white text-[#1e40af] border-b-4 border-[#1e40af] shadow-sm' : 'bg-gray-50/50 hover:bg-gray-100 text-gray-500'}`}
-        >
-          <span translate="no" className="material-symbols-outlined text-[18px] sm:text-[24px]">auto_stories</span>
-          <span className="text-xs sm:text-sm">Carpeta</span>
-        </button>
-        <button 
-          onClick={() => setActiveTab('sales')} 
-          className={`flex items-center justify-center gap-1 rounded-t-xl px-2 py-3 font-bold transition-colors sm:gap-2 sm:px-6 ${activeTab === 'sales' ? 'bg-white text-[#1e40af] border-b-4 border-[#1e40af] shadow-sm' : 'bg-gray-50/50 hover:bg-gray-100 text-gray-500'}`}
-        >
-          <span translate="no" className="material-symbols-outlined text-[18px] sm:text-[24px]">receipt_long</span>
-          <span className="text-xs sm:text-sm">Ventas</span>
-        </button>
+      <div className="mb-3 border-b border-gray-300 sm:mb-4">
+        <LiquidTabs
+          ariaLabel="Secciones de la carpeta"
+          className="gap-1"
+          buttonClassName="flex items-center justify-center gap-1 rounded-t-xl bg-gray-50/50 px-2 py-3 font-bold hover:bg-gray-100 sm:gap-2 sm:px-6"
+          indicatorClassName="rounded-t-xl border-b-4 border-[#1e40af] bg-white shadow-sm"
+          activeTextClassName="!bg-transparent text-[#1e40af] hover:!bg-transparent"
+          inactiveTextClassName="text-gray-500"
+          value={activeTab}
+          onChange={setActiveTab}
+          options={[
+            { value: 'add', icon: 'add_circle', label: 'Agregar Cartas' },
+            { value: 'catalog', icon: 'auto_stories', label: 'Carpeta' },
+            { value: 'sales', icon: 'receipt_long', label: 'Ventas' },
+          ].map(t => ({
+            value: t.value,
+            label: (
+              <>
+                <span translate="no" className="material-symbols-outlined text-[18px] sm:text-[24px]">{t.icon}</span>
+                <span className="text-xs sm:text-sm">{t.label}</span>
+              </>
+            ),
+          }))}
+        />
       </div>
 
       {/* Tab Content */}
