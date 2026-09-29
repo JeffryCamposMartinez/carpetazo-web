@@ -142,12 +142,7 @@ const deleteR2ObjectByPublicUrl = async (url) => {
 app.get('/api/health', (_req, res) => {
   res.json({
     success: true,
-    service: 'carpetazo-api',
-    environment: process.env.NODE_ENV || 'development',
-    commit: process.env.GIT_COMMIT || null,
-    r2Configured: hasR2Config(),
-    missingR2: missingR2Config(),
-    time: new Date().toISOString()
+    status: 'ok'
   });
 });
 
@@ -170,7 +165,21 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true
 }));
-app.use('/api', limiter);
+app.use('/api', limiter);
+
+// Límites más estrictos para rutas que escriben o que consumen recursos externos
+const routeLimiter = (windowMs, max) => rateLimit({
+  windowMs,
+  max,
+  skip: (req) => req.method === 'OPTIONS',
+  message: { success: false, message: 'Demasiadas solicitudes, intenta de nuevo más tarde.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/orders/create', routeLimiter(15 * 60 * 1000, 20));
+app.use('/api/proxy-image', routeLimiter(15 * 60 * 1000, 600));
+app.use('/api/folders/:id/visit', routeLimiter(15 * 60 * 1000, 120));
+app.use('/api/users/username/check', routeLimiter(15 * 60 * 1000, 60));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
 // Proxy con caché hacia TCGCSV (Pokémon inglés y japonés): el navegador no puede llamarlo directo por CORS
@@ -222,6 +231,8 @@ app.get('/api/proxy-image', async (req, res) => {
 
   try {
     const response = await fetch(imageUrl, {
+      redirect: 'error', // una redirección podría apuntar a un host no permitido
+      signal: AbortSignal.timeout(8000),
       headers: {
         'User-Agent': 'Carpetazo/1.0 (+https://carpetazo.cl)',
         'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
@@ -237,8 +248,16 @@ app.get('/api/proxy-image', async (req, res) => {
       return res.status(415).json({ success: false, message: 'El recurso no es una imagen' });
     }
 
+    const MAX_PROXY_IMAGE_BYTES = 10 * 1024 * 1024;
+    if (Number(response.headers.get('content-length') || 0) > MAX_PROXY_IMAGE_BYTES) {
+      return res.status(413).json({ success: false, message: 'La imagen es demasiado grande' });
+    }
     const arrayBuffer = await response.arrayBuffer();
+    if (arrayBuffer.byteLength > MAX_PROXY_IMAGE_BYTES) {
+      return res.status(413).json({ success: false, message: 'La imagen es demasiado grande' });
+    }
     res.setHeader('Content-Type', contentType);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Cache-Control', 'public, max-age=604800');
     return res.send(Buffer.from(arrayBuffer));
   } catch (error) {
@@ -684,32 +703,47 @@ app.get('/api/history', authenticateToken, requireAdmin, async (req, res) => {
 app.post('/api/orders/create', async (req, res) => {
   try {
     const body = req.body || {};
-    const items = normalizeOrderItems(body.items || body.orderItems || []);
-    const total = Number(body.total ?? body.totalAmount ?? 0);
+    const rawItems = Array.isArray(body.items || body.orderItems) ? (body.items || body.orderItems) : [];
+    const folderId = typeof body.folderId === 'string' ? body.folderId : '';
 
-    if (!items.length) {
+    if (!rawItems.length || rawItems.length > 100) {
       return res.status(400).json({ success: false, message: 'El pedido no tiene cartas' });
     }
+    if (!folderId) {
+      return res.status(400).json({ success: false, message: 'Carpeta requerida' });
+    }
 
-    let sellerId = body.sellerId || null;
-    let folderName = body.folderName || 'Catálogo';
+    const folder = await prisma.folder.findUnique({ where: { id: folderId }, include: { cards: true } });
+    if (!folder || !folder.isPublic) {
+      return res.status(404).json({ success: false, message: 'Carpeta no encontrada' });
+    }
 
-    if ((!sellerId || !body.folderName) && body.folderId) {
-      const folder = await prisma.folder.findUnique({ where: { id: body.folderId } });
-      sellerId = sellerId || folder?.userId || null;
-      folderName = body.folderName || folder?.name || folderName;
+    // Nombre, precio y vendedor salen de la base de datos; del cliente solo se acepta id y cantidad
+    const cardsById = new Map(folder.cards.map((card) => [card.id, card]));
+    const items = [];
+    let total = 0;
+    for (const raw of rawItems) {
+      const card = cardsById.get(String(raw?.id ?? ''));
+      if (!card) {
+        return res.status(400).json({ success: false, message: 'El pedido contiene cartas que ya no están disponibles' });
+      }
+      const requested = Math.floor(Number(raw.quantity ?? raw.q ?? 1));
+      const quantity = Number.isFinite(requested) && requested > 0 ? Math.min(requested, 99) : 1;
+      const price = Number.isFinite(card.price) && card.price > 0 ? card.price : 0;
+      total += price * quantity;
+      items.push({ id: card.id, name: card.name, quantity, q: quantity, price });
     }
 
     const code = await generateOrderCode();
     const order = await prisma.order.create({
       data: {
         code,
-        sellerId: sellerId || 'legacy',
-        buyerName: body.buyerName || 'Cliente por WhatsApp',
-        folderId: body.folderId || 'legacy',
-        folderName,
+        sellerId: folder.userId,
+        buyerName: 'Cliente por WhatsApp',
+        folderId: folder.id,
+        folderName: folder.name || 'Catálogo',
         items,
-        total: Number.isFinite(total) ? total : 0,
+        total,
         status: 'pending'
       }
     });
@@ -970,11 +1004,21 @@ app.get('/api/folders/:id', optionalAuth, async (req, res) => {
   }
 });
 
-  // Registrar visita a carpeta
+  // Registrar visita a carpeta
+  const recentVisits = new Map();
   app.post('/api/folders/:id/visit', async (req, res) => {
     try {
       const folderId = req.params.id;
-      const { currentWeek } = req.body;
+      const currentWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
+
+      // Una visita por IP y carpeta cada 30 minutos (evita inflar el contador)
+      const visitKey = `${req.ip}|${folderId}`;
+      const now = Date.now();
+      if ((recentVisits.get(visitKey) || 0) > now - 30 * 60 * 1000) return res.json({ success: true });
+      recentVisits.set(visitKey, now);
+      if (recentVisits.size > 5000) {
+        for (const [key, time] of recentVisits) if (time < now - 30 * 60 * 1000) recentVisits.delete(key);
+      }
       
       const folder = await prisma.folder.findUnique({ where: { id: folderId } });
       if (!folder) return res.status(404).json({ success: false });
@@ -2060,6 +2104,15 @@ app.get('/api/tcg/search', async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+// Rutas /api inexistentes y errores no controlados: mensajes genéricos, el detalle queda solo en el log
+app.use('/api', (_req, res) => res.status(404).json({ success: false, message: 'Ruta no encontrada' }));
+app.use((err, _req, res, _next) => {
+  if (err?.type === 'entity.too.large') return res.status(413).json({ success: false, message: 'La solicitud es demasiado grande' });
+  if (err?.type === 'entity.parse.failed') return res.status(400).json({ success: false, message: 'Solicitud inválida' });
+  console.error('Error no controlado:', err?.message || err);
+  res.status(err?.status && err.status < 500 ? err.status : 500).json({ success: false, message: 'Error interno del servidor' });
 });
 
 app.listen(port, () => {
