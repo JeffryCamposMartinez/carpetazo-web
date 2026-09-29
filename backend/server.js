@@ -58,7 +58,8 @@ const requireAdmin = async (req, res, next) => {
     const firebaseAdminClaim = req.user?.admin === true || req.user?.role === 'admin';
     const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
     const databaseAdmin = user?.role === 'admin';
-    const envAdmin = isAdminEmail(req.user.email || user?.email);
+    // El correo solo cuenta si Firebase confirma que fue verificado
+    const envAdmin = req.user.email_verified === true && isAdminEmail(req.user.email);
 
     if (!firebaseAdminClaim && !databaseAdmin && !envAdmin) {
       return res.status(403).json({ success: false, message: 'Acceso administrativo requerido' });
@@ -170,8 +171,8 @@ app.use(cors({
   credentials: true
 }));
 app.use('/api', limiter);
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ limit: '2mb', extended: true }));
 // Proxy con caché hacia TCGCSV (Pokémon inglés y japonés): el navegador no puede llamarlo directo por CORS
 const TCGCSV_ALLOWED_PATH = /^\/tcgplayer\/(3|85)\/(groups|\d+\/products)$/;
 const TCGCSV_TTL_MS = 30 * 60 * 1000;
@@ -265,7 +266,7 @@ app.post('/api/users/sync', authenticateToken, async (req, res) => {
           name: req.body.displayName || '',
           username: req.body.username || req.body.displayName?.toLowerCase().replace(/\s+/g, '_') || firebaseUid,
           photoURL: req.body.photoURL || null,
-          role: isAdminEmail(email) ? 'admin' : 'user'
+          role: req.user.email_verified === true && isAdminEmail(email) ? 'admin' : 'user'
         }
       });
     } else {
@@ -275,7 +276,7 @@ app.post('/api/users/sync', authenticateToken, async (req, res) => {
           name: req.body.displayName || user.name,
           username: req.body.username || user.username || user.name?.toLowerCase().replace(/\s+/g, '_'),
           photoURL: user.photoURL || req.body.photoURL || null,
-          ...(isAdminEmail(email) && user.role !== 'admin' ? { role: 'admin' } : {})
+          ...(req.user.email_verified === true && isAdminEmail(email) && user.role !== 'admin' ? { role: 'admin' } : {})
         }
       });
     }
@@ -885,7 +886,72 @@ app.post('/api/folders', authenticateToken, async (req, res) => {
 });
 
 // Obtener detalles de una carpeta (y sus cartas)
-app.get('/api/folders/:id', async (req, res) => {
+// --- Vistas públicas: nunca se devuelve la entidad de la base de datos ---
+// Cualquier campo que no esté en estas listas NO sale por las rutas públicas (correo, RUT, banco, rol, firebaseUid…).
+const optionalAuth = async (req, _res, next) => {
+  const token = (req.headers['authorization'] || '').split(' ')[1];
+  if (token) {
+    try {
+      req.user = await getAuth().verifyIdToken(token);
+      req.user.sub = req.user.uid;
+    } catch (_error) {
+      // token inválido o vencido: se trata como visitante anónimo
+    }
+  }
+  next();
+};
+
+const PUBLIC_SELLER_SELECT = {
+  id: true,
+  username: true,
+  name: true,
+  fullName: true,
+  photoURL: true,
+  bio: true,
+  bannerBase64: true,
+  wallpaperBase64: true,
+  bannerDominantColor: true,
+  bannerComplementaryColor: true,
+  publicTheme: true,
+  facebookUrl: true,
+  instagramUrl: true,
+  youtubeUrl: true,
+  phone: true,
+  addresses: true,
+  createdAt: true,
+  firebaseUid: true // solo para calcular isOwner; el serializador lo elimina
+};
+
+const toPublicSeller = (user, viewerUid = null) => {
+  if (!user) return null;
+  const theme = user.publicTheme && typeof user.publicTheme === 'object' ? user.publicTheme : {};
+  return {
+    id: user.id,
+    username: user.username,
+    name: user.name,
+    fullName: user.fullName,
+    photoURL: user.photoURL,
+    bio: user.bio,
+    bannerBase64: user.bannerBase64,
+    wallpaperBase64: user.wallpaperBase64,
+    bannerDominantColor: user.bannerDominantColor,
+    bannerComplementaryColor: user.bannerComplementaryColor,
+    publicTheme: user.publicTheme,
+    facebookUrl: user.facebookUrl,
+    instagramUrl: user.instagramUrl,
+    youtubeUrl: user.youtubeUrl,
+    // El teléfono solo sale si el vendedor dejó activo el botón de WhatsApp
+    phone: theme.showWhatsApp !== 'off' ? user.phone : null,
+    // Solo ciudad/región: calle, número y referencias son privados
+    addresses: Array.isArray(user.addresses)
+      ? user.addresses.map((a) => ({ name: a?.name || '', comuna: a?.comuna || '', region: a?.region || '', isDefault: Boolean(a?.isDefault) }))
+      : [],
+    createdAt: user.createdAt,
+    isOwner: Boolean(viewerUid && user.firebaseUid && user.firebaseUid === viewerUid)
+  };
+};
+
+app.get('/api/folders/:id', optionalAuth, async (req, res) => {
   try {
     const folder = await prisma.folder.findUnique({
       where: { id: req.params.id },
@@ -893,27 +959,11 @@ app.get('/api/folders/:id', async (req, res) => {
         cards: {
           orderBy: { createdAt: 'asc' }
         },
-        user: {
-          select: {
-            name: true,
-            fullName: true,
-            email: true,
-            username: true,
-            photoURL: true,
-            firebaseUid: true,
-            phone: true,
-            facebookUrl: true,
-            instagramUrl: true,
-            youtubeUrl: true,
-            publicTheme: true,
-            addresses: true,
-            bio: true,
-          }
-        }
+        user: { select: PUBLIC_SELLER_SELECT }
       }
     });
     if (!folder) return res.status(404).json({ success: false, message: 'Folder not found' });
-    res.json({ success: true, folder });
+    res.json({ success: true, folder: { ...folder, user: toPublicSeller(folder.user, req.user?.sub) } });
   } catch (error) {
     console.error('Error fetching folder:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1064,7 +1114,7 @@ app.get('/api/folders', async (req, res) => {
   try {
     const folders = await prisma.folder.findMany({
       where: { isPublic: true },
-      include: { user: { select: { name: true, username: true, photoURL: true, firebaseUid: true } }, _count: { select: { cards: true } } },
+      include: { user: { select: { name: true, username: true, photoURL: true } }, _count: { select: { cards: true } } },
       orderBy: { createdAt: 'desc' }
     });
     res.json({ success: true, folders });
@@ -1705,7 +1755,7 @@ app.get('/api/users/username/check', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/users/:username', async (req, res) => {
+app.get('/api/users/:username', optionalAuth, async (req, res) => {
   try {
     const identifier = String(req.params.username || '').trim();
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier);
@@ -1722,12 +1772,13 @@ app.get('/api/users/:username', async (req, res) => {
       where: {
         OR: publicUserLookup
       },
-      include: {
+      select: {
+        ...PUBLIC_SELLER_SELECT,
         folders: {
           where: { isPublic: true },
           include: {
             _count: { select: { cards: true } },
-            user: { select: { name: true, username: true, photoURL: true, firebaseUid: true } }
+            user: { select: { name: true, username: true, photoURL: true } }
           },
           orderBy: { createdAt: 'desc' }
         }
@@ -1738,7 +1789,8 @@ app.get('/api/users/:username', async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    res.json({ success: true, user });
+    const { folders, ...seller } = user;
+    res.json({ success: true, user: { ...toPublicSeller(seller, req.user?.sub), folders } });
   } catch (error) {
     console.error('Error fetching user:', error);
     res.status(500).json({ success: false, message: 'Error interno' });

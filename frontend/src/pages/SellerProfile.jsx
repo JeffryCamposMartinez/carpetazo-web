@@ -593,7 +593,8 @@ export default function SellerProfile() {
   const [themePanelTab, setThemePanelTab] = useState('theme');
   const [savingTheme, setSavingTheme] = useState(false);
 
-  const isOwner = currentUser?.uid && seller?.firebaseUid === currentUser.uid;
+  // El servidor indica si quien mira es el dueño (ya no se publica el identificador interno)
+  const isOwner = Boolean(seller?.isOwner ?? (currentUser?.uid && seller?.firebaseUid === currentUser.uid));
   const displayName = seller?.name || seller?.fullName || seller?.username || 'Vendedor Anónimo';
   const avatarUrl = seller?.photoURL;
   const publicTheme = useMemo(() => ({
@@ -1387,7 +1388,7 @@ export default function SellerProfile() {
                   <h1 className={`break-words font-black leading-[0.95] ${displayNameSizeClass}`} style={{ color: publicTheme.text }}>{displayName}</h1>
                   <span translate="no" className="material-symbols-outlined" style={{ color: publicTheme.primary, fontVariationSettings: "'FILL' 1" }}>verified</span>
                 </div>
-                <p className="mt-1 text-sm font-black text-slate-500">@{seller?.username || seller?.firebaseUid}</p>
+                <p className="mt-1 text-sm font-black text-slate-500">@{seller?.username}</p>
                 {seller?.fullName && <p className="mt-1 text-sm font-semibold text-slate-600">{seller.fullName}</p>}
                 <div className={`mt-3 flex flex-wrap gap-2 ${isPosterLayout ? 'justify-center lg:justify-start' : ''}`}>
                   {[
