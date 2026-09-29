@@ -3,6 +3,23 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import api, { apiUrl } from '../utils/api';
 
+// Mismo orden que ve el usuario en su carpeta: primero catalogOrder, luego fecha de creación
+const sortCatalogCards = (cardArray = []) => {
+  const orderOf = (card) => {
+    const value = Number(card?.catalogOrder);
+    return Number.isFinite(value) ? value : 100000;
+  };
+  return [...cardArray].sort((a, b) => (orderOf(a) - orderOf(b)) || (new Date(a.createdAt || 0) - new Date(b.createdAt || 0)));
+};
+
+// Proporción de la carta según el origen de su imagen (Pokémon 63:88, Mitos y Leyendas 709:1016)
+const getCardAspectRatio = (card) => {
+  const url = String(card?.imageUrl || '');
+  return /tcgplayer|pokemontcg\.io|tcgdex/i.test(url) ? '63 / 88' : '709 / 1016';
+};
+
+const LANGUAGE_CODES = { English: 'EN', Spanish: 'ES', Japanese: 'JP' };
+
 const getPdfImageUrl = (imageUrl) => {
   if (!imageUrl) return '';
   if (imageUrl.startsWith('data:') || imageUrl.startsWith('blob:')) return imageUrl;
@@ -57,7 +74,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
             setFolder(res.folder);
         }
         
-        const cardsData = (res?.folder?.cards || []).map(c => ({ ...c, ...(c.data || {}) }));
+        const cardsData = sortCatalogCards((res?.folder?.cards || []).map(c => ({ ...c, ...(c.data || {}) })));
         const totalCards = cardsData.length;
         
         let loadedCount = 0;
@@ -184,6 +201,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
 
   const pages = chunkArray(cards, 9);
   const binderColor = folder?.color || '#1e40af';
+  const showLanguage = folder?.tcg !== 'Mitos y Leyendas'; // en Mitos y Leyendas no se muestra el idioma
 
   // Render absolutely hidden from view by placing it under the solid modal
   // We stack all pages exactly on top of each other (absolute top-0 left-0)
@@ -218,7 +236,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
               />
 
               {/* Inner Black Page (where cards live) */}
-              <div className={`relative flex-1 bg-[#151515] flex flex-col p-[12mm] shadow-[inset_0_0_10px_rgba(0,0,0,0.5),-5px_5px_15px_rgba(0,0,0,0.8)] z-20 overflow-hidden ${isRightPage ? 'rounded-r-[1.5rem] rounded-l-none mt-[4mm] mb-[4mm] mr-[4mm] ml-0' : 'rounded-l-[1.5rem] rounded-r-none mt-[4mm] mb-[4mm] ml-[4mm] mr-0'}`}>
+              <div className={`relative flex-1 bg-[#151515] flex flex-col p-[5mm] shadow-[inset_0_0_10px_rgba(0,0,0,0.5),-5px_5px_15px_rgba(0,0,0,0.8)] z-20 overflow-hidden ${isRightPage ? 'rounded-r-[1.5rem] rounded-l-none mt-[4mm] mb-[4mm] mr-[4mm] ml-0' : 'rounded-l-[1.5rem] rounded-r-none mt-[4mm] mb-[4mm] ml-[4mm] mr-0'}`}>
                  
                  {/* Subtle texture for the black page */}
                  <div className="absolute inset-0 opacity-40 mix-blend-overlay bg-[url('/images/cubes.png')] z-0" />
@@ -227,18 +245,19 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
                  <div className={`absolute top-0 bottom-0 w-28 pointer-events-none z-10 bg-gradient-to-${isRightPage ? 'r' : 'l'} from-black/90 to-transparent ${isRightPage ? 'left-0' : 'right-0'}`} />
 
                  {/* Pockets Grid */}
-                 <div className={`flex-1 grid grid-cols-3 grid-rows-3 gap-4 w-full h-full relative z-20 ${isRightPage ? 'pl-6' : 'pr-6'}`}>
+                 <div className={`flex-1 grid grid-cols-3 grid-rows-3 gap-3 w-full h-full relative z-20 ${isRightPage ? 'pl-4' : 'pr-4'}`}>
                   {Array.from({ length: 9 }).map((_, pocketIndex) => {
                     const card = pageCards[pocketIndex];
                     const globalIndex = pageIndex * 9 + pocketIndex;
                     return (
-                      <div 
-                        key={pocketIndex} 
-                        className="bg-[#222] rounded-xl border border-white/10 shadow-[inset_0_4px_15px_rgba(0,0,0,0.6)] flex items-center justify-center p-2 relative"
+                      <div key={pocketIndex} className="flex min-h-0 min-w-0 items-center justify-center">
+                      <div
+                        className="bg-[#222] rounded-xl border border-white/10 shadow-[inset_0_4px_15px_rgba(0,0,0,0.6)] flex items-center justify-center p-1 relative w-full max-h-full"
+                        style={{ aspectRatio: card ? getCardAspectRatio(card) : '63 / 88' }}
                       >
                         <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 pointer-events-none z-10 rounded-xl" />
                         {card ? (
-                          <div className="w-[95%] h-[95%] relative flex items-center justify-center z-30">
+                          <div className="w-full h-full relative flex items-center justify-center z-30">
                             <img 
                               ref={el => imageRefs.current[globalIndex] = el}
                               src={card.base64 || card.imageUrl} 
@@ -248,8 +267,10 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
                               onLoad={() => setImagesLoaded(prev => prev + 1)}
                               onError={() => setImagesLoaded(prev => prev + 1)} 
                             />
-                            <div className="absolute top-1.5 right-1.5 bg-black/80 text-white font-bold text-[13px] px-3 py-1 rounded-full shadow-lg border border-white/20 z-[120] inline-block text-center backdrop-blur-sm">
-                              <span className="relative -top-[5px]">x{card.stock || 0}</span>
+                            <div className="absolute top-1.5 right-1.5 bg-black/80 text-white font-bold text-[13px] px-3 py-1 rounded-full shadow-lg border border-white/20 z-[120] inline-block text-center backdrop-blur-sm whitespace-nowrap">
+                              <span className="relative -top-[5px]">
+                                {showLanguage && card.language ? <span className="text-yellow-400">{LANGUAGE_CODES[card.language] || card.language} · </span> : null}x{card.stock || 0}
+                              </span>
                             </div>
                             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black/90 text-yellow-400 font-bold text-[13px] px-4 py-1.5 rounded-full shadow-md whitespace-nowrap z-[120] inline-block text-center border border-white/10">
                               <span className="relative -top-[5px]">{card.price ? '$' + Number(card.price).toLocaleString('es-CL') : 'Sin precio'}</span>
@@ -260,6 +281,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
                             <span translate="no" className="material-symbols-outlined text-white/10 text-4xl">style</span>
                           </div>
                         )}
+                      </div>
                       </div>
                     );
                   })}
