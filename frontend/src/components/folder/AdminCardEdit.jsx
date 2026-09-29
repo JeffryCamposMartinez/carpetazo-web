@@ -37,18 +37,20 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
       </button>
       <div className={`${compact && !showDetails ? 'p-1.5' : compact ? (dense ? 'p-1.5' : 'p-2.5') : 'p-4'} flex flex-col items-center flex-1`}>
         <div className={`w-full relative pt-[140%] ${showDetails ? (compact ? 'mb-2' : 'mb-3') : 'mb-0'}`}>
-          <img 
-              src={card.imageUrl} 
-              referrerPolicy="no-referrer" 
-              alt={card.name} 
-              className="absolute inset-0 w-full h-full object-fill filter drop-shadow-md transition-transform duration-300" 
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = '/favicon.png';
-                e.currentTarget.className = 'absolute inset-0 w-1/2 h-1/2 m-auto object-contain filter grayscale opacity-40';
-                e.currentTarget.parentElement.classList.add('bg-gray-50', 'rounded-lg', 'border-2', 'border-gray-200');
-              }}
-            />
+          {imgError || !card.imageUrl ? (
+              <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-gray-50 rounded-lg p-2 text-center border-2 border-gray-200">
+                <img src="/favicon.png" className="w-8 h-8 opacity-40 grayscale object-contain mb-1" alt="Logo" />
+                <span className="text-[9px] font-bold text-gray-400 leading-tight">SIN<br/>IMAGEN</span>
+              </div>
+            ) : (
+              <img 
+                src={card.imageUrl} 
+                referrerPolicy="no-referrer" 
+                alt={card.name} 
+                className="absolute inset-0 w-full h-full object-fill filter drop-shadow-md transition-transform duration-300" 
+                onError={() => setImgError(true)} 
+              />
+            )}
           {showDetails && (Number(card.stock || 0) <= 0 || Number(card.price || 0) <= 0) && (
             <div className="absolute bottom-1 left-1 right-1 z-10 flex flex-wrap justify-center gap-1">
               {Number(card.stock || 0) <= 0 && (
