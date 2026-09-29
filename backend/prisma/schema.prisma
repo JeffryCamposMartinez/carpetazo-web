@@ -52,6 +52,9 @@ model Folder {
   cards       Card[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isPublic, createdAt])
 }
 
 model Card {
@@ -66,6 +69,10 @@ model Card {
   folder    Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([folderId])
+  @@index([createdAt])
+  @@index([tcgId])
 }
 
 model Message {
@@ -75,6 +82,9 @@ model Message {
   content   String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([senderId, receiverId, createdAt])
+  @@index([receiverId, isRead])
 }
 
 model Order {
@@ -89,6 +99,9 @@ model Order {
   status      String   @default("pending")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([sellerId, status])
+  @@index([folderId])
 }
 
 model TcgCategory {
@@ -109,6 +122,9 @@ model TcgGroup {
   modifiedOn  DateTime
   category    TcgCategory @relation(fields: [categoryId], references: [categoryId])
   products    TcgProduct[]
+
+  @@index([categoryId])
+  @@index([blockId])
 }
 
 model TcgProduct {
@@ -122,6 +138,10 @@ model TcgProduct {
   imageUrl    String
   extData     Json?
   group       TcgGroup  @relation(fields: [groupId], references: [groupId])
+
+  @@index([groupId])
+  @@index([categoryId, groupId])
+  @@index([physicalProductId])
 }
 
 model TcgBlock {
