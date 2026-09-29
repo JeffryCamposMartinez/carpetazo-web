@@ -346,7 +346,7 @@ function PublicCatalog() {
       }
       message += `\n\n¿Tienes disponibilidad?`;
       
-      const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+      const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
       
       if (newWindow) {
         newWindow.location.href = whatsappUrl;
@@ -507,7 +507,7 @@ function PublicCatalog() {
       options.push({
         id: 'whatsapp',
         label: 'WhatsApp',
-        href: `https://wa.me/${formatWhatsAppNumber(sellerData.phone)}?text=${encodeURIComponent(`Hola, vi tu carpeta "${folderData?.name || 'Catálogo'}" en Carpetazo y quiero consultar por tus cartas.`)}`,
+        href: `https://api.whatsapp.com/send?phone=${formatWhatsAppNumber(sellerData.phone)}&text=${encodeURIComponent(`Hola, vi tu carpeta "${folderData?.name || 'Catálogo'}" en Carpetazo y quiero consultar por tus cartas.`)}`,
         className: 'bg-green-50 text-green-700 ring-green-100 hover:bg-green-100'
       });
     }
