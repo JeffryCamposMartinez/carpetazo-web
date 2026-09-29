@@ -982,6 +982,48 @@ app.delete('/api/cards/:id', authenticateToken, async (req, res) => {
 // --- RUTAS PÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡BLICAS Y MENSAJES ---
 
 // Obtener todas las carpetas pblicas
+// Cartas subidas más recientemente en carpetas públicas (portada)
+app.get('/api/cards/recent', async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 12, 1), 30);
+    const cards = await prisma.card.findMany({
+      where: { stock: { gt: 0 }, imageUrl: { not: null }, folder: { isPublic: true } },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        name: true,
+        imageUrl: true,
+        price: true,
+        stock: true,
+        createdAt: true,
+        data: true,
+        folder: {
+          select: {
+            id: true,
+            name: true,
+            tcg: true,
+            user: { select: { name: true, username: true, photoURL: true } }
+          }
+        }
+      }
+    });
+
+    // Solo campos públicos: el JSON `data` de la carta puede traer más cosas
+    res.json({
+      success: true,
+      cards: cards.map(({ data, ...card }) => ({
+        ...card,
+        language: data && typeof data === 'object' ? data.language || null : null,
+        set: data && typeof data === 'object' ? data.set || null : null
+      }))
+    });
+  } catch (error) {
+    console.error('Error loading recent cards:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
 app.get('/api/folders', async (req, res) => {
   try {
     const folders = await prisma.folder.findMany({
