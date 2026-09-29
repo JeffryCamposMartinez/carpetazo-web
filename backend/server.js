@@ -90,6 +90,7 @@ const getAllowedProxyImageHosts = () => {
     'imagenes.carpetazo.cl',
     'images.pokemontcg.io',
     'api.pokemontcg.io',
+    'tcgplayer-cdn.tcgplayer.com',
     'tor.myl.cl',
     'www.myl.cl',
     'myl.cl'
