@@ -7,6 +7,9 @@ on:
   pull_request:
     branches:
       - main
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 concurrency:
   group: carpetazo-${{ github.ref }}
@@ -50,6 +53,27 @@ jobs:
         working-directory: backend
         env:
           DATABASE_URL: postgresql://user:password@localhost:5432/carpetazo
+
+  public-contract:
+    name: Public API contract (production)
+    needs: verify
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Wait for Coolify deploy
+        if: github.event_name == 'push'
+        run: sleep 420
+
+      - name: Check public responses have no private fields
+        run: node backend/check_public_contract.cjs https://api.carpetazo.cl/api
 
   deploy-vps:
     name: Deploy to VPS

@@ -167,6 +167,15 @@ const checkSocialField = (field, value) => {
   }
 };
 
+// Validación simple de entradas: tipos y tamaños razonables
+const isShortText = (value, max) => typeof value === 'string' && value.trim().length > 0 && value.length <= max;
+const isOptionalText = (value, max) => value === undefined || value === null || (typeof value === 'string' && value.length <= max);
+const isValidPrice = (value) => value === undefined || value === null || value === '' || (Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 100000000);
+const isValidStock = (value) => value === undefined || (Number.isInteger(Number(value)) && Number(value) >= 0 && Number(value) <= 100000);
+const isSmallObject = (value, maxBytes = 20000) => value === undefined || value === null
+  || (typeof value === 'object' && !Array.isArray(value) && JSON.stringify(value).length <= maxBytes);
+const badRequest = (res, message) => res.status(400).json({ success: false, message });
+
 const getR2KeyFromPublicUrl = (url) => {
   if (!url || !process.env.R2_PUBLIC_URL) return null;
 
@@ -516,6 +525,9 @@ app.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res) =>
     }
     
     const { price, stock, data } = req.body;
+    if (!isValidPrice(price) || !isValidStock(stock) || !isSmallObject(data)) {
+      return badRequest(res, 'Datos de carta inválidos');
+    }
     const dataToUpdate = {};
     if (price !== undefined) dataToUpdate.price = parseFloat(price);
     if (stock !== undefined) dataToUpdate.stock = parseInt(stock);
@@ -574,7 +586,15 @@ app.put('/api/folders/:id', authenticateToken, async (req, res) => {
     
     if (!folder) return res.status(404).json({ success: false, message: 'Carpeta no encontrada' });
     
-    // Actualizar
+    const owner = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
+    if (!owner || folder.userId !== owner.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    if (name !== undefined && !isShortText(name, 100)) return badRequest(res, 'Nombre de carpeta inválido');
+    if (!isOptionalText(color, 40) || !isOptionalText(tcg, 60)) return badRequest(res, 'Datos de carpeta inválidos');
+    if (isPublic !== undefined && typeof isPublic !== 'boolean') return badRequest(res, 'Datos de carpeta inválidos');
+
+    // Actualizar
     const data = {};
     if (name !== undefined) data.name = name;
     if (color !== undefined) data.color = color;
@@ -958,7 +978,12 @@ app.get('/api/folders/me', authenticateToken, async (req, res) => {
 app.post('/api/folders', authenticateToken, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    const { name, description, isPublic, tcg, color } = req.body;
+    const { name, description, isPublic, tcg, color } = req.body;
+    if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    if (!isShortText(name, 100) || !isOptionalText(description, 1000) || !isOptionalText(tcg, 60) || !isOptionalText(color, 40)
+      || (isPublic !== undefined && typeof isPublic !== 'boolean')) {
+      return badRequest(res, 'Datos de carpeta inválidos');
+    }
     
     const folder = await prisma.folder.create({
       data: {
@@ -1127,6 +1152,9 @@ app.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
     }
     
     const { tcgId, name, imageUrl, price, stock, data } = req.body;
+    if (!isShortText(String(tcgId ?? ''), 100) || !isShortText(name, 300) || !isValidPrice(price) || !isValidStock(stock) || !isSmallObject(data)) {
+      return badRequest(res, 'Datos de carta inválidos');
+    }
     if (imageUrl && !isAllowedStoredImageUrl(imageUrl)) {
       return res.status(400).json({ success: false, error: 'URL de imagen no permitida' });
     }
@@ -1234,6 +1262,7 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
     const { receiverId, content } = req.body;
     
     if (!receiverId || !content) return res.status(400).json({ success: false, message: 'Missing fields' });
+    if (typeof receiverId !== 'string' || !isShortText(content, 1500000)) return badRequest(res, 'Mensaje inválido');
     if (!sender) return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
     if (receiverId === sender.id || receiverId === sender.firebaseUid || receiverId === sender.username) {
       return res.status(400).json({ success: false, message: 'No puedes enviarte mensajes a ti mismo.' });
@@ -1430,6 +1459,7 @@ app.post('/api/messages/:otherId', authenticateToken, async (req, res) => {
     const { content } = req.body;
     
     if (!content) return res.status(400).json({ success: false });
+    if (!isShortText(content, 1500000)) return badRequest(res, 'Mensaje inválido');
     if (otherId === currentUser.id) {
       return res.status(400).json({ success: false, message: 'No puedes enviarte mensajes a ti mismo.' });
     }
