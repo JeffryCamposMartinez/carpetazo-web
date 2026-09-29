@@ -266,7 +266,8 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
         try {
           const json = await api.searchTcgProducts(previewCard.name);
           if (json.success && json.data) {
-            let match = json.data.find(c => c.productId == previewCard.tcgId || c.productId == previewCard.apiId);
+            const previewTcgId = String(previewCard.tcgId || previewCard.apiId || '');
+            let match = json.data.find(c => String(c.productId || '') === previewTcgId);
             if (!match) match = json.data.find(c => c.name.toLowerCase() === previewCard.name.toLowerCase());
             const ability = getCardAbilityText({ ...match, extData: match?.extData });
             if (ability) {

@@ -439,8 +439,9 @@ function AdminPanel() {
     e.preventDefault();
     if (!selectedCard || !price || !stock) return;
     setIsSaving(true);
+    const selectedProductId = selectedCard.productId ?? selectedCard.tcgProductId ?? selectedCard.id;
     const cardData = {
-      id: selectedCard.id,
+      id: selectedProductId !== undefined && selectedProductId !== null ? String(selectedProductId) : '',
       name: selectedCard.name,
       pseudoName: pseudoName.trim(),
       hp: selectedCard.hp || 'N/A',

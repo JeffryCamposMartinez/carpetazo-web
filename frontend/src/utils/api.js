@@ -82,7 +82,10 @@ export const api = {
   getTcgCategories: () => apiFetch('/tcg/categories'),
   getTcgGroups: (categoryId) => apiFetch('/tcg/' + categoryId + '/groups'),
   getTcgFilterOptions: (categoryId) => apiFetch('/tcg/' + categoryId + '/filter-options'),
-  getTcgProductsMetadata: (ids = []) => apiFetch('/tcg/products/metadata', { method: 'POST', body: JSON.stringify({ ids }) }),
+  getTcgProductsMetadata: (ids = []) => apiFetch('/tcg/products/metadata', {
+    method: 'POST',
+    body: JSON.stringify({ ids: ids.filter(id => id !== undefined && id !== null).map(String) })
+  }),
     getTcgBlocks: (categoryId) => apiFetch(categoryId ? `/tcg/blocks?categoryId=${categoryId}` : '/tcg/blocks'),
   getTcgPhysicalProducts: () => apiFetch('/tcg/physical-products'),
   getTcgProducts: (categoryId, groupId, mylFilters = {}) => {

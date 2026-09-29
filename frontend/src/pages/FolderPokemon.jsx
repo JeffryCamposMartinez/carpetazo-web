@@ -77,6 +77,8 @@ const getPreviewReorderedCards = (cardArray = [], dragCardId, targetIndex) => {
   return nextCards;
 };
 
+const normalizeTcgProductId = (value) => (value === undefined || value === null ? '' : String(value));
+
 const getExtDataValue = (extData, fieldName) => {
   if (Array.isArray(extData)) {
     return extData.find(item => String(item?.name || '').toLowerCase() === fieldName.toLowerCase())?.value || '';
@@ -158,7 +160,7 @@ function FolderPokemonInner() {
     }
   };
 
-  const getCardSelectionKey = (card) => String(card?.productId || card?.tcgProductId || card?.id || card?.name || '');
+  const getCardSelectionKey = (card) => normalizeTcgProductId(card?.productId || card?.tcgProductId || card?.id || card?.name);
   const isBatchAdding = activeQueueItemId !== null;
   const selectedQueueCountByCard = selectedQueue.reduce((acc, item) => {
     const key = getCardSelectionKey(item.card);
@@ -1207,8 +1209,8 @@ function FolderPokemonInner() {
     setIsSaving(true);
     
     try {
-      const targetTcgId = selectedCard.productId?.toString() || selectedCard.id?.toString() || selectedCard.tcgProductId?.toString();
-      const existingCard = cards.find(c => c.tcgId === targetTcgId);
+      const targetTcgId = normalizeTcgProductId(selectedCard.productId || selectedCard.id || selectedCard.tcgProductId);
+      const existingCard = cards.find(c => normalizeTcgProductId(c.tcgId) === targetTcgId);
       
       if (existingCard) {
         const newStock = existingCard.stock + cardStock;
@@ -1278,10 +1280,10 @@ function FolderPokemonInner() {
   };
 
   const selectedCardTcgId = selectedCard
-    ? selectedCard.productId?.toString() || selectedCard.id?.toString() || selectedCard.tcgProductId?.toString()
+    ? normalizeTcgProductId(selectedCard.productId || selectedCard.id || selectedCard.tcgProductId)
     : null;
   const selectedExistingCard = selectedCardTcgId
-    ? cards.find(c => c.tcgId === selectedCardTcgId)
+    ? cards.find(c => normalizeTcgProductId(c.tcgId) === selectedCardTcgId)
     : null;
 
 

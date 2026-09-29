@@ -165,10 +165,15 @@ function PublicCatalog() {
           setSellerData(mergedUser);
         }
 
-        let cardsList = (folder.cards || []).map(c => ({ ...c, apiId: c.tcgId || c.id, ...(c.data || {}) }));
+        let cardsList = (folder.cards || []).map(c => ({
+          ...c,
+          apiId: c.tcgId || c.id,
+          tcgId: c.tcgId !== undefined && c.tcgId !== null ? String(c.tcgId) : c.tcgId,
+          ...(c.data || {})
+        }));
 
         if (folder.tcg === 'Mitos y Leyendas') {
-          const ids = cardsList.map(card => card.tcgId || card.apiId).filter(Boolean);
+          const ids = cardsList.map(card => card.tcgId || card.apiId).filter(Boolean).map(String);
           const needsMetadata = cardsList.some(card => !card.type || !card.race || card.cost === undefined || card.cost === null || !card.effect);
           try {
             if (needsMetadata && ids.length > 0 && !isLocalhostWithProductionApi()) {
