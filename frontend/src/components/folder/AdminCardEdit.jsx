@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, compact = false, showDetails = false, dense = false }) => {
+  const [imgError, setImgError] = useState(false);
   const [price, setPrice] = useState(card.price);
   const [stock, setStock] = useState(card.stock);
   const [saving, setSaving] = useState(false);
