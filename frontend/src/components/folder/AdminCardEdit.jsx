@@ -39,7 +39,7 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
         <div className={`w-full relative pt-[140%] ${showDetails ? (compact ? 'mb-2' : 'mb-3') : 'mb-0'}`}>
           {imgError || !card.imageUrl ? (
               <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-gray-50 rounded-lg p-2 text-center border-2 border-gray-200">
-                <img src="/favicon.png" className="w-1/2 max-w-[80px] max-h-[45%] opacity-40 grayscale object-contain mb-1.5" alt="Logo" />
+                <img src="/images/logos/logo_completo.webp" className="w-3/4 max-w-[100px] max-h-[50%] opacity-40 grayscale object-contain mb-1.5" alt="Logo" />
                 <span className="text-[11px] sm:text-xs font-bold text-gray-400 leading-tight">SIN<br/>IMAGEN</span>
               </div>
             ) : (

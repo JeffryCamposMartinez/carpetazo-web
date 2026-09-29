@@ -92,7 +92,7 @@ const getExtDataValue = (extData, fieldName) => {
 
 const FallbackImage = ({ className }) => (
   <div className={`flex flex-col items-center justify-center bg-gray-50 rounded-lg p-2 text-center border-2 border-gray-200 ${className}`}>
-    <img src="/favicon.png" className="w-10 h-10 opacity-40 grayscale object-contain mb-1" alt="Logo" />
+    <img src="/images/logos/logo_completo.webp" className="w-10 h-10 opacity-40 grayscale object-contain mb-1" alt="Logo" />
     <span className="text-[9px] font-bold text-gray-400 leading-tight">SIN<br/>IMAGEN</span>
   </div>
 );
@@ -1470,7 +1470,7 @@ const [isSearching, setIsSearching] = useState(false);
             <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
               {selectedQueue.map((item, index) => (
                 <button key={item.queueId} type="button" onClick={(e) => decreaseQueueItemQuantity(e, item.queueId)} onContextMenu={(e) => e.preventDefault()} className={`relative flex-shrink-0 w-16 rounded-lg border-2 bg-white p-1 shadow-sm transition-all ${activeQueueItemId === item.queueId ? 'border-[#1e40af]' : 'border-blue-200 hover:border-red-300'}`} title="Quitar de la selección">
-                  <img src={item.card.imageUrl} alt={item.card.name} className="w-full aspect-[63/88] object-contain rounded" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement.insertAdjacentHTML('beforeend', '<div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 rounded-lg p-1 text-center"><img src="/favicon.png" class="w-6 h-6 opacity-40 grayscale object-contain" /></div>'); }} />
+                  <img src={item.card.imageUrl} alt={item.card.name} className="w-full aspect-[63/88] object-contain rounded" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement.insertAdjacentHTML('beforeend', '<div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 rounded-lg p-1 text-center"><img src="/images/logos/logo_completo.webp" class="w-6 h-6 opacity-40 grayscale object-contain" /></div>'); }} />
                   <span className="absolute -top-2 -left-2 bg-[#1e40af] text-white text-[10px] font-bold rounded-full min-w-5 px-1 h-5 flex items-center justify-center border border-white">x{item.quantity || 1}</span>
                 </button>
               ))}
@@ -1498,9 +1498,9 @@ const [isSearching, setIsSearching] = useState(false);
               )}
               <div className="relative w-full aspect-[63/88] flex items-center justify-center bg-gray-50 p-2">
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <img src="/favicon.png" className="w-10 h-10 opacity-40 animate-pulse object-contain filter grayscale" alt="Cargando..." />
+                  <img src="/images/logos/logo_completo.webp" className="w-10 h-10 opacity-40 animate-pulse object-contain filter grayscale" alt="Cargando..." />
                 </div>
-                <img src={card.imageUrl} referrerPolicy="no-referrer" alt={card.name} loading="lazy" className="w-full h-full object-contain filter drop-shadow-sm relative z-10 transition-opacity duration-300 opacity-0" onLoad={(e) => { e.currentTarget.classList.remove('opacity-0'); e.currentTarget.previousSibling.style.display = 'none'; }} onError={(e) => { e.currentTarget.style.display = 'none'; const prev = e.currentTarget.previousSibling; prev.className = 'absolute inset-0 flex flex-col items-center justify-center bg-gray-50 rounded-lg p-2 text-center border-2 border-gray-200'; prev.innerHTML = '<img src="/favicon.png" class="w-1/2 max-w-[60px] max-h-[40%] opacity-40 grayscale object-contain mb-1.5" /><span class="text-[11px] sm:text-xs font-bold text-gray-400 leading-tight">SIN<br/>IMAGEN</span>'; }} />
+                <img src={card.imageUrl} referrerPolicy="no-referrer" alt={card.name} loading="lazy" className="w-full h-full object-contain filter drop-shadow-sm relative z-10 transition-opacity duration-300 opacity-0" onLoad={(e) => { e.currentTarget.classList.remove('opacity-0'); e.currentTarget.previousSibling.style.display = 'none'; }} onError={(e) => { e.currentTarget.style.display = 'none'; const prev = e.currentTarget.previousSibling; prev.className = 'absolute inset-0 flex flex-col items-center justify-center bg-gray-50 rounded-lg p-2 text-center border-2 border-gray-200'; prev.innerHTML = '<img src="/images/logos/logo_completo.webp" class="w-3/4 max-w-[80px] max-h-[50%] opacity-40 grayscale object-contain mb-1.5" /><span class="text-[11px] sm:text-xs font-bold text-gray-400 leading-tight">SIN<br/>IMAGEN</span>'; }} />
               </div>
               {showCardDetails && (
                 <div className={`text-center border-t border-gray-100 w-full ${gridCols <= 2 ? 'p-2' : gridCols === 3 ? 'p-3' : gridCols === 4 ? 'p-2' : 'p-1'}`}>
@@ -1594,7 +1594,7 @@ const [isSearching, setIsSearching] = useState(false);
           <form onSubmit={handleSaveCard} className="flex min-h-[610px] lg:min-h-0 lg:h-[calc(100%-58px)] flex-col justify-between gap-4 mt-2">
             <div className="flex justify-center relative z-50 mt-4 lg:flex-1 lg:min-h-0 w-full">
               <div className="relative inline-block lg:h-full flex justify-center items-center">
-                <img src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} className="h-72 sm:h-80 lg:h-full lg:max-h-full lg:w-full aspect-[63/88] object-contain rounded-lg shadow-md hover:scale-[1.55] transition-transform duration-300 cursor-zoom-in relative z-50 hover:z-[70] origin-center" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement.insertAdjacentHTML('beforeend', '<div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 rounded-lg p-4 text-center border-2 border-gray-200 relative z-50"><img src="/favicon.png" class="w-1/2 max-w-[100px] max-h-[45%] opacity-40 grayscale object-contain mb-3" /><span class="text-base font-bold text-gray-400 leading-tight">SIN IMAGEN</span></div>'); }} />
+                <img src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} className="h-72 sm:h-80 lg:h-full lg:max-h-full lg:w-full aspect-[63/88] object-contain rounded-lg shadow-md hover:scale-[1.55] transition-transform duration-300 cursor-zoom-in relative z-50 hover:z-[70] origin-center" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement.insertAdjacentHTML('beforeend', '<div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 rounded-lg p-4 text-center border-2 border-gray-200 relative z-50"><img src="/images/logos/logo_completo.webp" class="w-2/3 max-w-[120px] max-h-[50%] opacity-40 grayscale object-contain mb-3" /><span class="text-base font-bold text-gray-400 leading-tight">SIN IMAGEN</span></div>'); }} />
                 <button 
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -1687,7 +1687,7 @@ const [isSearching, setIsSearching] = useState(false);
                       <div className="grid grid-cols-3 gap-4">
                         {selectedQueue.map((item, index) => (
                           <div key={item.queueId} onContextMenu={(e) => decreaseQueueItemQuantity(e, item.queueId)} title="Clic derecho para quitar 1 copia" className="relative w-full aspect-[63/88] rounded-xl shadow-sm border-2 border-blue-200 bg-white p-1.5 hover:border-red-300 transition-colors flex items-center justify-center cursor-context-menu">
-                            <img src={getProxyImageUrl(item.card.tcgProductId || item.card.id, item.card.imageUrl)} alt={item.card.name} className="w-full h-full object-contain rounded-md" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement.insertAdjacentHTML('beforeend', '<div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 rounded-md p-1 text-center"><img src="/favicon.png" class="w-8 h-8 opacity-40 grayscale object-contain" /></div>'); }} />
+                            <img src={getProxyImageUrl(item.card.tcgProductId || item.card.id, item.card.imageUrl)} alt={item.card.name} className="w-full h-full object-contain rounded-md" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement.insertAdjacentHTML('beforeend', '<div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 rounded-md p-1 text-center"><img src="/images/logos/logo_completo.webp" class="w-8 h-8 opacity-40 grayscale object-contain" /></div>'); }} />
                             <button 
                               type="button" 
                               onClick={() => removeQueueItem(item.queueId)} 
