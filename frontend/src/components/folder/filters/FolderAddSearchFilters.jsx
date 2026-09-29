@@ -1,3 +1,4 @@
+import PokemonFilters from './PokemonFilters';
 import React from 'react';
 
 const typeTabsByTcg = {
@@ -222,25 +223,6 @@ const GenericTcgFilters = ({
           label="Todas las ediciones"
         />
       </div>
-
-      {availableRarities.length > 0 && (
-        <div className="flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50/50 p-3">
-          <span className="text-sm font-bold text-gray-700">Rareza</span>
-          <SelectField
-            value={filterRarity}
-            onChange={(e) => {
-              setFilterRarity(e.target.value);
-              scrollToTopIfNeeded();
-            }}
-            className="flex-1"
-          >
-            <option value="">Todas</option>
-            {availableRarities.map(r => (
-              <option key={r} value={r}>{r}</option>
-            ))}
-          </SelectField>
-        </div>
-      )}
     </>
   );
 };
@@ -259,6 +241,11 @@ export default function FolderAddSearchFilters({
   setSearchSet,
   filterType,
   setFilterType,
+  selectedType,
+  setSelectedType,
+  selectedSupertype,
+  setSelectedSupertype,
+  filterCounts,
   availableRarities,
   filterRarity,
   setFilterRarity,
@@ -284,52 +271,49 @@ export default function FolderAddSearchFilters({
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      <input
-        type="text"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder={isMyl ? 'Nombre de carta, tipo o raza...' : 'Nombre o código de carta...'}
-        className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-1.5 text-xs text-gray-900 transition-colors focus:border-[#1e40af] focus:outline-none focus:ring-1 focus:ring-[#1e40af] sm:text-sm lg:text-xs"
-      />
-
+    <div className="flex flex-col gap-2 w-full">
       {isMyl ? (
-        <MylFilters
-        availableBlocks={availableBlocks}
-          searchBlock={searchBlock}
-          setSearchBlock={setSearchBlock}
-          searchPhysicalProduct={searchPhysicalProduct}
-          setSearchPhysicalProduct={setSearchPhysicalProduct}
-          availablePhysicalProducts={availablePhysicalProducts}
-          searchSet={searchSet}
-          availableSets={availableSets}
-          filteredSearchSets={filteredSearchSets}
-          isSetDropdownOpen={isSetDropdownOpen}
-          setIsSetDropdownOpen={setIsSetDropdownOpen}
-          onSelectSet={onSelectSet}
-          mylType={mylType}
-          setMylType={setMylType}
-          mylRace={mylRace}
-          setMylRace={setMylRace}
-          mylCost={mylCost}
-          setMylCost={setMylCost}
-          scrollToTopIfNeeded={scrollToTopIfNeeded}
-        />
+        <>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Nombre de carta, tipo o raza..."
+            className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-1.5 text-xs text-gray-900 transition-colors focus:border-[#1e40af] focus:outline-none focus:ring-1 focus:ring-[#1e40af] sm:text-sm lg:text-xs"
+          />
+          <MylFilters
+            searchBlock={searchBlock}
+            setSearchBlock={setSearchBlock}
+            availableBlocks={availableBlocks}
+            searchPhysicalProduct={searchPhysicalProduct}
+            setSearchPhysicalProduct={setSearchPhysicalProduct}
+            availablePhysicalProducts={availablePhysicalProducts}
+            searchSet={searchSet}
+            availableSets={availableSets}
+            filteredSearchSets={filteredSearchSets}
+            isSetDropdownOpen={isSetDropdownOpen}
+            setIsSetDropdownOpen={setIsSetDropdownOpen}
+            onSelectSet={onSelectSet}
+            mylType={mylType}
+            setMylType={setMylType}
+            mylRace={mylRace}
+            setMylRace={setMylRace}
+            mylCost={mylCost}
+            setMylCost={setMylCost}
+            scrollToTopIfNeeded={scrollToTopIfNeeded}
+          />
+        </>
       ) : (
-        <GenericTcgFilters
-          tcg={tcg}
-          filterType={filterType}
-          setFilterType={setFilterType}
-          availableRarities={availableRarities}
-          filterRarity={filterRarity}
-          setFilterRarity={setFilterRarity}
+        <PokemonFilters
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          selectedType={selectedType}
+          onTypeChange={setSelectedType}
+          selectedSupertype={selectedSupertype}
+          onSupertypeChange={setSelectedSupertype}
           searchSet={searchSet}
           availableSets={availableSets}
-          filteredSearchSets={filteredSearchSets}
-          isSetDropdownOpen={isSetDropdownOpen}
-          setIsSetDropdownOpen={setIsSetDropdownOpen}
           onSelectSet={onSelectSet}
-          scrollToTopIfNeeded={scrollToTopIfNeeded}
         />
       )}
     </div>

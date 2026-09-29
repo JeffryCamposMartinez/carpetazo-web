@@ -1,6 +1,6 @@
 export const TCG_CONFIG = {
   Pokemon: {
-    categoryId: '3',
+    categoryId: '1',
     defaultLanguage: 'English',
     inventoryFilters: ['edition'],
     addFilters: ['edition', 'rarity', 'sealed'],
@@ -12,7 +12,7 @@ export const TCG_CONFIG = {
     addFilters: ['edition', 'rarity', 'sealed'],
   },
   Magic: {
-    categoryId: '1',
+    categoryId: '3',
     defaultLanguage: 'English',
     inventoryFilters: ['edition'],
     addFilters: ['edition', 'rarity', 'sealed'],
@@ -32,3 +32,4 @@ export const TCG_CONFIG = {
 };
 
 export const getTcgConfig = (tcg) => TCG_CONFIG[tcg] || TCG_CONFIG.Pokemon;
+

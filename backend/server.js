@@ -1918,7 +1918,9 @@ app.get('/api/tcg/search', async (req, res) => {
     const products = await prisma.tcgProduct.findMany({
       where: whereClause,
       take: 2000,
+      include: { group: true },
       orderBy: [
+        { group: { publishedOn: 'desc' } },
         { physicalProductId: 'asc' },
         { name: 'asc' }
       ]

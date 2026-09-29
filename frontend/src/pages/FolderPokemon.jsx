@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 
 import React from 'react';
 class ErrorBoundary extends React.Component {
@@ -110,7 +110,7 @@ function FolderPokemonInner() {
   // --- ADD TO CATALOG STATE ---
   const [searchQuery, setSearchQuery] = useState('');
   const [gridCols, setGridCols] = useState(typeof window !== 'undefined' && window.innerWidth <= 768 ? 2 : 3);
-  const [searchCategory, setSearchCategory] = useState('3');
+  const [searchCategory, setSearchCategory] = useState('1');
   const [searchSet, setSearchSet] = useState('');
   const [availableSets, setAvailableSets] = useState([]);
   const [availableBlocks, setAvailableBlocks] = useState([]);
@@ -140,10 +140,26 @@ function FolderPokemonInner() {
   const [searchResults, setSearchResults] = useState([]);
   const [hasSearchedAPI, setHasSearchedAPI] = useState(false);
   const [filterType, setFilterType] = useState('all');
-  const [filterRarity, setFilterRarity] = useState('');
+  const [selectedType, setSelectedType] = useState('');
+  const [selectedSupertype, setSelectedSupertype] = useState('');
+
+const [filterRarity, setFilterRarity] = useState('');
   const [availableRarities, setAvailableRarities] = useState([]);
   const [rawSearchResults, setRawSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
+  
+  const filterCounts = React.useMemo(() => {
+    let p = 0, t = 0, e = 0;
+    if (rawSearchResults) {
+      rawSearchResults.forEach(c => {
+        if (c.extData?.category === 'Pokémon') p++;
+        else if (c.extData?.category === 'Entrenador') t++;
+        else if (c.extData?.category === 'Energía') e++;
+      });
+    }
+    return { pokemon: p, trainers: t, energy: e };
+  }, [rawSearchResults]);
+
+const [isSearching, setIsSearching] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedQueue, setSelectedQueue] = useState([]);
@@ -513,7 +529,7 @@ function FolderPokemonInner() {
       .catch(console.error);
   }, [searchCategory]);
 
-  // --- MANEJO DE CATÁLOGO LOGIC ---
+  // --- MANEJO DE CATÃLOGO LOGIC ---
   const handleUpdateCard = async (cardIdToUpdate, newPrice, newStock) => {
     try {
       await api.updateCard(id, cardIdToUpdate, { price: parseFloat(newPrice), stock: parseInt(newStock) });
@@ -1026,7 +1042,7 @@ function FolderPokemonInner() {
     </div>
   );
 
-  // --- AGREGAR AL CATÁLOGO LOGIC ---
+  // --- AGREGAR AL CATÃLOGO LOGIC ---
   useEffect(() => {
     if (isSearching && abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -1044,24 +1060,44 @@ function FolderPokemonInner() {
       filtered = filtered.filter(c => 
         (c.name && c.name.toLowerCase().includes(q)) || 
         (c.cleanName && c.cleanName.toLowerCase().includes(q)) ||
-        (c.extData && Array.isArray(c.extData) && c.extData.some(x => (x.name === 'Number' || x.name === 'Card Number / Rarity') && x.value && x.value.toLowerCase().includes(q)))
+        ((getExtDataValue(c.extData, 'Number') || '').toLowerCase().includes(q) || (getExtDataValue(c.extData, 'Card Number / Rarity') || '').toLowerCase().includes(q) || (getExtDataValue(c.extData, 'localId') || '').toLowerCase().includes(q))
       );
     }
 
-    if (filterType !== 'all') {
-      const sealedKeywords = ['booster', 'box', 'pack', 'deck', 'case', 'blister', 'display', 'collection', 'tin', 'elite trainer', 'bundle', 'kit', 'theme', 'starter'];
-      filtered = filtered.filter(c => {
-        const lowerName = (c.name || '').toLowerCase();
-        const isSealed = sealedKeywords.some(kw => lowerName.includes(kw));
-        return filterType === 'sealed' ? isSealed : !isSealed;
-      });
-    }
+    if (selectedSupertype) {
+        const catMap = { "Pokémon": "Pokémon", "Trainer": "Entrenador", "Energy": "Energía" };
+        filtered = filtered.filter(c => c.extData?.category === catMap[selectedSupertype]);
+      }
+      
+      if (selectedType) {
+          const typeMap = {
+            "Grass": "Planta", "Fire": "Fuego", "Water": "Agua", "Lightning": "Rayo",
+            "Psychic": "Psíquico", "Fighting": "Lucha", "Darkness": "Oscura", 
+            "Metal": "Metálica", "Fairy": "Hada", "Dragon": "Dragón", "Colorless": "Incolora"
+          };
+          const energyMap = {
+            "Grass": "Planta", "Fire": "Fuego", "Water": "Agua", "Lightning": "Rayo",
+            "Psychic": "Psíquic", "Fighting": "Lucha", "Darkness": "Oscura", 
+            "Metal": "Metálic", "Fairy": "Hada", "Dragon": "Dragón", "Colorless": "Incolora"
+          };
+          
+          const targetType = typeMap[selectedType] || selectedType;
+          const targetEnergy = energyMap[selectedType] || targetType;
+          
+          filtered = filtered.filter(c => {
+             if (c.extData?.category === "Energía") {
+                 return (c.name || "").includes(targetEnergy);
+             }
+             if (c.extData?.types && Array.isArray(c.extData.types)) {
+                return c.extData.types.includes(targetType);
+             }
+             return false;
+          });
+        }
 
     if (filterRarity) {
       filtered = filtered.filter(c => {
-        if (!c.extData || !Array.isArray(c.extData)) return false;
-        const rObj = c.extData.find(x => x.name === 'Rarity' || x.name === 'Card Number / Rarity');
-        return rObj && rObj.value === filterRarity;
+        const rVal = getExtDataValue(c.extData, 'Rarity') || getExtDataValue(c.extData, 'Card Number / Rarity'); return rVal === filterRarity;
       });
     }
 
@@ -1071,7 +1107,7 @@ function FolderPokemonInner() {
         'ORO': 1,
         'ALIADO': 2,
         'TALISMAN': 3,
-        'TALISMÁN': 3,
+        'TALISMÃN': 3,
         'TOTEM': 4,
         'TÓTEM': 4,
         'ARMA': 5
@@ -1105,10 +1141,7 @@ function FolderPokemonInner() {
       showToast('Selecciona un TCG.', 'error');
       return;
     }
-    if (!searchSet && !searchQuery.trim() && searchCategory !== '99') {
-      showToast('Selecciona una edición o ingresa un nombre para buscar.', 'error');
-      return;
-    }
+    
     
     if (abortControllerRef.current) abortControllerRef.current.abort();
     abortControllerRef.current = new AbortController();
@@ -1128,15 +1161,46 @@ function FolderPokemonInner() {
       
       const rarities = new Set();
       cards.forEach(c => {
-        if (c.extData && Array.isArray(c.extData)) {
-          const rarityObj = c.extData.find(x => x.name === 'Rarity' || x.name === 'Card Number / Rarity');
-          if (rarityObj && rarityObj.value) rarities.add(rarityObj.value);
-        }
+        const rVal = getExtDataValue(c.extData, 'Rarity') || getExtDataValue(c.extData, 'Card Number / Rarity'); if (rVal) rarities.add(rVal);
       });
       setAvailableRarities(Array.from(rarities).sort());
       setFilterRarity('');
       setFilterType('all');
-      setRawSearchResults(cards);
+      
+        const extractNum = (str) => {
+          const match = (str || '').match(/\d+/);
+          return match ? parseInt(match[0], 10) : 0;
+        };
+
+        cards.sort((a, b) => {
+          if (!searchSet) {
+            // Usa el publishedOn directo si viene del backend, si no, busca en availableSets
+            let dateA = 0;
+            let dateB = 0;
+            if (a.group?.publishedOn) dateA = new Date(a.group.publishedOn).getTime();
+            else {
+              const setA = availableSets.find(s => s.groupId === a.groupId);
+              if (setA?.publishedOn) dateA = new Date(setA.publishedOn).getTime();
+            }
+            if (b.group?.publishedOn) dateB = new Date(b.group.publishedOn).getTime();
+            else {
+              const setB = availableSets.find(s => s.groupId === b.groupId);
+              if (setB?.publishedOn) dateB = new Date(setB.publishedOn).getTime();
+            }
+            if (dateB !== dateA) return dateB - dateA;
+            // Si las fechas son iguales (misma edicion o fallback 0), intentamos ordenar por groupId (edición más nueva suele tener ID mayor)
+            if (dateA === 0 && dateB === 0 && b.groupId !== a.groupId) return (b.groupId || 0) - (a.groupId || 0);
+          }
+          const idA = (a.extData?.localId || '').toString();
+          const idB = (b.extData?.localId || '').toString();
+          const numA = extractNum(idA);
+          const numB = extractNum(idB);
+          if (numA !== numB) return numA - numB;
+          return idA.localeCompare(idB);
+        });
+
+        setRawSearchResults(cards);
+
       setHasSearchedAPI(true);
     } catch (error) {
       if (error.name !== 'AbortError') {
@@ -1310,7 +1374,7 @@ function FolderPokemonInner() {
             filteredSearchSets={filteredSearchSets}
             isSetDropdownOpen={isSetDropdownOpen}
             setIsSetDropdownOpen={setIsSetDropdownOpen}
-            filterType={filterType}
+            selectedType={selectedType} setSelectedType={setSelectedType} selectedSupertype={selectedSupertype} setSelectedSupertype={setSelectedSupertype} filterCounts={filterCounts} filterType={filterType}
             setFilterType={setFilterType}
             availableRarities={availableRarities}
             filterRarity={filterRarity}
@@ -1547,7 +1611,7 @@ function FolderPokemonInner() {
             <div className="flex flex-col gap-3">
               <div className="text-center px-2">
                 <p className="font-bold text-gray-900 leading-tight">{selectedCard.name}</p>
-                <p className="text-sm text-gray-500 mt-1">{availableSets.find(s => s.groupId == (searchSet || selectedCard.groupId))?.name} • {selectedCard.rarity}</p>
+                <p className="text-sm text-gray-500 mt-1">{availableSets.find(s => s.groupId == (searchSet || selectedCard.groupId))?.name} â€¢ {selectedCard.rarity}</p>
                 {isBatchAdding && (
                   <p className="text-xs font-bold text-[#1e40af] mt-2">
                     Carta {selectedQueue.findIndex(item => item.queueId === activeQueueItemId) + 1} de {selectedQueue.length}
@@ -1872,6 +1936,18 @@ const FolderPokemon = (props) => (
   </ErrorBoundary>
 );
 export default FolderPokemon;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
