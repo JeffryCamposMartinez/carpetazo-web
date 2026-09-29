@@ -117,6 +117,56 @@ const isAllowedProxyImageUrl = (rawUrl) => {
     return false;
   }
 };
+// --- Validación de nombres de usuario y URLs guardadas por los usuarios ---
+const RESERVED_USERNAMES = new Set([
+  'admin', 'api', 'bienvenida', 'dashboard', 'perfil', 'carpeta', 'carpetas', 'c', 'mensajes',
+  'login', 'logout', 'registro', 'soporte', 'ayuda', 'carpetazo', 'root', 'null', 'undefined'
+]);
+const normalizeUsername = (value) => String(value || '')
+  .toLowerCase()
+  .trim()
+  .replace(/\s+/g, '_')
+  .replace(/[^a-z0-9_]/g, '');
+// Devuelve el nombre normalizado o null si no cumple la política
+const validUsername = (value) => {
+  const username = normalizeUsername(value);
+  return /^[a-z0-9_]{3,20}$/.test(username) && !RESERVED_USERNAMES.has(username) ? username : null;
+};
+
+// Imágenes guardadas: solo https y hosts conocidos (R2, TCGplayer, avatares de Google)
+const isAllowedStoredImageUrl = (rawUrl) => {
+  try {
+    const url = new URL(String(rawUrl || ''));
+    if (url.protocol !== 'https:') return false;
+    const host = url.hostname.toLowerCase();
+    return getAllowedProxyImageHosts().has(host) || host.endsWith('.r2.dev') || host.endsWith('.googleusercontent.com');
+  } catch (_error) {
+    return false;
+  }
+};
+// Vacío/null se permite (borra la imagen); cualquier otro valor debe ser una URL permitida
+const checkImageField = (value) => value === null || value === '' || isAllowedStoredImageUrl(value);
+
+// Redes sociales: se acepta el usuario (@nombre) o una URL https del dominio de esa red
+const SOCIAL_DOMAINS = {
+  facebookUrl: ['facebook.com', 'fb.com'],
+  instagramUrl: ['instagram.com'],
+  youtubeUrl: ['youtube.com', 'youtu.be']
+};
+const checkSocialField = (field, value) => {
+  if (value === null || value === '') return true;
+  const text = String(value).trim();
+  if (text.length > 200) return false;
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(text)) return /^[\w.@/-]+$/.test(text); // usuario o ruta sin esquema
+  try {
+    const url = new URL(text);
+    const host = url.hostname.toLowerCase();
+    return url.protocol === 'https:' && SOCIAL_DOMAINS[field].some((domain) => host === domain || host.endsWith(`.${domain}`));
+  } catch (_error) {
+    return false;
+  }
+};
+
 const getR2KeyFromPublicUrl = (url) => {
   if (!url || !process.env.R2_PUBLIC_URL) return null;
 
@@ -283,8 +333,8 @@ app.post('/api/users/sync', authenticateToken, async (req, res) => {
           firebaseUid, 
           email,
           name: req.body.displayName || '',
-          username: req.body.username || req.body.displayName?.toLowerCase().replace(/\s+/g, '_') || firebaseUid,
-          photoURL: req.body.photoURL || null,
+          username: validUsername(req.body.username) || validUsername(normalizeUsername(req.body.displayName).slice(0, 20)) || `user_${firebaseUid.slice(0, 12).toLowerCase()}`,
+          photoURL: isAllowedStoredImageUrl(req.body.photoURL) ? req.body.photoURL : null,
           role: req.user.email_verified === true && isAdminEmail(email) ? 'admin' : 'user'
         }
       });
@@ -293,8 +343,8 @@ app.post('/api/users/sync', authenticateToken, async (req, res) => {
         where: { firebaseUid },
         data: {
           name: req.body.displayName || user.name,
-          username: req.body.username || user.username || user.name?.toLowerCase().replace(/\s+/g, '_'),
-          photoURL: user.photoURL || req.body.photoURL || null,
+          username: validUsername(req.body.username) || user.username || validUsername(normalizeUsername(user.name).slice(0, 20)) || `user_${firebaseUid.slice(0, 12).toLowerCase()}`,
+          photoURL: user.photoURL || (isAllowedStoredImageUrl(req.body.photoURL) ? req.body.photoURL : null),
           ...(req.user.email_verified === true && isAdminEmail(email) && user.role !== 'admin' ? { role: 'admin' } : {})
         }
       });
@@ -748,7 +798,14 @@ app.post('/api/orders/create', async (req, res) => {
       }
     });
 
-    res.json({ success: true, code, order: formatOrderForUi(order) });
+    // Datos para transferir: solo se entregan a quien acaba de crear un pedido, nunca en rutas públicas
+    const seller = await prisma.user.findUnique({ where: { id: folder.userId }, select: { name: true, fullName: true, rut: true, bankDetails: true } });
+    const bank = seller?.bankDetails && typeof seller.bankDetails === 'object' ? seller.bankDetails : {};
+    const payment = bank.accountNumber
+      ? { holderName: seller.fullName || seller.name || '', rut: seller.rut || '', bank: bank.bank || '', accountType: bank.accountType || '', accountNumber: bank.accountNumber }
+      : null;
+
+    res.json({ success: true, code, order: formatOrderForUi(order), payment });
   } catch (error) {
     console.error('Error creating order:', error);
     res.status(500).json({ success: false, message: 'Error interno al crear el pedido' });
@@ -1069,7 +1126,10 @@ app.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     
-    const { tcgId, name, imageUrl, price, stock, data } = req.body;
+    const { tcgId, name, imageUrl, price, stock, data } = req.body;
+    if (imageUrl && !isAllowedStoredImageUrl(imageUrl)) {
+      return res.status(400).json({ success: false, error: 'URL de imagen no permitida' });
+    }
       
       const card = await prisma.card.create({
         data: {
@@ -1658,12 +1718,25 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
       }
     }
 
-    if (updateData.username) {
-      updateData.username = String(updateData.username)
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, '_')
-        .replace(/[^a-z0-9_]/g, '');
+    if (updateData.username !== undefined) {
+      const username = validUsername(updateData.username);
+      // Nombres antiguos que no cumplen la política se conservan mientras no se cambien
+      const current = username ? null : await prisma.user.findUnique({ where: { firebaseUid }, select: { username: true } });
+      if (!username && current?.username !== normalizeUsername(updateData.username)) {
+        return res.status(400).json({ success: false, error: 'El usuario debe tener entre 3 y 20 caracteres: letras, números o _.' });
+      }
+      updateData.username = username || current.username;
+    }
+
+    for (const field of ['photoURL', 'bannerBase64', 'wallpaperBase64']) {
+      if (updateData[field] !== undefined && !checkImageField(updateData[field])) {
+        return res.status(400).json({ success: false, error: 'URL de imagen no permitida' });
+      }
+    }
+    for (const field of Object.keys(SOCIAL_DOMAINS)) {
+      if (updateData[field] !== undefined && !checkSocialField(field, updateData[field])) {
+        return res.status(400).json({ success: false, error: 'Enlace de red social no válido' });
+      }
     }
 
     if (updateData.publicTheme !== undefined) {
@@ -1760,13 +1833,9 @@ app.delete('/api/users/me', authenticateToken, async (req, res) => {
 
 app.get('/api/users/username/check', authenticateToken, async (req, res) => {
   try {
-    const username = String(req.query.username || '')
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, '_')
-      .replace(/[^a-z0-9_]/g, '');
+    const username = validUsername(req.query.username);
 
-    if (!/^[a-z0-9_]{3,20}$/.test(username)) {
+    if (!username) {
       return res.status(400).json({
         success: false,
         available: false,

@@ -318,7 +318,7 @@ function PublicCatalog() {
     setIsProcessingCheckout(true);
     try {
             // 1. Guardar la orden en la base de datos
-      await api.createOrder({
+      const orderResponse = await api.createOrder({
         sellerId: folderData.userId,
         buyerName: 'Cliente por WhatsApp',
         folderId: folderId,
@@ -338,7 +338,13 @@ function PublicCatalog() {
       cart.forEach(item => {
         message += `• ${item.quantity}x ${item.name} (${item.set}) - ${formatCLP(Number(item.price || 0) * item.quantity)}\n`;
       });
-      message += `\nTotal: ${formatCLP(cartTotal)}\n\n¿Tienes disponibilidad?`;
+      message += `\nTotal: ${formatCLP(orderResponse?.order?.total ?? cartTotal)}`;
+      if (orderResponse?.code) message += `\nCódigo de pedido: ${orderResponse.code}`;
+      const payment = orderResponse?.payment;
+      if (payment) {
+        message += `\n\nDatos para transferir:\n${[payment.holderName, payment.rut, payment.bank, payment.accountType, payment.accountNumber].filter(Boolean).join('\n')}`;
+      }
+      message += `\n\n¿Tienes disponibilidad?`;
       
       const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
       
