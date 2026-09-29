@@ -12,13 +12,19 @@ export default function LiquidTabs({
   indicatorClassName = 'rounded-[inherit] border-b-4 border-yellow-400 bg-blue-900',
   activeTextClassName = 'text-yellow-400',
   inactiveTextClassName = 'text-blue-900 hover:text-blue-900/70',
+  layout = 'grid', // 'grid': columnas iguales · 'inline': cada opción con su ancho
+  indicatorStyle,
+  activeTextStyle,
+  inactiveTextStyle,
 }) {
   const containerRef = useRef(null);
   const buttonRefs = useRef([]);
   const prevIndexRef = useRef(null);
   const [box, setBox] = useState(null); // { left, right, forward }
   const [animate, setAnimate] = useState(false);
-  const activeIndex = Math.max(0, options.findIndex(o => String(o.value) === String(value)));
+  const foundIndex = options.findIndex(o => String(o.value) === String(value));
+  const hasActive = foundIndex >= 0; // si ninguna coincide, no se muestra el indicador
+  const activeIndex = Math.max(0, foundIndex);
 
   const measure = () => {
     const container = containerRef.current;
@@ -58,18 +64,18 @@ export default function LiquidTabs({
       ref={containerRef}
       role="group"
       aria-label={ariaLabel}
-      className={`relative grid ${className}`}
-      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+      className={`relative ${layout === 'inline' ? 'flex items-center' : 'grid'} ${className}`}
+      style={layout === 'inline' ? undefined : { gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
-      {box && (
+      {box && hasActive && (
         <span
           aria-hidden="true"
           className={`pointer-events-none absolute bottom-0 top-0 ${indicatorClassName}`}
-          style={{ left: box.left, right: box.right, transition }}
+          style={{ left: box.left, right: box.right, transition, ...indicatorStyle }}
         />
       )}
       {options.map((o, i) => {
-        const active = i === activeIndex;
+        const active = hasActive && i === activeIndex;
         return (
           <button
             type="button"
@@ -77,6 +83,7 @@ export default function LiquidTabs({
             ref={el => { buttonRefs.current[i] = el; }}
             aria-pressed={active}
             onClick={() => onChange(o.value)}
+            style={active ? activeTextStyle : inactiveTextStyle}
             className={`relative z-10 outline-none transition-colors duration-300 ${active ? activeTextClassName : inactiveTextClassName} ${buttonClassName}`}
           >
             {o.label}

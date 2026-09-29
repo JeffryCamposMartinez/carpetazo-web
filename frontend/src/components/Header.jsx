@@ -1,3 +1,4 @@
+import LiquidTabs from './LiquidTabs';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
@@ -53,28 +54,14 @@ export default function Header() {
     }
   };
 
-  const getLinkClass = (path) => {
-    const isActive = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
-    
-    if (isActive) {
-      return `font-bold rounded-full px-5 py-1.5 transition-all duration-300 ${publicHeaderTheme && publicHeaderTheme.id !== 'classic-blue' ? '' : 'text-[#1e40af] bg-white shadow-sm'}`;
-    }
-    return `text-blue-100 hover:text-white hover:bg-white/10 rounded-full px-5 py-1.5 transition-all duration-300 font-medium text-[15px]`;
-  };
-
-  const getLinkStyle = (path) => {
-    if (!publicHeaderTheme || publicHeaderTheme.id === 'classic-blue') return undefined;
-    const isActive = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
-    if (isActive) {
-      return {
-        backgroundColor: publicHeaderTheme.surface || publicHeaderTheme.card,
-        color: publicHeaderTheme.text
-      };
-    }
-    return {
-      color: `${publicHeaderTheme.card || '#ffffff'}dd`
-    };
-  };
+  const NAV_ROUTES = [
+    { value: '/', label: 'Inicio' },
+    { value: '/carpetas', label: 'Carpetas' },
+    { value: '/cartas', label: 'Cartas' },
+    { value: '/vendedores', label: 'Vendedores' },
+  ];
+  const activeNavRoute = (NAV_ROUTES.find(r => (r.value === '/' ? location.pathname === '/' : location.pathname.startsWith(r.value))) || {}).value || '';
+  const themedNavActive = Boolean(publicHeaderTheme && publicHeaderTheme.id !== 'classic-blue');
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -444,10 +431,21 @@ export default function Header() {
           </div>
           
           <nav className="flex items-center justify-center w-full gap-2 md:gap-4 overflow-x-auto px-4 py-2.5 bg-[#1e40af] hide-scrollbar whitespace-nowrap shadow-inner border-t border-black/10" style={themedNavStyle}>
-            <Link to="/" className={getLinkClass('/')} style={getLinkStyle('/')}>Inicio</Link>
-            <Link to="/carpetas" className={getLinkClass('/carpetas')} style={getLinkStyle('/carpetas')}>Carpetas</Link>
-            <Link to="/cartas" className={getLinkClass('/cartas')} style={getLinkStyle('/cartas')}>Cartas</Link>
-            <Link to="/vendedores" className={getLinkClass('/vendedores')} style={getLinkStyle('/vendedores')}>Vendedores</Link>
+            <LiquidTabs
+              ariaLabel="Navegación principal"
+              layout="inline"
+              className="gap-2 md:gap-4"
+              buttonClassName="rounded-full px-5 py-1.5 text-[15px] font-medium"
+              indicatorClassName="rounded-full shadow-sm"
+              indicatorStyle={{ backgroundColor: themedNavActive ? (publicHeaderTheme.surface || publicHeaderTheme.card) : '#ffffff' }}
+              activeTextClassName="font-bold"
+              inactiveTextClassName="text-blue-100 hover:text-white"
+              activeTextStyle={{ color: themedNavActive ? publicHeaderTheme.text : '#1e40af' }}
+              inactiveTextStyle={themedNavActive ? { color: `${publicHeaderTheme.card || '#ffffff'}dd` } : undefined}
+              value={activeNavRoute}
+              onChange={(route) => navigate(route)}
+              options={NAV_ROUTES}
+            />
           </nav>
         </div>
       </header>
