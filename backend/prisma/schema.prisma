@@ -114,7 +114,7 @@ model TcgGroup {
 model TcgProduct {
   physicalProductId Int?
   physicalProduct   TcgPhysicalProduct? @relation(fields: [physicalProductId], references: [id])
-  productId   Int       @id
+  productId   String    @id
   groupId     Int
   categoryId  Int
   name        String

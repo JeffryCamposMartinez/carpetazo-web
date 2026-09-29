@@ -1,0 +1,510 @@
+{
+  "checked": 23538,
+  "ok": 9243,
+  "urlDiffersFromLocal": 0,
+  "dbUrlBroken": 14244,
+  "fixedUrlWorks": 9243,
+  "noLocalImage": 51,
+  "samples": [
+    {
+      "productId": 1654,
+      "name": "Sir Persival",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": "ERR: fetch failed",
+      "fixedStatus": "ERR: fetch failed",
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%202.0/Sir%20Persival/Sir%20Persival.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%202.0/Sir%20Persival/Sir%20Persival.webp"
+    },
+    {
+      "productId": 1778,
+      "name": "Teseo",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%202.0/Teseo/Teseo.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%202.0/Teseo/Teseo.webp"
+    },
+    {
+      "productId": 10537,
+      "name": "Arco de Pesca",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Kit%20de%20Batalla%20Dominio/Arco%20de%20Pesca/Arco%20de%20Pesca.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Kit%20de%20Batalla%20Dominio/Arco%20de%20Pesca/Arco%20de%20Pesca.webp"
+    },
+    {
+      "productId": 3855,
+      "name": "Bocan",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Bocan/Bocan.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Bocan/Bocan.webp"
+    },
+    {
+      "productId": 3841,
+      "name": "Escila",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Escila/Escila.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Escila/Escila.webp"
+    },
+    {
+      "productId": 3827,
+      "name": "Hacha de Batalla",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Hacha%20de%20Batalla/Hacha%20de%20Batalla.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Hacha%20de%20Batalla/Hacha%20de%20Batalla.webp"
+    },
+    {
+      "productId": 10256,
+      "name": "Batalla de Salamina",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Kit%20de%20Extensi%C3%B3n%20Valor%20Ateniense/Batalla%20de%20Salamina/Batalla%20de%20Salamina.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Kit%20de%20Extensi%C3%B3n%20Valor%20Ateniense/Batalla%20de%20Salamina/Batalla%20de%20Salamina.webp"
+    },
+    {
+      "productId": 3717,
+      "name": "MacDa Tho",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/MacDa%20Tho/MacDa%20Tho.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/MacDa%20Tho/MacDa%20Tho.webp"
+    },
+    {
+      "productId": 14472,
+      "name": "Dominar el Caos",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/LBF2/Dominar%20el%20Caos/Dominar%20el%20Caos.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/LBF2/Dominar%20el%20Caos/Dominar%20el%20Caos.webp"
+    },
+    {
+      "productId": 12220,
+      "name": "Acuchillar",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Acuchillar/Acuchillar.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Acuchillar/Acuchillar.webp"
+    },
+    {
+      "productId": 3793,
+      "name": "Momificacion",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Momificacion/Momificacion.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Momificacion/Momificacion.webp"
+    },
+    {
+      "productId": 3919,
+      "name": "Necrópolis Popular",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Necr%C3%B3polis%20Popular/Necr%C3%B3polis%20Popular.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Necr%C3%B3polis%20Popular/Necr%C3%B3polis%20Popular.webp"
+    },
+    {
+      "productId": 3753,
+      "name": "Sir Boores",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Sir%20Boores/Sir%20Boores.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Sir%20Boores/Sir%20Boores.webp"
+    },
+    {
+      "productId": 12006,
+      "name": "Arturo de Camelot",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Arturo%20de%20Camelot/Arturo%20de%20Camelot.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Arturo%20de%20Camelot/Arturo%20de%20Camelot.webp"
+    },
+    {
+      "productId": 12203,
+      "name": "Asurbanipal",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Asurbanipal/Asurbanipal.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Asurbanipal/Asurbanipal.webp"
+    },
+    {
+      "productId": 12134,
+      "name": "Ataque a los Dioses",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Ataque%20a%20los%20Dioses/Ataque%20a%20los%20Dioses.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Ataque%20a%20los%20Dioses/Ataque%20a%20los%20Dioses.webp"
+    },
+    {
+      "productId": 12135,
+      "name": "Ataque de Dragon",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Ataque%20de%20Dragon/Ataque%20de%20Dragon.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Ataque%20de%20Dragon/Ataque%20de%20Dragon.webp"
+    },
+    {
+      "productId": 3941,
+      "name": "Rey Arturo Pendragón",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Rey%20Arturo%20Pendrag%C3%B3n/Rey%20Arturo%20Pendrag%C3%B3n.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Rey%20Arturo%20Pendrag%C3%B3n/Rey%20Arturo%20Pendrag%C3%B3n.webp"
+    },
+    {
+      "productId": 3795,
+      "name": "Sakraham",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Sakraham/Sakraham.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Sakraham/Sakraham.webp"
+    },
+    {
+      "productId": 3944,
+      "name": "Sir Lamorak",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Sir%20Lamorak/Sir%20Lamorak.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Sir%20Lamorak/Sir%20Lamorak.webp"
+    },
+    {
+      "productId": 12027,
+      "name": "Belerofonte",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Belerofonte/Belerofonte.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Belerofonte/Belerofonte.webp"
+    },
+    {
+      "productId": 12060,
+      "name": "Bergelmir",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Bergelmir/Bergelmir.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Bergelmir/Bergelmir.webp"
+    },
+    {
+      "productId": 12029,
+      "name": "Brahmana",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Brahmana/Brahmana.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Brahmana/Brahmana.webp"
+    },
+    {
+      "productId": 12275,
+      "name": "Brunilda",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Brunilda/Brunilda.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Brunilda/Brunilda.webp"
+    },
+    {
+      "productId": 12311,
+      "name": "Bola de Fuego",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Bola%20de%20Fuego%203/Bola%20de%20Fuego.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Bola%20de%20Fuego%203/Bola%20de%20Fuego.webp"
+    },
+    {
+      "productId": 12018,
+      "name": "Bola de Fuego",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Bola%20de%20Fuego%202/Bola%20de%20Fuego.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Bola%20de%20Fuego%202/Bola%20de%20Fuego.webp"
+    },
+    {
+      "productId": 3633,
+      "name": "Toro Apis",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Toro%20Apis/Toro%20Apis.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Toro%20Apis/Toro%20Apis.webp"
+    },
+    {
+      "productId": 3791,
+      "name": "Tuthu",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Tuthu/Tuthu.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Tuthu/Tuthu.webp"
+    },
+    {
+      "productId": 12315,
+      "name": "Bráhmana",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Br%C3%A1hmana/Br%C3%A1hmana.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Br%C3%A1hmana/Br%C3%A1hmana.webp"
+    },
+    {
+      "productId": 12030,
+      "name": "Caballero Errante",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Caballero%20Errante/Caballero%20Errante.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Caballero%20Errante/Caballero%20Errante.webp"
+    },
+    {
+      "productId": 12302,
+      "name": "Caida de Sol",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Caida%20de%20Sol%204/Caida%20de%20Sol.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Caida%20de%20Sol%204/Caida%20de%20Sol.webp"
+    },
+    {
+      "productId": 12268,
+      "name": "Campeon del Pueblo",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Campeon%20del%20Pueblo/Campeon%20del%20Pueblo.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Campeon%20del%20Pueblo/Campeon%20del%20Pueblo.webp"
+    },
+    {
+      "productId": 12173,
+      "name": "Circe",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Circe/Circe.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Circe/Circe.webp"
+    },
+    {
+      "productId": 3843,
+      "name": "Veneno Sagrado",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Veneno%20Sagrado/Veneno%20Sagrado.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Veneno%20Sagrado/Veneno%20Sagrado.webp"
+    },
+    {
+      "productId": 3782,
+      "name": "Wyrm Abismal",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Wyrm%20Abismal/Wyrm%20Abismal.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Wyrm%20Abismal/Wyrm%20Abismal.webp"
+    },
+    {
+      "productId": 12064,
+      "name": "Dastur",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Dastur/Dastur.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Dastur/Dastur.webp"
+    },
+    {
+      "productId": 12136,
+      "name": "Derribar Muros",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Derribar%20Muros/Derribar%20Muros.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Derribar%20Muros/Derribar%20Muros.webp"
+    },
+    {
+      "productId": 12287,
+      "name": "Desden",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Desden/Desden.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Desden/Desden.webp"
+    },
+    {
+      "productId": 3778,
+      "name": "Kenneth I",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Kenneth%20I/Kenneth%20I.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Kenneth%20I/Kenneth%20I.webp"
+    },
+    {
+      "productId": 3768,
+      "name": "Noctumbros",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Noctumbros/Noctumbros.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Noctumbros/Noctumbros.webp"
+    },
+    {
+      "productId": 12031,
+      "name": "Dragon de Gales",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Dragon%20de%20Gales/Dragon%20de%20Gales.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Dragon%20de%20Gales/Dragon%20de%20Gales.webp"
+    },
+    {
+      "productId": 12282,
+      "name": "Egdir",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Egdir/Egdir.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Egdir/Egdir.webp"
+    },
+    {
+      "productId": 12068,
+      "name": "Enlil",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Enlil/Enlil.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Enlil/Enlil.webp"
+    },
+    {
+      "productId": 3657,
+      "name": "Alas De Druida",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Alas%20De%20Druida/Alas%20De%20Druida.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Alas%20De%20Druida/Alas%20De%20Druida.webp"
+    },
+    {
+      "productId": 3773,
+      "name": "Antorcha Olímpica",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Antorcha%20Ol%C3%ADmpica/Antorcha%20Ol%C3%ADmpica.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Antorcha%20Ol%C3%ADmpica/Antorcha%20Ol%C3%ADmpica.webp"
+    },
+    {
+      "productId": 3842,
+      "name": "Antropófagos",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Antrop%C3%B3fagos/Antrop%C3%B3fagos.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Antrop%C3%B3fagos/Antrop%C3%B3fagos.webp"
+    },
+    {
+      "productId": 3878,
+      "name": "Asaltar La Caravana",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Asaltar%20La%20Caravana/Asaltar%20La%20Caravana.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Asaltar%20La%20Caravana/Asaltar%20La%20Caravana.webp"
+    },
+    {
+      "productId": 3736,
+      "name": "Atón",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/At%C3%B3n/At%C3%B3n.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/At%C3%B3n/At%C3%B3n.webp"
+    },
+    {
+      "productId": 3727,
+      "name": "Avalon",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Avalon/Avalon.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%203.0/Avalon/Avalon.webp"
+    },
+    {
+      "productId": 12187,
+      "name": "Esfinge del Norte",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Coincide con carpeta",
+      "currentStatus": 429,
+      "fixedStatus": 429,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Esfinge%20del%20Norte/Esfinge%20del%20Norte.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Leyendas%20Bloque%20Furia%201.0/Esfinge%20del%20Norte/Esfinge%20del%20Norte.webp"
+    }
+  ]
+}

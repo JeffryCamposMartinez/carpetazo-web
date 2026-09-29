@@ -1755,7 +1755,7 @@ app.get('/api/tcg/:categoryId/filter-options', async (req, res) => {
 app.post('/api/tcg/products/metadata', async (req, res) => {
   try {
     const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
-    const productIds = [...new Set(ids.map(id => parseInt(id)).filter(id => Number.isFinite(id)))];
+    const productIds = [...new Set(ids.map(id => String(id)).filter(id => Boolean(id)))];
 
     if (productIds.length === 0) {
       return res.json({ success: true, data: {} });
@@ -1939,6 +1939,7 @@ app.listen(port, () => {
 
 
 
+
 
 
 

@@ -1,0 +1,510 @@
+{
+  "checked": 23538,
+  "ok": 22667,
+  "urlDiffersFromLocal": 820,
+  "dbUrlBroken": 0,
+  "fixedUrlWorks": 0,
+  "noLocalImage": 51,
+  "samples": [
+    {
+      "productId": 4829,
+      "name": "Alas de Horus",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20sobres%20Aniversario%20Dominios%20de%20RA/Alas%20de%20Horus%202/Alas%20de%20Horus%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20sobres%20Aniversario%20Dominios%20de%20RA/Alas%20de%20Horus%202/Alas%20de%20Horus.webp"
+    },
+    {
+      "productId": 5204,
+      "name": "Takelot",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Colecciones%20Raciales%20Primer%20Bloque%202023%20Sacerdote/Takelot%202/Takelot%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Colecciones%20Raciales%20Primer%20Bloque%202023%20Sacerdote/Takelot%202/Takelot.webp"
+    },
+    {
+      "productId": 2647,
+      "name": "Duque Godofredo",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Espada%20Sagrada/Duque%20Godofredo%202/Duque%20Godofredo%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Espada%20Sagrada/Duque%20Godofredo%202/Duque%20Godofredo.webp"
+    },
+    {
+      "productId": 2552,
+      "name": "Mercaderes",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Espada%20Sagrada/Mercaderes%202/Mercaderes%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Espada%20Sagrada/Mercaderes%202/Mercaderes.webp"
+    },
+    {
+      "productId": 2525,
+      "name": "Yvain del León",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Espada%20Sagrada/Yvain%20del%20Le%C3%B3n%202/Yvain%20del%20Le%C3%B3n%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Espada%20Sagrada/Yvain%20del%20Le%C3%B3n%202/Yvain%20del%20Le%C3%B3n.webp"
+    },
+    {
+      "productId": 3196,
+      "name": "Marco Antonio",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hel%C3%A9nica/Marco%20Antonio%202/Marco%20Antonio%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hel%C3%A9nica/Marco%20Antonio%202/Marco%20Antonio.webp"
+    },
+    {
+      "productId": 4079,
+      "name": "Cuchulain",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hijos%20de%20Daana/Cuchulain%202/Cuchulain%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hijos%20de%20Daana/Cuchulain%202/Cuchulain.webp"
+    },
+    {
+      "productId": 4014,
+      "name": "Fergus",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hijos%20de%20Daana/Fergus%202/Fergus%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hijos%20de%20Daana/Fergus%202/Fergus.webp"
+    },
+    {
+      "productId": 4025,
+      "name": "Manzana Sidhe",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hijos%20de%20Daana/Manzana%20Sidhe%202/Manzana%20Sidhe%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hijos%20de%20Daana/Manzana%20Sidhe%202/Manzana%20Sidhe.webp"
+    },
+    {
+      "productId": 1701,
+      "name": "Oseye",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%202.0/Oseye%202/Oseye%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%202.0/Oseye%202/Oseye.webp"
+    },
+    {
+      "productId": 13988,
+      "name": "Nacimiento de Pegaso",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%204.0/Nacimiento%20de%20Pegaso%202/Nacimiento%20de%20Pegaso%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%204.0/Nacimiento%20de%20Pegaso%202/Nacimiento%20de%20Pegaso.webp"
+    },
+    {
+      "productId": 12734,
+      "name": "La llama de Brigit",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Toolkit%202026%20Amatista/La%20llama%20de%20Brigit%202/La%20llama%20de%20Brigit%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Toolkit%202026%20Amatista/La%20llama%20de%20Brigit%202/La%20llama%20de%20Brigit.webp"
+    },
+    {
+      "productId": 5182,
+      "name": "Yvain del León",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Colecciones%20Raciales%20Primer%20Bloque%202023%20Caballero/Yvain%20del%20Le%C3%B3n%202/Yvain%20del%20Le%C3%B3n%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Colecciones%20Raciales%20Primer%20Bloque%202023%20Caballero/Yvain%20del%20Le%C3%B3n%202/Yvain%20del%20Le%C3%B3n.webp"
+    },
+    {
+      "productId": 5196,
+      "name": "Boobrie",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Colecciones%20Raciales%20Primer%20Bloque%202023%20Desafiante/Boobrie%202/Boobrie%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Colecciones%20Raciales%20Primer%20Bloque%202023%20Desafiante/Boobrie%202/Boobrie.webp"
+    },
+    {
+      "productId": 2529,
+      "name": "Cathach",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Espada%20Sagrada/Cathach%203/Cathach%203.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Espada%20Sagrada/Cathach%203/Cathach.webp"
+    },
+    {
+      "productId": 2545,
+      "name": "Dragón Dorado",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Espada%20Sagrada/Drag%C3%B3n%20Dorado%203/Drag%C3%B3n%20Dorado%203.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Espada%20Sagrada/Drag%C3%B3n%20Dorado%203/Drag%C3%B3n%20Dorado.webp"
+    },
+    {
+      "productId": 2530,
+      "name": "Nimue",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Espada%20Sagrada/Nimue%202/Nimue%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Espada%20Sagrada/Nimue%202/Nimue.webp"
+    },
+    {
+      "productId": 3192,
+      "name": "Cesar Augusto",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hel%C3%A9nica/Cesar%20Augusto%203/Cesar%20Augusto%203.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hel%C3%A9nica/Cesar%20Augusto%203/Cesar%20Augusto.webp"
+    },
+    {
+      "productId": 3494,
+      "name": "Heracles",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hel%C3%A9nica/Heracles%202/Heracles%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hel%C3%A9nica/Heracles%202/Heracles.webp"
+    },
+    {
+      "productId": 1700,
+      "name": "Jinetes de Fuego",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%202.0/Jinetes%20de%20Fuego%202/Jinetes%20de%20Fuego%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20Sobres%20Leyendas%20Primer%20Bloque%202.0/Jinetes%20de%20Fuego%202/Jinetes%20de%20Fuego.webp"
+    },
+    {
+      "productId": 1589,
+      "name": "Aceite de Oliva",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Shogun%20II%20Alma%20Shinobi/Aceite%20de%20Oliva%204/Aceite%20de%20Oliva%204.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Shogun%20II%20Alma%20Shinobi/Aceite%20de%20Oliva%204/Aceite%20de%20Oliva.webp"
+    },
+    {
+      "productId": 11528,
+      "name": "Geri y Freki",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/AG/Geri%20y%20Freki%202/Geri%20y%20Freki%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/AG/Geri%20y%20Freki%202/Geri%20y%20Freki.webp"
+    },
+    {
+      "productId": 9744,
+      "name": "Baúl Ambulante",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Excalibur%2C%20La%20Espada%20Sagrada/Ba%C3%BAl%20Ambulante%202/Ba%C3%BAl%20Ambulante%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Excalibur%2C%20La%20Espada%20Sagrada/Ba%C3%BAl%20Ambulante%202/Ba%C3%BAl%20Ambulante.webp"
+    },
+    {
+      "productId": 10783,
+      "name": "Ailill mac Máta",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guardianes%20de%20Daana/Ailill%20mac%20M%C3%A1ta%202/Ailill%20mac%20M%C3%A1ta%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guardianes%20de%20Daana/Ailill%20mac%20M%C3%A1ta%202/Ailill%20mac%20M%C3%A1ta.webp"
+    },
+    {
+      "productId": 10787,
+      "name": "Aífe",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guardianes%20de%20Daana/A%C3%ADfe%202/A%C3%ADfe%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guardianes%20de%20Daana/A%C3%ADfe%202/A%C3%ADfe.webp"
+    },
+    {
+      "productId": 10827,
+      "name": "Trisquel",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guardianes%20de%20Daana/Trisquel%202/Trisquel%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guardianes%20de%20Daana/Trisquel%202/Trisquel.webp"
+    },
+    {
+      "productId": 10751,
+      "name": "Tuiri Tortbuillech",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guardianes%20de%20Daana/Tuiri%20Tortbuillech%202/Tuiri%20Tortbuillech%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guardianes%20de%20Daana/Tuiri%20Tortbuillech%202/Tuiri%20Tortbuillech.webp"
+    },
+    {
+      "productId": 10841,
+      "name": "Tír Na Nóg",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guardianes%20de%20Daana/T%C3%ADr%20Na%20N%C3%B3g%202/T%C3%ADr%20Na%20N%C3%B3g%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guardianes%20de%20Daana/T%C3%ADr%20Na%20N%C3%B3g%202/T%C3%ADr%20Na%20N%C3%B3g.webp"
+    },
+    {
+      "productId": 10799,
+      "name": "Vuelo Druida",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guardianes%20de%20Daana/Vuelo%20Druida%202/Vuelo%20Druida%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guardianes%20de%20Daana/Vuelo%20Druida%202/Vuelo%20Druida.webp"
+    },
+    {
+      "productId": 10482,
+      "name": "Abrir la Tierra",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Abrir%20la%20Tierra%202/Abrir%20la%20Tierra%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Abrir%20la%20Tierra%202/Abrir%20la%20Tierra.webp"
+    },
+    {
+      "productId": 10512,
+      "name": "Anchimallén",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Anchimall%C3%A9n%202/Anchimall%C3%A9n%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Anchimall%C3%A9n%202/Anchimall%C3%A9n.webp"
+    },
+    {
+      "productId": 10498,
+      "name": "Atlantes de Tollan",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Atlantes%20de%20Tollan%202/Atlantes%20de%20Tollan%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Atlantes%20de%20Tollan%202/Atlantes%20de%20Tollan.webp"
+    },
+    {
+      "productId": 10438,
+      "name": "Ayar Cachi",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Ayar%20Cachi%202/Ayar%20Cachi%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Ayar%20Cachi%202/Ayar%20Cachi.webp"
+    },
+    {
+      "productId": 10378,
+      "name": "Cabrakán",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Cabrak%C3%A1n%202/Cabrak%C3%A1n%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Cabrak%C3%A1n%202/Cabrak%C3%A1n.webp"
+    },
+    {
+      "productId": 10513,
+      "name": "Castigo Lunar",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Castigo%20Lunar%202/Castigo%20Lunar%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Castigo%20Lunar%202/Castigo%20Lunar.webp"
+    },
+    {
+      "productId": 10490,
+      "name": "Cerbatana Maldita",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Cerbatana%20Maldita%202/Cerbatana%20Maldita%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Cerbatana%20Maldita%202/Cerbatana%20Maldita.webp"
+    },
+    {
+      "productId": 10422,
+      "name": "Chimalli",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Chimalli%202/Chimalli%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Chimalli%202/Chimalli.webp"
+    },
+    {
+      "productId": 10366,
+      "name": "Guerrero Mixteco",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Guerrero%20Mixteco%202/Guerrero%20Mixteco%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Guerrero%20Mixteco%202/Guerrero%20Mixteco.webp"
+    },
+    {
+      "productId": 10416,
+      "name": "Huaraca Maldita",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Huaraca%20Maldita%202/Huaraca%20Maldita%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Huaraca%20Maldita%202/Huaraca%20Maldita.webp"
+    },
+    {
+      "productId": 10386,
+      "name": "Hun-Camé",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Hun-Cam%C3%A9%202/Hun-Cam%C3%A9%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Hun-Cam%C3%A9%202/Hun-Cam%C3%A9.webp"
+    },
+    {
+      "productId": 10376,
+      "name": "Itzamná",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Itzamn%C3%A1%202/Itzamn%C3%A1%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Itzamn%C3%A1%202/Itzamn%C3%A1.webp"
+    },
+    {
+      "productId": 3293,
+      "name": "Arcas del Imperio",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hel%C3%A9nica/Arcas%20del%20Imperio%202/Arcas%20del%20Imperio%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hel%C3%A9nica/Arcas%20del%20Imperio%202/Arcas%20del%20Imperio.webp"
+    },
+    {
+      "productId": 10456,
+      "name": "Kakasbal",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Kakasbal%202/Kakasbal%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Kakasbal%202/Kakasbal.webp"
+    },
+    {
+      "productId": 3495,
+      "name": "Atlas",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hel%C3%A9nica/Atlas%202/Atlas%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hel%C3%A9nica/Atlas%202/Atlas.webp"
+    },
+    {
+      "productId": 3507,
+      "name": "Cronos",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hel%C3%A9nica/Cronos%202/Cronos%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hel%C3%A9nica/Cronos%202/Cronos.webp"
+    },
+    {
+      "productId": 10408,
+      "name": "Kótaix",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/K%C3%B3taix%202/K%C3%B3taix%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/K%C3%B3taix%202/K%C3%B3taix.webp"
+    },
+    {
+      "productId": 3294,
+      "name": "Águila Imperial",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hel%C3%A9nica/%C3%81guila%20Imperial%202/%C3%81guila%20Imperial%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hel%C3%A9nica/%C3%81guila%20Imperial%202/%C3%81guila%20Imperial.webp"
+    },
+    {
+      "productId": 3168,
+      "name": "Ave de Hera",
+      "dbName": "Primer_Bloque_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hel%C3%A9nica/Ave%20de%20Hera%202/Ave%20de%20Hera%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Primer_Bloque_DB/Primer_Bloque_Images/Display%20de%20Sobres%20Aniversario%20Hel%C3%A9nica/Ave%20de%20Hera%202/Ave%20de%20Hera.webp"
+    },
+    {
+      "productId": 10522,
+      "name": "Machitun",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Machitun%202/Machitun%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Machitun%202/Machitun.webp"
+    },
+    {
+      "productId": 10432,
+      "name": "Makukutah",
+      "dbName": "Furia_Extendido_DB",
+      "localReason": "Único webp alternativo",
+      "currentStatus": null,
+      "fixedStatus": null,
+      "currentUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Makukutah%202/Makukutah%202.webp",
+      "fixedUrl": "https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Mitos_y_Leyendas/Furia_Extendido_DB/Furia_Extendido_Images/Display%20de%20Sobres%20Guerreros%20del%20Sol/Makukutah%202/Makukutah.webp"
+    }
+  ]
+}

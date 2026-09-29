@@ -12,8 +12,37 @@ const prisma = new PrismaClient();
 
 const CATEGORY_ID = 99;
 const BASE_DIR = 'C:\\Users\\Jeffry\\Desktop\\CarpetazoUpdater\\Descargas\\Mitos_y_Leyendas';
-const DATABASES = ['Imperio_DB', 'Furia_Extendido_DB', 'Primera_Era_DB'];
+const ALL_DATABASES = ['Primer_Bloque_DB', 'Imperio_DB', 'Furia_Extendido_DB', 'Primera_Era_DB'];
 const DRY_RUN = process.argv.includes('--dry-run');
+
+const BLOCK_BY_DB = {
+  Primer_Bloque_DB: 'Primer Bloque',
+  Imperio_DB: 'Imperio',
+  Furia_Extendido_DB: 'Furia Extendido',
+  Primera_Era_DB: 'Primera Era'
+};
+
+const getArgValue = (name) => {
+  const inline = process.argv.find((arg) => arg.startsWith(`--${name}=`));
+  if (inline) return inline.slice(name.length + 3);
+
+  const index = process.argv.indexOf(`--${name}`);
+  if (index !== -1 && process.argv[index + 1]) return process.argv[index + 1];
+  return '';
+};
+
+const selectedDbNames = new Set(
+  getArgValue('db')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+);
+
+const DATABASES = selectedDbNames.size
+  ? ALL_DATABASES.filter((dbName) => selectedDbNames.has(dbName))
+  : ALL_DATABASES;
+
+const unknownDbs = [...selectedDbNames].filter((dbName) => !ALL_DATABASES.includes(dbName));
 
 const colors = {
   reset: '\x1b[0m',
@@ -43,6 +72,27 @@ const cleanString = (value) => (isPresent(value) ? String(value).trim() : '');
 
 const encodePathPart = (part) => encodeURIComponent(String(part)).replace(/%2F/gi, '%252F');
 
+const findLocalImageFileName = ({ dbName, relativeDataParts, cardFolderName }) => {
+  const imageDir = path.join(
+    BASE_DIR,
+    dbName,
+    dbName.replace('_DB', '_Images'),
+    ...relativeDataParts,
+    cardFolderName
+  );
+
+  if (!fs.existsSync(imageDir)) return `${cardFolderName}.webp`;
+
+  const webpFiles = fs.readdirSync(imageDir, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith('.webp'))
+    .map((entry) => entry.name);
+
+  if (webpFiles.includes(`${cardFolderName}.webp`)) return `${cardFolderName}.webp`;
+  if (webpFiles.length === 1) return webpFiles[0];
+
+  return `${cardFolderName}.webp`;
+};
+
 const buildR2ImageUrl = ({ dbName, relativeDataParts, cardFolderName }) => {
   const r2PublicUrl = process.env.R2_PUBLIC_URL;
   if (!r2PublicUrl) {
@@ -56,7 +106,7 @@ const buildR2ImageUrl = ({ dbName, relativeDataParts, cardFolderName }) => {
     dbName.replace('_DB', '_Images'),
     ...relativeDataParts,
     cardFolderName,
-    `${cardFolderName}.webp`
+    findLocalImageFileName({ dbName, relativeDataParts, cardFolderName })
   ].map(encodePathPart);
 
   return `${r2PublicUrl.replace(/\/$/, '')}/${encodedParts.join('/')}`;
@@ -128,20 +178,41 @@ const getNextGroupId = async () => {
 };
 
 const groupCache = new Map();
-const getOrCreateGroup = async (editionName) => {
+const blockCache = new Map();
+
+const getBlock = async (blockName) => {
+  if (blockCache.has(blockName)) return blockCache.get(blockName);
+
+  const block = await prisma.tcgBlock.findFirst({
+    where: {
+      categoryId: CATEGORY_ID,
+      name: blockName
+    },
+    select: { id: true, name: true }
+  });
+
+  if (!block) throw new Error(`No existe el bloque "${blockName}" para Mitos y Leyendas.`);
+  blockCache.set(blockName, block);
+  return block;
+};
+
+const getOrCreateGroup = async (editionName, blockName) => {
   const normalizedEditionName = cleanString(editionName);
   if (!normalizedEditionName) {
     throw new Error('Nombre de edición vacío.');
   }
 
-  if (groupCache.has(normalizedEditionName)) {
-    return groupCache.get(normalizedEditionName);
+  const block = await getBlock(blockName);
+  const cacheKey = `${block.id}::${normalizedEditionName}`;
+  if (groupCache.has(cacheKey)) {
+    return groupCache.get(cacheKey);
   }
 
   let group = await prisma.tcgGroup.findFirst({
     where: {
       categoryId: CATEGORY_ID,
-      name: normalizedEditionName
+      name: normalizedEditionName,
+      blockId: block.id
     }
   });
 
@@ -153,6 +224,7 @@ const getOrCreateGroup = async (editionName) => {
       group = {
         groupId,
         categoryId: CATEGORY_ID,
+        blockId: block.id,
         name: normalizedEditionName,
         publishedOn: now,
         modifiedOn: now
@@ -163,6 +235,7 @@ const getOrCreateGroup = async (editionName) => {
         data: {
           groupId,
           categoryId: CATEGORY_ID,
+          blockId: block.id,
           name: normalizedEditionName,
           publishedOn: now,
           modifiedOn: now
@@ -172,7 +245,7 @@ const getOrCreateGroup = async (editionName) => {
     }
   }
 
-  groupCache.set(normalizedEditionName, group);
+  groupCache.set(cacheKey, group);
   return group;
 };
 
@@ -199,6 +272,7 @@ const collectCards = () => {
         const json = readJsonFile(dataPath);
         cards.push({
           dbName,
+          blockName: BLOCK_BY_DB[dbName],
           editionName: json.edition?.name || relativeDataParts.at(-1) || cardFolderName,
           relativeDataParts,
           cardFolderName,
@@ -214,10 +288,10 @@ const collectCards = () => {
   return { cards, warnings };
 };
 
-const upsertCard = async ({ dbName, editionName, relativeDataParts, cardFolderName, json }) => {
-  const productId = Number.parseInt(json.id, 10);
+const upsertCard = async ({ dbName, blockName, editionName, relativeDataParts, cardFolderName, json }) => {
+  const productId = String(json.id);
 
-  if (!Number.isFinite(productId)) {
+  if ((!productId)) {
     throw new Error(`ID de producto inválido: ${json.id || '(vacío)'}`);
   }
 
@@ -226,7 +300,7 @@ const upsertCard = async ({ dbName, editionName, relativeDataParts, cardFolderNa
     throw new Error(`Carta sin nombre para productId ${productId}`);
   }
 
-  const group = await getOrCreateGroup(editionName);
+  const group = await getOrCreateGroup(editionName, blockName);
   const imageUrl = buildR2ImageUrl({ dbName, relativeDataParts, cardFolderName });
   const extData = buildExtData(json);
 
@@ -263,6 +337,7 @@ const upsertCard = async ({ dbName, editionName, relativeDataParts, cardFolderNa
 const main = async () => {
   log.title('🚀 Carga restante de Mitos y Leyendas');
   log.info(`Base local: ${BASE_DIR}`);
+  if (unknownDbs.length) throw new Error(`Carpetas no configuradas: ${unknownDbs.join(', ')}`);
   log.info(`DBs: ${DATABASES.join(', ')}`);
   log.info(`Modo: ${DRY_RUN ? 'dry-run, no escribe en DB' : 'upsert real en DB'}`);
 
@@ -330,3 +405,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
