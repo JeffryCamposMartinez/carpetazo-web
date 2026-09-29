@@ -15,6 +15,8 @@ export default function FoldersPage() {
   const [selectedTcg, setSelectedTcg] = useState(searchParams.get('tcg') || 'Todos');
   const [sortBy, setSortBy] = useState('weekly');
   const [isTcgDropdownOpen, setIsTcgDropdownOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false); // en móvil los filtros arrancan plegados
+
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 40;
@@ -120,12 +122,35 @@ export default function FoldersPage() {
   return (
     <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16 flex-1 flex flex-col">
       <div className="w-full rounded-none overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x border-gray-300 flex flex-col lg:flex-row relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
-        <aside className="w-full lg:w-[280px] bg-white border-b lg:border-b-0 lg:border-r border-gray-300 p-6 shrink-0 flex flex-col">
-          <div className="flex items-center gap-2 mb-6 pb-3 border-b border-gray-100">
+        <aside className="w-full lg:w-[280px] bg-white border-b lg:border-b-0 lg:border-r border-gray-300 p-4 lg:p-6 shrink-0 flex flex-col">
+          <div className="hidden lg:flex items-center gap-2 mb-6 pb-3 border-b border-gray-100">
             <span translate="no" className="material-symbols-outlined text-[#1e40af]">filter_alt</span>
             <h3 className="font-extrabold text-[#1a2b4b] text-base">Filtros Avanzados</h3>
           </div>
-          <div className="flex flex-col gap-4">
+
+          {/* Móvil: búsqueda siempre a mano y filtros plegables */}
+          <div className="flex items-center gap-2 lg:hidden">
+            <div className="relative flex-1">
+              <span translate="no" className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-400 text-[20px]">search</span>
+              <input type="search" inputMode="search" enterKeyHint="search" placeholder="Carpeta o vendedor..." value={searchQuery} onChange={handleSearchChange} className="w-full h-11 pl-10 pr-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-[#1e40af]" />
+            </div>
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(o => !o)}
+              aria-expanded={filtersOpen}
+              className="relative flex h-11 shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-3.5 text-sm font-bold text-[#1a2b4b]"
+            >
+              <span translate="no" className="material-symbols-outlined text-[20px] text-[#1e40af]">tune</span>
+              Filtros
+              {((selectedTcg !== 'Todos' ? 1 : 0) + (sortBy !== 'weekly' ? 1 : 0)) > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#1e40af] px-1 text-[11px] font-black text-white">
+                  {(selectedTcg !== 'Todos' ? 1 : 0) + (sortBy !== 'weekly' ? 1 : 0)}
+                </span>
+              )}
+            </button>
+          </div>
+
+          <div className={`${filtersOpen ? 'flex mt-4' : 'hidden'} lg:flex flex-col gap-4 animate-[fadeIn_0.2s_ease-out]`}>
             <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">1. Juego (TCG):</span>
             <div className="relative">
               <button onClick={() => setIsTcgDropdownOpen(!isTcgDropdownOpen)} className="flex items-center justify-between w-full px-4 py-3 bg-gray-50 hover:bg-blue-50/50 border border-gray-200 hover:border-blue-200 rounded-xl text-xs font-bold text-gray-700 transition-all text-left">
@@ -162,7 +187,7 @@ export default function FoldersPage() {
               )}
             </div>
             <div className="flex flex-col gap-5 mt-2">
-              <div className="flex flex-col gap-1.5">
+              <div className="hidden lg:flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Buscar:</label>
                 <div className="relative">
                   <span translate="no" className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-400 text-[18px]">search</span>
@@ -185,7 +210,7 @@ export default function FoldersPage() {
           </div>
         </aside>
 
-        <main className="flex-1 text-gray-900 px-4 sm:px-8 py-8 flex flex-col relative z-20 bg-[#DBEAFE]">
+        <main className="flex-1 text-gray-900 px-4 sm:px-8 py-6 sm:py-8 flex flex-col relative z-20 bg-[#DBEAFE]">
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-300">
             <div>
               <h1 className="text-3xl font-extrabold text-[#1a2b4b]">Explorar Carpetas</h1>

@@ -13,27 +13,27 @@ export default function NotFound() {
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiI+CjxyZWN0IHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgZmlsbD0ibm9uZSI+PC9yZWN0Pgo8cGF0aCBkPSJNMCAwTDMyIDMyWk0zMiAwTDAgMzJaIiBzdHJva2U9IiMxZTRwYWYiIHN0cm9rZS1vcGFjaXR5PSIwLjA1IiBzdHJva2Utd2lkdGg9IjEiPjwvcGF0aD4KPC9zdmc+')]"></div>
 
           {/* 404 Formado por 3 Cartas TCG Gigantes */}
-          <div className="relative z-10 flex flex-row items-center justify-center gap-3 md:gap-8 mb-12 px-4">
+          <div className="relative z-10 flex flex-row items-center justify-center gap-[2vw] md:gap-8 mb-10 md:mb-12 px-4">
             
             {/* Primer "4" */}
-            <div className="relative w-28 h-40 md:w-48 md:h-72 transform -rotate-12 hover:-translate-y-6 hover:-rotate-6 transition-all duration-500 drop-shadow-2xl bg-gradient-to-br from-blue-700 to-blue-900 rounded-xl md:rounded-2xl border-4 md:border-[8px] border-white flex items-center justify-center shadow-[0_20px_50px_rgba(30,64,175,0.4)]">
+            <div className="relative w-[24vw] h-[36vw] md:w-48 md:h-72 transform -rotate-12 hover:-translate-y-6 hover:-rotate-6 transition-all duration-500 drop-shadow-2xl bg-gradient-to-br from-blue-700 to-blue-900 rounded-xl md:rounded-2xl border-4 md:border-[8px] border-white flex items-center justify-center shadow-[0_20px_50px_rgba(30,64,175,0.4)]">
                <div className="absolute inset-0 bg-[url('/images/carpeta_v4.webp')] bg-[length:100%_100%] bg-no-repeat opacity-40 mix-blend-overlay rounded-lg"></div>
                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent rounded-lg"></div>
-               <span className="text-white text-7xl md:text-[130px] font-black drop-shadow-lg z-10">4</span>
+               <span className="text-white text-[15vw] md:text-[130px] font-black drop-shadow-lg z-10">4</span>
             </div>
 
             {/* El "0" */}
-            <div className="relative w-32 h-44 md:w-56 md:h-80 transform -translate-y-4 hover:-translate-y-10 transition-all duration-500 drop-shadow-2xl bg-gradient-to-br from-red-600 to-red-900 rounded-xl md:rounded-2xl border-4 md:border-[8px] border-white flex items-center justify-center shadow-[0_20px_60px_rgba(220,38,38,0.5)] z-20">
+            <div className="relative w-[28vw] h-[40vw] md:w-56 md:h-80 transform -translate-y-4 hover:-translate-y-10 transition-all duration-500 drop-shadow-2xl bg-gradient-to-br from-red-600 to-red-900 rounded-xl md:rounded-2xl border-4 md:border-[8px] border-white flex items-center justify-center shadow-[0_20px_60px_rgba(220,38,38,0.5)] z-20">
                <div className="absolute inset-0 bg-[url('/images/carpeta_v4.webp')] bg-[length:100%_100%] bg-no-repeat opacity-40 mix-blend-overlay rounded-lg"></div>
                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-lg"></div>
-               <span className="text-white text-8xl md:text-[160px] font-black drop-shadow-lg z-10">0</span>
+               <span className="text-white text-[18vw] md:text-[160px] font-black drop-shadow-lg z-10">0</span>
             </div>
 
             {/* Segundo "4" */}
-            <div className="relative w-28 h-40 md:w-48 md:h-72 transform rotate-12 hover:-translate-y-6 hover:rotate-6 transition-all duration-500 drop-shadow-2xl bg-gradient-to-br from-blue-700 to-blue-900 rounded-xl md:rounded-2xl border-4 md:border-[8px] border-white flex items-center justify-center shadow-[0_20px_50px_rgba(30,64,175,0.4)]">
+            <div className="relative w-[24vw] h-[36vw] md:w-48 md:h-72 transform rotate-12 hover:-translate-y-6 hover:rotate-6 transition-all duration-500 drop-shadow-2xl bg-gradient-to-br from-blue-700 to-blue-900 rounded-xl md:rounded-2xl border-4 md:border-[8px] border-white flex items-center justify-center shadow-[0_20px_50px_rgba(30,64,175,0.4)]">
                <div className="absolute inset-0 bg-[url('/images/carpeta_v4.webp')] bg-[length:100%_100%] bg-no-repeat opacity-40 mix-blend-overlay rounded-lg"></div>
                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent rounded-lg"></div>
-               <span className="text-white text-7xl md:text-[130px] font-black drop-shadow-lg z-10">4</span>
+               <span className="text-white text-[15vw] md:text-[130px] font-black drop-shadow-lg z-10">4</span>
             </div>
 
           </div>

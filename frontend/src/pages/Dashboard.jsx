@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import OrdersTab from '../components/OrdersTab';
-import HiddenPDFGenerator from '../components/HiddenPDFGenerator';
+// html2canvas + jsPDF pesan mucho: se descargan solo al generar un PDF
+const HiddenPDFGenerator = lazy(() => import('../components/HiddenPDFGenerator'));
 
 export const FOLDER_COLORS = [
   { id: 'red', hex: '#d32f2f' },
@@ -592,11 +593,13 @@ export default function Dashboard() {
 
       {/* PDF Generator Components */}
       {generatingPdfFolder && (
-        <HiddenPDFGenerator 
-          folderId={generatingPdfFolder} 
-          onProgress={(loaded, total, isGenerating) => setPdfProgress({ loaded, total, generating: isGenerating })}
-          onComplete={() => setGeneratingPdfFolder(null)} 
-        />
+        <Suspense fallback={null}>
+          <HiddenPDFGenerator 
+            folderId={generatingPdfFolder} 
+            onProgress={(loaded, total, isGenerating) => setPdfProgress({ loaded, total, generating: isGenerating })}
+            onComplete={() => setGeneratingPdfFolder(null)} 
+          />
+        </Suspense>
       )}
       
       {generatingPdfFolder && (

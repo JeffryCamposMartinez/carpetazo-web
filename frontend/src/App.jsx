@@ -1,19 +1,33 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Header from './components/Header';
-import LandingPage from './pages/LandingPage';
-import Dashboard from './pages/Dashboard';
-import ExplorePage from './pages/ExplorePage';
-import FolderPokemon from './pages/FolderPokemon';
-import PublicCatalog from './pages/PublicCatalog';
-import SellerProfile from './pages/SellerProfile';
-import AdminPanel from './pages/AdminPanel';
-import ProfilePage from './pages/ProfilePage';
-import Messages from './pages/Messages';
-import FoldersPage from './pages/FoldersPage';
-import NotFound from './pages/NotFound';
 import ScrollToTop from './components/ScrollToTop';
 import Footer from './components/Footer';
+
+// Cada pantalla se descarga solo cuando se visita: el primer arranque en móvil pesa mucho menos
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const ExplorePage = lazy(() => import('./pages/ExplorePage'));
+const FolderPokemon = lazy(() => import('./pages/FolderPokemon'));
+const PublicCatalog = lazy(() => import('./pages/PublicCatalog'));
+const SellerProfile = lazy(() => import('./pages/SellerProfile'));
+const AdminPanel = lazy(() => import('./pages/AdminPanel'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const Messages = lazy(() => import('./pages/Messages'));
+const FoldersPage = lazy(() => import('./pages/FoldersPage'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+
+// Barra fina de carga mientras llega la pantalla (sin saltos de diseño)
+function RouteLoading() {
+  return (
+    <div className="flex-1" role="status" aria-label="Cargando">
+      <div className="h-[3px] w-full overflow-hidden bg-transparent">
+        <div className="route-loading-bar h-full w-1/3 rounded-full bg-[#facc15]" />
+      </div>
+    </div>
+  );
+}
 
 function App() {
   return (
@@ -24,6 +38,7 @@ function App() {
           <Header />
           
           <div className="flex-1 flex flex-col">
+            <Suspense fallback={<RouteLoading />}>
             <Routes>
               <Route path="/bienvenida" element={<LandingPage />} />
               <Route path="/" element={<ExplorePage />} />
@@ -39,6 +54,7 @@ function App() {
               {/* Global 404 Catch-All Route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
           </div>
           
           <Footer />

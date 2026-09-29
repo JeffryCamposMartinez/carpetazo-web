@@ -27,6 +27,58 @@ export default function Header() {
   const [userUsername, setUserUsername] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileMenuClosing, setIsMobileMenuClosing] = useState(false);
+  const drawerRef = useRef(null);
+  const drawerTouch = useRef({ startX: 0, startY: 0, dx: 0, dragging: false });
+
+  // Cierra el menú lateral con animación de salida
+  const closeMobileMenu = () => {
+    if (isMobileMenuClosing) return;
+    setIsMobileMenuClosing(true);
+    setTimeout(() => { setIsMobileMenuOpen(false); setIsMobileMenuClosing(false); }, 220);
+  };
+
+  // Con el menú abierto, la página de atrás no se desplaza
+  useEffect(() => {
+    if (!isMobileMenuOpen) return undefined;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previous; };
+  }, [isMobileMenuOpen]);
+
+  // Arrastrar el panel hacia la izquierda lo cierra, como en una app nativa
+  const onDrawerTouchStart = (e) => {
+    const t = e.touches[0];
+    drawerTouch.current = { startX: t.clientX, startY: t.clientY, dx: 0, dragging: false };
+  };
+  const onDrawerTouchMove = (e) => {
+    const st = drawerTouch.current;
+    const t = e.touches[0];
+    const dx = t.clientX - st.startX;
+    const dy = t.clientY - st.startY;
+    if (!st.dragging) {
+      if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.5) st.dragging = true; else return;
+    }
+    st.dx = Math.min(0, dx);
+    if (drawerRef.current) {
+      drawerRef.current.style.animation = 'none';
+      drawerRef.current.style.transition = 'none';
+      drawerRef.current.style.transform = `translateX(${st.dx}px)`;
+    }
+  };
+  const onDrawerTouchEnd = () => {
+    const st = drawerTouch.current;
+    if (!st.dragging || !drawerRef.current) return;
+    st.dragging = false;
+    if (st.dx < -80) {
+      drawerRef.current.style.transition = 'transform 180ms ease-out';
+      drawerRef.current.style.transform = 'translateX(-105%)';
+      closeMobileMenu();
+    } else {
+      drawerRef.current.style.transition = 'transform 180ms ease-out';
+      drawerRef.current.style.transform = 'translateX(0)';
+    }
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCategory, setSearchCategory] = useState('Carpetas');
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
@@ -541,22 +593,28 @@ export default function Header() {
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden">
-          <div className="fixed inset-0 bg-black/60 animate-fadeInOverlay" onClick={() => setIsMobileMenuOpen(false)}></div>
-          <div className="relative w-[85%] max-w-sm bg-white h-full flex flex-col overflow-y-auto shadow-2xl animate-slideInLeft">
+          <div className={`fixed inset-0 bg-black/60 ${isMobileMenuClosing ? 'animate-drawerFadeOut' : 'animate-fadeInOverlay'}`} onClick={closeMobileMenu}></div>
+          <div
+            ref={drawerRef}
+            onTouchStart={onDrawerTouchStart}
+            onTouchMove={onDrawerTouchMove}
+            onTouchEnd={onDrawerTouchEnd}
+            className={`relative w-[85%] max-w-sm bg-white h-full flex flex-col overflow-y-auto overscroll-contain shadow-2xl pb-[env(safe-area-inset-bottom)] ${isMobileMenuClosing ? 'animate-drawerSlideOut' : 'animate-slideInLeft'}`}
+          >
             {/* Header sidebar */}
             <div className="flex items-center justify-between p-4 bg-[#1a2b4b]">
               <img src="/images/logos/logo_completo.webp" alt="Carpetazo.cl" className="h-20 w-auto object-contain" />
-              <button onClick={() => setIsMobileMenuOpen(false)} className="p-1 text-white hover:text-gray-200 focus:outline-none">
+              <button onClick={closeMobileMenu} className="p-1 text-white hover:text-gray-200 focus:outline-none">
                 <span translate="no" className="material-symbols-outlined text-[28px]">close</span>
               </button>
             </div>
 
             {/* Main Links */}
             <div className="flex flex-col py-2 border-b border-gray-100">
-              <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="px-6 py-3.5 text-[15px] font-bold text-gray-800">Inicio</Link>
-              <Link to="/carpetas" onClick={() => setIsMobileMenuOpen(false)} className="px-6 py-3.5 text-[15px] font-bold text-gray-800">Carpetas</Link>
-              <Link to="/cartas" onClick={() => setIsMobileMenuOpen(false)} className="px-6 py-3.5 text-[15px] font-bold text-gray-800">Cartas</Link>
-              <Link to="/vendedores" onClick={() => setIsMobileMenuOpen(false)} className="px-6 py-3.5 text-[15px] font-bold text-gray-800">Vendedores</Link>
+              <Link to="/" onClick={closeMobileMenu} className="px-6 py-3.5 text-[15px] font-bold text-gray-800">Inicio</Link>
+              <Link to="/carpetas" onClick={closeMobileMenu} className="px-6 py-3.5 text-[15px] font-bold text-gray-800">Carpetas</Link>
+              <Link to="/cartas" onClick={closeMobileMenu} className="px-6 py-3.5 text-[15px] font-bold text-gray-800">Cartas</Link>
+              <Link to="/vendedores" onClick={closeMobileMenu} className="px-6 py-3.5 text-[15px] font-bold text-gray-800">Vendedores</Link>
             </div>
 
             {/* User Section */}
@@ -578,21 +636,21 @@ export default function Header() {
                 
                 <div className="text-[11px] font-bold text-gray-400 mb-3 uppercase tracking-wider">Perfil</div>
                 <div className="flex flex-col space-y-1">
-                  <Link to="/perfil" onClick={() => setIsMobileMenuOpen(false)} className="py-3 text-[15px] text-gray-600 flex items-center gap-4 hover:bg-gray-50 rounded-lg -mx-2 px-2 transition-colors">
+                  <Link to="/perfil" onClick={closeMobileMenu} className="py-3 text-[15px] text-gray-600 flex items-center gap-4 hover:bg-gray-50 rounded-lg -mx-2 px-2 transition-colors">
                     <span translate="no" className="material-symbols-outlined text-gray-400 text-[22px]">person</span> Mi perfil
                   </Link>
-                  <Link to={`/${userUsername || currentUser.uid}`} onClick={() => setIsMobileMenuOpen(false)} className="py-3 text-[15px] text-gray-600 flex items-center gap-4 hover:bg-gray-50 rounded-lg -mx-2 px-2 transition-colors">
+                  <Link to={`/${userUsername || currentUser.uid}`} onClick={closeMobileMenu} className="py-3 text-[15px] text-gray-600 flex items-center gap-4 hover:bg-gray-50 rounded-lg -mx-2 px-2 transition-colors">
                     <span translate="no" className="material-symbols-outlined text-gray-400 text-[22px]">storefront</span> Mi perfil público
                   </Link>
-                  <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="py-3 text-[15px] text-gray-600 flex items-center gap-4 hover:bg-gray-50 rounded-lg -mx-2 px-2 transition-colors">
+                  <Link to="/dashboard" onClick={closeMobileMenu} className="py-3 text-[15px] text-gray-600 flex items-center gap-4 hover:bg-gray-50 rounded-lg -mx-2 px-2 transition-colors">
                     <span translate="no" className="material-symbols-outlined text-gray-400 text-[22px]">folder</span> Mis carpetas
                   </Link>
-                  <Link to="/mensajes" onClick={() => setIsMobileMenuOpen(false)} className="py-3 text-[15px] text-gray-600 flex items-center gap-4 hover:bg-gray-50 rounded-lg -mx-2 px-2 transition-colors">
+                  <Link to="/mensajes" onClick={closeMobileMenu} className="py-3 text-[15px] text-gray-600 flex items-center gap-4 hover:bg-gray-50 rounded-lg -mx-2 px-2 transition-colors">
                     <span translate="no" className="material-symbols-outlined text-gray-400 text-[22px]">chat</span> Mensajes
                   </Link>
                 </div>
                 
-                <button onClick={() => { setIsMobileMenuOpen(false); handleLogout(); }} className="mt-8 mb-6 w-full py-3 text-[15px] text-white bg-red-600 hover:bg-red-700 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors shadow-sm">
+                <button onClick={() => { closeMobileMenu(); handleLogout(); }} className="mt-8 mb-6 w-full py-3 text-[15px] text-white bg-red-600 hover:bg-red-700 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors shadow-sm">
                   <span translate="no" className="material-symbols-outlined text-[20px]">logout</span> Cerrar Sesión
                 </button>
               </div>

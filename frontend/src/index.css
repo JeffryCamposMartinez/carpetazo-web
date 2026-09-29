@@ -162,3 +162,45 @@ body.public-profile-active::after {
   79% { transform: translateX(11%); }
   86% { transform: translateX(-11%); }
 }
+
+/* === Móvil: sensación táctil y carga suave ============================================ */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent; /* sin el recuadro gris al tocar */
+    scroll-padding-top: 8rem;                 /* los anclas no quedan bajo el header fijo */
+  }
+  a, button, [role='button'], summary, label, select {
+    touch-action: manipulation;               /* sin el retraso de 300 ms del doble toque */
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+  }
+}
+
+/* Al tocar, los botones y enlaces "se hunden" un poco (feedback inmediato). */
+@media (pointer: coarse) {
+  button:not(:disabled):active,
+  [role='button']:not([aria-disabled='true']):active,
+  a[class*='rounded']:active {
+    scale: 0.97;
+    transition: scale 90ms ease-out;
+  }
+  button, [role='button'], a[class*='rounded'] {
+    transition-property: color, background-color, border-color, opacity, box-shadow, transform, scale;
+    transition-duration: 150ms;
+  }
+}
+
+/* Barra de carga entre pantallas */
+@keyframes route-loading {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+.route-loading-bar { animation: route-loading 1.1s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .route-loading-bar { animation: none; width: 100%; opacity: 0.6; }
+  *, *::before, *::after { scroll-behavior: auto !important; }
+}

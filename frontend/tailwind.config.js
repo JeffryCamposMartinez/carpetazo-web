@@ -4,6 +4,7 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  future: { hoverOnlyWhenSupported: true },
   darkMode: "class",
   theme: {
     extend: {
@@ -106,6 +107,14 @@ export default {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-15px)" }
         },
+        "drawerSlideOut": {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-105%)" }
+        },
+        "drawerFadeOut": {
+          "0%": { opacity: "1" },
+          "100%": { opacity: "0" }
+        },
         "slideInLeft": {
           "0%": { transform: "translateX(-100%)", opacity: 0 },
           "100%": { transform: "translateX(0)", opacity: 1 }
@@ -120,6 +129,8 @@ export default {
         "marquee": "marquee 120s linear infinite",
         "float": "float 6s ease-in-out infinite",
         "slideInLeft": "slideInLeft 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards",
+        "drawerSlideOut": "drawerSlideOut 0.22s cubic-bezier(0.4, 0, 1, 1) forwards",
+        "drawerFadeOut": "drawerFadeOut 0.22s ease-in forwards",
         "fadeInOverlay": "fadeInOverlay 0.25s ease-out forwards"
       }
     },
