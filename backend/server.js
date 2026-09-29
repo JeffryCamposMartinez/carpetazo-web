@@ -172,6 +172,42 @@ app.use(cors({
 app.use('/api', limiter);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// Proxy con caché hacia TCGCSV (Pokémon inglés y japonés): el navegador no puede llamarlo directo por CORS
+const TCGCSV_ALLOWED_PATH = /^\/tcgplayer\/(3|85)\/(groups|\d+\/products)$/;
+const TCGCSV_TTL_MS = 30 * 60 * 1000;
+const TCGCSV_MAX_ENTRIES = 80;
+const tcgcsvCache = new Map();
+app.get(/^\/api\/tcgcsv(\/.*)$/, async (req, res) => {
+  const tcgcsvPath = req.params[0];
+  if (!TCGCSV_ALLOWED_PATH.test(tcgcsvPath)) {
+    return res.status(400).json({ success: false, message: 'Ruta no permitida' });
+  }
+
+  const sendJson = (body) => {
+    res.set('Cache-Control', 'public, max-age=1800');
+    return res.type('application/json').send(body);
+  };
+
+  const cached = tcgcsvCache.get(tcgcsvPath);
+  if (cached && Date.now() - cached.at < TCGCSV_TTL_MS) return sendJson(cached.body);
+
+  try {
+    const response = await fetch('https://tcgcsv.com' + tcgcsvPath, {
+      headers: { 'User-Agent': 'Carpetazo/1.0 (+https://carpetazo.cl)', 'Accept': 'application/json' }
+    });
+    if (!response.ok) {
+      return res.status(response.status === 404 ? 404 : 502).json({ success: false, message: 'No se pudo obtener el catálogo' });
+    }
+    const body = await response.text();
+    if (tcgcsvCache.size >= TCGCSV_MAX_ENTRIES) tcgcsvCache.delete(tcgcsvCache.keys().next().value);
+    tcgcsvCache.set(tcgcsvPath, { at: Date.now(), body });
+    return sendJson(body);
+  } catch (error) {
+    console.error('Error consultando TCGCSV:', error.message);
+    return res.status(502).json({ success: false, message: 'No se pudo obtener el catálogo' });
+  }
+});
+
 app.get('/api/proxy-image', async (req, res) => {
   const imageUrl = String(req.query.url || '').trim();
 

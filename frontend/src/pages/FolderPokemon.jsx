@@ -624,7 +624,7 @@ const [isSearching, setIsSearching] = useState(false);
       const catId = searchLang === 'ja' ? 85 : 3;
       // Ediciones sin cartas (solo sellado), generado con scripts/find_empty_tcgcsv_groups.cjs
       Promise.all([
-        fetch(`/tcgcsv/tcgplayer/${catId}/groups`).then(r => r.json()),
+        fetch(apiUrl(`/tcgcsv/tcgplayer/${catId}/groups`)).then(r => r.json()),
         fetch('/empty-groups-tcgcsv.json').then(r => r.json()).catch(() => ({})),
       ])
         .then(([json, emptyGroups]) => {
@@ -1261,7 +1261,7 @@ const [isSearching, setIsSearching] = useState(false);
   const fetchPokemonGroup = async (group, catId, signal) => {
     const key = `${catId}-${group.groupId}`;
     if (pokeGroupCacheRef.current.has(key)) return pokeGroupCacheRef.current.get(key);
-    const json = await (await fetch(`/tcgcsv/tcgplayer/${catId}/${group.groupId}/products`, { signal })).json();
+    const json = await (await fetch(apiUrl(`/tcgcsv/tcgplayer/${catId}/${group.groupId}/products`), { signal })).json();
     const list = (json.results || [])
       .map(p => {
         const ext = {};
