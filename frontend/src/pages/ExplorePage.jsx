@@ -1,13 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { api } from '../utils/api';
-import { getFolderFilter } from './Dashboard';
 import HeroCarousel from '../components/HeroCarousel';
-import LazyFolderCard from '../components/LazyFolderCard';
+import FeaturedZone from '../components/home/FeaturedZone';
 
 export default function ExplorePage() {
-  const [folders, setFolders] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
 
@@ -58,36 +54,6 @@ export default function ExplorePage() {
     };
   }, []);
 
-  useEffect(() => {
-    const fetchFolders = async () => {
-      try {
-        const currentWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
-        const response = await api.getPublicFolders();
-        let allFolders = response.success ? response.folders : [];
-        for (const folder of allFolders) {
-          folder.validWeeklyVisits = folder.lastVisitWeek === currentWeek ? (folder.weeklyVisits || 0) : 0;
-          folder.validTotalVisits = folder.totalVisits || 0;
-        }
-
-        allFolders.sort((a, b) => {
-          if (b.validWeeklyVisits !== a.validWeeklyVisits) {
-            return b.validWeeklyVisits - a.validWeeklyVisits;
-          }
-          return b.validTotalVisits - a.validTotalVisits;
-        });
-
-        const top10 = allFolders.slice(0, 10);
-        setFolders(top10);
-      } catch (error) {
-        console.error("Error fetching folders:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchFolders();
-  }, []);
-
   return (
     <>
       <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
@@ -111,25 +77,8 @@ export default function ExplorePage() {
               </div>
             </div>
 
-            {/* Featured Folders Section */}
-            <div className="w-full max-w-[1200px] mb-16">
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold text-[#1a2b4b]">Carpetas Destacadas de la semana</h2>
-                <button className="text-blue-600 font-semibold hover:underline text-sm">Ver más carpetas →</button>
-              </div>
-              
-              {loading ? (
-                <div className="w-full flex justify-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
-                  {folders.map((folder) => (
-                    <LazyFolderCard key={folder.id} folder={folder} />
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Zona de destacados */}
+            <FeaturedZone />
 
           </div>
         </div>

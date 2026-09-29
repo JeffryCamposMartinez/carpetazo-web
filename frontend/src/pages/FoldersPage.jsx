@@ -12,7 +12,7 @@ export default function FoldersPage() {
   
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
-  const [selectedTcg, setSelectedTcg] = useState('Todos');
+  const [selectedTcg, setSelectedTcg] = useState(searchParams.get('tcg') || 'Todos');
   const [sortBy, setSortBy] = useState('weekly');
   const [isTcgDropdownOpen, setIsTcgDropdownOpen] = useState(false);
 
