@@ -568,6 +568,18 @@ const [isSearching, setIsSearching] = useState(false);
       }
     }).catch(console.error);
     api.getTcgPhysicalProducts().then(res => { if(res.success) setAvailablePhysicalProducts(res.data); }).catch(console.error);
+    if (searchCategory === '1') {
+      fetch('/tcgcsv/tcgplayer/3/groups')
+        .then(r => r.json())
+        .then(json => setAvailableSets(
+          (json.results || [])
+            .filter(g => new Date(g.publishedOn) <= new Date())
+            .sort((a, b) => new Date(b.publishedOn) - new Date(a.publishedOn))
+            .map(g => ({ groupId: g.groupId, id: g.groupId, name: g.name, publishedOn: g.publishedOn }))
+        ))
+        .catch(console.error);
+      return;
+    }
       api.getTcgGroups(searchCategory)
       .then(res => {
         if (res.success) {
@@ -1204,16 +1216,46 @@ const [isSearching, setIsSearching] = useState(false);
     setIsSearching(true);
     try {
       let cards = [];
-      const mylFilters = searchCategory === '99' ? { type: mylType, race: mylRace, cost: mylCost, blockId: searchBlock, physicalProductId: searchPhysicalProduct } : {};
-      
-      if (searchSet && searchQuery.trim() === '') {
-        const response = await api.getTcgProducts(searchCategory, searchSet, mylFilters);
-        cards = response.data || [];
-      } else {
-        const response = await api.searchTcgProducts(searchQuery.trim(), searchCategory, searchSet, mylFilters);
-        cards = response.data || [];
-      }
-      
+      if (searchCategory === '1') {
+          // TCGCSV (vía proxy /tcgcsv, la API no envía CORS). Pokémon = categoría 3 en TCGplayer.
+          if (!searchSet) {
+            showToast('Selecciona una edición para buscar en Pokémon.', 'error');
+            setIsSearching(false);
+            return;
+          }
+          const response = await fetch(`/tcgcsv/tcgplayer/3/${searchSet}/products`, { signal: abortControllerRef.current.signal });
+          const json = await response.json();
+          const group = availableSets.find(s => s.groupId == searchSet);
+          const q = searchQuery.trim().toLowerCase();
+          cards = (json.results || [])
+            .map(p => {
+              const ext = {};
+              (p.extendedData || []).forEach(e => { ext[e.name] = e.value; });
+              return { p, ext };
+            })
+            .filter(({ p, ext }) => ext.Number && (!q || p.name.toLowerCase().includes(q) || String(ext.Number).toLowerCase().includes(q)))
+            .map(({ p, ext }) => ({
+              id: p.productId,
+              tcgProductId: p.productId,
+              name: p.name,
+              imageUrl: (p.imageUrl || '').replace('_200w', '_400w'),
+              categoryId: 1,
+              groupId: p.groupId,
+              group: { id: p.groupId, name: group?.name || '', publishedOn: group?.publishedOn },
+              extData: { ...ext, localId: ext.Number },
+            }));
+        } else {
+          const mylFilters = searchCategory === '99' ? { type: mylType, race: mylRace, cost: mylCost, blockId: searchBlock, physicalProductId: searchPhysicalProduct } : {};
+          
+          if (searchSet && searchQuery.trim() === '') {
+            const response = await api.getTcgProducts(searchCategory, searchSet, mylFilters);
+            cards = response.data || [];
+          } else {
+            const response = await api.searchTcgProducts(searchQuery.trim(), searchCategory, searchSet, mylFilters);
+            cards = response.data || [];
+          }
+        }
+
       const rarities = new Set();
       cards.forEach(c => {
         const rVal = getExtDataValue(c.extData, 'Rarity') || getExtDataValue(c.extData, 'Card Number / Rarity'); if (rVal) rarities.add(rVal);

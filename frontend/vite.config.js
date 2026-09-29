@@ -10,6 +10,7 @@ export default defineConfig({
   server: {
     allowedHosts: true,
     proxy: {
+      '/tcgcsv': { target: 'https://tcgcsv.com', changeOrigin: true, rewrite: (path) => path.replace(/^\/tcgcsv/, '') },
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
@@ -20,6 +21,7 @@ export default defineConfig({
   preview: {
     allowedHosts: true,
     proxy: {
+      '/tcgcsv': { target: 'https://tcgcsv.com', changeOrigin: true, rewrite: (path) => path.replace(/^\/tcgcsv/, '') },
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
