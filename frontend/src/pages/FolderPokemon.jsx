@@ -1174,23 +1174,23 @@ const [isSearching, setIsSearching] = useState(false);
 
         cards.sort((a, b) => {
           if (!searchSet) {
-            // Usa el publishedOn directo si viene del backend, si no, busca en availableSets
-            let dateA = 0;
-            let dateB = 0;
-            if (a.group?.publishedOn) dateA = new Date(a.group.publishedOn).getTime();
-            else {
-              const setA = availableSets.find(s => s.groupId === a.groupId);
-              if (setA?.publishedOn) dateA = new Date(setA.publishedOn).getTime();
+            // Intentar alinear exactamente con el orden visual del dropdown (availableSets)
+            let indexA = availableSets.findIndex(s => s.groupId === a.groupId);
+            let indexB = availableSets.findIndex(s => s.groupId === b.groupId);
+            
+            if (indexA !== -1 && indexB !== -1) {
+              if (indexA !== indexB) return indexA - indexB;
+            } else {
+              // Fallback si availableSets aun no carga: ordenar por fecha del backend
+              const dateA = a.group?.publishedOn ? new Date(a.group.publishedOn).getTime() : 0;
+              const dateB = b.group?.publishedOn ? new Date(b.group.publishedOn).getTime() : 0;
+              if (dateB !== dateA) return dateB - dateA;
+              // Desempate de seguridad: si dos ediciones salieron el mismo dia (ej. Celebracion 30), agruparlas por su ID para no mezclarlas
+              if (b.groupId !== a.groupId) return (b.groupId || 0) - (a.groupId || 0);
             }
-            if (b.group?.publishedOn) dateB = new Date(b.group.publishedOn).getTime();
-            else {
-              const setB = availableSets.find(s => s.groupId === b.groupId);
-              if (setB?.publishedOn) dateB = new Date(setB.publishedOn).getTime();
-            }
-            if (dateB !== dateA) return dateB - dateA;
-            // Si las fechas son iguales (misma edicion o fallback 0), intentamos ordenar por groupId (edición más nueva suele tener ID mayor)
-            if (dateA === 0 && dateB === 0 && b.groupId !== a.groupId) return (b.groupId || 0) - (a.groupId || 0);
           }
+          
+          // Orden numérico interno de la edición (001, 002)
           const idA = (a.extData?.localId || '').toString();
           const idB = (b.extData?.localId || '').toString();
           const numA = extractNum(idA);
