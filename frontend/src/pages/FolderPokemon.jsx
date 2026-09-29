@@ -658,11 +658,18 @@ const [isSearching, setIsSearching] = useState(false);
   }, [searchCategory, searchLang]);
 
   // --- MANEJO DE CATÃLOGO LOGIC ---
-  const handleUpdateCard = async (cardIdToUpdate, newPrice, newStock) => {
+  const handleUpdateCard = async (cardIdToUpdate, newPrice, newStock, newLanguage) => {
     try {
-      await api.updateCard(id, cardIdToUpdate, { price: parseFloat(newPrice), stock: parseInt(newStock) });
+      const payload = { price: parseFloat(newPrice), stock: parseInt(newStock) };
+      if (newLanguage) payload.data = { language: newLanguage };
+      await api.updateCard(id, cardIdToUpdate, payload);
       // Optimistic update locally
-      setCards(cards.map(c => c.id === cardIdToUpdate ? { ...c, price: parseFloat(newPrice), stock: parseInt(newStock) } : c));
+      setCards(prev => prev.map(c => c.id === cardIdToUpdate ? {
+        ...c,
+        price: payload.price,
+        stock: payload.stock,
+        ...(newLanguage ? { language: newLanguage, data: { ...(c.data || {}), language: newLanguage } } : {}),
+      } : c));
       showToast('Carta actualizada correctamente', 'success');
     } catch (error) {
       console.error(error);
@@ -1155,6 +1162,7 @@ const [isSearching, setIsSearching] = useState(false);
                         dragHandleProps={getCatalogDragHandleProps(card, visibleIndex)}
                         compact
                         showDetails={showCardDetails}
+                        showLanguage={!isMylFolder}
                         dense={catalogGridDensity >= 3}
                       />
                     </div>

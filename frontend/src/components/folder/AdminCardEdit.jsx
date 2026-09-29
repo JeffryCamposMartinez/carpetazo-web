@@ -1,23 +1,27 @@
 import React, { useEffect, useState } from 'react';
 
-const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, compact = false, showDetails = false, dense = false }) => {
+const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, compact = false, showDetails = false, dense = false, showLanguage = false }) => {
   const [imgError, setImgError] = useState(false);
   const [price, setPrice] = useState(card.price);
   const [stock, setStock] = useState(card.stock);
+  const [language, setLanguage] = useState(card.language || 'English');
+  // En pantallas angostas o cuadrícula densa el idioma se muestra abreviado para que se lea completo
+  const shortLang = dense || (typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setPrice(card.price);
     setStock(card.stock);
-  }, [card.price, card.stock]);
+    setLanguage(card.language || 'English');
+  }, [card.price, card.stock, card.language]);
 
   const handleSave = async () => {
     setSaving(true);
-    await onUpdate(card.id, price, stock);
+    await onUpdate(card.id, price, stock, showLanguage ? language : undefined);
     setSaving(false);
   };
 
-  const hasChanges = price != card.price || stock != card.stock;
+  const hasChanges = price != card.price || stock != card.stock || (showLanguage && language !== (card.language || 'English'));
 
   return (
     <div className="bg-blue-50 rounded-2xl border border-gray-200 flex flex-col shadow-sm hover:shadow-md transition-shadow overflow-hidden relative group">
@@ -98,6 +102,26 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
               <input type="number" min="0" value={price} onChange={e => setPrice(e.target.value)} className={`w-full h-7 ${dense ? 'pl-4 pr-1 text-[11px]' : 'pl-6 pr-2 text-xs'} bg-white focus:outline-none font-bold rounded-md border border-gray-300 shadow-sm text-right text-gray-900 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`} />
             </div>
           </div>
+          {showLanguage && (
+            <div className={`w-full bg-gray-50 ${dense ? 'px-1.5 py-1' : 'px-2 py-1.5'} rounded-lg border border-gray-200 shadow-sm ${compact ? 'flex flex-col gap-1' : 'flex justify-between items-center'}`}>
+              <label className={`${dense ? 'text-[9px]' : 'text-[10px]'} text-gray-500 uppercase tracking-wider font-bold`}>Idioma</label>
+              <div className={`relative ${compact ? 'w-full' : 'w-24'}`}>
+                <select
+                  value={language}
+                  onChange={e => setLanguage(e.target.value)}
+                  style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none', backgroundImage: 'none', padding: 0, paddingLeft: dense ? '0.375rem' : '0.5rem', paddingRight: '1.25rem', lineHeight: '1.625rem' }}
+                  className={`block w-full h-7 ${dense ? 'text-[11px]' : 'text-xs'} bg-white focus:outline-none focus:border-[#1e40af] font-bold rounded-md border border-gray-300 shadow-sm text-gray-900 cursor-pointer truncate`}
+                >
+                  <option value="English">{shortLang ? 'EN' : 'Inglés'}</option>
+                  <option value="Spanish">{shortLang ? 'ES' : 'Español'}</option>
+                  <option value="Japanese">{shortLang ? 'JP' : 'Japonés'}</option>
+                </select>
+                <svg className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+            </div>
+          )}
         </div>}
       </div>
 
@@ -118,6 +142,7 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
   && prev.compact === next.compact
   && prev.showDetails === next.showDetails
   && prev.dense === next.dense
+  && prev.showLanguage === next.showLanguage
   && prev.onUpdate === next.onUpdate
   && prev.onDelete === next.onDelete
   && prev.dragHandleProps === next.dragHandleProps
