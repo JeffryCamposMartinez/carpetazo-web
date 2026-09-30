@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { api } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import OrdersTab from '../components/OrdersTab';
+import LiquidTabs from '../components/LiquidTabs';
 // html2canvas + jsPDF pesan mucho: se descargan solo al generar un PDF
 const HiddenPDFGenerator = lazy(() => import('../components/HiddenPDFGenerator'));
 
@@ -27,6 +28,53 @@ export const getFolderFilter = (color) => {
   }
 };
 
+const TCG_OPTIONS = [
+  ['Pokemon', 'Pokémon'],
+  ['Mitos y Leyendas', 'Mitos y Leyendas'],
+  ['Magic', 'Magic'],
+  ['YuGiOh', 'Yu-Gi-Oh!'],
+  ['OnePiece', 'One Piece']
+];
+const TCG_LABELS = Object.fromEntries(TCG_OPTIONS);
+const COLOR_NAMES = { red: 'rojo', blue: 'azul', pink: 'rosado', green: 'verde', yellow: 'amarillo', black: 'negro' };
+
+// La carpeta física: imagen de la carpeta teñida con su color, nombre, juego y cifras
+function FolderBinder({ folder }) {
+  return (
+    <div className="relative aspect-[32/37] w-full transition-transform duration-300 group-hover:-translate-y-1.5 motion-reduce:transition-none">
+      <div
+        className="absolute inset-0 bg-[url('/images/carpeta_v4.webp')] bg-[length:100%_100%] bg-no-repeat drop-shadow-md transition-[filter] group-hover:drop-shadow-xl"
+        style={{ filter: getFolderFilter(folder.color) }}
+      />
+      <div className="relative z-10 flex h-full w-full flex-col justify-between pb-[15%] pl-[18%] pr-[16%] pt-[5%]">
+        <div className="flex flex-col">
+          <div className="flex justify-between gap-1">
+            <span className="flex items-center gap-1 rounded-lg bg-black/30 px-2 py-1 text-sm font-bold text-white" title="Visitas esta semana">
+              <span translate="no" className="material-symbols-outlined text-[16px]">visibility</span>{folder.validWeeklyVisits || 0}
+            </span>
+            <span className="flex items-center gap-1 rounded-lg bg-black/30 px-2 py-1 text-sm font-bold text-white" title="Cartas en la carpeta">
+              <span translate="no" className="material-symbols-outlined text-[16px]">style</span>{folder.cardsCount || 0}
+            </span>
+          </div>
+          <h3 className="mt-2 line-clamp-3 w-full break-words pr-1 text-xl font-extrabold leading-tight text-white drop-shadow-md sm:text-2xl" title={folder.name}>
+            {folder.name}
+          </h3>
+        </div>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="min-w-0 truncate whitespace-nowrap rounded-md border border-white/70 px-2 py-1 text-[11px] font-bold text-white drop-shadow-sm sm:text-xs">
+            {TCG_LABELS[folder.tcg] || folder.tcg}
+          </span>
+          {!folder.isPublic && (
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/35 text-white" title="Carpeta privada">
+              <span translate="no" className="material-symbols-outlined text-[15px]">lock</span>
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -44,6 +92,7 @@ export default function Dashboard() {
   const [editFolderColor, setEditFolderColor] = useState('red');
   const [activeTab, setActiveTab] = useState('carpetas');
   const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
   const [generatingPdfFolder, setGeneratingPdfFolder] = useState(null);
   const [pdfProgress, setPdfProgress] = useState({ loaded: 0, total: 1, generating: false });
   const [activeMenuFolderId, setActiveMenuFolderId] = useState(null);
@@ -73,9 +122,12 @@ export default function Dashboard() {
       try {
         const response = await api.getMyFolders();
         if (response.success) {
+          // Las visitas semanales solo cuentan si corresponden a la semana actual
+          const currentWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
           const formattedFolders = response.folders.map(f => ({
             ...f,
-            cardsCount: f._count?.cards || 0
+            cardsCount: f._count?.cards || 0,
+            validWeeklyVisits: f.lastVisitWeek === currentWeek ? (f.weeklyVisits || 0) : 0
           }));
           setFolders(formattedFolders);
         }
@@ -88,19 +140,28 @@ export default function Dashboard() {
 
     fetchFolders();
 
-    // Fetch orders (now messages)
-    const fetchMessages = async () => {
+    // Pedidos recibidos en las carpetas del usuario
+    const fetchOrders = async () => {
       try {
-        const response = await api.getMyMessages();
+        const response = await api.getMyOrders();
         if (response.success) {
-          setOrders(response.messages);
+          setOrders(response.orders);
         }
       } catch (e) {
-        console.error("Error fetching messages", e);
+        console.error("Error al cargar pedidos", e);
+      } finally {
+        setOrdersLoading(false);
       }
     };
-    fetchMessages();
+    fetchOrders();
   }, [currentUser, navigate]);
+
+  // Reemplaza el pedido gestionado conservando el detalle de sus cartas
+  const handleOrderUpdated = (updated) => {
+    setOrders(prev => prev.map(o => (o.id === updated.id ? { ...o, status: updated.status, updatedAt: updated.updatedAt } : o)));
+  };
+
+  const pendingCount = orders.filter(o => o.status === 'pending').length;
 
   const handleCreateFolder = async (e) => {
     e.preventDefault();
@@ -212,380 +273,311 @@ export default function Dashboard() {
     );
   }
 
+  const totalCards = folders.reduce((sum, f) => sum + (f.cardsCount || 0), 0);
+  const weeklyVisits = folders.reduce((sum, f) => sum + (f.validWeeklyVisits || 0), 0);
+  const publicCount = folders.filter(f => f.isPublic).length;
+
+  const TAB_OPTIONS = [
+    { value: 'carpetas', label: <span className="flex items-center justify-center gap-1.5 sm:gap-2"><span translate="no" className="material-symbols-outlined hidden text-xl min-[400px]:inline">folder</span>Carpetas</span> },
+    {
+      value: 'solicitudes',
+      label: (
+        <span className="flex items-center justify-center gap-1.5 sm:gap-2">
+          <span translate="no" className="material-symbols-outlined hidden text-xl min-[400px]:inline">inbox</span>Solicitudes
+          {pendingCount > 0 && (
+            <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-[#ffcb05] px-1.5 font-['Space_Grotesk'] text-xs font-extrabold tabular-nums text-[#1a2b4b]" aria-label={`${pendingCount} pedidos por atender`}>
+              {pendingCount}
+            </span>
+          )}
+        </span>
+      )
+    },
+    { value: 'historial', label: <span className="flex items-center justify-center gap-1.5 sm:gap-2"><span translate="no" className="material-symbols-outlined hidden text-xl min-[400px]:inline">history</span>Historial</span> }
+  ];
+
   return (
     <>
       <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
       <div className="w-full rounded-none overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x border-gray-300 flex flex-col relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
-        <div className="flex-1 text-gray-900 px-4 sm:px-8 py-12 flex flex-col relative z-20">
-          <div className="flex flex-col mb-8 border-b border-gray-200">
-        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start mb-8 gap-6 min-h-[200px] sm:min-h-[180px] lg:min-h-[180px]">
-          <div className="max-w-3xl h-auto pt-6 lg:pt-8 flex flex-col justify-start">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#1a2b4b] mb-4 tracking-tight drop-shadow-sm lg:whitespace-nowrap">
-              {activeTab === 'carpetas' && 'Tus Carpetas'}
-              {activeTab === 'solicitudes' && 'Solicitudes Pendientes'}
-              {activeTab === 'historial' && 'Historial de Pedidos'}
-            </h1>
-            <p className="text-gray-600 text-lg md:text-xl leading-relaxed">
-              {activeTab === 'carpetas' && 'Crea catálogos personalizados para empezar a gestionar tus cartas, compartir enlaces con compradores y aumentar tus ventas.'}
-              {activeTab === 'solicitudes' && 'Gestiona y confirma los pedidos recientes para descontar el stock automáticamente.'}
-              {activeTab === 'historial' && 'Revisa el registro de todas tus ventas completadas.'}
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 custom-scrollbar">
-          <button 
-            onClick={() => setActiveTab('carpetas')}
-            className={`whitespace-nowrap px-4 py-2.5 md:px-6 md:py-3 font-bold text-sm md:text-lg rounded-t-xl transition-all flex items-center gap-2 ${
-              activeTab === 'carpetas' 
-                ? 'bg-[#1e40af] text-white border-b-4 border-[#1e40af] shadow-md' 
-                : 'bg-white text-gray-600 hover:bg-gray-50 border-b-4 border-gray-200'
-            }`}
-          >
-            <span translate="no" className="material-symbols-outlined text-lg md:text-xl">folder</span> Carpetas
-          </button>
-          <button 
-            onClick={() => setActiveTab('solicitudes')}
-            className={`whitespace-nowrap px-4 py-2.5 md:px-6 md:py-3 font-bold text-sm md:text-lg rounded-t-xl transition-all flex items-center gap-2 relative ${
-              activeTab === 'solicitudes' 
-                ? 'bg-[#1e40af] text-white border-b-4 border-[#1e40af] shadow-md' 
-                : 'bg-white text-gray-600 hover:bg-gray-50 border-b-4 border-gray-200'
-            }`}
-          >
-            <span translate="no" className="material-symbols-outlined text-lg md:text-xl">notifications</span> Solicitudes
-            {orders.filter(o => o.status === 'pending').length > 0 && (
-              <span className="absolute top-2 right-2 md:right-4 flex h-2.5 w-2.5 md:h-3 md:w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-full w-full bg-red-500"></span>
-              </span>
+        <div className="flex-1 text-gray-900 px-4 sm:px-8 pt-6 pb-16 md:pt-12 flex flex-col relative z-20">
+
+          {/* Encabezado */}
+          <header className="mb-8 hidden flex-col gap-6 md:flex lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <h1 className="mb-3 text-4xl font-extrabold tracking-tight text-[#1a2b4b] md:text-5xl lg:text-6xl">
+                {activeTab === 'carpetas' && 'Tus carpetas'}
+                {activeTab === 'solicitudes' && 'Solicitudes'}
+                {activeTab === 'historial' && 'Historial de ventas'}
+              </h1>
+              <p className="text-lg leading-relaxed text-slate-600">
+                {activeTab === 'carpetas' && 'Arma catálogos con tus cartas, publícalos y comparte el enlace con quien quiera comprarte.'}
+                {activeTab === 'solicitudes' && 'Pedidos que llegaron desde tus carpetas públicas. Al confirmar una venta, el stock se descuenta solo.'}
+                {activeTab === 'historial' && 'Tus ventas confirmadas y pedidos rechazados, con cada carta, monto y fecha.'}
+              </p>
+            </div>
+            {activeTab === 'carpetas' && folders.length > 0 && (
+              <dl className="flex gap-8 lg:gap-10">
+                {[
+                  ['Carpetas', folders.length, `${publicCount} ${publicCount === 1 ? 'pública' : 'públicas'}`],
+                  ['Cartas', totalCards, 'en total'],
+                  ['Visitas', weeklyVisits, 'esta semana']
+                ].map(([label, value, hint]) => (
+                  <div key={label}>
+                    <dt className="text-sm text-slate-500">{label}</dt>
+                    <dd className="font-['Space_Grotesk'] text-3xl font-bold tabular-nums text-[#1a2b4b]">{value}</dd>
+                    <dd className="text-xs text-slate-500">{hint}</dd>
+                  </div>
+                ))}
+              </dl>
             )}
-          </button>
-          <button 
-            onClick={() => setActiveTab('historial')}
-            className={`whitespace-nowrap px-4 py-2.5 md:px-6 md:py-3 font-bold text-sm md:text-lg rounded-t-xl transition-all flex items-center gap-2 ${
-              activeTab === 'historial' 
-                ? 'bg-[#1e40af] text-white border-b-4 border-[#1e40af] shadow-md' 
-                : 'bg-white text-gray-600 hover:bg-gray-50 border-b-4 border-gray-200'
-            }`}
-          >
-            <span translate="no" className="material-symbols-outlined text-lg md:text-xl">history</span> Historial
-          </button>
-        </div>
-      </div>
+          </header>
+
+          <div className="mb-8 md:mb-10">
+            <LiquidTabs
+              ariaLabel="Secciones del panel"
+              options={TAB_OPTIONS}
+              value={activeTab}
+              onChange={setActiveTab}
+              className="w-full sm:w-max rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-slate-200"
+              buttonClassName="h-12 whitespace-nowrap rounded-xl px-2 text-sm font-bold sm:px-6 sm:text-base focus-visible:ring-2 focus-visible:ring-[#1e40af]"
+              indicatorClassName="rounded-xl bg-[#1e40af]"
+              indicatorStyle={{ top: 6, bottom: 6 }}
+              activeTextClassName="text-white"
+              inactiveTextClassName="text-slate-600 hover:text-[#1a2b4b]"
+            />
+          </div>
 
       {activeTab === 'carpetas' ? (
-      <div className="flex flex-col gap-8 w-full">
-        <div className="flex justify-center w-full mt-2 mb-2">
-          <button 
+        <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 sm:gap-x-8 md:grid-cols-4 lg:grid-cols-5">
+          {/* Nueva carpeta: siempre primera para no tener que bajar hasta el final */}
+          <button
+            type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-[#1e40af] hover:bg-blue-800 text-white font-bold py-3.5 md:py-4 px-8 md:px-12 rounded-full transition-all shadow-lg hover:shadow-[#1e40af]/30 flex items-center justify-center gap-3 shrink-0 hover:-translate-y-1 w-[90%] sm:w-auto"
+            className="group mx-auto flex aspect-[32/37] w-full max-w-[260px] flex-col items-center justify-center gap-3 rounded-[22px] border-[3px] border-dashed border-[#1e40af]/35 bg-white/40 text-[#1e40af] transition-colors hover:border-[#1e40af] hover:bg-white/80 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#1e40af]/40"
           >
-            <span translate="no" className="material-symbols-outlined text-2xl">add_circle</span>
-            <span className="text-lg">Crear Carpeta</span>
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1e40af] text-white shadow-md transition-transform group-hover:scale-110 motion-reduce:transition-none">
+              <span translate="no" className="material-symbols-outlined text-3xl">add</span>
+            </span>
+            <span className="text-lg font-extrabold">Nueva carpeta</span>
+            {folders.length === 0 && <span className="max-w-[80%] text-center text-sm text-slate-600">Crea la primera para empezar a subir cartas</span>}
           </button>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
-
           {folders.map(folder => (
-            <div 
-              key={folder.id} 
-              className={`relative w-full aspect-[32/37] max-w-[320px] mx-auto flex flex-col cursor-pointer group hover:-translate-y-2 transition-transform duration-300 mb-6 ${activeMenuFolderId === folder.id ? 'z-50' : 'z-10'}`}
-            >
-            {/* The Background Image */}
-            <div className="absolute inset-0 bg-[url('/images/carpeta_v4.webp')] bg-[length:100%_100%] bg-no-repeat drop-shadow-md group-hover:drop-shadow-xl transition-all" style={{ filter: getFolderFilter(folder.color) }}></div>
-
-            {/* Action Menu (3 dots) */}
-            <div className="absolute -top-4 -right-2 z-50 folder-menu-container">
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveMenuFolderId(activeMenuFolderId === folder.id ? null : folder.id);
-                }}
-                className="w-10 h-10 rounded-full bg-[#1a1a1a] border border-white/10 hover:bg-black/80 text-white flex items-center justify-center transition-colors shadow-lg"
+            <div key={folder.id} className={`relative mx-auto flex w-full max-w-[260px] flex-col ${activeMenuFolderId === folder.id ? 'z-50' : 'z-10'}`}>
+              <button
+                type="button"
+                onClick={() => navigate(`/carpeta/${folder.id}`)}
+                className="group block w-full rounded-2xl text-left focus:outline-none focus-visible:ring-4 focus-visible:ring-[#1e40af]/40"
+                aria-label={`Abrir carpeta ${folder.name}`}
               >
-                <span translate="no" className="material-symbols-outlined text-[24px]">more_vert</span>
+                <FolderBinder folder={folder} />
               </button>
-              
-              {/* Animated Popover */}
-              <div 
-                className={`absolute top-12 -right-2 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl py-2 z-[100] flex flex-col gap-1 w-48 origin-top-right transition-all duration-200 ${
-                  activeMenuFolderId === folder.id 
-                    ? 'opacity-100 scale-100 pointer-events-auto' 
-                    : 'opacity-0 scale-95 pointer-events-none'
-                }`}
-              >
-                <button 
-                  onClick={(e) => { e.stopPropagation(); setActiveMenuFolderId(null); handleTogglePublic(e, folder); }}
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-white/10 transition-colors text-white w-full"
-                >
-                  <span translate="no" className={`material-symbols-outlined text-[18px] ${folder.isPublic ? 'text-green-400' : 'text-gray-400'}`}>{folder.isPublic ? 'public' : 'public_off'}</span>
-                  {folder.isPublic ? 'Hacer Privada' : 'Hacer Pública'}
-                </button>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); setActiveMenuFolderId(null); handleShareFolder(e, folder); }}
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-white/10 transition-colors text-white w-full"
-                >
-                  <span translate="no" className="material-symbols-outlined text-[18px] text-blue-400">share</span>
-                  Compartir enlace
-                </button>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveMenuFolderId(null);
-                    setGeneratingPdfFolder(folder.id);
-                    setPdfProgress({ loaded: 0, total: 1, generating: false });
-                  }}
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-white/10 transition-colors text-white w-full"
-                >
-                  <span translate="no" className="material-symbols-outlined text-[18px] text-purple-400">picture_as_pdf</span>
-                  Generar PDF
-                </button>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); setActiveMenuFolderId(null); handleEditFolderClick(e, folder); }}
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-white/10 transition-colors text-white w-full"
-                >
-                  <span translate="no" className="material-symbols-outlined text-[18px] text-yellow-400">edit</span>
-                  Renombrar
-                </button>
-                <hr className="border-white/10 my-1 mx-2" />
-                <button 
-                  onClick={(e) => { e.stopPropagation(); setActiveMenuFolderId(null); handleDeleteFolder(e, folder.id, folder.name); }}
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-red-500/20 text-red-400 transition-colors w-full"
-                >
-                  <span translate="no" className="material-symbols-outlined text-[18px]">delete</span>
-                  Eliminar
-                </button>
-              </div>
-            </div>
 
-            {/* Content overlay */}
-            <div 
-              onClick={() => navigate(`/carpeta/${folder.id}`)}
-              className="relative z-10 w-full h-full pt-[5%] pl-[18%] pr-[16%] pb-[15%] flex flex-col justify-between"
-            >
-              
-              {/* TOP SECTION */}
-              <div className="w-full flex flex-col">
-                {/* Top Badges */}
-                <div className="flex justify-between w-full">
-                  <div className="bg-black/30 px-3 py-1.5 rounded-lg text-sm font-bold text-white shadow-sm flex items-center gap-1.5" title="Visitas de la semana">
-                    <span translate="no" className="material-symbols-outlined text-[16px]">visibility</span> {folder.validWeeklyVisits > 0 ? folder.validWeeklyVisits : (folder.validTotalVisits || 0)}
+              {/* Acciones rápidas bajo la carpeta */}
+              <div className="mt-3 flex items-center justify-between gap-2 px-1">
+                <button
+                  type="button"
+                  onClick={(e) => handleTogglePublic(e, folder)}
+                  aria-pressed={folder.isPublic}
+                  title={folder.isPublic ? 'Visible para compradores. Toca para hacerla privada.' : 'Solo tú la ves. Toca para publicarla.'}
+                  className={`inline-flex h-9 items-center gap-1.5 rounded-full pl-2 pr-3 text-sm font-bold ring-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${folder.isPublic ? 'bg-emerald-50 text-[#047857] ring-emerald-200 hover:bg-emerald-100' : 'bg-white text-slate-600 ring-slate-300 hover:bg-slate-50'}`}
+                >
+                  <span translate="no" className="material-symbols-outlined text-lg">{folder.isPublic ? 'public' : 'lock'}</span>
+                  {folder.isPublic ? 'Pública' : 'Privada'}
+                </button>
+                <div className="flex items-center gap-1 folder-menu-container">
+                  <button
+                    type="button"
+                    onClick={(e) => handleShareFolder(e, folder)}
+                    title="Compartir enlace"
+                    aria-label={`Compartir ${folder.name}`}
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-[#1e40af] hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"
+                  >
+                    <span translate="no" className="material-symbols-outlined text-xl">share</span>
+                  </button>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setActiveMenuFolderId(activeMenuFolderId === folder.id ? null : folder.id); }}
+                      aria-haspopup="menu"
+                      aria-expanded={activeMenuFolderId === folder.id}
+                      aria-label={`Más opciones de ${folder.name}`}
+                      className="flex h-9 w-9 items-center justify-center rounded-full text-slate-600 hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"
+                    >
+                      <span translate="no" className="material-symbols-outlined text-xl">more_horiz</span>
+                    </button>
+                    <div
+                      role="menu"
+                      className={`absolute bottom-11 right-0 z-[100] w-52 origin-bottom-right rounded-2xl bg-white py-2 shadow-[0_20px_40px_-12px_rgba(26,43,75,0.35)] ring-1 ring-slate-200 transition duration-150 motion-reduce:transition-none ${activeMenuFolderId === folder.id ? 'pointer-events-auto scale-100 opacity-100' : 'pointer-events-none scale-95 opacity-0'}`}
+                    >
+                      {[
+                        ['open_in_new', 'Ver como comprador', (e) => { e.stopPropagation(); window.open(`/c/${folder.id}`, '_blank', 'noopener'); }],
+                        ['picture_as_pdf', 'Descargar PDF', (e) => { e.stopPropagation(); setGeneratingPdfFolder(folder.id); setPdfProgress({ loaded: 0, total: 1, generating: false }); }],
+                        ['edit', 'Editar nombre y color', (e) => handleEditFolderClick(e, folder)]
+                      ].map(([icon, label, action]) => (
+                        <button
+                          key={label}
+                          type="button"
+                          role="menuitem"
+                          onClick={(e) => { setActiveMenuFolderId(null); action(e); }}
+                          className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold text-[#1a2b4b] hover:bg-slate-50"
+                        >
+                          <span translate="no" className="material-symbols-outlined text-lg text-slate-500">{icon}</span>{label}
+                        </button>
+                      ))}
+                      <hr className="mx-3 my-1 border-slate-100" />
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={(e) => { setActiveMenuFolderId(null); handleDeleteFolder(e, folder.id, folder.name); }}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold text-[#b91c1c] hover:bg-red-50"
+                      >
+                        <span translate="no" className="material-symbols-outlined text-lg">delete</span>Eliminar carpeta
+                      </button>
+                    </div>
                   </div>
-                  <div className="bg-black/30 px-3 py-1.5 rounded-lg text-sm font-bold text-white shadow-sm flex items-center gap-1.5" title="Cartas">
-                    <span translate="no" className="material-symbols-outlined text-[16px]">style</span> {folder.cardsCount || 0}
-                  </div>
-                </div>
-                
-                {/* Folder Title */}
-                <div className="flex flex-col items-start text-left mt-2 w-full pr-2">
-                  <h3 className="font-extrabold text-white text-xl sm:text-2xl md:text-3xl drop-shadow-md leading-tight line-clamp-3 break-words overflow-hidden w-full" title={folder.name}>{folder.name}</h3>
                 </div>
               </div>
-              
-              {/* BOTTOM SECTION */}
-              <div className="w-full mt-auto flex flex-col">
-                <div className="flex justify-start mb-3">
-                  <span className="text-[10px] sm:text-xs font-bold px-3 py-1 text-white rounded-md border border-white/60 tracking-wider uppercase drop-shadow-sm">{folder.tcg}</span>
-                </div>
-              </div>
-              
             </div>
-          </div>
-        ))}
-      </div>
-      </div>
+          ))}
+
+        </div>
       ) : (
-          <OrdersTab currentUser={currentUser} showToast={showToast} filter={activeTab} orders={orders} />
+          <OrdersTab
+            showToast={showToast}
+            filter={activeTab}
+            orders={orders}
+            loading={ordersLoading}
+            onOrderUpdated={handleOrderUpdated}
+            onGoToFolders={() => setActiveTab('carpetas')}
+          />
         )}
       </div>
     </div>
   </div>
 
       {toastMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl border border-white/10 z-[9999] animate-[slideUp_0.3s_ease-out]">
+        <div role="status" className="fixed top-4 left-1/2 -translate-x-1/2 bg-[#1a2b4b] text-white px-6 py-3 rounded-full shadow-2xl z-[9999] animate-[slideUp_0.3s_ease-out]">
           {toastMessage}
         </div>
       )}
 
-      {/* Create Folder Modal */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]" onClick={() => setIsCreateModalOpen(false)}>
-          <div className="bg-white border border-gray-200 p-6 md:p-8 rounded-3xl max-w-md w-full shadow-2xl animate-[slideIn_0.2s_ease_out] relative overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-transparent opacity-50 pointer-events-none"></div>
-            
-            <div className="flex items-center justify-between mb-6 relative z-10">
-              <h3 className="text-2xl font-bold text-[#1a2b4b] flex items-center gap-2">
-                <span translate="no" className="material-symbols-outlined text-[#1e40af]">create_new_folder</span>
-                Nueva Carpeta
-              </h3>
-              <button 
-                onClick={() => setIsCreateModalOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
-              >
-                <span translate="no" className="material-symbols-outlined text-xl">close</span>
-              </button>
-            </div>
-            
-            <form onSubmit={handleCreateFolder} className="flex flex-col gap-4 relative z-10">
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nombre de la carpeta</label>
-                <input 
-                  type="text" 
-                  maxLength={22}
-                  placeholder="Ej: Base Set" 
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-300 text-gray-900 px-4 py-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#1e40af] focus:border-[#1e40af] transition-all font-medium"
-                  required
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Categoría (TCG)</label>
-                <select 
-                  value={newFolderTcg}
-                  onChange={(e) => setNewFolderTcg(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-300 text-gray-900 px-4 py-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#1e40af] focus:border-[#1e40af] transition-all appearance-none cursor-pointer font-medium"
-                >
-                  <option value="Pokemon">Pokémon TCG</option>
-                  <option value="YuGiOh">Yu-Gi-Oh!</option>
-                  <option value="Magic">Magic: The Gathering</option>
-                  <option value="Mitos y Leyendas">Mitos y Leyendas</option>
-                  <option value="OnePiece">One Piece TCG</option>
-                </select>
-              </div>
-              
-              <div className="flex flex-col gap-2 mt-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Color de la carpeta</label>
-                <div className="flex gap-3 mt-1">
-                  {FOLDER_COLORS.map(c => (
-                    <button 
-                      key={c.id} type="button" 
-                      onClick={() => setNewFolderColor(c.id)}
-                      className={`w-10 h-10 rounded-full border-2 transition-all ${newFolderColor === c.id ? 'border-[#1e40af] scale-110 shadow-md' : 'border-transparent opacity-70 hover:opacity-100 hover:scale-110'}`}
-                      style={{ backgroundColor: c.hex }}
-                      title={`Color: ${c.id}`}
-                    />
-                  ))}
+      {/* Crear / editar carpeta: formulario con vista previa en vivo */}
+      {(isCreateModalOpen || editingFolder) && (() => {
+        const isEdit = Boolean(editingFolder);
+        const name = isEdit ? editFolderName : newFolderName;
+        const color = isEdit ? editFolderColor : newFolderColor;
+        const close = () => (isEdit ? setEditingFolder(null) : setIsCreateModalOpen(false));
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1a2b4b]/60 p-4 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]" onClick={close}>
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="folder-dialog-title"
+              className="grid w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl md:grid-cols-[1fr_1.15fr]"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="hidden items-center justify-center bg-[#DBEAFE] p-8 md:flex">
+                <div className="w-full max-w-[230px]">
+                  <FolderBinder folder={{
+                    name: name.trim() || 'Nombre de tu carpeta',
+                    color,
+                    tcg: isEdit ? editingFolder.tcg : newFolderTcg,
+                    cardsCount: isEdit ? editingFolder.cardsCount : 0,
+                    validWeeklyVisits: isEdit ? editingFolder.validWeeklyVisits : 0,
+                    isPublic: isEdit ? editingFolder.isPublic : false
+                  }} />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 mt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="px-6 py-2 rounded-xl text-gray-600 font-bold hover:bg-gray-100 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={isCreating}
-                  className="px-6 py-2 bg-[#1e40af] text-white font-bold rounded-xl hover:bg-blue-800 shadow-md transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 flex items-center gap-2"
-                >
-                  {isCreating ? (
-                    <span className="animate-pulse">Creando...</span>
-                  ) : (
-                    <>
-                      <span translate="no" className="material-symbols-outlined text-[18px]">add</span>
-                      Crear
-                      </>
-
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Folder Modal */}
-      {editingFolder && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]" onClick={() => setEditingFolder(null)}>
-          <div className="bg-white border border-gray-200 p-6 md:p-8 rounded-3xl max-w-md w-full shadow-2xl animate-[slideIn_0.2s_ease_out]" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-[#1a2b4b]">Editar Carpeta</h3>
-              <button 
-                onClick={() => setEditingFolder(null)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
-              >
-                <span translate="no" className="material-symbols-outlined text-xl">close</span>
-              </button>
-            </div>
-            
-            <form onSubmit={submitEditFolder} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nombre de la carpeta</label>
-                <input 
-                  type="text" 
-                  maxLength={22}
-                  value={editFolderName}
-                  onChange={(e) => setEditFolderName(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-300 text-gray-900 px-4 py-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#1e40af] focus:border-[#1e40af] transition-all font-medium"
-                  required
-                />
-              </div>
-              
-              {/* Edit Color Selector */}
-              <div className="flex flex-col gap-2 mt-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Color de la carpeta</label>
-                <div className="flex gap-3 mt-1">
-                  {FOLDER_COLORS.map(c => (
-                    <button 
-                      key={c.id} type="button" 
-                      onClick={() => setEditFolderColor(c.id)}
-                      className={`w-10 h-10 rounded-full border-2 transition-all ${editFolderColor === c.id ? 'border-[#1e40af] scale-110 shadow-md' : 'border-transparent opacity-70 hover:opacity-100 hover:scale-110'}`}
-                      style={{ backgroundColor: c.hex }}
-                      title={`Color: ${c.id}`}
-                    />
-                  ))}
+              <form onSubmit={isEdit ? submitEditFolder : handleCreateFolder} className="flex flex-col gap-5 p-6 sm:p-8">
+                <div className="flex items-start justify-between gap-4">
+                  <h3 id="folder-dialog-title" className="text-2xl font-extrabold text-[#1a2b4b]">{isEdit ? 'Editar carpeta' : 'Nueva carpeta'}</h3>
+                  <button type="button" onClick={close} aria-label="Cerrar" className="-mr-2 -mt-1 flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100">
+                    <span translate="no" className="material-symbols-outlined text-xl">close</span>
+                  </button>
                 </div>
-              </div>
 
-              <div className="flex justify-end gap-3 mt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setEditingFolder(null)}
-                  className="px-6 py-2 rounded-xl text-gray-600 font-bold hover:bg-gray-100 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-6 py-2 bg-[#1e40af] text-white font-bold rounded-xl hover:bg-blue-800 shadow-md transition-all hover:-translate-y-0.5"
-                >
-                  Guardar Cambios
-                </button>
-              </div>
-            </form>
+                <label className="flex flex-col gap-2">
+                  <span className="flex justify-between text-sm font-bold text-[#1a2b4b]">
+                    Nombre <span className="font-normal text-slate-400 tabular-nums">{name.length}/22</span>
+                  </span>
+                  <input
+                    type="text"
+                    maxLength={22}
+                    placeholder="Ej: Ventas de la semana"
+                    value={name}
+                    onChange={(e) => (isEdit ? setEditFolderName(e.target.value) : setNewFolderName(e.target.value))}
+                    className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 font-semibold text-[#1a2b4b] focus:border-[#1e40af] focus:outline-none focus:ring-2 focus:ring-[#1e40af]/30"
+                    autoFocus
+                    required
+                  />
+                </label>
+
+                {!isEdit && (
+                  <fieldset className="flex flex-col gap-2">
+                    <legend className="mb-2 text-sm font-bold text-[#1a2b4b]">Juego</legend>
+                    <div className="grid grid-cols-2 gap-2">
+                      {TCG_OPTIONS.map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          aria-pressed={newFolderTcg === value}
+                          onClick={() => setNewFolderTcg(value)}
+                          className={`h-11 rounded-xl px-3 text-sm font-bold ring-1 transition-colors ${newFolderTcg === value ? 'bg-[#1e40af] text-white ring-[#1e40af]' : 'bg-white text-slate-700 ring-slate-300 hover:bg-slate-50'}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-slate-500">El juego no se puede cambiar después.</p>
+                  </fieldset>
+                )}
+
+                <fieldset>
+                  <legend className="mb-3 text-sm font-bold text-[#1a2b4b]">Color</legend>
+                  <div className="flex flex-wrap gap-3">
+                    {FOLDER_COLORS.map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => (isEdit ? setEditFolderColor(c.id) : setNewFolderColor(c.id))}
+                        aria-pressed={color === c.id}
+                        aria-label={`Color ${COLOR_NAMES[c.id] || c.id}`}
+                        className={`h-10 w-10 rounded-full ring-offset-2 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${color === c.id ? 'scale-110 ring-2 ring-[#1a2b4b]' : 'hover:scale-110'}`}
+                        style={{ backgroundColor: c.hex }}
+                      />
+                    ))}
+                  </div>
+                </fieldset>
+
+                <div className="mt-auto flex justify-end gap-3 pt-2">
+                  <button type="button" onClick={close} className="h-11 rounded-xl px-5 font-bold text-slate-600 hover:bg-slate-100">Cancelar</button>
+                  <button
+                    type="submit"
+                    disabled={isCreating}
+                    className="flex h-11 items-center gap-2 rounded-xl bg-[#1e40af] px-6 font-bold text-white shadow-md hover:bg-[#1e3a8a] disabled:opacity-60"
+                  >
+                    {isEdit ? 'Guardar cambios' : isCreating ? 'Creando…' : 'Crear carpeta'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
-      {/* Delete Confirmation Modal */}
+      {/* Confirmación de borrado */}
       {folderToDelete && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white border border-gray-200 p-6 md:p-8 rounded-3xl max-w-md w-full shadow-2xl animate-[fadeIn_0.2s_ease-out]">
-            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-6">
-              <span translate="no" className="material-symbols-outlined text-4xl text-red-600">warning</span>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1a2b4b]/60 p-4 backdrop-blur-sm" onClick={() => setFolderToDelete(null)}>
+          <div role="alertdialog" aria-modal="true" aria-labelledby="delete-title" className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl animate-[fadeIn_0.2s_ease-out] sm:p-8" onClick={e => e.stopPropagation()}>
+            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
+              <span translate="no" className="material-symbols-outlined text-3xl text-[#b91c1c]">delete</span>
             </div>
-            <h3 className="text-2xl font-bold text-center text-gray-900 mb-2">¿Eliminar carpeta?</h3>
-            <p className="text-center text-gray-600 mb-8">
-              Estás a punto de eliminar <strong>"{folderToDelete.name}"</strong>. Esta acción no se puede deshacer.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button 
-                onClick={() => setFolderToDelete(null)}
-                className="flex-1 px-6 py-3 rounded-xl border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold transition-colors"
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={confirmDelete}
-                className="flex-1 px-6 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold transition-colors shadow-md"
-              >
-                Eliminar
-              </button>
+            <h3 id="delete-title" className="mb-2 text-2xl font-extrabold text-[#1a2b4b]">¿Eliminar "{folderToDelete.name}"?</h3>
+            <p className="mb-8 text-slate-600">Se borrarán la carpeta y todas sus cartas. Los compradores dejarán de verla y no se puede recuperar.</p>
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button onClick={() => setFolderToDelete(null)} className="h-11 rounded-xl px-5 font-bold text-slate-600 hover:bg-slate-100">Conservar carpeta</button>
+              <button onClick={confirmDelete} className="h-11 rounded-xl bg-[#b91c1c] px-6 font-bold text-white hover:bg-[#991b1b]">Eliminar carpeta</button>
             </div>
           </div>
         </div>

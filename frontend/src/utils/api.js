@@ -116,6 +116,8 @@ export const api = {
   // Orders
   createOrder: (data) => apiFetch('/orders/create', { method: 'POST', body: JSON.stringify(data) }),
   updateOrder: (id, data) => apiFetch('/orders/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  getMyOrders: () => apiFetch('/orders/mine'),
+  setMyOrderStatus: (id, status) => apiFetch('/orders/mine/' + id + '/status', { method: 'POST', body: JSON.stringify({ status }) }),
   getOrders: () => apiFetch('/orders'),
   getHistory: () => apiFetch('/history'),
   processOrder: (code) => apiFetch('/process-order', { method: 'POST', body: JSON.stringify({ code }) }),

@@ -238,7 +238,8 @@ const routeLimiter = (windowMs, max) => rateLimit({
 app.use('/api/orders/create', routeLimiter(15 * 60 * 1000, 20));
 app.use('/api/proxy-image', routeLimiter(15 * 60 * 1000, 600));
 app.use('/api/folders/:id/visit', routeLimiter(15 * 60 * 1000, 120));
-app.use('/api/users/username/check', routeLimiter(15 * 60 * 1000, 60));
+app.use('/api/users/username/check', routeLimiter(15 * 60 * 1000, 60));
+app.use('/api/orders/mine/:id/status', routeLimiter(15 * 60 * 1000, 120));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
 // Proxy con caché hacia TCGCSV (Pokémon inglés y japonés): el navegador no puede llamarlo directo por CORS
@@ -832,6 +833,97 @@ app.post('/api/orders/create', async (req, res) => {
   }
 });
 
+
+// --- Pedidos del vendedor: solo ve y gestiona los pedidos de sus propias carpetas ---
+const getSellerId = async (req) => {
+  const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
+  return user?.id || null;
+};
+
+app.get('/api/orders/mine', authenticateToken, async (req, res) => {
+  try {
+    const sellerId = await getSellerId(req);
+    if (!sellerId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+
+    const orders = await prisma.order.findMany({
+      where: { sellerId },
+      orderBy: { createdAt: 'desc' },
+      take: 1000
+    });
+
+    // Imagen, edición, número e idioma actuales de cada carta del pedido
+    const cardIds = [...new Set(orders.flatMap((order) => normalizeOrderItems(order.items).map((item) => String(item.id || ''))).filter(isUuid))];
+    const cards = cardIds.length
+      ? await prisma.card.findMany({ where: { id: { in: cardIds } }, select: { id: true, imageUrl: true, stock: true, data: true } })
+      : [];
+    const cardsById = new Map(cards.map((card) => [card.id, card]));
+
+    res.json({
+      success: true,
+      orders: orders.map((order) => {
+        const formatted = formatOrderForUi(order);
+        return {
+          ...formatted,
+          items: formatted.items.map((item) => {
+            const card = cardsById.get(String(item.id || ''));
+            const cardData = card?.data && typeof card.data === 'object' ? card.data : {};
+            return {
+              id: item.id,
+              name: item.name,
+              quantity: item.quantity,
+              price: item.price,
+              imageUrl: card?.imageUrl || null,
+              set: cardData.set || '',
+              number: cardData.number || '',
+              language: cardData.language || '',
+              stockNow: card ? card.stock : null
+            };
+          })
+        };
+      })
+    });
+  } catch (error) {
+    console.error('Error loading seller orders:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+app.post('/api/orders/mine/:id/status', authenticateToken, async (req, res) => {
+  try {
+    const status = req.body?.status;
+    if (!['completed', 'rejected'].includes(status)) {
+      return badRequest(res, 'Estado inválido');
+    }
+
+    const sellerId = await getSellerId(req);
+    const order = isUuid(req.params.id) ? await prisma.order.findUnique({ where: { id: req.params.id } }) : null;
+    if (!order || !sellerId || order.sellerId !== sellerId) {
+      return res.status(404).json({ success: false, message: 'Pedido no encontrado' });
+    }
+    if (order.status !== 'pending') {
+      return res.status(409).json({ success: false, message: 'Este pedido ya fue gestionado' });
+    }
+
+    // Completar descuenta el stock de las cartas de la carpeta en la misma transacción
+    const updated = await prisma.$transaction(async (tx) => {
+      if (status === 'completed') {
+        for (const item of normalizeOrderItems(order.items)) {
+          const id = String(item.id || '');
+          if (!isUuid(id)) continue;
+          const card = await tx.card.findFirst({ where: { id, folderId: order.folderId } });
+          if (!card) continue;
+          await tx.card.update({ where: { id }, data: { stock: Math.max(0, Number(card.stock || 0) - Number(item.quantity || 1)) } });
+        }
+      }
+      return tx.order.update({ where: { id: order.id }, data: { status } });
+    });
+
+    res.json({ success: true, order: formatOrderForUi(updated) });
+  } catch (error) {
+    console.error('Error updating seller order:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
 
 // POST process order (discount stock using order code)
 

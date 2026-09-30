@@ -1,4 +1,5 @@
 ﻿import LiquidTabs from '../components/LiquidTabs';
+import OrdersTab from '../components/OrdersTab';
 import { useState, useEffect, useRef } from 'react';
 
 import React from 'react';
@@ -502,10 +503,11 @@ const [isSearching, setIsSearching] = useState(false);
   };
 
   // --- SALES & HISTORY STATE ---
-  const [pendingOrders, setPendingOrders] = useState([]);
-  const [history, setHistory] = useState([]);
+  // Pedidos de esta carpeta: misma fuente y acciones que Solicitudes/Historial del panel
+  const [folderOrders, setFolderOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [salesView, setSalesView] = useState('solicitudes');
   const [cards, setCards] = useState([]);
-  const [isProcessingOrder, setIsProcessingOrder] = useState(false);
 
   useEffect(() => {
     if (!draggedCatalogCardId) return undefined;
@@ -557,7 +559,6 @@ const [isSearching, setIsSearching] = useState(false);
   useEffect(() => {
     if (activeTab !== 'sales') return;
     fetchOrders();
-    fetchHistory();
   }, [activeTab]);
 
   // Fetch logic
@@ -932,20 +933,19 @@ const [isSearching, setIsSearching] = useState(false);
 
   const fetchOrders = async () => {
     try {
-      const result = await api.getOrders();
-      if (result.success) setPendingOrders(result.data || []);
+      const result = await api.getMyOrders();
+      if (result.success) setFolderOrders((result.orders || []).filter(order => order.folderId === id));
     } catch (err) {
-      console.error('Error fetching orders:', err);
+      console.error('Error al cargar pedidos:', err);
+    } finally {
+      setOrdersLoading(false);
     }
   };
 
-  const fetchHistory = async () => {
-    try {
-      const result = await api.getHistory();
-      if (result.success) setHistory(result.data || []);
-    } catch (err) {
-      console.error('Error fetching history:', err);
-    }
+  // Al confirmar una venta el stock cambió en el servidor: se recargan las cartas
+  const handleOrderUpdated = (updated) => {
+    setFolderOrders(prev => prev.map(o => (o.id === updated.id ? { ...o, status: updated.status, updatedAt: updated.updatedAt } : o)));
+    if (updated.status === 'completed') fetchCards();
   };
 
   const openBuyerPreview = () => {
@@ -1985,112 +1985,47 @@ const [isSearching, setIsSearching] = useState(false);
     </div>
   );
 
-  // --- SALES & HISTORY LOGIC ---
-  const handleProcessOrder = async (code) => {
-    if (!code) return;
-    setIsProcessingOrder(true);
-    try {
-      const result = await api.processOrder(code);
-      if (result.success) { fetchCards(); fetchOrders(); fetchHistory(); }
-    } catch (err) { console.error(err); } finally { setIsProcessingOrder(false); }
-  };
-
-  const handleRejectOrder = async (code) => {
-    if (!code) return;
-    try {
-      const result = await api.rejectOrder(code);
-      if (result.success) { fetchOrders(); fetchHistory(); }
-    } catch (err) { console.error(err); }
-  };
-
-  const formatCLP = (price) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(price);
-
-  const renderSalesTab = () => (
-    <div className="flex flex-col gap-8">
-      {/* Solicitudes Pendientes */}
-      <div className="bg-surface-container-low p-6 rounded-2xl border border-surface-container shadow-sm">
-        <h2 className="font-headline-md text-headline-md text-on-background flex items-center gap-2 mb-4">
-          <span translate="no" className="material-symbols-outlined text-secondary">notifications_active</span>
-          Solicitudes Pendientes ({pendingOrders.length})
-        </h2>
-        {pendingOrders.length === 0 ? (
-          <div className="text-center py-8 text-on-surface-variant bg-surface rounded-xl border border-dashed border-outline-variant">No hay pedidos pendientes actualmente.</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {pendingOrders.map(order => (
-              <div key={order.code} className="bg-surface p-4 rounded-xl border border-outline-variant flex flex-col gap-3 shadow-sm">
-                <div className="flex justify-between items-start border-b border-surface-container pb-2">
-                  <span className="font-label-lg font-bold text-on-surface">Ref: {order.code}</span>
-                  <span className="text-sm text-on-surface-variant">{new Date(order.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                </div>
-                <ul className="text-sm flex-1 space-y-1">
-                  {order.items.map((item, i) => {
-                    const card = cards.find(c => c.id === item.id);
-                    return <li key={i} className="flex justify-between"><span className="truncate pr-2">{item.q}x {card ? card.name : item.id}</span></li>
-                  })}
-                </ul>
-                <div className="flex justify-between items-center pt-2 border-t border-surface-container">
-                  <span className="font-title-md text-secondary font-bold">{formatCLP(order.totalAmount || 0)}</span>
-                  <div className="flex gap-2">
-                    <button onClick={() => handleRejectOrder(order.code)} className="w-10 h-10 rounded-full bg-error-container text-on-error-container hover:bg-error hover:text-white flex items-center justify-center transition-colors" title="Rechazar solicitud"><span translate="no" className="material-symbols-outlined text-[20px]">close</span></button>
-                    <button onClick={() => handleProcessOrder(order.code)} disabled={isProcessingOrder} className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container hover:bg-primary hover:text-white flex items-center justify-center transition-colors disabled:opacity-50" title="Venta concretada"><span translate="no" className="material-symbols-outlined text-[20px]">check</span></button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+  const renderSalesTab = () => {
+    const pendingCount = folderOrders.filter(o => o.status === 'pending').length;
+    return (
+      <div className="flex flex-col gap-6">
+        <LiquidTabs
+          ariaLabel="Ventas de esta carpeta"
+          value={salesView}
+          onChange={setSalesView}
+          className="w-full sm:w-max rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-slate-200"
+          buttonClassName="h-11 whitespace-nowrap rounded-xl px-3 text-sm font-bold sm:px-6 sm:text-base"
+          indicatorClassName="rounded-xl bg-[#1e40af]"
+          indicatorStyle={{ top: 6, bottom: 6 }}
+          activeTextClassName="text-white"
+          inactiveTextClassName="text-slate-600 hover:text-[#1a2b4b]"
+          options={[
+            {
+              value: 'solicitudes',
+              label: (
+                <span className="flex items-center justify-center gap-2">
+                  Solicitudes
+                  {pendingCount > 0 && (
+                    <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-[#ffcb05] px-1.5 font-['Space_Grotesk'] text-xs font-extrabold tabular-nums text-[#1a2b4b]">{pendingCount}</span>
+                  )}
+                </span>
+              )
+            },
+            { value: 'historial', label: 'Historial' }
+          ]}
+        />
+        <OrdersTab
+          showToast={(message) => showToast(message, 'success')}
+          filter={salesView}
+          orders={folderOrders}
+          loading={ordersLoading}
+          onOrderUpdated={handleOrderUpdated}
+          onGoToFolders={copyBuyerLink}
+          emptyActionLabel="Copiar enlace de esta carpeta"
+        />
       </div>
-
-      {/* Historial de Ventas */}
-      <div className="bg-surface-container-low p-6 rounded-2xl border border-surface-container shadow-sm">
-        <h2 className="font-headline-md text-headline-md text-on-background flex items-center gap-2 mb-4">
-          <span translate="no" className="material-symbols-outlined text-primary">history</span>
-          Historial de Ventas
-        </h2>
-        {history.length === 0 ? (
-          <div className="text-center py-8 text-on-surface-variant bg-surface rounded-xl border border-dashed border-outline-variant">El historial está vacío.</div>
-        ) : (
-          <div className="overflow-x-auto bg-surface rounded-xl border border-outline-variant">
-            <table className="w-full text-left border-collapse min-w-[600px]">
-              <thead>
-                <tr className="border-b border-surface-container bg-surface-container-lowest text-on-surface-variant text-sm font-label-md">
-                  <th className="p-4">Fecha</th>
-                  <th className="p-4">Ref</th>
-                  <th className="p-4">Artículos</th>
-                  <th className="p-4">Total</th>
-                  <th className="p-4">Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((h, index) => (
-                  <tr key={index} className="border-b border-surface-container hover:bg-surface-container-lowest transition-colors">
-                    <td className="p-4 text-sm text-on-surface">{new Date(h.processedAt).toLocaleString()}</td>
-                    <td className="p-4 font-bold text-on-surface">{h.code}</td>
-                    <td className="p-4 text-sm text-on-surface">
-                      {h.items.map(item => {
-                         const card = cards.find(c => c.id === item.id);
-                         return `${item.q}x ${card ? card.name : item.id}`;
-                      }).join(', ')}
-                    </td>
-                    <td className="p-4 font-bold text-on-surface">{formatCLP(h.totalAmount || 0)}</td>
-                    <td className="p-4">
-                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${h.status === 'completed' ? 'bg-[#25D366]/20 text-[#128C7E]' : 'bg-error-container text-on-error-container'}`}>
-                        <span translate="no" className="material-symbols-outlined text-[14px]">
-                           {h.status === 'completed' ? 'check_circle' : 'cancel'}
-                        </span>
-                        {h.status === 'completed' ? 'Concretada' : 'Cancelada'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+    );
+  };
 
   if (loadingFolder) {
     return (
