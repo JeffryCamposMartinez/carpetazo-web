@@ -86,9 +86,13 @@ export default function Header() {
   const [publicHeaderTheme, setPublicHeaderTheme] = useState(null);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [notificationChats, setNotificationChats] = useState([]);
-  const [pendingOrders, setPendingOrders] = useState({ count: 0, orders: [] });
+  const [pendingOrders, setPendingOrders] = useState({ count: 0, unseen: 0, orders: [] });
+  // Lo "visto" en la campana se guarda solo en este navegador: no cambia los mensajes ni los pedidos
+  const [seen, setSeen] = useState({ orders: null, chats: {} });
+  const [openSnapshot, setOpenSnapshot] = useState(null);
+  const seenRef = useRef(seen);
+  seenRef.current = seen;
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const markingNotificationsRef = useRef(false);
 
   const searchCategories = [
     { label: 'Carpetas', route: '/carpetas' },
@@ -177,20 +181,20 @@ export default function Header() {
       if (!currentUser) {
         setUnreadMessages(0);
         setNotificationChats([]);
-        setPendingOrders({ count: 0, orders: [] });
+        setPendingOrders({ count: 0, unseen: 0, orders: [] });
         return;
       }
       // Con la pestaña oculta no se consulta; al volver se actualiza de inmediato
       if (document.visibilityState === 'hidden') return;
 
       // Solicitudes de compra pendientes (si falla, los mensajes siguen funcionando)
-      api.getMyPendingOrders()
+      api.getMyPendingOrders(seenRef.current.orders)
         .then((ordersResult) => {
           if (!cancelled && ordersResult?.success) {
             setPendingOrders(previous => (
-              previous.count === ordersResult.count && previous.orders[0]?.id === ordersResult.orders[0]?.id
+              previous.count === ordersResult.count && previous.unseen === ordersResult.unseen && previous.orders[0]?.id === ordersResult.orders[0]?.id
                 ? previous
-                : { count: ordersResult.count, orders: ordersResult.orders }
+                : { count: ordersResult.count, unseen: ordersResult.unseen ?? ordersResult.count, orders: ordersResult.orders }
             ));
           }
         })
@@ -245,32 +249,54 @@ export default function Header() {
 
   const getChatPartner = (chat) => chat?.otherUser || chat?.partner || {};
 
-  const markNotificationChatsRead = async (snapshot = notificationChats) => {
-    if (markingNotificationsRef.current || snapshot.length === 0) return;
-    markingNotificationsRef.current = true;
-    setUnreadMessages(0);
+  // El resaltado de "Nuevo" solo dura mientras el panel está abierto
+  useEffect(() => {
+    if (!isNotificationOpen) setOpenSnapshot(null);
+  }, [isNotificationOpen]);
 
+  const seenKey = currentUser ? `carpetazo:bell-seen:${currentUser.uid}` : null;
+  const chatKey = (chat) => getChatPartner(chat).id || chat.otherId;
+
+  // Carga lo visto de este usuario en este navegador
+  useEffect(() => {
+    if (!seenKey) { setSeen({ orders: null, chats: {} }); return; }
     try {
-      await Promise.all(snapshot.map(async (chat) => {
-        const partner = getChatPartner(chat);
-        const otherId = partner.id || chat.otherId;
-        if (!otherId) return;
-        const result = await api.getMessages(otherId);
-        const list = result.messages || result.data || [];
-        await Promise.all(
-          list
-            .filter(message => message.senderId === otherId && !message.isRead)
-            .map(message => api.markMessageRead(message.id).catch(() => null))
-        );
-      }));
-    } catch (error) {
-      console.error('Error marking notification messages as read:', error);
-    } finally {
-      markingNotificationsRef.current = false;
+      const saved = JSON.parse(localStorage.getItem(seenKey) || 'null');
+      setSeen(saved && typeof saved === 'object' ? { orders: saved.orders || null, chats: saved.chats || {} } : { orders: null, chats: {} });
+    } catch (_error) {
+      setSeen({ orders: null, chats: {} });
     }
+  }, [seenKey]);
+
+  const persistSeen = (next) => {
+    setSeen(next);
+    if (!seenKey) return;
+    try { localStorage.setItem(seenKey, JSON.stringify(next)); } catch (_error) { /* sin almacenamiento: solo dura esta sesión */ }
   };
 
-  const totalNotifications = unreadMessages + pendingOrders.count;
+  // Mensajes nuevos = no leídos que aún no se habían visto en la campana
+  const unseenMessages = notificationChats.reduce(
+    (sum, chat) => sum + Math.max(0, Number(chat.unreadCount || 0) - Number(seen.chats[chatKey(chat)] || 0)),
+    0
+  );
+
+  // Si un chat se leyó en Mensajes (bajó su conteo), lo visto se ajusta para que un mensaje futuro vuelva a avisar
+  useEffect(() => {
+    const keys = Object.keys(seen.chats);
+    if (keys.length === 0) return;
+    const unread = new Map(notificationChats.map(chat => [chatKey(chat), Number(chat.unreadCount || 0)]));
+    let changed = false;
+    const next = {};
+    for (const key of keys) {
+      const now = unread.get(key) || 0;
+      const kept = Math.min(Number(seen.chats[key]), now);
+      if (kept !== Number(seen.chats[key])) changed = true;
+      if (kept > 0) next[key] = kept;
+    }
+    if (changed) persistSeen({ ...seen, chats: next });
+  }, [notificationChats]);
+
+  const totalNotifications = unseenMessages + pendingOrders.unseen;
   const formatOrderTotal = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
   const orderAge = (iso) => {
     const minutes = Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -286,10 +312,18 @@ export default function Header() {
   };
 
   const openNotifications = async () => {
-    const snapshot = notificationChats;
     setIsNotificationOpen(previous => !previous);
-    if (!isNotificationOpen && unreadMessages > 0) {
-      markNotificationChatsRead(snapshot);
+    if (!isNotificationOpen) {
+      // Al abrir, todo queda visto solo en la campana; las solicitudes siguen pendientes y los mensajes sin leer
+      setOpenSnapshot({
+        ordersSince: seen.orders,
+        chatIds: new Set(notificationChats.filter(chat => Number(chat.unreadCount || 0) > Number(seen.chats[chatKey(chat)] || 0)).map(chatKey))
+      });
+      persistSeen({
+        orders: pendingOrders.orders[0]?.createdAt || seen.orders,
+        chats: Object.fromEntries(notificationChats.map(chat => [chatKey(chat), Number(chat.unreadCount || 0)]))
+      });
+      setPendingOrders(previous => (previous.unseen === 0 ? previous : { ...previous, unseen: 0 }));
     }
   };
 
@@ -351,13 +385,16 @@ export default function Header() {
                   key={order.id}
                   type="button"
                   onClick={openPendingOrders}
-                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-blue-50"
+                  className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-blue-50 ${openSnapshot && new Date(order.createdAt) > new Date(openSnapshot.ordersSince || 0) ? 'bg-blue-50/70' : ''}`}
                 >
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#facc15]/25 text-[#12315f] ring-2 ring-[#facc15]/50">
                     <span translate="no" className="material-symbols-outlined text-[22px]">shopping_bag</span>
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-black">Pedido {order.code} · {order.folderName}</span>
+                    <span className="flex items-center gap-2 truncate text-sm font-black">
+                      Pedido {order.code} · {order.folderName}
+                      {openSnapshot && new Date(order.createdAt) > new Date(openSnapshot.ordersSince || 0) && <span className="rounded-full bg-[#ef233c] px-1.5 py-px text-[10px] font-black text-white">Nuevo</span>}
+                    </span>
                     <span className="block truncate text-xs font-semibold text-slate-500">
                       {order.cards} {order.cards === 1 ? 'carta' : 'cartas'} · {formatOrderTotal(order.total)} · {orderAge(order.createdAt)}
                     </span>
@@ -380,7 +417,7 @@ export default function Header() {
                     key={chat.id}
                     type="button"
                     onClick={() => openNotificationChat(chat)}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-blue-50"
+                    className={`flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-blue-50 ${openSnapshot?.chatIds.has(chatKey(chat)) ? 'bg-blue-50/70' : ''}`}
                   >
                     <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 font-black text-blue-700 ring-2 ring-[#facc15]/40">
                       {partner.photoURL ? <img src={partner.photoURL} alt="" className="h-full w-full object-cover" /> : (partner.name || partner.username || 'U').charAt(0)}

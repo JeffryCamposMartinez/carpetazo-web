@@ -897,8 +897,12 @@ app.get('/api/orders/mine/pending', authenticateToken, async (req, res) => {
     if (!sellerId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
 
     const where = { sellerId, status: 'pending' };
-    const [count, latest] = await Promise.all([
+    // "since": fecha (ISO) hasta la que el vendedor ya vio sus solicitudes en la campana
+    const sinceRaw = typeof req.query.since === 'string' && req.query.since.length <= 40 ? new Date(req.query.since) : null;
+    const since = sinceRaw && !Number.isNaN(sinceRaw.getTime()) ? sinceRaw : null;
+    const [count, unseen, latest] = await Promise.all([
       prisma.order.count({ where }),
+      since ? prisma.order.count({ where: { ...where, createdAt: { gt: since } } }) : null,
       prisma.order.findMany({
         where,
         orderBy: { createdAt: 'desc' },
@@ -912,6 +916,7 @@ app.get('/api/orders/mine/pending', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       count,
+      unseen: unseen === null ? count : unseen,
       orders: latest.map((order) => ({
         id: order.id,
         code: order.code,
