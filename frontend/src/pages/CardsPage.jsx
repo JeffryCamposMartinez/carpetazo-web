@@ -1,6 +1,7 @@
 import React, { startTransition, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../utils/api';
+import { wishlistPayloadFromCard } from '../utils/wishlistPayload';
 import { useAuth } from '../contexts/AuthContext';
 
 const TCG_OPTIONS = ['Pokémon', 'Mitos y Leyendas', 'One Piece', 'Magic', 'Yu-Gi-Oh!', 'Riftbound'];
@@ -72,13 +73,7 @@ export default function CardsPage() {
     if (!currentUser) { navigate('/bienvenida'); return; }
     if (wanted[card.id]) return;
     try {
-      await api.addWishlistItem({
-        productId: card.tcgId || undefined,
-        name: card.name,
-        imageUrl: card.imageUrl || undefined,
-        game: card.folder?.tcg || undefined,
-        detail: [card.set, card.language].filter(Boolean).join(' · ').slice(0, 100) || undefined,
-      });
+      await api.addWishlistItem(wishlistPayloadFromCard(card, card.folder?.tcg));
       setWanted((previous) => ({ ...previous, [card.id]: true }));
       setWishStatus(`${card.name} agregada a tu lista de deseadas`);
     } catch (error) {

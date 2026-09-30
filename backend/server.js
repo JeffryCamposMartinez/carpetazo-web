@@ -262,6 +262,7 @@ app.get('/api/tcg/search', routeLimiter(15 * 60 * 1000, 300));
 app.post('/api/tcg/products/metadata', routeLimiter(15 * 60 * 1000, 300));
 app.get('/api/cards/search', routeLimiter(15 * 60 * 1000, 300));
 app.get('/api/wishlist/me', routeLimiter(15 * 60 * 1000, 300));
+app.get('/api/wishlist/matches', routeLimiter(15 * 60 * 1000, 120));
 app.post('/api/wishlist', routeLimiter(15 * 60 * 1000, 120));
 app.put('/api/wishlist/:id', routeLimiter(15 * 60 * 1000, 120));
 app.delete('/api/wishlist/:id', routeLimiter(15 * 60 * 1000, 120));
@@ -1487,6 +1488,44 @@ app.get('/api/wishlist/me', authenticateToken, async (req, res) => {
   }
 });
 
+// Cartas de la lista que hoy tienen otros vendedores (catálogos públicos, con stock y dentro del precio máximo)
+const WISHLIST_MATCH_TCG = { 1: 'Pokemon', 99: 'Mitos y Leyendas' };
+const WISHLIST_MATCHES_PER_ITEM = 5;
+app.get('/api/wishlist/matches', authenticateToken, async (req, res) => {
+  try {
+    const userId = await currentUserId(req);
+    if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const items = await prisma.wishlistItem.findMany({ where: { userId, productId: { not: null } }, take: WISHLIST_MAX_ITEMS, select: { id: true, categoryId: true, productId: true, maxPrice: true } });
+    // tcgId de la carta = id del producto (las del catálogo de Pokémon se guardan como `tcgcsv:<cat>:<id>`)
+    const wanted = items.map((item) => ({ ...item, tcgId: String(item.productId).replace(/^tcgcsv:\d+:/, ''), tcg: WISHLIST_MATCH_TCG[item.categoryId] })).filter((item) => item.tcg && /^\d{1,12}$/.test(item.tcgId));
+    if (wanted.length === 0) return res.json({ success: true, matches: {} });
+
+    const cards = await prisma.card.findMany({
+      where: { stock: { gt: 0 }, price: { not: null }, tcgId: { in: [...new Set(wanted.map((item) => item.tcgId))] }, folder: { isPublic: true, userId: { not: userId } } },
+      orderBy: { price: 'asc' },
+      take: 2000,
+      select: { id: true, tcgId: true, price: true, stock: true, folder: { select: { id: true, name: true, tcg: true, user: { select: { name: true, username: true, photoURL: true } } } } },
+    });
+    const matches = {};
+    wanted.forEach((item) => {
+      const found = cards.filter((card) => card.tcgId === item.tcgId && card.folder.tcg === item.tcg && (item.maxPrice == null || card.price <= item.maxPrice));
+      if (found.length === 0) return;
+      matches[item.id] = {
+        count: found.length,
+        offers: found.slice(0, WISHLIST_MATCHES_PER_ITEM).map((card) => ({
+          cardId: card.id, price: card.price, stock: card.stock,
+          folder: { id: card.folder.id, name: card.folder.name },
+          seller: { name: card.folder.user.name, username: card.folder.user.username, photoURL: card.folder.user.photoURL },
+        })),
+      };
+    });
+    res.json({ success: true, matches });
+  } catch (error) {
+    console.error('Error loading wishlist matches:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
 app.post('/api/wishlist', authenticateToken, async (req, res) => {
   try {
     const userId = await currentUserId(req);

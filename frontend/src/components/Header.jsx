@@ -92,6 +92,7 @@ export default function Header() {
   const [seen, setSeen] = useState({ orders: null, chats: {} });
   const [openSnapshot, setOpenSnapshot] = useState(null);
   const seenRef = useRef(seen);
+  const [wishMatches, setWishMatches] = useState({ items: 0, offers: 0, fresh: 0, ids: [] }); // cartas de la lista de deseos que otros venden
   seenRef.current = seen;
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
@@ -267,6 +268,30 @@ export default function Header() {
     if (!isNotificationOpen) setOpenSnapshot(null);
   }, [isNotificationOpen]);
 
+  // Cartas deseadas que otros venden: se consulta al entrar y cada 5 minutos (la consulta es más pesada que la de pedidos)
+  const wishSeenKey = currentUser ? `carpetazo:wish-seen:${currentUser.uid}` : null;
+  useEffect(() => {
+    if (!wishSeenKey) { setWishMatches({ items: 0, offers: 0, fresh: 0, ids: [] }); return undefined; }
+    let cancelled = false;
+    const load = () => {
+      if (document.visibilityState === 'hidden') return;
+      api.getWishlistMatches().then((res) => {
+        if (cancelled || !res?.success) return;
+        const entries = Object.values(res.matches || {});
+        const ids = entries.flatMap((entry) => entry.offers.map((offer) => offer.cardId));
+        let known = null;
+        try { known = JSON.parse(localStorage.getItem(wishSeenKey) || 'null'); } catch (_error) { /* sin almacenamiento */ }
+        // La primera vez todo cuenta como nuevo solo si ya había una lista de vistos; si no, se avisa una vez
+        const knownSet = new Set(Array.isArray(known) ? known : []);
+        setWishMatches({ items: entries.length, offers: ids.length, fresh: ids.filter((id) => !knownSet.has(id)).length, ids });
+      }).catch(() => {});
+    };
+    load();
+    const intervalId = window.setInterval(load, 5 * 60 * 1000);
+    window.addEventListener('focus', load);
+    return () => { cancelled = true; window.clearInterval(intervalId); window.removeEventListener('focus', load); };
+  }, [wishSeenKey]);
+
   const seenKey = currentUser ? `carpetazo:bell-seen:${currentUser.uid}` : null;
   const chatKey = (chat) => getChatPartner(chat).id || chat.otherId;
 
@@ -309,7 +334,7 @@ export default function Header() {
     if (changed) persistSeen({ ...seen, chats: next });
   }, [notificationChats]);
 
-  const totalNotifications = unseenMessages + pendingOrders.unseen;
+  const totalNotifications = unseenMessages + pendingOrders.unseen + wishMatches.fresh;
   const formatOrderTotal = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
   const orderAge = (iso) => {
     const minutes = Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -318,6 +343,10 @@ export default function Header() {
     if (hours < 24) return `hace ${hours} h`;
     const days = Math.round(hours / 24);
     return days === 1 ? 'hace 1 día' : `hace ${days} días`;
+  };
+  const openWishlist = () => {
+    setIsNotificationOpen(false);
+    navigate('/dashboard?tab=deseadas');
   };
   const openPendingOrders = () => {
     setIsNotificationOpen(false);
@@ -337,6 +366,10 @@ export default function Header() {
         chats: Object.fromEntries(notificationChats.map(chat => [chatKey(chat), Number(chat.unreadCount || 0)]))
       });
       setPendingOrders(previous => (previous.unseen === 0 ? previous : { ...previous, unseen: 0 }));
+      if (wishSeenKey && wishMatches.ids.length > 0) {
+        try { localStorage.setItem(wishSeenKey, JSON.stringify(wishMatches.ids.slice(0, 500))); } catch (_error) { /* sin almacenamiento */ }
+        setWishMatches(previous => (previous.fresh === 0 ? previous : { ...previous, fresh: 0 }));
+      }
     }
   };
 
@@ -420,6 +453,18 @@ export default function Header() {
             </div>
           )}
 
+          {wishMatches.items > 0 && (
+            <div className="border-b border-slate-100 py-2">
+              <button type="button" onClick={openWishlist} className="flex w-full items-center gap-3 px-4 py-2 text-left transition hover:bg-slate-50">
+                <span translate="no" className="material-symbols-outlined text-[22px] text-rose-500">favorite</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-black text-slate-800">{wishMatches.items === 1 ? '1 carta de tu lista está disponible' : `${wishMatches.items} cartas de tu lista están disponibles`}</span>
+                  <span className="block text-xs font-semibold text-slate-500">Ver quién las vende</span>
+                </span>
+              </button>
+            </div>
+          )}
+
           {notificationChats.length > 0 ? (
             <div className="max-h-80 overflow-y-auto py-2">
               {notificationChats.map(chat => {
@@ -448,7 +493,7 @@ export default function Header() {
                 );
               })}
             </div>
-          ) : pendingOrders.count === 0 ? (
+          ) : pendingOrders.count === 0 && wishMatches.items === 0 ? (
             <div className="px-4 py-6 text-center">
               <p className="text-sm font-black text-slate-800">Sin notificaciones nuevas</p>
               <p className="mt-1 text-xs font-semibold text-slate-500">Las solicitudes de compra y los mensajes aparecerán aquí.</p>

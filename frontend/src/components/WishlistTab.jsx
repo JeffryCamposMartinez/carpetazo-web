@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../utils/api';
 import WishlistCardFinder from './WishlistCardFinder';
 
@@ -15,6 +16,7 @@ export default function WishlistTab({ showToast = () => {} }) {
   const [visible, setVisible] = useState(true);
   const [savingVisibility, setSavingVisibility] = useState(false);
   const [busyId, setBusyId] = useState('');
+  const [matches, setMatches] = useState({});
   const [editingId, setEditingId] = useState('');
   const [draft, setDraft] = useState({ maxPrice: '', note: '', priceVisible: false });
 
@@ -30,6 +32,8 @@ export default function WishlistTab({ showToast = () => {} }) {
       })
       .catch(() => { if (!cancelled) setFailed(true); })
       .finally(() => { if (!cancelled) setLoading(false); });
+    // Coincidencias con lo que venden otros: no bloquea la lista si falla
+    api.getWishlistMatches().then((res) => { if (!cancelled && res.success) setMatches(res.matches || {}); }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
 
@@ -193,6 +197,23 @@ export default function WishlistTab({ showToast = () => {} }) {
                   </div>
                 </div>
               </div>
+              {matches[item.id] && (
+                <div className="mt-3 rounded-xl bg-emerald-50 p-2.5 ring-1 ring-emerald-200">
+                  <p className="text-xs font-extrabold uppercase tracking-wide text-emerald-800">
+                    Disponible ahora · {matches[item.id].count} {matches[item.id].count === 1 ? 'oferta' : 'ofertas'}
+                  </p>
+                  <ul className="mt-1.5 space-y-1">
+                    {matches[item.id].offers.map((offer) => (
+                      <li key={offer.cardId}>
+                        <Link to={`/c/${offer.folder.id}`} className="flex min-h-11 items-center gap-2 rounded-lg bg-white px-2.5 py-1.5 text-sm shadow-sm">
+                          <span className="min-w-0 flex-1 truncate font-bold text-[#12315f]">{offer.seller.name || offer.seller.username || 'Vendedor'}<span className="font-medium text-slate-500"> · {offer.folder.name}</span></span>
+                          <span className="shrink-0 font-extrabold tabular-nums text-emerald-700">{formatCLP(offer.price)}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {editingId === item.id && (
                 <div className="mt-3 space-y-3 border-t border-slate-100 pt-3">
                   <label className="block text-sm font-bold text-slate-600">

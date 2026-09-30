@@ -1,4 +1,4 @@
-export default function PokemonCard({ card, availableStock, cartQuantity, onAddToCart, onRemoveFromCart }) {
+export default function PokemonCard({ card, availableStock, cartQuantity, onAddToCart, onRemoveFromCart, onWish, wished = false }) {
   const isOutOfStock = availableStock <= 0;
   const isMyl = Boolean(card.type || card.race || card.cost || card.effect) && card.supertype !== 'Pokémon' && card.supertype !== 'Trainer' && card.supertype !== 'Energy';
 
@@ -41,6 +41,17 @@ export default function PokemonCard({ card, availableStock, cartQuantity, onAddT
           src={card.imageUrl} 
           alt={card.name} 
         />
+        {onWish && (
+          <button
+            type="button"
+            onClick={() => onWish(card)}
+            aria-pressed={wished}
+            aria-label={wished ? `${card.name} está en tu lista de deseadas` : `Agregar ${card.name} a mis deseadas`}
+            className={`absolute right-1.5 top-1.5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 shadow-md ring-1 ring-black/10 transition active:scale-90 ${wished ? 'text-rose-500' : 'text-slate-500'}`}
+          >
+            <span translate="no" className="material-symbols-outlined text-[22px]" style={wished ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>
+          </button>
+        )}
         {isOutOfStock && cartQuantity === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="rounded-full bg-slate-950/85 px-4 py-1.5 text-xs font-black text-white shadow-lg ring-2 ring-white/70">Sin stock</span>

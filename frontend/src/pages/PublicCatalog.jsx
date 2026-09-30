@@ -7,6 +7,7 @@ import Toast from '../components/Toast';
 import { useAuth } from '../contexts/AuthContext';
 import PublicCatalogFilters from '../components/folder/filters/PublicCatalogFilters';
 import WishlistSection from '../components/WishlistSection';
+import { wishlistPayloadFromCard } from '../utils/wishlistPayload';
 
 const isLocalhostWithProductionApi = () => {
   if (typeof window === 'undefined') return false;
@@ -108,6 +109,18 @@ function PublicCatalog() {
   const [searchSet, setSearchSet] = useState('');
   const [isSetDropdownOpen, setIsSetDropdownOpen] = useState(false);
   const [viewMode, setViewMode] = useState('album');
+  const [wanted, setWanted] = useState({}); // cartas agregadas a mis deseadas en esta visita
+  const addToWishlist = async (card) => {
+    if (!currentUser) { navigate('/bienvenida'); return; }
+    if (wanted[card.id]) return;
+    try {
+      await api.addWishlistItem(wishlistPayloadFromCard(card, folderData?.tcg));
+      setWanted((previous) => ({ ...previous, [card.id]: true }));
+      showToast(`${card.name} agregada a tu lista de deseadas`, 'success');
+    } catch (error) {
+      showToast(error.message || 'No se pudo agregar la carta', 'error');
+    }
+  };
   const [sortBy, setSortBy] = useState('featured');
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [quickRarity, setQuickRarity] = useState('');
@@ -931,6 +944,17 @@ function PublicCatalog() {
                     const availableStock = Number(card.stock || 0) - (cartItem ? cartItem.quantity : 0);
                     return (
                       <div className="flex items-center gap-1 w-full mt-2" onClick={(e) => e.stopPropagation()}>
+                        {!isOwner && (
+                          <button
+                          type="button"
+                          onClick={() => addToWishlist(card)}
+                          aria-pressed={Boolean(wanted[card.id])}
+                          aria-label={wanted[card.id] ? `${card.name} está en tu lista de deseadas` : `Agregar ${card.name} a mis deseadas`}
+                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white shadow-sm transition active:scale-90 ${wanted[card.id] ? 'text-rose-500' : 'text-slate-500'}`}
+                        >
+                          <span translate="no" className="material-symbols-outlined text-[16px]" style={wanted[card.id] ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>
+                        </button>
+                        )}
                         {cartItem ? (
                           <div className="flex items-center justify-between w-full bg-slate-100 rounded-md p-1 border border-slate-200">
                             <button 
@@ -975,6 +999,8 @@ function PublicCatalog() {
                       cartQuantity={cartItem ? cartItem.quantity : 0}
                       onAddToCart={addToCart}
                       onRemoveFromCart={() => decrementCart(card.id)}
+                      onWish={isOwner ? undefined : addToWishlist}
+                      wished={Boolean(wanted[card.id])}
                     />
                   );
                 })}

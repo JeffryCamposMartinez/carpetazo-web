@@ -339,12 +339,16 @@ export default function Dashboard() {
       value: 'solicitudes',
       label: (
         <span className="flex items-center justify-center gap-1.5 sm:gap-2">
-          <span translate="no" className="material-symbols-outlined hidden text-xl min-[400px]:inline">inbox</span>Solicitudes
-          {pendingCount > 0 && (
-            <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-[#ffcb05] px-1.5 font-['Space_Grotesk'] text-xs font-extrabold tabular-nums text-[#1a2b4b]" aria-label={`${pendingCount} pedidos por atender`}>
-              {pendingCount}
-            </span>
-          )}
+          <span translate="no" className="material-symbols-outlined hidden text-xl min-[400px]:inline">inbox</span>
+          {/* El contador flota sobre la esquina del texto: así la etiqueta nunca cambia de ancho ni de lugar */}
+          <span className="relative whitespace-nowrap">
+            Solicitudes
+            {pendingCount > 0 && (
+              <span className="absolute -right-4 -top-3 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#ffcb05] px-1 font-['Space_Grotesk'] text-[11px] font-extrabold leading-none tabular-nums text-[#1a2b4b] shadow-sm ring-2 ring-white" aria-label={`${pendingCount} pedidos por atender`}>
+                {pendingCount}
+              </span>
+            )}
+          </span>
         </span>
       )
     },
