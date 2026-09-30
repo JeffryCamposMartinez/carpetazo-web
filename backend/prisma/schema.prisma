@@ -110,6 +110,7 @@ model TcgCategory {
   name        String
   modifiedOn  DateTime
   groups      TcgGroup[]
+  physicalProducts TcgPhysicalProduct[]
 }
 
 model TcgGroup {
@@ -138,6 +139,7 @@ model TcgProduct {
   imageUrl    String
   extData     Json?
   group       TcgGroup  @relation(fields: [groupId], references: [groupId])
+  physicalLinks TcgProductPhysicalProduct[]
 
   @@index([groupId])
   @@index([categoryId, groupId])
@@ -150,12 +152,33 @@ model TcgBlock {
   name        String
   category    TcgCategory @relation(fields: [categoryId], references: [categoryId])
   groups      TcgGroup[]
+  physicalProducts TcgPhysicalProduct[]
 }
 
+// Producto físico (kit, display, colección…) de cualquier juego: pertenece a un juego y, si el juego los usa, a un bloque
 model TcgPhysicalProduct {
   id          Int       @id @default(autoincrement())
   name        String
   releaseDate DateTime?
+  categoryId  Int
+  category    TcgCategory @relation(fields: [categoryId], references: [categoryId])
   blockId     Int?
+  block       TcgBlock?   @relation(fields: [blockId], references: [id], onDelete: SetNull)
   products    TcgProduct[]
+  productLinks TcgProductPhysicalProduct[]
+
+  @@unique([categoryId, blockId, name])
+  @@index([categoryId])
+  @@index([blockId])
+}
+
+// Una carta puede venir en varios productos físicos (kits, displays, colecciones): este enlace las une sin duplicar la carta
+model TcgProductPhysicalProduct {
+  productId         String
+  physicalProductId Int
+  product           TcgProduct         @relation(fields: [productId], references: [productId], onDelete: Cascade)
+  physicalProduct   TcgPhysicalProduct @relation(fields: [physicalProductId], references: [id], onDelete: Cascade)
+
+  @@id([productId, physicalProductId])
+  @@index([physicalProductId])
 }

@@ -10,12 +10,14 @@ if (!dir) throw new Error('Uso: node restore_db.cjs <carpeta_respaldo>');
 if (/carpetazo\.cl|185\.173\.110\.158|srbo9ybophgpkdgqfr3vtfqh/.test(process.env.DATABASE_URL || '')) throw new Error('Se niega a restaurar sobre producción');
 
 const prisma = new PrismaClient();
-const ORDER = ['TcgCategory', 'TcgBlock', 'TcgPhysicalProduct', 'TcgGroup', 'TcgProduct', 'User', 'Folder', 'Card', 'Message', 'Order'];
+const ORDER = ['TcgCategory', 'TcgBlock', 'TcgPhysicalProduct', 'TcgGroup', 'TcgProduct', 'TcgProductPhysicalProduct', 'User', 'Folder', 'Card', 'Message', 'Order'];
 const models = Object.fromEntries(Prisma.dmmf.datamodel.models.map((m) => [m.name, m]));
 
 (async () => {
   for (const name of ORDER) {
-    const rows = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(dir, `${name}.json.gz`))).toString('utf8'));
+    const file = path.join(dir, `${name}.json.gz`);
+    if (!fs.existsSync(file)) { console.log(`${name}: sin archivo en este respaldo (se omite)`); continue; }
+    const rows = JSON.parse(zlib.gunzipSync(fs.readFileSync(file)).toString('utf8'));
     const fields = models[name].fields.filter((f) => f.kind === 'scalar');
     const dates = fields.filter((f) => f.type === 'DateTime').map((f) => f.name);
     const bigs = fields.filter((f) => f.type === 'BigInt').map((f) => f.name);

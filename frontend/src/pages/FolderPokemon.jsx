@@ -718,7 +718,7 @@ const [isSearching, setIsSearching] = useState(false);
     if (folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') {
       if (mylType && card.extData?.type !== mylType) matchesMyl = false;
       if (mylCost && parseInt(card.extData?.cost) !== parseInt(mylCost)) matchesMyl = false;
-        if (searchPhysicalProduct && String(card.physicalProductId) !== String(searchPhysicalProduct)) matchesMyl = false;
+        if (searchPhysicalProduct && !(card.physicalProductIds || [card.physicalProductId]).some(id => String(id) === String(searchPhysicalProduct))) matchesMyl = false;
       if (mylRace) {
         if (!card.extData?.race) matchesMyl = false;
         else if (Array.isArray(card.extData.race) && !card.extData.race.includes(mylRace)) matchesMyl = false;

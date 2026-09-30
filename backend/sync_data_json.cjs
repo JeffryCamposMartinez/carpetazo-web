@@ -104,7 +104,8 @@ async function main() {
                     const newProd = await prisma.tcgPhysicalProduct.create({
                         data: {
                             name: productName,
-                            blockId
+                            blockId,
+                            categoryId: 99
                         }
                     });
                     physicalProductId = newProd.id;
@@ -137,6 +138,11 @@ async function main() {
                 }
             }).catch(() => null)
         ));
+        // Además del producto principal, la carta queda enlazada a su producto en la tabla de enlaces
+        await prisma.tcgProductPhysicalProduct.createMany({
+            data: chunk.filter(u => u.physicalProductId).map(u => ({ productId: u.cardId, physicalProductId: u.physicalProductId })),
+            skipDuplicates: true
+        }).catch(() => null);
         count += chunk.length;
         console.log(`Progreso: ${count} / ${updates.length}`);
     }
@@ -163,7 +169,9 @@ async function main() {
         _count: { productId: true },
         where: { physicalProductId: { not: null } }
     });
-    const usedProdIds = new Set(prodCardCounts.map(p => p.physicalProductId));
+    // Un producto se conserva si tiene cartas como producto principal o enlazadas (una carta puede estar en varios productos)
+    const linkedProdCounts = await prisma.tcgProductPhysicalProduct.groupBy({ by: ['physicalProductId'] });
+    const usedProdIds = new Set([...prodCardCounts.map(p => p.physicalProductId), ...linkedProdCounts.map(p => p.physicalProductId)]);
     let deletedProds = 0;
     for (const p of existingProducts) {
         if (!usedProdIds.has(p.id)) {

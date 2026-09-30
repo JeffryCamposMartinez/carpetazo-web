@@ -76,7 +76,7 @@ async function main() {
             });
             if (!product) {
                 product = await prisma.tcgPhysicalProduct.create({
-                    data: { name: group.name, blockId: group.blockId }
+                    data: { name: group.name, blockId: group.blockId, categoryId: 99 }
                 });
             }
 

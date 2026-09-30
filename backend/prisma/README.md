@@ -25,3 +25,17 @@ Prefiere cambios **aditivos** (columna nueva, índice, tabla) y migra los datos 
 - `20260929000000_baseline`: estado inicial (ya existía en producción; marcada como aplicada).
 - `20260929010000_add_indexes`: índices en claves foráneas y consultas frecuentes (cartas por carpeta, carpetas públicas,
   mensajes, pedidos y catálogo TCG). Solo `CREATE INDEX`, no modifica datos.
+
+## Modelo de cartas (sirve para cualquier TCG)
+
+Juego (`TcgCategory`) → bloque (`TcgBlock`, opcional) → edición/set (`TcgGroup`) → carta (`TcgProduct`).
+Los productos físicos (`TcgPhysicalProduct`: kits, displays, colecciones…) pertenecen a un juego (`categoryId`) y,
+si el juego los usa, a un bloque. Una carta puede venir en varios productos: el enlace vive en
+`TcgProductPhysicalProduct` (una carta, muchos productos). `TcgProduct.physicalProductId` queda como producto principal.
+
+Importar un bloque desde carpetas con `data.json` (el nombre de cada subcarpeta es el nombre del producto):
+
+    node import_tcg_block.cjs --game myl --block "Primer Bloque" --dir "<...>/Primer_Bloque_DB"           # simula
+    node import_tcg_block.cjs --game myl --block "Primer Bloque" --dir "<...>/Primer_Bloque_DB" --apply   # escribe
+
+Otro juego: agregar un adaptador en `ADAPTERS` de `import_tcg_block.cjs`.

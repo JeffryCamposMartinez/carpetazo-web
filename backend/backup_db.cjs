@@ -30,6 +30,7 @@ const TABLES = [
   ['TcgGroup', () => prisma.tcgGroup.findMany()],
   ['TcgPhysicalProduct', () => prisma.tcgPhysicalProduct.findMany()],
   ['TcgProduct', () => prisma.tcgProduct.findMany()],
+  ['TcgProductPhysicalProduct', () => prisma.tcgProductPhysicalProduct.findMany()],
 ];
 
 (async () => {

@@ -2226,13 +2226,27 @@ app.post('/api/tcg/products/metadata', async (req, res) => {
   }
 });
 
+// Una carta puede pertenecer a varios productos físicos: se filtra por la tabla de enlaces y se devuelven todos sus ids
+const physicalLinkFilter = (value) => {
+  const id = Number.parseInt(value, 10);
+  return Number.isInteger(id) ? { physicalLinks: { some: { physicalProductId: id } } } : null;
+};
+const withPhysicalIds = (rows) => rows.map(({ physicalLinks, ...row }) => ({
+  ...row,
+  physicalProductIds: (physicalLinks || []).map((link) => link.physicalProductId)
+}));
+
 app.get('/api/tcg/:categoryId/:groupId/products', async (req, res) => {
   try {
     const { categoryId, groupId } = req.params;
     const { mylType, mylRace, mylFrequency, mylCost, physicalProductId } = req.query;
 
     let whereClause = { categoryId: parseInt(categoryId) };
-    if (physicalProductId) whereClause.physicalProductId = parseInt(physicalProductId);
+    if (physicalProductId) {
+      const linkFilter = physicalLinkFilter(physicalProductId);
+      if (!linkFilter) return res.status(400).json({ success: false, message: 'Producto inválido' });
+      Object.assign(whereClause, linkFilter);
+    }
     if (groupId === 'otros') {
       const groups = await prisma.tcgGroup.findMany({ where: { categoryId: parseInt(categoryId) }, select: { groupId: true } });
       const groupIds = groups.map(g => g.groupId);
@@ -2253,14 +2267,16 @@ app.get('/api/tcg/:categoryId/:groupId/products', async (req, res) => {
 
     const products = await prisma.tcgProduct.findMany({
       where: whereClause,
+      include: { physicalLinks: { select: { physicalProductId: true } } },
       orderBy: [
         { physicalProductId: 'asc' },
         { name: 'asc' }
       ]
     });
-    res.json({ success: true, data: products });
+    res.json({ success: true, data: withPhysicalIds(products) });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error loading TCG products:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 
@@ -2275,12 +2291,20 @@ app.use('/images/myl', express.static(path.join(__dirname, 'data/images/myl')));
 
 app.get('/api/tcg/physical-products', async (req, res) => {
   try {
+    // Opcional: ?categoryId=<juego> para pedir solo los productos de un juego
+    const categoryId = Number.parseInt(req.query.categoryId, 10);
+    if (req.query.categoryId !== undefined && !Number.isInteger(categoryId)) {
+      return res.status(400).json({ success: false, message: 'Juego inválido' });
+    }
+    // Solo productos con al menos una carta enlazada: los vacíos harían que el filtro no muestre resultados
     const products = await prisma.tcgPhysicalProduct.findMany({
+      where: { productLinks: { some: {} }, ...(Number.isInteger(categoryId) ? { categoryId } : {}) },
       orderBy: { name: 'asc' }
     });
     res.json({ success: true, data: products });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error loading physical products:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 
@@ -2312,7 +2336,9 @@ app.get('/api/tcg/search', async (req, res) => {
     }
     if (categoryId) whereClause.categoryId = parseInt(categoryId);
     if (physicalProductId) {
-      whereClause.physicalProductId = parseInt(physicalProductId);
+      const linkFilter = physicalLinkFilter(physicalProductId);
+      if (!linkFilter) return res.status(400).json({ success: false, message: 'Producto inválido' });
+      Object.assign(whereClause, linkFilter);
     }
 
     if (groupId) {
@@ -2347,16 +2373,17 @@ app.get('/api/tcg/search', async (req, res) => {
     const products = await prisma.tcgProduct.findMany({
       where: whereClause,
       take: 2000,
-      include: { group: true },
+      include: { group: true, physicalLinks: { select: { physicalProductId: true } } },
       orderBy: [
         { group: { publishedOn: 'desc' } },
         { physicalProductId: 'asc' },
         { name: 'asc' }
       ]
     });
-    res.json({ success: true, data: products });
+    res.json({ success: true, data: withPhysicalIds(products) });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error searching TCG products:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 
