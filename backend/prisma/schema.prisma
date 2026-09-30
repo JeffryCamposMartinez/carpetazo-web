@@ -34,6 +34,9 @@ model User {
   bankDetails   Json?
   folders       Folder[]
   wishlist      WishlistItem[]
+  reviewsReceived SellerReview[] @relation("ReviewsReceived")
+  reviewsWritten  SellerReview[] @relation("ReviewsWritten")
+  reviewReports   ReviewReport[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -93,6 +96,9 @@ model Order {
   code        String?  @unique
   sellerId    String
   buyerName   String
+  buyerId     String?  // comprador con cuenta (pedidos por mensaje o con sesión iniciada): es quien puede calificar
+  createdIpHash   String? // identificador anónimo (hash) de la conexión que creó el pedido
+  completedIpHash String? // ídem, de la conexión que lo confirmó
   folderId    String
   folderName  String
   items       Json
@@ -103,6 +109,7 @@ model Order {
 
   @@index([sellerId, status])
   @@index([folderId])
+  @@index([buyerId])
 }
 
 model TcgCategory {
@@ -204,4 +211,38 @@ model WishlistItem {
 
   @@unique([userId, productId])
   @@index([userId, createdAt])
+}
+
+// Reseña de un comprador a un vendedor por un pedido completado. Una por pedido y no se edita.
+model SellerReview {
+  id         String   @id @default(uuid())
+  sellerId   String
+  seller     User     @relation("ReviewsReceived", fields: [sellerId], references: [id], onDelete: Cascade)
+  reviewerId String
+  reviewer   User     @relation("ReviewsWritten", fields: [reviewerId], references: [id], onDelete: Cascade)
+  orderId    String   @unique
+  rating     Int
+  comment    String?
+  counts     Boolean  @default(true) // false: no se muestra ni promedia (sospechosa o reportada)
+  flag       String?  // same_connection | reported
+  reports    ReviewReport[]
+  createdAt  DateTime @default(now())
+
+  @@unique([sellerId, reviewerId]) // una reseña por pareja comprador-vendedor
+  @@index([sellerId, createdAt])
+  @@index([reviewerId])
+}
+
+// Denuncia de una reseña: mientras esté reportada deja de contar hasta que se revise
+model ReviewReport {
+  id         String       @id @default(uuid())
+  reviewId   String
+  review     SellerReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reporterId String
+  reporter   User         @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reason     String?
+  createdAt  DateTime     @default(now())
+
+  @@unique([reviewId, reporterId])
+  @@index([reviewId])
 }

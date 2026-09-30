@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { api } from '../utils/api';
 
 import AuthModal from './AuthModal';
+import { ReviewModal } from './Reviews';
 
 const decodeMessagePreview = (content = '') => {
   try {
@@ -93,6 +94,9 @@ export default function Header() {
   const [openSnapshot, setOpenSnapshot] = useState(null);
   const seenRef = useRef(seen);
   const [wishMatches, setWishMatches] = useState({ items: 0, offers: 0, fresh: 0, ids: [] }); // cartas de la lista de deseos que otros venden
+  const [reviewPrompts, setReviewPrompts] = useState({ items: [], fresh: 0 }); // compras completadas que aún no se califican
+  const [reviewTarget, setReviewTarget] = useState(null);
+  const [reviewThanks, setReviewThanks] = useState('');
   seenRef.current = seen;
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
@@ -160,7 +164,7 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    const reservedRoutes = ['/', '/bienvenida', '/dashboard', '/perfil', '/carpeta', '/c', '/admin', '/mensajes', '/carpetas', '/cartas', '/vendedores'];
+    const reservedRoutes = ['/', '/bienvenida', '/dashboard', '/perfil', '/carpeta', '/c', '/admin', '/mensajes', '/moderacion', '/carpetas', '/cartas', '/vendedores'];
     const pathname = location.pathname;
     const isDynamicPublicProfile = pathname.split('/').filter(Boolean).length === 1 && !reservedRoutes.includes(pathname);
     if (!isDynamicPublicProfile) {
@@ -278,7 +282,7 @@ export default function Header() {
   // Cartas deseadas que otros venden: se consulta al entrar y cada 5 minutos (la consulta es más pesada que la de pedidos)
   const wishSeenKey = currentUser ? `carpetazo:wish-seen:${currentUser.uid}` : null;
   useEffect(() => {
-    if (!wishSeenKey) { setWishMatches({ items: 0, offers: 0, fresh: 0, ids: [] }); return undefined; }
+    if (!wishSeenKey) { setWishMatches({ items: 0, offers: 0, fresh: 0, ids: [] }); setReviewPrompts({ items: [], fresh: 0 }); return undefined; }
     let cancelled = false;
     const load = () => {
       if (document.visibilityState === 'hidden') return;
@@ -293,10 +297,23 @@ export default function Header() {
         setWishMatches({ items: entries.length, offers: ids.length, fresh: ids.filter((id) => !knownSet.has(id)).length, ids });
       }).catch(() => {});
     };
+    const loadReviews = () => {
+      if (document.visibilityState === 'hidden') return;
+      api.getPendingReviews().then((res) => {
+        if (cancelled || !res?.success) return;
+        const items = res.pending || [];
+        let known = null;
+        try { known = JSON.parse(localStorage.getItem(`carpetazo:review-seen:${wishSeenKey.split(':').pop()}`) || 'null'); } catch (_error) { /* sin almacenamiento */ }
+        const knownSet = new Set(Array.isArray(known) ? known : []);
+        setReviewPrompts({ items, fresh: items.filter((item) => !knownSet.has(item.orderId)).length });
+      }).catch(() => {});
+    };
     load();
-    const intervalId = window.setInterval(load, 5 * 60 * 1000);
+    loadReviews();
+    window.addEventListener('focus', loadReviews);
+    const intervalId = window.setInterval(() => { load(); loadReviews(); }, 5 * 60 * 1000);
     window.addEventListener('focus', load);
-    return () => { cancelled = true; window.clearInterval(intervalId); window.removeEventListener('focus', load); };
+    return () => { cancelled = true; window.clearInterval(intervalId); window.removeEventListener('focus', load); window.removeEventListener('focus', loadReviews); };
   }, [wishSeenKey]);
 
   const seenKey = currentUser ? `carpetazo:bell-seen:${currentUser.uid}` : null;
@@ -341,7 +358,13 @@ export default function Header() {
     if (changed) persistSeen({ ...seen, chats: next });
   }, [notificationChats]);
 
-  const totalNotifications = unseenMessages + pendingOrders.unseen + wishMatches.fresh;
+  const totalNotifications = unseenMessages + pendingOrders.unseen + wishMatches.fresh + reviewPrompts.fresh;
+  const handleReviewDone = (done) => {
+    setReviewPrompts((previous) => ({ items: previous.items.filter((item) => item.orderId !== done.orderId), fresh: Math.max(0, previous.fresh - 1) }));
+    setReviewTarget(null);
+    setReviewThanks('¡Gracias! Tu reseña ya es pública.');
+    window.setTimeout(() => setReviewThanks(''), 3500);
+  };
   const formatOrderTotal = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
   const orderAge = (iso) => {
     const minutes = Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -376,6 +399,10 @@ export default function Header() {
       if (wishSeenKey && wishMatches.ids.length > 0) {
         try { localStorage.setItem(wishSeenKey, JSON.stringify(wishMatches.ids.slice(0, 500))); } catch (_error) { /* sin almacenamiento */ }
         setWishMatches(previous => (previous.fresh === 0 ? previous : { ...previous, fresh: 0 }));
+      }
+      if (wishSeenKey && reviewPrompts.items.length > 0) {
+        try { localStorage.setItem(`carpetazo:review-seen:${wishSeenKey.split(':').pop()}`, JSON.stringify(reviewPrompts.items.map((item) => item.orderId).slice(0, 100))); } catch (_error) { /* sin almacenamiento */ }
+        setReviewPrompts(previous => (previous.fresh === 0 ? previous : { ...previous, fresh: 0 }));
       }
     }
   };
@@ -472,6 +499,23 @@ export default function Header() {
             </div>
           )}
 
+          {reviewPrompts.items.length > 0 && (
+            <div className="border-b border-slate-100 py-2">
+              <p className="px-4 pb-1 pt-1 text-xs font-black text-slate-500">
+                {reviewPrompts.items.length === 1 ? '1 compra por calificar' : `${reviewPrompts.items.length} compras por calificar`}
+              </p>
+              {reviewPrompts.items.slice(0, 3).map((item) => (
+                <button key={item.orderId} type="button" onClick={() => { setIsNotificationOpen(false); setReviewTarget(item); }} className="flex w-full items-center gap-3 px-4 py-2 text-left transition hover:bg-slate-50">
+                  <span translate="no" className="material-symbols-outlined text-[22px] text-amber-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-black text-slate-800">Califica a {item.seller?.name || item.seller?.username || 'tu vendedor'}</span>
+                    <span className="block truncate text-xs font-semibold text-slate-500">Pedido {item.code} · {item.folderName}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
           {notificationChats.length > 0 ? (
             <div className="max-h-80 overflow-y-auto py-2">
               {notificationChats.map(chat => {
@@ -500,7 +544,7 @@ export default function Header() {
                 );
               })}
             </div>
-          ) : pendingOrders.count === 0 && wishMatches.items === 0 ? (
+          ) : pendingOrders.count === 0 && wishMatches.items === 0 && reviewPrompts.items.length === 0 ? (
             <div className="px-4 py-6 text-center">
               <p className="text-sm font-black text-slate-800">Sin notificaciones nuevas</p>
               <p className="mt-1 text-xs font-semibold text-slate-500">Las solicitudes de compra y los mensajes aparecerán aquí.</p>
@@ -636,6 +680,11 @@ export default function Header() {
                   <Link to={`/${userUsername || currentUser.uid}`} onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 font-semibold flex items-center gap-3">
                     <span translate="no" className="material-symbols-outlined text-[20px]">storefront</span> Ver perfil público
                   </Link>
+                  {appUser?.role === 'admin' && (
+                    <Link to="/moderacion" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 font-semibold flex items-center gap-3">
+                      <span translate="no" className="material-symbols-outlined text-[20px]">admin_panel_settings</span> Moderación
+                    </Link>
+                  )}
                   <div className="h-px bg-gray-100 my-1 mx-2"></div>
                   <button onClick={() => { setIsDropdownOpen(false); handleLogout(); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-bold flex items-center gap-3">
                     <span translate="no" className="material-symbols-outlined text-[20px]">logout</span> Salir
@@ -827,6 +876,7 @@ export default function Header() {
                 { to: '/mensajes', label: 'Mensajes', icon: 'chat', active: location.pathname === '/mensajes', badge: unreadMessages },
                 { to: '/perfil', label: 'Mi perfil', icon: 'person', active: location.pathname === '/perfil' },
                 { to: `/${userUsername || currentUser?.uid || ''}`, label: 'Mi perfil público', icon: 'badge', active: false },
+                ...(appUser?.role === 'admin' ? [{ to: '/moderacion', label: 'Moderación', icon: 'admin_panel_settings', active: location.pathname === '/moderacion' }] : []),
               ];
               const renderItem = (item) => (
                 <Link
@@ -881,6 +931,10 @@ export default function Header() {
       )}
       {/* Authentication Modal */}
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      <ReviewModal pending={reviewTarget} onClose={() => setReviewTarget(null)} onDone={handleReviewDone} />
+      {reviewThanks && (
+        <div role="status" className="fixed bottom-6 left-1/2 z-[210] -translate-x-1/2 rounded-full bg-[#12315f] px-5 py-3 text-sm font-bold text-white shadow-2xl">{reviewThanks}</div>
+      )}
     </>
   );
 }

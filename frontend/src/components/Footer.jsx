@@ -14,7 +14,7 @@ export default function Footer() {
   }, []);
 
   useEffect(() => {
-    const reservedRoutes = ['/', '/bienvenida', '/dashboard', '/perfil', '/carpeta', '/c', '/admin', '/mensajes', '/carpetas', '/cartas', '/vendedores'];
+    const reservedRoutes = ['/', '/bienvenida', '/dashboard', '/perfil', '/carpeta', '/c', '/admin', '/mensajes', '/moderacion', '/carpetas', '/cartas', '/vendedores'];
     const pathname = location.pathname;
     const isDynamicPublicProfile = pathname.split('/').filter(Boolean).length === 1 && !reservedRoutes.includes(pathname);
     if (!isDynamicPublicProfile) {

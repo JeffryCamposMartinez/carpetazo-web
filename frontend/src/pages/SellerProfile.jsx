@@ -1,5 +1,6 @@
 import NotFound from './NotFound';
 import WishlistSection from '../components/WishlistSection';
+import ReviewsSection, { Stars } from '../components/Reviews';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { updateProfile as updateFirebaseProfile } from 'firebase/auth';
@@ -1198,6 +1199,12 @@ export default function SellerProfile() {
                 <p className="mt-2 text-sm font-semibold tabular-nums" style={{ color: publicTheme.text }}>
                   {folderCountLabel} · {cardCountLabel} · Nivel {profileLevel}
                 </p>
+                {seller?.reviewSummary?.count > 0 && (
+                  <p className="mt-1 flex items-center gap-2 text-sm font-bold tabular-nums" style={{ color: publicTheme.text }}>
+                    {seller.reviewSummary.showAverage && <Stars value={seller.reviewSummary.average} size={18} />}
+                    {seller.reviewSummary.showAverage ? `${seller.reviewSummary.average.toFixed(1)} · ` : ''}{seller.reviewSummary.count} {seller.reviewSummary.count === 1 ? 'reseña' : 'reseñas'}
+                  </p>
+                )}
                 {primaryAddress && (
                   <p className={`mt-2 flex items-center gap-1.5 text-sm font-semibold ${isPosterLayout ? 'md:justify-center' : ''}`} style={textMuted}>
                     <span translate="no" className="material-symbols-outlined text-[18px]">location_on</span>
@@ -1365,6 +1372,11 @@ export default function SellerProfile() {
                 variant="profile"
                 colors={{ primary: publicTheme.primary, accent: publicTheme.accent, text: publicTheme.text }}
               />
+            </section>
+          )}
+          {seller?.username && (seller?.reviewSummary?.count > 0 || isOwner) && (
+            <section className="min-w-0 border p-5 ring-1 lg:col-span-12" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}33`, order: 100 }}>
+              <ReviewsSection username={seller.username} isOwner={isOwner} colors={{ primary: publicTheme.primary, text: publicTheme.text }} />
             </section>
           )}
         </div>

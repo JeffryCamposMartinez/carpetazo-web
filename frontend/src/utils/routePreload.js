@@ -11,6 +11,7 @@ export const pageLoaders = {
   seller: () => import('../pages/SellerProfile'),
   profile: () => import('../pages/ProfilePage'),
   messages: () => import('../pages/Messages'),
+  moderation: () => import('../pages/Moderation'),
   folders: () => import('../pages/FoldersPage'),
   cards: () => import('../pages/CardsPage'),
   sellers: () => import('../pages/SellersPage'),

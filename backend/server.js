@@ -120,7 +120,7 @@ const isAllowedProxyImageUrl = (rawUrl) => {
 // --- Validación de nombres de usuario y URLs guardadas por los usuarios ---
 const RESERVED_USERNAMES = new Set([
   'admin', 'api', 'bienvenida', 'dashboard', 'perfil', 'carpeta', 'carpetas', 'c', 'mensajes',
-  'cartas', 'vendedores', 'login', 'logout', 'registro', 'soporte', 'ayuda', 'carpetazo', 'root', 'null', 'undefined'
+  'cartas', 'vendedores', 'moderacion', 'login', 'logout', 'registro', 'soporte', 'ayuda', 'carpetazo', 'root', 'null', 'undefined'
 ]);
 const normalizeUsername = (value) => String(value || '')
   .toLowerCase()
@@ -268,6 +268,10 @@ app.post('/api/wishlist', routeLimiter(15 * 60 * 1000, 120));
 app.put('/api/wishlist/:id', routeLimiter(15 * 60 * 1000, 120));
 app.delete('/api/wishlist/:id', routeLimiter(15 * 60 * 1000, 120));
 app.get('/api/users/:username/wishlist', routeLimiter(15 * 60 * 1000, 300));
+app.post('/api/reviews', routeLimiter(15 * 60 * 1000, 20));
+app.get('/api/reviews/pending', routeLimiter(15 * 60 * 1000, 300));
+app.post('/api/reviews/:id/report', routeLimiter(15 * 60 * 1000, 10));
+app.get('/api/users/:username/reviews', routeLimiter(15 * 60 * 1000, 300));
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
@@ -817,18 +821,20 @@ app.post('/api/orders/create', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Carpeta requerida' });
     }
 
+    // Con sesión, el pedido queda ligado a la cuenta del comprador (así podrá calificar al vendedor); sin sesión sigue siendo anónimo
     let buyer = null;
-    if (viaMessage) {
-      const token = String(req.headers['authorization'] || '').split(' ')[1];
-      if (!token) return res.status(401).json({ success: false, message: 'Inicia sesión para enviar el pedido por mensaje' });
-      let decoded;
+    const token = String(req.headers['authorization'] || '').split(' ')[1];
+    if (token) {
       try {
-        decoded = await getAuth().verifyIdToken(token);
+        const decoded = await getAuth().verifyIdToken(token);
+        buyer = await prisma.user.findUnique({ where: { firebaseUid: decoded.uid }, select: { id: true, name: true, username: true } });
       } catch (_error) {
-        return res.status(401).json({ success: false, message: 'Tu sesión venció. Inicia sesión otra vez' });
+        buyer = null;
       }
-      buyer = await prisma.user.findUnique({ where: { firebaseUid: decoded.uid }, select: { id: true, name: true, username: true } });
-      if (!buyer) return res.status(401).json({ success: false, message: 'Tu cuenta aún se está preparando. Intenta de nuevo en unos segundos' });
+    }
+    if (viaMessage) {
+      if (!token) return res.status(401).json({ success: false, message: 'Inicia sesión para enviar el pedido por mensaje' });
+      if (!buyer) return res.status(401).json({ success: false, message: 'Tu sesión venció o tu cuenta aún se está preparando. Intenta de nuevo' });
     }
 
     const folder = await prisma.folder.findUnique({ where: { id: folderId }, include: { cards: true } });
@@ -875,6 +881,8 @@ app.post('/api/orders/create', async (req, res) => {
       code,
       sellerId: folder.userId,
       buyerName: viaMessage ? String(buyer.name || buyer.username || 'Cliente').slice(0, 80) : 'Cliente por WhatsApp',
+      buyerId: buyer ? buyer.id : null,
+      createdIpHash: hashConnection(req),
       folderId: folder.id,
       folderName: folder.name || 'Catálogo',
       items,
@@ -911,6 +919,152 @@ app.post('/api/orders/create', async (req, res) => {
   }
 });
 
+
+// --- Reseñas de vendedores ---
+// Solo el comprador de un pedido completado puede calificar, una vez por pedido; la reseña no se edita ni se responde.
+const REVIEWS_PAGE_SIZE = 10;
+// Identificador anónimo de la conexión (hash con sal; no se guarda la IP). Define IP_HASH_SALT en el servidor para que no sea reversible.
+const hashConnection = (req) => crypto.createHash('sha256').update(`${process.env.IP_HASH_SALT || 'carpetazo'}|${req.ip || ''}`).digest('hex').slice(0, 32);
+
+app.post('/api/reviews', authenticateToken, async (req, res) => {
+  try {
+    const reviewerId = await currentUserId(req);
+    if (!reviewerId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const { orderId, rating, comment } = req.body || {};
+    if (typeof orderId !== 'string' || !isUuid(orderId)) return badRequest(res, 'Pedido inválido');
+    const stars = Number(rating);
+    if (!Number.isInteger(stars) || stars < 1 || stars > 5) return badRequest(res, 'Elige de 1 a 5 estrellas');
+    if (comment !== undefined && comment !== null && (!isOptionalText(comment, 300) || hasControlChars(String(comment).replace(/[\r\n]/g, ' ')))) return badRequest(res, 'Comentario inválido');
+    const text = comment ? String(comment).trim() || null : null;
+
+    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    if (!order || order.buyerId !== reviewerId) return res.status(404).json({ success: false, message: 'Pedido no encontrado' });
+    if (order.sellerId === reviewerId) return badRequest(res, 'No puedes calificarte a ti mismo');
+    if (order.status !== 'completed') return badRequest(res, 'Solo puedes calificar pedidos completados');
+
+    // Una reseña por pareja comprador-vendedor: un pedido nuevo al mismo vendedor no suma otra
+    const alreadyReviewed = await prisma.sellerReview.findFirst({ where: { sellerId: order.sellerId, reviewerId }, select: { id: true } });
+    if (alreadyReviewed) return res.status(409).json({ success: false, message: 'Ya calificaste a este vendedor' });
+    // Pedido creado y confirmado desde la misma conexión: la reseña se guarda pero no se muestra ni promedia
+    const sameConnection = Boolean(order.createdIpHash && order.completedIpHash && order.createdIpHash === order.completedIpHash);
+
+    let review;
+    try {
+      review = await prisma.sellerReview.create({ data: { sellerId: order.sellerId, reviewerId, orderId: order.id, rating: stars, comment: text, counts: !sameConnection, flag: sameConnection ? 'same_connection' : null } });
+    } catch (error) {
+      if (error.code === 'P2002') return res.status(409).json({ success: false, message: 'Ya calificaste a este vendedor' });
+      throw error;
+    }
+    res.json({ success: true, review: { id: review.id, rating: review.rating, comment: review.comment, createdAt: review.createdAt } });
+  } catch (error) {
+    console.error('Error creating review:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Compras completadas del usuario que aún no calificó
+app.get('/api/reviews/pending', authenticateToken, async (req, res) => {
+  try {
+    const userId = await currentUserId(req);
+    if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const orders = await prisma.order.findMany({
+      where: { buyerId: userId, status: 'completed' },
+      orderBy: { updatedAt: 'desc' },
+      take: 30,
+      select: { id: true, code: true, sellerId: true, folderName: true, updatedAt: true }
+    });
+    if (orders.length === 0) return res.json({ success: true, pending: [] });
+    const reviewed = await prisma.sellerReview.findMany({ where: { reviewerId: userId }, select: { orderId: true, sellerId: true } });
+    const reviewedOrders = new Set(reviewed.map((row) => row.orderId));
+    const reviewedSellers = new Set(reviewed.map((row) => row.sellerId));
+    const seenSellers = new Set();
+    // Solo se puede calificar una vez a cada vendedor: se ofrece el pedido más reciente de cada uno que aún no calificaste
+    const open = orders.filter((order) => {
+      if (reviewedOrders.has(order.id) || reviewedSellers.has(order.sellerId) || seenSellers.has(order.sellerId)) return false;
+      seenSellers.add(order.sellerId);
+      return true;
+    });
+    const sellers = open.length
+      ? await prisma.user.findMany({ where: { id: { in: [...new Set(open.map((order) => order.sellerId))] } }, select: { id: true, name: true, username: true, photoURL: true } })
+      : [];
+    const sellerById = new Map(sellers.map((seller) => [seller.id, seller]));
+    res.json({
+      success: true,
+      pending: open.map((order) => ({
+        orderId: order.id,
+        code: order.code,
+        folderName: order.folderName,
+        completedAt: order.updatedAt,
+        seller: { name: sellerById.get(order.sellerId)?.name || null, username: sellerById.get(order.sellerId)?.username || null, photoURL: sellerById.get(order.sellerId)?.photoURL || null }
+      }))
+    });
+  } catch (error) {
+    console.error('Error loading pending reviews:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Reportar una reseña: deja de contar y de mostrarse hasta que se revise.
+// Destino: sección /moderacion (frontend/src/pages/Moderation.jsx, aún vacía); mientras tanto, backend/review_moderation.cjs
+app.post('/api/reviews/:id/report', authenticateToken, async (req, res) => {
+  try {
+    if (!isUuid(req.params.id)) return res.status(404).json({ success: false, message: 'Reseña no encontrada' });
+    const reporterId = await currentUserId(req);
+    if (!reporterId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const reason = req.body?.reason;
+    if (!isOptionalText(reason, 200) || (typeof reason === 'string' && hasControlChars(reason.replace(/[\r\n]/g, ' ')))) return badRequest(res, 'Motivo inválido');
+
+    // Solo se pueden reportar reseñas visibles; quien la escribió no puede reportarla
+    const review = await prisma.sellerReview.findFirst({ where: { id: req.params.id, counts: true }, select: { id: true, reviewerId: true } });
+    if (!review) return res.status(404).json({ success: false, message: 'Reseña no encontrada' });
+    if (review.reviewerId === reporterId) return badRequest(res, 'No puedes reportar tu propia reseña');
+
+    try {
+      await prisma.$transaction([
+        prisma.reviewReport.create({ data: { reviewId: review.id, reporterId, reason: reason ? String(reason).trim() || null : null } }),
+        prisma.sellerReview.update({ where: { id: review.id }, data: { counts: false, flag: 'reported' } })
+      ]);
+    } catch (error) {
+      if (error.code === 'P2002') return res.status(409).json({ success: false, message: 'Ya reportaste esta reseña' });
+      throw error;
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error reporting review:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Reseñas públicas de un vendedor: solo calificación, comentario, fecha y nombre/usuario/foto de quien escribió
+app.get('/api/users/:username/reviews', async (req, res) => {
+  try {
+    const username = typeof req.params.username === 'string' ? req.params.username.trim() : '';
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    if (!username || username.length > 60 || page < 1 || page > 100) return badRequest(res, 'Consulta inválida');
+    const user = await prisma.user.findUnique({ where: { username }, select: { id: true } });
+    if (!user) return res.status(404).json({ success: false, message: 'Vendedor no encontrado' });
+    const [summary, rows] = await Promise.all([
+      getReviewSummary(user.id),
+      prisma.sellerReview.findMany({
+        where: { sellerId: user.id, counts: true },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * REVIEWS_PAGE_SIZE,
+        take: REVIEWS_PAGE_SIZE,
+        select: { id: true, rating: true, comment: true, createdAt: true, reviewer: { select: { name: true, username: true, photoURL: true } } }
+      })
+    ]);
+    res.json({
+      success: true,
+      ...summary,
+      page,
+      pages: Math.max(1, Math.ceil(summary.count / REVIEWS_PAGE_SIZE)),
+      reviews: rows.map((row) => ({ id: row.id, rating: row.rating, comment: row.comment, createdAt: row.createdAt, reviewer: { name: row.reviewer?.name || null, username: row.reviewer?.username || null, photoURL: row.reviewer?.photoURL || null } }))
+    });
+  } catch (error) {
+    console.error('Error loading reviews:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
 
 // --- Pedidos del vendedor: solo ve y gestiona los pedidos de sus propias carpetas ---
 const getSellerId = async (req) => {
@@ -1035,7 +1189,7 @@ app.post('/api/orders/mine/:id/status', authenticateToken, async (req, res) => {
           await tx.card.update({ where: { id }, data: { stock: Math.max(0, Number(card.stock || 0) - Number(item.quantity || 1)) } });
         }
       }
-      return tx.order.update({ where: { id: order.id }, data: { status } });
+      return tx.order.update({ where: { id: order.id }, data: { status, ...(status === 'completed' ? { completedIpHash: hashConnection(req) } : {}) } });
     });
 
     res.json({ success: true, order: formatOrderForUi(updated) });
@@ -1271,7 +1425,16 @@ const PUBLIC_SELLER_SELECT = {
   firebaseUid: true // solo para calcular isOwner; el serializador lo elimina
 };
 
-const toPublicSeller = (user, viewerUid = null) => {
+// Promedio y cantidad de reseñas de un vendedor
+const REVIEW_MIN_FOR_AVERAGE = 3; // con menos reseñas no se muestra promedio: una o dos falsas no inflan la nota
+const getReviewSummary = async (userId) => {
+  const aggregate = await prisma.sellerReview.aggregate({ where: { sellerId: userId, counts: true }, _avg: { rating: true }, _count: { _all: true } });
+  const count = aggregate._count._all;
+  const showAverage = count >= REVIEW_MIN_FOR_AVERAGE && aggregate._avg.rating !== null;
+  return { average: showAverage ? Math.round(aggregate._avg.rating * 10) / 10 : null, count, showAverage };
+};
+
+const toPublicSeller = (user, viewerUid = null, reviewSummary = null) => {
   if (!user) return null;
   const theme = user.publicTheme && typeof user.publicTheme === 'object' ? user.publicTheme : {};
   return {
@@ -1296,7 +1459,8 @@ const toPublicSeller = (user, viewerUid = null) => {
       ? user.addresses.map((a) => ({ name: a?.name || '', comuna: a?.comuna || '', region: a?.region || '', isDefault: Boolean(a?.isDefault) }))
       : [],
     createdAt: user.createdAt,
-    isOwner: Boolean(viewerUid && user.firebaseUid && user.firebaseUid === viewerUid)
+    isOwner: Boolean(viewerUid && user.firebaseUid && user.firebaseUid === viewerUid),
+    reviewSummary: reviewSummary || { average: null, count: 0, showAverage: false }
   };
 };
 
@@ -1314,7 +1478,7 @@ app.get('/api/folders/:id', optionalAuth, async (req, res) => {
     // Una carpeta privada no existe para nadie más que su dueño (mismo 404 que una carpeta inexistente)
     const isFolderOwner = Boolean(req.user?.sub && folder?.user?.firebaseUid && folder.user.firebaseUid === req.user.sub);
     if (!folder || (!folder.isPublic && !isFolderOwner)) return res.status(404).json({ success: false, message: 'Folder not found' });
-    res.json({ success: true, folder: { ...folder, user: toPublicSeller(folder.user, req.user?.sub) } });
+    res.json({ success: true, folder: { ...folder, user: toPublicSeller(folder.user, req.user?.sub, await getReviewSummary(folder.user.id)) } });
   } catch (error) {
     console.error('Error fetching folder:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
@@ -2481,7 +2645,7 @@ app.get('/api/users/:username', optionalAuth, async (req, res) => {
     }
 
     const { folders, ...seller } = user;
-    res.json({ success: true, user: { ...toPublicSeller(seller, req.user?.sub), folders } });
+    res.json({ success: true, user: { ...toPublicSeller(seller, req.user?.sub, await getReviewSummary(seller.id)), folders } });
   } catch (error) {
     console.error('Error fetching user:', error);
     res.status(500).json({ success: false, message: 'Error interno' });

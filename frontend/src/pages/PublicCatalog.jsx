@@ -7,6 +7,7 @@ import Toast from '../components/Toast';
 import { useAuth } from '../contexts/AuthContext';
 import PublicCatalogFilters from '../components/folder/filters/PublicCatalogFilters';
 import WishlistSection from '../components/WishlistSection';
+import { Stars } from '../components/Reviews';
 import { wishlistPayloadFromCard } from '../utils/wishlistPayload';
 
 const isLocalhostWithProductionApi = () => {
@@ -700,14 +701,17 @@ function PublicCatalog() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                         <Link to={sellerPath} className="truncate text-base font-extrabold hover:underline md:text-lg">{sellerData?.displayName || 'Vendedor anónimo'}</Link>
-                        <span translate="no" className="material-symbols-outlined text-[18px] text-[#7dd3fc]" style={{ fontVariationSettings: "'FILL' 1" }} title="Vendedor verificado">verified</span>
-                        {sellerData?.totalTrades > 0 ? (
-                          <span className="flex items-center gap-1 text-xs font-bold text-[#facc15]">
-                            <span translate="no" className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                            {sellerData?.rating?.toFixed(1) || '5.0'} · {sellerData.totalTrades} reseñas
-                          </span>
+                        {sellerData?.reviewSummary?.showAverage ? (
+                          <Link to={sellerPath} className="flex items-center gap-1.5 text-xs font-bold text-[#facc15] hover:underline" title="Ver reseñas">
+                            <Stars value={sellerData.reviewSummary.average} size={14} />
+                            {sellerData.reviewSummary.average.toFixed(1)} · {sellerData.reviewSummary.count} {sellerData.reviewSummary.count === 1 ? 'reseña' : 'reseñas'}
+                          </Link>
+                        ) : sellerData?.reviewSummary?.count > 0 ? (
+                          <Link to={sellerPath} className="text-xs font-bold text-[#facc15] hover:underline" title="Ver reseñas">
+                            {sellerData.reviewSummary.count} {sellerData.reviewSummary.count === 1 ? 'reseña' : 'reseñas'}
+                          </Link>
                         ) : (
-                          <span className="text-xs font-semibold text-blue-200">Vendedor nuevo</span>
+                          <span className="text-xs font-semibold text-blue-200">Sin reseñas todavía</span>
                         )}
                       </div>
                       <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs font-semibold text-blue-100">
@@ -1084,7 +1088,13 @@ function PublicCatalog() {
                 <span className="text-[#1e40af] text-2xl">{formatCLP(cartTotal)}</span>
               </div>
               
-              <button 
+              {!currentUser && !messageMode && (
+                <div className="mb-3 rounded-xl bg-amber-50 p-3 text-xs font-semibold text-amber-900 ring-1 ring-amber-200">
+                  Estás comprando sin cuenta. Puedes pedir igual, pero <strong>no podrás calificar al vendedor</strong> después.
+                  <button type="button" onClick={() => window.dispatchEvent(new Event('carpetazo:open-auth'))} className="ml-1 font-extrabold underline">Iniciar sesión</button>
+                </div>
+              )}
+              <button
                 className={`w-full text-white p-4 rounded-xl font-extrabold flex justify-center items-center gap-3 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${messageMode ? 'bg-[#1e40af] hover:bg-[#1d4ed8] shadow-[0_4px_15px_rgba(30,64,175,0.3)]' : 'bg-[#25D366] hover:bg-[#128C7E] shadow-[0_4px_15px_rgba(37,211,102,0.3)]'}`} 
                 disabled={cart.length === 0 || isProcessingCheckout || (messageMode && !socialEnabled('showMessageButton'))}
                 onClick={handleWhatsAppCheckout}
