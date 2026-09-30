@@ -218,33 +218,46 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
     turnToPage(target);
   };
 
-  // Handle swipe gestures for mobile
-  const [touchStart, setTouchStart] = useState(null);
-  const [touchEnd, setTouchEnd] = useState(null);
-
-  const minSwipeDistance = 40;
+  // Gesto de deslizar (móvil): la página cambia en cuanto el dedo avanza un poco en horizontal, sin esperar a soltar.
+  // Se usa una referencia (no estado) para no volver a renderizar todo el álbum en cada movimiento del dedo.
+  const swipeRef = useRef({ x: 0, y: 0, time: 0, done: true });
+  const SWIPE_TRIGGER_PX = 16;   // distancia horizontal que dispara el giro mientras se arrastra
+  const SWIPE_FLICK_PX = 8;      // distancia mínima de un toque rápido (flick)
+  const SWIPE_FLICK_SPEED = 0.35; // px por ms
 
   const onTouchStart = (e) => {
     if (draggingReorderCardId) return;
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
+    const t = e.targetTouches[0];
+    swipeRef.current = { x: t.clientX, y: t.clientY, time: performance.now(), done: false };
+  };
+
+  const fireSwipe = (dx) => {
+    swipeRef.current.done = true;
+    if (dx < 0) handleNext();
+    else handlePrev();
   };
 
   const onTouchMove = (e) => {
-    if (draggingReorderCardId) return;
-    setTouchEnd(e.targetTouches[0].clientX);
+    const sw = swipeRef.current;
+    if (draggingReorderCardId || sw.done) return;
+    const t = e.targetTouches[0];
+    const dx = t.clientX - sw.x;
+    const dy = t.clientY - sw.y;
+    // Un movimiento claramente vertical es scroll de la página, no un giro
+    if (Math.abs(dy) > Math.abs(dx) * 1.2 && Math.abs(dy) > 10) { sw.done = true; return; }
+    if (Math.abs(dx) >= SWIPE_TRIGGER_PX && Math.abs(dx) > Math.abs(dy) * 1.2) fireSwipe(dx);
   };
 
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-    if (isLeftSwipe) {
-      handleNext();
-    } else if (isRightSwipe) {
-      handlePrev();
-    }
+  const onTouchEnd = (e) => {
+    const sw = swipeRef.current;
+    if (draggingReorderCardId || sw.done) return;
+    const t = e.changedTouches?.[0];
+    if (!t) return;
+    const dx = t.clientX - sw.x;
+    const dy = t.clientY - sw.y;
+    const speed = Math.abs(dx) / Math.max(1, performance.now() - sw.time);
+    if (Math.abs(dx) >= SWIPE_FLICK_PX && Math.abs(dx) > Math.abs(dy) * 1.2 && speed >= SWIPE_FLICK_SPEED) fireSwipe(dx);
+    else sw.done = true;
   };
 
   const handleNext = () => {
