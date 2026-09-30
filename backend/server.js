@@ -806,6 +806,8 @@ app.post('/api/orders/create', async (req, res) => {
     const body = req.body || {};
     const rawItems = Array.isArray(body.items || body.orderItems) ? (body.items || body.orderItems) : [];
     const folderId = typeof body.folderId === 'string' ? body.folderId : '';
+    // "message": el pedido llega al vendedor como mensaje de Carpetazo; exige un comprador con sesión
+    const viaMessage = body.via === 'message';
 
     if (!rawItems.length || rawItems.length > 100) {
       return res.status(400).json({ success: false, message: 'El pedido no tiene cartas' });
@@ -814,15 +816,39 @@ app.post('/api/orders/create', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Carpeta requerida' });
     }
 
+    let buyer = null;
+    if (viaMessage) {
+      const token = String(req.headers['authorization'] || '').split(' ')[1];
+      if (!token) return res.status(401).json({ success: false, message: 'Inicia sesión para enviar el pedido por mensaje' });
+      let decoded;
+      try {
+        decoded = await getAuth().verifyIdToken(token);
+      } catch (_error) {
+        return res.status(401).json({ success: false, message: 'Tu sesión venció. Inicia sesión otra vez' });
+      }
+      buyer = await prisma.user.findUnique({ where: { firebaseUid: decoded.uid }, select: { id: true, name: true, username: true } });
+      if (!buyer) return res.status(401).json({ success: false, message: 'Tu cuenta aún se está preparando. Intenta de nuevo en unos segundos' });
+    }
+
     const folder = await prisma.folder.findUnique({ where: { id: folderId }, include: { cards: true } });
     if (!folder || !folder.isPublic) {
       return res.status(404).json({ success: false, message: 'Carpeta no encontrada' });
     }
 
+    // Datos del vendedor: tema (para saber si recibe mensajes) y datos para transferir
+    const seller = await prisma.user.findUnique({ where: { id: folder.userId }, select: { name: true, fullName: true, rut: true, bankDetails: true, publicTheme: true } });
+    if (viaMessage) {
+      if (folder.userId === buyer.id) return res.status(400).json({ success: false, message: 'No puedes enviarte un pedido a ti mismo' });
+      const theme = seller?.publicTheme && typeof seller.publicTheme === 'object' ? seller.publicTheme : {};
+      if (theme.showMessageButton === 'off') return res.status(400).json({ success: false, message: 'Este vendedor no recibe pedidos por mensaje' });
+    }
+
     // Nombre, precio y vendedor salen de la base de datos; del cliente solo se acepta id y cantidad
     const cardsById = new Map(folder.cards.map((card) => [card.id, card]));
     const items = [];
+    const lines = [];
     let total = 0;
+    const clp = (value) => '$' + Math.round(value).toLocaleString('es-CL');
     for (const raw of rawItems) {
       const card = cardsById.get(String(raw?.id ?? ''));
       if (!card) {
@@ -833,30 +859,51 @@ app.post('/api/orders/create', async (req, res) => {
       const price = Number.isFinite(card.price) && card.price > 0 ? card.price : 0;
       total += price * quantity;
       items.push({ id: card.id, name: card.name, quantity, q: quantity, price });
+      const set = card.data && typeof card.data === 'object' && typeof card.data.set === 'string' && card.data.set !== 'Unknown' ? ` (${card.data.set.slice(0, 60)})` : '';
+      lines.push(`• ${quantity}x ${card.name}${set} - ${clp(price * quantity)}`);
     }
 
-    const code = await generateOrderCode();
-    const order = await prisma.order.create({
-      data: {
-        code,
-        sellerId: folder.userId,
-        buyerName: 'Cliente por WhatsApp',
-        folderId: folder.id,
-        folderName: folder.name || 'Catálogo',
-        items,
-        total,
-        status: 'pending'
-      }
-    });
-
     // Datos para transferir: solo se entregan a quien acaba de crear un pedido, nunca en rutas públicas
-    const seller = await prisma.user.findUnique({ where: { id: folder.userId }, select: { name: true, fullName: true, rut: true, bankDetails: true } });
     const bank = seller?.bankDetails && typeof seller.bankDetails === 'object' ? seller.bankDetails : {};
     const payment = bank.accountNumber
       ? { holderName: seller.fullName || seller.name || '', rut: seller.rut || '', bank: bank.bank || '', accountType: bank.accountType || '', accountNumber: bank.accountNumber }
       : null;
 
-    res.json({ success: true, code, order: formatOrderForUi(order), payment });
+    const code = await generateOrderCode();
+    const orderData = {
+      code,
+      sellerId: folder.userId,
+      buyerName: viaMessage ? String(buyer.name || buyer.username || 'Cliente').slice(0, 80) : 'Cliente por WhatsApp',
+      folderId: folder.id,
+      folderName: folder.name || 'Catálogo',
+      items,
+      total,
+      status: 'pending'
+    };
+
+    let order;
+    if (viaMessage) {
+      const text = [
+        `¡Hola! Te hice un pedido desde tu carpeta "${folder.name || 'Catálogo'}" en Carpetazo:`,
+        '',
+        ...lines,
+        '',
+        `Total: ${clp(total)}`,
+        `Código de pedido: ${code}`,
+        ...(payment ? ['', 'Datos para transferir:', [payment.holderName, payment.rut, payment.bank, payment.accountType, payment.accountNumber].filter(Boolean).join('\n')] : []),
+        '',
+        '¿Tienes disponibilidad?'
+      ].join('\n');
+      // Pedido y mensaje se crean juntos: no puede quedar uno sin el otro
+      [order] = await prisma.$transaction([
+        prisma.order.create({ data: orderData }),
+        prisma.message.create({ data: { senderId: buyer.id, receiverId: folder.userId, content: JSON.stringify({ v: 1, text, imageUrl: null, imageBase64: null }) } })
+      ]);
+    } else {
+      order = await prisma.order.create({ data: orderData });
+    }
+
+    res.json({ success: true, code, order: formatOrderForUi(order), payment, viaMessage });
   } catch (error) {
     console.error('Error creating order:', error);
     res.status(500).json({ success: false, message: 'Error interno al crear el pedido' });

@@ -152,6 +152,13 @@ export default function Header() {
     return () => window.removeEventListener('carpetazo:public-profile-theme', handlePublicProfileTheme);
   }, []);
 
+  // Otras pantallas (p. ej. el carrito) piden abrir el acceso sin perder su estado
+  useEffect(() => {
+    const openAuth = () => setIsAuthModalOpen(true);
+    window.addEventListener('carpetazo:open-auth', openAuth);
+    return () => window.removeEventListener('carpetazo:open-auth', openAuth);
+  }, []);
+
   useEffect(() => {
     const reservedRoutes = ['/', '/bienvenida', '/dashboard', '/perfil', '/carpeta', '/c', '/admin', '/mensajes', '/carpetas', '/cartas', '/vendedores'];
     const pathname = location.pathname;

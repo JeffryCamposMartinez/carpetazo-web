@@ -325,6 +325,7 @@ function PublicCatalog() {
     + (onlyAvailable ? 1 : 0) + (sortBy !== 'featured' ? 1 : 0);
 
   const isOwner = Boolean(sellerData?.isOwner) || ownsFolder;
+  const messageMode = !sellerData?.phone; // sin WhatsApp público el pedido viaja por mensajes
   useEffect(() => {
     if (!currentUser?.uid || !folderData) { setOwnsFolder(false); return; }
     if (sellerData?.isOwner) return;
@@ -335,14 +336,41 @@ function PublicCatalog() {
     return () => { cancelled = true; };
   }, [currentUser?.uid, folderData?.id, sellerData?.isOwner]);
 
-  const handleWhatsAppCheckout = async () => {
-    if (cart.length === 0) return;
-    
-    const phone = sellerData?.phone?.replace(/\D/g, '') || '';
-    if (!phone) {
-      alert("El vendedor no tiene un número de contacto configurado.");
+  // Vendedor sin WhatsApp público: el pedido se envía como mensaje de Carpetazo (el comprador debe tener sesión)
+  const handleMessageCheckout = async () => {
+    if (!socialEnabled('showMessageButton')) {
+      showToast('Este vendedor no recibe pedidos por WhatsApp ni por mensaje.', 'error');
       return;
     }
+    if (!currentUser) {
+      showToast('Inicia sesión para enviar tu pedido por mensaje. Tu carrito se conserva.', 'info');
+      window.dispatchEvent(new Event('carpetazo:open-auth'));
+      return;
+    }
+    if (isOwner) {
+      showToast('No puedes enviarte un pedido a ti mismo.', 'error');
+      return;
+    }
+    setIsProcessingCheckout(true);
+    try {
+      const response = await api.createOrder({ folderId, via: 'message', items: cart.map((item) => ({ id: item.id, quantity: item.quantity })) });
+      setCart([]);
+      setIsCartOpen(false);
+      showToast(`Pedido ${response.code} enviado a ${sellerData?.displayName || 'el vendedor'}`, 'success');
+      navigate('/mensajes', { state: { startChatWith: { id: folderData.userId, name: sellerData?.displayName || 'Vendedor', avatar: sellerData?.avatarBase64 || sellerData?.photoURL || null } } });
+    } catch (error) {
+      console.error('Error al enviar pedido por mensaje:', error);
+      showToast(error.message || 'No se pudo enviar el pedido.', 'error');
+    } finally {
+      setIsProcessingCheckout(false);
+    }
+  };
+
+  const handleWhatsAppCheckout = async () => {
+    if (cart.length === 0) return;
+
+    const phone = sellerData?.phone?.replace(/\D/g, '') || '';
+    if (!phone) return handleMessageCheckout();
     
     const formattedPhone = phone.startsWith('56') ? phone : `56${phone}`;
     
@@ -1057,16 +1085,22 @@ function PublicCatalog() {
               </div>
               
               <button 
-                className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white p-4 rounded-xl font-extrabold flex justify-center items-center gap-3 transition-all transform hover:scale-[1.02] shadow-[0_4px_15px_rgba(37,211,102,0.3)] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none" 
-                disabled={cart.length === 0 || isProcessingCheckout}
+                className={`w-full text-white p-4 rounded-xl font-extrabold flex justify-center items-center gap-3 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${messageMode ? 'bg-[#1e40af] hover:bg-[#1d4ed8] shadow-[0_4px_15px_rgba(30,64,175,0.3)]' : 'bg-[#25D366] hover:bg-[#128C7E] shadow-[0_4px_15px_rgba(37,211,102,0.3)]'}`} 
+                disabled={cart.length === 0 || isProcessingCheckout || (messageMode && !socialEnabled('showMessageButton'))}
                 onClick={handleWhatsAppCheckout}
               >
                 <span translate="no" className="material-symbols-outlined text-2xl">
                   {isProcessingCheckout ? 'hourglass_empty' : 'chat'}
                 </span>
-                {isProcessingCheckout ? 'Procesando...' : 'Generar Pedido por WhatsApp'}
+                {isProcessingCheckout ? 'Procesando...' : messageMode ? (currentUser ? 'Enviar pedido por mensaje' : 'Iniciar sesión y enviar pedido') : 'Generar Pedido por WhatsApp'}
               </button>
-              <p className="text-[10px] text-center text-gray-500 mt-3">Al presionar, se abrirá WhatsApp con el detalle de tu pedido para coordinar el pago y envío directamente con el vendedor.</p>
+              <p className="text-[10px] text-center text-gray-500 mt-3">
+                {!messageMode
+                  ? 'Al presionar, se abrirá WhatsApp con el detalle de tu pedido para coordinar el pago y envío directamente con el vendedor.'
+                  : socialEnabled('showMessageButton')
+                    ? 'Este vendedor no usa WhatsApp. Tu pedido le llegará como mensaje de Carpetazo con el detalle y un código, y ahí coordinan el pago y el envío. Necesitas una cuenta.'
+                    : 'Este vendedor no recibe pedidos por WhatsApp ni por mensaje por ahora.'}
+              </p>
             </div>
           </div>
         </div>
