@@ -1,276 +1,223 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../utils/api';
-import { getFolderFilter } from './Dashboard';
-
 import LazyFolderCard from '../components/LazyFolderCard';
 
+const TCG_CATEGORIES = [
+  { name: 'Pokémon', logo: '/images/logos/pokemon.webp' },
+  { name: 'Mitos y Leyendas', logo: '/images/logos/mitosyleyendas.webp' },
+  { name: 'One Piece', logo: '/images/logos/onepiece.webp' },
+  { name: 'Magic', logo: '/images/logos/magic.webp' },
+  { name: 'Yu-Gi-Oh!', logo: '/images/logos/yugioh.webp' },
+  { name: 'Riftbound', logo: '/images/logos/riftbound.webp' },
+];
+
+const SORT_OPTIONS = [
+  { value: 'weekly', label: 'Más visitadas esta semana' },
+  { value: 'total', label: 'Más visitadas en total' },
+  { value: 'name', label: 'Nombre (A-Z)' },
+];
+
+const ITEMS_PER_PAGE = 40;
+
+// Compara juegos sin tildes ni signos: "Pokemon" y "Pokémon" son el mismo
+const normalize = (text) => (text || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+
 export default function FoldersPage() {
-  const [folders, setFolders] = useState([]);
-  const [filteredFolders, setFilteredFolders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  
   const [searchParams, setSearchParams] = useSearchParams();
+  const [folders, setFolders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [selectedTcg, setSelectedTcg] = useState(searchParams.get('tcg') || 'Todos');
   const [sortBy, setSortBy] = useState('weekly');
-  const [isTcgDropdownOpen, setIsTcgDropdownOpen] = useState(false);
-  const [filtersOpen, setFiltersOpen] = useState(false); // en móvil los filtros arrancan plegados
-
-
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 40;
-
-  const tcgCategories = [
-    { name: 'Pokémon', logo: '/images/logos/pokemon.webp', scaleClass: 'scale-[0.9]' },
-    { name: 'One Piece', logo: '/images/logos/onepiece.webp', scaleClass: 'scale-[1.3]' },
-    { name: 'Magic', logo: '/images/logos/magic.webp', scaleClass: 'scale-[1.2]' },
-    { name: 'Yu-Gi-Oh!', logo: '/images/logos/yugioh.webp', scaleClass: 'scale-[1.8]' },
-    { name: 'Riftbound', logo: '/images/logos/riftbound.webp', scaleClass: 'scale-[0.9]' },
-    { name: 'Mitos y Leyendas', logo: '/images/logos/mitosyleyendas.webp', scaleClass: 'scale-[1.1]' }
-  ];
 
   useEffect(() => {
-    const q = searchParams.get('q') || '';
-    setSearchQuery(q);
-    setCurrentPage(1);
-  }, [searchParams]);
-
-  useEffect(() => {
-    const fetchFolders = async () => {
+    let cancelled = false;
+    const load = async () => {
       setLoading(true);
+      setFailed(false);
       try {
         const currentWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
         const response = await api.getPublicFolders();
-        let allFolders = response.success ? response.folders : [];
-        for (const folder of allFolders) {
+        const all = response.success ? response.folders : [];
+        for (const folder of all) {
           folder.validWeeklyVisits = folder.lastVisitWeek === currentWeek ? (folder.weeklyVisits || 0) : 0;
           folder.validTotalVisits = folder.totalVisits || 0;
-          folder.cardsCount = folder.cards?.length || 0;
+          folder.cardsCount = folder._count?.cards ?? folder.cards?.length ?? 0;
           folder.avatarUrl = folder.user?.photoURL || null;
-          folder.user = folder.user?.name || folder.user?.username || 'Vendedor Anónimo';
+          folder.user = folder.user?.name || folder.user?.username || 'Vendedor anónimo';
           folder.location = '';
         }
-        setFolders(allFolders);
+        if (!cancelled) setFolders(all);
       } catch (error) {
-        console.error("Error fetching folders:", error);
+        console.error('Error fetching folders:', error);
+        if (!cancelled) setFailed(true);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-    
-    fetchFolders();
+    load();
+    return () => { cancelled = true; };
   }, []);
 
+  // El enlace puede traer la búsqueda (?q=) y el juego (?tcg=)
   useEffect(() => {
-    let result = [...folders];
+    setSearchQuery(searchParams.get('q') || '');
+    const tcg = searchParams.get('tcg');
+    setSelectedTcg(tcg || 'Todos');
+  }, [searchParams]);
 
-    const normalize = (str) => {
-      if (!str) return '';
-      return str
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9]/g, "");
-    };
-
-    if (selectedTcg !== 'Todos') {
-      result = result.filter(f => f.tcg && normalize(f.tcg) === normalize(selectedTcg));
-    }
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(f => 
-        (f.name && f.name.toLowerCase().includes(q)) || 
-        (f.user && f.user.toLowerCase().includes(q))
-      );
-    }
-
-    if (sortBy === 'weekly') {
-      result.sort((a, b) => b.validWeeklyVisits - a.validWeeklyVisits || b.validTotalVisits - a.validTotalVisits);
-    } else if (sortBy === 'total') {
-      result.sort((a, b) => b.validTotalVisits - a.validTotalVisits);
-    } else if (sortBy === 'name') {
-      result.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    }
-
-    setFilteredFolders(result);
+  const updateParams = (changes) => {
+    const next = new URLSearchParams(searchParams);
+    Object.entries(changes).forEach(([key, value]) => { if (value) next.set(key, value); else next.delete(key); });
+    setSearchParams(next, { replace: true });
     setCurrentPage(1);
+  };
+
+  const countsByTcg = useMemo(() => {
+    const counts = new Map();
+    folders.forEach((folder) => { const key = normalize(folder.tcg); counts.set(key, (counts.get(key) || 0) + 1); });
+    return counts;
+  }, [folders]);
+
+  const filteredFolders = useMemo(() => {
+    let result = [...folders];
+    if (selectedTcg !== 'Todos') result = result.filter((folder) => folder.tcg && normalize(folder.tcg) === normalize(selectedTcg));
+    const term = searchQuery.trim().toLowerCase();
+    if (term) result = result.filter((folder) => (folder.name || '').toLowerCase().includes(term) || (folder.user || '').toLowerCase().includes(term));
+    if (sortBy === 'weekly') result.sort((a, b) => b.validWeeklyVisits - a.validWeeklyVisits || b.validTotalVisits - a.validTotalVisits);
+    else if (sortBy === 'total') result.sort((a, b) => b.validTotalVisits - a.validTotalVisits);
+    else result.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es'));
+    return result;
   }, [folders, selectedTcg, searchQuery, sortBy]);
 
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-    setSearchParams(e.target.value ? { q: e.target.value } : {});
-    setCurrentPage(1);
-  };
+  const totalPages = Math.max(1, Math.ceil(filteredFolders.length / ITEMS_PER_PAGE));
+  const page = Math.min(currentPage, totalPages);
+  const foldersToRender = filteredFolders.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  const hasFilters = selectedTcg !== 'Todos' || Boolean(searchQuery.trim()) || sortBy !== 'weekly';
 
   const clearFilters = () => {
-    setSelectedTcg('Todos');
-    setSearchQuery('');
-    setSearchParams({});
     setSortBy('weekly');
+    setSearchParams(new URLSearchParams(), { replace: true });
     setCurrentPage(1);
   };
 
-  const selectedTcgInfo = tcgCategories.find(c => c.name === selectedTcg);
+  const goToPage = (next) => {
+    setCurrentPage(next);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const foldersToRender = filteredFolders.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredFolders.length / itemsPerPage);
+  const chipBase = 'flex h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]';
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16 flex-1 flex flex-col">
-      <div className="w-full rounded-none overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x border-gray-300 flex flex-col lg:flex-row relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
-        <aside className="w-full lg:w-[280px] bg-white border-b lg:border-b-0 lg:border-r border-gray-300 p-4 lg:p-6 shrink-0 flex flex-col">
-          <div className="hidden lg:flex items-center gap-2 mb-6 pb-3 border-b border-gray-100">
-            <span translate="no" className="material-symbols-outlined text-[#1e40af]">filter_alt</span>
-            <h3 className="font-extrabold text-[#1a2b4b] text-base">Filtros Avanzados</h3>
-          </div>
+    <div className="mx-auto w-full max-w-[1470px] flex-1 px-3 py-3 sm:px-6 sm:py-6 lg:px-8">
+      <div className="rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 p-4 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] md:rounded-[2rem] md:p-8">
+        <header className="mb-5">
+          <h1 className="text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Carpetas</h1>
+          <p className="mt-1 max-w-2xl text-sm text-slate-600 md:text-base">Catálogos públicos de jugadores y tiendas. Abre una carpeta para ver sus cartas, precios y stock.</p>
+        </header>
 
-          {/* Móvil: búsqueda siempre a mano y filtros plegables */}
-          <div className="flex items-center gap-2 lg:hidden">
-            <div className="relative flex-1">
-              <span translate="no" className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-400 text-[20px]">search</span>
-              <input type="search" inputMode="search" enterKeyHint="search" placeholder="Carpeta o vendedor..." value={searchQuery} onChange={handleSearchChange} className="w-full h-11 pl-10 pr-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-[#1e40af]" />
-            </div>
-            <button
-              type="button"
-              onClick={() => setFiltersOpen(o => !o)}
-              aria-expanded={filtersOpen}
-              className="relative flex h-11 shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-3.5 text-sm font-bold text-[#1a2b4b]"
-            >
-              <span translate="no" className="material-symbols-outlined text-[20px] text-[#1e40af]">tune</span>
-              Filtros
-              {((selectedTcg !== 'Todos' ? 1 : 0) + (sortBy !== 'weekly' ? 1 : 0)) > 0 && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#1e40af] px-1 text-[11px] font-black text-white">
-                  {(selectedTcg !== 'Todos' ? 1 : 0) + (sortBy !== 'weekly' ? 1 : 0)}
+        <div className="mb-3 flex flex-col gap-2 rounded-2xl bg-white p-2.5 shadow-sm ring-1 ring-slate-900/5 md:flex-row md:items-center md:p-3">
+          <div className="relative min-w-0 flex-1">
+            <span translate="no" className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">search</span>
+            <input
+              type="search"
+              inputMode="search"
+              enterKeyHint="search"
+              value={searchQuery}
+              onChange={(event) => { const value = event.target.value.slice(0, 80); setSearchQuery(value); updateParams({ q: value.trim() ? value : '' }); }}
+              placeholder="Buscar por carpeta o vendedor"
+              aria-label="Buscar carpeta o vendedor"
+              className="h-11 w-full rounded-full border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-medium text-slate-900 transition focus:border-[#1e40af] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#facc15]/70"
+            />
+          </div>
+          <select
+            value={sortBy}
+            onChange={(event) => { setSortBy(event.target.value); setCurrentPage(1); }}
+            aria-label="Ordenar carpetas"
+            className="h-11 rounded-full border border-slate-200 bg-white px-4 text-sm font-bold text-[#12315f] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70"
+          >
+            {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </div>
+
+        {/* Juego: una fila de opciones que se desliza en móvil */}
+        <div role="group" aria-label="Juego" className="-mx-1 mb-5 flex gap-2 overflow-x-auto px-1 pb-2 hide-scrollbar">
+          <button
+            type="button"
+            onClick={() => updateParams({ tcg: '' })}
+            aria-pressed={selectedTcg === 'Todos'}
+            className={`${chipBase} ${selectedTcg === 'Todos' ? 'border-[#12315f] bg-[#12315f] text-white' : 'border-slate-200 bg-white text-[#12315f] hover:border-[#12315f]/40'}`}
+          >
+            Todos
+            <span className={`text-xs tabular-nums ${selectedTcg === 'Todos' ? 'text-blue-200' : 'text-slate-400'}`}>{folders.length}</span>
+          </button>
+          {TCG_CATEGORIES.map((tcg) => {
+            const active = normalize(selectedTcg) === normalize(tcg.name);
+            const count = countsByTcg.get(normalize(tcg.name)) || 0;
+            return (
+              <button
+                key={tcg.name}
+                type="button"
+                onClick={() => updateParams({ tcg: tcg.name })}
+                aria-pressed={active}
+                className={`${chipBase} ${active ? 'border-[#12315f] bg-[#12315f] text-white' : 'border-slate-200 bg-white text-[#12315f] hover:border-[#12315f]/40'}`}
+              >
+                <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded bg-white p-0.5">
+                  <img src={tcg.logo} alt="" className="max-h-full max-w-full object-contain" loading="lazy" />
                 </span>
-              )}
-            </button>
-          </div>
+                {tcg.name}
+                <span className={`text-xs tabular-nums ${active ? 'text-blue-200' : 'text-slate-400'}`}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
 
-          <div className={`${filtersOpen ? 'flex mt-4' : 'hidden'} lg:flex flex-col gap-4 animate-[fadeIn_0.2s_ease-out]`}>
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">1. Juego (TCG):</span>
-            <div className="relative">
-              <button onClick={() => setIsTcgDropdownOpen(!isTcgDropdownOpen)} className="flex items-center justify-between w-full px-4 py-3 bg-gray-50 hover:bg-blue-50/50 border border-gray-200 hover:border-blue-200 rounded-xl text-xs font-bold text-gray-700 transition-all text-left">
-                <div className="flex items-center gap-2">
-                  {selectedTcgInfo ? (
-                    <div className="w-5 h-5 flex items-center justify-center overflow-hidden shrink-0 bg-white rounded p-0.5 shadow-sm border border-gray-100">
-                      <img src={selectedTcgInfo.logo} alt={selectedTcg} className={`max-w-full max-h-full object-contain ${selectedTcgInfo.scaleClass || 'scale-100'}`} />
-                    </div>
-                  ) : (
-                    <span translate="no" className="material-symbols-outlined text-gray-400 text-[18px]">sports_esports</span>
-                  )}
-                  <span>{selectedTcg === 'Todos' ? 'Todos los TCG' : selectedTcg}</span>
-                </div>
-                <span translate="no" className="material-symbols-outlined text-gray-400 transition-transform duration-200" style={{ transform: isTcgDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>expand_more</span>
-              </button>
-              {isTcgDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-30" onClick={() => setIsTcgDropdownOpen(false)}></div>
-                  <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-100 rounded-xl shadow-xl z-40 max-h-60 overflow-y-auto py-1 animate-[fadeIn_0.15s_ease-out]">
-                    <button onClick={() => { setSelectedTcg('Todos'); setIsTcgDropdownOpen(false); }} className="flex items-center gap-3 w-full px-4 py-2.5 hover:bg-blue-50 text-left text-xs font-bold text-gray-700 hover:text-[#1e40af] transition-colors">
-                      <span translate="no" className="material-symbols-outlined text-gray-400 text-[16px] w-6 text-center">apps</span>
-                      <span>Todos los TCG</span>
-                    </button>
-                    {tcgCategories.map((tcg) => (
-                      <button key={tcg.name} onClick={() => { setSelectedTcg(tcg.name); setIsTcgDropdownOpen(false); }} className="flex items-center gap-3 w-full px-4 py-2.5 hover:bg-blue-50 text-left text-xs font-bold text-gray-700 hover:text-[#1e40af] transition-colors border-t border-gray-50">
-                        <div className="w-6 h-6 flex items-center justify-center overflow-hidden shrink-0 bg-white rounded-md p-1 shadow-sm border border-gray-50">
-                          <img src={tcg.logo} alt={tcg.name} className={`max-w-full max-h-full object-contain ${tcg.scaleClass || 'scale-100'}`} />
-                        </div>
-                        <span>{tcg.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-            <div className="flex flex-col gap-5 mt-2">
-              <div className="hidden lg:flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Buscar:</label>
-                <div className="relative">
-                  <span translate="no" className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-400 text-[18px]">search</span>
-                  <input type="text" placeholder="Carpeta o vendedor..." value={searchQuery} onChange={handleSearchChange} className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-gray-400 font-medium" />
-                </div>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ordenar por:</label>
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="w-full bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold">
-                  <option value="weekly">Más populares (Semanal)</option>
-                  <option value="total">Más visitadas (Total)</option>
-                  <option value="name">Nombre (A-Z)</option>
-                </select>
-              </div>
-              <button onClick={clearFilters} className="mt-2 w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1">
-                <span translate="no" className="material-symbols-outlined text-[16px]">restart_alt</span>
-                Limpiar Filtros
-              </button>
-            </div>
-          </div>
-        </aside>
-
-        <main className="flex-1 text-gray-900 px-4 sm:px-8 py-6 sm:py-8 flex flex-col relative z-20 bg-[#DBEAFE]">
-          <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-300">
-            <div>
-              <h1 className="text-3xl font-extrabold text-[#1a2b4b]">Explorar Carpetas</h1>
-              <p className="text-gray-600 text-sm mt-1">Busca y filtra catálogos creados por nuestra comunidad</p>
-            </div>
-          </div>
-          {loading ? (
-            <div className="w-full flex-1 flex justify-center items-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-            </div>
-          ) : foldersToRender.length === 0 ? (
-            <div className="w-full flex-1 flex flex-col items-center justify-center py-20 bg-white/40 border border-white/20 rounded-2xl p-8 text-center">
-              <span translate="no" className="material-symbols-outlined text-6xl text-gray-400 mb-4">folder_open</span>
-              <h3 className="text-xl font-bold text-[#1a2b4b]">No se encontraron carpetas</h3>
-              <p className="text-gray-500 text-sm mt-1 max-w-sm">Intenta cambiando el filtro TCG o buscando con otros términos.</p>
-              <button onClick={clearFilters} className="mt-6 px-5 py-2.5 bg-[#1e40af] text-white font-bold rounded-xl shadow-md text-xs hover:bg-blue-800 transition-colors">
-                Limpiar Filtros
-              </button>
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col justify-between">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6 pb-6">
-                {foldersToRender.map((folder) => (
-                  <LazyFolderCard key={folder.id} folder={folder} />
-                ))}
-              </div>
-              {totalPages > 1 && (
-                <div className="flex flex-wrap justify-center items-center gap-4 mt-8 pt-6 border-t border-gray-300/40 pb-6">
-                  <button disabled={currentPage === 1} onClick={() => { setCurrentPage(prev => Math.max(prev - 1, 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex items-center gap-1 px-4 py-2 bg-white border border-gray-200 hover:border-gray-300 rounded-xl text-xs font-bold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm">
-                    <span translate="no" className="material-symbols-outlined text-[16px]">chevron_left</span>
-                    Anterior
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-gray-500">Página</span>
-                    <select value={currentPage} onChange={(e) => { setCurrentPage(Number(e.target.value)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="bg-white border border-gray-200 text-xs rounded-xl px-3 py-1.5 font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                        <option key={page} value={page}>{page}</option>
-                      ))}
-                    </select>
-                    <span className="text-xs font-bold text-gray-500">de {totalPages}</span>
-                  </div>
-                  <button disabled={currentPage === totalPages} onClick={() => { setCurrentPage(prev => Math.min(prev + 1, totalPages)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex items-center gap-1 px-4 py-2 bg-white border border-gray-200 hover:border-gray-300 rounded-xl text-xs font-bold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm">
-                    Siguiente
-                    <span translate="no" className="material-symbols-outlined text-[16px]">chevron_right</span>
-                  </button>
-                </div>
-              )}
-            </div>
+        <p className="mb-4 text-sm font-semibold text-slate-600" aria-live="polite">
+          {loading ? 'Cargando carpetas…' : failed ? '' : `${filteredFolders.length.toLocaleString('es-CL')} ${filteredFolders.length === 1 ? 'carpeta' : 'carpetas'}`}
+          {!loading && !failed && hasFilters && (
+            <button type="button" onClick={clearFilters} className="ml-3 font-bold text-[#1e40af] underline-offset-2 hover:underline">Quitar filtros</button>
           )}
-        </main>
+        </p>
+
+        {loading ? (
+          <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+            {Array.from({ length: 10 }, (_, i) => <li key={i} className="aspect-[32/37] animate-pulse rounded-xl bg-white/70" />)}
+          </ul>
+        ) : failed ? (
+          <div className="rounded-2xl bg-white p-8 text-center ring-1 ring-slate-900/5" role="alert">
+            <p className="text-lg font-extrabold text-[#12315f]">No pudimos cargar las carpetas</p>
+            <p className="mt-1 text-sm text-slate-600">Revisa tu conexión e inténtalo de nuevo.</p>
+            <button type="button" onClick={() => window.location.reload()} className="mt-4 rounded-full bg-[#facc15] px-6 py-2.5 text-sm font-extrabold text-[#12315f]">Recargar página</button>
+          </div>
+        ) : foldersToRender.length === 0 ? (
+          <div className="rounded-2xl bg-white p-8 text-center ring-1 ring-slate-900/5">
+            <p className="text-lg font-extrabold text-[#12315f]">No hay carpetas con esa búsqueda</p>
+            <p className="mt-1 text-sm text-slate-600">Prueba con otro nombre o cambia el juego.</p>
+            {hasFilters && <button type="button" onClick={clearFilters} className="mt-4 rounded-full bg-[#facc15] px-6 py-2.5 text-sm font-extrabold text-[#12315f]">Quitar filtros</button>}
+          </div>
+        ) : (
+          <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 md:grid-cols-4 xl:grid-cols-5">
+            {foldersToRender.map((folder) => (
+              <li key={folder.id} className="min-w-0"><LazyFolderCard folder={folder} /></li>
+            ))}
+          </ul>
+        )}
+
+        {!loading && !failed && totalPages > 1 && (
+          <nav aria-label="Paginación" className="mt-8 flex items-center justify-center gap-3">
+            <button type="button" disabled={page <= 1} onClick={() => goToPage(page - 1)} className="flex h-10 items-center gap-1 rounded-full bg-white px-4 text-sm font-bold text-[#12315f] shadow-sm ring-1 ring-slate-900/5 disabled:opacity-40">
+              <span translate="no" className="material-symbols-outlined text-[18px]">chevron_left</span> Anterior
+            </button>
+            <span className="text-sm font-semibold tabular-nums text-slate-600">Página {page} de {totalPages}</span>
+            <button type="button" disabled={page >= totalPages} onClick={() => goToPage(page + 1)} className="flex h-10 items-center gap-1 rounded-full bg-white px-4 text-sm font-bold text-[#12315f] shadow-sm ring-1 ring-slate-900/5 disabled:opacity-40">
+              Siguiente <span translate="no" className="material-symbols-outlined text-[18px]">chevron_right</span>
+            </button>
+          </nav>
+        )}
       </div>
-      <style dangerouslySetInnerHTML={{__html: `
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .hide-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}} />
     </div>
   );
 }

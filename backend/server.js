@@ -260,6 +260,7 @@ app.delete('/api/users/me', routeLimiter(15 * 60 * 1000, 10));
 app.post('/api/users/upload-image', routeLimiter(15 * 60 * 1000, 30));
 app.get('/api/tcg/search', routeLimiter(15 * 60 * 1000, 300));
 app.post('/api/tcg/products/metadata', routeLimiter(15 * 60 * 1000, 300));
+app.get('/api/cards/search', routeLimiter(15 * 60 * 1000, 300));
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
@@ -1423,6 +1424,65 @@ app.get('/api/cards/recent', async (req, res) => {
   }
 });
 
+// Búsqueda pública de cartas a la venta (solo carpetas públicas y con stock)
+const CARD_SEARCH_PAGE_SIZE = 24;
+const CARD_SEARCH_SORTS = {
+  recent: [{ createdAt: 'desc' }],
+  price_asc: [{ price: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
+  price_desc: [{ price: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
+};
+app.get('/api/cards/search', async (req, res) => {
+  try {
+    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    const tcg = typeof req.query.tcg === 'string' ? req.query.tcg.trim() : '';
+    const sort = typeof req.query.sort === 'string' ? req.query.sort : 'recent';
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    if (q.length > 80 || tcg.length > 60 || /[\u0000-\u001f]/.test(q + tcg) || !Object.hasOwn(CARD_SEARCH_SORTS, sort) || page < 1 || page > 1000) {
+      return badRequest(res, 'Búsqueda inválida');
+    }
+
+    const where = {
+      stock: { gt: 0 },
+      folder: { isPublic: true, ...(tcg ? { tcg } : {}) },
+      ...(q ? { name: { contains: q, mode: 'insensitive' } } : {}),
+    };
+    const [total, cards] = await prisma.$transaction([
+      prisma.card.count({ where }),
+      prisma.card.findMany({
+        where,
+        orderBy: CARD_SEARCH_SORTS[sort],
+        skip: (page - 1) * CARD_SEARCH_PAGE_SIZE,
+        take: CARD_SEARCH_PAGE_SIZE,
+        select: {
+          id: true,
+          name: true,
+          imageUrl: true,
+          price: true,
+          stock: true,
+          data: true,
+          folder: { select: { id: true, name: true, tcg: true, user: { select: { name: true, username: true, photoURL: true } } } },
+        },
+      }),
+    ]);
+
+    // Solo campos públicos: el JSON `data` de la carta puede traer más cosas
+    res.json({
+      success: true,
+      total,
+      page,
+      pages: Math.max(1, Math.ceil(total / CARD_SEARCH_PAGE_SIZE)),
+      cards: cards.map(({ data, ...card }) => ({
+        ...card,
+        language: data && typeof data === 'object' ? data.language || null : null,
+        set: data && typeof data === 'object' ? data.set || null : null,
+      })),
+    });
+  } catch (error) {
+    console.error('Error searching cards:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
 app.get('/api/folders', async (req, res) => {
   try {
     const folders = await prisma.folder.findMany({

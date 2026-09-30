@@ -1,11 +1,29 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef } from 'react';
+
+const BUY_STEPS = [
+  'Busca una carta o una carpeta.',
+  'Agrega cartas al carrito y genera el pedido.',
+  'Cierra el trato por WhatsApp con el vendedor.',
+];
+
+const SELL_STEPS = [
+  'Entra con tu cuenta de Google.',
+  'Crea una carpeta y carga tus cartas con precio y stock.',
+  'Comparte el enlace y recibe los pedidos en tu panel.',
+];
+
+const FEATURES = [
+  { icon: 'auto_stories', title: 'Carpetas públicas', text: 'Cada carpeta se ve como un álbum o en cuadrícula, con el stock y el precio de cada carta.' },
+  { icon: 'tune', title: 'Filtros para Mitos y Leyendas', text: 'Filtra por bloque, edición, producto, tipo, raza y coste.' },
+  { icon: 'inbox', title: 'Panel de pedidos', text: 'Revisa las solicitudes de compra, confirma las ventas y consulta tu historial.' },
+  { icon: 'chat', title: 'Mensajes directos', text: 'Habla con compradores y vendedores sin salir de Carpetazo.' },
+  { icon: 'badge', title: 'Perfil de vendedor', text: 'Un perfil público con tu descripción, tu ubicación y tus redes.' },
+];
 
 export default function LandingPage() {
   const { loginWithGoogle, currentUser } = useAuth();
-  const navigate = useNavigate();
-  const [isMarqueePaused, setIsMarqueePaused] = useState(false);
 
   // Hook para detectar hover en el carrusel cuando el mouse está quieto y las cartas se mueven debajo
   const mousePos = useRef({ x: -1, y: -1 });
@@ -38,38 +56,47 @@ export default function LandingPage() {
     };
   }, []);
 
-
-
   const handleLogin = async () => {
     try {
       await loginWithGoogle();
     } catch (error) {
-      console.error("Error al iniciar sesión con Google:", error);
+      console.error('Error al iniciar sesión con Google:', error);
     }
   };
 
-  const proFeatures = [
-    { icon: 'inventory_2', title: 'Gestión Inteligente de Inventario', desc: 'Registra cartas, variaciones, estados y cantidades con una interfaz ultrarrápida diseñada para grandes volúmenes.' },
-    { icon: 'monitoring', title: 'Valoración en Tiempo Real', desc: 'Sincronización automática con los mercados globales para que siempre conozcas el valor real de tu colección.' },
-    { icon: 'storefront', title: 'Carpetas Públicas y Ventas', desc: 'Convierte tu colección en una vitrina virtual. Comparte tus cartas disponibles para venta o intercambio con un solo link.' },
-    { icon: 'style', title: 'Soporte Multi-TCG', desc: 'Centraliza todas tus colecciones en un mismo lugar: Pokémon, Yu-Gi-Oh!, Magic, One Piece, Mitos y Leyendas y más.' },
-    { icon: 'query_stats', title: 'Estadísticas Avanzadas', desc: 'Visualiza el crecimiento de tu inversión, cartas más valiosas y fluctuaciones del mercado con gráficos detallados.' },
-    { icon: 'security', title: 'Privacidad y Seguridad', desc: 'Tus datos están respaldados en la nube. Controla qué carpetas son públicas y cuáles son estrictamente privadas.' }
-  ];
+  const primaryCta = currentUser ? (
+    <Link to="/dashboard" className="inline-flex h-12 items-center rounded-full bg-[#facc15] px-7 text-[15px] font-extrabold text-[#12315f] transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#12315f]/50">
+      Ir a mis carpetas
+    </Link>
+  ) : (
+    <button type="button" onClick={handleLogin} className="inline-flex h-12 items-center gap-2.5 rounded-full bg-[#facc15] px-7 text-[15px] font-extrabold text-[#12315f] transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#12315f]/50">
+      <img src="/images/logos/google.svg" alt="" className="h-5 w-5 rounded-full bg-white p-[2px]" />
+      Crear mi carpeta con Google
+    </button>
+  );
 
   return (
-    <>
-      <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
-        <div className="w-full rounded-none overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x border-outline-variant/30 flex flex-col relative z-10 min-h-screen">
-          
-          {/* Top Section: White Presentation & Carousel */}
-          <div className="min-h-[calc(100vh-100px)] bg-blue-100 text-surface p-4 md:p-8 flex flex-col items-center justify-start pt-8 md:pt-12 relative z-20">
-            <h2 className="text-3xl md:text-5xl font-extrabold mb-2 text-center tracking-tight animate-[fadeIn_0.5s_ease-out]">Todo tu universo TCG en un solo lugar</h2>
-            <p className="text-sm md:text-lg text-surface/80 text-center max-w-3xl mb-0 px-2 md:px-0 animate-[fadeIn_0.7s_ease-out]">
-              Gestiona tu inventario, sigue los precios del mercado y comparte tus carpetas. La plataforma definitiva para coleccionistas y tiendas de TCG.
-            </p>
+    <div className="mx-auto w-full max-w-[1600px] xl:px-12 2xl:px-16">
+      <div className="relative z-10 flex min-h-screen w-full flex-col overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x md:border-outline-variant/30">
 
-            <div className="w-full overflow-hidden pt-4 pb-12 md:pb-16 relative mt-4 animate-[fadeIn_0.9s_ease-out]">
+        {/* Presentación y carrusel de juegos */}
+        <section className="relative z-20 bg-blue-100 px-4 pb-6 pt-8 text-[#12315f] md:px-12 md:pt-14">
+          <div className="mx-auto w-full max-w-[1200px]">
+            <h1 className="max-w-[20ch] text-balance text-4xl font-extrabold leading-[1.05] tracking-tight md:text-6xl">Compra y vende cartas TCG en Chile</h1>
+            <p className="mt-4 max-w-[52ch] text-base leading-relaxed text-slate-700 md:text-lg">
+              Carpetazo reúne las carpetas de cartas de jugadores y tiendas chilenas. Encuentra la carta que buscas, arma tu pedido y ciérralo por WhatsApp.
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <Link to="/carpetas" className="inline-flex h-12 items-center justify-center rounded-full bg-[#12315f] px-7 text-[15px] font-extrabold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+                Explorar carpetas
+              </Link>
+              <Link to="/cartas" className="inline-flex h-12 items-center justify-center rounded-full border-2 border-[#12315f] px-7 text-[15px] font-extrabold text-[#12315f] transition-colors hover:bg-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+                Buscar cartas
+              </Link>
+            </div>
+          </div>
+
+            <div className="w-full overflow-hidden pt-4 pb-12 md:pb-16 relative mt-4 ">
               <div className="flex w-max animate-marquee gap-8 md:gap-14 pl-8 md:pl-14 pb-4">
                 {[
               { img: '/images/4k/magic.webp', logo: '/images/logos/magic.webp', scale: 'scale-[1.8]' },
@@ -128,95 +155,80 @@ export default function LandingPage() {
           <div className="absolute inset-y-0 left-0 w-16 md:w-32 bg-gradient-to-r from-blue-100 to-transparent pointer-events-none z-20"></div>
           <div className="absolute inset-y-0 right-0 w-16 md:w-32 bg-gradient-to-l from-blue-100 to-transparent pointer-events-none z-20"></div>
         </div>
+        </section>
 
-        {/* CTA Button */}
-        <div className="z-20 flex flex-col sm:flex-row items-center justify-center gap-4 w-full px-4 my-auto">
-          <Link to="/" className="w-full sm:w-auto px-6 py-3 md:px-8 md:py-4 bg-primary text-on-primary font-bold rounded-xl shadow-[0_0_20px_rgba(255,203,5,0.4)] hover:shadow-[0_0_30px_rgba(255,203,5,0.6)] transition-all hover:-translate-y-1 text-base md:text-lg flex items-center justify-center gap-3">
-            <span translate="no" className="material-symbols-outlined text-2xl">travel_explore</span>
-            Explorar carpetas de la comunidad
-          </Link>
-        </div>
-
-      </div>
-
-      {/* Ultra-Smooth Alpha Transition Space */}
-      <div className="w-full h-40 md:h-64 bg-gradient-to-b from-blue-100 to-background relative pointer-events-none">
-      </div>
-
-      {/* Bottom Section: Professional Features */}
-      <div id="features-section" className="relative w-full min-h-[calc(100vh-60px)] overflow-hidden flex flex-col items-center justify-center py-12 px-4 bg-background">
-        {/* Background with abstract glowing orbs animated */}
-        <div className="absolute top-[10%] left-[-10%] w-[50%] h-[50%] bg-primary/10 blur-[120px] rounded-full pointer-events-none animate-float" style={{ animationDuration: '10s' }}></div>
-        <div className="absolute bottom-[10%] right-[-10%] w-[50%] h-[50%] bg-tertiary/10 blur-[120px] rounded-full pointer-events-none animate-float" style={{ animationDuration: '12s', animationDelay: '2s' }}></div>
-        
-        <div className="z-10 text-center w-full max-w-[960px] mx-auto flex-shrink-0 mb-8 md:mb-12 animate-[fadeIn_0.5s_ease-out]">
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-on-background mb-3 md:mb-4 tracking-tight leading-tight">
-            Nivel Profesional para <br className="md:hidden"/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-tertiary">Coleccionistas Exigentes</span>
-          </h1>
-          <p className="text-sm md:text-base lg:text-lg text-on-surface-variant max-w-2xl mx-auto px-4 md:px-0">
-            Descubre todas las herramientas que Carpetazo.cl te ofrece para transformar la manera en que gestionas, exhibes y valoras tu colección.
-          </p>
-        </div>
-
-        {/* Pro Features Grid: Mobile Infinite Scroll */}
-        <div className="z-10 w-full overflow-hidden md:hidden pt-6 pb-6"
-             onTouchStart={() => setIsMarqueePaused(true)}
-             onTouchEnd={() => setIsMarqueePaused(false)}
-        >
-          <div className={`flex w-max animate-marquee gap-4 px-4 ${isMarqueePaused ? '[animation-play-state:paused]' : ''}`}>
-            {[...proFeatures, ...proFeatures].map((feat, idx) => (
-            <div 
-              key={`mobile-${idx}`} 
-              className="flex-shrink-0 w-[80vw] relative bg-surface-container-low/30 backdrop-blur-xl border border-outline-variant/30 rounded-2xl p-5 hover:bg-surface-container/50 hover:border-primary/40 transition-all duration-500 overflow-hidden animate-float"
-              style={{ animationDelay: `${(idx % 6) * 0.5}s`, animationDuration: '7s' }}
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
-              
-              <div className="flex flex-col gap-3 relative z-10">
-                <div className="flex items-center gap-4">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20 shadow-inner">
-                    <span translate="no" className="material-symbols-outlined text-2xl text-primary drop-shadow-md">{feat.icon}</span>
-                  </div>
-                  <h3 className="text-base font-bold text-on-background leading-tight">{feat.title}</h3>
+        {/* Cómo funciona */}
+        <section className="bg-white px-4 py-14 md:px-12 md:py-20">
+          <div className="mx-auto w-full max-w-[1200px]">
+            <h2 className="max-w-[24ch] text-balance text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Cómo funciona</h2>
+            <div className="mt-8 grid gap-10 md:grid-cols-2 md:gap-16">
+              {[{ title: 'Si quieres comprar', steps: BUY_STEPS }, { title: 'Si quieres vender', steps: SELL_STEPS }].map((group) => (
+                <div key={group.title}>
+                  <h3 className="border-b-2 border-[#facc15] pb-2 text-xl font-extrabold text-[#12315f]">{group.title}</h3>
+                  <ol className="mt-4 divide-y divide-slate-200">
+                    {group.steps.map((step, index) => (
+                      <li key={step} className="flex items-baseline gap-4 py-4">
+                        <span className="w-6 shrink-0 text-lg font-black tabular-nums text-[#1e40af]">{index + 1}</span>
+                        <span className="text-base leading-relaxed text-slate-700">{step}</span>
+                      </li>
+                    ))}
+                  </ol>
                 </div>
-                <p className="text-on-surface-variant text-sm leading-relaxed pl-16">
-                  {feat.desc}
-                </p>
-              </div>
+              ))}
             </div>
-          ))}
           </div>
-        </div>
+        </section>
 
-        {/* Pro Features Grid: Desktop */}
-        <div className="z-10 w-full max-w-[1200px] mx-auto hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {proFeatures.map((feat, idx) => (
-            <div 
-              key={`desktop-${idx}`} 
-              className="relative bg-surface-container-low/30 backdrop-blur-xl border border-outline-variant/30 rounded-2xl p-6 hover:bg-surface-container/50 hover:border-primary/40 transition-all duration-500 group hover:shadow-[0_8px_30px_rgba(255,203,5,0.15)] overflow-hidden animate-float"
-              style={{ animationDelay: `${idx * 0.5}s`, animationDuration: '7s' }}
-            >
-              {/* Subtle hover gradient background */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-10 -mt-10 group-hover:bg-primary/30 group-hover:scale-150 transition-all duration-700 pointer-events-none"></div>
-              
-              <div className="flex flex-col gap-3 relative z-10">
-                <div className="flex items-center gap-4">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20 shadow-inner group-hover:from-primary/40 group-hover:to-primary/10 group-hover:rotate-6 group-hover:scale-110 transition-all duration-300">
-                    <span translate="no" className="material-symbols-outlined text-2xl text-primary drop-shadow-md">{feat.icon}</span>
-                  </div>
-                  <h3 className="text-lg font-bold text-on-background group-hover:text-primary transition-colors leading-tight">{feat.title}</h3>
+        {/* Qué incluye */}
+        <section className="bg-[#F4F6FA] px-4 py-14 md:px-12 md:py-20">
+          <div className="mx-auto w-full max-w-[1200px]">
+            <h2 className="max-w-[24ch] text-balance text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Lo que puedes hacer en Carpetazo</h2>
+            <dl className="mt-8 divide-y divide-slate-200 border-y border-slate-200">
+              {FEATURES.map((feature) => (
+                <div key={feature.title} className="grid gap-1 py-5 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] md:gap-8">
+                  <dt className="flex items-center gap-3 text-lg font-extrabold text-[#12315f]">
+                    <span translate="no" className="material-symbols-outlined text-[24px] text-[#1e40af]">{feature.icon}</span>
+                    {feature.title}
+                  </dt>
+                  <dd className="text-base leading-relaxed text-slate-600 md:pl-0">{feature.text}</dd>
                 </div>
-                <p className="text-on-surface-variant text-sm leading-relaxed pl-16">
-                  {feat.desc}
-                </p>
-              </div>
+              ))}
+            </dl>
+          </div>
+        </section>
+
+        {/* Juegos disponibles */}
+        <section className="bg-white px-4 py-14 md:px-12 md:py-20">
+          <div className="mx-auto w-full max-w-[1200px]">
+            <h2 className="max-w-[24ch] text-balance text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Juegos con catálogo de cartas</h2>
+            <p className="mt-3 max-w-[60ch] text-base leading-relaxed text-slate-600">Hoy puedes buscar y cargar cartas de estos dos juegos. Las carpetas de otros juegos se irán sumando.</p>
+            <ul className="mt-8 grid max-w-2xl grid-cols-2 gap-4">
+              {[{ name: 'Pokémon', logo: '/images/logos/pokemon.webp' }, { name: 'Mitos y Leyendas', logo: '/images/logos/mitosyleyendas.webp' }].map((game) => (
+                <li key={game.name}>
+                  <Link to={`/carpetas?tcg=${encodeURIComponent(game.name)}`} className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white p-5 transition hover:border-[#1e40af] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
+                    <img src={game.logo} alt="" className="h-16 w-auto max-w-full object-contain" loading="lazy" />
+                    <span className="text-sm font-bold text-[#12315f]">Ver carpetas de {game.name}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* Llamado final */}
+        <section className="bg-[#12315f] px-4 py-14 text-white md:px-12 md:py-20">
+          <div className="mx-auto w-full max-w-[1200px]">
+            <h2 className="max-w-[22ch] text-balance text-3xl font-extrabold tracking-tight md:text-4xl">Publica tu primera carpeta</h2>
+            <p className="mt-3 max-w-[52ch] text-base leading-relaxed text-blue-100">Es gratis. Con tu cuenta de Google puedes cargar tus cartas y compartir el enlace hoy mismo.</p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+              {primaryCta}
+              <Link to="/carpetas" className="inline-flex h-12 items-center justify-center rounded-full border-2 border-white/40 px-7 text-[15px] font-bold text-white transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+                Explorar carpetas
+              </Link>
             </div>
-          ))}
-        </div>
+          </div>
+        </section>
       </div>
-      </div>
-      </div>
-    </>
+    </div>
   );
 }

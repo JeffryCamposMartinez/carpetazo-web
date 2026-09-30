@@ -204,7 +204,6 @@ const backgroundStyleOptions = [
 
 const sideBackgroundOptions = [
     { id: 'solid-surface', name: 'Original', description: 'El fondo simple oficial.' },
-    { id: 'solid-surface', name: 'Original', description: 'El fondo simple oficial.' },
   { id: 'site-wallpaper', name: 'Fondo Carpetazo', description: 'El wallpaper oficial de la página.' },
   { id: 'theme-glow', name: 'Glow del tema', description: 'Laterales con luces del color elegido.' },
   { id: 'premium-dark', name: 'Oscuro premium', description: 'Bandas negras con profundidad.' },
@@ -577,6 +576,192 @@ const getCardStyle = (theme) => {
   };
 };
 
+// Opción de personalización: vista previa grande + nombre + descripción, con el mismo aviso de "seleccionada" en todo el panel
+const OptionTile = ({ selected, onClick, name, description, disabled = false, children }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    aria-pressed={selected}
+    className={`group relative flex flex-col overflow-hidden rounded-2xl border-2 bg-white p-1.5 text-left transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 ${selected ? 'border-[#12315f] shadow-[0_8px_22px_-10px_rgba(18,49,95,0.6)]' : 'border-slate-200 hover:-translate-y-0.5 hover:border-slate-400 hover:shadow-md'}`}
+  >
+    <span className="relative block">
+      {children}
+      {selected && (
+        <span className="absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-[#12315f] text-white shadow-md ring-2 ring-white">
+          <span translate="no" className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1, 'wght' 700" }}>check</span>
+        </span>
+      )}
+    </span>
+    <span className="mt-2 block px-1.5 text-sm font-extrabold leading-tight text-[#12315f]">{name}</span>
+    {description && <span className="mb-1 mt-0.5 block px-1.5 text-xs leading-snug text-slate-500">{description}</span>}
+  </button>
+);
+
+// Bloque del panel: título, una línea que explica qué cambia y la cuadrícula de opciones
+const PanelSection = ({ icon, title, hint, children }) => (
+  <section className="border-t border-slate-200 pt-5 first:border-t-0 first:pt-0">
+    <div className="mb-3 flex items-start gap-3">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#12315f] text-[#facc15]">
+        <span translate="no" className="material-symbols-outlined text-[20px]">{icon}</span>
+      </span>
+      <div className="min-w-0">
+        <h3 className="text-base font-extrabold leading-tight text-[#12315f]">{title}</h3>
+        {hint && <p className="mt-0.5 text-xs leading-snug text-slate-500">{hint}</p>}
+      </div>
+    </div>
+    {children}
+  </section>
+);
+
+// Interruptor con nombre y estado escrito (no depende solo del color)
+const ToggleRow = ({ enabled, onClick, label, status, children }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={enabled}
+    onClick={onClick}
+    className={`flex w-full items-center justify-between gap-3 rounded-2xl border-2 p-3 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${enabled ? 'border-[#12315f] bg-white shadow-sm' : 'border-slate-200 bg-slate-50'}`}
+  >
+    <span className="flex min-w-0 items-center gap-3">
+      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${enabled ? 'bg-slate-100' : 'bg-white opacity-60'}`}>{children}</span>
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-extrabold text-[#12315f]">{label}</span>
+        <span className="block text-xs text-slate-500">{status}</span>
+      </span>
+    </span>
+    <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${enabled ? 'bg-[#12315f]' : 'bg-slate-300'}`}>
+      <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${enabled ? 'left-6' : 'left-1'}`} />
+    </span>
+  </button>
+);
+
+// Perfil en miniatura: tarjeta con foto enmarcada, nombre y botón, con los estilos reales del tema
+const MiniProfile = ({ theme, avatarUrl, initial = 'V' }) => (
+  <span className="absolute inset-x-3 bottom-2.5 top-5 flex items-center gap-2 overflow-hidden p-2" style={{ ...getCardStyle(theme), color: theme.text }}>
+    <span className="h-9 w-9 shrink-0 rounded-[0.7rem] p-[2px] shadow" style={{ background: getAvatarFrameStyle(theme) }}>
+      <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-[0.55rem] bg-white text-[11px] font-black text-slate-500">
+        {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initial}
+      </span>
+    </span>
+    <span className="min-w-0 flex-1">
+      <span className="block h-1.5 w-4/5 rounded-full" style={{ backgroundColor: theme.text }} />
+      <span className="mt-1 block h-1 w-1/2 rounded-full opacity-40" style={{ backgroundColor: theme.text }} />
+      <span className="mt-2 flex items-center gap-1">
+        <span className="h-2.5 w-9 rounded-full" style={{ backgroundColor: theme.accent }} />
+        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: theme.primary }} />
+        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: theme.secondary }} />
+      </span>
+    </span>
+  </span>
+);
+
+// Escena en miniatura: el fondo elegido con un perfil encima
+const MiniScene = ({ theme, avatarUrl, initial, background }) => (
+  <span className="relative block h-[104px] overflow-hidden rounded-xl" style={background || getProfileBackgroundStyle(theme)}>
+    <MiniProfile theme={theme} avatarUrl={avatarUrl} initial={initial} />
+  </span>
+);
+
+// Esquemas de estructura: se entiende de un vistazo cómo queda la parte de arriba del perfil
+const wire = 'rounded-[3px]';
+const LayoutWire = ({ id }) => {
+  const dark = 'bg-[#12315f]';
+  const soft = 'bg-slate-300';
+  const gold = 'bg-[#facc15]';
+  return (
+    <span className="relative block h-[104px] overflow-hidden rounded-xl bg-slate-100 p-2" aria-hidden="true">
+      {id === 'classic' && (
+        <>
+          <span className={`block h-9 ${wire} ${dark}`} />
+          <span className="-mt-3 ml-2 flex items-end gap-1.5"><span className={`h-7 w-7 rounded-lg border-2 border-slate-100 ${gold}`} /><span className={`mb-1 h-2 w-14 ${wire} ${soft}`} /></span>
+          <span className="mt-2 grid grid-cols-4 gap-1.5"><span className={`h-9 ${wire} bg-emerald-500`} /><span className={`h-9 ${wire} bg-emerald-500`} /><span className={`h-9 ${wire} bg-emerald-500`} /><span className={`h-9 ${wire} bg-emerald-500`} /></span>
+        </>
+      )}
+      {id === 'side-showcase' && (
+        <span className="grid h-full grid-cols-[1.7fr_1fr] gap-1.5">
+          <span className="flex flex-col gap-1.5"><span className={`h-10 ${wire} ${dark}`} /><span className="grid flex-1 grid-cols-2 gap-1.5"><span className={`${wire} bg-emerald-500`} /><span className={`${wire} bg-emerald-500`} /></span></span>
+          <span className="flex flex-col gap-1.5"><span className={`flex-1 ${wire} ${gold}`} /><span className={`flex-1 ${wire} ${soft}`} /></span>
+        </span>
+      )}
+      {id === 'showcase' && (
+        <span className="flex h-full flex-col items-center gap-1.5">
+          <span className={`h-9 w-full ${wire} ${dark}`} />
+          <span className={`-mt-6 h-9 w-9 rounded-full border-2 border-slate-100 ${gold}`} />
+          <span className={`h-2 w-16 ${wire} ${soft}`} />
+          <span className="grid w-full grid-cols-3 gap-1.5"><span className={`h-7 ${wire} bg-emerald-500`} /><span className={`h-7 ${wire} bg-emerald-500`} /><span className={`h-7 ${wire} bg-emerald-500`} /></span>
+        </span>
+      )}
+      {id === 'compact' && (
+        <>
+          <span className={`flex h-8 items-center gap-2 px-1.5 ${wire} ${dark}`}><span className={`h-5 w-5 rounded-md ${gold}`} /><span className="h-1.5 w-12 rounded-full bg-white/70" /></span>
+          <span className="mt-1.5 grid grid-cols-5 gap-1"><span className={`h-8 ${wire} bg-emerald-500`} /><span className={`h-8 ${wire} bg-emerald-500`} /><span className={`h-8 ${wire} bg-emerald-500`} /><span className={`h-8 ${wire} bg-emerald-500`} /><span className={`h-8 ${wire} bg-emerald-500`} /></span>
+          <span className={`mt-1.5 block h-3 ${wire} ${soft}`} />
+        </>
+      )}
+      {id === 'poster' && (
+        <span className="flex h-full flex-col items-center justify-center gap-1.5">
+          <span className={`flex h-14 w-full flex-col items-center justify-center gap-1 ${wire} ${dark}`}><span className="h-3.5 w-24 rounded-full bg-white" /><span className={`h-1.5 w-14 rounded-full ${gold}`} /></span>
+          <span className="grid w-full grid-cols-3 gap-1.5"><span className={`h-6 ${wire} bg-emerald-500`} /><span className={`h-6 ${wire} bg-emerald-500`} /><span className={`h-6 ${wire} bg-emerald-500`} /></span>
+        </span>
+      )}
+    </span>
+  );
+};
+
+// Esquemas de la vitrina destacada
+const ShowcaseWire = ({ id }) => {
+  const soft = 'bg-slate-300';
+  return (
+    <span className="relative block h-[104px] overflow-hidden rounded-xl bg-slate-100 p-2.5" aria-hidden="true">
+      {id === 'folders' && (
+        <span className="flex h-full flex-col justify-center gap-2">
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="flex items-center gap-2"><span className="h-6 w-4 rounded-[3px] bg-emerald-500" /><span className="flex-1"><span className={`block h-1.5 w-4/5 rounded-full bg-[#12315f]`} /><span className={`mt-1 block h-1 w-1/2 rounded-full ${soft}`} /></span></span>
+          ))}
+        </span>
+      )}
+      {id === 'collector' && (
+        <span className="flex h-full flex-col justify-center gap-2">
+          <span className="flex gap-1.5">{[0, 1, 2].map((i) => <span key={i} className="flex-1 rounded-md bg-white p-1.5 shadow-sm"><span className="block h-2 w-5 rounded-full bg-[#facc15]" /><span className={`mt-1 block h-1 w-full rounded-full ${soft}`} /></span>)}</span>
+          <span className="flex gap-1"><span className="h-3 w-8 rounded-full bg-[#12315f]" /><span className="h-3 w-8 rounded-full bg-[#1e40af]" /><span className="h-3 w-8 rounded-full bg-emerald-500" /></span>
+        </span>
+      )}
+      {id === 'seller' && (
+        <span className="flex h-full flex-col justify-center gap-2">
+          <span className="flex items-center gap-1.5"><span className="h-5 w-14 rounded-full bg-[#facc15]" /><span className="h-5 w-5 rounded-full bg-white shadow-sm" /><span className="h-5 w-5 rounded-full bg-white shadow-sm" /></span>
+          <span className="grid grid-cols-3 gap-1.5">{[0, 1, 2].map((i) => <span key={i} className="h-9 rounded-[3px] bg-emerald-500" />)}</span>
+        </span>
+      )}
+      {id === 'minimal' && (
+        <span className="flex h-full flex-col items-center justify-center gap-1.5"><span className="h-1.5 w-20 rounded-full bg-[#12315f]" /><span className={`h-1 w-12 rounded-full ${soft}`} /></span>
+      )}
+    </span>
+  );
+};
+
+const PANEL_TABS = [
+  ['theme', 'Colores', 'palette'],
+  ['font', 'Letra', 'text_fields'],
+  ['cards', 'Tarjetas', 'dashboard_customize'],
+  ['scene', 'Escena', 'wallpaper'],
+  ['layout', 'Orden', 'view_quilt'],
+  ['social', 'Redes', 'share'],
+];
+
+// Color de texto legible sobre un fondo (blanco u oscuro según su luminosidad)
+const readableOn = (hex = '#000000') => {
+  const clean = String(hex).replace('#', '');
+  const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
+  const value = Number.parseInt(full.slice(0, 6), 16);
+  if (!Number.isFinite(value)) return '#ffffff';
+  const [r, g, b] = [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+  return (0.299 * r + 0.587 * g + 0.114 * b) > 150 ? '#0b1b33' : '#ffffff';
+};
+
+const themeKey = (theme) => JSON.stringify(Object.keys(theme || {}).sort().map((key) => [key, theme[key]]));
+
+
 export default function SellerProfile() {
   const { sellerUsername } = useParams();
   const { currentUser, refreshAppUser } = useAuth();
@@ -592,6 +777,7 @@ export default function SellerProfile() {
   const [themePanelOpen, setThemePanelOpen] = useState(false);
   const [themePanelTab, setThemePanelTab] = useState('theme');
   const [savingTheme, setSavingTheme] = useState(false);
+  const [savedThemeJson, setSavedThemeJson] = useState('');
 
   // El servidor indica si quien mira es el dueño (ya no se publica el identificador interno)
   const isOwner = Boolean(seller?.isOwner ?? (currentUser?.uid && seller?.firebaseUid === currentUser.uid));
@@ -608,6 +794,7 @@ export default function SellerProfile() {
   const profileLevel = Math.max(1, Math.round((folders.length * 2) + (totalCards / 12) + 1));
   const spotlightFolders = folders.slice(0, 3);
   const showProfileShowcase = folders.length > 0 && publicTheme.showcaseStyle !== 'minimal';
+  const themeDirty = savedThemeJson !== '' && themeKey(publicTheme) !== savedThemeJson;
   const isSideShowcaseLayout = publicTheme.profileLayout === 'side-showcase';
   const isPosterLayout = publicTheme.profileLayout === 'poster';
   const isCompactLayout = publicTheme.profileLayout === 'compact';
@@ -627,6 +814,13 @@ export default function SellerProfile() {
     };
   }, [publicTheme]);
 
+  useEffect(() => {
+    if (!themePanelOpen) return undefined;
+    const onKeyDown = (event) => { if (event.key === 'Escape') setThemePanelOpen(false); };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [themePanelOpen]);
+
   const loadSeller = async () => {
     setLoading(true);
     setErrorMsg('');
@@ -634,6 +828,7 @@ export default function SellerProfile() {
       const result = await api.getUserProfile(sellerUsername);
       const user = result.user;
       setSeller(user);
+      setSavedThemeJson(themeKey({ ...defaultPublicTheme, ...(user.publicTheme && typeof user.publicTheme === 'object' ? user.publicTheme : {}) }));
       setFolders((user.folders || []).map(normalizeFolder));
     } catch (error) {
       console.error('Error loading public seller profile:', error);
@@ -791,6 +986,7 @@ export default function SellerProfile() {
     try {
       const response = await api.updateProfile({ publicTheme: theme });
       setSeller(prev => ({ ...prev, ...(response.user || {}), publicTheme: theme }));
+      setSavedThemeJson(themeKey({ ...defaultPublicTheme, ...theme }));
     } catch (error) {
       console.error('Error saving public theme:', error);
       alert('No se pudo guardar el tema.');
@@ -916,423 +1112,59 @@ export default function SellerProfile() {
     return <NotFound />;
   }
 
+  const heroActions = [
+    ...(showMessageButton ? [{ id: 'message', label: 'Enviar mensaje' }] : []),
+    ...socialLinks.filter((social) => social.available && getSocialEnabled(social.field)),
+  ];
+  const ownerButtonClass = 'inline-flex h-10 items-center gap-2 rounded-full bg-white/95 px-4 text-sm font-bold text-[#12315f] shadow-md ring-1 ring-black/5 transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]';
+  const folderCountLabel = `${folders.length} ${folders.length === 1 ? 'carpeta' : 'carpetas'}`;
+  const cardCountLabel = `${totalCards.toLocaleString('es-CL')} ${totalCards === 1 ? 'carta' : 'cartas'}`;
+  const textMuted = { color: publicTheme.text, opacity: 0.7 };
+
   return (
     <div className="min-h-screen" style={{ fontFamily: getFontStack(publicTheme.font) }}>
       <div className="mx-auto w-full max-w-[1470px] xl:px-4 2xl:px-6" style={getSideBackgroundStyle(publicTheme)}>
       <div className={`relative min-h-screen w-full overflow-hidden shadow-[0_0_90px_rgba(0,0,0,0.22)] ${getEffectClassName(publicTheme)}`} style={getProfileBackgroundStyle(publicTheme)}>
-      <section className="relative overflow-visible shadow-sm" style={{ backgroundColor: publicTheme.card }}>
+
+      {/* Presentación */}
+      <section className="relative overflow-visible" style={{ backgroundColor: publicTheme.card }}>
         {seller?.bannerBase64 ? (
-          <div className="absolute inset-x-0 top-0 h-[270px] bg-cover bg-center sm:h-[340px] md:inset-0 md:h-auto" style={{ backgroundImage: `url(${seller.bannerBase64})` }} />
+          <div className="absolute inset-x-0 top-0 h-[250px] bg-cover bg-center sm:h-[320px] md:inset-0 md:h-auto" style={{ backgroundImage: `url(${seller.bannerBase64})` }} />
         ) : (
-          <div className="absolute inset-x-0 top-0 h-[270px] bg-gradient-to-br sm:h-[340px] md:inset-0 md:h-auto" style={{ backgroundImage: `linear-gradient(135deg, ${publicTheme.text}, ${publicTheme.primary}, ${publicTheme.secondary})` }} />
+          <div className="absolute inset-x-0 top-0 h-[250px] sm:h-[320px] md:inset-0 md:h-auto" style={{ backgroundImage: `linear-gradient(135deg, ${publicTheme.text}, ${publicTheme.primary}, ${publicTheme.secondary})` }} />
         )}
-        <div className={`absolute inset-x-0 top-0 h-[270px] sm:h-[340px] md:inset-0 md:h-auto ${seller?.bannerBase64 ? 'bg-gradient-to-b from-black/20 via-transparent to-black/35 md:bg-gradient-to-t md:from-black/25 md:via-transparent md:to-black/10' : 'bg-white/30 md:bg-white/75 md:backdrop-blur-[2px]'}`} />
+        <div className="absolute inset-x-0 top-0 h-[250px] bg-gradient-to-b from-black/25 via-transparent to-black/30 sm:h-[320px] md:inset-0 md:h-auto md:bg-gradient-to-t md:from-black/30 md:via-transparent md:to-black/10" />
 
         {savingImage && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/70">
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/70" role="status" aria-label="Subiendo imagen">
             <div className="h-10 w-10 animate-spin rounded-full border-b-4 border-[#1e40af]" />
           </div>
         )}
 
         {isOwner && (
-          <div className="absolute right-3 top-3 z-30 flex flex-col items-end gap-2 sm:right-4 sm:top-4">
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setThemePanelOpen(prev => !prev)} className="inline-flex items-center gap-2 rounded-full bg-black/45 px-3 py-2 text-xs font-black text-white shadow-lg ring-1 ring-white/25 backdrop-blur hover:bg-black/60 sm:rounded-2xl sm:bg-white/90 sm:text-[#1a2b4b] sm:ring-white/80 sm:hover:bg-white sm:text-sm">
-                <span translate="no" className="material-symbols-outlined text-[18px]">palette</span>
-                <span className="hidden sm:inline">Personalizar</span>
-              </button>
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-black/45 px-3 py-2 text-xs font-black text-white shadow-lg ring-1 ring-white/25 backdrop-blur hover:bg-black/60 sm:rounded-2xl sm:bg-white/90 sm:text-[#1a2b4b] sm:ring-white/80 sm:hover:bg-white sm:text-sm" title="Fondo del recuadro principal (Banner)">
-                <span translate="no" className="material-symbols-outlined text-[18px]">panorama</span>
-                <span className="hidden sm:inline">Banner</span>
-                <input type="file" accept="image/*" className="hidden" onChange={event => handleImageUpload(event, 'banner')} />
-              </label>
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-black/45 px-3 py-2 text-xs font-black text-white shadow-lg ring-1 ring-white/25 backdrop-blur hover:bg-black/60 sm:rounded-2xl sm:bg-white/90 sm:text-[#1a2b4b] sm:ring-white/80 sm:hover:bg-white sm:text-sm" title="Fondo global de toda la página web">
-                <span translate="no" className="material-symbols-outlined text-[18px]">wallpaper</span>
-                <span className="hidden sm:inline">Fondo Web</span>
-                <input type="file" accept="image/*" className="hidden" onChange={event => handleImageUpload(event, 'wallpaper')} />
-              </label>
-            </div>
-
-            {themePanelOpen && (
-              <div className="relative z-[35] w-[min(380px,calc(100vw-1.5rem))] rounded-[1.5rem] p-3 text-left shadow-2xl ring-1 ring-white/80 backdrop-blur" style={{ backgroundColor: `${publicTheme.card}f2`, color: publicTheme.text, fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-black">Tema público</p>
-                    <p className="text-xs font-bold opacity-70">{savingTheme ? 'Guardando...' : 'Edita y guarda cuando termines'}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                      <button type="button" onClick={resetPublicTheme} disabled={savingTheme} className="rounded-full px-3 py-1.5 text-xs font-black text-slate-500 hover:bg-slate-100 disabled:opacity-60">
-                        Restablecer
-                      </button>
-                      <button type="button" onClick={saveCurrentTheme} disabled={savingTheme} className="rounded-full px-3 py-1.5 text-xs font-black text-white shadow-lg disabled:cursor-wait disabled:opacity-60" style={{ backgroundColor: publicTheme.primary }}>
-                      {savingTheme ? 'Guardando...' : 'Guardar'}
-                    </button>
-                    <button type="button" onClick={() => setThemePanelOpen(false)} className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100">
-                      <span translate="no" className="material-symbols-outlined text-[18px]">close</span>
-                    </button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-6 gap-1 rounded-2xl bg-black/5 p-1">
-                  {[
-                    ['theme', 'Tema', 'palette'],
-                    ['font', 'Tipografía', 'text_fields'],
-                    ['cards', 'Tarjetas', 'dashboard_customize'],
-                    ['scene', 'Escena', 'auto_awesome'],
-                    ['layout', 'Distribución', 'view_quilt'],
-                    ['social', 'Redes', 'share']
-                  ].map(([id, label, icon]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setThemePanelTab(id)}
-                      className={`flex flex-col items-center justify-center rounded-xl px-1.5 py-2 text-[9px] font-black leading-none transition sm:text-[10px] ${themePanelTab === id ? 'bg-white shadow-sm' : 'opacity-70 hover:opacity-100'}`}
-                      style={themePanelTab === id ? { color: publicTheme.primary } : undefined}
-                    >
-                      <span translate="no" className="material-symbols-outlined text-[18px]">{icon}</span>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-
-                {themePanelTab === 'theme' && (
-                  <div className="mt-3 max-h-[58vh] space-y-3 overflow-y-auto overscroll-contain pr-1">
-                    <div className="grid grid-cols-2 gap-2">
-                      {profileThemes.map(theme => {
-                        const selected = publicTheme.id === theme.id;
-                        return (
-                          <button
-                            key={theme.id}
-                            type="button"
-                            disabled={savingTheme}
-                            onClick={() => applyThemePalette(theme)}
-                            className={`overflow-hidden rounded-2xl border p-2 text-left transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 ${selected ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-slate-200'}`}
-                            style={{ backgroundColor: theme.card || '#ffffff' }}
-                          >
-                            <div className="h-10 rounded-xl" style={{ background: `linear-gradient(135deg, ${theme.primary}, ${theme.secondary})` }}>
-                              <div className="flex h-full items-end justify-end p-1.5">
-                                <span className="h-4 w-4 rounded-full ring-2 ring-white/70" style={{ backgroundColor: theme.accent }} />
-                              </div>
-                            </div>
-                            <div className="mt-2 flex items-center justify-between gap-2">
-                              <span className="truncate text-[11px] font-black" style={{ color: theme.text }}>{theme.name}</span>
-                              {selected && <span translate="no" className="material-symbols-outlined text-[16px]" style={{ color: theme.primary }}>check_circle</span>}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 border-t border-black/10 pt-3">
-                      {[
-                        ['primary', 'Principal'],
-                        ['secondary', 'Secundario'],
-                        ['accent', 'Acento'],
-                        ['surface', 'Fondo'],
-                        ['card', 'Contenedor'],
-                        ['text', 'Texto']
-                      ].map(([field, label]) => (
-                        <label key={field} className="rounded-2xl border border-black/10 bg-white/55 p-2 text-[10px] font-black uppercase tracking-wide">
-                          <span className="mb-1 block truncate opacity-70">{label}</span>
-                          <input type="color" value={publicTheme[field] || defaultPublicTheme[field]} onChange={event => handleThemeFieldChange(field, event.target.value)} className="h-9 w-full cursor-pointer rounded-xl border-0 bg-transparent p-0" />
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {themePanelTab === 'font' && (
-                  <div className="mt-3 max-h-[58vh] space-y-3 overflow-y-auto overscroll-contain pr-1">
-                    <p className="text-xs font-bold opacity-70">Elige cómo se leen tu nombre, biografía y carpetas.</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {fontOptions.map(font => (
-                        <button
-                          key={font}
-                          type="button"
-                          onClick={() => handleThemeFieldChange('font', font)}
-                          className={`rounded-2xl border bg-white/70 px-3 py-3 text-left transition hover:-translate-y-0.5 ${publicTheme.font === font ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}
-                          style={{ fontFamily: getFontStack(font), color: publicTheme.text }}
-                        >
-                          <span className="flex items-center justify-between gap-2 text-sm font-black">
-                            {font}
-                            {publicTheme.font === font && <span translate="no" className="material-symbols-outlined text-[16px]" style={{ color: publicTheme.primary }}>check_circle</span>}
-                          </span>
-                          <span className="mt-1 block text-[15px] font-bold leading-tight">{fontExamples[font]}</span>
-                          <span className="mt-1 block text-[10px] font-black uppercase tracking-wide opacity-50">Así se verá en tu perfil</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {themePanelTab === 'cards' && (
-                  <div className="mt-3 max-h-[58vh] space-y-3 overflow-y-auto overscroll-contain pr-1">
-                    <p className="text-xs font-bold opacity-70">Galería de contenedores: cada estilo cambia tarjetas, vitrinas y módulos.</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {cardStyleOptions.map(option => (
-                        <button
-                          key={option.id}
-                          type="button"
-                          onClick={() => handleThemeFieldChange('cardStyle', option.id)}
-                          className={`overflow-hidden rounded-2xl border p-2 text-left transition hover:-translate-y-0.5 ${publicTheme.cardStyle === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}
-                          style={{ ...getCardStyle({ ...publicTheme, cardStyle: option.id }), color: publicTheme.text }}
-                        >
-                          <span className="relative mb-2 block h-16 overflow-hidden rounded-xl border border-white/45 bg-black/5">
-                            <span className="absolute left-2 top-2 h-5 w-12 rounded-lg" style={{ backgroundColor: publicTheme.primary }} />
-                            <span className="absolute bottom-2 left-2 h-2 w-16 rounded-full bg-white/65" />
-                            <span className="absolute bottom-5 left-2 h-2 w-10 rounded-full bg-white/45" />
-                            <span className="absolute right-2 top-2 h-10 w-7 rounded-lg shadow-lg" style={{ background: `linear-gradient(135deg, ${publicTheme.accent}, ${publicTheme.secondary})` }} />
-                            <span className="absolute -right-5 -top-6 h-14 w-14 rounded-full bg-white/25 blur-sm" />
-                          </span>
-                          <span className="flex items-center justify-between gap-2 text-sm font-black">
-                            {option.name}
-                            {publicTheme.cardStyle === option.id && <span translate="no" className="material-symbols-outlined text-[16px]" style={{ color: publicTheme.primary }}>check_circle</span>}
-                          </span>
-                          <span className="mt-1 block text-[10px] font-bold leading-tight opacity-65">{option.description}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {themePanelTab === 'scene' && (
-                  <div className="mt-3 max-h-[58vh] space-y-4 overflow-y-auto overscroll-contain pr-1">
-                    <div className="rounded-3xl border border-black/10 bg-white/45 p-3 shadow-sm">
-                      <div className="mb-3 border-b border-black/10 pb-2">
-                        <div className="flex items-center gap-2">
-                          <span translate="no" className="material-symbols-outlined rounded-xl p-1.5 text-[18px]" style={{ backgroundColor: `${publicTheme.primary}18`, color: publicTheme.primary }}>wallpaper</span>
-                          <p className="text-xs font-black uppercase tracking-wide">Fondo del perfil</p>
-                        </div>
-                        <p className="mt-1 text-[10px] font-bold leading-tight opacity-60">Cambia el escenario central detrás de tu banner, vitrinas y carpetas.</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {backgroundStyleOptions.map(option => (
-                          <button
-                            key={option.id}
-                            type="button"
-                            onClick={() => handleThemeFieldChange('backgroundStyle', option.id)}
-                            className={`overflow-hidden rounded-2xl border p-2 text-left transition hover:-translate-y-0.5 ${publicTheme.backgroundStyle === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}
-                            style={{ color: publicTheme.text }}
-                          >
-                            <div className="h-12 rounded-xl" style={getProfileBackgroundStyle({ ...publicTheme, backgroundStyle: option.id })} />
-                            <span className="mt-2 block text-xs font-black">{option.name}</span>
-                            <span className="block text-[10px] font-bold opacity-60">{option.description}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="rounded-3xl border border-black/10 bg-white/45 p-3 shadow-sm">
-                      <div className="mb-3 border-b border-black/10 pb-2">
-                        <div className="flex items-center gap-2">
-                          <span translate="no" className="material-symbols-outlined rounded-xl p-1.5 text-[18px]" style={{ backgroundColor: `${publicTheme.primary}18`, color: publicTheme.primary }}>view_sidebar</span>
-                          <p className="text-xs font-black uppercase tracking-wide">Barras laterales</p>
-                        </div>
-                        <p className="mt-1 text-[10px] font-bold leading-tight opacity-60">Define qué se ve en las franjas izquierda y derecha de la página.</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {sideBackgroundOptions.map(option => (
-                          <button
-                            key={option.id}
-                            type="button"
-                            onClick={() => handleThemeFieldChange('sideBackgroundStyle', option.id)}
-                            className={`overflow-hidden rounded-2xl border p-2 text-left transition hover:-translate-y-0.5 ${publicTheme.sideBackgroundStyle === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}
-                            style={{ color: publicTheme.text }}
-                          >
-                            <div className="h-12 rounded-xl" style={getSideBackgroundStyle({ ...publicTheme, sideBackgroundStyle: option.id })} />
-                            <span className="mt-2 block text-xs font-black">{option.name}</span>
-                            <span className="block text-[10px] font-bold opacity-60">{option.description}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="rounded-3xl border border-black/10 bg-white/45 p-3 shadow-sm">
-                      <div className="mb-3 border-b border-black/10 pb-2">
-                        <div className="flex items-center gap-2">
-                          <span translate="no" className="material-symbols-outlined rounded-xl p-1.5 text-[18px]" style={{ backgroundColor: `${publicTheme.primary}18`, color: publicTheme.primary }}>account_box</span>
-                          <p className="text-xs font-black uppercase tracking-wide">Marco de avatar</p>
-                        </div>
-                        <p className="mt-1 text-[10px] font-bold leading-tight opacity-60">Personaliza el borde que rodea tu foto de perfil pública.</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {avatarFrameOptions.map(option => (
-                          <button
-                            key={option.id}
-                            type="button"
-                            onClick={() => handleThemeFieldChange('avatarFrame', option.id)}
-                            className={`rounded-2xl border bg-white/60 p-3 text-left transition hover:-translate-y-0.5 ${publicTheme.avatarFrame === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}
-                            style={{ color: publicTheme.text }}
-                          >
-                            <span className="mb-2 block h-10 w-10 rounded-2xl shadow-lg" style={{ background: getAvatarFrameStyle({ ...publicTheme, avatarFrame: option.id }) }} />
-                            <span className="block text-xs font-black">{option.name}</span>
-                            <span className="block text-[10px] font-bold opacity-60">{option.description}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="rounded-3xl border border-black/10 bg-white/45 p-3 shadow-sm">
-                      <div className="mb-3 border-b border-black/10 pb-2">
-                        <div className="flex items-center gap-2">
-                          <span translate="no" className="material-symbols-outlined rounded-xl p-1.5 text-[18px]" style={{ backgroundColor: `${publicTheme.primary}18`, color: publicTheme.primary }}>dashboard_customize</span>
-                          <p className="text-xs font-black uppercase tracking-wide">Layout y efecto</p>
-                        </div>
-                        <p className="mt-1 text-[10px] font-bold leading-tight opacity-60">Elige la estructura del perfil y una capa visual encima de la escena.</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {profileLayoutOptions.map(option => (
-                          <button key={option.id} type="button" onClick={() => handleThemeFieldChange('profileLayout', option.id)} className={`rounded-2xl border bg-white/60 p-3 text-left transition hover:-translate-y-0.5 ${publicTheme.profileLayout === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}>
-                            <span className="block text-xs font-black">{option.name}</span>
-                            <span className="block text-[10px] font-bold opacity-60">{option.description}</span>
-                          </button>
-                        ))}
-                        {profileEffectOptions.map(option => (
-                          <button key={option.id} type="button" onClick={() => handleThemeFieldChange('profileEffect', option.id)} className={`rounded-2xl border bg-white/60 p-3 text-left transition hover:-translate-y-0.5 ${publicTheme.profileEffect === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}>
-                            <span className="block text-xs font-black">{option.name}</span>
-                            <span className="block text-[10px] font-bold opacity-60">{option.description}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="rounded-3xl border border-black/10 bg-white/45 p-3 shadow-sm">
-                      <div className="mb-3 border-b border-black/10 pb-2">
-                        <div className="flex items-center gap-2">
-                          <span translate="no" className="material-symbols-outlined rounded-xl p-1.5 text-[18px]" style={{ backgroundColor: `${publicTheme.primary}18`, color: publicTheme.primary }}>trophy</span>
-                          <p className="text-xs font-black uppercase tracking-wide">Vitrina</p>
-                        </div>
-                        <p className="mt-1 text-[10px] font-bold leading-tight opacity-60">Controla qué tipo de módulo destacado aparece bajo tu presentación.</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {showcaseStyleOptions.map(option => (
-                          <button key={option.id} type="button" onClick={() => handleThemeFieldChange('showcaseStyle', option.id)} className={`rounded-2xl border bg-white/60 p-3 text-left transition hover:-translate-y-0.5 ${publicTheme.showcaseStyle === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}>
-                            <span className="block text-xs font-black">{option.name}</span>
-                            <span className="block text-[10px] font-bold opacity-60">{option.description}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {themePanelTab === 'layout' && (
-                  <div className="mt-3 max-h-[58vh] space-y-3 overflow-y-auto overscroll-contain pr-1">
-                    <div className="rounded-3xl border border-black/10 bg-white/45 p-3 shadow-sm">
-                      <div className="mb-3 border-b border-black/10 pb-2">
-                        <div className="flex items-center gap-2">
-                          <span translate="no" className="material-symbols-outlined rounded-xl p-1.5 text-[18px]" style={{ backgroundColor: `${publicTheme.primary}18`, color: publicTheme.primary }}>view_quilt</span>
-                          <p className="text-xs font-black uppercase tracking-wide">Distribución del perfil</p>
-                        </div>
-                        <p className="mt-1 text-[10px] font-bold leading-tight opacity-60">Elige el orden y tamaño de vitrinas, estadísticas y carpetas públicas.</p>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-2">
-                        {profileDistributionOptions.map(option => (
-                          <button
-                            key={option.id}
-                            type="button"
-                            onClick={() => handleThemeFieldChange('profileDistribution', option.id)}
-                            className={`rounded-2xl border bg-white/60 p-3 text-left transition hover:-translate-y-0.5 ${publicTheme.profileDistribution === option.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-black/10'}`}
-                            style={{ color: publicTheme.text }}
-                          >
-                            <div className="mb-2 grid grid-cols-12 gap-1 overflow-hidden rounded-xl bg-black/5 p-1">
-                              {option.order.map(moduleName => (
-                                <span
-                                  key={moduleName}
-                                  className={`h-7 rounded-lg ${moduleName === 'showcase' ? 'bg-blue-500/75' : moduleName === 'stats' ? 'bg-amber-400/80' : 'bg-emerald-500/75'} ${option.spans?.[moduleName] || 'lg:col-span-12'}`}
-                                />
-                              ))}
-                            </div>
-                            <span className="flex items-center justify-between gap-2 text-xs font-black">
-                              {option.name}
-                              {publicTheme.profileDistribution === option.id && <span translate="no" className="material-symbols-outlined text-[16px]" style={{ color: publicTheme.primary }}>check_circle</span>}
-                            </span>
-                            <span className="mt-1 block text-[10px] font-bold leading-tight opacity-60">{option.description}</span>
-                            <span className="mt-2 flex flex-wrap gap-1 text-[9px] font-black uppercase tracking-wide opacity-60">
-                              {option.order.map(moduleName => (
-                                <span key={moduleName} className="rounded-full bg-black/5 px-2 py-0.5">
-                                  {moduleName === 'showcase' ? 'Vitrina' : moduleName === 'stats' ? 'Stats' : 'Carpetas'}
-                                </span>
-                              ))}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {themePanelTab === 'social' && (
-                  <div className="mt-3 max-h-[58vh] space-y-3 overflow-y-auto overscroll-contain pr-1">
-                    <div className="rounded-3xl border border-black/10 bg-white/45 p-3 shadow-sm">
-                      <div className="mb-3 border-b border-black/10 pb-2">
-                        <div className="flex items-center gap-2">
-                          <span translate="no" className="material-symbols-outlined rounded-xl p-1.5 text-[18px]" style={{ backgroundColor: `${publicTheme.primary}18`, color: publicTheme.primary }}>share</span>
-                          <p className="text-xs font-black uppercase tracking-wide">Redes visibles</p>
-                        </div>
-                        <p className="mt-1 text-[10px] font-bold leading-tight opacity-60">Activa o desactiva qué botones sociales aparecen en tu perfil público. Solo se muestran si tienes el dato configurado.</p>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleThemeFieldChange('showMessageButton', messageButtonEnabled ? 'off' : 'on')}
-                          className={`flex items-center justify-between gap-3 rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 ${messageButtonEnabled ? 'border-slate-900 bg-white/75 ring-2 ring-slate-900/10' : 'border-black/10 bg-white/40 opacity-70'}`}
-                          style={{ color: publicTheme.text }}
-                        >
-                          <span className="flex min-w-0 items-center gap-3">
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-black/10">
-                              <span translate="no" className="material-symbols-outlined text-[22px]" style={{ color: publicTheme.primary }}>chat</span>
-                            </span>
-                            <span className="min-w-0">
-                              <span className="block truncate text-sm font-black">Mensaje privado</span>
-                              <span className="block text-[10px] font-bold opacity-60">{messageButtonEnabled ? 'Visible en tu perfil público' : 'Oculto en tu perfil público'}</span>
-                            </span>
-                          </span>
-                          <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${messageButtonEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                            <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${messageButtonEnabled ? 'left-6' : 'left-1'}`} />
-                          </span>
-                        </button>
-                        {socialLinks.map(social => {
-                          const enabled = getSocialEnabled(social.field);
-                          return (
-                            <button
-                              key={social.id}
-                              type="button"
-                              onClick={() => handleThemeFieldChange(social.field, enabled ? 'off' : 'on')}
-                              className={`flex items-center justify-between gap-3 rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 ${enabled ? 'border-slate-900 bg-white/75 ring-2 ring-slate-900/10' : 'border-black/10 bg-white/40 opacity-70'}`}
-                              style={{ color: publicTheme.text }}
-                            >
-                              <span className="flex min-w-0 items-center gap-3">
-                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-black/10">
-                                  <SocialLogo type={social.id} className="h-6 w-6" />
-                                </span>
-                                <span className="min-w-0">
-                                  <span className="block truncate text-sm font-black">{social.label}</span>
-                                  <span className="block text-[10px] font-bold opacity-60">
-                                    {social.available ? (enabled ? 'Visible en tu perfil' : 'Oculto en tu perfil') : 'Agrega este dato en tu perfil privado'}
-                                  </span>
-                                </span>
-                              </span>
-                              <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${enabled ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                                <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${enabled ? 'left-6' : 'left-1'}`} />
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+          <div className="absolute right-3 top-3 z-30 flex flex-wrap justify-end gap-2 sm:right-4 sm:top-4">
+            <button type="button" onClick={() => setThemePanelOpen((prev) => !prev)} aria-expanded={themePanelOpen} className={ownerButtonClass}>
+              <span translate="no" className="material-symbols-outlined text-[19px]">palette</span>
+              <span className="hidden sm:inline">Personalizar</span>
+              <span className="sm:hidden">Estilo</span>
+            </button>
+            <label className={`${ownerButtonClass} cursor-pointer`} title="Imagen de fondo de tu presentación">
+              <span translate="no" className="material-symbols-outlined text-[19px]">panorama</span>
+              <span className="hidden sm:inline">Banner</span>
+              <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleImageUpload(event, 'banner')} aria-label="Cambiar banner" />
+            </label>
+            <label className={`${ownerButtonClass} cursor-pointer`} title="Imagen de fondo de toda la página">
+              <span translate="no" className="material-symbols-outlined text-[19px]">wallpaper</span>
+              <span className="hidden sm:inline">Fondo de página</span>
+              <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleImageUpload(event, 'wallpaper')} aria-label="Cambiar fondo de página" />
+            </label>
           </div>
         )}
 
-        <div className={`relative z-10 mx-auto flex w-full max-w-[1220px] flex-col justify-end gap-4 px-4 pb-6 pt-[185px] sm:px-6 sm:pt-[260px] md:min-h-0 md:flex-row md:items-end md:gap-5 md:px-8 ${isCompactLayout ? 'min-h-[380px] sm:min-h-[460px] md:py-8' : 'min-h-[430px] sm:min-h-[520px] md:py-12'} ${isPosterLayout ? 'md:items-center' : ''}`}>
-          <div className="relative z-20 -mb-10 ml-3 h-32 w-32 shrink-0 sm:ml-5 sm:h-36 sm:w-36 md:mb-0 md:ml-0 md:h-44 md:w-44">
-            <div className="absolute -inset-3 rounded-[2.7rem] opacity-70 blur-2xl" style={{ background: `linear-gradient(135deg, ${publicTheme.primary}, ${publicTheme.accent}, ${publicTheme.secondary})` }} />
-            <div className="relative h-full w-full rounded-[2.35rem] p-[5px] shadow-[0_24px_60px_rgba(0,0,0,0.42)]" style={{ background: getAvatarFrameStyle(publicTheme) }}>
-              <div className="h-full w-full overflow-hidden rounded-[2rem] bg-white ring-2 ring-white/90">
+        <div className={`relative z-10 mx-auto flex w-full max-w-[1220px] flex-col justify-end gap-5 px-4 pb-6 pt-[150px] sm:px-6 sm:pt-[220px] md:flex-row md:items-end md:px-8 ${isCompactLayout ? 'md:py-8' : 'md:py-12'} ${isPosterLayout ? 'md:items-center' : ''}`}>
+          <div className="relative z-20 h-32 w-32 shrink-0 sm:h-36 sm:w-36 md:h-44 md:w-44">
+            <div className="h-full w-full rounded-[2.2rem] p-[5px] shadow-[0_18px_44px_rgba(0,0,0,0.4)]" style={{ background: getAvatarFrameStyle(publicTheme) }}>
+              <div className="h-full w-full overflow-hidden rounded-[1.9rem] bg-white ring-2 ring-white/90">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
                 ) : (
@@ -1343,199 +1175,166 @@ export default function SellerProfile() {
               </div>
             </div>
             {isOwner && (
-              <label className="absolute inset-x-5 bottom-2 z-10 flex cursor-pointer items-center justify-center gap-1 rounded-full bg-black/70 px-3 py-1.5 text-center text-[11px] font-black text-white shadow-lg ring-1 ring-white/30 backdrop-blur transition hover:bg-black/85">
-                <span translate="no" className="material-symbols-outlined text-[14px]">photo_camera</span>
-                <span>Foto</span>
-                <input type="file" accept="image/*" className="hidden" onChange={event => handleImageUpload(event, 'avatar')} />
+              <label className="absolute inset-x-4 bottom-2 z-10 flex h-8 cursor-pointer items-center justify-center gap-1 rounded-full bg-black/70 text-xs font-bold text-white shadow-lg ring-1 ring-white/30 transition hover:bg-black/85">
+                <span translate="no" className="material-symbols-outlined text-[15px]">photo_camera</span>
+                Cambiar foto
+                <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleImageUpload(event, 'avatar')} aria-label="Cambiar foto de perfil" />
               </label>
             )}
           </div>
 
-          <div className={`relative min-w-0 flex-1 overflow-visible p-4 pt-12 ring-1 backdrop-blur-sm sm:p-5 sm:pt-14 md:p-6 md:pt-6 md:backdrop-blur ${isPosterLayout ? 'md:text-center' : ''}`} style={getCardStyle(publicTheme)}>
-            {(showMessageButton || socialLinks.some(social => social.available && getSocialEnabled(social.field))) && (
-              <div className="absolute -top-6 left-4 right-4 z-30 flex flex-wrap justify-end gap-2 md:left-auto md:-right-5 md:top-6 md:max-w-none md:flex-col">
-                {showMessageButton && (
-                  <button
-                    type="button"
-                    onClick={contactSeller}
-                    aria-label="Enviar mensaje"
-                    title="Mensaje"
-                    className="group flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-slate-950 shadow-[0_12px_30px_rgba(0,0,0,0.22)] ring-2 ring-white/80 backdrop-blur transition hover:-translate-y-1 hover:scale-110 md:h-12 md:w-12"
-                    style={{ border: `2px solid ${publicTheme.primary}` }}
-                  >
-                    <span translate="no" className="material-symbols-outlined text-[22px] md:text-[24px]">chat</span>
-                  </button>
-                )}
-                {socialLinks.filter(social => social.available && getSocialEnabled(social.field)).map(social => (
-                  <a
-                    key={social.id}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={social.label}
-                    title={social.label}
-                    className="group flex h-11 w-11 items-center justify-center rounded-full bg-white/95 shadow-[0_12px_30px_rgba(0,0,0,0.22)] ring-2 ring-white/80 backdrop-blur transition hover:-translate-y-1 hover:scale-110 md:h-12 md:w-12"
-                    style={{ border: `2px solid ${social.id === 'whatsapp' || social.id === 'facebook' ? publicTheme.secondary : publicTheme.accent}` }}
-                  >
-                    <SocialLogo type={social.id} className="h-6 w-6 md:h-7 md:w-7" />
-                  </a>
-                ))}
-              </div>
-            )}
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className={`relative min-w-0 flex-1 p-5 ring-1 md:p-6 ${isPosterLayout ? 'md:text-center' : ''}`} style={getCardStyle(publicTheme)}>
+            <div className={`flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between ${isPosterLayout ? 'lg:flex-col lg:items-center' : ''}`}>
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className={`break-words font-black leading-[0.95] ${displayNameSizeClass}`} style={{ color: publicTheme.text }}>{displayName}</h1>
-                  <span translate="no" className="material-symbols-outlined" style={{ color: publicTheme.primary, fontVariationSettings: "'FILL' 1" }}>verified</span>
+                <div className={`flex flex-wrap items-center gap-2 ${isPosterLayout ? 'md:justify-center' : ''}`}>
+                  <h1 className={`break-words font-black leading-[1] ${displayNameSizeClass}`} style={{ color: publicTheme.text }}>{displayName}</h1>
+                  <span translate="no" className="material-symbols-outlined" style={{ color: publicTheme.primary, fontVariationSettings: "'FILL' 1" }} title="Vendedor verificado">verified</span>
                 </div>
-                <p className="mt-1 text-sm font-black text-slate-500">@{seller?.username}</p>
-                {seller?.fullName && <p className="mt-1 text-sm font-semibold text-slate-600">{seller.fullName}</p>}
-                <div className={`mt-3 flex flex-wrap gap-2 ${isPosterLayout ? 'justify-center lg:justify-start' : ''}`}>
-                  {[
-                    ['Nivel', profileLevel],
-                    ['Carpetas', folders.length],
-                    ['Cartas', totalCards]
-                    ].map(([label, value]) => (
-                    <span key={label} className={`group relative inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wide ring-1 transition-all ${label === 'Nivel' ? 'cursor-help hover:brightness-110' : ''}`} style={{ backgroundColor: `${publicTheme.primary}18`, borderColor: `${publicTheme.primary}55`, color: publicTheme.text }}>
-                      <span className="opacity-60">{label}</span>
-                      {value}
-                      {label === 'Nivel' && (
-                        <div className="pointer-events-none absolute left-0 top-full z-[9999] mt-2 w-64 rounded-xl p-3 opacity-0 shadow-2xl transition-opacity duration-200 group-hover:opacity-100" style={{ backgroundColor: publicTheme.card || '#ffffff', color: publicTheme.text, border: `1px solid ${publicTheme.primary}44`, boxShadow: '0 10px 40px -10px rgba(0,0,0,0.4)' }}>
-                          <ul className="list-disc pl-4 text-[11px] font-bold normal-case tracking-normal opacity-90 space-y-1 text-left">
-                            <li>+2 niveles por cada carpeta pública que tengas creada.</li>
-                            <li>+1 nivel por cada 12 cartas individuales que tengas subidas.</li>
-                            <li>Todos empiezan por defecto en el nivel 1.</li>
-                          </ul>
-                        </div>
-                      )}
-                    </span>
-                  ))}
-                </div>
+                <p className="mt-1 text-sm font-bold" style={textMuted}>
+                  @{seller?.username}
+                  {seller?.fullName ? ` · ${seller.fullName}` : ''}
+                </p>
+                <p className="mt-2 text-sm font-semibold tabular-nums" style={{ color: publicTheme.text }}>
+                  {folderCountLabel} · {cardCountLabel} · Nivel {profileLevel}
+                </p>
+                {primaryAddress && (
+                  <p className={`mt-2 flex items-center gap-1.5 text-sm font-semibold ${isPosterLayout ? 'md:justify-center' : ''}`} style={textMuted}>
+                    <span translate="no" className="material-symbols-outlined text-[18px]">location_on</span>
+                    <span className="truncate">{[primaryAddress.name, primaryAddress.comuna, primaryAddress.region].filter(Boolean).join(' · ')}</span>
+                  </p>
+                )}
               </div>
 
+              {heroActions.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {heroActions.map((action) => action.id === 'message' ? (
+                    <button
+                      key="message"
+                      type="button"
+                      onClick={contactSeller}
+                      className="inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-extrabold shadow-md transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                      style={{ backgroundColor: publicTheme.accent, color: readableOn(publicTheme.accent) }}
+                    >
+                      <span translate="no" className="material-symbols-outlined text-[20px]">chat</span>
+                      Enviar mensaje
+                    </button>
+                  ) : (
+                    <a
+                      key={action.id}
+                      href={action.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={action.label}
+                      title={action.label}
+                      className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-black/10 transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"
+                    >
+                      <SocialLogo type={action.id} className="h-6 w-6" />
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="mt-5">
               {isEditingBio ? (
                 <div className="space-y-3">
-                  <textarea value={tempBio} onChange={event => setTempBio(event.target.value)} className="min-h-24 w-full rounded-2xl border px-4 py-3 text-sm font-semibold outline-none focus:ring-4" style={{ backgroundColor: publicTheme.card, borderColor: `${publicTheme.primary}33`, color: publicTheme.text }} placeholder="Cuéntale a la comunidad sobre ti..." />
+                  <textarea value={tempBio} onChange={(event) => setTempBio(event.target.value)} maxLength={500} aria-label="Biografía" className="min-h-24 w-full rounded-xl border px-4 py-3 text-sm font-semibold outline-none focus:ring-4" style={{ backgroundColor: publicTheme.card, borderColor: `${publicTheme.primary}55`, color: publicTheme.text }} placeholder="Cuéntale a la comunidad quién eres y qué coleccionas" />
                   <div className="flex justify-end gap-2">
-                    <button onClick={() => setIsEditingBio(false)} className="rounded-xl px-4 py-2 text-sm font-black text-slate-500 hover:bg-slate-100">Cancelar</button>
-                    <button onClick={handleSaveBio} disabled={savingBio} className="rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60" style={{ backgroundColor: publicTheme.primary }}>{savingBio ? 'Guardando...' : 'Guardar'}</button>
+                    <button onClick={() => setIsEditingBio(false)} className="h-10 rounded-full px-4 text-sm font-bold text-slate-600 hover:bg-black/5">Cancelar</button>
+                    <button onClick={handleSaveBio} disabled={savingBio} className="h-10 rounded-full px-5 text-sm font-extrabold disabled:opacity-60" style={{ backgroundColor: publicTheme.primary, color: readableOn(publicTheme.primary) }}>{savingBio ? 'Guardando…' : 'Guardar biografía'}</button>
                   </div>
                 </div>
               ) : (
-                <div className="group flex items-start gap-2">
-                  <p className="min-h-6 flex-1 border-l-4 pl-3 text-sm font-semibold italic leading-relaxed text-slate-600 line-clamp-4 md:line-clamp-none md:text-base" style={{ borderColor: `${publicTheme.primary}55` }}>
-                    {seller?.bio ? `"${seller.bio}"` : isOwner ? 'Aún no has escrito una biografía.' : 'Este vendedor aún no tiene biografía.'}
+                <div className="flex items-start gap-2">
+                  <p className="min-h-6 flex-1 border-l-4 pl-3 text-sm font-medium leading-relaxed md:text-base" style={{ borderColor: `${publicTheme.primary}66`, color: publicTheme.text, opacity: seller?.bio ? 0.85 : 0.6 }}>
+                    {seller?.bio ? seller.bio : isOwner ? 'Aún no escribes tu biografía.' : 'Este vendedor aún no escribe su biografía.'}
                   </p>
                   {isOwner && (
-                    <button onClick={() => { setTempBio(seller?.bio || ''); setIsEditingBio(true); }} className="rounded-full p-2 text-slate-400 hover:bg-blue-50 hover:text-[#1e40af]">
+                    <button onClick={() => { setTempBio(seller?.bio || ''); setIsEditingBio(true); }} aria-label="Editar biografía" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full hover:bg-black/5" style={{ color: publicTheme.primary }}>
                       <span translate="no" className="material-symbols-outlined text-[20px]">edit</span>
                     </button>
                   )}
                 </div>
               )}
             </div>
-
-            {primaryAddress && (
-              <div className="mt-4 inline-flex max-w-full items-center gap-2 rounded-full px-3 py-1.5 text-xs font-black ring-1" style={{ backgroundColor: `${publicTheme.secondary}26`, color: publicTheme.text, borderColor: `${publicTheme.secondary}66` }}>
-                <span translate="no" className="material-symbols-outlined text-[16px]">location_on</span>
-                <span className="truncate">{[primaryAddress.name, primaryAddress.comuna, primaryAddress.region].filter(Boolean).join(' · ')}</span>
-              </div>
-            )}
           </div>
         </div>
       </section>
 
+      {/* Módulos: el orden y el ancho salen de la distribución elegida */}
       <main className="relative z-10 mx-auto w-full max-w-[1220px] px-4 py-6 sm:px-6 sm:py-8 md:px-8">
         <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-12">
           {showProfileShowcase && (
-            <section className={`border p-4 ring-1 ${getDistributionSpan('showcase')}`} style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}33`, order: getDistributionOrder('showcase') }}>
+            <section className={`min-w-0 border p-5 ring-1 ${getDistributionSpan('showcase')}`} style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}33`, order: getDistributionOrder('showcase') }}>
               <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.22em]" style={{ color: publicTheme.primary }}>Vitrina pública</p>
-                  <h2 className="text-2xl font-black leading-tight" style={{ color: publicTheme.text }}>
-                    {publicTheme.showcaseStyle === 'seller' ? 'Catálogo destacado del vendedor' : publicTheme.showcaseStyle === 'collector' ? 'Colección destacada' : 'Carpetas favoritas'}
-                  </h2>
-                </div>
-                <span className="rounded-full px-3 py-1 text-xs font-black text-white" style={{ backgroundColor: publicTheme.primary }}>{folders.length}</span>
+                <h2 className="text-xl font-black leading-tight md:text-2xl" style={{ color: publicTheme.text }}>
+                  {publicTheme.showcaseStyle === 'seller' ? 'Catálogo destacado' : publicTheme.showcaseStyle === 'collector' ? 'Colección destacada' : 'Carpetas favoritas'}
+                </h2>
+                <span className="text-sm font-bold tabular-nums" style={textMuted}>{spotlightFolders.length} de {folders.length}</span>
               </div>
-
-              <div className={`grid gap-3 ${publicTheme.showcaseStyle === 'collector' ? 'sm:grid-cols-3' : 'sm:grid-cols-2 xl:grid-cols-3'}`}>
-                {spotlightFolders.map(folder => (
-                  <Link key={folder.id} to={`/c/${folder.id}`} className="group overflow-hidden rounded-2xl border bg-black/5 p-3 transition hover:-translate-y-1 hover:shadow-xl" style={{ borderColor: `${publicTheme.primary}26` }}>
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="h-14 w-11 shrink-0 rounded-lg bg-[url('/images/carpeta_v4.webp')] bg-[length:100%_100%] bg-no-repeat shadow-md" style={{ filter: getFolderFilter(folder.color) }} />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-black" style={{ color: publicTheme.text }}>{folder.name}</p>
-                          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{folder.tcg}</p>
-                        </div>
-                      </div>
-                      <span className="rounded-full px-2 py-1 text-[11px] font-black text-white" style={{ backgroundColor: publicTheme.primary }}>{folder.cardsCount}</span>
-                    </div>
-                    {publicTheme.showcaseStyle === 'seller' && (
-                      <p className="mt-3 text-xs font-bold text-slate-500">Disponible para compradores desde este perfil público.</p>
-                    )}
-                  </Link>
+              <ul className="divide-y" style={{ borderColor: `${publicTheme.primary}22` }}>
+                {spotlightFolders.map((folder) => (
+                  <li key={folder.id} style={{ borderColor: `${publicTheme.primary}22` }}>
+                    <Link to={`/c/${folder.id}`} className="group flex items-center gap-3 py-3 focus:outline-none focus-visible:ring-2" style={{ color: publicTheme.text }}>
+                      <span className="h-14 w-11 shrink-0 rounded-md bg-[url('/images/carpeta_v4.webp')] bg-[length:100%_100%] bg-no-repeat shadow-md" style={{ filter: getFolderFilter(folder.color) }} aria-hidden="true" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-base font-extrabold">{folder.name}</span>
+                        <span className="block truncate text-sm font-medium" style={textMuted}>{folder.tcg} · {folder.cardsCount} {folder.cardsCount === 1 ? 'carta' : 'cartas'}</span>
+                      </span>
+                      <span translate="no" className="material-symbols-outlined transition-transform group-hover:translate-x-1" style={{ color: publicTheme.primary }}>arrow_forward</span>
+                    </Link>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </section>
           )}
 
           {showProfileShowcase && (
-            <section className={`min-w-0 max-w-full overflow-hidden border p-4 ring-1 ${getDistributionSpan('stats')}`} style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.accent}44`, order: getDistributionOrder('stats') }}>
-              <p className="max-w-full overflow-hidden text-ellipsis text-xs font-black uppercase tracking-[0.18em]" style={{ color: publicTheme.primary }}>Panel del perfil</p>
-              <div className={`mt-3 grid gap-3 ${isNarrowStatsPanel ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-1'}`}>
+            <section className={`min-w-0 border p-5 ring-1 ${getDistributionSpan('stats')}`} style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.accent}55`, order: getDistributionOrder('stats') }}>
+              <h2 className="text-xl font-black leading-tight md:text-2xl" style={{ color: publicTheme.text }}>Resumen</h2>
+              <dl className="mt-3 divide-y" style={{ borderColor: `${publicTheme.primary}22` }}>
                 {[
-                  ['Nivel de perfil', profileLevel, 'military_tech'],
                   ['Carpetas públicas', folders.length, 'auto_stories'],
-                  ['Cartas mostradas', totalCards, 'style']
+                  ['Cartas mostradas', totalCards.toLocaleString('es-CL'), 'style'],
+                  ['Nivel del perfil', profileLevel, 'military_tech'],
                 ].map(([label, value, icon]) => (
-                  <div key={label} className={`group relative min-w-0 max-w-full rounded-2xl border bg-black/5 p-3 ${label === 'Nivel de perfil' ? 'overflow-visible cursor-help transition-colors hover:bg-black/10' : 'overflow-hidden'} ${isNarrowStatsPanel ? 'flex flex-col items-start gap-2' : 'flex items-center gap-2'}`} style={{ borderColor: `${publicTheme.primary}22` }}>
-                    {label === 'Nivel de perfil' && (
-                      <div className="pointer-events-none absolute left-0 bottom-full z-[9999] mb-2 w-64 rounded-xl p-3 opacity-0 shadow-2xl transition-opacity duration-200 group-hover:opacity-100" style={{ backgroundColor: publicTheme.card || '#ffffff', color: publicTheme.text, border: `1px solid ${publicTheme.primary}44`, boxShadow: '0 10px 40px -10px rgba(0,0,0,0.4)' }}>
-                        <ul className="list-disc pl-4 text-[11px] font-bold normal-case tracking-normal opacity-90 space-y-1 text-left">
-                          <li>+2 niveles por cada carpeta pública que tengas creada.</li>
-                          <li>+1 nivel por cada 12 cartas individuales que tengas subidas.</li>
-                          <li>Todos empiezan por defecto en el nivel 1.</li>
-                        </ul>
-                      </div>
-                    )}
-                    <span translate="no" className="material-symbols-outlined shrink-0 rounded-xl p-2 text-[clamp(1rem,1.1vw,1.25rem)]" style={{ backgroundColor: `${publicTheme.accent}24`, color: publicTheme.primary }}>{icon}</span>
-                    <div className="min-w-0 max-w-full flex-1 overflow-hidden" style={{ contain: 'inline-size' }}>
-                      <p className="block max-w-full truncate text-[clamp(0.45rem,0.62vw,0.68rem)] font-black uppercase leading-tight tracking-normal text-slate-500">{label}</p>
-                      <p className="block max-w-full truncate font-black leading-[1.05] tracking-[-0.04em]" style={{ color: publicTheme.text, fontSize: 'clamp(0.58rem, 0.78vw, 1rem)' }} title={String(value)}>{value}</p>
-                    </div>
+                  <div key={label} className="flex items-center gap-3 py-3" style={{ borderColor: `${publicTheme.primary}22` }}>
+                    <span translate="no" className="material-symbols-outlined shrink-0 text-[24px]" style={{ color: publicTheme.primary }}>{icon}</span>
+                    <dt className="min-w-0 flex-1 text-sm font-semibold" style={textMuted}>{label}</dt>
+                    <dd className="text-xl font-black tabular-nums" style={{ color: publicTheme.text }}>{value}</dd>
                   </div>
                 ))}
-              </div>
+              </dl>
+              <details className="mt-1 text-sm" style={{ color: publicTheme.text }}>
+                <summary className="cursor-pointer py-2 font-bold" style={{ color: publicTheme.primary }}>¿Cómo se calcula el nivel?</summary>
+                <ul className="list-disc space-y-1 pl-5 pb-1 font-medium" style={textMuted}>
+                  <li>+2 niveles por cada carpeta pública.</li>
+                  <li>+1 nivel por cada 12 cartas subidas.</li>
+                  <li>Todos empiezan en el nivel 1.</li>
+                </ul>
+              </details>
             </section>
           )}
 
-          <section className={`space-y-5 ${getDistributionSpan('folders')}`} style={{ order: getDistributionOrder('folders') }}>
-            <div className="flex items-center justify-between p-4 ring-1 sm:border-b sm:bg-transparent sm:p-0 sm:pb-4 sm:shadow-none sm:ring-0" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}20` }}>
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${publicTheme.primary}18` }}>
-                  <span translate="no" className="material-symbols-outlined" style={{ color: publicTheme.primary }}>auto_stories</span>
-                </div>
-                <div className="min-w-0">
-                  <h2 className="text-xl font-black leading-tight sm:text-2xl" style={{ color: publicTheme.text }}>Carpetas públicas</h2>
-                  <p className="text-xs font-semibold text-slate-500 sm:text-sm">Catálogos publicados por este vendedor.</p>
-                </div>
+          <section className={`min-w-0 space-y-5 ${getDistributionSpan('folders')}`} style={{ order: getDistributionOrder('folders') }}>
+            <div className="flex items-center justify-between gap-3 p-4 ring-1 md:px-5" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}33` }}>
+              <div className="min-w-0">
+                <h2 className="text-2xl font-black leading-tight" style={{ color: publicTheme.text }}>Carpetas públicas</h2>
+                <p className="text-sm font-medium" style={textMuted}>Catálogos publicados por este vendedor.</p>
               </div>
-              <span className="rounded-full px-3 py-1 text-xs font-black text-white" style={{ backgroundColor: publicTheme.primary }}>{folders.length}</span>
+              <span className="shrink-0 rounded-full px-3 py-1 text-sm font-extrabold tabular-nums" style={{ backgroundColor: publicTheme.primary, color: readableOn(publicTheme.primary) }}>{folders.length}</span>
             </div>
 
             {folders.length === 0 ? (
-              <div className="border border-dashed p-10 text-center" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}44` }}>
-                <span translate="no" className="material-symbols-outlined text-6xl" style={{ color: `${publicTheme.primary}88` }}>inventory_2</span>
-                <p className="mt-3 text-lg font-black text-slate-500">Este vendedor aún no tiene carpetas públicas.</p>
+              <div className="border border-dashed p-10 text-center" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}55` }}>
+                <span translate="no" className="material-symbols-outlined text-5xl" style={{ color: `${publicTheme.primary}99` }}>inventory_2</span>
+                <p className="mt-3 text-lg font-extrabold" style={{ color: publicTheme.text }}>Aún no hay carpetas públicas</p>
+                <p className="mt-1 text-sm font-medium" style={textMuted}>{isOwner ? 'Crea una carpeta en tu panel y márcala como pública para que aparezca aquí.' : 'Cuando publique una carpeta, la verás aquí.'}</p>
+                {isOwner && <Link to="/dashboard" className="mt-4 inline-flex h-11 items-center rounded-full px-6 text-sm font-extrabold" style={{ backgroundColor: publicTheme.primary, color: readableOn(publicTheme.primary) }}>Ir a mis carpetas</Link>}
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
-                {folders.map(folder => (
+                {folders.map((folder) => (
                   <Link to={`/c/${folder.id}`} key={folder.id} className="@container group relative mx-auto flex aspect-[32/37] w-full max-w-[320px] cursor-pointer flex-col transition-transform duration-300 hover:-translate-y-2">
                     <div className="absolute inset-0 bg-[url('/images/carpeta_v4.webp')] bg-[length:100%_100%] bg-no-repeat drop-shadow-lg transition-all group-hover:drop-shadow-2xl" style={{ filter: getFolderFilter(folder.color) }} />
                     <div className="relative z-10 flex h-full w-full flex-col justify-between pb-[15%] pl-[18%] pr-[16%] pt-[5%]">
@@ -1559,6 +1358,235 @@ export default function SellerProfile() {
       </main>
       </div>
       </div>
+
+      {isOwner && themePanelOpen && (
+        <>
+          <div className="fixed inset-0 z-[60] bg-black/30 sm:bg-black/20" onClick={() => setThemePanelOpen(false)} aria-hidden="true" />
+          <aside
+            role="dialog"
+            aria-label="Personalizar perfil"
+            className="fixed inset-x-0 bottom-0 z-[61] flex max-h-[82vh] flex-col rounded-t-3xl bg-[#F4F6FA] text-[#12315f] shadow-[0_-12px_40px_rgba(0,0,0,0.3)] sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-[440px] sm:rounded-none sm:rounded-l-3xl sm:shadow-[-12px_0_40px_rgba(0,0,0,0.25)]"
+            style={{ fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
+          >
+            <div className="rounded-t-3xl bg-[#12315f] px-4 pb-4 pt-4 text-white sm:rounded-tl-3xl sm:rounded-tr-none">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-black leading-tight">Personalizar perfil</h2>
+                  <p className="mt-0.5 flex items-center gap-1.5 text-xs font-semibold text-blue-100" aria-live="polite">
+                    <span className={`h-2 w-2 rounded-full ${savingTheme ? 'bg-slate-300' : themeDirty ? 'bg-[#facc15]' : 'bg-emerald-400'}`} />
+                    {savingTheme ? 'Guardando…' : themeDirty ? 'Cambios sin guardar' : 'Todo guardado'}
+                  </p>
+                </div>
+                <button type="button" onClick={() => setThemePanelOpen(false)} aria-label="Cerrar panel" className="-mr-2 -mt-1 flex h-10 w-10 items-center justify-center rounded-full text-blue-100 hover:bg-white/10">
+                  <span translate="no" className="material-symbols-outlined text-[22px]">close</span>
+                </button>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <button type="button" onClick={resetPublicTheme} disabled={savingTheme} className="h-10 flex-1 rounded-full border border-white/30 px-3 text-sm font-bold text-white hover:bg-white/10 disabled:opacity-60">Restablecer</button>
+                <button type="button" onClick={saveCurrentTheme} disabled={savingTheme || !themeDirty} className="h-10 flex-[1.4] rounded-full bg-[#facc15] px-5 text-sm font-extrabold text-[#12315f] shadow-sm transition disabled:cursor-not-allowed disabled:opacity-40">Guardar cambios</button>
+              </div>
+            </div>
+
+            <div role="tablist" aria-label="Qué personalizar" className="grid grid-cols-6 border-b border-slate-200 bg-white">
+              {PANEL_TABS.map(([id, label, icon]) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={themePanelTab === id}
+                  onClick={() => setThemePanelTab(id)}
+                  className={`flex flex-col items-center gap-0.5 border-b-[3px] px-0.5 pb-2 pt-2.5 text-[11px] font-bold transition ${themePanelTab === id ? 'border-[#facc15] text-[#12315f]' : 'border-transparent text-slate-500 hover:text-[#12315f]'}`}
+                >
+                  <span translate="no" className="material-symbols-outlined text-[22px]" style={themePanelTab === id ? { fontVariationSettings: "'FILL' 1" } : undefined}>{icon}</span>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 py-4">
+              {themePanelTab === 'theme' && (
+                <>
+                  <PanelSection icon="palette" title="Paletas" hint="Elige una paleta lista. Después puedes ajustar cada color.">
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {profileThemes.map((theme) => (
+                        <OptionTile key={theme.id} selected={publicTheme.id === theme.id} disabled={savingTheme} onClick={() => applyThemePalette(theme)} name={theme.name}>
+                          <span className="relative block h-[84px] overflow-hidden rounded-xl" style={{ backgroundColor: theme.surface }}>
+                            <span className="absolute inset-x-0 top-0 h-10" style={{ background: `linear-gradient(135deg, ${theme.primary}, ${theme.secondary})` }} />
+                            <span className="absolute inset-x-2.5 bottom-2 top-5 rounded-lg p-2 shadow-md" style={{ backgroundColor: theme.card }}>
+                              <span className="block h-1.5 w-2/3 rounded-full" style={{ backgroundColor: theme.text }} />
+                              <span className="mt-1.5 block h-2.5 w-10 rounded-full" style={{ backgroundColor: theme.accent }} />
+                            </span>
+                          </span>
+                        </OptionTile>
+                      ))}
+                    </div>
+                  </PanelSection>
+                  <PanelSection icon="colorize" title="Colores a tu medida" hint="Toca un color para cambiarlo. Se ve al instante en tu perfil.">
+                    <div className="grid grid-cols-2 gap-2">
+                      {[['primary', 'Principal'], ['secondary', 'Secundario'], ['accent', 'Acento'], ['surface', 'Fondo'], ['card', 'Contenedor'], ['text', 'Texto']].map(([field, label]) => {
+                        const value = publicTheme[field] || defaultPublicTheme[field];
+                        return (
+                          <label key={field} className="relative flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-slate-200 bg-white p-2 transition hover:border-slate-400 focus-within:ring-2 focus-within:ring-[#1e40af]">
+                            <span className="h-11 w-11 shrink-0 rounded-xl shadow-inner ring-1 ring-black/10" style={{ backgroundColor: value }} />
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-extrabold text-[#12315f]">{label}</span>
+                              <span className="block text-xs font-semibold uppercase tabular-nums text-slate-500">{value}</span>
+                            </span>
+                            <input type="color" value={value} onChange={(event) => handleThemeFieldChange(field, event.target.value)} aria-label={label} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </PanelSection>
+                </>
+              )}
+
+              {themePanelTab === 'font' && (
+                <PanelSection icon="text_fields" title="Tipografía" hint="Cómo se leen tu nombre, tu biografía y tus carpetas.">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {fontOptions.map((font) => (
+                      <OptionTile key={font} selected={publicTheme.font === font} onClick={() => handleThemeFieldChange('font', font)} name={font}>
+                        <span className="flex h-[84px] flex-col justify-center rounded-xl bg-slate-50 px-3" style={{ fontFamily: getFontStack(font) }}>
+                          <span className="text-[34px] font-bold leading-none text-[#12315f]">Aa</span>
+                          <span className="mt-1.5 line-clamp-2 text-[13px] font-semibold leading-tight text-slate-500">{fontExamples[font]}</span>
+                        </span>
+                      </OptionTile>
+                    ))}
+                  </div>
+                </PanelSection>
+              )}
+
+              {themePanelTab === 'cards' && (
+                <PanelSection icon="dashboard_customize" title="Estilo de las tarjetas" hint="Cambia el aspecto de la presentación, la vitrina y los demás módulos.">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {cardStyleOptions.map((option) => (
+                      <OptionTile key={option.id} selected={publicTheme.cardStyle === option.id} onClick={() => handleThemeFieldChange('cardStyle', option.id)} name={option.name} description={option.description}>
+                        <MiniScene theme={{ ...publicTheme, cardStyle: option.id }} avatarUrl={avatarUrl} initial={displayName[0]?.toUpperCase()} />
+                      </OptionTile>
+                    ))}
+                  </div>
+                </PanelSection>
+              )}
+
+              {themePanelTab === 'scene' && (
+                <>
+                  <PanelSection icon="wallpaper" title="Fondo del perfil" hint="El escenario detrás de tu presentación, tu vitrina y tus carpetas.">
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {backgroundStyleOptions.map((option) => (
+                        <OptionTile key={option.id} selected={publicTheme.backgroundStyle === option.id} onClick={() => handleThemeFieldChange('backgroundStyle', option.id)} name={option.name} description={option.description}>
+                          <MiniScene theme={{ ...publicTheme, backgroundStyle: option.id }} avatarUrl={avatarUrl} initial={displayName[0]?.toUpperCase()} />
+                        </OptionTile>
+                      ))}
+                    </div>
+                  </PanelSection>
+                  <PanelSection icon="view_sidebar" title="Franjas laterales" hint="Lo que se ve a la izquierda y a la derecha en pantallas anchas.">
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {sideBackgroundOptions.map((option) => (
+                        <OptionTile key={option.id} selected={publicTheme.sideBackgroundStyle === option.id} onClick={() => handleThemeFieldChange('sideBackgroundStyle', option.id)} name={option.name} description={option.description}>
+                          <span className="relative block h-[84px] overflow-hidden rounded-xl" style={getSideBackgroundStyle({ ...publicTheme, sideBackgroundStyle: option.id })}>
+                            <span className="absolute inset-y-2 left-[24%] right-[24%] rounded-lg bg-white/90 p-2 shadow-lg">
+                              <span className="block h-1.5 w-3/4 rounded-full bg-[#12315f]" />
+                              <span className="mt-1.5 block h-1 w-1/2 rounded-full bg-slate-300" />
+                              <span className="mt-2 grid grid-cols-2 gap-1"><span className="h-5 rounded-[3px] bg-emerald-500" /><span className="h-5 rounded-[3px] bg-emerald-500" /></span>
+                            </span>
+                          </span>
+                        </OptionTile>
+                      ))}
+                    </div>
+                  </PanelSection>
+                  <PanelSection icon="account_circle" title="Marco de la foto" hint="El borde que rodea tu foto de perfil. Aquí ves tu foto real.">
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {avatarFrameOptions.map((option) => (
+                        <OptionTile key={option.id} selected={publicTheme.avatarFrame === option.id} onClick={() => handleThemeFieldChange('avatarFrame', option.id)} name={option.name} description={option.description}>
+                          <span className="flex h-[92px] items-center justify-center rounded-xl bg-slate-100">
+                            <span className="h-[68px] w-[68px] rounded-[1.3rem] p-[4px] shadow-lg" style={{ background: getAvatarFrameStyle({ ...publicTheme, avatarFrame: option.id }) }}>
+                              <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-[1.05rem] bg-white text-lg font-black text-slate-500 ring-2 ring-white/90">
+                                {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : displayName[0]?.toUpperCase()}
+                              </span>
+                            </span>
+                          </span>
+                        </OptionTile>
+                      ))}
+                    </div>
+                  </PanelSection>
+                  <PanelSection icon="web_asset" title="Presentación" hint="Cómo se arma la parte de arriba de tu perfil.">
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {profileLayoutOptions.map((option) => (
+                        <OptionTile key={option.id} selected={publicTheme.profileLayout === option.id} onClick={() => handleThemeFieldChange('profileLayout', option.id)} name={option.name} description={option.description}>
+                          <LayoutWire id={option.id} />
+                        </OptionTile>
+                      ))}
+                    </div>
+                  </PanelSection>
+                  <PanelSection icon="blur_on" title="Efecto" hint="Una capa visual sobre todo el perfil. «Sin efecto» es lo más liviano.">
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {profileEffectOptions.map((option) => (
+                        <OptionTile key={option.id} selected={publicTheme.profileEffect === option.id} onClick={() => handleThemeFieldChange('profileEffect', option.id)} name={option.name} description={option.description}>
+                          <span className={`relative block h-[84px] overflow-hidden rounded-xl bg-[#0f172a] ${getEffectClassName({ ...publicTheme, profileEffect: option.id })}`}>
+                            <span className="absolute inset-x-3 bottom-2.5 top-4 z-[2] flex items-center gap-2 rounded-lg bg-white/90 p-2 shadow-lg">
+                              <span className="h-7 w-7 shrink-0 rounded-lg bg-[#facc15]" />
+                              <span className="flex-1"><span className="block h-1.5 w-4/5 rounded-full bg-[#12315f]" /><span className="mt-1 block h-1 w-1/2 rounded-full bg-slate-300" /></span>
+                            </span>
+                          </span>
+                        </OptionTile>
+                      ))}
+                    </div>
+                  </PanelSection>
+                  <PanelSection icon="trophy" title="Vitrina" hint="El módulo destacado que aparece bajo tu presentación.">
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {showcaseStyleOptions.map((option) => (
+                        <OptionTile key={option.id} selected={publicTheme.showcaseStyle === option.id} onClick={() => handleThemeFieldChange('showcaseStyle', option.id)} name={option.name} description={option.description}>
+                          <ShowcaseWire id={option.id} />
+                        </OptionTile>
+                      ))}
+                    </div>
+                  </PanelSection>
+                </>
+              )}
+
+              {themePanelTab === 'layout' && (
+                <PanelSection icon="view_quilt" title="Orden de los módulos" hint="Dónde van la vitrina, el resumen y las carpetas, y cuánto espacio ocupa cada uno en pantallas anchas.">
+                  <p className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
+                    <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-[#1e40af]" />Vitrina</span>
+                    <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-[#facc15]" />Resumen</span>
+                    <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-emerald-500" />Carpetas</span>
+                  </p>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {profileDistributionOptions.map((option) => (
+                      <OptionTile key={option.id} selected={publicTheme.profileDistribution === option.id} onClick={() => handleThemeFieldChange('profileDistribution', option.id)} name={option.name} description={option.description}>
+                        <span className="grid h-[84px] auto-rows-fr grid-cols-12 gap-1 rounded-xl bg-slate-100 p-1.5" aria-hidden="true">
+                          {option.order.map((moduleName) => {
+                            const span = (option.spans?.[moduleName] || 'lg:col-span-12').replace('lg:col-span-', '');
+                            return <span key={moduleName} className={`rounded-md ${moduleName === 'showcase' ? 'bg-[#1e40af]' : moduleName === 'stats' ? 'bg-[#facc15]' : 'bg-emerald-500'}`} style={{ gridColumn: `span ${span} / span ${span}` }} />;
+                          })}
+                        </span>
+                      </OptionTile>
+                    ))}
+                  </div>
+                </PanelSection>
+              )}
+
+              {themePanelTab === 'social' && (
+                <PanelSection icon="share" title="Redes y contacto" hint="Elige cuáles botones se muestran en tu perfil público. Las redes solo aparecen si ya cargaste el dato en tu cuenta.">
+                  <div className="space-y-2.5">
+                    <ToggleRow enabled={messageButtonEnabled} onClick={() => handleThemeFieldChange('showMessageButton', messageButtonEnabled ? 'off' : 'on')} label="Mensaje privado" status={messageButtonEnabled ? 'Visible en tu perfil' : 'Oculto en tu perfil'}>
+                      <span translate="no" className="material-symbols-outlined text-[24px] text-[#12315f]">chat</span>
+                    </ToggleRow>
+                    {socialLinks.map((social) => {
+                      const enabled = getSocialEnabled(social.field);
+                      return (
+                        <ToggleRow key={social.id} enabled={enabled} onClick={() => handleThemeFieldChange(social.field, enabled ? 'off' : 'on')} label={social.label} status={social.available ? (enabled ? 'Visible en tu perfil' : 'Oculto en tu perfil') : 'Falta el dato en tu cuenta'}>
+                          <SocialLogo type={social.id} className="h-6 w-6" />
+                        </ToggleRow>
+                      );
+                    })}
+                  </div>
+                </PanelSection>
+              )}
+            </div>
+          </aside>
+        </>
+      )}
     </div>
   );
 }

@@ -16,7 +16,6 @@ function Fan({ compact }) {
   const width = compact ? 'w-[25vw] max-w-[108px]' : 'w-[clamp(140px,12.5vw,190px)]';
   return (
     <div className="relative flex h-full items-end justify-center overflow-hidden px-3">
-      <div aria-hidden="true" className="absolute left-1/2 top-1/2 h-[120%] w-[90%] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(closest-side,rgba(255,203,5,0.2),transparent)]" />
       <div className="relative flex items-end justify-center">
         {CARDS.map((card, index) => (
           <div
@@ -31,7 +30,7 @@ function Fan({ compact }) {
         ))}
       </div>
       {/* Bolsillo de la carpeta: ocupa todo el ancho para que ninguna esquina de carta asome por debajo */}
-      <div aria-hidden="true" className={`absolute inset-x-0 bottom-0 z-30 rounded-t-3xl border border-b-0 border-white/25 bg-gradient-to-b from-[#14336f] to-[#0B1E45] ${compact ? 'h-[18%]' : 'h-[16%]'}`} />
+      <div aria-hidden="true" className={`absolute inset-x-0 bottom-0 z-30 rounded-t-3xl border border-b-0 border-white/25 bg-[#12315f] ${compact ? 'h-[18%]' : 'h-[16%]'}`} />
     </div>
   );
 }
@@ -70,7 +69,7 @@ export default function HomeHero({ compact = false }) {
               Cada vendedor arma su carpeta con stock y precios al día. Tú eliges, armas el pedido y cierras el trato por WhatsApp.
             </p>
             <div className="mt-6 flex gap-3">
-              <Link to="/carpetas" className="inline-flex h-12 items-center rounded-full bg-[#ffcb05] px-8 text-[15px] font-extrabold text-[#0B1E45] shadow-[0_10px_24px_-10px_rgba(255,203,5,0.7)] transition-transform hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white motion-reduce:transition-none">
+              <Link to="/carpetas" className="inline-flex h-12 items-center rounded-full bg-[#ffcb05] px-8 text-[15px] font-extrabold text-[#0B1E45] transition-transform hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white motion-reduce:transition-none">
                 Ver carpetas
               </Link>
               <Link to={sellTo} className="inline-flex h-12 items-center rounded-full bg-white/10 px-7 text-[15px] font-bold ring-1 ring-inset ring-white/30 transition-colors hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">

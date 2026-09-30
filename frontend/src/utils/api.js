@@ -58,6 +58,7 @@ export const api = {
   // Folders
   getPublicFolders: () => apiFetch('/folders'),
   getRecentCards: (limit = 12) => apiFetch('/cards/recent?limit=' + limit),
+  searchCards: (queryString = '') => apiFetch('/cards/search' + (queryString ? '?' + queryString : '')),
   getMyFolders: () => apiFetch('/folders/me'),
   getMyFolderStats: () => apiFetch('/folders/me/stats'),
   getFolder: (id) => apiFetch('/folders/' + id),

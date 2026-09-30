@@ -17,6 +17,8 @@ const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const Messages = lazy(() => import('./pages/Messages'));
 const FoldersPage = lazy(() => import('./pages/FoldersPage'));
+const CardsPage = lazy(() => import('./pages/CardsPage'));
+const SellersPage = lazy(() => import('./pages/SellersPage'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Barra fina de carga mientras llega la pantalla (sin saltos de diseño)
@@ -57,6 +59,8 @@ function App() {
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="/mensajes" element={<Messages />} />
               <Route path="/carpetas" element={<FoldersPage />} />
+              <Route path="/cartas" element={<CardsPage />} />
+              <Route path="/vendedores" element={<SellersPage />} />
               {/* Dynamic Username Route (Must be last to not override other paths) */}
               <Route path="/:sellerUsername" element={<SellerProfile />} />
               {/* Global 404 Catch-All Route */}
