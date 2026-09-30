@@ -34,13 +34,20 @@ const getCardAbilityText = (card) => {
 export default function AlbumView({ cards = [], renderCardActions, renderCardOverlays, binderColor = '#2f7336', emptyMessage, topRightControls, tcg, reorderEnabled = false, onReorderCard }) {
   const [currentPage, setCurrentPage] = useState(0);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
-  const pageTurnDurationMs = isDesktop ? 450 : 850;
+  // En móvil la página gira 180° hacia la izquierda (fuera de pantalla); con una curva simétrica,
+  // avanzar y retroceder tardan lo mismo y se ven a la misma velocidad
+  const pageTurnDurationMs = isDesktop ? 450 : 700;
+  const pageTurnEasing = isDesktop ? 'cubic-bezier(0.4, 0.0, 0.2, 1)' : 'cubic-bezier(0.65, 0, 0.35, 1)';
   const [activeCardId, setActiveCardId] = useState(null);
     const [previewCard, setPreviewCard] = useState(null);
   const [fetchedAbility, setFetchedAbility] = useState(null);
   const [fetchingAbility, setFetchingAbility] = useState(false);
   const [targetPage, setTargetPage] = useState(null);
   const [turnDirection, setTurnDirection] = useState(null);
+  // Todas las páginas se montan una sola vez; mientras se preparan se muestra "Cargando álbum…"
+  const [albumReady, setAlbumReady] = useState(false);
+  // Solo las páginas cercanas cargan imágenes (ahorra memoria en móviles); se recalcula al terminar cada giro
+  const [warmAnchors, setWarmAnchors] = useState([0]);
   const [dropPreviewIndex, setDropPreviewIndex] = useState(null);
   const [draggingReorderCardId, setDraggingReorderCardId] = useState(null);
   const [dragFloatingCard, setDragFloatingCard] = useState(null);
@@ -89,9 +96,10 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
   }, [totalPages, currentPage]);
 
   const turnToPage = (target) => {
-    if (target === currentPage || targetPage !== null) return;
+    if (target === currentPage || targetPage !== null || (!albumReady && cards.length > 0)) return;
     const safeTarget = Math.max(0, Math.min(totalPages - 1, target));
     const direction = safeTarget > currentPage ? 1 : -1;
+    if (Math.abs(safeTarget - currentPage) > 1) setWarmAnchors([currentPage, safeTarget]);
 
     setTargetPage(safeTarget);
     setTurnDirection(direction > 0 ? 'forward' : 'backward');
@@ -316,19 +324,34 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
     }
   }, [currentPage, cards, totalPages, cardsPerPage]);
 
-  // Windowing: Render only necessary pages to keep DOM light and 60FPS
-  const visiblePages = useMemo(() => {
-    const pages = [];
-    const buffer = targetPage !== null ? 8 : 2; 
-    for (
-      let i = Math.max(0, currentPage - buffer);
-      i <= Math.min(totalPages - 1, currentPage + buffer);
-      i++
-    ) {
-      pages.push(i);
-    }
-    return pages;
-  }, [currentPage, totalPages, targetPage]);
+  // Todas las páginas quedan montadas: montar o desmontar páginas durante un giro congelaba la animación en móviles
+  const visiblePages = useMemo(() => Array.from({ length: totalPages }, (_, i) => i), [totalPages]);
+  const warmRadius = isDesktop ? 3 : 2;
+
+  // Al terminar el giro se recalculan las páginas con imágenes (sin trabajo pesado durante la animación)
+  useEffect(() => {
+    if (targetPage !== null) return undefined;
+    const id = setTimeout(() => {
+      setWarmAnchors(prev => (prev.length === 1 && prev[0] === currentPage ? prev : [currentPage]));
+    }, 120);
+    return () => clearTimeout(id);
+  }, [currentPage, targetPage]);
+
+  // El álbum queda listo cuando sus primeras imágenes están descargadas (máximo 2,5 s de espera)
+  const hasCards = cards.length > 0;
+  useEffect(() => {
+    if (albumReady || !hasCards) return undefined;
+    let cancelled = false;
+    const finish = () => { if (!cancelled) setTimeout(() => { if (!cancelled) setAlbumReady(true); }, 60); };
+    const timeout = setTimeout(finish, 2500);
+    const urls = cards.slice(0, cardsPerPage * (isDesktop ? 3 : 2)).map(c => c.imageUrl).filter(Boolean);
+    Promise.all(urls.map(url => new Promise(resolve => {
+      const img = new Image();
+      img.onload = img.onerror = resolve;
+      img.src = url;
+    }))).then(() => { clearTimeout(timeout); finish(); });
+    return () => { cancelled = true; clearTimeout(timeout); };
+  }, [albumReady, hasCards]);
 
   const displayStart = useMemo(() => {
     if (cards.length === 0) return 0;
@@ -376,7 +399,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
       {!inverted && (
         <div className="md:hidden flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs mb-3 font-medium bg-slate-200/50 dark:bg-slate-800/50 px-3 py-1 rounded-full">
           <span translate="no" className="material-symbols-outlined text-[16px]">swipe</span>
-          Desliza para cambiar de pÃ¡gina
+          Desliza para cambiar de página
         </div>
       )}
 
@@ -448,7 +471,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
   const previewSubtitle = previewCard
     ? (tcg === 'Mitos y Leyendas'
       ? ''
-      : `${previewCard.set} â€¢ ${(previewCard.supertype === 'Unknown' || !previewCard.supertype) ? 'PokÃ©mon' : previewCard.supertype} â€¢ #${(() => {
+      : `${previewCard.set} • ${(previewCard.supertype === 'Unknown' || !previewCard.supertype) ? 'Pokémon' : previewCard.supertype} • #${(() => {
           let numStr = (previewCard.number || previewCard.apiId?.split('-')[1] || previewCard.id?.split('-')[1] || '').toString();
           return numStr.padStart(3, '0');
         })()}`)
@@ -752,9 +775,14 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
               zIndex = 20 - (pageIndex - currentPage);
             }
 
-            if (isForwardTurningPage || isBackwardTurningPage) {
+            const isTurningPage = isForwardTurningPage || isBackwardTurningPage;
+            if (isTurningPage) {
               zIndex = 70;
             }
+            // Solo se pinta lo que se ve o está girando: la página anterior, la actual y la siguiente
+            const isNear = Math.abs(pageIndex - currentPage) <= 1;
+            const isHiddenPage = !isTurningPage && (!isNear || (!isDesktop && isPast));
+            const isWarmPage = warmAnchors.some(anchor => Math.abs(pageIndex - anchor) <= warmRadius);
 
             const renderPocket = (card, i, isBackFace = false) => {
               const uniqueId = card ? (isBackFace ? `${card.id}-back` : card.id) : null;
@@ -972,7 +1000,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                   {isDropPreview && (
                     <div className="absolute inset-0 z-[130] flex items-center justify-center rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-400/15 pointer-events-none">
                       <div className="rounded-full bg-emerald-500 px-3 py-1 text-[10px] md:text-xs font-black uppercase tracking-wide text-white shadow-lg">
-                        Soltar aquÃ­
+                        Soltar aquí
                       </div>
                     </div>
                   )}
@@ -985,12 +1013,16 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                     >
                       <div className={`relative w-full h-full flex flex-col items-center justify-center transition-all duration-300 ease-out min-h-0 min-w-0 ${cardIsActive && !previewCard ? 'scale-[1.25] md:scale-[1.4] -translate-y-4 md:-translate-y-6 z-[100]' : ''}`}>
                         <div className="relative w-[95%] h-[95%] flex items-center justify-center">
-                          <img
-                            src={card.imageUrl}
-                            alt={card.name}
-                            loading="lazy"
-                            className={`max-w-full max-h-full object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] rounded-[4%] ${Number(card.stock || 0) <= 0 ? 'grayscale opacity-60' : ''}`}
-                          />
+                          {isWarmPage ? (
+                            <img
+                              src={card.imageUrl}
+                              alt={card.name}
+                              decoding="async"
+                              className={`max-w-full max-h-full object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] rounded-[4%] ${Number(card.stock || 0) <= 0 ? 'grayscale opacity-60' : ''}`}
+                            />
+                          ) : (
+                            <div className="h-full max-h-full w-[72%] rounded-[4%] bg-white/5 ring-1 ring-white/10" aria-label={card.name} />
+                          )}
                           
                           <div className="absolute top-1 right-1 md:top-1.5 md:right-1.5 z-[120] flex min-w-8 items-center justify-center rounded-full border border-white/20 bg-slate-950/85 px-2 py-0.5 text-[10px] md:text-xs font-black leading-none text-white shadow-lg backdrop-blur-sm pointer-events-none">
                             x{card.stock || 0}
@@ -1026,7 +1058,10 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                   transformOrigin: 'left center',
                   transform,
                   zIndex,
-                  transition: `${pageTurnDurationMs}ms transform cubic-bezier(0.4, 0.0, 0.2, 1)`,
+                  // En móvil, una página ya pasada se oculta al terminar el giro para que no asome su reverso en el borde
+                  visibility: isHiddenPage ? 'hidden' : 'visible',
+                  willChange: isActive || isTurningPage ? 'transform' : 'auto',
+                  transition: `${pageTurnDurationMs}ms transform ${pageTurnEasing}`,
                   transformStyle: 'preserve-3d',
                 }}
               >
@@ -1086,6 +1121,13 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
               </div>
             );
           })}
+          {!albumReady && hasCards && (
+            <div role="status" className="absolute inset-0 z-[3000] flex flex-col items-center justify-center gap-3 rounded-2xl bg-slate-950/85 text-white backdrop-blur-sm">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/25 border-t-yellow-300 motion-reduce:animate-none" />
+              <p className="text-base font-bold">Cargando álbum…</p>
+              <p className="px-6 text-center text-xs text-slate-300">Preparando las páginas para que giren sin tirones</p>
+            </div>
+          )}
           {cards.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-medium">
               No hay cartas en esta carpeta.

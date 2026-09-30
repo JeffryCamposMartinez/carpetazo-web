@@ -658,7 +658,7 @@ const [isSearching, setIsSearching] = useState(false);
       .catch(console.error);
   }, [searchCategory, searchLang]);
 
-  // --- MANEJO DE CATÃLOGO LOGIC ---
+  // --- MANEJO DE CATÁLOGO LOGIC ---
   const handleUpdateCard = async (cardIdToUpdate, newPrice, newStock, newLanguage) => {
     try {
       const payload = { price: parseFloat(newPrice), stock: parseInt(newStock) };
@@ -1178,7 +1178,7 @@ const [isSearching, setIsSearching] = useState(false);
     </div>
   );
 
-  // --- AGREGAR AL CATÃLOGO LOGIC ---
+  // --- AGREGAR AL CATÁLOGO LOGIC ---
   useEffect(() => {
     if (isSearching && abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -1208,7 +1208,7 @@ const [isSearching, setIsSearching] = useState(false);
         'ORO': 1,
         'ALIADO': 2,
         'TALISMAN': 3,
-        'TALISMÃN': 3,
+        'TALISMÁN': 3,
         'TOTEM': 4,
         'TÓTEM': 4,
         'ARMA': 5
@@ -1652,7 +1652,7 @@ const [isSearching, setIsSearching] = useState(false);
             scrollToTopIfNeeded={scrollToTopIfNeeded}
           />
 
-          <div className="fixed bottom-[88px] right-6 flex flex-col gap-3 z-[60] lg:hidden">
+          <div className="fixed bottom-[88px] right-6 flex flex-col gap-3 z-[90] lg:hidden">
             <button
               type="button"
               onClick={() => setShowCardDetails(prev => !prev)}
