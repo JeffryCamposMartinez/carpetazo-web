@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../utils/api';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import OrdersTab from '../components/OrdersTab';
 import LiquidTabs from '../components/LiquidTabs';
 import FlipCounter from '../components/FlipCounter';
@@ -91,7 +91,14 @@ export default function Dashboard() {
   const [editingFolder, setEditingFolder] = useState(null);
   const [editFolderName, setEditFolderName] = useState('');
   const [editFolderColor, setEditFolderColor] = useState('red');
-  const [activeTab, setActiveTab] = useState('carpetas');
+  const [searchParams] = useSearchParams();
+  const linkedTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(['solicitudes', 'historial'].includes(linkedTab) ? linkedTab : 'carpetas');
+
+  // Enlaces como /dashboard?tab=solicitudes (por ejemplo desde la campana) abren esa pestaña
+  useEffect(() => {
+    if (['carpetas', 'solicitudes', 'historial'].includes(linkedTab)) setActiveTab(linkedTab);
+  }, [linkedTab]);
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [generatingPdfFolder, setGeneratingPdfFolder] = useState(null);
@@ -195,8 +202,17 @@ export default function Dashboard() {
     };
   }, [currentUser, activeTab]);
 
+  // Al abrir Solicitudes o Historial se recargan los pedidos (pueden haber llegado nuevos)
+  useEffect(() => {
+    if (!currentUser || activeTab === 'carpetas') return;
+    api.getMyOrders()
+      .then((response) => { if (response.success) setOrders(response.orders); })
+      .catch(() => {});
+  }, [activeTab, currentUser]);
+
   // Reemplaza el pedido gestionado conservando el detalle de sus cartas
   const handleOrderUpdated = (updated) => {
+    window.dispatchEvent(new Event('carpetazo:orders-updated')); // la campana se actualiza al instante
     setOrders(prev => prev.map(o => (o.id === updated.id ? { ...o, status: updated.status, updatedAt: updated.updatedAt } : o)));
   };
 

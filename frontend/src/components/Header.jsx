@@ -86,6 +86,7 @@ export default function Header() {
   const [publicHeaderTheme, setPublicHeaderTheme] = useState(null);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [notificationChats, setNotificationChats] = useState([]);
+  const [pendingOrders, setPendingOrders] = useState({ count: 0, orders: [] });
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const markingNotificationsRef = useRef(false);
 
@@ -176,8 +177,24 @@ export default function Header() {
       if (!currentUser) {
         setUnreadMessages(0);
         setNotificationChats([]);
+        setPendingOrders({ count: 0, orders: [] });
         return;
       }
+      // Con la pestaña oculta no se consulta; al volver se actualiza de inmediato
+      if (document.visibilityState === 'hidden') return;
+
+      // Solicitudes de compra pendientes (si falla, los mensajes siguen funcionando)
+      api.getMyPendingOrders()
+        .then((ordersResult) => {
+          if (!cancelled && ordersResult?.success) {
+            setPendingOrders(previous => (
+              previous.count === ordersResult.count && previous.orders[0]?.id === ordersResult.orders[0]?.id
+                ? previous
+                : { count: ordersResult.count, orders: ordersResult.orders }
+            ));
+          }
+        })
+        .catch(() => {});
 
       try {
         const result = await api.getChats();
@@ -203,12 +220,16 @@ export default function Header() {
     const intervalId = window.setInterval(loadUnreadMessages, 8000);
     window.addEventListener('focus', loadUnreadMessages);
     window.addEventListener('carpetazo:messages-updated', loadUnreadMessages);
+    window.addEventListener('carpetazo:orders-updated', loadUnreadMessages);
+    document.addEventListener('visibilitychange', loadUnreadMessages);
 
     return () => {
       cancelled = true;
       window.clearInterval(intervalId);
       window.removeEventListener('focus', loadUnreadMessages);
       window.removeEventListener('carpetazo:messages-updated', loadUnreadMessages);
+      window.removeEventListener('carpetazo:orders-updated', loadUnreadMessages);
+      document.removeEventListener('visibilitychange', loadUnreadMessages);
     };
   }, [currentUser?.uid, location.pathname]);
 
@@ -249,6 +270,21 @@ export default function Header() {
     }
   };
 
+  const totalNotifications = unreadMessages + pendingOrders.count;
+  const formatOrderTotal = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
+  const orderAge = (iso) => {
+    const minutes = Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+    if (minutes < 60) return `hace ${minutes} min`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `hace ${hours} h`;
+    const days = Math.round(hours / 24);
+    return days === 1 ? 'hace 1 día' : `hace ${days} días`;
+  };
+  const openPendingOrders = () => {
+    setIsNotificationOpen(false);
+    navigate('/dashboard?tab=solicitudes');
+  };
+
   const openNotifications = async () => {
     const snapshot = notificationChats;
     setIsNotificationOpen(previous => !previous);
@@ -279,7 +315,7 @@ export default function Header() {
       <button
         type="button"
         onClick={openNotifications}
-        aria-label={unreadMessages > 0 ? `${unreadMessages} mensajes sin leer` : 'Ver mensajes'}
+        aria-label={totalNotifications > 0 ? `${totalNotifications} notificaciones sin atender` : 'Ver notificaciones'}
         aria-expanded={isNotificationOpen}
         className={`group relative flex items-center justify-center rounded-full text-white transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-white/60 ${compact ? 'h-9 w-9' : 'h-10 w-10'}`}
       >
@@ -291,9 +327,9 @@ export default function Header() {
           </g>
         </svg>
         </span>
-        {unreadMessages > 0 && (
+        {totalNotifications > 0 && (
           <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-[#ef233c] px-1.5 text-[11px] font-black text-white shadow-lg ring-2 ring-white">
-            {unreadMessages > 99 ? '99+' : unreadMessages}
+            {totalNotifications > 99 ? '99+' : totalNotifications}
           </span>
         )}
       </button>
@@ -302,8 +338,37 @@ export default function Header() {
         <div className={`absolute top-full z-50 mt-3 w-[310px] overflow-hidden rounded-3xl border border-[#facc15]/40 bg-white text-slate-900 shadow-2xl ring-1 ring-slate-900/5 ${compact ? 'right-0' : 'right-0'}`}>
           <div className="bg-gradient-to-r from-[#0f2b57] to-[#1e40af] px-4 py-3 text-white">
             <p className="text-sm font-black">Notificaciones</p>
-            <p className="text-xs text-blue-100">Mensajes recientes de Carpetazo</p>
+            <p className="text-xs text-blue-100">Solicitudes de compra y mensajes</p>
           </div>
+
+          {pendingOrders.count > 0 && (
+            <div className="border-b border-slate-100 py-2">
+              <p className="px-4 pb-1 pt-1 text-xs font-black text-slate-500">
+                {pendingOrders.count === 1 ? '1 solicitud de compra por atender' : `${pendingOrders.count} solicitudes de compra por atender`}
+              </p>
+              {pendingOrders.orders.map(order => (
+                <button
+                  key={order.id}
+                  type="button"
+                  onClick={openPendingOrders}
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-blue-50"
+                >
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#facc15]/25 text-[#12315f] ring-2 ring-[#facc15]/50">
+                    <span translate="no" className="material-symbols-outlined text-[22px]">shopping_bag</span>
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-black">Pedido {order.code} · {order.folderName}</span>
+                    <span className="block truncate text-xs font-semibold text-slate-500">
+                      {order.cards} {order.cards === 1 ? 'carta' : 'cartas'} · {formatOrderTotal(order.total)} · {orderAge(order.createdAt)}
+                    </span>
+                  </span>
+                </button>
+              ))}
+              {pendingOrders.count > pendingOrders.orders.length && (
+                <p className="px-4 pt-1 text-xs font-semibold text-slate-500">y {pendingOrders.count - pendingOrders.orders.length} más</p>
+              )}
+            </div>
+          )}
 
           {notificationChats.length > 0 ? (
             <div className="max-h-80 overflow-y-auto py-2">
@@ -333,23 +398,30 @@ export default function Header() {
                 );
               })}
             </div>
-          ) : (
+          ) : pendingOrders.count === 0 ? (
             <div className="px-4 py-6 text-center">
-              <p className="text-sm font-black text-slate-800">Sin mensajes nuevos</p>
-              <p className="mt-1 text-xs font-semibold text-slate-500">Cuando llegue uno, aparecerá aquí.</p>
+              <p className="text-sm font-black text-slate-800">Sin notificaciones nuevas</p>
+              <p className="mt-1 text-xs font-semibold text-slate-500">Las solicitudes de compra y los mensajes aparecerán aquí.</p>
             </div>
-          )}
+          ) : null}
 
-          <button
-            type="button"
-            onClick={() => {
-              setIsNotificationOpen(false);
-              navigate('/mensajes');
-            }}
-            className="w-full border-t border-slate-100 px-4 py-3 text-sm font-black text-[#1e40af] transition hover:bg-slate-50"
-          >
-            Ver todos los mensajes
-          </button>
+          <div className="flex border-t border-slate-100">
+            {pendingOrders.count > 0 && (
+              <button type="button" onClick={openPendingOrders} className="flex-1 px-4 py-3 text-sm font-black text-[#1e40af] transition hover:bg-slate-50">
+                Ver solicitudes
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setIsNotificationOpen(false);
+                navigate('/mensajes');
+              }}
+              className="flex-1 px-4 py-3 text-sm font-black text-[#1e40af] transition hover:bg-slate-50"
+            >
+              Ver mensajes
+            </button>
+          </div>
         </div>
       )}
     </div>

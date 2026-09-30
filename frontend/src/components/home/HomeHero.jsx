@@ -10,7 +10,7 @@ const CARDS = [
   { name: 'The One Ring', src: '/images/promos/onering.webp', rotate: 9, lift: 10, scale: 0.94, z: 10, delay: 320 },
 ];
 
-const STEPS = ['Elige una carpeta', 'Arma tu pedido', 'Ciérralo por WhatsApp'];
+const STEPS = ['Elige una carpeta', 'Arma tu pedido', 'Cierra el trato por WhatsApp'];
 
 function Fan({ compact }) {
   const width = compact ? 'w-[25vw] max-w-[108px]' : 'w-[clamp(140px,12.5vw,190px)]';
@@ -67,7 +67,7 @@ export default function HomeHero({ compact = false }) {
               Compra cartas TCG directo a jugadores de Chile
             </h1>
             <p className="mt-4 max-w-[46ch] text-[clamp(0.95rem,1.25vw,1.125rem)] leading-relaxed text-blue-100/85">
-              Cada vendedor arma su carpeta con stock y precios al día. Tú eliges, armas el pedido y lo cierras por WhatsApp.
+              Cada vendedor arma su carpeta con stock y precios al día. Tú eliges, armas el pedido y cierras el trato por WhatsApp.
             </p>
             <div className="mt-6 flex gap-3">
               <Link to="/carpetas" className="inline-flex h-12 items-center rounded-full bg-[#ffcb05] px-8 text-[15px] font-extrabold text-[#0B1E45] shadow-[0_10px_24px_-10px_rgba(255,203,5,0.7)] transition-transform hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white motion-reduce:transition-none">

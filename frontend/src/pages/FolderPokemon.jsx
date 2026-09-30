@@ -944,6 +944,7 @@ const [isSearching, setIsSearching] = useState(false);
 
   // Al confirmar una venta el stock cambió en el servidor: se recargan las cartas
   const handleOrderUpdated = (updated) => {
+    window.dispatchEvent(new Event('carpetazo:orders-updated')); // la campana se actualiza al instante
     setFolderOrders(prev => prev.map(o => (o.id === updated.id ? { ...o, status: updated.status, updatedAt: updated.updatedAt } : o)));
     if (updated.status === 'completed') fetchCards();
   };
