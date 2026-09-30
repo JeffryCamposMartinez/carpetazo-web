@@ -242,6 +242,25 @@ app.use('/api/users/username/check', routeLimiter(15 * 60 * 1000, 60));
 app.use('/api/orders/mine/:id/status', routeLimiter(15 * 60 * 1000, 120));
 app.use('/api/folders/me/stats', routeLimiter(15 * 60 * 1000, 600));
 app.use('/api/orders/mine/pending', routeLimiter(15 * 60 * 1000, 600));
+// Rutas que escriben datos o hacen consultas pesadas
+app.post('/api/folders', routeLimiter(15 * 60 * 1000, 60));
+app.put('/api/folders/:id', routeLimiter(15 * 60 * 1000, 200));
+app.delete('/api/folders/:id', routeLimiter(15 * 60 * 1000, 60));
+app.post('/api/folders/:id/cards', routeLimiter(15 * 60 * 1000, 600));
+app.put('/api/folders/:id/cards/:cardId', routeLimiter(15 * 60 * 1000, 600));
+app.delete('/api/folders/:id/cards/:cardId', routeLimiter(15 * 60 * 1000, 600));
+app.delete('/api/cards/:id', routeLimiter(15 * 60 * 1000, 600));
+app.post('/api/messages', routeLimiter(15 * 60 * 1000, 300));
+app.post('/api/messages/:otherId', routeLimiter(15 * 60 * 1000, 300));
+app.post('/api/messages/:otherId/typing', routeLimiter(15 * 60 * 1000, 900));
+app.put('/api/messages/:id/read', routeLimiter(15 * 60 * 1000, 600));
+app.post('/api/users/sync', routeLimiter(15 * 60 * 1000, 60));
+app.put('/api/users/me', routeLimiter(15 * 60 * 1000, 60));
+app.delete('/api/users/me', routeLimiter(15 * 60 * 1000, 10));
+app.post('/api/users/upload-image', routeLimiter(15 * 60 * 1000, 30));
+app.get('/api/tcg/search', routeLimiter(15 * 60 * 1000, 300));
+app.post('/api/tcg/products/metadata', routeLimiter(15 * 60 * 1000, 300));
+
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
 // Proxy con caché hacia TCGCSV (Pokémon inglés y japonés): el navegador no puede llamarlo directo por CORS
@@ -544,6 +563,9 @@ app.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res) =>
       };
     }
     
+    const inFolder = await prisma.card.findFirst({ where: { id: req.params.cardId, folderId: req.params.id }, select: { id: true } });
+    if (!inFolder) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
+
     const card = await prisma.card.update({
       where: { id: req.params.cardId, folderId: req.params.id },
       data: dataToUpdate
@@ -566,9 +588,8 @@ app.delete('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res)
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     
-    await prisma.card.delete({
-      where: { id: req.params.cardId, folderId: req.params.id }
-    });
+    const removed = await prisma.card.deleteMany({ where: { id: req.params.cardId, folderId: req.params.id } });
+    if (removed.count === 0) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
     
     res.json({ success: true, message: 'Card deleted' });
   } catch (error) {
@@ -1106,7 +1127,8 @@ app.get('/api/folders/me', authenticateToken, async (req, res) => {
     });
     res.json({ success: true, folders });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error en la ruta:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 
@@ -1152,7 +1174,8 @@ app.post('/api/folders', authenticateToken, async (req, res) => {
     });
     res.json({ success: true, folder });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error en la ruta:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 
@@ -1237,7 +1260,7 @@ app.get('/api/folders/:id', optionalAuth, async (req, res) => {
     res.json({ success: true, folder: { ...folder, user: toPublicSeller(folder.user, req.user?.sub) } });
   } catch (error) {
     console.error('Error fetching folder:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 
@@ -1290,7 +1313,8 @@ app.delete('/api/folders/:id', authenticateToken, async (req, res) => {
     await prisma.folder.delete({ where: { id: req.params.id } });
     res.json({ success: true, message: 'Folder deleted' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error en la ruta:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 
@@ -1327,7 +1351,8 @@ app.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
       });
     res.json({ success: true, card });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error en la ruta:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 
@@ -1347,7 +1372,8 @@ app.delete('/api/cards/:id', authenticateToken, async (req, res) => {
     await prisma.card.delete({ where: { id: req.params.id } });
     res.json({ success: true, message: 'Card deleted' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error en la ruta:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 
@@ -1406,7 +1432,8 @@ app.get('/api/folders', async (req, res) => {
     });
     res.json({ success: true, folders });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error en la ruta:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 
@@ -1423,16 +1450,21 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, message: 'No puedes enviarte mensajes a ti mismo.' });
     }
     
+    const receiver = await resolveUserByAnyId(receiverId);
+    if (!receiver) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    if (receiver.id === sender.id) return res.status(400).json({ success: false, message: 'No puedes enviarte mensajes a ti mismo.' });
+
     const message = await prisma.message.create({
       data: {
         senderId: sender.id,
-        receiverId,
+        receiverId: receiver.id,
         content
       }
     });
     res.json({ success: true, message });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error en la ruta:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 
@@ -1496,7 +1528,7 @@ app.get('/api/messages/me', authenticateToken, async (req, res) => {
     res.json({ success: true, messages: enrichedChats, chats: enrichedChats, totalUnread });
   } catch (error) {
     console.error('Error fetching messages/me:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 
@@ -1516,7 +1548,8 @@ app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
     });
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error en la ruta:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 
@@ -1758,7 +1791,7 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
       return res.status(400).json({ success: false, message: 'La imagen debe pesar menos de 10 MB.' });
     }
 
-    return res.status(400).json({ success: false, message: error.message || 'No se pudo leer la imagen.' });
+    return res.status(400).json({ success: false, message: error.message === 'Sube una imagen válida.' ? error.message : 'No se pudo leer la imagen.' });
   });
 }, async (req, res) => {
   try {
@@ -2095,12 +2128,17 @@ app.get('/api/users/:username', optionalAuth, async (req, res) => {
   }
 });
 // --- TCGCSV LOCAL DB ---
+// Identificadores de las rutas del catálogo: solo enteros positivos (groupId también admite "otros")
+app.param('categoryId', (req, res, next, value) => (/^\d{1,9}$/.test(value) ? next() : badRequest(res, 'Juego inválido')));
+app.param('groupId', (req, res, next, value) => (/^\d{1,9}$/.test(value) || value === 'otros' ? next() : badRequest(res, 'Edición inválida')));
+
 app.get('/api/tcg/categories', async (req, res) => {
   try {
     const categories = await prisma.tcgCategory.findMany({ orderBy: { name: 'asc' } });
     res.json({ success: true, data: categories });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error en la ruta:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 
@@ -2113,7 +2151,8 @@ app.get('/api/tcg/:categoryId/groups', async (req, res) => {
     });
     res.json({ success: true, data: groups });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error en la ruta:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 
@@ -2318,7 +2357,8 @@ app.get('/api/tcg/blocks', async (req, res) => {
     });
     res.json({ success: true, data: blocks });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error en la ruta:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 

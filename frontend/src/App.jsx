@@ -1,9 +1,10 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Header from './components/Header';
 import ScrollToTop from './components/ScrollToTop';
 import Footer from './components/Footer';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Cada pantalla se descarga solo cuando se visita: el primer arranque en móvil pesa mucho menos
 const LandingPage = lazy(() => import('./pages/LandingPage'));
@@ -29,6 +30,12 @@ function RouteLoading() {
   );
 }
 
+// Cada cambio de ruta reinicia el aviso de error
+function RouteBoundary({ children }) {
+  const location = useLocation();
+  return <ErrorBoundary resetKey={location.pathname}>{children}</ErrorBoundary>;
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -38,6 +45,7 @@ function App() {
           <Header />
           
           <div className="flex-1 flex flex-col">
+            <RouteBoundary>
             <Suspense fallback={<RouteLoading />}>
             <Routes>
               <Route path="/bienvenida" element={<LandingPage />} />
@@ -55,6 +63,7 @@ function App() {
               <Route path="*" element={<NotFound />} />
             </Routes>
             </Suspense>
+            </RouteBoundary>
           </div>
           
           <Footer />

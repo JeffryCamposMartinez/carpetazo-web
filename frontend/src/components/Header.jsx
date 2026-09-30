@@ -188,7 +188,10 @@ export default function Header() {
       if (document.visibilityState === 'hidden') return;
 
       // Solicitudes de compra pendientes (si falla, los mensajes siguen funcionando)
-      api.getMyPendingOrders(seenRef.current.orders)
+      // Lo visto se lee directo del navegador: en la primera carga el estado aún no se restauró y todo aparecería como nuevo
+      let seenOrders = seenRef.current.orders;
+      try { seenOrders = JSON.parse(localStorage.getItem(`carpetazo:bell-seen:${currentUser.uid}`) || 'null')?.orders || seenOrders; } catch (_error) { /* sin almacenamiento */ }
+      api.getMyPendingOrders(seenOrders)
         .then((ordersResult) => {
           if (!cancelled && ordersResult?.success) {
             setPendingOrders(previous => (
@@ -481,20 +484,20 @@ export default function Header() {
       {/* TopAppBar - Desktop */}
       <header className="w-full top-0 sticky z-40 bg-surface dark:bg-surface-dim hidden md:block" style={themedTopBarStyle}>
         <div className="flex flex-col w-full">
-          <div className="flex items-center justify-between px-md py-3 md:py-4 w-full max-w-container-max mx-auto">
+          <div className="flex lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,36rem)_minmax(0,1fr)] items-center justify-between gap-4 lg:gap-8 px-md py-3 w-full max-w-container-max mx-auto">
             <Link to="/bienvenida" className="flex items-center cursor-pointer hover:opacity-80 transition-opacity">
-              <img src="/images/logos/logo_completo.webp" alt="Carpetazo.cl" className="h-14 md:h-14 w-auto object-contain transform scale-[1.3] md:scale-[1.4] origin-[left_center]" />
+              <img src="/images/logos/logo_completo.webp" alt="Carpetazo.cl" className="h-14 w-auto object-contain transform scale-[1.3] md:scale-[1.4] origin-[left_center] drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)]" />
             </Link>
 
           {/* Centered Search Bar with Category Selector */}
-          <form onSubmit={handleSearch} className="flex-1 max-w-xl mx-8">
-            <div className="flex items-center bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible focus-within:ring-2 focus-within:ring-blue-400 focus-within:border-blue-400 transition-all relative">
+          <form onSubmit={handleSearch} className="w-full flex-1 lg:flex-none">
+            <div className="flex items-center bg-white rounded-full shadow-[0_2px_10px_rgba(0,0,0,0.25)] overflow-visible focus-within:ring-[3px] focus-within:ring-[#facc15]/70 transition-shadow relative pl-1 pr-1">
               {/* Category selector */}
               <div className="relative search-category-dropdown">
                 <button
                   type="button"
                   onClick={() => setCategoryDropdownOpen(p => !p)}
-                  className="flex items-center gap-1.5 px-3 py-2.5 text-sm font-bold text-[#1a2b4b] border-r border-gray-200 hover:bg-gray-50 rounded-l-xl transition-colors whitespace-nowrap"
+                  className="flex items-center gap-1.5 pl-4 pr-3 py-2.5 my-0.5 text-sm font-bold text-[#12315f] border-r border-gray-200 hover:bg-gray-50 rounded-l-full transition-colors whitespace-nowrap"
                 >
                   {searchCategory}
                   <span translate="no" className="material-symbols-outlined text-[14px] text-gray-500">keyboard_arrow_down</span>
@@ -523,19 +526,20 @@ export default function Header() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={`Busca ${searchCategory.toLowerCase()}...`}
-                className="flex-1 px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 bg-transparent focus:outline-none"
+                className="flex-1 min-w-0 px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 !bg-transparent !border-0 !shadow-none !ring-0 !rounded-none focus:outline-none"
               />
               <button
                 type="submit"
-                className="flex items-center justify-center px-4 py-2.5 hover:bg-blue-50 transition-colors rounded-r-xl border-l border-gray-200"
+                aria-label="Buscar"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#facc15] text-[#12315f] shadow-sm transition hover:brightness-105 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#12315f]/40"
               >
-                <span translate="no" className="material-symbols-outlined text-[#1e40af] text-[20px]">search</span>
+                <span translate="no" className="material-symbols-outlined text-[20px] font-bold">search</span>
               </button>
             </div>
           </form>
 
           {currentUser ? (
-            <div className="flex items-center gap-3 pb-3">
+            <div className="flex items-center gap-3 justify-self-end">
             <NotificationBell />
             <div className="relative profile-dropdown">
               <button 
@@ -579,19 +583,19 @@ export default function Header() {
             </div>
             </div>
           ) : (
-            <div className="flex items-center gap-3 pb-3">
-              <button onClick={handleLogin} className="hidden sm:block px-4 py-2 text-on-surface font-bold rounded-lg hover:bg-surface-container transition-colors text-sm">
-                Iniciar Sesión
+            <div className="flex items-center gap-2 justify-self-end">
+              <button onClick={handleLogin} className="hidden sm:block whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold text-white/90 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60">
+                Iniciar sesión
               </button>
-              <button onClick={handleLogin} className="px-4 py-2 bg-primary text-on-primary font-bold rounded-lg shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 text-sm flex items-center gap-2">
-                <img src="/images/logos/google.svg" alt="Google" className="w-4 h-4 bg-white rounded-full p-[2px]" />
-                Registrarse
+              <button onClick={handleLogin} className="flex items-center gap-2 whitespace-nowrap rounded-full bg-[#facc15] px-4 py-2 text-sm font-extrabold text-[#12315f] shadow-md transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-white/70">
+                <img src="/images/logos/google.svg" alt="" className="w-4 h-4 bg-white rounded-full p-[2px]" />
+                Registrarse<span className="hidden xl:inline"> con Google</span>
               </button>
             </div>
           )}
           </div>
           
-          <nav className="flex items-center justify-center w-full gap-2 md:gap-4 overflow-x-auto px-4 py-2.5 bg-[#1e40af] hide-scrollbar whitespace-nowrap shadow-inner border-t border-black/10" style={themedNavStyle}>
+          <nav className="flex items-center justify-center w-full gap-2 md:gap-4 overflow-x-auto px-4 py-2 bg-[#1e40af] hide-scrollbar whitespace-nowrap border-t border-[#facc15]/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(9,20,45,0.25)]" style={themedNavStyle}>
             <LiquidTabs
               ariaLabel="Navegación principal"
               layout="inline"
@@ -614,38 +618,37 @@ export default function Header() {
       {/* Mobile Header */}
       <header className="w-full top-0 sticky z-40 bg-surface dark:bg-surface-dim md:hidden block" style={themedTopBarStyle}>
         <div className="flex flex-col w-full">
-          <div className="flex items-center justify-between px-4 py-3 w-full border-b border-gray-100 relative h-[60px]">
+          <div className="flex items-center justify-between gap-2 px-3 pt-2 pb-1 w-full relative h-[60px]">
             {/* Left: Profile and Hamburger Menu */}
             <div className="flex items-center gap-2 z-10">
               {currentUser ? (
                 <button
                   onClick={() => setIsMobileMenuOpen(true)}
                   aria-label="Abrir menú de cuenta"
-                  className="relative flex items-center gap-1.5 rounded-full bg-white/10 py-1 pl-1 pr-2 text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-white/60"
+                  className="relative flex items-center gap-1 rounded-full border border-white/15 bg-white/10 py-1 pl-1 pr-2 text-white shadow-sm active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60"
                 >
-                  <img src={userAvatar || currentUser.photoURL} alt="Profile" className="w-9 h-9 rounded-full border border-gray-200 object-cover bg-white shadow-sm" />
+                  <img src={userAvatar || currentUser.photoURL} alt="Perfil" className="w-9 h-9 rounded-full border-2 border-[#facc15] object-cover bg-white shadow-sm" />
                   <span translate="no" className="material-symbols-outlined text-[24px] text-white">menu</span>
-                  <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-white px-2 py-0.5 text-[9px] font-black uppercase leading-none tracking-wide text-[#1e40af] shadow-sm">Menú</span>
                 </button>
               ) : (
-                <button onClick={() => setIsMobileMenuOpen(true)} className="p-1 text-white hover:opacity-80">
-                  <span translate="no" className="material-symbols-outlined text-[28px]">menu</span>
+                <button onClick={() => setIsMobileMenuOpen(true)} aria-label="Abrir menú" className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60">
+                  <span translate="no" className="material-symbols-outlined text-[26px]">menu</span>
                 </button>
               )}
             </div>
 
             {/* Center: Logo */}
             <Link to="/bienvenida" className="absolute left-1/2 -translate-x-1/2 flex items-center cursor-pointer hover:opacity-80 transition-opacity">
-              <img src="/images/logos/logo_completo.webp" alt="Carpetazo.cl" className="h-10 w-auto object-contain py-0.5 transform scale-[1.5] origin-[center_60%] translate-y-0.5" />
+              <img src="/images/logos/logo_completo.webp" alt="Carpetazo.cl" className="h-10 w-auto object-contain transform scale-[1.35] origin-center drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)]" />
             </Link>
 
             {/* Right: Login (if not logged in) */}
-            <div className="z-10 w-[60px] flex justify-end">
+            <div className="z-10 flex min-w-[44px] justify-end">
               {currentUser ? (
                 <NotificationBell compact />
               ) : (
-                <button onClick={handleLogin} className="px-3 py-1.5 bg-primary text-on-primary font-bold rounded-md shadow-sm transition-all text-xs flex items-center gap-1.5">
-                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-3.5 h-3.5 bg-white rounded-full p-[1px]" />
+                <button onClick={handleLogin} className="flex items-center gap-1.5 rounded-full bg-[#facc15] px-3 py-2 text-xs font-extrabold text-[#12315f] shadow-md transition active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/70">
+                  <img src="/images/logos/google.svg" alt="" className="w-3.5 h-3.5 bg-white rounded-full p-[1px]" />
                   Entrar
                 </button>
               )}
@@ -653,14 +656,14 @@ export default function Header() {
           </div>
           
           {/* Mobile Search Bar with Category */}
-          <form onSubmit={handleSearch} className="px-3 py-2 bg-white border-b border-gray-100" style={publicHeaderTheme && publicHeaderTheme.id !== 'classic-blue' ? { backgroundColor: publicHeaderTheme.card, borderColor: `${publicHeaderTheme.primary}33` } : undefined}>
-            <div className="flex items-center bg-gray-100 rounded-xl overflow-visible relative">
+          <form onSubmit={handleSearch} className="px-3 pt-1 pb-3 border-b-2 border-[#facc15]/60">
+            <div className="flex items-center bg-white rounded-full shadow-[0_2px_10px_rgba(0,0,0,0.25)] overflow-visible relative pl-0.5 pr-1 focus-within:ring-[3px] focus-within:ring-[#facc15]/70">
               {/* Category selector mobile */}
               <div className="relative search-category-dropdown">
                 <button
                   type="button"
                   onClick={() => setCategoryDropdownOpen(p => !p)}
-                  className="flex items-center gap-1 px-3 py-2 text-xs font-bold text-[#1a2b4b] border-r border-gray-300 whitespace-nowrap"
+                  className="flex items-center gap-1 pl-3.5 pr-2.5 py-2.5 text-xs font-bold text-[#12315f] border-r border-gray-200 whitespace-nowrap"
                 >
                   {searchCategory}
                   <span translate="no" className="material-symbols-outlined text-[12px]">keyboard_arrow_down</span>
@@ -689,10 +692,10 @@ export default function Header() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={`Busca ${searchCategory.toLowerCase()}...`}
-                className="flex-1 px-3 py-2 text-sm text-gray-700 placeholder-gray-400 bg-transparent focus:outline-none"
+                className="flex-1 min-w-0 px-3 py-2.5 text-base text-gray-800 placeholder-gray-400 !bg-transparent !border-0 !shadow-none !ring-0 !rounded-none focus:outline-none"
               />
-              <button type="submit" className="px-3 py-2">
-                <span translate="no" className="material-symbols-outlined text-[#1e40af] text-[18px]">search</span>
+              <button type="submit" aria-label="Buscar" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#facc15] text-[#12315f] shadow-sm active:scale-95">
+                <span translate="no" className="material-symbols-outlined text-[19px] font-bold">search</span>
               </button>
             </div>
           </form>
