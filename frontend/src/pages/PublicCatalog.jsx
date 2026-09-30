@@ -31,6 +31,14 @@ const getInstagramHref = (value = '') => {
   return `https://instagram.com/${cleanValue.replace('@', '')}`;
 };
 
+// Cifras grandes con separador de miles; desde 100.000 en formato corto para que nunca desborden
+const formatCount = (value) => {
+  const number = Number(value) || 0;
+  return number >= 100000
+    ? new Intl.NumberFormat('es-CL', { notation: 'compact', maximumFractionDigits: 1 }).format(number)
+    : number.toLocaleString('es-CL');
+};
+
 const ContactIcon = ({ type, className = 'h-4 w-4' }) => {
   if (type === 'whatsapp') {
     return (
@@ -83,6 +91,7 @@ function PublicCatalog() {
   const [cards, setCards] = useState([]);
   const [folderData, setFolderData] = useState(null);
   const [sellerData, setSellerData] = useState(null);
+  const [ownsFolder, setOwnsFolder] = useState(false);
   
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -298,6 +307,20 @@ function PublicCatalog() {
 
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
 
+  const activeFilterCount = [selectedSupertype, selectedType, searchSet, mylType, mylRace, mylCost, quickRarity].filter(Boolean).length
+    + (onlyAvailable ? 1 : 0) + (sortBy !== 'featured' ? 1 : 0);
+
+  const isOwner = Boolean(sellerData?.isOwner) || ownsFolder;
+  useEffect(() => {
+    if (!currentUser?.uid || !folderData) { setOwnsFolder(false); return; }
+    if (sellerData?.isOwner) return;
+    let cancelled = false;
+    apiFetch('/folders/me')
+      .then((res) => { if (!cancelled) setOwnsFolder(Boolean(res?.folders?.some((f) => f.id === folderData.id))); })
+      .catch(() => { if (!cancelled) setOwnsFolder(false); });
+    return () => { cancelled = true; };
+  }, [currentUser?.uid, folderData?.id, sellerData?.isOwner]);
+
   const handleWhatsAppCheckout = async () => {
     if (cart.length === 0) return;
     
@@ -484,7 +507,7 @@ function PublicCatalog() {
   const visibleContactOptions = useMemo(() => {
     if (!sellerData || !folderData) return [];
     const options = [];
-    const isOwnerViewing = currentUser?.uid && currentUser.uid === folderData.userId;
+    const isOwnerViewing = isOwner;
 
     if (!isOwnerViewing && socialEnabled('showMessageButton')) {
       options.push({
@@ -547,7 +570,7 @@ function PublicCatalog() {
     }
 
     return options;
-  }, [sellerData, folderData, currentUser, navigate, socialEnabled]);
+  }, [sellerData, folderData, currentUser, isOwner, navigate, socialEnabled]);
 
   const contactSeller = useCallback(() => {
     const firstContact = visibleContactOptions[0];
@@ -587,190 +610,129 @@ function PublicCatalog() {
   return (
     <>
       <div className="w-full max-w-[1470px] mx-auto px-3 py-3 sm:px-6 sm:py-6 lg:px-8">
-      {/* Seller info banner */}
-      <div className="relative mb-3 overflow-hidden rounded-[1.6rem] border border-white/70 bg-white shadow-[0_22px_55px_-32px_rgba(15,23,42,0.65)] md:mb-5 md:rounded-[2rem]">
-        
-        {/* Background Image with 100% Opacity */}
-        {sellerData?.bannerBase64 && (
-          <div 
-            className="absolute inset-0 z-0" 
-            style={{ 
-              backgroundImage: `url(${sellerData.bannerBase64})`, 
-              backgroundSize: 'cover', 
-              backgroundPosition: 'center'
-            }}
-          ></div>
-        )}
+      {/* Portada de la carpeta: nombre, vendedor, contacto y cifras */}
+      {(() => {
+        const messageOption = visibleContactOptions.find((contact) => contact.id === 'message');
+        const socialOptions = visibleContactOptions.filter((contact) => contact.id !== 'message');
+        const defaultAddress = sellerData?.addresses?.find((a) => a.isDefault) || sellerData?.addresses?.[0];
+        const locationText = defaultAddress
+          ? [defaultAddress.comuna, defaultAddress.region].filter(Boolean).join(', ')
+          : [sellerData?.comuna, sellerData?.region].filter(Boolean).join(', ');
+        const sellerPath = `/${sellerData?.username || folderData.userId}`;
+        const socialClass = {
+          whatsapp: 'text-green-600 hover:ring-green-300',
+          instagram: 'text-pink-600 hover:ring-pink-300',
+          facebook: 'text-blue-600 hover:ring-blue-300',
+          youtube: 'text-red-600 hover:ring-red-300',
+        };
+        const stats = [
+          { value: formatCount(cards.length), label: cards.length === 1 ? 'carta' : 'cartas' },
+          { value: formatCount(availableCardsCount), label: 'con stock' },
+          { value: formatCount(totalStock), label: totalStock === 1 ? 'copia' : 'copias' },
+        ];
+        return (
+          <section className="relative mb-3 overflow-hidden rounded-[1.6rem] bg-[#0f2b57] text-white shadow-[0_22px_55px_-30px_rgba(15,23,42,0.8)] ring-1 ring-white/10 md:mb-5 md:rounded-[2rem]">
+            {sellerData?.bannerBase64 && (
+              <div className="absolute inset-0 z-0 opacity-45" style={{ backgroundImage: `url(${sellerData.bannerBase64})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+            )}
+            <div className="absolute inset-0 z-[1] bg-gradient-to-br from-[#0f2b57]/95 via-[#12315f]/85 to-[#1e40af]/70" />
 
-        <div className="absolute inset-0 z-[1] bg-gradient-to-br from-white/95 via-white/90 to-blue-50/95" />
-        {sellerData?.bannerBase64 && <div className="absolute inset-0 z-[2] bg-gradient-to-r from-white/95 via-white/80 to-white/55" />}
+            <div className="relative z-10 flex flex-col gap-5 p-4 md:gap-6 md:p-8">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-8">
+                <div className="min-w-0">
+                  {folderData?.tcg && (
+                    <span className="inline-flex items-center rounded-full bg-white/12 px-3 py-1 text-xs font-bold text-blue-100 ring-1 ring-white/20">{folderData.tcg}</span>
+                  )}
+                  <h1 className="mt-2 break-words text-3xl font-black leading-[1.05] tracking-[-0.03em] md:text-5xl">{folderData.name}</h1>
 
-        <div className="relative z-10 grid gap-3 p-3 md:grid-cols-[minmax(520px,1fr)_minmax(360px,0.75fr)] md:items-center md:gap-5 md:p-7 lg:p-8">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-5">
-          {/* Compact card with avatar inside */}
-          <div
-            className={"flex w-full items-center gap-3 rounded-[1.35rem] border p-3 transition-all md:min-h-[170px] md:gap-7 md:rounded-[1.75rem] md:p-6 " +
-              (sellerData?.bannerBase64 
-                ? "bg-white/80 backdrop-blur-md shadow-xl border-white/70" 
-                : "bg-slate-50 border-slate-200")}
-            style={sellerData?.bannerComplementaryColor ? { borderColor: sellerData.bannerComplementaryColor } : {}}
-          >
-            {/* Avatar inside card */}
-            <Link to={`/${sellerData?.username || folderData.userId}`} className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-full border-[3px] border-white bg-white shadow-lg transition-transform hover:scale-105 md:h-32 md:w-32 md:border-4 md:shadow-xl lg:h-36 lg:w-36">
-              {(sellerData?.avatarBase64 || sellerData?.photoURL) ? (
-                <img src={sellerData?.avatarBase64 || sellerData?.photoURL} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#1a2b4b] to-[#3b82f6] text-3xl font-black text-white">
-                  {(sellerData?.displayName || 'V')[0].toUpperCase()}
-                </div>
-              )}
-            </Link>
-
-            {/* Text info next to avatar */}
-            <div className="flex flex-col text-left flex-1 min-w-0">
-              <div className="flex items-center gap-1 flex-wrap">
-                <span className="text-lg font-black leading-tight text-[#1a2b4b] md:text-2xl">
-                  {sellerData?.displayName || 'Vendedor Anónimo'}
-                </span>
-                {(sellerData?.isVerified || true) && (
-                  <span translate="no" className="material-symbols-outlined text-[#3b82f6] text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }} title="Vendedor Verificado">verified</span>
-                )}
-              </div>
-              {sellerData?.fullName && <p className="truncate text-xs font-semibold text-gray-500 md:text-sm">{sellerData.fullName}</p>}
-              
-              <div className="mt-0.5 flex flex-wrap items-center gap-1 md:gap-1.5">
-                {(sellerData?.totalTrades > 0) ? (
-                  <>
-                    <div className="flex items-center gap-0.5 bg-white/60 px-1.5 py-0.5 rounded-md border border-yellow-300">
-                      <span translate="no" className="material-symbols-outlined text-primary text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                      <span className="text-[#1a2b4b] font-extrabold text-[11px]">{sellerData?.rating?.toFixed(1) || '5.0'}</span>
+                  <div className="mt-4 flex items-center gap-3">
+                    <Link to={sellerPath} className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-full border-2 border-[#facc15] bg-white shadow-lg transition-transform hover:scale-105 md:h-14 md:w-14" aria-label="Ver perfil del vendedor">
+                      {(sellerData?.avatarBase64 || sellerData?.photoURL) ? (
+                        <img src={sellerData?.avatarBase64 || sellerData?.photoURL} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#1a2b4b] to-[#3b82f6] text-xl font-black text-white">{(sellerData?.displayName || 'V')[0].toUpperCase()}</span>
+                      )}
+                    </Link>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <Link to={sellerPath} className="truncate text-base font-extrabold hover:underline md:text-lg">{sellerData?.displayName || 'Vendedor anónimo'}</Link>
+                        <span translate="no" className="material-symbols-outlined text-[18px] text-[#7dd3fc]" style={{ fontVariationSettings: "'FILL' 1" }} title="Vendedor verificado">verified</span>
+                        {sellerData?.totalTrades > 0 ? (
+                          <span className="flex items-center gap-1 text-xs font-bold text-[#facc15]">
+                            <span translate="no" className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                            {sellerData?.rating?.toFixed(1) || '5.0'} · {sellerData.totalTrades} reseñas
+                          </span>
+                        ) : (
+                          <span className="text-xs font-semibold text-blue-200">Vendedor nuevo</span>
+                        )}
+                      </div>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs font-semibold text-blue-100">
+                        {locationText && (
+                          <span className="flex items-center gap-1">
+                            <span translate="no" className="material-symbols-outlined text-[15px]">location_on</span>{locationText}
+                          </span>
+                        )}
+                        <Link to={sellerPath} className="font-bold text-[#facc15] hover:underline">Ver más del vendedor</Link>
+                      </div>
                     </div>
-                    <span className="text-gray-500 text-[10px] font-semibold">{sellerData?.totalTrades} reseñas</span>
-                  </>
-                ) : (
-                  <span className="rounded-full border border-gray-200 bg-white/70 px-2.5 py-0.5 text-[11px] font-bold text-gray-500 md:px-3 md:py-1 md:text-xs">Nuevo Vendedor</span>
-                )}
+                  </div>
+                  {sellerData?.bio && <p className="mt-3 line-clamp-2 max-w-xl border-l-2 border-[#facc15]/70 pl-3 text-sm italic text-blue-100">"{sellerData.bio}"</p>}
+                </div>
+
+                <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-end md:gap-2 md:pt-1">
+                  {isOwner && (
+                    <Link
+                      to={`/carpeta/${folderData.id}`}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#facc15] px-5 py-3 text-sm font-extrabold text-[#12315f] shadow-md transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-white/70 md:w-auto md:py-2.5"
+                    >
+                      <span translate="no" className="material-symbols-outlined text-[20px]">add_circle</span>
+                      Agregar cartas a tu carpeta
+                    </Link>
+                  )}
+                  {messageOption && (
+                    <button type="button" onClick={messageOption.onClick || contactSeller} className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#facc15] px-5 py-3 text-sm font-extrabold text-[#12315f] shadow-md transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-white/70 md:w-auto md:py-2.5">
+                      <ContactIcon type="message" className="h-4 w-4" />
+                      Contactar vendedor
+                    </button>
+                  )}
+                  {socialOptions.length > 0 && (
+                    <div className="flex items-center justify-center gap-2.5 md:justify-end">
+                    {socialOptions.map((contact) => (
+                      <a
+                        key={contact.id}
+                        href={contact.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={contact.label}
+                        title={contact.label}
+                        className={`flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md ring-2 ring-white/40 transition hover:-translate-y-0.5 hover:scale-105 ${socialClass[contact.id] || 'text-[#1a2b4b] hover:ring-[#facc15]'}`}
+                      >
+                        <ContactIcon type={contact.id} className="h-5 w-5" />
+                      </a>
+                    ))}
+                    </div>
+                  )}
+                  {!isOwner && visibleContactOptions.length === 0 && (
+                    <span className="text-xs font-semibold text-blue-200">Sin contacto público</span>
+                  )}
+                </div>
               </div>
-              {sellerData?.bio && (
-                <p className="mt-1 line-clamp-1 border-l-2 border-primary/40 pl-2 text-xs italic text-gray-600 md:mt-2 md:line-clamp-2 md:pl-3 md:text-sm">"{sellerData.bio}"</p>
-              )}
+
+              <dl className="grid grid-cols-3 divide-x divide-white/15 rounded-2xl bg-white/8 ring-1 ring-white/15">
+                {stats.map((item) => (
+                  <div key={item.label} className="min-w-0 px-2 py-3 text-center md:px-6 md:py-4">
+                    <dt className="sr-only">{item.label}</dt>
+                    <dd className="flex min-w-0 flex-col items-center gap-1 text-xl font-black tabular-nums leading-none min-[400px]:text-2xl md:block md:text-3xl">
+                      {item.value}
+                      <span className="text-xs font-bold text-blue-200 md:ml-1.5 md:text-sm">{item.label}</span>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
             </div>
-          </div>
-        </div>
-
-        {/* Folder Title and Buttons Row */}
-        <div className="relative z-10 flex w-full flex-col items-start gap-2 md:items-end md:gap-3">
-          {visibleContactOptions.filter(contact => contact.id !== 'message').length > 0 && (
-            <div className="absolute right-1 top-[-1.35rem] z-20 flex items-center gap-1.5 md:hidden">
-              {visibleContactOptions.filter(contact => contact.id !== 'message').map((contact) => {
-                const socialBubbleClass = {
-                  whatsapp: 'border-slate-950 bg-white text-green-600 ring-white hover:ring-green-300',
-                  instagram: 'border-slate-950 bg-white text-pink-600 ring-[#ffcb05] hover:ring-pink-300',
-                  facebook: 'border-slate-950 bg-white text-blue-600 ring-blue-200 hover:ring-blue-300',
-                  youtube: 'border-slate-950 bg-white text-red-600 ring-red-200 hover:ring-red-300',
-                }[contact.id] || 'border-slate-950 bg-white text-[#1a2b4b] ring-white hover:ring-[#ffcb05]';
-                return (
-                  <a
-                    key={contact.id}
-                    href={contact.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={contact.label}
-                    title={contact.label}
-                    className={`flex h-9 w-9 items-center justify-center rounded-full border-2 p-0 shadow-[0_8px_16px_-10px_rgba(15,23,42,0.9)] ring-2 transition-all hover:-translate-y-0.5 hover:scale-105 hover:shadow-md ${socialBubbleClass}`}
-                  >
-                    <ContactIcon type={contact.id} className="h-5 w-5" />
-                  </a>
-                );
-              })}
-            </div>
-          )}
-
-          <h1 className="max-w-full text-2xl font-black leading-none tracking-[-0.04em] text-[#1a2b4b] md:text-4xl md:leading-tight">
-            {folderData.name}
-          </h1>
-          <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-black text-slate-600 md:justify-end md:gap-2 md:text-xs">
-            <span className="rounded-full border border-blue-100 bg-white/95 px-2.5 py-1 text-[#1a2b4b] shadow-sm md:px-3 md:py-1.5">{cards.length} cartas</span>
-            <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-emerald-700 shadow-sm md:px-3 md:py-1.5">{availableCardsCount} con stock</span>
-            <span className="rounded-full border border-yellow-100 bg-yellow-50 px-2.5 py-1 text-[#1a2b4b] shadow-sm md:px-3 md:py-1.5">{totalStock} copias</span>
-          </div>
-          
-          <div className="flex flex-wrap items-center gap-1.5 md:justify-end md:gap-2">
-            {/* Location (City/Region only) */}
-            {(() => {
-              const defaultAddress = sellerData?.addresses?.find(a => a.isDefault) || sellerData?.addresses?.[0];
-              if (defaultAddress) {
-                const locationText = [defaultAddress.comuna, defaultAddress.region].filter(Boolean).join(', ');
-                const displayText = defaultAddress.name ? `${defaultAddress.name} - ${locationText}` : locationText;
-                return (
-                  <span className="flex items-center gap-1 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full border border-gray-200 text-gray-700 shadow-sm text-xs font-semibold">
-                    <span translate="no" className="material-symbols-outlined text-[16px]">location_on</span>
-                    {displayText}
-                  </span>
-                );
-              }
-              if (sellerData?.region || sellerData?.comuna) {
-                return (
-                  <span className="flex items-center gap-1 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full border border-gray-200 text-gray-700 shadow-sm text-xs font-semibold">
-                    <span translate="no" className="material-symbols-outlined text-[16px]">location_on</span>
-                    {[sellerData.comuna, sellerData.region].filter(Boolean).join(', ')}
-                  </span>
-                );
-              }
-              return null;
-            })()}
-
-            {visibleContactOptions.filter(contact => contact.id === 'message').length > 0 ? visibleContactOptions.filter(contact => contact.id === 'message').map((contact) => {
-              const baseClass = `flex h-8 items-center gap-1.5 rounded-full px-3 text-[11px] font-black shadow-sm ring-1 transition-all hover:-translate-y-0.5 hover:shadow-md md:h-10 md:w-10 md:justify-center md:gap-0 md:border-2 md:border-slate-950 md:bg-white md:p-0 md:text-[#1a2b4b] md:ring-2 md:ring-white md:hover:ring-blue-200 ${contact.className || 'bg-white text-[#1a2b4b] ring-slate-200'}`;
-              const content = (
-                <>
-                  <ContactIcon type={contact.id} className="h-4 w-4" />
-                  <span className="md:sr-only">Contactar vendedor</span>
-                </>
-              );
-
-              return (
-                <button key={contact.id} type="button" onClick={contact.onClick || contactSeller} className={baseClass}>
-                  {content}
-                </button>
-              );
-            }) : visibleContactOptions.length === 0 ? (
-              <span className="rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs font-bold text-slate-500 shadow-sm">
-                Sin contacto público
-              </span>
-            ) : null}
-
-            {visibleContactOptions.filter(contact => contact.id !== 'message').map((contact) => {
-              const socialBubbleClass = {
-                whatsapp: 'border-slate-950 bg-white text-green-600 ring-white hover:ring-green-300',
-                instagram: 'border-slate-950 bg-white text-pink-600 ring-[#ffcb05] hover:ring-pink-300',
-                facebook: 'border-slate-950 bg-white text-blue-600 ring-blue-200 hover:ring-blue-300',
-                youtube: 'border-slate-950 bg-white text-red-600 ring-red-200 hover:ring-red-300',
-              }[contact.id] || 'border-slate-950 bg-white text-[#1a2b4b] ring-white hover:ring-[#ffcb05]';
-              return (
-                <a
-                  key={`desktop-${contact.id}`}
-                  href={contact.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={contact.label}
-                  title={contact.label}
-                  className={`hidden h-10 w-10 items-center justify-center rounded-full border-2 p-0 shadow-[0_8px_16px_-10px_rgba(15,23,42,0.9)] ring-2 transition-all hover:-translate-y-0.5 hover:scale-105 hover:shadow-md md:flex ${socialBubbleClass}`}
-                >
-                  <ContactIcon type={contact.id} className="h-5 w-5" />
-                </a>
-              );
-            })}
-          </div>
-
-          <Link to={`/${sellerData?.username || folderData.userId}`} className="group mt-0 flex items-center gap-1.5 rounded-full border border-[#ffcb05]/70 bg-gradient-to-r from-[#ffcb05] via-yellow-300 to-white px-3.5 py-2 text-[11px] font-black text-[#08204a] shadow-[0_10px_24px_-16px_rgba(30,64,175,0.8)] transition-all hover:-translate-y-0.5 hover:shadow-lg md:mt-2 md:px-4 md:text-xs">
-            <span translate="no" className="material-symbols-outlined text-[16px]">storefront</span>
-            <span>Ver más del vendedor</span>
-            <span translate="no" className="material-symbols-outlined text-[16px] transition-transform group-hover:translate-x-1">arrow_forward</span>
-          </Link>
-        </div>
-        </div>
-      </div>
+          </section>
+        );
+      })()}
 
       <button 
         onClick={() => setIsCartOpen(true)}
@@ -811,53 +773,56 @@ function PublicCatalog() {
 
         <div className="relative z-10 flex min-h-[calc(100vh-230px)] w-full flex-col overflow-hidden rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] md:rounded-[2rem]">
           <main className="relative z-20 flex flex-1 flex-col px-3 py-3 text-gray-900 sm:px-6 md:px-8 md:py-8">
-            <div className="mb-3 rounded-[1.35rem] border border-white/80 bg-white/95 p-2.5 shadow-sm md:mb-5 md:rounded-[1.5rem] md:p-4">
+            <div className="mb-4 rounded-2xl bg-white p-2.5 shadow-sm ring-1 ring-slate-900/5 md:mb-5 md:p-3">
               <form onSubmit={(event) => event.preventDefault()} className="flex flex-col gap-2 md:gap-3">
-                <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-                  <div className="relative">
-                    <span translate="no" className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">search</span>
-                    <input 
-                      type="text" 
+                <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                  <div className="relative min-w-0 flex-1">
+                    <span translate="no" className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">search</span>
+                    <input
+                      type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Buscar carta..."
-                      className="h-10 w-full rounded-xl border border-gray-300 bg-gray-50 pl-11 pr-3 text-sm font-medium text-gray-900 transition-all focus:border-[#1e40af] focus:outline-none focus:ring-1 focus:ring-[#1e40af] md:h-11"
+                      placeholder="Buscar carta por nombre"
+                      aria-label="Buscar carta"
+                      className="h-11 w-full rounded-full border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-medium text-slate-900 transition focus:border-[#1e40af] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#facc15]/70"
                     />
                   </div>
-                  <div className="flex items-center rounded-xl bg-blue-50 p-1 shadow-inner">
-                    <button 
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-1 items-center rounded-full bg-slate-100 p-1 md:flex-none">
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('album')}
+                        aria-pressed={viewMode === 'album'}
+                        className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-bold transition-all md:flex-none ${viewMode === 'album' ? 'bg-[#12315f] text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                      >
+                        <span translate="no" className="material-symbols-outlined text-[18px]">auto_stories</span> <span className="hidden min-[420px]:inline">Álbum</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('grid')}
+                        aria-pressed={viewMode === 'grid'}
+                        className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-bold transition-all md:flex-none ${viewMode === 'grid' ? 'bg-[#12315f] text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                      >
+                        <span translate="no" className="material-symbols-outlined text-[18px]">grid_view</span> <span className="hidden min-[420px]:inline">Cuadrícula</span>
+                      </button>
+                    </div>
+                    <button
                       type="button"
-                      onClick={() => setViewMode('album')} 
-                      className={`flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-bold transition-all md:h-9 md:flex-none ${viewMode === 'album' ? 'bg-white text-[#1e40af] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      onClick={() => setIsMobileFiltersOpen((value) => !value)}
+                      aria-expanded={isMobileFiltersOpen}
+                      className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-full border px-4 text-sm font-black transition-all md:flex-none ${
+                        isMobileFiltersOpen || activeFilterCount > 0
+                          ? 'border-[#12315f] bg-[#12315f] text-white shadow-md'
+                          : 'border-slate-200 bg-white text-[#12315f] hover:border-[#12315f]/40'
+                      }`}
                     >
-                      <span translate="no" className="material-symbols-outlined text-[18px]">auto_stories</span> Álbum
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => setViewMode('grid')} 
-                      className={`flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-bold transition-all md:h-9 md:flex-none ${viewMode === 'grid' ? 'bg-white text-[#1e40af] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                      <span translate="no" className="material-symbols-outlined text-[18px]">grid_view</span> Cuadrícula
+                      <span translate="no" className="material-symbols-outlined text-[20px]">tune</span>
+                      Filtros
+                      {activeFilterCount > 0 && (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#facc15] px-1 text-[11px] font-black text-[#12315f]">{activeFilterCount}</span>
+                      )}
                     </button>
                   </div>
-                </div>
-                
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => setIsMobileFiltersOpen(value => !value)}
-                    className={`flex h-10 w-full items-center justify-center gap-2 rounded-xl border px-4 text-sm font-black transition-all md:h-11 ${
-                      isMobileFiltersOpen
-                        ? 'border-[#1e40af] bg-[#1e40af] text-white shadow-md'
-                        : 'border-blue-100 bg-blue-50 text-[#1e40af] hover:bg-blue-100'
-                    }`}
-                    aria-expanded={isMobileFiltersOpen}
-                  >
-                    <span translate="no" className="material-symbols-outlined text-[20px]">
-                      {isMobileFiltersOpen ? 'filter_alt_off' : 'filter_alt'}
-                    </span>
-                    {isMobileFiltersOpen ? 'Ocultar filtros' : 'Ver filtros'}
-                  </button>
                 </div>
 
                 {isMobileFiltersOpen && (

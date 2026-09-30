@@ -651,7 +651,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                       </span>
                       <span className="flex items-center gap-1 rounded-xl border border-slate-700 bg-slate-800/90 px-2.5 py-1.5 text-[10.5px] font-bold leading-none text-white shadow-md">
                         <span translate="no" className="material-symbols-outlined text-[14px]">inventory_2</span>
-                        {Number(previewCard.stock || 0) <= 0 ? 'Sin stock' : `x${previewCard.stock || 0}`}
+                        {Number(previewCard.stock || 0) <= 0 ? 'Sin stock' : `x${Number(previewCard.stock || 0) > 999 ? '999+' : (previewCard.stock || 0)}`}
                       </span>
                     </div>
                   </div>
@@ -692,7 +692,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                       </span>
                       <span className="bg-slate-800/90 border border-slate-700 px-2.5 py-1.5 md:px-3.5 md:py-2.5 rounded-xl text-white font-bold text-[11px] md:text-sm flex items-center gap-1.5 leading-none shadow-md">
                           <span translate="no" className="material-symbols-outlined text-[14px] md:text-xl">inventory_2</span>
-                          {Number(previewCard.stock || 0) <= 0 ? 'Sin stock' : `x${previewCard.stock || 0} Disponibles`}
+                          {Number(previewCard.stock || 0) <= 0 ? 'Sin stock' : `x${Number(previewCard.stock || 0) > 999 ? '999+' : (previewCard.stock || 0)} Disponibles`}
                       </span>
                     </div>
 
@@ -1038,7 +1038,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                           )}
                           
                           <div className="absolute top-1 right-1 md:top-1.5 md:right-1.5 z-[120] flex min-w-8 items-center justify-center rounded-full border border-white/20 bg-slate-950/85 px-2 py-0.5 text-[10px] md:text-xs font-black leading-none text-white shadow-lg backdrop-blur-sm pointer-events-none">
-                            x{card.stock || 0}
+                            x{Number(card.stock || 0) > 999 ? '999+' : (card.stock || 0)}
                           </div>
                           <div className={`absolute -bottom-1 left-1/2 z-[120] flex -translate-x-1/2 items-center justify-center rounded-full border border-yellow-300/40 bg-yellow-400 px-3 py-0.5 text-[10px] md:text-xs font-black leading-none text-slate-950 shadow-md whitespace-nowrap pointer-events-none transition-opacity duration-300 ${cardIsActive || previewCard ? 'opacity-0' : 'opacity-100'}`}>
                             {card.price ? '$' + Number(card.price).toLocaleString('es-CL') : 'Sin precio'}
@@ -1161,7 +1161,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
               className="block w-full rounded-[5%] object-contain opacity-90"
             />
             <div className="absolute -top-2 -right-2 rounded-full bg-black px-2.5 py-1 text-xs font-black text-white shadow ring-2 ring-white/30">
-              x{dragFloatingCard.stock || 0}
+              x{Number(dragFloatingCard.stock || 0) > 999 ? '999+' : (dragFloatingCard.stock || 0)}
             </div>
           </div>
         </div>
