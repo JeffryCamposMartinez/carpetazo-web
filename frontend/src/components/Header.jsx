@@ -600,11 +600,11 @@ export default function Header() {
               ariaLabel="Navegación principal"
               layout="inline"
               className="gap-2 md:gap-4"
-              buttonClassName="rounded-full px-5 py-1.5 text-[15px] font-medium"
+              buttonClassName="rounded-full px-5 py-1.5 text-[15px] font-medium hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#facc15]/80 after:pointer-events-none after:absolute after:inset-x-5 after:bottom-0.5 after:h-0.5 after:origin-center after:scale-x-0 after:rounded-full after:bg-[#facc15] after:transition-transform after:duration-300 hover:after:scale-x-100 aria-pressed:after:hidden"
               indicatorClassName="rounded-full shadow-sm"
               indicatorStyle={{ backgroundColor: themedNavActive ? (publicHeaderTheme.surface || publicHeaderTheme.card) : '#ffffff' }}
               activeTextClassName="font-bold"
-              inactiveTextClassName="text-blue-100 hover:text-white"
+              inactiveTextClassName="text-white/85 hover:text-white"
               activeTextStyle={{ color: themedNavActive ? publicHeaderTheme.text : '#1e40af' }}
               inactiveTextStyle={themedNavActive ? { color: `${publicHeaderTheme.card || '#ffffff'}dd` } : undefined}
               value={activeNavRoute}

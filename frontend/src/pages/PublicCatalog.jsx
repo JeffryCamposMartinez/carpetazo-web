@@ -309,10 +309,17 @@ function PublicCatalog() {
     
     const formattedPhone = phone.startsWith('56') ? phone : `56${phone}`;
     
-    // Abrir ventana síncronamente para evitar bloqueo de pop-ups
-    const newWindow = window.open('', '_blank');
-    if (newWindow) {
-      newWindow.document.write('Generando tu pedido, por favor espera...');
+    // Safari (iPhone y Mac) bloquea las ventanas abiertas antes de una espera y no deja escribir en ellas:
+    // ahí se navega en la misma pestaña. En el resto se abre la ventana de forma síncrona para evitar el bloqueo de pop-ups.
+    const ua = navigator.userAgent || '';
+    const isIos = /iP(hone|ad|od)/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isSafari = /^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(ua);
+    let newWindow = null;
+    if (!isIos && !isSafari) {
+      try {
+        newWindow = window.open('', '_blank');
+        newWindow?.document.write('Generando tu pedido, por favor espera...');
+      } catch (_error) { /* si el navegador no deja escribir, se usa la misma pestaña */ }
     }
     
     setIsProcessingCheckout(true);
@@ -348,18 +355,18 @@ function PublicCatalog() {
       
       const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
       
-      if (newWindow) {
-        newWindow.location.href = whatsappUrl;
-      } else {
-        window.location.href = whatsappUrl; // fallback si el navegador bloquea incluso el window.open síncrono
-      }
-
       setCart([]);
       setIsCartOpen(false);
       showToast("Pedido generado correctamente", "success");
+
+      if (newWindow && !newWindow.closed) {
+        newWindow.location.href = whatsappUrl;
+      } else {
+        window.location.href = whatsappUrl; // Safari o pop-up bloqueado: misma pestaña
+      }
     } catch (error) {
       console.error("Error al generar pedido:", error);
-      if (newWindow) newWindow.close();
+      try { newWindow?.close(); } catch (_error) { /* ya cerrada */ }
       showToast("Hubo un error al procesar el pedido.", "error");
     } finally {
       setIsProcessingCheckout(false);
