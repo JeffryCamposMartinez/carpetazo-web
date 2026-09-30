@@ -14,7 +14,6 @@ const ExplorePage = lazy(pageLoaders.explore);
 const FolderPokemon = lazy(pageLoaders.folder);
 const PublicCatalog = lazy(pageLoaders.catalog);
 const SellerProfile = lazy(pageLoaders.seller);
-const AdminPanel = lazy(pageLoaders.admin);
 const ProfilePage = lazy(pageLoaders.profile);
 const Messages = lazy(pageLoaders.messages);
 const FoldersPage = lazy(pageLoaders.folders);
@@ -60,7 +59,6 @@ function App() {
               <Route path="/perfil" element={<ProfilePage />} />
               <Route path="/carpeta/:id" element={<FolderPokemon />} />
               <Route path="/c/:folderId" element={<PublicCatalog />} />
-              <Route path="/admin" element={<AdminPanel />} />
               <Route path="/mensajes" element={<Messages />} />
               <Route path="/carpetas" element={<FoldersPage />} />
               <Route path="/cartas" element={<CardsPage />} />

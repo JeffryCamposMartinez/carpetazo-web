@@ -9,7 +9,6 @@ export const pageLoaders = {
   folder: () => import('../pages/FolderPokemon'),
   catalog: () => import('../pages/PublicCatalog'),
   seller: () => import('../pages/SellerProfile'),
-  admin: () => import('../pages/AdminPanel'),
   profile: () => import('../pages/ProfilePage'),
   messages: () => import('../pages/Messages'),
   folders: () => import('../pages/FoldersPage'),

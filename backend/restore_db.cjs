@@ -10,7 +10,7 @@ if (!dir) throw new Error('Uso: node restore_db.cjs <carpeta_respaldo>');
 if (/carpetazo\.cl|185\.173\.110\.158|srbo9ybophgpkdgqfr3vtfqh/.test(process.env.DATABASE_URL || '')) throw new Error('Se niega a restaurar sobre producción');
 
 const prisma = new PrismaClient();
-const ORDER = ['TcgCategory', 'TcgBlock', 'TcgPhysicalProduct', 'TcgGroup', 'TcgProduct', 'TcgProductPhysicalProduct', 'User', 'Folder', 'Card', 'Message', 'Order'];
+const ORDER = ['TcgCategory', 'TcgBlock', 'TcgPhysicalProduct', 'TcgGroup', 'TcgProduct', 'TcgProductPhysicalProduct', 'User', 'Folder', 'Card', 'Message', 'Order', 'WishlistItem'];
 const models = Object.fromEntries(Prisma.dmmf.datamodel.models.map((m) => [m.name, m]));
 
 (async () => {

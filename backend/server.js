@@ -1263,7 +1263,9 @@ app.get('/api/folders/:id', optionalAuth, async (req, res) => {
         user: { select: PUBLIC_SELLER_SELECT }
       }
     });
-    if (!folder) return res.status(404).json({ success: false, message: 'Folder not found' });
+    // Una carpeta privada no existe para nadie más que su dueño (mismo 404 que una carpeta inexistente)
+    const isFolderOwner = Boolean(req.user?.sub && folder?.user?.firebaseUid && folder.user.firebaseUid === req.user.sub);
+    if (!folder || (!folder.isPublic && !isFolderOwner)) return res.status(404).json({ success: false, message: 'Folder not found' });
     res.json({ success: true, folder: { ...folder, user: toPublicSeller(folder.user, req.user?.sub) } });
   } catch (error) {
     console.error('Error fetching folder:', error);
@@ -1654,7 +1656,9 @@ app.get('/api/users/:username/wishlist', async (req, res) => {
 });
 
 // Búsqueda pública de cartas a la venta (solo carpetas públicas y con stock)
-const CARD_SEARCH_PAGE_SIZE = 24;
+const CARD_SEARCH_PAGE_SIZE = 24;
+// Las carpetas guardan el juego como Pokemon / YuGiOh / OnePiece; el sitio lo muestra como Pokémon / Yu-Gi-Oh! / One Piece
+const CARD_SEARCH_TCG_ALIASES = { 'Pokémon': 'Pokemon', 'Yu-Gi-Oh!': 'YuGiOh', 'One Piece': 'OnePiece' };
 const CARD_SEARCH_SORTS = {
   recent: [{ createdAt: 'desc' }],
   price_asc: [{ price: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
@@ -1663,7 +1667,8 @@ const CARD_SEARCH_SORTS = {
 app.get('/api/cards/search', async (req, res) => {
   try {
     const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-    const tcg = typeof req.query.tcg === 'string' ? req.query.tcg.trim() : '';
+    const tcgRaw = typeof req.query.tcg === 'string' ? req.query.tcg.trim() : '';
+    const tcg = CARD_SEARCH_TCG_ALIASES[tcgRaw] || tcgRaw;
     const sort = typeof req.query.sort === 'string' ? req.query.sort : 'recent';
     const page = Number.parseInt(req.query.page, 10) || 1;
     if (q.length > 80 || tcg.length > 60 || /[\u0000-\u001f]/.test(q + tcg) || !Object.hasOwn(CARD_SEARCH_SORTS, sort) || page < 1 || page > 1000) {

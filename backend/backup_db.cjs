@@ -25,6 +25,7 @@ const TABLES = [
   ['Card', () => prisma.card.findMany()],
   ['Message', () => prisma.message.findMany()],
   ['Order', () => prisma.order.findMany()],
+  ['WishlistItem', () => prisma.wishlistItem.findMany()],
   ['TcgCategory', () => prisma.tcgCategory.findMany()],
   ['TcgBlock', () => prisma.tcgBlock.findMany()],
   ['TcgGroup', () => prisma.tcgGroup.findMany()],
