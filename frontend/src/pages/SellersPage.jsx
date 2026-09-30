@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { startTransition, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../utils/api';
 
@@ -45,7 +45,7 @@ export default function SellersPage() {
   useEffect(() => {
     let cancelled = false;
     api.getPublicFolders()
-      .then((res) => { if (!cancelled) setFolders(res.success ? res.folders : []); })
+      .then((res) => { if (!cancelled) startTransition(() => setFolders(res.success ? res.folders : [])); })
       .catch(() => { if (!cancelled) setFailed(true); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };

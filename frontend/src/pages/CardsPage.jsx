@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { startTransition, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -55,7 +55,7 @@ export default function CardsPage() {
     if (sort !== 'recent') params.set('sort', sort);
     if (page > 1) params.set('page', String(page));
     api.searchCards(params.toString())
-      .then((res) => { if (!cancelled) setResult(res.success ? res : { cards: [], total: 0, pages: 1 }); })
+      .then((res) => { if (!cancelled) startTransition(() => setResult(res.success ? res : { cards: [], total: 0, pages: 1 })); })
       .catch(() => { if (!cancelled) { setFailed(true); setResult({ cards: [], total: 0, pages: 1 }); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };

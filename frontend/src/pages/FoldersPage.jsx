@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { startTransition, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../utils/api';
 import LazyFolderCard from '../components/LazyFolderCard';
@@ -50,7 +50,7 @@ export default function FoldersPage() {
           folder.user = folder.user?.name || folder.user?.username || 'Vendedor anónimo';
           folder.location = '';
         }
-        if (!cancelled) setFolders(all);
+        if (!cancelled) startTransition(() => setFolders(all));
       } catch (error) {
         console.error('Error fetching folders:', error);
         if (!cancelled) setFailed(true);

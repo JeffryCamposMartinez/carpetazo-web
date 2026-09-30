@@ -1,25 +1,26 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Header from './components/Header';
 import ScrollToTop from './components/ScrollToTop';
 import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
+import { pageLoaders, preloadMainSections } from './utils/routePreload';
 
 // Cada pantalla se descarga solo cuando se visita: el primer arranque en móvil pesa mucho menos
-const LandingPage = lazy(() => import('./pages/LandingPage'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const ExplorePage = lazy(() => import('./pages/ExplorePage'));
-const FolderPokemon = lazy(() => import('./pages/FolderPokemon'));
-const PublicCatalog = lazy(() => import('./pages/PublicCatalog'));
-const SellerProfile = lazy(() => import('./pages/SellerProfile'));
-const AdminPanel = lazy(() => import('./pages/AdminPanel'));
-const ProfilePage = lazy(() => import('./pages/ProfilePage'));
-const Messages = lazy(() => import('./pages/Messages'));
-const FoldersPage = lazy(() => import('./pages/FoldersPage'));
-const CardsPage = lazy(() => import('./pages/CardsPage'));
-const SellersPage = lazy(() => import('./pages/SellersPage'));
-const NotFound = lazy(() => import('./pages/NotFound'));
+const LandingPage = lazy(pageLoaders.landing);
+const Dashboard = lazy(pageLoaders.dashboard);
+const ExplorePage = lazy(pageLoaders.explore);
+const FolderPokemon = lazy(pageLoaders.folder);
+const PublicCatalog = lazy(pageLoaders.catalog);
+const SellerProfile = lazy(pageLoaders.seller);
+const AdminPanel = lazy(pageLoaders.admin);
+const ProfilePage = lazy(pageLoaders.profile);
+const Messages = lazy(pageLoaders.messages);
+const FoldersPage = lazy(pageLoaders.folders);
+const CardsPage = lazy(pageLoaders.cards);
+const SellersPage = lazy(pageLoaders.sellers);
+const NotFound = lazy(pageLoaders.notFound);
 
 // Barra fina de carga mientras llega la pantalla (sin saltos de diseño)
 function RouteLoading() {
@@ -39,6 +40,9 @@ function RouteBoundary({ children }) {
 }
 
 function App() {
+  // Con la página ya cargada, el navegador descarga en segundo plano las secciones del menú
+  useEffect(() => preloadMainSections(), []);
+
   return (
     <AuthProvider>
       <BrowserRouter>

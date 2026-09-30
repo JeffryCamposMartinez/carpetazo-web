@@ -1,6 +1,7 @@
 import LiquidTabs from './LiquidTabs';
+import { preloadMainNow } from '../utils/routePreload';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, startTransition } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../utils/api';
 
@@ -117,7 +118,16 @@ export default function Header() {
     { value: '/cartas', label: 'Cartas' },
     { value: '/vendedores', label: 'Vendedores' },
   ];
-  const activeNavRoute = (NAV_ROUTES.find(r => (r.value === '/' ? location.pathname === '/' : location.pathname.startsWith(r.value))) || {}).value || '';
+  // La banda de secciones tiene su propio estado: se mueve en cuanto se toca y no espera a la pantalla ni a sus datos
+  const [pendingNav, setPendingNav] = useState(null);
+  useEffect(() => { setPendingNav(null); }, [location.pathname]);
+  const goToSection = (route) => {
+    setPendingNav(route);
+    // Primero se pinta el movimiento de la banda; después la pantalla nueva, como transición interrumpible
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => startTransition(() => navigate(route))));
+  };
+  const routeFromLocation = (NAV_ROUTES.find(r => (r.value === '/' ? location.pathname === '/' : location.pathname.startsWith(r.value))) || {}).value || '';
+  const activeNavRoute = pendingNav ?? routeFromLocation;
   const themedNavActive = Boolean(publicHeaderTheme && publicHeaderTheme.id !== 'classic-blue');
 
   useEffect(() => {
@@ -595,7 +605,7 @@ export default function Header() {
           )}
           </div>
           
-          <nav className="flex items-center justify-center w-full gap-2 md:gap-4 overflow-x-auto px-4 py-2 bg-[#1e40af] hide-scrollbar whitespace-nowrap border-t border-[#facc15]/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(9,20,45,0.25)]" style={themedNavStyle}>
+          <nav onPointerEnter={preloadMainNow} onPointerDown={preloadMainNow} onTouchStart={preloadMainNow} className="flex items-center justify-center w-full gap-2 md:gap-4 overflow-x-auto px-4 py-2 bg-[#1e40af] hide-scrollbar whitespace-nowrap border-t border-[#facc15]/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(9,20,45,0.25)]" style={themedNavStyle}>
             <LiquidTabs
               ariaLabel="Navegación principal"
               layout="inline"
@@ -608,7 +618,7 @@ export default function Header() {
               activeTextStyle={{ color: themedNavActive ? publicHeaderTheme.text : '#1e40af' }}
               inactiveTextStyle={themedNavActive ? { color: `${publicHeaderTheme.card || '#ffffff'}dd` } : undefined}
               value={activeNavRoute}
-              onChange={(route) => navigate(route)}
+              onChange={goToSection}
               options={NAV_ROUTES}
             />
           </nav>
@@ -701,7 +711,7 @@ export default function Header() {
           </form>
 
           {/* Navegación principal compacta: 4 columnas iguales, sin scroll horizontal */}
-          <nav className="border-t border-[#facc15]/40 bg-[#1e40af] px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" style={themedNavStyle}>
+          <nav onPointerDown={preloadMainNow} onTouchStart={preloadMainNow} className="border-t border-[#facc15]/40 bg-[#1e40af] px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" style={themedNavStyle}>
             <LiquidTabs
               ariaLabel="Navegación principal"
               layout="grid"
@@ -713,7 +723,7 @@ export default function Header() {
               activeTextStyle={{ color: themedNavActive ? publicHeaderTheme.text : '#1e40af' }}
               inactiveTextStyle={themedNavActive ? { color: `${publicHeaderTheme.card || '#ffffff'}dd` } : undefined}
               value={activeNavRoute}
-              onChange={(route) => navigate(route)}
+              onChange={goToSection}
               options={NAV_ROUTES}
             />
           </nav>

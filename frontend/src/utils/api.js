@@ -7,6 +7,24 @@ export const apiUrl = (endpoint = '') => {
   return API_BASE_URL + normalizedEndpoint;
 };
 
+// La lista pública de carpetas se pide en la portada, en Carpetas y en Vendedores: se comparte un minuto para que
+// cambiar de sección no espere la red. Cada quien recibe su propia copia (las pantallas modifican los datos).
+const PUBLIC_FOLDERS_TTL_MS = 60 * 1000;
+const searchCardsCache = new Map(); // consulta -> { at, json }
+let publicFoldersCache = null; // { at, text }
+let publicFoldersPending = null;
+const clearPublicFoldersCache = () => { publicFoldersCache = null; searchCardsCache.clear(); };
+
+const searchCardsShared = (queryString = '') => {
+  const hit = searchCardsCache.get(queryString);
+  if (hit && Date.now() - hit.at < PUBLIC_FOLDERS_TTL_MS) return Promise.resolve(hit.json);
+  return apiFetch('/cards/search' + (queryString ? '?' + queryString : '')).then((json) => {
+    if (searchCardsCache.size >= 20) searchCardsCache.delete(searchCardsCache.keys().next().value);
+    searchCardsCache.set(queryString, { at: Date.now(), json });
+    return json;
+  });
+};
+
 /**
  * Función genérica para hacer peticiones al backend.
  * Automáticamente inyecta el token de Firebase.
@@ -37,7 +55,20 @@ export const apiFetch = async (endpoint, options = {}) => {
     throw new Error(errorData.message || errorData.error || 'Error: ' + response.status);
   }
 
+  // Cualquier cambio en carpetas, cartas o perfil invalida la copia de la lista pública
+  if (options.method && options.method !== 'GET' && /^\/(folders|cards|users)/.test(endpoint)) clearPublicFoldersCache();
+
   return response.json();
+};
+
+const getPublicFoldersShared = () => {
+  if (publicFoldersCache && Date.now() - publicFoldersCache.at < PUBLIC_FOLDERS_TTL_MS) return Promise.resolve(JSON.parse(publicFoldersCache.text));
+  if (!publicFoldersPending) {
+    publicFoldersPending = apiFetch('/folders')
+      .then((json) => { publicFoldersCache = { at: Date.now(), text: JSON.stringify(json) }; return publicFoldersCache.text; })
+      .finally(() => { publicFoldersPending = null; });
+  }
+  return publicFoldersPending.then((text) => JSON.parse(text));
 };
 
 export const api = {
@@ -56,9 +87,9 @@ export const api = {
   deleteProfile: () => apiFetch('/users/me', { method: 'DELETE' }),
   
   // Folders
-  getPublicFolders: () => apiFetch('/folders'),
+  getPublicFolders: () => getPublicFoldersShared(),
   getRecentCards: (limit = 12) => apiFetch('/cards/recent?limit=' + limit),
-  searchCards: (queryString = '') => apiFetch('/cards/search' + (queryString ? '?' + queryString : '')),
+  searchCards: (queryString = '') => searchCardsShared(queryString),
   getMyWishlist: () => apiFetch('/wishlist/me'),
   addWishlistItem: (data) => apiFetch('/wishlist', { method: 'POST', body: JSON.stringify(data) }),
   updateWishlistItem: (id, data) => apiFetch('/wishlist/' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(data) }),

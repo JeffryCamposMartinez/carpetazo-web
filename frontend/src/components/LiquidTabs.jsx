@@ -1,7 +1,11 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-// Grupo de opciones con un indicador azul que se desliza de una a otra como un líquido:
-// el borde que avanza se mueve primero y el otro lo alcanza después.
+// Grupo de opciones con un indicador que se desliza de una a otra como un líquido: el borde que avanza se
+// adelanta y el otro lo alcanza después. El movimiento usa solo `transform` (lo resuelve la tarjeta gráfica, sin
+// recalcular el diseño), así se mantiene a 60 o 120 cuadros por segundo aunque la página cargue datos al mismo tiempo.
+const DURATION_MS = 420;
+const EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
 export default function LiquidTabs({
   options,
   value,
@@ -19,24 +23,18 @@ export default function LiquidTabs({
 }) {
   const containerRef = useRef(null);
   const buttonRefs = useRef([]);
-  const prevIndexRef = useRef(null);
-  const [box, setBox] = useState(null); // { left, right, forward }
-  const [animate, setAnimate] = useState(false);
+  const indicatorRef = useRef(null);
+  const previousBox = useRef(null);
+  const animateRef = useRef(false);
+  const [box, setBox] = useState(null); // { left, width } del botón activo
   const foundIndex = options.findIndex(o => String(o.value) === String(value));
   const hasActive = foundIndex >= 0; // si ninguna coincide, no se muestra el indicador
   const activeIndex = Math.max(0, foundIndex);
 
   const measure = () => {
-    const container = containerRef.current;
     const btn = buttonRefs.current[activeIndex];
-    if (!container || !btn) return;
-    const prev = prevIndexRef.current;
-    setBox({
-      left: btn.offsetLeft,
-      right: container.clientWidth - (btn.offsetLeft + btn.offsetWidth),
-      forward: prev === null ? true : activeIndex >= prev,
-    });
-    prevIndexRef.current = activeIndex;
+    if (!containerRef.current || !btn) return;
+    setBox((previous) => (previous && previous.left === btn.offsetLeft && previous.width === btn.offsetWidth ? previous : { left: btn.offsetLeft, width: btn.offsetWidth }));
   };
 
   const measureRef = useRef(measure);
@@ -44,20 +42,40 @@ export default function LiquidTabs({
 
   useLayoutEffect(measure, [activeIndex, options.length]);
 
+  // Posición final y animación del cambio: la forma final se fija de una vez y se anima solo con transform
+  useLayoutEffect(() => {
+    const el = indicatorRef.current;
+    if (!el || !box) return;
+    const before = previousBox.current;
+    previousBox.current = box;
+    el.style.width = `${box.width}px`;
+    el.style.transform = `translate3d(${box.left}px, 0, 0)`;
+    if (!before || !animateRef.current || typeof el.animate !== 'function') return;
+    if (before.left === box.left && before.width === box.width) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+
+    const minLeft = Math.min(before.left, box.left);
+    const maxRight = Math.max(before.left + before.width, box.left + box.width);
+    el.getAnimations?.().forEach((animation) => animation.cancel());
+    el.animate(
+      [
+        { transform: `translate3d(${before.left}px, 0, 0) scaleX(${before.width / box.width})` },
+        { transform: `translate3d(${minLeft}px, 0, 0) scaleX(${(maxRight - minLeft) / box.width})`, offset: 0.45 },
+        { transform: `translate3d(${box.left}px, 0, 0) scaleX(1)` },
+      ],
+      { duration: DURATION_MS, easing: EASING }
+    );
+  }, [box, hasActive]);
+
   // Al cambiar el tamaño se recoloca el indicador sin animar
   useEffect(() => {
-    const id = setTimeout(() => setAnimate(true), 50); // sin animación en el primer pintado
+    const id = setTimeout(() => { animateRef.current = true; }, 50); // sin animación en el primer pintado
     const ro = typeof ResizeObserver !== 'undefined'
-      ? new ResizeObserver(() => { setAnimate(false); measureRef.current(); setTimeout(() => setAnimate(true), 50); })
+      ? new ResizeObserver(() => { animateRef.current = false; measureRef.current(); setTimeout(() => { animateRef.current = true; }, 50); })
       : null;
     if (ro && containerRef.current) ro.observe(containerRef.current);
     return () => { clearTimeout(id); ro?.disconnect(); };
   }, []);
-
-  // El borde delantero usa una transición corta y el trasero una más larga: efecto "gota"
-  const lead = '280ms cubic-bezier(0.22, 1, 0.36, 1)';
-  const trail = '460ms cubic-bezier(0.22, 1, 0.36, 1) 40ms';
-  const transition = !animate || !box ? 'none' : box.forward ? `right ${lead}, left ${trail}` : `left ${lead}, right ${trail}`;
 
   return (
     <div
@@ -69,9 +87,10 @@ export default function LiquidTabs({
     >
       {box && hasActive && (
         <span
+          ref={indicatorRef}
           aria-hidden="true"
-          className={`pointer-events-none absolute bottom-0 top-0 ${indicatorClassName}`}
-          style={{ left: box.left, right: box.right, transition, ...indicatorStyle }}
+          className={`pointer-events-none absolute bottom-0 left-0 top-0 ${indicatorClassName}`}
+          style={{ transformOrigin: '0 50%', willChange: 'transform', ...indicatorStyle }}
         />
       )}
       {options.map((o, i) => {
