@@ -1,4 +1,5 @@
 import NotFound from './NotFound';
+import WishlistSection from '../components/WishlistSection';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { updateProfile as updateFirebaseProfile } from 'firebase/auth';
@@ -1354,6 +1355,18 @@ export default function SellerProfile() {
               </div>
             )}
           </section>
+
+          {getSocialEnabled('showWishlist') && seller?.username && (
+            <section className="min-w-0 border p-5 ring-1 lg:col-span-12" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}33`, order: 99 }}>
+              <WishlistSection
+                username={seller.username}
+                seller={{ id: seller.id, name: displayName, avatar: avatarUrl }}
+                isOwner={isOwner}
+                variant="profile"
+                colors={{ primary: publicTheme.primary, accent: publicTheme.accent, text: publicTheme.text }}
+              />
+            </section>
+          )}
         </div>
       </main>
       </div>
@@ -1571,6 +1584,9 @@ export default function SellerProfile() {
                   <div className="space-y-2.5">
                     <ToggleRow enabled={messageButtonEnabled} onClick={() => handleThemeFieldChange('showMessageButton', messageButtonEnabled ? 'off' : 'on')} label="Mensaje privado" status={messageButtonEnabled ? 'Visible en tu perfil' : 'Oculto en tu perfil'}>
                       <span translate="no" className="material-symbols-outlined text-[24px] text-[#12315f]">chat</span>
+                    </ToggleRow>
+                    <ToggleRow enabled={getSocialEnabled('showWishlist')} onClick={() => handleThemeFieldChange('showWishlist', getSocialEnabled('showWishlist') ? 'off' : 'on')} label="Lista de cartas deseadas" status={getSocialEnabled('showWishlist') ? 'Visible en tu perfil y en tus carpetas' : 'Oculta para los demás'}>
+                      <span translate="no" className="material-symbols-outlined text-[24px] text-[#12315f]">favorite</span>
                     </ToggleRow>
                     {socialLinks.map((social) => {
                       const enabled = getSocialEnabled(social.field);

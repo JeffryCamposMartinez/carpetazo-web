@@ -656,7 +656,7 @@ export default function Header() {
           </div>
           
           {/* Mobile Search Bar with Category */}
-          <form onSubmit={handleSearch} className="px-3 pt-1 pb-3 border-b-2 border-[#facc15]/60">
+          <form onSubmit={handleSearch} className="px-3 pt-1 pb-2.5">
             <div className="flex items-center bg-white rounded-full shadow-[0_2px_10px_rgba(0,0,0,0.25)] overflow-visible relative pl-0.5 pr-1 focus-within:ring-[3px] focus-within:ring-[#facc15]/70">
               {/* Category selector mobile */}
               <div className="relative search-category-dropdown">
@@ -699,6 +699,24 @@ export default function Header() {
               </button>
             </div>
           </form>
+
+          {/* Navegación principal compacta: 4 columnas iguales, sin scroll horizontal */}
+          <nav className="border-t border-[#facc15]/40 bg-[#1e40af] px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" style={themedNavStyle}>
+            <LiquidTabs
+              ariaLabel="Navegación principal"
+              layout="grid"
+              buttonClassName="rounded-full px-1 py-1.5 text-[13px] max-[359px]:text-[11.5px] font-medium leading-none focus-visible:ring-2 focus-visible:ring-[#facc15]/80"
+              indicatorClassName="rounded-full shadow-sm"
+              indicatorStyle={{ backgroundColor: themedNavActive ? (publicHeaderTheme.surface || publicHeaderTheme.card) : '#ffffff' }}
+              activeTextClassName="font-bold"
+              inactiveTextClassName="text-white/85"
+              activeTextStyle={{ color: themedNavActive ? publicHeaderTheme.text : '#1e40af' }}
+              inactiveTextStyle={themedNavActive ? { color: `${publicHeaderTheme.card || '#ffffff'}dd` } : undefined}
+              value={activeNavRoute}
+              onChange={(route) => navigate(route)}
+              options={NAV_ROUTES}
+            />
+          </nav>
         </div>
       </header>
 
@@ -741,12 +759,6 @@ export default function Header() {
 
             {(() => {
               const rowBase = 'relative flex min-h-12 items-center gap-3.5 rounded-xl px-3 text-[15px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]/50';
-              const navItems = [
-                { to: '/', label: 'Inicio', icon: 'home', active: activeNavRoute === '/' },
-                { to: '/carpetas', label: 'Carpetas', icon: 'folder_open', active: activeNavRoute === '/carpetas' },
-                { to: '/cartas', label: 'Cartas', icon: 'style', active: activeNavRoute === '/cartas' },
-                { to: '/vendedores', label: 'Vendedores', icon: 'storefront', active: activeNavRoute === '/vendedores' },
-              ];
               const accountItems = [
                 { to: '/dashboard', label: 'Mis carpetas', icon: 'folder', active: location.pathname === '/dashboard' && !location.search.includes('solicitudes') },
                 ...(pendingOrders.count > 0 ? [{ to: '/dashboard?tab=solicitudes', label: 'Solicitudes de compra', icon: 'inbox', badge: pendingOrders.count }] : []),
@@ -772,13 +784,9 @@ export default function Header() {
               );
               return (
                 <div className="flex flex-1 flex-col px-3 pb-4 pt-3">
-                  <nav aria-label="Navegación principal" className="flex flex-col gap-0.5">
-                    {navItems.map(renderItem)}
-                  </nav>
-
                   {currentUser ? (
                     <>
-                      <p className="mb-1 mt-4 px-3 text-xs font-bold text-slate-400">Tu cuenta</p>
+                      <p className="mb-1 px-3 text-xs font-bold text-slate-400">Tu cuenta</p>
                       <nav aria-label="Tu cuenta" className="flex flex-col gap-0.5">
                         {accountItems.map(renderItem)}
                       </nav>
@@ -792,7 +800,7 @@ export default function Header() {
                       </div>
                     </>
                   ) : (
-                    <div className="mt-auto pt-6">
+                    <div className="pt-2">
                       <p className="mb-2 px-1 text-sm font-semibold text-slate-500">Entra para vender, guardar carpetas y hablar con vendedores.</p>
                       <button
                         onClick={() => { closeMobileMenu(); handleLogin(); }}

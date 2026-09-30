@@ -180,6 +180,7 @@ export default function Messages() {
     };
 
     setActiveChat(nextChat);
+    if (typeof targetUser.draft === 'string' && targetUser.draft) setNewMessage(targetUser.draft.slice(0, 500));
     navigate('/mensajes', { replace: true, state: {} });
   }, [location.state, chats, loadingChats, currentUser, navigate]);
 

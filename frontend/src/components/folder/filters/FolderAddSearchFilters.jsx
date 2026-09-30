@@ -29,13 +29,14 @@ const SelectField = ({ value, onChange, disabled, children, className = '' }) =>
     value={value}
     onChange={onChange}
     disabled={disabled}
-    className={`w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 transition-colors focus:border-[#1e40af] focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 sm:text-sm lg:text-xs ${className}`}
+    className={`h-9 w-full rounded-lg border border-gray-300 bg-white px-2 text-xs text-gray-900 transition-colors focus:border-[#1e40af] focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 sm:text-sm lg:text-xs ${className}`}
   >
     {children}
   </select>
 );
 
 const EditionDropdown = ({
+  wrapperClassName = '',
   searchSet,
   availableSets,
   filteredSearchSets,
@@ -44,14 +45,14 @@ const EditionDropdown = ({
   onSelectSet,
   label = 'Edición',
 }) => (
-  <div className="relative w-full">
+  <div className={`relative w-full ${wrapperClassName}`}>
     <button
       type="button"
-      className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 transition-colors hover:border-[#1e40af] sm:text-sm lg:text-xs"
+      className="flex h-9 w-full cursor-pointer items-center justify-between rounded-lg border border-gray-300 bg-white px-2 text-xs text-gray-900 transition-colors hover:border-[#1e40af] sm:text-sm lg:text-xs"
       onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}
     >
-      <span className="truncate font-bold">{searchSet === '' ? label : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
-      <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
+      <span className={`truncate ${searchSet === '' ? 'font-normal' : 'font-bold text-[#1e40af]'}`}>{searchSet === '' ? label : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
+      <span translate="no" className="material-symbols-outlined ml-2 text-[18px] leading-none text-gray-500">expand_more</span>
     </button>
     {isSetDropdownOpen && (
       <>
@@ -135,6 +136,7 @@ const MylFilters = ({
       </SelectField>
 
       <EditionDropdown
+        wrapperClassName="col-span-2 sm:col-span-1"
         searchSet={searchSet}
         availableSets={availableSets}
         filteredSearchSets={filteredSearchSets}

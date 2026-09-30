@@ -261,6 +261,11 @@ app.post('/api/users/upload-image', routeLimiter(15 * 60 * 1000, 30));
 app.get('/api/tcg/search', routeLimiter(15 * 60 * 1000, 300));
 app.post('/api/tcg/products/metadata', routeLimiter(15 * 60 * 1000, 300));
 app.get('/api/cards/search', routeLimiter(15 * 60 * 1000, 300));
+app.get('/api/wishlist/me', routeLimiter(15 * 60 * 1000, 300));
+app.post('/api/wishlist', routeLimiter(15 * 60 * 1000, 120));
+app.put('/api/wishlist/:id', routeLimiter(15 * 60 * 1000, 120));
+app.delete('/api/wishlist/:id', routeLimiter(15 * 60 * 1000, 120));
+app.get('/api/users/:username/wishlist', routeLimiter(15 * 60 * 1000, 300));
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
@@ -1424,6 +1429,191 @@ app.get('/api/cards/recent', async (req, res) => {
   }
 });
 
+// --- Lista de cartas deseadas ---
+const WISHLIST_MAX_ITEMS = 200;
+const WISHLIST_PAGE_SIZE = 24;
+const WISHLIST_GAMES = ['Pokémon', 'Mitos y Leyendas', 'One Piece', 'Magic', 'Yu-Gi-Oh!', 'Riftbound'];
+const WISHLIST_GAME_BY_CATEGORY = { 1: 'Pokémon', 99: 'Mitos y Leyendas' };
+const WISHLIST_OWN_SELECT = { id: true, categoryId: true, productId: true, name: true, game: true, detail: true, imageUrl: true, quantity: true, maxPrice: true, priceVisible: true, note: true, createdAt: true };
+const hasControlChars = (text) => /[\u0000-\u001f]/.test(text);
+
+const currentUserId = async (req) => {
+  const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
+  return user?.id || null;
+};
+
+// Juego: solo los de la lista del sitio ("Pokemon" sin tilde se acepta). null = sin juego; undefined = inválido
+const normalizeWishlistGame = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'string') return undefined;
+  const GAME_ALIASES = { Pokemon: 'Pokémon', YuGiOh: 'Yu-Gi-Oh!', OnePiece: 'One Piece' }; // nombres con que se guardan las carpetas
+  const game = GAME_ALIASES[value.trim()] || value.trim();
+  return WISHLIST_GAMES.includes(game) ? game : undefined;
+};
+
+// Cantidad, precio máximo, visibilidad del precio y nota: se validan igual al crear y al editar
+const parseWishlistFields = (body) => {
+  const out = {};
+  if (body.quantity !== undefined) {
+    const quantity = Number(body.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) return { error: 'Cantidad inválida' };
+    out.quantity = quantity;
+  }
+  if (body.maxPrice !== undefined) {
+    if (body.maxPrice === null || body.maxPrice === '') out.maxPrice = null;
+    else if (!isValidPrice(body.maxPrice)) return { error: 'Precio inválido' };
+    else out.maxPrice = Number(body.maxPrice);
+  }
+  if (body.priceVisible !== undefined) {
+    if (typeof body.priceVisible !== 'boolean') return { error: 'Dato inválido' };
+    out.priceVisible = body.priceVisible;
+  }
+  if (body.note !== undefined) {
+    if (body.note !== null && (!isOptionalText(body.note, 140) || hasControlChars(String(body.note).replace(/[\r\n]/g, ' ')))) return { error: 'Nota inválida' };
+    out.note = body.note ? String(body.note).trim() || null : null;
+  }
+  return { data: out };
+};
+
+app.get('/api/wishlist/me', authenticateToken, async (req, res) => {
+  try {
+    const userId = await currentUserId(req);
+    if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const items = await prisma.wishlistItem.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: WISHLIST_MAX_ITEMS, select: WISHLIST_OWN_SELECT });
+    res.json({ success: true, items, limit: WISHLIST_MAX_ITEMS });
+  } catch (error) {
+    console.error('Error loading wishlist:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+app.post('/api/wishlist', authenticateToken, async (req, res) => {
+  try {
+    const userId = await currentUserId(req);
+    if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+
+    const { productId, name, imageUrl, external } = req.body || {};
+    const parsed = parseWishlistFields(req.body || {});
+    if (parsed.error) return badRequest(res, parsed.error);
+    if (productId !== undefined && productId !== null && (typeof productId !== 'string' || productId.length > 40 || hasControlChars(productId))) return badRequest(res, 'Carta inválida');
+    const game = normalizeWishlistGame(req.body?.game);
+    if (game === undefined) return badRequest(res, 'Juego inválido');
+    const rawDetail = req.body?.detail;
+    if (rawDetail !== undefined && rawDetail !== null && (!isOptionalText(rawDetail, 100) || hasControlChars(String(rawDetail)))) return badRequest(res, 'Detalle inválido');
+    const detail = rawDetail ? String(rawDetail).trim() || null : null;
+
+    // Carta del catálogo propio (Mitos y Leyendas, Pokémon del catálogo): nombre, imagen, juego y edición salen de la base
+    const catalog = productId
+      ? await prisma.tcgProduct.findUnique({ where: { productId }, select: { productId: true, name: true, imageUrl: true, categoryId: true, group: { select: { name: true } } } })
+      : null;
+    let identity;
+    if (catalog) {
+      identity = { productId: catalog.productId, categoryId: catalog.categoryId, name: catalog.name, game: WISHLIST_GAME_BY_CATEGORY[catalog.categoryId] || game, detail: catalog.group?.name || detail, imageUrl: catalog.imageUrl || null };
+    } else if (external !== undefined) {
+      // Pokémon de TCGCSV (inglés 3, japonés 85): el catálogo no está en la base, el identificador se valida por forma
+      const externalCategory = Number(external?.categoryId);
+      const externalId = typeof external?.productId === 'string' || typeof external?.productId === 'number' ? String(external.productId) : '';
+      if (![3, 85].includes(externalCategory) || !/^\d{1,12}$/.test(externalId)) return badRequest(res, 'Carta inválida');
+      if (!isShortText(name, 100) || hasControlChars(name)) return badRequest(res, 'Carta inválida');
+      identity = { productId: `tcgcsv:${externalCategory}:${externalId}`, categoryId: 1, name: name.trim(), game: 'Pokémon', detail, imageUrl: imageUrl && isAllowedStoredImageUrl(imageUrl) ? imageUrl : null };
+    } else {
+      if (!isShortText(name, 100) || hasControlChars(name)) return badRequest(res, 'Escribe el nombre de la carta');
+      identity = { productId: null, categoryId: null, name: name.trim(), game, detail, imageUrl: imageUrl && isAllowedStoredImageUrl(imageUrl) ? imageUrl : null };
+    }
+
+    const item = await prisma.$transaction(async (tx) => {
+      const existing = identity.productId
+        ? await tx.wishlistItem.findUnique({ where: { userId_productId: { userId, productId: identity.productId } } })
+        : await tx.wishlistItem.findFirst({ where: { userId, productId: null, detail: identity.detail, name: { equals: identity.name, mode: 'insensitive' } } });
+      if (existing) {
+        // La misma carta no se duplica: se suma a la cantidad que ya buscaba
+        const quantity = Math.min(99, existing.quantity + (parsed.data.quantity ?? 1));
+        return tx.wishlistItem.update({ where: { id: existing.id }, data: { ...parsed.data, quantity }, select: WISHLIST_OWN_SELECT });
+      }
+      if ((await tx.wishlistItem.count({ where: { userId } })) >= WISHLIST_MAX_ITEMS) return null;
+      return tx.wishlistItem.create({ data: { userId, ...identity, ...parsed.data }, select: WISHLIST_OWN_SELECT });
+    });
+    if (!item) return badRequest(res, `Tu lista ya tiene ${WISHLIST_MAX_ITEMS} cartas. Quita alguna para agregar más.`);
+    res.json({ success: true, item });
+  } catch (error) {
+    console.error('Error adding wishlist item:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+app.put('/api/wishlist/:id', authenticateToken, async (req, res) => {
+  try {
+    const userId = await currentUserId(req);
+    if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const parsed = parseWishlistFields(req.body || {});
+    if (parsed.error) return badRequest(res, parsed.error);
+    const owned = await prisma.wishlistItem.findFirst({ where: { id: req.params.id, userId }, select: { id: true } });
+    if (!owned) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
+    const item = await prisma.wishlistItem.update({ where: { id: owned.id }, data: parsed.data, select: WISHLIST_OWN_SELECT });
+    res.json({ success: true, item });
+  } catch (error) {
+    console.error('Error updating wishlist item:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+app.delete('/api/wishlist/:id', authenticateToken, async (req, res) => {
+  try {
+    const userId = await currentUserId(req);
+    if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const removed = await prisma.wishlistItem.deleteMany({ where: { id: req.params.id, userId } });
+    if (removed.count === 0) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting wishlist item:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Lista pública de un jugador: solo si no la ocultó, y sin ningún dato privado
+app.get('/api/users/:username/wishlist', async (req, res) => {
+  try {
+    const username = typeof req.params.username === 'string' ? req.params.username.trim() : '';
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    if (!username || username.length > 60 || page < 1 || page > 100) return badRequest(res, 'Consulta inválida');
+    const user = await prisma.user.findUnique({ where: { username }, select: { id: true, publicTheme: true } });
+    if (!user) return res.status(404).json({ success: false, message: 'Vendedor no encontrado' });
+    const theme = user.publicTheme && typeof user.publicTheme === 'object' ? user.publicTheme : {};
+    if (theme.showWishlist === 'off') return res.json({ success: true, hidden: true, total: 0, page: 1, pages: 1, items: [] });
+
+    const [total, rows] = await prisma.$transaction([
+      prisma.wishlistItem.count({ where: { userId: user.id } }),
+      prisma.wishlistItem.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * WISHLIST_PAGE_SIZE,
+        take: WISHLIST_PAGE_SIZE,
+        select: WISHLIST_OWN_SELECT,
+      }),
+    ]);
+    res.json({
+      success: true,
+      hidden: false,
+      total,
+      page,
+      pages: Math.max(1, Math.ceil(total / WISHLIST_PAGE_SIZE)),
+      items: rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        imageUrl: row.imageUrl,
+        quantity: row.quantity,
+        note: row.note,
+        maxPrice: row.priceVisible ? row.maxPrice : null,
+        tcg: row.game || WISHLIST_GAME_BY_CATEGORY[row.categoryId] || null,
+        detail: row.detail,
+      })),
+    });
+  } catch (error) {
+    console.error('Error loading public wishlist:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
 // Búsqueda pública de cartas a la venta (solo carpetas públicas y con stock)
 const CARD_SEARCH_PAGE_SIZE = 24;
 const CARD_SEARCH_SORTS = {
@@ -1456,6 +1646,7 @@ app.get('/api/cards/search', async (req, res) => {
         select: {
           id: true,
           name: true,
+          tcgId: true,
           imageUrl: true,
           price: true,
           stock: true,
@@ -2044,7 +2235,8 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
         'showInstagram',
         'showFacebook',
         'showMessageButton',
-        'showYoutube'
+        'showYoutube',
+        'showWishlist'
       ];
       updateData.publicTheme = Object.fromEntries(
         Object.entries(updateData.publicTheme)

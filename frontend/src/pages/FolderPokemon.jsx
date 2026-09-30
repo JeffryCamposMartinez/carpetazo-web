@@ -595,13 +595,14 @@ const [isSearching, setIsSearching] = useState(false);
   }, [id]);
 
   useEffect(() => {
+    let stale = false;
     if (!searchCategory) {
       setAvailableSets([]);
       setSearchSet('');
-      return;
+      return undefined;
     }
-    api.getTcgBlocks(searchCategory).then(res => { 
-      if(res.success) {
+    api.getTcgBlocks(searchCategory).then(res => {
+      if(!stale && res.success) {
         const sorted = res.data.sort((a, b) => {
           if (a.id === 2) return -1;
           if (b.id === 2) return 1;
@@ -610,7 +611,7 @@ const [isSearching, setIsSearching] = useState(false);
         setAvailableBlocks(sorted);
       }
     }).catch(console.error);
-    api.getTcgPhysicalProducts().then(res => { if(res.success) setAvailablePhysicalProducts(res.data); }).catch(console.error);
+    api.getTcgPhysicalProducts().then(res => { if(!stale && res.success) setAvailablePhysicalProducts(res.data); }).catch(console.error);
     if (searchCategory === '1') {
       setAvailableSets([]);
       // Cancelar cualquier carga en curso del idioma anterior y limpiar sus resultados
@@ -629,6 +630,7 @@ const [isSearching, setIsSearching] = useState(false);
         fetch('/empty-groups-tcgcsv.json').then(r => r.json()).catch(() => ({})),
       ])
         .then(([json, emptyGroups]) => {
+          if (stale) return;
           const groups = (json.results || [])
             .filter(g => new Date(g.publishedOn) <= new Date())
             .filter(g => emptyGroups[catId]?.[g.groupId] !== g.modifiedOn);
@@ -640,11 +642,11 @@ const [isSearching, setIsSearching] = useState(false);
           setAvailableSets(groups.map(g => ({ groupId: g.groupId, id: g.groupId, name: g.name, publishedOn: g.publishedOn })));
         })
         .catch(console.error);
-      return;
+      return () => { stale = true; };
     }
       api.getTcgGroups(searchCategory)
       .then(res => {
-        if (res.success) {
+        if (!stale && res.success) {
           let sortedSets = res.data.sort((a,b) => new Date(b.publishedOn || 0) - new Date(a.publishedOn || 0));
           
           
@@ -656,6 +658,7 @@ const [isSearching, setIsSearching] = useState(false);
         }
       })
       .catch(console.error);
+    return () => { stale = true; };
   }, [searchCategory, searchLang]);
 
   // --- MANEJO DE CATÁLOGO LOGIC ---

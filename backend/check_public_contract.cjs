@@ -35,6 +35,7 @@ const get = async (path) => {
 
   const usernames = [...new Set(folders.map((f) => f.user?.username).filter(Boolean))].slice(0, 5);
   for (const username of usernames) check(`/users/${username}`, await get(`/users/${encodeURIComponent(username)}`));
+  if (usernames[0]) check('/users/:username/wishlist', await get(`/users/${encodeURIComponent(usernames[0])}/wishlist`));
 
   check('/cards/recent', await get('/cards/recent?limit=5'));
   check('/cards/search', await get('/cards/search?q=a'));
@@ -43,5 +44,5 @@ const get = async (path) => {
     console.error('FUGA DE DATOS en rutas públicas:\n - ' + problems.join('\n - '));
     process.exit(1);
   }
-  console.log(`OK: sin campos privados en ${2 + usernames.length + 2} respuestas públicas revisadas.`);
+  console.log(`OK: sin campos privados en ${2 + usernames.length + 2 + (usernames[0] ? 1 : 0)} respuestas públicas revisadas.`);
 })().catch((err) => { console.error('Error:', err.message); process.exit(2); });

@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { api } from '../utils/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import OrdersTab from '../components/OrdersTab';
+import WishlistTab from '../components/WishlistTab';
 import LiquidTabs from '../components/LiquidTabs';
 import FlipCounter from '../components/FlipCounter';
 // html2canvas + jsPDF pesan mucho: se descargan solo al generar un PDF
@@ -93,11 +94,11 @@ export default function Dashboard() {
   const [editFolderColor, setEditFolderColor] = useState('red');
   const [searchParams] = useSearchParams();
   const linkedTab = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState(['solicitudes', 'historial'].includes(linkedTab) ? linkedTab : 'carpetas');
+  const [activeTab, setActiveTab] = useState(['solicitudes', 'historial', 'deseadas'].includes(linkedTab) ? linkedTab : 'carpetas');
 
   // Enlaces como /dashboard?tab=solicitudes (por ejemplo desde la campana) abren esa pestaña
   useEffect(() => {
-    if (['carpetas', 'solicitudes', 'historial'].includes(linkedTab)) setActiveTab(linkedTab);
+    if (['carpetas', 'solicitudes', 'historial', 'deseadas'].includes(linkedTab)) setActiveTab(linkedTab);
   }, [linkedTab]);
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
@@ -204,7 +205,7 @@ export default function Dashboard() {
 
   // Al abrir Solicitudes o Historial se recargan los pedidos (pueden haber llegado nuevos)
   useEffect(() => {
-    if (!currentUser || activeTab === 'carpetas') return;
+    if (!currentUser || !['solicitudes', 'historial'].includes(activeTab)) return;
     api.getMyOrders()
       .then((response) => { if (response.success) setOrders(response.orders); })
       .catch(() => {});
@@ -347,7 +348,8 @@ export default function Dashboard() {
         </span>
       )
     },
-    { value: 'historial', label: <span className="flex items-center justify-center gap-1.5 sm:gap-2"><span translate="no" className="material-symbols-outlined hidden text-xl min-[400px]:inline">history</span>Historial</span> }
+    { value: 'historial', label: <span className="flex items-center justify-center gap-1.5 sm:gap-2"><span translate="no" className="material-symbols-outlined hidden text-xl min-[400px]:inline">history</span>Historial</span> },
+    { value: 'deseadas', label: <span className="flex items-center justify-center gap-1.5 sm:gap-2"><span translate="no" className="material-symbols-outlined hidden text-xl min-[400px]:inline">favorite</span>Deseadas</span> }
   ];
 
   return (
@@ -363,11 +365,13 @@ export default function Dashboard() {
                 {activeTab === 'carpetas' && 'Tus carpetas'}
                 {activeTab === 'solicitudes' && 'Solicitudes'}
                 {activeTab === 'historial' && 'Historial de ventas'}
+                {activeTab === 'deseadas' && 'Cartas deseadas'}
               </h1>
               <p className="text-lg leading-relaxed text-slate-600 md:min-h-[3.7rem]">
                 {activeTab === 'carpetas' && 'Arma catálogos con tus cartas, publícalos y comparte el enlace con quien quiera comprarte.'}
                 {activeTab === 'solicitudes' && 'Pedidos que llegaron desde tus carpetas públicas. Al confirmar una venta, el stock se descuenta solo.'}
                 {activeTab === 'historial' && 'Tus ventas confirmadas y pedidos rechazados, con cada carta, monto y fecha.'}
+                {activeTab === 'deseadas' && 'Las cartas que buscas. Quien vea tus carpetas las verá y podrá ofrecértelas.'}
               </p>
             </div>
             {activeTab === 'carpetas' && folders.length > 0 && (
@@ -507,6 +511,8 @@ export default function Dashboard() {
           ))}
 
         </div>
+      ) : activeTab === 'deseadas' ? (
+          <WishlistTab showToast={showToast} />
       ) : (
           <OrdersTab
             showToast={showToast}

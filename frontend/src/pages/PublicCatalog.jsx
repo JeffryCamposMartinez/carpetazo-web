@@ -6,6 +6,7 @@ import AlbumView from '../components/AlbumView';
 import Toast from '../components/Toast';
 import { useAuth } from '../contexts/AuthContext';
 import PublicCatalogFilters from '../components/folder/filters/PublicCatalogFilters';
+import WishlistSection from '../components/WishlistSection';
 
 const isLocalhostWithProductionApi = () => {
   if (typeof window === 'undefined') return false;
@@ -637,16 +638,18 @@ function PublicCatalog() {
             )}
             <div className="absolute inset-0 z-[1] bg-gradient-to-br from-[#0f2b57]/95 via-[#12315f]/85 to-[#1e40af]/70" />
 
-            <div className="relative z-10 flex flex-col gap-5 p-4 md:gap-6 md:p-8">
-              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-8">
-                <div className="min-w-0">
+            <div className="relative z-10 flex flex-col gap-2.5 p-3 md:gap-6 md:p-8">
+              <div className="flex flex-col gap-2.5 md:flex-row md:items-start md:justify-between md:gap-8">
+                <div className="min-w-0 md:block">
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 md:block">
                   {folderData?.tcg && (
-                    <span className="inline-flex items-center rounded-full bg-white/12 px-3 py-1 text-xs font-bold text-blue-100 ring-1 ring-white/20">{folderData.tcg}</span>
+                    <span className="order-2 inline-flex items-center rounded-full bg-white/12 px-2.5 py-0.5 text-xs font-bold text-blue-100 ring-1 ring-white/20 md:order-none md:px-3 md:py-1">{folderData.tcg}</span>
                   )}
-                  <h1 className="mt-2 break-words text-3xl font-black leading-[1.05] tracking-[-0.03em] md:text-5xl">{folderData.name}</h1>
+                  <h1 className="order-1 break-words text-[1.7rem] font-black leading-[1.05] tracking-[-0.03em] md:order-none md:mt-2 md:text-5xl">{folderData.name}</h1>
+                  </div>
 
-                  <div className="mt-4 flex items-center gap-3">
-                    <Link to={sellerPath} className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-full border-2 border-[#facc15] bg-white shadow-lg transition-transform hover:scale-105 md:h-14 md:w-14" aria-label="Ver perfil del vendedor">
+                  <div className="mt-2 flex items-center gap-2.5 md:mt-4 md:gap-3">
+                    <Link to={sellerPath} className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full border-2 border-[#facc15] bg-white shadow-lg transition-transform hover:scale-105 md:h-14 md:w-14" aria-label="Ver perfil del vendedor">
                       {(sellerData?.avatarBase64 || sellerData?.photoURL) ? (
                         <img src={sellerData?.avatarBase64 || sellerData?.photoURL} alt="" className="h-full w-full object-cover" />
                       ) : (
@@ -676,27 +679,27 @@ function PublicCatalog() {
                       </div>
                     </div>
                   </div>
-                  {sellerData?.bio && <p className="mt-3 line-clamp-2 max-w-xl border-l-2 border-[#facc15]/70 pl-3 text-sm italic text-blue-100">"{sellerData.bio}"</p>}
+                  {sellerData?.bio && <p className="mt-3 hidden line-clamp-2 max-w-xl md:block border-l-2 border-[#facc15]/70 pl-3 text-sm italic text-blue-100">"{sellerData.bio}"</p>}
                 </div>
 
-                <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-end md:gap-2 md:pt-1">
+                <div className="flex items-center gap-2 md:flex-wrap md:justify-end md:pt-1">
                   {isOwner && (
                     <Link
                       to={`/carpeta/${folderData.id}`}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#facc15] px-5 py-3 text-sm font-extrabold text-[#12315f] shadow-md transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-white/70 md:w-auto md:py-2.5"
+                      className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#facc15] px-4 py-2.5 text-sm font-extrabold text-[#12315f] shadow-md transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-white/70 md:flex-none md:px-5"
                     >
                       <span translate="no" className="material-symbols-outlined text-[20px]">add_circle</span>
-                      Agregar cartas a tu carpeta
+                      <span className="md:hidden">Agregar cartas</span><span className="hidden md:inline">Agregar cartas a tu carpeta</span>
                     </Link>
                   )}
                   {messageOption && (
-                    <button type="button" onClick={messageOption.onClick || contactSeller} className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#facc15] px-5 py-3 text-sm font-extrabold text-[#12315f] shadow-md transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-white/70 md:w-auto md:py-2.5">
+                    <button type="button" onClick={messageOption.onClick || contactSeller} className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#facc15] px-4 py-2.5 text-sm font-extrabold text-[#12315f] shadow-md transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-white/70 md:flex-none md:px-5">
                       <ContactIcon type="message" className="h-4 w-4" />
                       Contactar vendedor
                     </button>
                   )}
                   {socialOptions.length > 0 && (
-                    <div className="flex items-center justify-center gap-2.5 md:justify-end">
+                    <div className="flex items-center gap-2 md:justify-end md:gap-2.5">
                     {socialOptions.map((contact) => (
                       <a
                         key={contact.id}
@@ -718,13 +721,15 @@ function PublicCatalog() {
                 </div>
               </div>
 
-              <dl className="grid grid-cols-3 divide-x divide-white/15 rounded-2xl bg-white/8 ring-1 ring-white/15">
+              <p className="text-xs font-bold tabular-nums text-blue-100 md:hidden">{stats.map((item) => `${item.value} ${item.label}`).join(' · ')}</p>
+
+              <dl className="hidden grid-cols-3 divide-x divide-white/15 rounded-2xl bg-white/8 ring-1 ring-white/15 md:grid">
                 {stats.map((item) => (
-                  <div key={item.label} className="min-w-0 px-2 py-3 text-center md:px-6 md:py-4">
+                  <div key={item.label} className="min-w-0 px-2 py-1.5 text-center md:px-6 md:py-4">
                     <dt className="sr-only">{item.label}</dt>
-                    <dd className="flex min-w-0 flex-col items-center gap-1 text-xl font-black tabular-nums leading-none min-[400px]:text-2xl md:block md:text-3xl">
+                    <dd className="flex min-w-0 flex-col items-center gap-0.5 text-lg font-black tabular-nums leading-none md:block md:text-3xl">
                       {item.value}
-                      <span className="text-xs font-bold text-blue-200 md:ml-1.5 md:text-sm">{item.label}</span>
+                      <span className="text-[11px] font-bold text-blue-200 md:ml-1.5 md:text-sm">{item.label}</span>
                     </dd>
                   </div>
                 ))}
@@ -733,6 +738,15 @@ function PublicCatalog() {
           </section>
         );
       })()}
+
+      {sellerData?.username && (
+        <WishlistSection
+          username={sellerData.username}
+          seller={{ id: sellerData.id, name: sellerData.displayName, avatar: sellerData.photoURL }}
+          isOwner={isOwner}
+          variant="catalog"
+        />
+      )}
 
       <button 
         onClick={() => setIsCartOpen(true)}
@@ -772,10 +786,10 @@ function PublicCatalog() {
       </div>
 
         <div className="relative z-10 flex min-h-[calc(100vh-230px)] w-full flex-col overflow-hidden rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] md:rounded-[2rem]">
-          <main className="relative z-20 flex flex-1 flex-col px-3 py-3 text-gray-900 sm:px-6 md:px-8 md:py-8">
-            <div className="mb-4 rounded-2xl bg-white p-2.5 shadow-sm ring-1 ring-slate-900/5 md:mb-5 md:p-3">
+          <main className="relative z-20 flex flex-1 flex-col px-3 pb-3 pt-2 text-gray-900 sm:px-6 md:px-8 md:py-8">
+            <div className="mb-1 rounded-2xl bg-white p-2 shadow-sm ring-1 ring-slate-900/5 md:mb-5 md:p-3">
               <form onSubmit={(event) => event.preventDefault()} className="flex flex-col gap-2 md:gap-3">
-                <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                <div className="flex items-center gap-2">
                   <div className="relative min-w-0 flex-1">
                     <span translate="no" className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">search</span>
                     <input
@@ -784,7 +798,7 @@ function PublicCatalog() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Buscar carta por nombre"
                       aria-label="Buscar carta"
-                      className="h-11 w-full rounded-full border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-medium text-slate-900 transition focus:border-[#1e40af] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#facc15]/70"
+                      className="h-10 w-full rounded-full border border-slate-200 bg-slate-50 pl-11 pr-3 text-sm font-medium text-slate-900 transition focus:border-[#1e40af] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#facc15]/70 md:h-11 md:pr-4"
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -810,16 +824,16 @@ function PublicCatalog() {
                       type="button"
                       onClick={() => setIsMobileFiltersOpen((value) => !value)}
                       aria-expanded={isMobileFiltersOpen}
-                      className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-full border px-4 text-sm font-black transition-all md:flex-none ${
+                      className={`relative flex h-10 w-10 flex-none items-center justify-center gap-2 rounded-full border px-0 text-sm font-black transition-all min-[420px]:w-auto min-[420px]:px-4 md:h-11 ${
                         isMobileFiltersOpen || activeFilterCount > 0
                           ? 'border-[#12315f] bg-[#12315f] text-white shadow-md'
                           : 'border-slate-200 bg-white text-[#12315f] hover:border-[#12315f]/40'
                       }`}
                     >
                       <span translate="no" className="material-symbols-outlined text-[20px]">tune</span>
-                      Filtros
+                      <span className="hidden min-[420px]:inline">Filtros</span>
                       {activeFilterCount > 0 && (
-                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#facc15] px-1 text-[11px] font-black text-[#12315f]">{activeFilterCount}</span>
+                        <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#facc15] px-1 text-[11px] font-black text-[#12315f] ring-2 ring-white min-[420px]:static min-[420px]:ring-0">{activeFilterCount}</span>
                       )}
                     </button>
                   </div>

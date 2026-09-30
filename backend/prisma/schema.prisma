@@ -33,6 +33,7 @@ model User {
   addresses     Json?
   bankDetails   Json?
   folders       Folder[]
+  wishlist      WishlistItem[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -181,4 +182,26 @@ model TcgProductPhysicalProduct {
 
   @@id([productId, physicalProductId])
   @@index([physicalProductId])
+}
+
+// Cartas que un jugador busca. Se enlazan con el catálogo cuando existen allí; si no, se guardan con su nombre.
+model WishlistItem {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId   Int?
+  productId    String?
+  name         String
+  game         String?
+  detail       String?
+  imageUrl     String?
+  quantity     Int      @default(1)
+  maxPrice     Float?
+  priceVisible Boolean  @default(false)
+  note         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, productId])
+  @@index([userId, createdAt])
 }
