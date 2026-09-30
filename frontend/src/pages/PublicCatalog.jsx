@@ -802,104 +802,6 @@ function PublicCatalog() {
         </button>
       </div>
 
-      <aside className="fixed right-5 top-[220px] z-20 hidden w-[218px] min-[1800px]:block">
-        <div className="relative overflow-hidden rounded-[1.7rem] border border-white/20 bg-[#071a3a]/70 p-3 text-white shadow-[0_30px_85px_-35px_rgba(0,0,0,0.95)] ring-1 ring-white/10 backdrop-blur-2xl">
-          <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-[#ffcb05] to-transparent" />
-          <div className="pointer-events-none absolute -left-14 -top-16 h-32 w-32 rounded-full bg-[#ffcb05]/18 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-20 -right-16 h-40 w-40 rounded-full bg-[#38bdf8]/18 blur-3xl" />
-
-          <div className="relative mb-3 flex items-center justify-between gap-3 border-b border-white/10 pb-3">
-            <div className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/12 text-[#ffcb05] shadow-inner ring-1 ring-white/15">
-                <span translate="no" className="material-symbols-outlined text-[21px]">tune</span>
-              </span>
-              <div>
-                <p className="text-sm font-black leading-tight">Filtros</p>
-                <p className="text-[10px] font-bold text-white/60">{sortedCards.length} en vista</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/12 text-white shadow-inner ring-1 ring-white/15 transition hover:-translate-y-0.5 hover:bg-[#ffcb05] hover:text-[#061734]"
-              title="Limpiar filtros"
-              aria-label="Limpiar filtros"
-            >
-              <span translate="no" className="material-symbols-outlined text-[20px]">filter_alt_off</span>
-            </button>
-          </div>
-
-          <div className="relative flex flex-col gap-2">
-            <PublicCatalogFilters
-              variant="sidebar"
-              tcg={folderData?.tcg}
-              cards={cards}
-              counts={counts}
-              selectedSupertype={selectedSupertype}
-              onSupertypeChange={setSelectedSupertype}
-              selectedType={selectedType}
-              onTypeChange={setSelectedType}
-              searchSet={searchSet}
-              setSearchSet={setSearchSet}
-              availableSets={availableSets}
-              isSetDropdownOpen={isSetDropdownOpen}
-              setIsSetDropdownOpen={setIsSetDropdownOpen}
-              mylType={mylType}
-              setMylType={setMylType}
-              mylRace={mylRace}
-              setMylRace={setMylRace}
-              mylCost={mylCost}
-              setMylCost={setMylCost}
-              mylFilterOptions={mylFilterOptions}
-            />
-
-            <label className="flex flex-col gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-white/55">
-              Ordenar
-              <select
-                value={sortBy}
-                onChange={(event) => setSortBy(event.target.value)}
-                className="h-11 rounded-2xl border border-white/20 bg-white/90 px-3 text-[12px] font-black normal-case tracking-normal text-[#102142] shadow-[0_10px_22px_-18px_rgba(15,23,42,0.9)] outline-none transition hover:bg-white focus:border-[#ffcb05] focus:ring-2 focus:ring-[#ffcb05]/35"
-              >
-                <option value="featured">Orden carpeta</option>
-                <option value="price_asc">Precio ↑</option>
-                <option value="price_desc">Precio ↓</option>
-                <option value="stock_desc">Más stock</option>
-                <option value="stock_asc">Menos stock</option>
-                <option value="rarity_desc">Rareza</option>
-                <option value="set_asc">Edición A-Z</option>
-              </select>
-            </label>
-
-            <label className="flex flex-col gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-white/55">
-              Rareza
-              <select
-                value={quickRarity}
-                onChange={(event) => setQuickRarity(event.target.value)}
-                className="h-11 rounded-2xl border border-white/20 bg-white/90 px-3 text-[12px] font-black normal-case tracking-normal text-[#102142] shadow-[0_10px_22px_-18px_rgba(15,23,42,0.9)] outline-none transition hover:bg-white focus:border-[#ffcb05] focus:ring-2 focus:ring-[#ffcb05]/35"
-              >
-                <option value="">Todas</option>
-                {availableRarities.map(rarity => (
-                  <option key={rarity} value={rarity}>{rarity}</option>
-                ))}
-              </select>
-            </label>
-
-            <button
-              type="button"
-              onClick={() => setOnlyAvailable(value => !value)}
-              className={`mt-1 flex h-11 items-center justify-center gap-2 rounded-2xl border px-3 text-sm font-black shadow-[0_14px_28px_-22px_rgba(0,0,0,0.9)] transition-all hover:-translate-y-0.5 ${
-                onlyAvailable
-                  ? 'border-emerald-300/70 bg-emerald-400/95 text-[#052e1c]'
-                  : 'border-white/20 bg-white/12 text-white hover:border-white/40 hover:bg-white/20'
-              }`}
-            >
-              <span translate="no" className="material-symbols-outlined text-[18px]">{onlyAvailable ? 'visibility' : 'visibility_off'}</span>
-              Disponibles
-            </button>
-          </div>
-        </div>
-      </aside>
-
         <div className="relative z-10 flex min-h-[calc(100vh-230px)] w-full flex-col overflow-hidden rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] md:rounded-[2rem]">
           <main className="relative z-20 flex flex-1 flex-col px-3 py-3 text-gray-900 sm:px-6 md:px-8 md:py-8">
             <div className="mb-3 rounded-[1.35rem] border border-white/80 bg-white/95 p-2.5 shadow-sm md:mb-5 md:rounded-[1.5rem] md:p-4">
@@ -933,7 +835,7 @@ function PublicCatalog() {
                   </div>
                 </div>
                 
-                <div className="xl:hidden">
+                <div>
                   <button
                     type="button"
                     onClick={() => setIsMobileFiltersOpen(value => !value)}
@@ -952,7 +854,7 @@ function PublicCatalog() {
                 </div>
 
                 {isMobileFiltersOpen && (
-                  <div className="grid gap-2 border-t border-slate-100 pt-3 xl:hidden">
+                  <div className="grid gap-2 border-t border-slate-100 pt-3">
                     <PublicCatalogFilters
                       tcg={folderData?.tcg}
                       cards={cards}

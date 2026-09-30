@@ -59,6 +59,7 @@ export const api = {
   getPublicFolders: () => apiFetch('/folders'),
   getRecentCards: (limit = 12) => apiFetch('/cards/recent?limit=' + limit),
   getMyFolders: () => apiFetch('/folders/me'),
+  getMyFolderStats: () => apiFetch('/folders/me/stats'),
   getFolder: (id) => apiFetch('/folders/' + id),
   createFolder: (data) => apiFetch('/folders', { method: 'POST', body: JSON.stringify(data) }),
   deleteFolder: (id) => apiFetch('/folders/' + id, { method: 'DELETE' }),

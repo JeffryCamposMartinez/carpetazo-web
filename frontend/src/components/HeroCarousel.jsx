@@ -1,52 +1,40 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getFolderFilter } from '../pages/Dashboard';
+import HomeHero from './home/HomeHero';
 
 export default function HeroCarousel() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const navigate = useNavigate();
 
-  const [touchStart, setTouchStart] = useState(null);
-  const [touchEnd, setTouchEnd] = useState(null);
-  const [dragStart, setDragStart] = useState(null);
-  const [dragEnd, setDragEnd] = useState(null);
-  const [isDragging, setIsDragging] = useState(false);
-
+  // El gesto se guarda en una referencia: así no se vuelve a renderizar el carrusel en cada movimiento del dedo o del mouse
+  const gesture = useRef({ startX: null, endX: null, dragging: false });
   const minSwipeDistance = 50;
 
-  const onTouchStart = (e) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-  const onTouchMove = (e) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
+  const settleGesture = () => {
+    const { startX, endX } = gesture.current;
+    gesture.current = { startX: null, endX: null, dragging: false };
+    if (startX === null || endX === null) return;
+    const distance = startX - endX;
     if (distance > minSwipeDistance) setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
     else if (distance < -minSwipeDistance) setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
   };
-  const onMouseDown = (e) => {
-    setDragEnd(null);
-    setDragStart(e.clientX);
-    setIsDragging(true);
-  };
-  const onMouseMove = (e) => {
-    if (!isDragging) return;
-    setDragEnd(e.clientX);
-  };
-  const onMouseUp = () => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    if (!dragStart || !dragEnd) return;
-    const distance = dragStart - dragEnd;
-    if (distance > minSwipeDistance) setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
-    else if (distance < -minSwipeDistance) setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
-  };
-  const onMouseLeave = () => setIsDragging(false);
+
+  const onTouchStart = (e) => { gesture.current = { startX: e.targetTouches[0].clientX, endX: null, dragging: true }; };
+  const onTouchMove = (e) => { if (gesture.current.dragging) gesture.current.endX = e.targetTouches[0].clientX; };
+  const onTouchEnd = () => settleGesture();
+  const onMouseDown = (e) => { gesture.current = { startX: e.clientX, endX: null, dragging: true }; };
+  const onMouseMove = (e) => { if (gesture.current.dragging) gesture.current.endX = e.clientX; };
+  const onMouseUp = () => { if (gesture.current.dragging) settleGesture(); };
+  const onMouseLeave = () => { gesture.current = { startX: null, endX: null, dragging: false }; };
 
   const slides = [
+    {
+      id: 'marketplace',
+      bgClass: 'bg-[#0B1E45]',
+      mobileContent: <HomeHero compact />,
+      desktopContent: <HomeHero />
+    },
     {
       id: 'explore-community',
       bgClass: 'bg-gradient-to-br from-[#0A1128] to-[#102B4E]',
@@ -362,9 +350,9 @@ export default function HeroCarousel() {
   }, [slides.length, currentSlide]);
 
   return (
-    <div className="w-full max-w-[1200px] mb-6 flex flex-col items-center">
+    <div className="w-full max-w-[1280px] mb-6 flex flex-col items-center">
       <div 
-        className="w-full relative overflow-hidden rounded-3xl shadow-2xl h-[280px] sm:h-[350px] select-none cursor-grab active:cursor-grabbing border-none"
+        className="w-full relative overflow-hidden rounded-3xl shadow-2xl h-[350px] sm:h-[clamp(360px,46vh,470px)] select-none cursor-grab active:cursor-grabbing border-none"
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}

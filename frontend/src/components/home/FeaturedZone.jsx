@@ -5,7 +5,7 @@ import LazyFolderCard from '../LazyFolderCard';
 
 const GAMES = [
   { name: 'Pokémon', logo: '/images/logos/pokemon.webp', scale: 'scale-100' },
-  { name: 'Mitos y Leyendas', logo: '/images/logos/mitosyleyendas.webp', scale: 'scale-[1.3]' },
+  { name: 'Mitos y Leyendas', logo: '/images/logos/mitosyleyendas.webp', scale: 'scale-[1.22]' },
   { name: 'Yu-Gi-Oh!', logo: '/images/logos/yugioh.webp', scale: 'scale-[2]' },
   { name: 'Magic', logo: '/images/logos/magic.webp', scale: 'scale-[1.4]' },
   { name: 'One Piece', logo: '/images/logos/onepiece.webp', scale: 'scale-[1.4]' },
@@ -45,8 +45,10 @@ function SectionHeader({ id, title, note, to, linkLabel }) {
 }
 
 function Avatar({ src, name, className = 'h-11 w-11' }) {
-  return src ? (
-    <img src={src} alt="" className={`${className} shrink-0 rounded-full object-cover ring-2 ring-white`} loading="lazy" />
+  // Si la foto no carga (p. ej. avatar de Google bloqueado), se muestra la inicial
+  const [failed, setFailed] = useState(false);
+  return src && !failed ? (
+    <img src={src} alt="" className={`${className} shrink-0 rounded-full object-cover ring-2 ring-white`} loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
   ) : (
     <div className={`${className} flex shrink-0 items-center justify-center rounded-full bg-[#1e40af] font-black text-white ring-2 ring-white`}>
       {String(name || 'U').charAt(0).toUpperCase()}
@@ -70,7 +72,7 @@ function VisitedFolders({ folders }) {
         to="/carpetas"
         linkLabel="Ver todas las carpetas"
       />
-      <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-1 pt-5 lg:mx-0 lg:grid lg:grid-cols-5 lg:overflow-visible lg:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-4 flex scroll-px-4 snap-x gap-4 overflow-x-auto px-4 pb-1 pt-5 lg:mx-0 lg:scroll-px-0 lg:grid lg:grid-cols-5 lg:overflow-visible lg:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {folders.map((folder, index) => (
           <div key={folder.id} className="relative w-[44vw] max-w-[220px] shrink-0 snap-start sm:w-[30vw] lg:w-auto lg:max-w-none">
             <span
@@ -203,14 +205,14 @@ function RecentCards({ cards, loading }) {
                   className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03] motion-reduce:transition-none"
                   onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
                 />
-                <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-2 pb-2 pt-8 text-white">
-                  <p className={`truncate font-bold leading-tight ${big ? 'text-sm sm:text-base' : 'text-xs opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100'}`}>{card.name}</p>
+                <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1 bg-gradient-to-t from-black/80 via-black/25 to-transparent px-1.5 pb-1.5 pt-8 text-white sm:px-2 sm:pb-2 sm:via-black/45">
+                  <p className={`hidden truncate text-xs font-bold leading-tight sm:block sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100 ${big ? 'lg:text-base lg:opacity-100' : ''}`}>{card.name}</p>
                   {detail && (
-                    <p className={`truncate text-[11px] text-white/75 ${big ? '' : 'hidden opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 sm:block'}`}>{detail}</p>
+                    <p className={`hidden truncate text-[11px] text-white/75 sm:block sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100 ${big ? 'lg:opacity-100' : ''}`}>{detail}</p>
                   )}
                   <div className="flex items-center justify-between gap-2">
                     <span className="rounded bg-[#facc15] px-1.5 py-0.5 text-[11px] font-black text-[#1a2b4b]">{formatPrice(card.price)}</span>
-                    <span className="truncate text-[10px] text-white/75">{timeAgo(card.createdAt)}</span>
+                    <span className="hidden truncate text-[10px] text-white/75 sm:inline">{timeAgo(card.createdAt)}</span>
                   </div>
                 </div>
               </Link>
@@ -223,24 +225,24 @@ function RecentCards({ cards, loading }) {
 }
 
 // Entrada por juego, con cuántas carpetas públicas tiene cada uno
-function BrowseByGame({ counts }) {
+function BrowseByGame({ counts, loading }) {
   return (
     <section aria-labelledby="destacados-juegos">
       <SectionHeader id="destacados-juegos" title="Explora por juego" note="Entra directo a las carpetas del TCG que coleccionas." />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="-mx-4 flex scroll-px-4 snap-x gap-3 overflow-x-auto px-4 pb-2 pt-1 sm:mx-0 sm:scroll-px-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {GAMES.map((game) => {
           const count = counts[normalize(game.name)] || 0;
           return (
             <Link
               key={game.name}
               to={`/carpetas?tcg=${encodeURIComponent(game.name)}`}
-              className="group flex flex-col items-center gap-2 rounded-2xl bg-white px-3 pb-3 pt-4 shadow-sm ring-1 ring-[#1a2b4b]/10 transition-shadow hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1e40af]"
+              className="group flex w-[36vw] max-w-[170px] shrink-0 snap-start flex-col items-center gap-2 rounded-2xl bg-white px-3 pb-3.5 pt-4 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-16px_rgba(26,43,75,0.35)] ring-1 ring-[#1a2b4b]/8 transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_30px_-16px_rgba(26,43,75,0.45)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e40af] motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:w-auto sm:max-w-none"
             >
-              <div className="flex h-14 w-full items-center justify-center overflow-hidden">
+              <div className="flex h-16 w-full items-center justify-center">
                 <img src={game.logo} alt={game.name} className={`max-h-full max-w-[80%] object-contain ${game.scale}`} loading="lazy" />
               </div>
-              <span className="text-xs font-semibold text-[#1a2b4b]/70">
-                {count > 0 ? `${count} ${count === 1 ? 'carpeta' : 'carpetas'}` : 'Sin carpetas aún'}
+              <span className="text-xs font-semibold text-[#1a2b4b]/65">
+                {loading ? ' ' : count > 0 ? `${count} ${count === 1 ? 'carpeta' : 'carpetas'}` : 'Sin carpetas aún'}
               </span>
             </Link>
           );
@@ -250,11 +252,9 @@ function BrowseByGame({ counts }) {
   );
 }
 
-export default function FeaturedZone() {
+export default function FeaturedZone({ recentCards = [], loadingCards = false }) {
   const [folders, setFolders] = useState([]);
-  const [recentCards, setRecentCards] = useState([]);
   const [loadingFolders, setLoadingFolders] = useState(true);
-  const [loadingCards, setLoadingCards] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -272,11 +272,6 @@ export default function FeaturedZone() {
       })
       .catch((error) => console.error('Error cargando carpetas destacadas:', error))
       .finally(() => { if (!cancelled) setLoadingFolders(false); });
-
-    api.getRecentCards(9)
-      .then((res) => { if (!cancelled) setRecentCards(res.success ? res.cards : []); })
-      .catch(() => { /* la sección muestra su estado vacío */ })
-      .finally(() => { if (!cancelled) setLoadingCards(false); });
 
     return () => { cancelled = true; };
   }, []);
@@ -320,14 +315,16 @@ export default function FeaturedZone() {
   }, [folders]);
 
   return (
-    <div className="w-full max-w-[1200px] pb-16">
-      <div className="mb-10 border-t border-[#1a2b4b]/10 pt-10">
-        <h2 className="text-3xl font-black tracking-tight text-[#1a2b4b] sm:text-4xl">Destacados</h2>
+    <div className="w-full pb-16 pt-8 sm:pt-10">
+      <BrowseByGame counts={gameCounts} loading={loadingFolders} />
+
+      <div className="mb-8 mt-12 sm:mt-14">
+        <h2 className="text-3xl font-extrabold tracking-tight text-[#1a2b4b] sm:text-4xl">Destacados</h2>
         {!loadingFolders && stats.folders > 0 && (
           <p className="mt-2 max-w-prose text-base text-[#1a2b4b]/75">
-            Hoy hay <strong className="font-bold text-[#1a2b4b]">{formatNumber(stats.folders)}</strong> carpetas públicas de{' '}
-            <strong className="font-bold text-[#1a2b4b]">{formatNumber(stats.sellers)}</strong> vendedores, con{' '}
-            <strong className="font-bold text-[#1a2b4b]">{formatNumber(stats.cards)}</strong> cartas.
+            Hoy hay <strong className="font-bold tabular-nums text-[#1a2b4b]">{formatNumber(stats.folders)}</strong> carpetas públicas de{' '}
+            <strong className="font-bold tabular-nums text-[#1a2b4b]">{formatNumber(stats.sellers)}</strong> vendedores, con{' '}
+            <strong className="font-bold tabular-nums text-[#1a2b4b]">{formatNumber(stats.cards)}</strong> cartas.
           </p>
         )}
       </div>
@@ -340,14 +337,13 @@ export default function FeaturedZone() {
           <Skeleton className="h-72" />
         </div>
       ) : (
-        <div className="space-y-14">
+        <div className="space-y-14 sm:space-y-16">
           <VisitedFolders folders={visitedFolders} />
           <RecentCards cards={recentCards} loading={loadingCards} />
           <div className="grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
             <TopSellers sellers={sellers} />
             <NewFolders folders={newFolders} />
           </div>
-          <BrowseByGame counts={gameCounts} />
         </div>
       )}
     </div>

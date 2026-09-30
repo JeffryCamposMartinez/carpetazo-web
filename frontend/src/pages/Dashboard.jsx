@@ -4,6 +4,7 @@ import { api } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import OrdersTab from '../components/OrdersTab';
 import LiquidTabs from '../components/LiquidTabs';
+import FlipCounter from '../components/FlipCounter';
 // html2canvas + jsPDF pesan mucho: se descargan solo al generar un PDF
 const HiddenPDFGenerator = lazy(() => import('../components/HiddenPDFGenerator'));
 
@@ -155,6 +156,44 @@ export default function Dashboard() {
     };
     fetchOrders();
   }, [currentUser, navigate]);
+
+  // Visitas en tiempo real: mientras la pestaña de carpetas está visible se consulta cada 10 s (ETag: sin cambios responde 304 sin cuerpo)
+  useEffect(() => {
+    if (!currentUser || activeTab !== 'carpetas') return undefined;
+    let cancelled = false;
+
+    const refreshVisits = async () => {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        const res = await api.getMyFolderStats();
+        if (cancelled || !res?.success) return;
+        const byId = new Map(res.folders.map(f => [f.id, f]));
+        setFolders(prev => {
+          let changed = false;
+          const next = prev.map(folder => {
+            const fresh = byId.get(folder.id);
+            if (!fresh) return folder;
+            const validWeeklyVisits = fresh.lastVisitWeek === res.week ? (fresh.weeklyVisits || 0) : 0;
+            if (validWeeklyVisits === folder.validWeeklyVisits && fresh.totalVisits === folder.totalVisits) return folder;
+            changed = true;
+            return { ...folder, weeklyVisits: fresh.weeklyVisits, totalVisits: fresh.totalVisits, lastVisitWeek: fresh.lastVisitWeek, validWeeklyVisits };
+          });
+          return changed ? next : prev; // sin cambios no se vuelve a renderizar
+        });
+      } catch (_error) {
+        // se reintenta en el siguiente ciclo
+      }
+    };
+
+    const timer = setInterval(refreshVisits, 10000);
+    const onVisible = () => { if (document.visibilityState === 'visible') refreshVisits(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [currentUser, activeTab]);
 
   // Reemplaza el pedido gestionado conservando el detalle de sus cartas
   const handleOrderUpdated = (updated) => {
@@ -309,7 +348,7 @@ export default function Dashboard() {
                 {activeTab === 'solicitudes' && 'Solicitudes'}
                 {activeTab === 'historial' && 'Historial de ventas'}
               </h1>
-              <p className="text-lg leading-relaxed text-slate-600">
+              <p className="text-lg leading-relaxed text-slate-600 md:min-h-[3.7rem]">
                 {activeTab === 'carpetas' && 'Arma catálogos con tus cartas, publícalos y comparte el enlace con quien quiera comprarte.'}
                 {activeTab === 'solicitudes' && 'Pedidos que llegaron desde tus carpetas públicas. Al confirmar una venta, el stock se descuenta solo.'}
                 {activeTab === 'historial' && 'Tus ventas confirmadas y pedidos rechazados, con cada carta, monto y fecha.'}
@@ -318,13 +357,24 @@ export default function Dashboard() {
             {activeTab === 'carpetas' && folders.length > 0 && (
               <dl className="flex gap-8 lg:gap-10">
                 {[
-                  ['Carpetas', folders.length, `${publicCount} ${publicCount === 1 ? 'pública' : 'públicas'}`],
-                  ['Cartas', totalCards, 'en total'],
-                  ['Visitas', weeklyVisits, 'esta semana']
-                ].map(([label, value, hint]) => (
-                  <div key={label}>
-                    <dt className="text-sm text-slate-500">{label}</dt>
-                    <dd className="font-['Space_Grotesk'] text-3xl font-bold tabular-nums text-[#1a2b4b]">{value}</dd>
+                  ['Carpetas', folders.length, `${publicCount} ${publicCount === 1 ? 'pública' : 'públicas'}`, false],
+                  ['Cartas', totalCards, 'en total', false],
+                  ['Visitas', weeklyVisits, 'esta semana', true]
+                ].map(([label, value, hint, live]) => (
+                  <div key={label} className="flex flex-col items-start gap-1.5">
+                    <dt className="flex items-center gap-2 text-sm text-slate-500">
+                      {label}
+                      {live && (
+                        <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700" title="Se actualiza sola, sin recargar la página">
+                          <span aria-hidden="true" className="relative flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60 motion-reduce:animate-none" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                          </span>
+                          en vivo
+                        </span>
+                      )}
+                    </dt>
+                    <dd><FlipCounter value={value} label={label} /></dd>
                     <dd className="text-xs text-slate-500">{hint}</dd>
                   </div>
                 ))}
@@ -332,7 +382,7 @@ export default function Dashboard() {
             )}
           </header>
 
-          <div className="mb-8 md:mb-10">
+          <div className="mb-8 flex justify-center md:mb-10">
             <LiquidTabs
               ariaLabel="Secciones del panel"
               options={TAB_OPTIONS}
@@ -353,13 +403,13 @@ export default function Dashboard() {
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="group mx-auto flex aspect-[32/37] w-full max-w-[260px] flex-col items-center justify-center gap-3 rounded-[22px] border-[3px] border-dashed border-[#1e40af]/35 bg-white/40 text-[#1e40af] transition-colors hover:border-[#1e40af] hover:bg-white/80 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#1e40af]/40"
+            className="group col-span-2 -mb-5 flex h-14 w-full flex-row items-center justify-center gap-3 rounded-2xl border-2 border-dashed sm:col-span-1 sm:mx-auto sm:mb-0 sm:aspect-[32/37] sm:h-auto sm:max-w-[260px] sm:flex-col sm:rounded-[22px] sm:border-[3px] border-[#1e40af]/35 bg-white/40 text-[#1e40af] transition-colors hover:border-[#1e40af] hover:bg-white/80 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#1e40af]/40"
           >
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1e40af] text-white shadow-md transition-transform group-hover:scale-110 motion-reduce:transition-none">
-              <span translate="no" className="material-symbols-outlined text-3xl">add</span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1e40af] text-white shadow-md transition-transform group-hover:scale-110 motion-reduce:transition-none sm:h-14 sm:w-14">
+              <span translate="no" className="material-symbols-outlined text-2xl sm:text-3xl">add</span>
             </span>
-            <span className="text-lg font-extrabold">Nueva carpeta</span>
-            {folders.length === 0 && <span className="max-w-[80%] text-center text-sm text-slate-600">Crea la primera para empezar a subir cartas</span>}
+            <span className="text-base font-extrabold sm:text-lg">Nueva carpeta</span>
+            {folders.length === 0 && <span className="hidden max-w-[80%] text-center text-sm text-slate-600 sm:block">Crea la primera para empezar a subir cartas</span>}
           </button>
           {folders.map(folder => (
             <div key={folder.id} className={`relative mx-auto flex w-full max-w-[260px] flex-col ${activeMenuFolderId === folder.id ? 'z-50' : 'z-10'}`}>

@@ -239,7 +239,8 @@ app.use('/api/orders/create', routeLimiter(15 * 60 * 1000, 20));
 app.use('/api/proxy-image', routeLimiter(15 * 60 * 1000, 600));
 app.use('/api/folders/:id/visit', routeLimiter(15 * 60 * 1000, 120));
 app.use('/api/users/username/check', routeLimiter(15 * 60 * 1000, 60));
-app.use('/api/orders/mine/:id/status', routeLimiter(15 * 60 * 1000, 120));
+app.use('/api/orders/mine/:id/status', routeLimiter(15 * 60 * 1000, 120));
+app.use('/api/folders/me/stats', routeLimiter(15 * 60 * 1000, 600));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
 // Proxy con caché hacia TCGCSV (Pokémon inglés y japonés): el navegador no puede llamarlo directo por CORS
@@ -1066,6 +1067,25 @@ app.get('/api/folders/me', authenticateToken, async (req, res) => {
   }
 });
 
+// Visitas de las carpetas del usuario: consulta liviana para el contador en tiempo real del panel
+app.get('/api/folders/me/stats', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
+    if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+
+    const folders = await prisma.folder.findMany({
+      where: { userId: user.id },
+      select: { id: true, weeklyVisits: true, lastVisitWeek: true, totalVisits: true }
+    });
+    // "no-cache" obliga a revalidar con ETag: sin cambios responde 304 sin cuerpo
+    res.set('Cache-Control', 'private, no-cache');
+    res.json({ success: true, week: Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7)), folders });
+  } catch (error) {
+    console.error('Error loading folder stats:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
 // Crear carpeta
 app.post('/api/folders', authenticateToken, async (req, res) => {
   try {
