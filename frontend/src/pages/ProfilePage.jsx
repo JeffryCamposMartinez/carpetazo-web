@@ -556,6 +556,18 @@ const ProfilePage = () => {
                     <Field label="Tipo de cuenta"><SelectInput value={profileData.bankDetails?.accountType || ''} onChange={e => updateBankField('accountType', e.target.value)}><option value="">Selecciona tipo</option>{accountTypes.map(type => <option key={type} value={type}>{type}</option>)}</SelectInput></Field>
                     <Field label="Número de cuenta"><TextInput value={profileData.bankDetails?.accountNumber || ''} onChange={e => updateBankField('accountNumber', e.target.value)} placeholder="000000000" /></Field>
                   </div>
+                  <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <input
+                      type="checkbox"
+                      checked={profileData.publicTheme?.shareBankInOrders === 'on'}
+                      onChange={e => updateProfileField('publicTheme', { ...(profileData.publicTheme || {}), shareBankInOrders: e.target.checked ? 'on' : 'off' })}
+                      className="mt-1 h-5 w-5 rounded border-slate-300 text-[#1e40af] focus:ring-[#1e40af]"
+                    />
+                    <span>
+                      <span className="block text-sm font-black text-slate-800">Enviar estos datos automáticamente en los pedidos</span>
+                      <span className="mt-1 block text-xs font-semibold text-slate-500">Si lo activas, cada pedido que llegue por WhatsApp o por mensaje incluirá tu nombre, RUT, banco y número de cuenta. Si no, el comprador te los pedirá y tú se los entregas cuando quieras. Por defecto está desactivado.</span>
+                    </span>
+                  </label>
                   <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('payments')} disabled={Boolean(savingKey)}>{savingKey === 'payments' ? 'Guardando...' : 'Guardar datos bancarios'}</ActionButton></div>
                 </section>
               )}

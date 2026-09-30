@@ -416,7 +416,7 @@ function PublicCatalog() {
       if (payment) {
         message += `\n\nDatos para transferir:\n${[payment.holderName, payment.rut, payment.bank, payment.accountType, payment.accountNumber].filter(Boolean).join('\n')}`;
       }
-      message += `\n\n¿Tienes disponibilidad?`;
+      message += payment ? `\n\n¿Tienes disponibilidad?` : `\n\n¿Tienes disponibilidad? ¿Me compartes los datos para transferir?`;
       
       const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
       

@@ -120,7 +120,7 @@ const isAllowedProxyImageUrl = (rawUrl) => {
 // --- Validación de nombres de usuario y URLs guardadas por los usuarios ---
 const RESERVED_USERNAMES = new Set([
   'admin', 'api', 'bienvenida', 'dashboard', 'perfil', 'carpeta', 'carpetas', 'c', 'mensajes',
-  'login', 'logout', 'registro', 'soporte', 'ayuda', 'carpetazo', 'root', 'null', 'undefined'
+  'cartas', 'vendedores', 'login', 'logout', 'registro', 'soporte', 'ayuda', 'carpetazo', 'root', 'null', 'undefined'
 ]);
 const normalizeUsername = (value) => String(value || '')
   .toLowerCase()
@@ -239,6 +239,7 @@ app.use('/api/orders/create', routeLimiter(15 * 60 * 1000, 20));
 app.use('/api/proxy-image', routeLimiter(15 * 60 * 1000, 600));
 app.use('/api/folders/:id/visit', routeLimiter(15 * 60 * 1000, 120));
 app.use('/api/users/username/check', routeLimiter(15 * 60 * 1000, 60));
+app.use('/api/users/username/available', routeLimiter(15 * 60 * 1000, 60));
 app.use('/api/orders/mine/:id/status', routeLimiter(15 * 60 * 1000, 120));
 app.use('/api/folders/me/stats', routeLimiter(15 * 60 * 1000, 600));
 app.use('/api/orders/mine/pending', routeLimiter(15 * 60 * 1000, 600));
@@ -835,12 +836,12 @@ app.post('/api/orders/create', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Carpeta no encontrada' });
     }
 
-    // Datos del vendedor: tema (para saber si recibe mensajes) y datos para transferir
+    // Datos del vendedor: tema (para saber si recibe mensajes y si comparte sus datos bancarios) y datos para transferir
     const seller = await prisma.user.findUnique({ where: { id: folder.userId }, select: { name: true, fullName: true, rut: true, bankDetails: true, publicTheme: true } });
+    const sellerTheme = seller?.publicTheme && typeof seller.publicTheme === 'object' ? seller.publicTheme : {};
     if (viaMessage) {
       if (folder.userId === buyer.id) return res.status(400).json({ success: false, message: 'No puedes enviarte un pedido a ti mismo' });
-      const theme = seller?.publicTheme && typeof seller.publicTheme === 'object' ? seller.publicTheme : {};
-      if (theme.showMessageButton === 'off') return res.status(400).json({ success: false, message: 'Este vendedor no recibe pedidos por mensaje' });
+      if (sellerTheme.showMessageButton === 'off') return res.status(400).json({ success: false, message: 'Este vendedor no recibe pedidos por mensaje' });
     }
 
     // Nombre, precio y vendedor salen de la base de datos; del cliente solo se acepta id y cantidad
@@ -863,9 +864,9 @@ app.post('/api/orders/create', async (req, res) => {
       lines.push(`• ${quantity}x ${card.name}${set} - ${clp(price * quantity)}`);
     }
 
-    // Datos para transferir: solo se entregan a quien acaba de crear un pedido, nunca en rutas públicas
+    // Datos para transferir: solo si el vendedor lo activó (por defecto no se envían), y solo a quien acaba de crear un pedido, nunca en rutas públicas
     const bank = seller?.bankDetails && typeof seller.bankDetails === 'object' ? seller.bankDetails : {};
-    const payment = bank.accountNumber
+    const payment = bank.accountNumber && sellerTheme.shareBankInOrders === 'on'
       ? { holderName: seller.fullName || seller.name || '', rut: seller.rut || '', bank: bank.bank || '', accountType: bank.accountType || '', accountNumber: bank.accountNumber }
       : null;
 
@@ -892,7 +893,7 @@ app.post('/api/orders/create', async (req, res) => {
         `Código de pedido: ${code}`,
         ...(payment ? ['', 'Datos para transferir:', [payment.holderName, payment.rut, payment.bank, payment.accountType, payment.accountNumber].filter(Boolean).join('\n')] : []),
         '',
-        '¿Tienes disponibilidad?'
+        payment ? '¿Tienes disponibilidad?' : '¿Tienes disponibilidad? ¿Me compartes los datos para transferir?'
       ].join('\n');
       // Pedido y mensaje se crean juntos: no puede quedar uno sin el otro
       [order] = await prisma.$transaction([
@@ -2327,7 +2328,8 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
         'showFacebook',
         'showMessageButton',
         'showYoutube',
-        'showWishlist'
+        'showWishlist',
+        'shareBankInOrders'
       ];
       updateData.publicTheme = Object.fromEntries(
         Object.entries(updateData.publicTheme)
@@ -2425,6 +2427,21 @@ app.get('/api/users/username/check', authenticateToken, async (req, res) => {
     res.json({ success: true, available: !existingUser });
   } catch (error) {
     console.error('Error checking username:', error);
+    res.status(500).json({ success: false, available: false, message: 'Error interno' });
+  }
+});
+
+// Disponibilidad de un usuario antes de registrarse (sin sesión). Solo dice si está libre: los usuarios ya son públicos (/<usuario>)
+app.get('/api/users/username/available', async (req, res) => {
+  try {
+    const username = validUsername(req.query.username);
+    if (!username) {
+      return res.status(400).json({ success: false, available: false, message: 'El usuario debe tener entre 3 y 20 caracteres: letras, números o _.' });
+    }
+    const existing = await prisma.user.findUnique({ where: { username }, select: { id: true } });
+    res.json({ success: true, available: !existing });
+  } catch (error) {
+    console.error('Error checking username availability:', error);
     res.status(500).json({ success: false, available: false, message: 'Error interno' });
   }
 });

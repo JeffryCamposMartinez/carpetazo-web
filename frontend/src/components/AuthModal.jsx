@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../firebase';
 // import removed
 import { fetchSignInMethodsForEmail } from 'firebase/auth';
+import { api } from '../utils/api';
 
 export default function AuthModal({ isOpen, onClose }) {
   const { loginWithGoogle, loginWithEmail, registerWithEmail, resetPassword } = useAuth();
@@ -122,7 +123,14 @@ export default function AuthModal({ isOpen, onClose }) {
     setValidating(prev => ({ ...prev, username: true }));
     setFieldErrors(prev => ({ ...prev, username: '' }));
     try {
-      setValidFields(prev => ({ ...prev, username: true }));
+      // El servidor dice si ya existe; si no responde, el registro lo vuelve a comprobar
+      const result = await api.checkUsernameAvailable(user).catch(() => null);
+      if (result && result.available === false) {
+        setFieldErrors(prev => ({ ...prev, username: 'Ese usuario ya está en uso. Prueba con otro.' }));
+        setValidFields(prev => ({ ...prev, username: false }));
+      } else {
+        setValidFields(prev => ({ ...prev, username: true }));
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -194,6 +202,15 @@ export default function AuthModal({ isOpen, onClose }) {
     }
 
     try {
+      // Última comprobación antes de crear la cuenta: así un usuario ocupado no se pierde en silencio
+      const availability = await api.checkUsernameAvailable(username.toLowerCase().trim()).catch(() => null);
+      if (availability && availability.available === false) {
+        setFieldErrors(prev => ({ ...prev, username: 'Ese usuario ya está en uso. Prueba con otro.' }));
+        setValidFields(prev => ({ ...prev, username: false }));
+        setErrorMsg('Ese usuario ya está en uso. Elige otro para continuar.');
+        setLoading(false);
+        return;
+      }
       await registerWithEmail(email, password, fullName, username);
       setView('verify-sent');
     } catch (err) {

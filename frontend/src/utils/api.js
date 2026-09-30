@@ -82,6 +82,7 @@ export const api = {
   getUserProfile: (username) => apiFetch('/users/' + username),
   getMe: () => apiFetch('/users/me'),
   checkUsername: (username) => apiFetch('/users/username/check?username=' + encodeURIComponent(username || '')),
+  checkUsernameAvailable: (username) => apiFetch('/users/username/available?username=' + encodeURIComponent(username || '')), // sin sesión, para el registro
   updateProfile: (data) => apiFetch('/users/me', { method: 'PUT', body: JSON.stringify(data) }),
   uploadImage: (formData) => apiFetch('/users/upload-image', { method: 'POST', body: formData, isMultipart: true }),
   deleteProfile: () => apiFetch('/users/me', { method: 'DELETE' }),
