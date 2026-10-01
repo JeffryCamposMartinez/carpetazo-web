@@ -57,6 +57,7 @@ Antes de subir un cambio con migración: respaldo de la base (Coolify → Backup
 ## Textos legales y aceptación
 
 - `/terminos` y `/privacidad` son páginas públicas. Su contenido sale de `frontend/src/legal/content.js`, **generado** desde el documento legal del proyecto (no se edita a mano).
+- `npm run build` (frontend) también genera `dist/terminos/index.html` y `dist/privacidad/index.html` con el texto completo en el HTML (`scripts/prerender-legal.mjs`), para que lo lean verificadores que no ejecutan JavaScript, como el de Google. La dirección directa es la que termina en `/` (por ejemplo `https://carpetazo.cl/privacidad/`).
 - Cada cuenta debe aceptar la versión vigente (`LEGAL_CURRENT` en `backend/server.js`, igual que `frontend/src/legal/versions.js`; una prueba exige que coincidan). Sin aceptación vigente el servidor rechaza cualquier escritura con `403 terms_required`. Al cambiar un texto se sube la versión en ambos archivos y todos deben aceptar de nuevo.
 - Las cuentas nuevas se crean solo con Google. Quien ya tenía correo y contraseña sigue entrando así, y cualquier cuenta con Google puede crear una contraseña en su perfil.
 
