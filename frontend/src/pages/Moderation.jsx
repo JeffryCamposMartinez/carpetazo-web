@@ -8,9 +8,11 @@ import AuditPanel from '../components/moderation/AuditPanel';
 import CasesPanel from '../components/moderation/CasesPanel';
 import PeoplePanel from '../components/moderation/PeoplePanel';
 import AppealsPanel from '../components/moderation/AppealsPanel';
+import MetricsPanel from '../components/moderation/MetricsPanel';
+import RetentionPanel from '../components/moderation/RetentionPanel';
 
 // Pestañas según el rol: soporte (1) lee, moderador (2) decide, administrador (3) además ve reseñas, auditoría y herramientas
-const TABS = [['reports', 'Reportes', 1], ['cases', 'Estafas', 1], ['people', 'Personas y medidas', 1], ['appeals', 'Apelaciones', 1], ['reviews', 'Reseñas marcadas', 3], ['audit', 'Auditoría', 3], ['tools', 'Herramientas', 3]];
+const TABS = [['reports', 'Reportes', 1], ['cases', 'Estafas', 1], ['people', 'Personas y medidas', 1], ['appeals', 'Apelaciones', 1], ['reviews', 'Reseñas marcadas', 3], ['metrics', 'Métricas', 3], ['audit', 'Auditoría', 3], ['tools', 'Herramientas', 3]];
 
 // Sección de moderación (solo administradores): reseñas reportadas o sospechosas, para aprobarlas o eliminarlas.
 // El servidor vuelve a comprobar que quien llama es administrador en cada acción.
@@ -116,7 +118,10 @@ export default function Moderation() {
         {tab === 'cases' && <CasesPanel level={level} onOpenPerson={openPerson} onOpenReport={openReport} />}
         {tab === 'people' && <PeoplePanel level={level} focusUsername={focusUsername} focusReportId={sanctionReportId || undefined} onFocusUsed={() => setFocusUsername('')} />}
         {tab === 'appeals' && <AppealsPanel level={level} />}
+        {tab === 'metrics' && level >= 3 && <MetricsPanel />}
         {tab === 'audit' && level >= 3 && <AuditPanel />}
+
+        {tab === 'tools' && level >= 3 && <div className="mb-4"><RetentionPanel /></div>}
 
         {tab === 'tools' && level >= 3 && (
           <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-white/70 p-3 ring-1 ring-blue-200">

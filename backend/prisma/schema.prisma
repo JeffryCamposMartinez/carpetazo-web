@@ -281,8 +281,9 @@ model Report {
   severity      String                      // S1 | S2 | S3 | S4, copiado del catálogo
   comment       String?
   extra         Json?
-  reporterId    String
-  reporter      User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reporterId    String?                     // null: lo detectó el sistema (filtros de texto)
+  reporter      User?    @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  weight        Float    @default(1)        // reputación de quien reportó al momento de hacerlo
   snapshot      Json                        // instantánea al reportar: borrar o editar no destruye la prueba
   status        String   @default("open")   // open | dismissed | actioned
   decision      String?                     // dismiss | hide | remove | restore
@@ -407,4 +408,45 @@ model UserBlock {
 
   @@id([blockerId, blockedId])
   @@index([blockedId])
+}
+
+// Huella visual (dHash) de cada imagen subida: si una imagen se confirma como infracción, la huella queda prohibida
+model ImageHash {
+  id        String    @id @default(uuid())
+  url       String    @unique
+  hash      String                          // 16 caracteres hexadecimales (64 bits)
+  sha256    String?                         // huella exacta del archivo original (caché de veredictos)
+  verdict   String?                         // clear | review | block | unscanned | pending (resultado del escaneo)
+  provider  String?                         // sightengine | google | null
+  userId    String?
+  banned    Boolean   @default(false)
+  bannedAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([banned])
+  @@index([createdAt])
+  @@index([sha256])
+}
+
+// Uso mensual de cada servicio de escaneo de imágenes (para no pasarse de la cuota gratuita)
+model ScanUsage {
+  provider String
+  month    String                           // "2026-10" (UTC)
+  used     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([provider, month])
+}
+
+// Un registro por escaneo (o por acierto de caché): alimenta las métricas
+model ScanEvent {
+  id        String   @id @default(uuid())
+  provider  String                          // sightengine | google | cache | none
+  kind      String                          // profile | card
+  verdict   String                          // clear | review | block | unavailable
+  fallback  Boolean  @default(false)        // se usó un proveedor de respaldo porque el principal no estaba disponible
+  ms        Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }

@@ -499,6 +499,7 @@ export const privacyBlocks = [
    "**Proveedores que nos ayudan a operar** (actúan por encargo nuestro):",
    "**Google (Firebase Authentication):** inicio de sesión.",
    "**Cloudflare (R2):** almacenamiento de imágenes.",
+   "**Sightengine y Google (Cloud Vision):** revisión automática de las **imágenes públicas** que subes (foto de perfil, banner, fondo y fotos de cartas) para detectar contenido que incumple las normas. Les enviamos una copia reducida de la imagen, sin tu nombre ni tu cuenta. **Las imágenes de los mensajes privados no se envían** a estos servicios.",
    "**Hostinger International:** alojamiento del servidor y de la base de datos (servidor ubicado en **São Paulo, Brasil**).",
    "**Un proveedor de envío de correos electrónicos:** para enviarte los avisos del servicio (pedidos, mensajes, cobros y seguridad).",
    "**Correo de soporte** (Gmail): para atender tus consultas.",
@@ -545,7 +546,19 @@ export const privacyBlocks = [
    ],
    [
     "Reportes y evidencias",
-    "El tiempo necesario para resolverlos, atender apelaciones y responder a autoridades"
+    "**Descartados:** 6 meses el reporte y 90 días sus evidencias. **Con medida:** 2 años el reporte y 1 año sus evidencias. Un reporte con una apelación abierta no se borra. Se eliminan automáticamente al vencer el plazo"
+   ],
+   [
+    "Apelaciones, medidas y casos de estafa",
+    "2 años desde su resolución o término"
+   ],
+   [
+    "Registro de acciones de moderación",
+    "3 años"
+   ],
+   [
+    "Huellas de imágenes",
+    "Las de imágenes que moderación confirmó como infracción se conservan para impedir que se vuelvan a subir (no permiten reconstruir la imagen); las demás, 6 meses"
    ],
    [
     "Registros técnicos",
@@ -604,6 +617,10 @@ export const privacyBlocks = [
  {
   "t": "p",
   "x": "Algunas medidas de seguridad pueden activarse **automáticamente y de forma temporal** (por ejemplo, ocultar una imagen reportada como explícita). **No tomamos decisiones definitivas sobre personas solo de forma automatizada**: toda sanción pasa por revisión humana."
+ },
+ {
+  "t": "p",
+  "x": "Para ayudar a la revisión, el sistema también **marca automáticamente** textos que parecen datos personales de terceros, cobros por adelantado o fuera de Carpetazo y enlaces acortados, y compara una **huella visual** de las imágenes que subes con las de imágenes ya prohibidas. Además, las imágenes públicas pasan por una **revisión automática con servicios externos** (ver sección 4): si el servicio detecta contenido explícito con alta seguridad, la imagen se rechaza; si tiene dudas, se publica y una persona la revisa; si el servicio no está disponible y tu cuenta es nueva o tiene antecedentes, la imagen queda **pendiente de revisión** hasta que una persona la apruebe. Puedes apelar cualquier decisión. Esas marcas **no bloquean tu contenido por sí solas** (salvo una imagen igual o muy parecida a una ya prohibida): crean un reporte que revisa una persona. Los reportes de quienes reportan de mala fe de forma reiterada pesan menos en la cola."
  },
  {
   "t": "h2",

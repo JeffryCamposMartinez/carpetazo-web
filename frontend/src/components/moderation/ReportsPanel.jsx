@@ -163,6 +163,8 @@ function ReportDetail({ id, level, onClose, onChanged, onOpenPerson }) {
               <Badge className={SEVERITY[report.severity]?.className}>{SEVERITY[report.severity]?.label}</Badge>
               <Badge className={STATUS[report.status]?.className}>{STATUS[report.status]?.label}</Badge>
               {report.autoActioned && <Badge className="bg-purple-100 text-purple-800">Ocultado automáticamente</Badge>}
+              {report.automatic && <Badge className="bg-cyan-100 text-cyan-800">Detección automática</Badge>}
+              {!report.automatic && report.weight < 0.5 && <Badge className="bg-amber-100 text-amber-900">Reportante con baja reputación</Badge>}
               <span className="ml-auto text-xs font-semibold text-slate-500">{dateTime(report.createdAt)}</span>
             </div>
             <p className="text-sm font-extrabold text-[#12315f]">{report.reasonLabel}</p>
@@ -328,6 +330,8 @@ export default function ReportsPanel({ level = 1, onOpenPerson = () => {}, initi
                     <Badge className={SEVERITY[item.severity]?.className}>{item.severity} · {SEVERITY[item.severity]?.label}</Badge>
                     <Badge className={STATUS[item.status]?.className}>{STATUS[item.status]?.label}</Badge>
                     {item.autoActioned && <Badge className="bg-purple-100 text-purple-800">Auto</Badge>}
+                    {item.automatic && <Badge className="bg-cyan-100 text-cyan-800">Detección automática</Badge>}
+                    {!item.automatic && item.weight < 0.5 && <Badge className="bg-amber-100 text-amber-900">Baja reputación</Badge>}
                     {item.openForSameTarget > 1 && <Badge className="bg-rose-100 text-rose-800">{item.openForSameTarget} reportes</Badge>}
                     <span className="ml-auto text-xs font-semibold text-slate-500">{dateTime(item.createdAt)}</span>
                   </div>

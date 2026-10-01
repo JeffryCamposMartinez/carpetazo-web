@@ -14,11 +14,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '.env') });
 dotenv.config();
+// Desarrollo local: EXTRA_ENV_FILE apunta a otro archivo de variables (por ejemplo, credenciales de servicios externos)
+if (process.env.EXTRA_ENV_FILE) dotenv.config({ path: process.env.EXTRA_ENV_FILE });
 import { initializeApp } from 'firebase-admin/app';
 import nodemailer from 'nodemailer';
 import { registerModeration } from './moderation.js';
 import { createRestrictions, registerSanctions } from './moderationB.js';
 import { REPORT_TARGETS, findReason } from './reportReasons.js';
+import { registerModerationC } from './moderationC.js';
+import { createHashBank } from './perceptual.js';
+import { createImageScanner, prepareImage, isTrustedUploader } from './imageScan.js';
 import { getAuth } from 'firebase-admin/auth';
 
 const FIREBASE_PROJECT_ID = 'carpetazo-db9d7';
@@ -106,7 +111,9 @@ const R2_REQUIRED_ENV = [
   'R2_PUBLIC_URL'
 ];
 const missingR2Config = () => R2_REQUIRED_ENV.filter(key => !process.env[key]);
-const hasR2Config = () => missingR2Config().length === 0;
+// En las pruebas automáticas (nunca en producción) se simula R2 para poder probar la subida de imágenes
+const R2_TEST_STUB = process.env.TEST_AUTH_STUB === '1' && process.env.R2_TEST_STUB === '1';
+const hasR2Config = () => R2_TEST_STUB || missingR2Config().length === 0;
 const getAllowedProxyImageHosts = () => {
   const hosts = new Set([
     'api.carpetazo.cl',
@@ -331,6 +338,9 @@ app.get('/api/me/moderation', routeLimiter(15 * 60 * 1000, 100));
 app.post('/api/me/cases/:id/response', routeLimiter(15 * 60 * 1000, 10));
 app.use('/api/blocks', routeLimiter(15 * 60 * 1000, 100));
 app.get('/api/me/orders/:code', routeLimiter(15 * 60 * 1000, 40));
+app.get('/api/admin/metrics', routeLimiter(15 * 60 * 1000, 60));
+app.use('/api/admin/retention', routeLimiter(15 * 60 * 1000, 30));
+app.post('/api/admin/cases/:id/export', routeLimiter(15 * 60 * 1000, 20));
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
@@ -380,6 +390,8 @@ app.use('/api', async (req, res, next) => {
 });
 // Sanciones vigentes: una cuenta suspendida no escribe; con restricciones parciales solo se corta lo que corresponde
 const restrictions = createRestrictions({ prisma, getAuth });
+const hashBank = createHashBank({ prisma });
+const imageScanner = createImageScanner({ prisma });
 app.use('/api', restrictions.gate);
 
 // Bloqueo entre usuarios: devuelve el motivo si no se puede escribir, o null
@@ -889,6 +901,7 @@ app.post('/api/reviews', authenticateToken, async (req, res) => {
       if (error.code === 'P2002') return res.status(409).json({ success: false, message: 'Ya calificaste a este vendedor' });
       throw error;
     }
+    if (review.comment) moderationHooks.flagText?.('review', review.id, review.comment, 'review', null);
     res.json({ success: true, review: { id: review.id, rating: review.rating, comment: review.comment, createdAt: review.createdAt } });
   } catch (error) {
     console.error('Error creating review:', error);
@@ -2059,6 +2072,7 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
         content
       }
     });
+    flagMessageText(message, receiver.id);
     res.json({ success: true, message });
   } catch (error) {
     console.error('Error en la ruta:', error);
@@ -2211,6 +2225,7 @@ app.post('/api/messages/:otherId', authenticateToken, async (req, res) => {
         content
       }
     });
+    flagMessageText(message, otherId);
     
     res.json({
       success: true,
@@ -2229,6 +2244,18 @@ app.post('/api/messages/:otherId', authenticateToken, async (req, res) => {
 });
 
 const HIDDEN_MESSAGE_TEXT = 'Mensaje oculto por moderación';
+
+// Los mensajes se guardan como JSON { v: 1, text }: se revisa solo el texto, buscando cobros por adelantado o enlaces sospechosos
+const flagMessageText = (message, receiverId) => {
+  let text = message.content;
+  try {
+    const parsed = JSON.parse(message.content);
+    if (parsed && typeof parsed === 'object' && parsed.v === 1) text = parsed.text || '';
+  } catch (_error) {
+    // texto plano
+  }
+  if (typeof text === 'string' && text) moderationHooks.flagText?.('message', message.id, text, 'message', receiverId);
+};
 
 // GET user chats: último mensaje con cada persona y no leídos, resueltos en la base (sin traer todo el historial)
 app.get('/api/chats', authenticateToken, async (req, res) => {
@@ -2311,6 +2338,7 @@ const sendUserEmail = async (userId, { subject, text, html }) => {
 
 const moderationHooks = {};
 const moderation = registerModeration(app, { prisma, authenticateToken, requireStaff, hooks: moderationHooks, badRequest, isUuid, currentUserId, hashConnection, sendUserEmail, escapeHtml, reviewHideReports: REVIEW_HIDE_REPORTS });
+registerModerationC(app, { prisma, authenticateToken, requireStaff, hooks: moderationHooks, moderation, badRequest, isUuid, currentUserId, escapeHtml, hashBank, imageScanner });
 registerSanctions(app, { prisma, authenticateToken, requireStaff, hooks: moderationHooks, restrictions, moderation, badRequest, isUuid, currentUserId, sendUserEmail, escapeHtml, targetLabel: (type) => REPORT_TARGETS[type]?.label || 'contenido', reasonLabel: (type, code) => findReason(type, code)?.label || 'Otro motivo' });
 
 // Prueba del envío (solo administradores). Sin "username" se envía a sí mismo; con "username", a esa cuenta,
@@ -2433,6 +2461,16 @@ const r2Client = new S3Client({
   },
 });
 
+// Solo en pruebas automáticas: R2 simulado que recuerda qué se subió y qué se borró (no existe en producción)
+if (R2_TEST_STUB) {
+  const r2Log = [];
+  r2Client.send = async (command) => {
+    r2Log.push({ op: command.constructor.name === 'PutObjectCommand' ? 'put' : 'delete', key: command.input.Key });
+    return {};
+  };
+  app.get('/api/__test/r2-log', (_req, res) => res.json({ log: r2Log }));
+}
+
 app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
   upload.single('image')(req, res, (error) => {
     if (!error) return next();
@@ -2458,19 +2496,10 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
     const isWallpaper = type === 'wallpaper';
     const isMessageImage = type === 'message';
     const isCardImage = type === 'card';
-    
-    // Process image with sharp -> webp
-    const imageProcessor = sharp(req.file.buffer).webp({ quality: 100 });
-    
-    const processedBuffer = await imageProcessor.toBuffer();
-    
-    let dominantColor = null;
-    let complementaryColor = null;
-    if (isBanner) {
-      const { dominant } = await sharp(processedBuffer).stats();
-      dominantColor = "rgb(" + dominant.r + ", " + dominant.g + ", " + dominant.b + ")";
-      complementaryColor = "rgb(" + (255 - dominant.r) + ", " + (255 - dominant.g) + ", " + (255 - dominant.b) + ")";
-    }
+    // Las imágenes del chat son privadas entre dos personas: nunca se envían a servicios externos
+    const scanKind = isCardImage ? 'card' : 'profile';
+    const shouldScan = !isMessageImage && imageScanner.enabled;
+    const blockedMessage = 'Esta imagen no cumple las normas de Carpetazo.';
 
     if (!hasR2Config()) {
       return res.status(503).json({
@@ -2480,48 +2509,133 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
       });
     }
 
-    const previousUser = isMessageImage || isCardImage ? null : await prisma.user.findUnique({
+    // 1) Se decodifica una sola vez: de ahí salen la huella visual, el sha256 y la copia reducida que se escanea
+    let prepared;
+    try {
+      prepared = await prepareImage(req.file.buffer);
+    } catch (error) {
+      return res.status(400).json({ success: false, message: error.scanCode === 'format' ? 'Sube una imagen JPG, PNG, WebP o GIF.' : 'No se pudo leer la imagen.' });
+    }
+
+    // 2) Huella visual: una imagen parecida a otra ya prohibida por moderación se rechaza (gratis, sin gastar cuota)
+    if (prepared.hash && (await hashBank.closestBanned(prepared.hash)) !== null) {
+      prisma.moderationAudit.create({ data: { actorId: null, action: 'phash.blocked', targetType: 'user', targetId: String(req.user.sub || ''), note: 'Subida rechazada: imagen parecida a una prohibida' } }).catch(() => {});
+      return res.status(400).json({ success: false, message: blockedMessage });
+    }
+
+    const uploader = await prisma.user.findUnique({
       where: { firebaseUid: req.user.sub },
-      select: { photoURL: true, bannerBase64: true, wallpaperBase64: true }
+      select: { id: true, createdAt: true, photoURL: true, bannerBase64: true, wallpaperBase64: true }
     });
+    if (!uploader && !isMessageImage && !isCardImage) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
 
-    const hash = crypto.randomBytes(16).toString('hex');
+    // 3) Veredicto ya conocido para este archivo exacto: no se vuelve a pagar un escaneo (ni por un reintento desde el móvil)
+    let cachedScan = null;
+    if (shouldScan) {
+      const cached = await imageScanner.cachedVerdict(prepared.sha256);
+      if (cached) {
+        imageScanner.logEvent({ provider: 'cache', kind: scanKind, verdict: cached.verdict, fallback: false, ms: 0 });
+        if (cached.verdict === 'block') return res.status(400).json({ success: false, message: blockedMessage });
+        cachedScan = { verdict: 'clear', provider: cached.provider || null };
+      }
+    }
+
+    // 4) Se procesa y sube a R2 mientras se escanea: la espera del escaneo queda oculta detrás de la subida.
+    //    El nombre es aleatorio y la base no lo referencia hasta tener veredicto; si se rechaza, se borra.
+    const objectName = crypto.randomBytes(16).toString('hex');
     const safeUid = String(req.user.sub || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filename = "Carpetazo.cl/Usuarios/" + safeUid + "/" + type + "/" + hash + ".webp";
-
-    await r2Client.send(new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
-      Key: filename,
-      Body: processedBuffer,
-      ContentType: 'image/webp',
-      CacheControl: 'public, max-age=31536000, immutable'
-    }));
+    const filename = "Carpetazo.cl/Usuarios/" + safeUid + "/" + type + "/" + objectName + ".webp";
     const publicUrl = process.env.R2_PUBLIC_URL.replace(/\/$/, '') + "/" + filename;
+    const forcedVerdict = process.env.TEST_AUTH_STUB === '1' ? String(req.headers['x-test-scan'] || '') || null : null;
 
-    const updateData = isBanner
-      ? { bannerBase64: publicUrl, bannerDominantColor: dominantColor, bannerComplementaryColor: complementaryColor }
-      : isWallpaper
-        ? { wallpaperBase64: publicUrl }
-        : { photoURL: publicUrl };
+    const storeProcessed = (async () => {
+      const processedBuffer = await sharp(req.file.buffer).webp({ quality: 100 }).toBuffer();
+      let dominantColor = null;
+      let complementaryColor = null;
+      if (isBanner) {
+        const { dominant } = await sharp(processedBuffer).stats();
+        dominantColor = "rgb(" + dominant.r + ", " + dominant.g + ", " + dominant.b + ")";
+        complementaryColor = "rgb(" + (255 - dominant.r) + ", " + (255 - dominant.g) + ", " + (255 - dominant.b) + ")";
+      }
+      await r2Client.send(new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: filename,
+        Body: processedBuffer,
+        ContentType: 'image/webp',
+        CacheControl: 'public, max-age=31536000, immutable'
+      }));
+      return { dominantColor, complementaryColor };
+    })();
+    const scanning = cachedScan
+      ? Promise.resolve(cachedScan)
+      : shouldScan
+        ? imageScanner.scan(prepared.scanJpeg, { kind: scanKind, force: forcedVerdict })
+        : Promise.resolve({ verdict: 'unscanned', provider: null });
+    const [stored, scanned] = await Promise.allSettled([storeProcessed, scanning]);
+    if (stored.status === 'rejected') throw stored.reason;
+    const { dominantColor, complementaryColor } = stored.value;
+    const scan = scanned.status === 'fulfilled' ? scanned.value : { verdict: 'unavailable', provider: null };
 
-    if (!isMessageImage && !isCardImage) {
-      await prisma.user.update({
-        where: { firebaseUid: req.user.sub },
-        data: updateData
-      });
+    // Desde aquí el archivo ya está en R2: si no se publica, se borra para no dejarlo huérfano
+    let published = false;
+    try {
+      if (scan.verdict === 'block') {
+        // Se recuerda el archivo rechazado: reintentarlo no gasta cuota
+        hashBank.remember({ url: 'blocked:' + prepared.sha256, hash: prepared.hash, sha256: prepared.sha256, verdict: 'block', provider: scan.provider }).catch(() => {});
+        prisma.moderationAudit.create({ data: { actorId: null, action: 'scan.blocked', targetType: 'user', targetId: String(req.user.sub || ''), note: 'Subida rechazada por el escaneo automático (' + (scan.provider || 'sin proveedor') + ')' } }).catch(() => {});
+        await deleteR2ObjectByPublicUrl(publicUrl);
+        return res.status(400).json({ success: false, message: blockedMessage });
+      }
+
+      // Sin servicio disponible: una cuenta con buen historial publica; una nueva o con antecedentes queda pendiente de revisión
+      let hold = false;
+      if (scan.verdict === 'unavailable') {
+        if (!(await isTrustedUploader(prisma, uploader))) {
+          if (isCardImage) {
+            await deleteR2ObjectByPublicUrl(publicUrl);
+            return res.status(503).json({ success: false, message: 'No pudimos revisar tu imagen en este momento. Intenta de nuevo en unos minutos.' });
+          }
+          hold = true;
+        }
+      }
+
+      const updateData = isBanner
+        ? { bannerBase64: publicUrl, bannerDominantColor: dominantColor, bannerComplementaryColor: complementaryColor }
+        : isWallpaper
+          ? { wallpaperBase64: publicUrl }
+          : { photoURL: publicUrl };
+
+      if (!isMessageImage && !isCardImage) {
+        await prisma.user.update({
+          where: { firebaseUid: req.user.sub },
+          data: updateData
+        });
+      }
+      published = true;
+
+      const storedVerdict = hold ? 'pending' : scan.verdict === 'unavailable' ? 'unscanned' : scan.verdict;
+      hashBank.remember({ url: publicUrl, hash: prepared.hash, userId: uploader?.id || null, sha256: prepared.sha256, verdict: storedVerdict, provider: scan.provider }).catch(() => {});
+
+      if (!isMessageImage && !isCardImage) {
+        if (hold) await moderationHooks.holdImage({ userId: uploader.id, type, url: publicUrl, reasonCode: 'auto.image_pending', hide: true });
+        else if (scan.verdict === 'review') await moderationHooks.holdImage({ userId: uploader.id, type, url: publicUrl, reasonCode: 'auto.image_review', hide: false });
+      }
+
+      const previousImageUrl = isBanner
+        ? uploader?.bannerBase64
+        : isWallpaper
+          ? uploader?.wallpaperBase64
+          : uploader?.photoURL;
+
+      if (!isMessageImage && !isCardImage && previousImageUrl && previousImageUrl !== publicUrl) {
+        await deleteR2ObjectByPublicUrl(previousImageUrl);
+      }
+
+      res.json({ success: true, url: publicUrl, dominantColor, complementaryColor, ...(hold ? { pending: true } : {}) });
+    } catch (error) {
+      if (!published) await deleteR2ObjectByPublicUrl(publicUrl);
+      throw error;
     }
-
-    const previousImageUrl = isBanner
-      ? previousUser?.bannerBase64
-      : isWallpaper
-        ? previousUser?.wallpaperBase64
-        : previousUser?.photoURL;
-
-    if (!isMessageImage && !isCardImage && previousImageUrl && previousImageUrl !== publicUrl) {
-      await deleteR2ObjectByPublicUrl(previousImageUrl);
-    }
-
-    res.json({ success: true, url: publicUrl, dominantColor, complementaryColor });
   } catch (error) {
     console.error('Upload Error:', error);
     res.status(500).json({ success: false, message: 'Error procesando o subiendo la imagen' });
@@ -2695,6 +2809,7 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
       data: updateData
     });
 
+    if (updateData.bio) moderationHooks.flagText?.('profile_text', user.id, updateData.bio, 'bio', null);
     res.json({ success: true, user });
   } catch (error) {
     console.error('Error updating profile:', error);

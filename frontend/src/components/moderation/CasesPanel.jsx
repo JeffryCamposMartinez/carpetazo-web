@@ -26,6 +26,31 @@ function CaseDetail({ id, level, onClose, onChanged, onOpenPerson, onOpenReport 
   const [days, setDays] = useState('7');
   const [busy, setBusy] = useState(false);
 
+  // Informe para autoridades: solo administradores, con el motivo escrito; se descarga como archivo HTML (imprimible a PDF)
+  const exportReport = async () => {
+    const purpose = window.prompt('Motivo de la entrega (requerimiento, denuncia o fundamento legal; mínimo 10 caracteres). Queda registrado en la auditoría:');
+    if (!purpose || purpose.trim().length < 10) return;
+    const reference = window.prompt('Referencia del requerimiento (RUC, folio u oficio; opcional):') || '';
+    setBusy(true);
+    setError('');
+    try {
+      const res = await api.exportCase(id, purpose.trim(), reference.trim());
+      const url = URL.createObjectURL(new Blob([res.html], { type: 'text/html;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = res.filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 10000);
+      load();
+    } catch (err) {
+      setError(err.message || 'No se pudo generar el informe.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const load = useCallback(() => { setError(''); api.getAdminCase(id).then(setData).catch((err) => setError(err.message || 'No se pudo cargar el caso.')); }, [id]);
   useEffect(() => { setData(null); setResolution(''); setNote(''); load(); }, [load]);
 
@@ -142,6 +167,13 @@ function CaseDetail({ id, level, onClose, onChanged, onOpenPerson, onOpenReport 
               </section>
             )}
             {item.status === 'resolved' && <p className="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Resuelto: {item.resolution}{item.resolutionNote ? ` — ${item.resolutionNote}` : ''}</p>}
+            {level >= 3 && (
+              <section aria-label="Informe para autoridades" className="rounded-2xl border border-slate-200 p-3">
+                <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Informe para autoridades</h3>
+                <p className="mt-1 text-xs font-semibold text-slate-500">Genera un documento con los reportes, el descargo, las medidas y la línea de tiempo. No incluye correos, RUT, teléfonos ni datos bancarios (esos se entregan solo con requerimiento formal, revisado por un abogado).</p>
+                <button type="button" disabled={busy} onClick={exportReport} className="mt-2 h-10 rounded-full border-2 border-[#12315f] px-5 text-sm font-extrabold text-[#12315f] disabled:opacity-50">Descargar informe</button>
+              </section>
+            )}
           </>
         )}
       </div>

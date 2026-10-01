@@ -446,7 +446,7 @@ const ProfilePage = () => {
       {profileError && <div className="mb-4 rounded-2xl bg-red-50 p-4 text-sm font-bold text-red-700 ring-1 ring-red-100">{profileError}</div>}
       {appUser?.moderationHidden?.length > 0 && (
         <div role="status" className="mb-4 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-900 ring-1 ring-amber-200">
-          Moderación retiró {appUser.moderationHidden.map((part) => ({ photo: 'tu foto de perfil', banner: 'tu banner', wallpaper: 'tu fondo de perfil', text: 'el texto de tu perfil' })[part] || part).join(', ')} por incumplir las normas. Puedes subir otro contenido. Si crees que fue un error, escríbenos a carpetazo.soporte@gmail.com.
+          Moderación revisó o retiró {appUser.moderationHidden.map((part) => ({ photo: 'tu foto de perfil', banner: 'tu banner', wallpaper: 'tu fondo de perfil', text: 'el texto de tu perfil' })[part] || part).join(', ')} por incumplir las normas. Puedes subir otro contenido. Si crees que fue un error, escríbenos a carpetazo.soporte@gmail.com.
         </div>
       )}
 

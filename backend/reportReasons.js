@@ -101,7 +101,17 @@ export const REPORT_TARGETS = {
 export const SEVERITY_ORDER = { S1: 0, S2: 1, S3: 2, S4: 3 };
 export const REPORT_TARGET_TYPES = Object.keys(REPORT_TARGETS);
 
-export const findReason = (targetType, code) => REPORT_TARGETS[targetType]?.reasons.find((reason) => reason.code === code) || null;
+// Razones de los reportes automáticos (filtros de texto): no están en el formulario de las personas
+export const AUTO_REASONS = {
+  'auto.personal_data': { code: 'auto.personal_data', label: 'Detección automática: posible dato personal (RUT, teléfono o cuenta bancaria)', severity: 'S2', requiresComment: false, extra: [] },
+  'auto.external_payment': { code: 'auto.external_payment', label: 'Detección automática: posible cobro por adelantado o fuera de Carpetazo', severity: 'S2', requiresComment: false, extra: [] },
+  'auto.suspicious_link': { code: 'auto.suspicious_link', label: 'Detección automática: enlace acortado o sospechoso', severity: 'S3', requiresComment: false, extra: [] },
+  'auto.image_review': { code: 'auto.image_review', label: 'Detección automática: imagen con posible contenido sensible (se publicó, falta confirmar)', severity: 'S2', requiresComment: false, extra: [] },
+  'auto.image_pending': { code: 'auto.image_pending', label: 'Imagen retenida: no se pudo escanear y la cuenta es nueva o tiene antecedentes (pendiente de revisión)', severity: 'S2', requiresComment: false, extra: [] },
+  'auto.repeated_text': { code: 'auto.repeated_text', label: 'Detección automática: texto repetitivo (posible spam)', severity: 'S4', requiresComment: false, extra: [] }
+};
+
+export const findReason = (targetType, code) => (typeof code === 'string' && code.startsWith('auto.') ? AUTO_REASONS[code] || null : REPORT_TARGETS[targetType]?.reasons.find((reason) => reason.code === code) || null);
 
 // Lo que ve el cliente: sin lógica interna
 export const publicReasons = (targetType, role = null) => (REPORT_TARGETS[targetType]?.reasons || []).filter((reason) => !reason.appliesTo || reason.appliesTo === role).map((reason) => ({

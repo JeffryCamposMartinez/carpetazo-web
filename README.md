@@ -73,6 +73,10 @@ Antes de subir un cambio con migración: respaldo de la base (Coolify → Backup
 - **Sanciones** (`Sanction`): advertencia, restringir mensajes, suspender ventas, suspender cuenta y cerrar cuenta (necesita otro administrador que apruebe). Se aplican en `moderationB.js` (`createRestrictions` corta las escrituras de una cuenta suspendida) y vencen solas. La persona puede apelar 14 días desde Mi perfil → Moderación.
 - **Bloqueo** entre usuarios (`UserBlock`) y **evidencias** de reportes (`Evidence`: hasta 3 imágenes, re-codificadas y guardadas en la base; solo las ve el equipo y cada vista queda en la auditoría).
 
+- **Detección y madurez** (`moderationC.js`): los filtros de texto (`textSignals.js`) crean reportes automáticos en reseñas, biografías y mensajes; cada imagen subida guarda su huella visual (`perceptual.js`) y una imagen confirmada como infracción impide subir otras parecidas; quienes reportan de mala fe pesan menos. Una limpieza diaria aplica los plazos de retención (`RETENTION`; se puede apagar con `RETENTION_DISABLED=1`). Métricas e informe de un caso para autoridades en `/moderacion` (solo administradores).
+
+- **Escaneo de imágenes** (`imageScan.js`): fotos de perfil, banner, fondo y cartas pasan por Sightengine y, si no responde o se agota su cuota, por Google Cloud Vision (SafeSearch). Variables del backend: `SIGHTENGINE_USER`, `SIGHTENGINE_SECRET`, `GOOGLE_VISION_KEY`. Opcionales: `SIGHTENGINE_MONTHLY_LIMIT` (2000), `GOOGLE_VISION_MONTHLY_LIMIT` (1000), `IMAGE_SCAN_DISABLED=1`, `IMAGE_SCAN_BUDGET_MS` (3500), `TRUST_MIN_ACCOUNT_DAYS` (7). Sin claves el escaneo queda apagado. Las imágenes del chat y las evidencias nunca se envían. En local, `EXTRA_ENV_FILE` puede apuntar a otro archivo de variables. En Google Cloud conviene un tope de cuota y una alerta de presupuesto para garantizar costo cero.
+
 ## Correos
 
 - Se envían por SMTP con `SMTP_USER` y `SMTP_PASS` (Gmail con contraseña de aplicación) en las variables del backend; sin ellas no se envía nada. Nunca se escribe a una cuenta que no tenga aceptados los Términos vigentes. Prueba: botón en `/moderacion` → Herramientas.

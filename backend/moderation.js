@@ -318,7 +318,9 @@ export const registerModeration = (app, deps) => {
       if (reason.appliesTo && reason.appliesTo !== resolved.reporterRole) return badRequest(res, 'Motivo inválido');
 
       const accountOldEnough = now - new Date(me.createdAt).getTime() >= MIN_AGE_FOR_AUTO_HIDE_MS;
-      const autoHide = Boolean(reason.autoHide && AUTO_HIDE_TYPES.includes(targetType) && accountOldEnough && lastHour <= 10);
+      // Reputación de quien reporta: con muchos reportes descartados su reporte entra a la cola pero sin efecto automático
+      const reputation = hooks.reporterWeight ? await hooks.reporterWeight(me.id) : { weight: 1, low: false };
+      const autoHide = Boolean(reason.autoHide && AUTO_HIDE_TYPES.includes(targetType) && accountOldEnough && lastHour <= 10 && !reputation.low);
 
       let report = null;
       let hiddenNow = false;
@@ -330,7 +332,7 @@ export const registerModeration = (app, deps) => {
             const created = await tx.report.create({
               data: {
                 shortCode: newShortCode(), targetType, targetId, targetOwnerId: resolved.ownerId, reasonCode: reason.code, severity: reason.severity,
-                comment: comment || null, extra: Object.keys(extra).length ? extra : undefined, reporterId: me.id, reporterRole: resolved.reporterRole || null, snapshot: resolved.snapshot, createdIpHash: hashConnection(req)
+                comment: comment || null, extra: Object.keys(extra).length ? extra : undefined, reporterId: me.id, reporterRole: resolved.reporterRole || null, weight: reputation.weight, snapshot: resolved.snapshot, createdIpHash: hashConnection(req)
               }
             });
             // Estafas: el reporte se une al caso abierto contra esa persona (o abre uno)
@@ -414,6 +416,8 @@ export const registerModeration = (app, deps) => {
     status: row.status,
     decision: row.decision,
     autoActioned: row.autoActioned,
+    automatic: row.reporterId === null,
+    weight: row.weight,
     comment: row.comment ? row.comment.slice(0, 160) : null,
     createdAt: row.createdAt,
     decidedAt: row.decidedAt
@@ -442,12 +446,12 @@ export const registerModeration = (app, deps) => {
         where.OR = [{ shortCode: search.toUpperCase() }, ...(owners.length ? [{ targetOwnerId: { in: owners.map((owner) => owner.id) } }] : [])];
       }
       const [rows, total, counts] = await Promise.all([
-        prisma.report.findMany({ where, orderBy: [{ createdAt: 'asc' }], skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, select: { id: true, shortCode: true, targetType: true, targetId: true, targetOwnerId: true, reasonCode: true, severity: true, status: true, decision: true, autoActioned: true, comment: true, createdAt: true, decidedAt: true } }),
+        prisma.report.findMany({ where, orderBy: [{ createdAt: 'asc' }], skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, select: { id: true, shortCode: true, targetType: true, targetId: true, targetOwnerId: true, reporterId: true, weight: true, reasonCode: true, severity: true, status: true, decision: true, autoActioned: true, comment: true, createdAt: true, decidedAt: true } }),
         prisma.report.count({ where }),
         prisma.report.groupBy({ by: ['status'], _count: { _all: true } })
       ]);
       // Más grave primero; dentro de cada gravedad, el más antiguo
-      rows.sort((a, b) => (SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]) || (new Date(a.createdAt) - new Date(b.createdAt)));
+      rows.sort((a, b) => (SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]) || (b.weight - a.weight) || (new Date(a.createdAt) - new Date(b.createdAt)));
       const owners = await ownerCache(rows.map((row) => row.targetOwnerId));
       const sameTarget = rows.length ? await prisma.report.groupBy({ by: ['targetType', 'targetId'], where: { OR: rows.map((row) => ({ targetType: row.targetType, targetId: row.targetId })), status: 'open' }, _count: { _all: true } }) : [];
       const sameMap = new Map(sameTarget.map((row) => [`${row.targetType}:${row.targetId}`, row._count._all]));
@@ -472,7 +476,7 @@ export const registerModeration = (app, deps) => {
         prisma.report.findMany({ where: { targetType: report.targetType, targetId: report.targetId, id: { not: report.id } }, orderBy: { createdAt: 'desc' }, take: 20, select: { shortCode: true, reasonCode: true, targetType: true, severity: true, status: true, comment: true, createdAt: true, reporter: { select: { username: true } } } }),
         prisma.moderationAudit.findMany({ where: { OR: [{ reportId: report.id }, { targetType: report.targetType, targetId: report.targetId }] }, orderBy: { createdAt: 'desc' }, take: 50, select: { id: true, actorId: true, action: true, note: true, createdAt: true, reportId: true } }),
         report.targetOwnerId ? prisma.user.findUnique({ where: { id: report.targetOwnerId }, select: { id: true, username: true, name: true, createdAt: true, moderationHidden: true } }) : null,
-        prisma.report.groupBy({ by: ['status'], where: { reporterId: report.reporterId }, _count: { _all: true } }),
+        report.reporterId ? prisma.report.groupBy({ by: ['status'], where: { reporterId: report.reporterId }, _count: { _all: true } }) : [],
         report.targetOwnerId ? prisma.report.groupBy({ by: ['status'], where: { targetOwnerId: report.targetOwnerId }, _count: { _all: true } }) : [],
         prisma.evidence.findMany({ where: { reportId: report.id }, orderBy: { createdAt: 'asc' }, select: { id: true, mime: true, size: true } })
       ]);
@@ -537,6 +541,10 @@ export const registerModeration = (app, deps) => {
       if (outcome.conflict) return res.status(409).json({ success: false, message: 'Este reporte ya fue resuelto' });
       if (outcome.failed) return res.status(409).json({ success: false, message: outcome.failed });
 
+      if ((action === 'hide' || action === 'remove') && IMAGE_TYPES.includes(report.targetType) && hooks.banImage) {
+        // Imagen confirmada como infracción: su huella visual queda prohibida
+        hooks.banImage(report).catch((error) => console.error('Error banning image hash:', error.message));
+      }
       if (action === 'hide' || action === 'remove') {
         notifyOwnerOfAction(report.targetOwnerId, report.targetType, findReason(report.targetType, report.reasonCode)?.label || 'Otro motivo', action, publicMessage).catch((error) => console.error('Error notifying owner:', error.message));
       }
@@ -580,5 +588,5 @@ export const registerModeration = (app, deps) => {
     }
   });
 
-  return { applyHide, applyRestore, cleanText, hasBadControlChars, newShortCode, notifyAdminsOfCritical };
+  return { applyHide, applyRestore, cleanText, hasBadControlChars, newShortCode, notifyAdminsOfCritical, resolveTarget: (type, id, viewer) => resolvers[type](id, viewer, type) };
 };

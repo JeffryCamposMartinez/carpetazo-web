@@ -927,7 +927,13 @@ export default function SellerProfile() {
       formData.append('type', type);
 
       const response = await api.uploadImage(formData);
-      if (response.success) {
+      if (response.success && response.pending) {
+        // Sin escaneo disponible y cuenta nueva: la imagen queda pendiente de revisión y no se muestra todavía
+        const cleared = type === 'banner' ? { bannerBase64: null } : type === 'wallpaper' ? { wallpaperBase64: null } : { photoURL: null };
+        setSeller(prev => ({ ...prev, ...cleared }));
+        await refreshAppUser?.();
+        alert('Recibimos tu imagen. Queda pendiente de revisión y se mostrará cuando el equipo la apruebe.');
+      } else if (response.success) {
         const payload = type === 'banner'
           ? {
             bannerBase64: response.url,
