@@ -401,15 +401,14 @@ const getEffectClassName = (theme) => {
   return '';
 };
 
-const getDisplayFontClass = (font, isPosterLayout = false) => {
-  if (['Press Start 2P', 'Rubik Glitch'].includes(font)) {
-    return isPosterLayout ? 'text-[2rem] sm:text-4xl md:text-5xl' : 'text-[1.55rem] sm:text-3xl md:text-4xl';
-  }
-  if (['Bungee', 'Bebas Neue', 'Orbitron', 'Audiowide', 'Unbounded'].includes(font)) {
-    return isPosterLayout ? 'text-[2.25rem] sm:text-5xl md:text-6xl' : 'text-[1.75rem] sm:text-4xl md:text-[2.9rem]';
-  }
-  return isPosterLayout ? 'text-[2.5rem] sm:text-6xl md:text-7xl' : 'text-[1.9rem] sm:text-4xl md:text-5xl';
+// La fuente del tema solo se usa en títulos; las anchas (pixel, display extendidas) se achican para que quepan en móvil
+const getDisplayScale = (font) => {
+  if (['Press Start 2P', 'Rubik Glitch'].includes(font)) return 0.7;
+  if (['Bungee', 'Orbitron', 'Audiowide', 'Unbounded'].includes(font)) return 0.8;
+  if (font === 'Bebas Neue') return 1.12;
+  return 1;
 };
+const BODY_FONT_STACK = 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 
 const getCardStyle = (theme) => {
   const style = theme.cardStyle || defaultPublicTheme.cardStyle;
@@ -788,7 +787,9 @@ export default function SellerProfile() {
   const isSideShowcaseLayout = publicTheme.profileLayout === 'side-showcase';
   const isPosterLayout = publicTheme.profileLayout === 'poster';
   const isCompactLayout = publicTheme.profileLayout === 'compact';
-  const displayNameSizeClass = getDisplayFontClass(publicTheme.font, isPosterLayout);
+  const displayScale = getDisplayScale(publicTheme.font);
+  // Nombre: crece con la pantalla, acotado entre móvil y escritorio (más grande en el diseño póster)
+  const displayNameSize = `clamp(${(1.7 * displayScale).toFixed(2)}rem, ${(1.05 * displayScale).toFixed(2)}rem + ${(2.4 * displayScale).toFixed(2)}vw, ${((isPosterLayout ? 3.6 : 2.9) * displayScale).toFixed(2)}rem)`;
   const selectedDistribution = profileDistributionOptions.find(option => option.id === publicTheme.profileDistribution) || profileDistributionOptions[0];
   const getDistributionOrder = (moduleName) => {
     const index = selectedDistribution.order.indexOf(moduleName);
@@ -1096,7 +1097,10 @@ export default function SellerProfile() {
   const textMuted = { color: publicTheme.text, opacity: 0.7 };
 
   return (
-    <div className="min-h-screen" style={{ fontFamily: getFontStack(publicTheme.font) }}>
+    <div
+      className="min-h-screen [&_h1]:[font-family:var(--seller-font)] [&_section_h2]:[font-family:var(--seller-font)] [&_section_h2]:[font-size:var(--seller-h2)]"
+      style={{ fontFamily: BODY_FONT_STACK, '--seller-font': getFontStack(publicTheme.font), '--seller-h2': `${(1.45 * displayScale).toFixed(2)}rem` }}
+    >
       <div className="mx-auto w-full max-w-[1470px] xl:px-4 2xl:px-6" style={getSideBackgroundStyle(publicTheme)}>
       <div className={`relative min-h-screen w-full overflow-hidden shadow-[0_0_90px_rgba(0,0,0,0.22)] ${getEffectClassName(publicTheme)}`} style={getProfileBackgroundStyle(publicTheme)}>
 
@@ -1136,7 +1140,18 @@ export default function SellerProfile() {
         )}
 
         <div className={`relative z-10 mx-auto flex w-full max-w-[1220px] flex-col justify-end gap-5 px-4 pb-6 pt-[150px] sm:px-6 sm:pt-[220px] md:flex-row md:items-end md:px-8 ${isCompactLayout ? 'md:py-8' : 'md:py-12'} ${isPosterLayout ? 'md:items-center' : ''}`}>
-          <div className="relative z-20 h-32 w-32 shrink-0 sm:h-36 sm:w-36 md:h-44 md:w-44">
+          <div className="relative z-20 h-28 w-28 shrink-0 sm:h-36 sm:w-36 md:h-40 md:w-40">
+            {/* Nivel como la gema de coste de una carta */}
+            <div
+              className="absolute -right-3 -top-3 z-20 flex h-12 w-12 flex-col items-center justify-center rounded-full shadow-[0_6px_16px_rgba(0,0,0,0.35)] ring-4 md:h-14 md:w-14"
+              style={{ backgroundColor: publicTheme.accent, color: readableOn(publicTheme.accent), '--tw-ring-color': publicTheme.card }}
+              title={`Nivel ${profileLevel} del perfil`}
+              aria-label={`Nivel ${profileLevel}`}
+              role="img"
+            >
+              <span className="text-[9px] font-bold leading-none opacity-80" aria-hidden="true">nivel</span>
+              <span className="font-black leading-none tabular-nums" style={{ fontFamily: 'var(--seller-font)', fontSize: `${(1.15 * Math.max(displayScale, 0.75)).toFixed(2)}rem` }} aria-hidden="true">{profileLevel}</span>
+            </div>
             <div className="h-full w-full rounded-[2.2rem] p-[5px] shadow-[0_18px_44px_rgba(0,0,0,0.4)]" style={{ background: getAvatarFrameStyle(publicTheme) }}>
               <div className="h-full w-full overflow-hidden rounded-[1.9rem] bg-white ring-2 ring-white/90">
                 {avatarUrl ? (
@@ -1157,44 +1172,51 @@ export default function SellerProfile() {
             )}
           </div>
 
-          <div className={`relative min-w-0 flex-1 p-5 ring-1 md:p-6 ${isPosterLayout ? 'md:text-center' : ''}`} style={getCardStyle(publicTheme)}>
+          <div className={`relative min-w-0 flex-1 p-4 ring-1 sm:p-5 md:p-6 ${isPosterLayout ? 'md:text-center' : ''}`} style={getCardStyle(publicTheme)}>
             <div className={`flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between ${isPosterLayout ? 'lg:flex-col lg:items-center' : ''}`}>
               <div className="min-w-0">
-                <div className={`flex flex-wrap items-center gap-2 ${isPosterLayout ? 'md:justify-center' : ''}`}>
-                  <h1 className={`break-words font-black leading-[1] ${displayNameSizeClass}`} style={{ color: publicTheme.text }}>{displayName}</h1>
-                  <span translate="no" className="material-symbols-outlined" style={{ color: publicTheme.primary, fontVariationSettings: "'FILL' 1" }} title="Vendedor verificado">verified</span>
-                </div>
-                <p className="mt-1 text-sm font-bold" style={textMuted}>
-                  @{seller?.username}
-                  {seller?.fullName ? ` · ${seller.fullName}` : ''}
-                </p>
-                <p className="mt-2 text-sm font-semibold tabular-nums" style={{ color: publicTheme.text }}>
-                  {folderCountLabel} · {cardCountLabel} · Nivel {profileLevel}
-                </p>
-                {seller?.reviewSummary && (
-                  <a href="#resenas" className="mt-1 flex w-fit items-center gap-2 text-sm font-bold tabular-nums hover:underline" style={{ color: publicTheme.text }}>
-                    {seller.reviewSummary.showAverage && <Stars value={seller.reviewSummary.average} size={18} />}
-                    {seller.reviewSummary.count > 0
-                      ? `${seller.reviewSummary.showAverage ? `${seller.reviewSummary.average.toFixed(1)} · ` : ''}${seller.reviewSummary.count} ${seller.reviewSummary.count === 1 ? 'reseña' : 'reseñas'}`
-                      : 'Sin reseñas todavía'}
-                  </a>
-                )}
-                {primaryAddress && (
-                  <p className={`mt-2 flex items-center gap-1.5 text-sm font-semibold ${isPosterLayout ? 'md:justify-center' : ''}`} style={textMuted}>
-                    <span translate="no" className="material-symbols-outlined text-[18px]">location_on</span>
-                    <span className="truncate">{[primaryAddress.name, primaryAddress.comuna, primaryAddress.region].filter(Boolean).join(' · ')}</span>
-                  </p>
-                )}
+                <h1 className="break-words font-black leading-[1.05]" style={{ color: publicTheme.text, fontSize: displayNameSize }}>
+                  {displayName}
+                  {/* Pegado a la última palabra del nombre, aunque ocupe varias líneas */}
+                  <span translate="no" className="material-symbols-outlined ml-1.5 align-[-0.12em] text-[22px] leading-none" style={{ color: publicTheme.primary, fontVariationSettings: "'FILL' 1" }} title="Vendedor verificado" aria-label="Vendedor verificado">verified</span>
+                </h1>
+                <p className="mt-1.5 text-[15px] font-bold leading-snug" style={{ color: publicTheme.primary }}>@{seller?.username}</p>
+                {seller?.fullName && <p className="text-sm font-medium leading-snug" style={textMuted}>{seller.fullName}</p>}
+
+                {/* Datos del vendedor en fichas cortas: se leen de un vistazo y se acomodan en varias líneas en móvil */}
+                <ul className={`mt-3 flex flex-wrap gap-1.5 ${isPosterLayout ? 'md:justify-center' : ''}`} aria-label="Datos del vendedor">
+                  {[
+                    { icon: 'folder_open', label: folderCountLabel },
+                    { icon: 'style', label: cardCountLabel },
+                    ...(primaryAddress ? [{ icon: 'location_on', label: [primaryAddress.comuna, primaryAddress.region].filter(Boolean).join(', ') || primaryAddress.name }] : [])
+                  ].map((chip) => (
+                    <li key={chip.icon} className="inline-flex h-8 max-w-full items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold tabular-nums" style={{ backgroundColor: `${publicTheme.primary}14`, color: publicTheme.text, boxShadow: `inset 0 0 0 1px ${publicTheme.primary}2e` }}>
+                      <span translate="no" className="material-symbols-outlined shrink-0 text-[17px]" style={{ color: publicTheme.primary }} aria-hidden="true">{chip.icon}</span>
+                      <span className="truncate">{chip.label}</span>
+                    </li>
+                  ))}
+                  {seller?.reviewSummary && (
+                    <li>
+                      <a href="#resenas" className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold tabular-nums transition hover:brightness-95 focus:outline-none focus-visible:ring-2" style={{ backgroundColor: seller.reviewSummary.count > 0 ? '#fef3c7' : `${publicTheme.primary}14`, color: seller.reviewSummary.count > 0 ? '#713f12' : publicTheme.text, boxShadow: `inset 0 0 0 1px ${seller.reviewSummary.count > 0 ? '#f59e0b55' : `${publicTheme.primary}2e`}` }}>
+                        {seller.reviewSummary.showAverage
+                          ? <><Stars value={seller.reviewSummary.average} size={14} />{seller.reviewSummary.average.toFixed(1)}<span className="font-semibold opacity-75">({seller.reviewSummary.count})</span></>
+                          : seller.reviewSummary.count > 0
+                            ? <><span translate="no" className="material-symbols-outlined text-[17px]" style={{ fontVariationSettings: "'FILL' 1", color: '#d97706' }} aria-hidden="true">star</span>{seller.reviewSummary.count} {seller.reviewSummary.count === 1 ? 'reseña' : 'reseñas'}</>
+                            : <><span translate="no" className="material-symbols-outlined text-[17px]" style={{ color: publicTheme.primary }} aria-hidden="true">star</span>Sin reseñas todavía</>}
+                      </a>
+                    </li>
+                  )}
+                </ul>
               </div>
 
               {heroActions.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2">
                   {heroActions.map((action) => action.id === 'message' ? (
                     <button
                       key="message"
                       type="button"
                       onClick={contactSeller}
-                      className="inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-extrabold shadow-md transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                      className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full px-5 text-sm font-extrabold shadow-md transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:flex-none"
                       style={{ backgroundColor: publicTheme.accent, color: readableOn(publicTheme.accent) }}
                     >
                       <span translate="no" className="material-symbols-outlined text-[20px]">chat</span>
@@ -1208,7 +1230,7 @@ export default function SellerProfile() {
                       rel="noopener noreferrer"
                       aria-label={action.label}
                       title={action.label}
-                      className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-black/10 transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-black/10 transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"
                     >
                       <SocialLogo type={action.id} className="h-6 w-6" />
                     </a>
@@ -1217,7 +1239,7 @@ export default function SellerProfile() {
               )}
             </div>
 
-            <div className="mt-5">
+            <div className="mt-4">
               {isEditingBio ? (
                 <div className="space-y-3">
                   <textarea value={tempBio} onChange={(event) => setTempBio(event.target.value)} maxLength={500} aria-label="Biografía" className="min-h-24 w-full rounded-xl border px-4 py-3 text-sm font-semibold outline-none focus:ring-4" style={{ backgroundColor: publicTheme.card, borderColor: `${publicTheme.primary}55`, color: publicTheme.text }} placeholder="Cuéntale a la comunidad quién eres y qué coleccionas" />
@@ -1228,7 +1250,7 @@ export default function SellerProfile() {
                 </div>
               ) : (
                 <div className="flex items-start gap-2">
-                  <p className="min-h-6 flex-1 border-l-4 pl-3 text-sm font-medium leading-relaxed md:text-base" style={{ borderColor: `${publicTheme.primary}66`, color: publicTheme.text, opacity: seller?.bio ? 0.85 : 0.6 }}>
+                  <p className={`min-h-6 max-w-[65ch] flex-1 whitespace-pre-line break-words border-l-4 pl-3 text-[15px] font-medium leading-relaxed ${isPosterLayout ? 'md:mx-auto md:text-left' : ''}`} style={{ borderColor: `${publicTheme.primary}66`, color: publicTheme.text, opacity: seller?.bio ? 0.85 : 0.6 }}>
                     {seller?.bio ? seller.bio : isOwner ? 'Aún no escribes tu biografía.' : 'Este vendedor aún no escribe su biografía.'}
                   </p>
                   {isOwner && (
