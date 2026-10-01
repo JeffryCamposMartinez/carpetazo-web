@@ -45,7 +45,7 @@ const response = (body, status = 200) => new Response(JSON.stringify(body), { st
   try {
     const scanModule = await import(pathToFileURL(path.join(__dirname, '..', 'imageScan.js')).href);
     const perceptual = await import(pathToFileURL(path.join(__dirname, '..', 'perceptual.js')).href);
-    const { decide, createImageScanner, prepareImage } = scanModule;
+    const { decide, createImageScanner, prepareImage, cleanEnv } = scanModule;
 
     // --- Umbrales ---
     ok('umbral: explícito alto en perfil se bloquea', decide({ explicit: 0.9, suggestive: 0.9, violence: null }, 'profile') === 'block');
@@ -82,13 +82,28 @@ const response = (body, status = 200) => new Response(JSON.stringify(body), { st
     await new Promise((resolve) => setTimeout(resolve, 200));
     ok('el uso mensual se registra con las operaciones informadas', (await prisma.scanUsage.findUnique({ where: { provider_month: { provider: 'sightengine', month: FAR_MONTH } } }))?.used === 1);
 
+    // Variables pegadas con espacios, saltos de línea o comillas (típico al copiarlas a un panel): se limpian antes de usarlas
+    ok('cleanEnv: quita espacios y saltos de línea', cleanEnv('  abc\n') === 'abc');
+    ok('cleanEnv: quita comillas que envuelven el valor', cleanEnv('"abc"') === 'abc' && cleanEnv("'abc'") === 'abc');
+    ok('cleanEnv: no toca comillas dentro del valor', cleanEnv('ab"c') === 'ab"c');
+    ok('cleanEnv: valores vacíos o ausentes quedan vacíos', cleanEnv(undefined) === '' && cleanEnv('   ') === '' && cleanEnv(null) === '');
+    let seen = {};
+    const spyFetch = async (url, options) => {
+      if (String(url).includes('sightengine')) seen = { user: options.body.get('api_user'), secret: options.body.get('api_secret') };
+      return fakeFetch(url, options);
+    };
+    const dirtyScanner = createImageScanner({ prisma, env: { ...env, SIGHTENGINE_USER: '  "usuario"\n', SIGHTENGINE_SECRET: "'secreto'  " }, fetchImpl: spyFetch, now: () => clock });
+    result = await dirtyScanner.scan(sample, { kind: 'profile' });
+    ok('credenciales con comillas y espacios se envían limpias y el escaneo funciona', seen.user === 'usuario' && seen.secret === 'secreto' && result.provider === 'sightengine');
+    ok('...y un escaneo normal no deja nada en "detail"', result.detail === null);
+
     sightengineReply = () => response({ status: 'success', request: { operations: 2 }, nudity: { sexual_activity: 0.9, sexual_display: 0.2, erotica: 0.3, very_suggestive: 0.9, suggestive: 0.9, mildly_suggestive: 0.9, none: 0.02 } });
     result = await scanner.scan(sample, { kind: 'profile' });
     ok('contenido explícito en un perfil → block', result.verdict === 'block' && result.provider === 'sightengine');
     result = await scanner.scan(sample, { kind: 'card' });
     ok('el mismo puntaje en una carta → review (más permisivo)', result.verdict === 'review');
     await new Promise((resolve) => setTimeout(resolve, 200));
-    ok('se suman las operaciones que informa el proveedor (1 + 2 + 2)', (await prisma.scanUsage.findUnique({ where: { provider_month: { provider: 'sightengine', month: FAR_MONTH } } }))?.used === 5);
+    ok('se suman las operaciones que informa el proveedor (1 + 1 + 2 + 2)', (await prisma.scanUsage.findUnique({ where: { provider_month: { provider: 'sightengine', month: FAR_MONTH } } }))?.used === 6);
 
     // Cuota agotada de Sightengine → respaldo en Google, y Sightengine no se vuelve a llamar ese mes
     scanner = makeScanner();
@@ -109,6 +124,9 @@ const response = (body, status = 200) => new Response(JSON.stringify(body), { st
     await prisma.scanUsage.deleteMany({ where: { provider: 'google', month: FAR_MONTH } });
     result = await scanner.scan(sample, { kind: 'profile' });
     ok('los dos servicios sin cuota → unavailable', result.verdict === 'unavailable' && result.provider === null);
+    ok('"unavailable" deja constancia de qué pasó con cada proveedor', result.detail === 'sightengine:cuota,google:quota', String(result.detail));
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    ok('...y el motivo queda guardado en el registro de escaneos', (await prisma.scanEvent.count({ where: { createdAt: { gte: testStart }, detail: 'sightengine:cuota,google:quota' } })) >= 1);
     ok('...y Google queda marcado como agotado', (await prisma.scanUsage.findUnique({ where: { provider_month: { provider: 'google', month: FAR_MONTH } } }))?.used >= 1000);
 
     // Mes nuevo: las cuotas vuelven a empezar
@@ -157,6 +175,8 @@ const response = (body, status = 200) => new Response(JSON.stringify(body), { st
     const started = Date.now();
     result = await scanner.scan(sample, { kind: 'profile' });
     ok('un proveedor que no responde se corta por tiempo y responde el respaldo', result.provider === 'google' && Date.now() - started < 1500, String(Date.now() - started));
+    ok('...y queda anotado como "timeout"', result.detail === 'sightengine:timeout', String(result.detail));
+    ok('los tiempos por defecto son holgados para un servidor en São Paulo (4 s por servicio, 8 s en total)', createImageScanner({ prisma, env: { ...env } }).providers.length === 2);
 
     // 95 % de la cuota: se deja de usar antes de agotarla
     await prisma.scanUsage.deleteMany({ where: { month: FAR_MONTH } });

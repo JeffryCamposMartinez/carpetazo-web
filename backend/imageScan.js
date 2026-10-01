@@ -36,6 +36,9 @@ export const decide = (scores, kind) => {
   return 'clear';
 };
 
+// Las variables pegadas en un panel suelen traer un espacio, un salto de línea o comillas de más: eso rompería la autenticación sin avisar
+export const cleanEnv = (value) => (typeof value === 'string' ? value.trim().replace(/^(['"])(.*)\1$/s, '$2').trim() : '');
+
 const failure = (code) => Object.assign(new Error(`scan_${code}`), { scanCode: code });
 
 const timed = (ms) => {
@@ -99,12 +102,15 @@ export const createImageScanner = ({ prisma, env = process.env, fetchImpl = glob
   // Cuotas mensuales gratuitas de cada servicio (se pueden ajustar por variable de entorno)
   const LIMITS = { sightengine: Number(env.SIGHTENGINE_MONTHLY_LIMIT) || 2000, google: Number(env.GOOGLE_VISION_MONTHLY_LIMIT) || 1000 };
   const providers = [];
-  if (env.SIGHTENGINE_USER && env.SIGHTENGINE_SECRET) providers.push(sightengineProvider({ user: env.SIGHTENGINE_USER, secret: env.SIGHTENGINE_SECRET, fetchImpl }));
-  if (env.GOOGLE_VISION_KEY) providers.push(googleProvider({ key: env.GOOGLE_VISION_KEY, fetchImpl }));
+  const sightengineUser = cleanEnv(env.SIGHTENGINE_USER);
+  const sightengineSecret = cleanEnv(env.SIGHTENGINE_SECRET);
+  const googleKey = cleanEnv(env.GOOGLE_VISION_KEY);
+  if (sightengineUser && sightengineSecret) providers.push(sightengineProvider({ user: sightengineUser, secret: sightengineSecret, fetchImpl }));
+  if (googleKey) providers.push(googleProvider({ key: googleKey, fetchImpl }));
   const testMode = env.TEST_AUTH_STUB === '1' && env.IMAGE_SCAN_TEST === '1';
   const enabled = env.IMAGE_SCAN_DISABLED !== '1' && (providers.length > 0 || testMode);
-  const totalBudgetMs = Number(env.IMAGE_SCAN_BUDGET_MS) || 3500;
-  const providerTimeoutMs = Number(env.IMAGE_SCAN_PROVIDER_TIMEOUT_MS) || 1800;
+  const totalBudgetMs = Number(env.IMAGE_SCAN_BUDGET_MS) || 8000;
+  const providerTimeoutMs = Number(env.IMAGE_SCAN_PROVIDER_TIMEOUT_MS) || 4000;
 
   const month = () => new Date(now()).toISOString().slice(0, 7);
   const usageCache = new Map(); // proveedor -> { month, used, until }
@@ -140,6 +146,15 @@ export const createImageScanner = ({ prisma, env = process.env, fetchImpl = glob
 
   const logEvent = (event) => prisma.scanEvent.create({ data: event }).catch(() => {});
 
+  // Un aviso por proveedor y causa cada 5 minutos en el log (sin credenciales ni direcciones)
+  const warned = new Map();
+  const warnOnce = (name, code) => {
+    const key = name + ':' + code;
+    if ((warned.get(key) || 0) > now()) return;
+    warned.set(key, now() + 5 * 60 * 1000);
+    console.warn('Image scan: ' + name + ' no respondió (' + code + ')');
+  };
+
   // Devuelve { verdict: 'clear' | 'review' | 'block' | 'unavailable', provider, scores, ms, fallback }
   const scan = async (buffer, { kind = 'profile', force = null } = {}) => {
     const started = now();
@@ -149,22 +164,26 @@ export const createImageScanner = ({ prisma, env = process.env, fetchImpl = glob
       return forced;
     }
     let fallback = false;
+    const attempts = [];
     const deadline = started + totalBudgetMs;
     for (const provider of providers) {
       const remaining = deadline - now();
       if (remaining < 400) break;
-      if (!(await canUse(provider.name)) || breakerOpen(provider.name)) { fallback = true; continue; }
+      if (!(await canUse(provider.name))) { attempts.push(provider.name + ':cuota'); fallback = true; continue; }
+      if (breakerOpen(provider.name)) { attempts.push(provider.name + ':circuito'); fallback = true; continue; }
       const timer = timed(Math.min(providerTimeoutMs, remaining));
       try {
         const { scores, operations } = await provider.check(buffer, timer.signal);
         breakerOk(provider.name);
         recordUsage(provider.name, operations).catch(() => {});
         const result = { verdict: decide(scores, kind), provider: provider.name, scores, ms: now() - started, fallback };
-        logEvent({ provider: provider.name, kind, verdict: result.verdict, fallback, ms: result.ms });
-        return result;
+        logEvent({ provider: provider.name, kind, verdict: result.verdict, fallback, ms: result.ms, detail: attempts.length ? attempts.join(',') : null });
+        return { ...result, detail: attempts.join(',') || null };
       } catch (error) {
         fallback = true;
         const code = error.scanCode || (error.name === 'AbortError' ? 'timeout' : 'transient');
+        attempts.push(provider.name + ':' + code);
+        warnOnce(provider.name, code);
         if (code === 'quota') await markExhausted(provider.name).catch(() => {});
         else if (code === 'auth') { breakerFail(provider.name, 10 * 60 * 1000); console.error(`Image scan: credenciales rechazadas por ${provider.name}`); }
         else if (code !== 'media') breakerFail(provider.name);
@@ -172,8 +191,9 @@ export const createImageScanner = ({ prisma, env = process.env, fetchImpl = glob
         timer.done();
       }
     }
-    const result = { verdict: 'unavailable', provider: null, scores: null, ms: now() - started, fallback };
-    logEvent({ provider: 'none', kind, verdict: 'unavailable', fallback, ms: result.ms });
+    if (!providers.length) attempts.push('sin_proveedores');
+    const result = { verdict: 'unavailable', provider: null, scores: null, ms: now() - started, fallback, detail: attempts.join(',') || 'sin_tiempo' };
+    logEvent({ provider: 'none', kind, verdict: 'unavailable', fallback, ms: result.ms, detail: result.detail });
     return result;
   };
 

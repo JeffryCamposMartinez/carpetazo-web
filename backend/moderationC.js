@@ -176,7 +176,7 @@ export const registerModerationC = (app, deps) => {
     try {
       const now = Date.now();
       const since = new Date(now - 30 * DAY);
-      const [recent, open, cases, sanctions, appealsOpen, autoBlocked, bannedHashes, lastRetention, lowWeight, scanEvents, scanUsage] = await Promise.all([
+      const [recent, open, cases, sanctions, appealsOpen, autoBlocked, bannedHashes, lastRetention, lowWeight, scanEvents, recentScanIssues, scanUsage] = await Promise.all([
         prisma.report.findMany({ where: { createdAt: { gte: since } }, select: { createdAt: true, targetType: true, severity: true, status: true, reasonCode: true, decidedAt: true, reporterId: true }, take: 20000 }),
         prisma.report.findMany({ where: { status: 'open' }, select: { severity: true, createdAt: true } }),
         prisma.fraudCase.findMany({ where: { status: { not: 'resolved' } }, select: { status: true, priority: true, responseDueAt: true, sellerRespondedAt: true } }),
@@ -187,6 +187,7 @@ export const registerModerationC = (app, deps) => {
         prisma.moderationAudit.findFirst({ where: { action: 'retention.run' }, orderBy: { createdAt: 'desc' }, select: { createdAt: true, note: true } }),
         prisma.report.count({ where: { createdAt: { gte: since }, weight: { lt: 0.5 } } }),
         prisma.scanEvent.findMany({ where: { createdAt: { gte: since } }, select: { provider: true, verdict: true, fallback: true, ms: true }, take: 50000 }),
+        prisma.scanEvent.findMany({ where: { detail: { not: null } }, orderBy: { createdAt: 'desc' }, take: 8, select: { createdAt: true, kind: true, verdict: true, detail: true, provider: true } }),
         imageScanner ? imageScanner.usageSnapshot() : []
       ]);
 
@@ -260,7 +261,7 @@ export const registerModerationC = (app, deps) => {
           }
           latencies.sort((a, b) => a - b);
           const percentile = (p) => (latencies.length ? latencies[Math.min(latencies.length - 1, Math.floor(latencies.length * p))] : null);
-          return { enabled: Boolean(imageScanner?.enabled), providers: scanUsage, last30d: { total: scanEvents.length, byProvider, byVerdict, fallbacks, unavailable: byVerdict.unavailable || 0, cacheHits: byProvider.cache || 0, latencyMs: { p50: percentile(0.5), p95: percentile(0.95) } } };
+          return { enabled: Boolean(imageScanner?.enabled), providers: scanUsage, last30d: { total: scanEvents.length, byProvider, byVerdict, fallbacks, unavailable: byVerdict.unavailable || 0, cacheHits: byProvider.cache || 0, latencyMs: { p50: percentile(0.5), p95: percentile(0.95) }, recentIssues: recentScanIssues } };
         })(),
         retention: { policy: RETENTION, lastRun: lastRetention }
       });

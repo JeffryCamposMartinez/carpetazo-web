@@ -69,6 +69,15 @@ export default function MetricsPanel() {
             <li>{Object.entries(data.scans.last30d.byVerdict).map(([key, count]) => `${VERDICT_LABELS[key] || key}: ${count}`).join(' · ') || 'Sin escaneos todavía.'}</li>
           </ul>
         </div>
+        {data.scans.last30d.recentIssues?.length > 0 && (
+          <div className="mt-3 rounded-xl bg-amber-50 p-3 ring-1 ring-amber-200">
+            <h4 className="text-xs font-extrabold uppercase tracking-wide text-amber-900">Últimos problemas con los servicios</h4>
+            <ul className="mt-1 space-y-0.5 text-xs text-amber-950">
+              {data.scans.last30d.recentIssues.map((issue, index) => <li key={index}><span className="font-bold">{new Date(issue.createdAt).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}</span> · {issue.kind === 'card' ? 'carta' : 'perfil'} · {issue.verdict === 'unavailable' ? 'sin servicio' : `respondió ${issue.provider}`} · <code>{issue.detail}</code></li>)}
+            </ul>
+            <p className="mt-1 text-[11px] text-amber-900">Causas: <b>timeout</b> (tardó demasiado), <b>auth</b> (clave rechazada o facturación), <b>quota</b> (cuota agotada), <b>cuota</b> (se saltó por llegar al 95 %), <b>circuito</b> (en pausa tras fallos), <b>transient</b> (error del servicio), <b>sin_proveedores</b> (faltan las variables).</p>
+          </div>
+        )}
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">

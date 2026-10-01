@@ -446,6 +446,7 @@ model ScanEvent {
   verdict   String                          // clear | review | block | unavailable
   fallback  Boolean  @default(false)        // se usó un proveedor de respaldo porque el principal no estaba disponible
   ms        Int      @default(0)
+  detail    String?                         // qué pasó con cada proveedor, p. ej. "sightengine:timeout,google:auth"
   createdAt DateTime @default(now())
 
   @@index([createdAt])
