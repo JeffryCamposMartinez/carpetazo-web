@@ -54,6 +54,12 @@ Antes de subir un cambio con migración: respaldo de la base (Coolify → Backup
 - `npm run test:contract` (backend): las rutas públicas no filtran datos privados. Acepta la URL base como argumento.
 - `npm run test:session` (backend): pruebas de rutas con sesión (propio vs ajeno, pedidos, reseñas, lista de deseos, borrado de cuenta). Usa una simulación de Firebase solo para pruebas y una base de **desarrollo**; ver `backend/tests/README.md`.
 
+## Textos legales y aceptación
+
+- `/terminos` y `/privacidad` son páginas públicas. Su contenido sale de `frontend/src/legal/content.js`, **generado** desde el documento legal del proyecto (no se edita a mano).
+- Cada cuenta debe aceptar la versión vigente (`LEGAL_CURRENT` en `backend/server.js`, igual que `frontend/src/legal/versions.js`; una prueba exige que coincidan). Sin aceptación vigente el servidor rechaza cualquier escritura con `403 terms_required`. Al cambiar un texto se sube la versión en ambos archivos y todos deben aceptar de nuevo.
+- Las cuentas nuevas se crean solo con Google. Quien ya tenía correo y contraseña sigue entrando así, y cualquier cuenta con Google puede crear una contraseña en su perfil.
+
 ## Base de datos
 
 Migraciones en `backend/prisma/migrations`, siempre aditivas; ver `backend/prisma/README.md`. Respaldo: `npm run db:backup`. Moderación de reseñas reportadas o sospechosas: sección `/moderacion` (solo administradores) o `node backend/review_moderation.cjs list`.

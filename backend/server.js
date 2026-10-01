@@ -120,7 +120,7 @@ const isAllowedProxyImageUrl = (rawUrl) => {
 // --- Validación de nombres de usuario y URLs guardadas por los usuarios ---
 const RESERVED_USERNAMES = new Set([
   'admin', 'api', 'bienvenida', 'dashboard', 'perfil', 'carpeta', 'carpetas', 'c', 'mensajes',
-  'cartas', 'vendedores', 'moderacion', 'login', 'logout', 'registro', 'soporte', 'ayuda', 'carpetazo', 'root', 'null', 'undefined'
+  'cartas', 'vendedores', 'moderacion', 'terminos', 'privacidad', 'legal', 'login', 'logout', 'registro', 'soporte', 'ayuda', 'carpetazo', 'root', 'null', 'undefined'
 ]);
 const normalizeUsername = (value) => String(value || '')
   .toLowerCase()
@@ -287,9 +287,56 @@ app.get('/api/tcg/sets', routeLimiter(15 * 60 * 1000, 120));
 app.get('/api/tcg/cards', routeLimiter(15 * 60 * 1000, 120));
 app.get('/api/folders', routeLimiter(15 * 60 * 1000, 120));
 app.use('/api/admin/reviews', routeLimiter(15 * 60 * 1000, 300));
+app.get('/api/legal/versions', routeLimiter(15 * 60 * 1000, 300));
+app.post('/api/users/me/accept-terms', routeLimiter(15 * 60 * 1000, 30));
+app.delete('/api/users/me/unaccepted', routeLimiter(15 * 60 * 1000, 10));
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
+
+// --- Términos y Condiciones y Política de Privacidad: versiones vigentes y aceptación ---
+// Si cambia el texto de alguno, se sube su versión aquí y en frontend/src/legal/versions.js (una prueba las compara).
+const LEGAL_CURRENT = { termsVersion: '2026-10-03', privacyVersion: '2026-10-03' };
+const NEW_ACCOUNT_WINDOW_MS = 24 * 60 * 60 * 1000; // solo una cuenta recién creada puede elegir su usuario al aceptar
+const ACCEPTED_CACHE_MS = 5 * 60 * 1000;
+const acceptedCache = new Map(); // firebaseUid -> hasta cuándo se da por vigente (solo aceptaciones vigentes)
+
+const latestAcceptance = (userId) => prisma.termsAcceptance.findFirst({ where: { userId }, orderBy: { acceptedAt: 'desc' }, select: { termsVersion: true, privacyVersion: true, isAdult: true, acceptedAt: true } });
+const isCurrentAcceptance = (row) => Boolean(row && row.isAdult && row.termsVersion === LEGAL_CURRENT.termsVersion && row.privacyVersion === LEGAL_CURRENT.privacyVersion);
+
+// Estado que se envía al propio usuario: qué versión rige, si ya aceptó y si puede elegir su usuario en este paso
+const getLegalStatus = async (user) => {
+  const last = await latestAcceptance(user.id);
+  return {
+    current: LEGAL_CURRENT,
+    accepted: isCurrentAcceptance(last),
+    acceptedAt: last?.acceptedAt || null,
+    canChooseUsername: !last && Date.now() - new Date(user.createdAt).getTime() < NEW_ACCOUNT_WINDOW_MS
+  };
+};
+
+// Sin aceptación vigente no se puede escribir nada (crear, editar, pedir, escribir...); leer sí, y las rutas de abajo siempre
+const TERMS_EXEMPT = [['POST', '/api/users/sync'], ['POST', '/api/users/me/accept-terms'], ['DELETE', '/api/users/me/unaccepted'], ['DELETE', '/api/users/me']];
+app.use('/api', async (req, res, next) => {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  const path = req.originalUrl.split('?')[0].replace(/\/+$/, '');
+  if (TERMS_EXEMPT.some(([method, route]) => method === req.method && route === path)) return next();
+  const token = String(req.headers['authorization'] || '').split(' ')[1];
+  if (!token) return next(); // sin sesión: cada ruta decide si lo permite
+  try {
+    const decoded = await getAuth().verifyIdToken(token);
+    if ((acceptedCache.get(decoded.uid) || 0) > Date.now()) return next();
+    const user = await prisma.user.findUnique({ where: { firebaseUid: decoded.uid }, select: { id: true, role: true } });
+    if (!user || user.role === 'deleted') return next();
+    if (isCurrentAcceptance(await latestAcceptance(user.id))) {
+      acceptedCache.set(decoded.uid, Date.now() + ACCEPTED_CACHE_MS);
+      return next();
+    }
+    return res.status(403).json({ success: false, code: 'terms_required', message: 'Debes aceptar los Términos y Condiciones para continuar' });
+  } catch (_error) {
+    return next(); // token inválido o error momentáneo: la ruta responde con su propia validación
+  }
+});
 // Proxy con caché hacia TCGCSV (Pokémon inglés y japonés): el navegador no puede llamarlo directo por CORS
 const TCGCSV_ALLOWED_PATH = /^\/tcgplayer\/(3|85)\/(groups|\d+\/products)$/;
 const TCGCSV_TTL_MS = 30 * 60 * 1000;
@@ -398,6 +445,7 @@ app.post('/api/users/sync', authenticateToken, async (req, res) => {
         }
       });
     } else {
+      if (user.role === 'deleted') await prisma.termsAcceptance.deleteMany({ where: { userId: user.id } });
       user = await prisma.user.update({
         where: { firebaseUid },
         data: {
@@ -410,7 +458,7 @@ app.post('/api/users/sync', authenticateToken, async (req, res) => {
       });
     }
     
-    res.json({ success: true, user });
+    res.json({ success: true, user, legal: await getLegalStatus(user) });
   } catch (error) {
     if (error.code === 'P2002') return res.status(409).json({ success: false, error: 'Ese nombre de usuario ya está en uso' });
     console.error('Error syncing user:', error);
@@ -2157,6 +2205,65 @@ app.get('/api/chats', authenticateToken, async (req, res) => {
 
 
 // User profile management
+app.get('/api/legal/versions', (_req, res) => {
+  res.json({ success: true, ...LEGAL_CURRENT });
+});
+
+// Aceptar los textos vigentes: exige declarar 18 años o más y la versión exacta que se mostró
+app.post('/api/users/me/accept-terms', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true, username: true, createdAt: true, role: true } });
+    if (!user || user.role === 'deleted') return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const body = req.body || {};
+    if (body.adult !== true) return badRequest(res, 'Debes confirmar que tienes 18 años o más');
+    if (body.termsVersion !== LEGAL_CURRENT.termsVersion || body.privacyVersion !== LEGAL_CURRENT.privacyVersion) {
+      return res.status(409).json({ success: false, code: 'terms_version_changed', message: 'Los textos se actualizaron. Recarga la página para verlos.' });
+    }
+    let newUsername = null;
+    if (body.username !== undefined && body.username !== null) {
+      const status = await getLegalStatus(user);
+      if (!status.canChooseUsername) return badRequest(res, 'No puedes cambiar el usuario en este paso');
+      newUsername = validUsername(body.username);
+      if (!newUsername) return badRequest(res, 'El usuario debe tener entre 3 y 20 caracteres: letras, números o _.');
+    }
+    // Usuario nuevo y aceptación juntos: no puede quedar uno sin el otro
+    await prisma.$transaction([
+      ...(newUsername && newUsername !== user.username ? [prisma.user.update({ where: { id: user.id }, data: { username: newUsername } })] : []),
+      prisma.termsAcceptance.create({ data: { userId: user.id, termsVersion: LEGAL_CURRENT.termsVersion, privacyVersion: LEGAL_CURRENT.privacyVersion, isAdult: true, connectionHash: hashConnection(req) } })
+    ]);
+    acceptedCache.set(req.user.sub, Date.now() + ACCEPTED_CACHE_MS);
+    res.json({ success: true, legal: await getLegalStatus(user) });
+  } catch (error) {
+    if (error.code === 'P2002') return res.status(409).json({ success: false, message: 'Ese usuario ya está en uso' });
+    console.error('Error accepting terms:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// "Salir" en la pantalla de aceptación: una cuenta recién creada, sin aceptar y sin actividad, se borra por completo.
+// Cualquier otra cuenta se deja intacta (solo cierra sesión en el cliente).
+app.delete('/api/users/me/unaccepted', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true, createdAt: true, role: true } });
+    if (!user || user.role === 'deleted') return res.json({ success: true, deleted: false });
+    const [acceptances, folders, wishlist, messages, orders] = await Promise.all([
+      prisma.termsAcceptance.count({ where: { userId: user.id } }),
+      prisma.folder.count({ where: { userId: user.id } }),
+      prisma.wishlistItem.count({ where: { userId: user.id } }),
+      prisma.message.count({ where: { OR: [{ senderId: user.id }, { receiverId: user.id }] } }),
+      prisma.order.count({ where: { OR: [{ sellerId: user.id }, { buyerId: user.id }] } })
+    ]);
+    const brandNew = Date.now() - new Date(user.createdAt).getTime() < NEW_ACCOUNT_WINDOW_MS;
+    if (acceptances > 0 || !brandNew || folders + wishlist + messages + orders > 0) return res.json({ success: true, deleted: false });
+    await prisma.user.delete({ where: { id: user.id } });
+    acceptedCache.delete(req.user.sub);
+    res.json({ success: true, deleted: true });
+  } catch (error) {
+    console.error('Error declining terms:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
 app.get('/api/users/me', authenticateToken, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
@@ -2167,7 +2274,7 @@ app.get('/api/users/me', authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
-    res.json({ success: true, user });
+    res.json({ success: true, user, legal: await getLegalStatus(user) });
   } catch (error) {
     console.error('Error fetching my profile:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch profile' });

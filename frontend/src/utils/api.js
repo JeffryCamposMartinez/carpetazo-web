@@ -64,7 +64,12 @@ export const apiFetch = async (endpoint, options = {}) => {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || errorData.error || 'Error: ' + response.status);
+    const error = new Error(errorData.message || errorData.error || 'Error: ' + response.status);
+    error.status = response.status;
+    error.code = errorData.code;
+    // El servidor exige aceptar los Términos para escribir: la pantalla de aceptación se muestra sola
+    if (errorData.code === 'terms_required') window.dispatchEvent(new Event('carpetazo:terms-required'));
+    throw error;
   }
 
   // Cualquier cambio en carpetas, cartas o perfil invalida la copia de la lista pública
@@ -93,6 +98,9 @@ export const api = {
   syncUser: (data = {}) => apiFetch('/users/sync', { method: 'POST', body: JSON.stringify(data) }),
   getUserProfile: (username) => apiFetch('/users/' + username),
   getMe: () => apiFetch('/users/me'),
+  getLegalVersions: () => apiFetch('/legal/versions'),
+  acceptTerms: (data) => apiFetch('/users/me/accept-terms', { method: 'POST', body: JSON.stringify(data) }),
+  declineTerms: () => apiFetch('/users/me/unaccepted', { method: 'DELETE' }),
   checkUsername: (username) => apiFetch('/users/username/check?username=' + encodeURIComponent(username || '')),
   checkUsernameAvailable: (username) => apiFetch('/users/username/available?username=' + encodeURIComponent(username || '')), // sin sesión, para el registro
   updateProfile: (data) => apiFetch('/users/me', { method: 'PUT', body: JSON.stringify(data) }),

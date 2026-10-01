@@ -5,6 +5,7 @@ import Header from './components/Header';
 import ScrollToTop from './components/ScrollToTop';
 import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
+import AcceptTermsGate from './components/AcceptTermsGate';
 import { pageLoaders, preloadMainSections } from './utils/routePreload';
 
 // Cada pantalla se descarga solo cuando se visita: el primer arranque en móvil pesa mucho menos
@@ -20,6 +21,7 @@ const Moderation = lazy(pageLoaders.moderation);
 const FoldersPage = lazy(pageLoaders.folders);
 const CardsPage = lazy(pageLoaders.cards);
 const SellersPage = lazy(pageLoaders.sellers);
+const LegalPage = lazy(pageLoaders.legal);
 const NotFound = lazy(pageLoaders.notFound);
 
 // Barra fina de carga mientras llega la pantalla (sin saltos de diseño)
@@ -65,6 +67,8 @@ function App() {
               <Route path="/carpetas" element={<FoldersPage />} />
               <Route path="/cartas" element={<CardsPage />} />
               <Route path="/vendedores" element={<SellersPage />} />
+              <Route path="/terminos" element={<LegalPage kind="terminos" />} />
+              <Route path="/privacidad" element={<LegalPage kind="privacidad" />} />
               {/* Dynamic Username Route (Must be last to not override other paths) */}
               <Route path="/:sellerUsername" element={<SellerProfile />} />
               {/* Global 404 Catch-All Route */}
@@ -76,6 +80,7 @@ function App() {
           
           <Footer />
         </div>
+        <AcceptTermsGate />
       </BrowserRouter>
     </AuthProvider>
   );

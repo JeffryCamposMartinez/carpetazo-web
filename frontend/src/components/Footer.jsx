@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 export default function Footer() {
   const location = useLocation();
@@ -41,6 +41,10 @@ export default function Footer() {
         <span translate="no" className="material-symbols-outlined text-[18px]">mail</span>
         <a href="mailto:carpetazo.soporte@gmail.com" className="text-sm font-medium">carpetazo.soporte@gmail.com</a>
       </div>
+      <nav aria-label="Información legal" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs font-semibold">
+        <Link to="/terminos" className="underline-offset-2 hover:text-white hover:underline">Términos y Condiciones</Link>
+        <Link to="/privacidad" className="underline-offset-2 hover:text-white hover:underline">Política de Privacidad</Link>
+      </nav>
       <p className="text-xs font-medium tracking-wide text-center" style={{ color: themedFooterStyle ? 'inherit' : undefined, opacity: themedFooterStyle ? 0.8 : undefined }}>
         &copy; {new Date().getFullYear()} Carpetazo.cl. Todos los derechos reservados.
       </p>

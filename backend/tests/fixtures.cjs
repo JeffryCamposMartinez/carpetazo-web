@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const B = 'http://localhost:8000/api';
 const UID_PREFIX = 'cztest-';
 const PEOPLE = ['seller', 'jerry', 'ignacio', 'ale', 'jeffry', 'nobuyer', 'admin'];
-const U = Object.fromEntries([...PEOPLE, 'temp', 'ghost'].map((name) => [name, UID_PREFIX + name]));
+const U = Object.fromEntries([...PEOPLE, 'temp', 'ghost', 'newbie', 'oldie', 'leaver'].map((name) => [name, UID_PREFIX + name]));
 const NAMES = Object.fromEntries(PEOPLE.map((name) => [name, 'cztest_' + name]));
 // Correo que la simulación de Firebase da al administrador de prueba (ver tests/auth-stub.mjs y tests/run.cjs)
 const ADMIN_EMAIL = U.admin + '@test.local';
@@ -20,6 +20,14 @@ const call = async (method, path, who, body, ip) => {
   let j = null;
   try { j = await r.json(); } catch (_) { /* respuesta sin JSON */ }
   return { status: r.status, j };
+};
+
+// Acepta los textos vigentes (sin esto el servidor rechaza cualquier escritura de la cuenta)
+const acceptTerms = async (who, extra = {}) => {
+  const versions = (await call('GET', '/legal/versions')).j;
+  const r = await call('POST', '/users/me/accept-terms', who, { adult: true, termsVersion: versions.termsVersion, privacyVersion: versions.privacyVersion, ...extra });
+  if (r.status !== 200) throw new Error('No se pudo aceptar los términos de ' + who + ': ' + r.status);
+  return r;
 };
 
 const ok = (name, condition, extra = '') => {
@@ -45,6 +53,7 @@ const setup = async () => {
   for (const name of PEOPLE) {
     const r = await call('POST', '/users/sync', name, { displayName: 'Prueba ' + name, username: NAMES[name] });
     if (r.status !== 200 || r.j?.user?.username !== NAMES[name]) throw new Error('No se pudo crear el usuario de prueba ' + name + ': ' + r.status);
+    await acceptTerms(name);
   }
   const folder = await call('POST', '/folders', 'seller', { name: 'TEST fixtures', tcg: 'Pokemon', color: 'blue', isPublic: true });
   const folderId = folder.j?.folder?.id;
@@ -56,4 +65,4 @@ const setup = async () => {
 
 const fixtures = () => JSON.parse(process.env.CZ_FIXTURES || '{}');
 
-module.exports = { prisma, B, U, NAMES, ADMIN_EMAIL, call, ok, cleanup, setup, fixtures };
+module.exports = { prisma, B, U, NAMES, ADMIN_EMAIL, call, ok, acceptTerms, cleanup, setup, fixtures };

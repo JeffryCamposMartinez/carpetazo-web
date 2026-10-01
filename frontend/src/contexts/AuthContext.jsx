@@ -1,15 +1,19 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { auth, googleProvider } from '../firebase';
 import { api } from '../utils/api';
-import { 
-  onAuthStateChanged, 
-  signInWithPopup, 
+import { takePendingAcceptance } from '../legal/pending';
+import {
+  onAuthStateChanged,
+  signInWithPopup,
   signOut,
-  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification,
   sendPasswordResetEmail,
-  updateProfile
+  EmailAuthProvider,
+  linkWithCredential,
+  updatePassword,
+  reauthenticateWithPopup,
+  deleteUser
 } from 'firebase/auth';
 
 const AuthContext = createContext();
@@ -18,17 +22,24 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
+const providerIds = (user) => (user?.providerData || []).map((provider) => provider.providerId);
+
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [appUser, setAppUser] = useState(null);
+  // Estado de los Términos y la Política: { current: {termsVersion, privacyVersion}, accepted, canChooseUsername }
+  const [legal, setLegal] = useState(null);
+  // true: ya marcó la casilla antes de ingresar y solo falta elegir su usuario (cuenta nueva)
+  const [preAccepted, setPreAccepted] = useState(false);
+  const [, setProvidersTick] = useState(0); // fuerza a refrescar si cambian los métodos de ingreso (p. ej. se crea una contraseña)
   const [loading, setLoading] = useState(true);
 
-  // Iniciar sesión con Google
+  // Las cuentas nuevas se crean solo con Google
   function loginWithGoogle() {
     return signInWithPopup(auth, googleProvider);
   }
 
-  // Iniciar sesión con Email y Contraseña
+  // Cuentas que ya tenían correo y contraseña (y quienes crearon una contraseña en su perfil)
   async function loginWithEmail(email, password) {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
@@ -39,35 +50,6 @@ export function AuthProvider({ children }) {
       await signOut(auth);
       throw new Error('auth/email-not-verified');
     }
-    return user;
-  }
-
-  // Registrarse con Email y Contraseña
-  async function registerWithEmail(email, password, displayName, username) {
-    const formattedUsername = username.toLowerCase().trim();
-
-    // 1. Omitimos validación de Firestore, confiamos en la base de datos de PostgreSQL 
-    // y en Firebase Auth para atrapar duplicados de email.
-
-    // 2. Crear el usuario en Firebase Auth
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-
-    // 3. Actualizar perfil con el displayName
-    await updateProfile(user, { displayName });
-
-    // 4. Enviar correo de verificación
-    await sendEmailVerification(user);
-
-    // 5. Guardar en backend relacional a través del sync
-    await getAuthToken(); // refrescar
-    await api.syncUser({
-      displayName: displayName,
-      username: formattedUsername
-    }).catch(console.error);
-
-    // 6. Forzar cierre de sesión inmediato
-    await signOut(auth);
     return user;
   }
 
@@ -84,31 +66,108 @@ export function AuthProvider({ children }) {
   // Cerrar sesión
   function logout() {
     setAppUser(null);
+    setLegal(null);
+    setPreAccepted(false);
     return signOut(auth);
   }
+
+  // Registra la aceptación en el servidor (la persona ya marcó que es mayor de edad y que acepta los textos)
+  const submitAcceptance = useCallback(async (current, username) => {
+    const response = await api.acceptTerms({
+      adult: true,
+      termsVersion: current.termsVersion,
+      privacyVersion: current.privacyVersion,
+      ...(username ? { username } : {})
+    });
+    setLegal(response.legal || null);
+    setPreAccepted(false);
+    return response;
+  }, []);
+
+  const applyServerState = useCallback((response) => {
+    setAppUser(response?.user || null);
+    setLegal(response?.legal || null);
+    const state = response?.legal;
+    // Si marcó la casilla antes de ingresar, la aceptación se registra sola; una cuenta nueva solo elige su usuario
+    if (state && !state.accepted && takePendingAcceptance(state.current)) {
+      if (state.canChooseUsername) {
+        setPreAccepted(true);
+      } else {
+        submitAcceptance(state.current)
+          .then(() => api.getMe())
+          .then((me) => { setAppUser(me.user || null); setLegal(me.legal || null); })
+          .catch((error) => console.error('Error al registrar la aceptación:', error));
+      }
+    }
+    return response?.user || null;
+  }, [submitAcceptance]);
 
   const refreshAppUser = useCallback(async () => {
     if (!auth.currentUser) {
       setAppUser(null);
+      setLegal(null);
       return null;
     }
 
     try {
-      const response = await api.getMe();
-      setAppUser(response.user || null);
-      return response.user || null;
+      return applyServerState(await api.getMe());
     } catch (error) {
       if (String(error.message || '').includes('404')) {
-        const response = await api.syncUser({
+        return applyServerState(await api.syncUser({
           displayName: auth.currentUser.displayName,
           photoURL: auth.currentUser.photoURL
-        });
-        setAppUser(response.user || null);
-        return response.user || null;
+        }));
       }
       throw error;
     }
-  }, []);
+  }, [applyServerState]);
+
+  // Aceptar los textos vigentes (la persona ya marcó que es mayor de edad y que los acepta). `username` solo en cuentas nuevas.
+  async function acceptTerms({ username } = {}) {
+    if (!legal?.current) throw new Error('No se pudo cargar la versión de los textos. Recarga la página.');
+    const response = await submitAcceptance(legal.current, username);
+    await refreshAppUser().catch(() => {});
+    return response;
+  }
+
+  // "Salir" sin aceptar: el servidor borra una cuenta recién creada y sin actividad; después se cierra la sesión
+  async function declineTerms() {
+    const user = auth.currentUser;
+    try {
+      const response = await api.declineTerms();
+      if (response?.deleted && user) await deleteUser(user).catch(() => {});
+    } catch (error) {
+      console.error('Error al salir sin aceptar:', error);
+    }
+    return logout();
+  }
+
+  // Crear o cambiar la contraseña de una cuenta que ingresa con Google (solo funciona con ese correo de Google)
+  async function setAccountPassword(newPassword) {
+    const user = auth.currentUser;
+    if (!user || !user.email) throw new Error('auth/no-user');
+    if (!providerIds(user).includes('google.com')) throw new Error('auth/google-required');
+    const apply = () => (providerIds(user).includes('password')
+      ? updatePassword(user, newPassword)
+      : linkWithCredential(user, EmailAuthProvider.credential(user.email, newPassword)));
+    try {
+      await apply();
+    } catch (error) {
+      if (error.code !== 'auth/requires-recent-login') throw error;
+      // Por seguridad Firebase pide haber ingresado hace poco: se confirma con Google y se reintenta una vez
+      await reauthenticateWithPopup(user, googleProvider);
+      await apply();
+    }
+    await user.reload();
+    setProvidersTick((tick) => tick + 1);
+  }
+
+  useEffect(() => {
+    // Si el servidor rechaza una acción porque falta aceptar los textos, se vuelve a pedir el estado (y aparece la pantalla)
+    const onTermsRequired = () => { refreshAppUser().catch(() => {}); };
+    window.addEventListener('carpetazo:terms-required', onTermsRequired);
+    return () => window.removeEventListener('carpetazo:terms-required', onTermsRequired);
+  }, [refreshAppUser]);
 
   useEffect(() => {
     // Suscribirse a los cambios en el estado de autenticación
@@ -118,38 +177,46 @@ export function AuthProvider({ children }) {
         await signOut(auth);
         setCurrentUser(null);
         setAppUser(null);
+        setLegal(null);
         setLoading(false);
         return;
       }
 
       setCurrentUser(user);
       setLoading(false);
-      
+
       if (user) {
-        // Sincronizar usuario con el backend PostgreSQL y OMITIR Firestore
+        // Sincronizar usuario con el backend PostgreSQL
         api.syncUser({
           displayName: user.displayName,
           photoURL: user.photoURL
-        }).then(response => setAppUser(response.user || null)).catch(console.error);
+        }).then(applyServerState).catch(console.error);
       } else {
         setAppUser(null);
+        setLegal(null);
       }
     });
 
     return unsubscribe;
-  }, []);
+  }, [applyServerState]);
 
   const value = {
     currentUser,
     appUser,
+    legal,
+    preAccepted,
     refreshAppUser,
     setAppUser,
     loginWithGoogle,
     loginWithEmail,
-    registerWithEmail,
     resetPassword,
     getAuthToken,
-    logout
+    logout,
+    acceptTerms,
+    declineTerms,
+    setAccountPassword,
+    hasGoogleLogin: providerIds(currentUser).includes('google.com'),
+    hasPasswordLogin: providerIds(currentUser).includes('password')
   };
 
   return (
@@ -163,5 +230,3 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
-
-

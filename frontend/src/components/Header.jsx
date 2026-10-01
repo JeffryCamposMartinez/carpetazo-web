@@ -164,7 +164,7 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    const reservedRoutes = ['/', '/bienvenida', '/dashboard', '/perfil', '/carpeta', '/c', '/admin', '/mensajes', '/moderacion', '/carpetas', '/cartas', '/vendedores'];
+    const reservedRoutes = ['/', '/bienvenida', '/dashboard', '/perfil', '/carpeta', '/c', '/admin', '/mensajes', '/moderacion', '/carpetas', '/cartas', '/vendedores', '/terminos', '/privacidad'];
     const pathname = location.pathname;
     const isDynamicPublicProfile = pathname.split('/').filter(Boolean).length === 1 && !reservedRoutes.includes(pathname);
     if (!isDynamicPublicProfile) {

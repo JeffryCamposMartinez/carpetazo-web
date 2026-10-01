@@ -37,6 +37,7 @@ model User {
   reviewsReceived SellerReview[] @relation("ReviewsReceived")
   reviewsWritten  SellerReview[] @relation("ReviewsWritten")
   reviewReports   ReviewReport[]
+  termsAcceptances TermsAcceptance[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -245,4 +246,18 @@ model ReviewReport {
 
   @@unique([reviewId, reporterId])
   @@index([reviewId])
+}
+
+// Aceptación de los Términos y Condiciones y de la Política de Privacidad (una fila por versión aceptada)
+model TermsAcceptance {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  termsVersion   String
+  privacyVersion String
+  isAdult        Boolean  @default(true)   // declaró tener 18 años o más
+  connectionHash String?                   // hash de la conexión (con sal), no la IP
+  acceptedAt     DateTime @default(now())
+
+  @@index([userId, acceptedAt])
 }

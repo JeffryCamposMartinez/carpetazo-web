@@ -1,5 +1,5 @@
 // Lote A: orden de carpeta, reserva de stock, límites de pedidos, carpetas por juego y borrado de cuenta.
-const { prisma, NAMES, call, ok } = require('./fixtures.cjs');
+const { prisma, NAMES, call, ok, acceptTerms } = require('./fixtures.cjs');
 
 (async () => {
   const cleanup = { folders: [], orders: [] };
@@ -55,6 +55,7 @@ const { prisma, NAMES, call, ok } = require('./fixtures.cjs');
 
     // ---- #4 eliminar cuenta
     await call('POST', '/users/sync', 'temp', { displayName: 'Persona Temporal', username: 'temp_borrar_1' });
+    await acceptTerms('temp');
     await call('PUT', '/users/me', 'temp', { fullName: 'Nombre Completo', phone: '+56911112222', rut: '11111111-1', bio: 'hola', bankDetails: { bank: 'Banco X', accountType: 'Cuenta vista', accountNumber: '123456' }, addresses: [{ region: 'RM', comuna: 'Santiago', street: 'Calle 1', number: '10' }], publicTheme: { showWishlist: 'on' } });
     await call('POST', '/wishlist', 'temp', { name: 'Carta deseada borrar' });
     await call('POST', '/messages/' + NAMES.seller, 'temp', { content: 'mensaje de la persona' });
@@ -73,6 +74,7 @@ const { prisma, NAMES, call, ok } = require('./fixtures.cjs');
     const tempOrder = await prisma.order.findUnique({ where: { id: tempBuy.j.order.id } });
     ok('#4 su pedido queda sin comprador identificable', tempOrder.buyerId === null && tempOrder.buyerName === 'Comprador eliminado');
     const sync2 = await call('POST', '/users/sync', 'temp', { displayName: 'Persona Nueva' });
+    ok('#4 la cuenta que vuelve a entrar debe aceptar los términos otra vez', sync2.j?.legal?.accepted === false);
     ok('#4 si vuelve a entrar con el mismo acceso, empieza de cero', sync2.j?.user?.role === 'user' && sync2.j.user.rut === null, sync2.j?.user?.role);
 
     // ---- el resto sigue igual

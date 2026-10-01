@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../utils/api';
 import { chileData } from '../utils/chileData';
+import PasswordCard from '../components/PasswordCard';
 import { PALETTES } from '../utils/profileThemes';
 
 const chileBanks = [
@@ -581,6 +582,7 @@ const ProfilePage = () => {
               {activeTab === 'security' && (
                 <section className="space-y-6">
                   <div className="rounded-3xl bg-slate-50 p-5 ring-1 ring-slate-200"><h3 className="text-lg font-black text-[#1a2b4b]">Sesión actual</h3><p className="mt-2 text-sm font-semibold text-slate-500">ID Firebase: <span className="break-all font-mono text-xs">{currentUser.uid}</span></p><p className="mt-1 text-sm font-semibold text-slate-500">Correo: {currentUser.email}</p></div>
+                  <PasswordCard />
                   <div className="rounded-3xl border border-red-200 bg-red-50 p-5"><h3 className="text-lg font-black text-red-700">Zona de peligro</h3><p className="mt-2 text-sm font-semibold text-red-600">Esto elimina tus datos personales (nombre, correo, RUT, teléfono, direcciones, datos bancarios, lista de deseos y tus mensajes), deja tus carpetas privadas y no se puede deshacer. Para confirmar escribe <b>eliminar</b>.</p><div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]"><TextInput value={deleteConfirmationText} onChange={e => setDeleteConfirmationText(e.target.value)} placeholder="eliminar" className="border-red-200 focus:border-red-500 focus:ring-red-100" /><ActionButton variant="danger" onClick={handleDeleteAccount} disabled={deleteConfirmationText.toLowerCase() !== 'eliminar' || savingKey === 'delete-account'}>{savingKey === 'delete-account' ? 'Eliminando...' : 'Eliminar cuenta'}</ActionButton></div></div>
                 </section>
               )}
