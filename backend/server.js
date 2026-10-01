@@ -498,13 +498,34 @@ app.post('/api/users/sync', authenticateToken, async (req, res) => {
       where: { firebaseUid }
     });
     
+    // La misma persona con otro identificador de Firebase (cambió de método de ingreso o se recreó su cuenta de acceso):
+    // si su correo está verificado y ya existe una cuenta con él, se reenlaza en vez de crear otra o fallar por correo repetido.
+    if (!user && email && req.user.email_verified === true) {
+      const sameEmail = await prisma.user.findUnique({ where: { email } });
+      if (sameEmail && sameEmail.role !== 'deleted') {
+        user = await prisma.user.update({ where: { id: sameEmail.id }, data: { firebaseUid } });
+        acceptedCache.delete(sameEmail.firebaseUid);
+        console.warn('Cuenta reenlazada por correo verificado: se cambió el identificador de Firebase de ' + sameEmail.id);
+      }
+    }
+
     if (!user) {
+      // Si el usuario derivado del nombre ya está tomado, se agrega un número: un choque de nombres no debe dejar a nadie sin cuenta
+      const chosen = validUsername(req.body.username);
+      const derived = validUsername(normalizeUsername(req.body.displayName).slice(0, 20)) || `user_${firebaseUid.slice(0, 12).toLowerCase()}`;
+      let username = chosen || derived;
+      if (!chosen) {
+        for (let attempt = 0; attempt < 8 && (await prisma.user.findUnique({ where: { username }, select: { id: true } })); attempt += 1) {
+          const suffix = String(Math.floor(10 + Math.random() * 9990));
+          username = derived.slice(0, 20 - suffix.length) + suffix;
+        }
+      }
       user = await prisma.user.create({
         data: { 
           firebaseUid, 
           email,
           name: req.body.displayName || '',
-          username: validUsername(req.body.username) || validUsername(normalizeUsername(req.body.displayName).slice(0, 20)) || `user_${firebaseUid.slice(0, 12).toLowerCase()}`,
+          username,
           photoURL: isAllowedStoredImageUrl(req.body.photoURL) ? req.body.photoURL : null,
           role: req.user.email_verified === true && isAdminEmail(email) ? 'admin' : 'user'
         }
@@ -525,7 +546,11 @@ app.post('/api/users/sync', authenticateToken, async (req, res) => {
     
     res.json({ success: true, user, legal: await getLegalStatus(user) });
   } catch (error) {
-    if (error.code === 'P2002') return res.status(409).json({ success: false, error: 'Ese nombre de usuario ya está en uso' });
+    if (error.code === 'P2002') {
+      // El correo ya existe y no se pudo comprobar que sea de la misma persona (correo sin verificar): mensaje distinto al del usuario repetido
+      if (JSON.stringify(error.meta?.target || '').includes('email')) return res.status(409).json({ success: false, error: 'Ya existe una cuenta con este correo. Verifica tu correo o entra con el método con el que te registraste.' });
+      return res.status(409).json({ success: false, error: 'Ese nombre de usuario ya está en uso' });
+    }
     console.error('Error syncing user:', error);
     res.status(500).json({ success: false, error: 'Failed to sync user' });
   }
