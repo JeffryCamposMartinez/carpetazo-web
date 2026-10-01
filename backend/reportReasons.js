@@ -21,7 +21,7 @@ const IMAGE_REASONS = (type) => [
 
 export const REPORT_TARGETS = {
   user: { label: 'este usuario', reasons: [
-    r('user.scam', 'Intentó estafarme o es una estafa', 'S1', { requiresComment: true, extra: [{ key: 'codigoPedido', label: 'Código de pedido (si existe)', optional: true }, { key: 'monto', label: 'Monto involucrado (si existe)', optional: true }] }),
+    r('user.scam', 'Intentó estafarme o es una estafa', 'S1', { fraud: true, evidence: true, requiresComment: true, extra: [{ key: 'codigoPedido', label: 'Código de pedido (si existe)', optional: true }, { key: 'monto', label: 'Monto involucrado (si existe)', optional: true }] }),
     r('user.threats', 'Me amenaza o me intimida', 'S1'),
     r('user.impersonation', 'Se hace pasar por otra persona, tienda o por Carpetazo', 'S2', { extra: [{ key: 'suplanta', label: 'A quién suplanta' }] }),
     r('user.harassment', 'Me acosa o me insulta', 'S2'),
@@ -70,7 +70,7 @@ export const REPORT_TARGETS = {
     other('review')
   ] },
   message: { label: 'este mensaje', reasons: [
-    r('message.scam_phishing', 'Estafa, phishing o me pide pagar fuera de Carpetazo o a una cuenta rara', 'S1'),
+    r('message.scam_phishing', 'Estafa, phishing o me pide pagar fuera de Carpetazo o a una cuenta rara', 'S1', { fraud: true, evidence: true }),
     r('message.threats', 'Amenazas o intimidación', 'S1'),
     r('message.sexual', 'Contenido sexual no deseado', 'S1'),
     r('message.harassment', 'Acoso o insultos repetidos', 'S2'),
@@ -79,13 +79,24 @@ export const REPORT_TARGETS = {
     other('message')
   ] },
   message_image: { label: 'esta imagen del chat', reasons: IMAGE_REASONS('message_image') },
+  order: { label: 'este pedido', reasons: [
+    r('order.not_delivered', 'Pagué y no recibí mi pedido', 'S1', { appliesTo: 'buyer', fraud: true, evidence: true, requiresComment: true, extra: [{ key: 'monto', label: 'Monto pagado' }, { key: 'medioPago', label: 'Medio de pago (transferencia, otro)' }, { key: 'fechaPago', label: 'Fecha del pago', optional: true }] }),
+    r('order.not_responding', 'Dejó de responder después del pago', 'S2', { appliesTo: 'buyer', fraud: true, evidence: true, requiresComment: true, extra: [{ key: 'monto', label: 'Monto pagado' }, { key: 'medioPago', label: 'Medio de pago' }] }),
+    r('order.third_party_account', 'Me pidió pagar a una cuenta de un tercero', 'S2', { appliesTo: 'buyer', fraud: true, evidence: true, extra: [{ key: 'cuenta', label: 'Datos de la cuenta que te pidió usar' }] }),
+    r('order.wrong_item', 'Recibí algo distinto, falso o en peor estado', 'S2', { appliesTo: 'buyer', evidence: true, requiresComment: true }),
+    r('order.price_changed', 'Me cobró un monto distinto al acordado', 'S2', { appliesTo: 'buyer', requiresComment: true }),
+    r('order.chargeback_abuse', 'Intenta reclamar un cobro de mala fe', 'S2', { appliesTo: 'seller', requiresComment: true }),
+    r('order.harassment', 'Me acosa o me insulta', 'S2', { appliesTo: 'seller' }),
+    r('order.fake_order', 'Pedido falso o por molestar', 'S3', { appliesTo: 'seller' }),
+    r('order.no_payment', 'No pagó después de acordar', 'S3', { appliesTo: 'seller' }),
+    { ...other('order'), appliesTo: undefined }
+  ] },
   wishlist_item: { label: 'esta carta deseada', reasons: [
     r('wishlist_item.offensive', 'Nota ofensiva o inapropiada', 'S2'),
     r('wishlist_item.spam', 'Spam o publicidad', 'S4'),
     other('wishlist_item')
   ] }
 };
-// Los reportes de pedido y de estafa con caso (documento 20, secciones 4.8 y 9) llegan en la Fase B.
 
 export const SEVERITY_ORDER = { S1: 0, S2: 1, S3: 2, S4: 3 };
 export const REPORT_TARGET_TYPES = Object.keys(REPORT_TARGETS);
@@ -93,10 +104,11 @@ export const REPORT_TARGET_TYPES = Object.keys(REPORT_TARGETS);
 export const findReason = (targetType, code) => REPORT_TARGETS[targetType]?.reasons.find((reason) => reason.code === code) || null;
 
 // Lo que ve el cliente: sin lógica interna
-export const publicReasons = (targetType) => (REPORT_TARGETS[targetType]?.reasons || []).map((reason) => ({
+export const publicReasons = (targetType, role = null) => (REPORT_TARGETS[targetType]?.reasons || []).filter((reason) => !reason.appliesTo || reason.appliesTo === role).map((reason) => ({
   code: reason.code,
   label: reason.label,
   requiresComment: reason.requiresComment,
+  allowEvidence: Boolean(reason.evidence),
   extra: reason.extra
 }));
 

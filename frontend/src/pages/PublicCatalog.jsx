@@ -749,7 +749,7 @@ function PublicCatalog() {
                     </div>
                   )}
                   {!isOwner && folderData?.id && (
-                    <ReportMenu label="Reportar" buttonClassName="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-bold text-blue-100 hover:bg-white/10" options={[{ targetType: 'folder', targetId: folderData.id, label: 'Reportar esta carpeta' }, { targetType: 'user', targetId: sellerData?.id, label: 'Reportar al vendedor' }]} />
+                    <ReportMenu label="Reportar" buttonClassName="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-bold text-blue-100 hover:bg-white/10" options={[{ targetType: 'folder', targetId: folderData.id, label: 'Reportar esta carpeta' }, { targetType: 'user', targetId: sellerData?.id, blockUserId: sellerData?.id, label: 'Reportar al vendedor' }]} />
                   )}
                   {!isOwner && visibleContactOptions.length === 0 && (
                     <span className="text-xs font-semibold text-blue-200">Sin contacto público</span>

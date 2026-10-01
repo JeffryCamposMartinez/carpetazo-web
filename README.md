@@ -67,7 +67,11 @@ Antes de subir un cambio con migración: respaldo de la base (Coolify → Backup
 - El reporte es anónimo para el reportado. Guarda una copia del contenido al momento de reportar y se limita a 20 por hora y 60 por día por persona.
 - Una imagen con motivo crítico (menores, contenido sexual) se oculta sola si la reporta una cuenta de más de 24 horas; el resto queda en cola.
 - Panel `/moderacion` (solo administradores): cola por gravedad, detalle, decisión (descartar, ocultar, quitar, restaurar), notas internas y auditoría (`ModerationAudit`, solo se agrega). Cada decisión avisa por correo al dueño del contenido, sin decir quién reportó.
-- El contenido oculto no se serializa en las rutas públicas; el estado de moderación solo lo ve el dueño. Fase B pendiente: casos de estafa, sanciones, apelaciones, bloqueo y roles (documento 20 del proyecto).
+- El contenido oculto no se serializa en las rutas públicas; el estado de moderación solo lo ve el dueño.
+- **Equipo y roles** (`User.role`): `support` solo lee, `moderator` decide y aplica medidas de hasta 30 días, `admin` (por `ADMIN_EMAILS` o rol en la base) además levanta medidas, decide apelaciones, cambia roles y ve la auditoría. Un administrador asigna los roles desde `/moderacion` → Personas y medidas.
+- **Estafas** (`FraudCase`): los reportes de estafa se agrupan en un caso por vendedor; el equipo pide el descargo (72 h; 48 h con prioridad alta) y resuelve. Con 3 compradores con pedido se pausan las ventas automáticamente (reversible).
+- **Sanciones** (`Sanction`): advertencia, restringir mensajes, suspender ventas, suspender cuenta y cerrar cuenta (necesita otro administrador que apruebe). Se aplican en `moderationB.js` (`createRestrictions` corta las escrituras de una cuenta suspendida) y vencen solas. La persona puede apelar 14 días desde Mi perfil → Moderación.
+- **Bloqueo** entre usuarios (`UserBlock`) y **evidencias** de reportes (`Evidence`: hasta 3 imágenes, re-codificadas y guardadas en la base; solo las ve el equipo y cada vista queda en la auditoría).
 
 ## Correos
 

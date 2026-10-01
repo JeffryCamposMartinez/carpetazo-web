@@ -5,8 +5,12 @@ import { api } from '../utils/api';
 import { Stars } from '../components/Reviews';
 import ReportsPanel from '../components/moderation/ReportsPanel';
 import AuditPanel from '../components/moderation/AuditPanel';
+import CasesPanel from '../components/moderation/CasesPanel';
+import PeoplePanel from '../components/moderation/PeoplePanel';
+import AppealsPanel from '../components/moderation/AppealsPanel';
 
-const TABS = [['reports', 'Reportes'], ['reviews', 'Reseñas marcadas'], ['audit', 'Auditoría'], ['tools', 'Herramientas']];
+// Pestañas según el rol: soporte (1) lee, moderador (2) decide, administrador (3) además ve reseñas, auditoría y herramientas
+const TABS = [['reports', 'Reportes', 1], ['cases', 'Estafas', 1], ['people', 'Personas y medidas', 1], ['appeals', 'Apelaciones', 1], ['reviews', 'Reseñas marcadas', 3], ['audit', 'Auditoría', 3], ['tools', 'Herramientas', 3]];
 
 // Sección de moderación (solo administradores): reseñas reportadas o sospechosas, para aprobarlas o eliminarlas.
 // El servidor vuelve a comprobar que quien llama es administrador en cada acción.
@@ -22,6 +26,10 @@ export default function Moderation() {
   const { currentUser } = useAuth();
   const [state, setState] = useState('checking'); // checking | denied | ok
   const [tab, setTab] = useState('reports');
+  const [level, setLevel] = useState(0);
+  const [focusUsername, setFocusUsername] = useState('');
+  const [focusReportId, setFocusReportId] = useState('');
+  const [sanctionReportId, setSanctionReportId] = useState('');
   const [reviews, setReviews] = useState(null);
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState('');
@@ -31,7 +39,7 @@ export default function Moderation() {
     if (!currentUser) { setState('denied'); return undefined; }
     let cancelled = false;
     api.get('/admin/me')
-      .then((res) => { if (!cancelled) setState(res?.isAdmin ? 'ok' : 'denied'); })
+      .then((res) => { if (!cancelled) { setLevel(res?.level || 0); setState(res?.isStaff ? 'ok' : 'denied'); } })
       .catch(() => { if (!cancelled) setState('denied'); });
     return () => { cancelled = true; };
   }, [currentUser?.uid]);
@@ -43,7 +51,10 @@ export default function Moderation() {
       .catch(() => { setReviews([]); setError('No se pudieron cargar los reportes.'); });
   }, []);
 
-  useEffect(() => { if (state === 'ok') load(); }, [state, load]);
+  useEffect(() => { if (state === 'ok' && level >= 3) load(); }, [state, level, load]);
+
+  const openPerson = (username, reportId) => { setFocusUsername(username); setSanctionReportId(reportId || ''); setTab('people'); };
+  const openReport = (id) => { setFocusReportId(id); setTab('reports'); };
 
   const sendTestEmail = async () => {
     setMailState({ busy: true, text: '' });
@@ -80,7 +91,7 @@ export default function Moderation() {
       <div className="mx-auto w-full max-w-md px-4 py-16 text-center">
         <div className="rounded-3xl bg-white/95 p-8 shadow-xl ring-1 ring-slate-900/5">
           <h1 className="text-xl font-black text-[#12315f]">Acceso restringido</h1>
-          <p className="mt-2 text-sm font-semibold text-slate-600">Esta sección es solo para administradores.</p>
+          <p className="mt-2 text-sm font-semibold text-slate-600">Esta sección es solo para el equipo de moderación.</p>
           <Link to="/" className="mt-5 inline-flex h-11 items-center rounded-full bg-[#facc15] px-6 text-sm font-extrabold text-[#12315f]">Volver al inicio</Link>
         </div>
       </div>
@@ -96,25 +107,28 @@ export default function Moderation() {
         </header>
 
         <div role="tablist" aria-label="Secciones de moderación" className="mb-5 flex flex-wrap gap-2">
-          {TABS.map(([value, label]) => (
+          {TABS.filter(([, , min]) => level >= min).map(([value, label]) => (
             <button key={value} role="tab" type="button" aria-selected={tab === value} onClick={() => setTab(value)} className={`h-11 rounded-full px-5 text-sm font-extrabold ${tab === value ? 'bg-[#12315f] text-white' : 'bg-white text-[#12315f] ring-1 ring-slate-300'}`}>{label}</button>
           ))}
         </div>
 
-        {tab === 'reports' && <ReportsPanel />}
-        {tab === 'audit' && <AuditPanel />}
+        {tab === 'reports' && <ReportsPanel level={level} onOpenPerson={openPerson} initialReportId={focusReportId} onInitialUsed={() => setFocusReportId('')} />}
+        {tab === 'cases' && <CasesPanel level={level} onOpenPerson={openPerson} onOpenReport={openReport} />}
+        {tab === 'people' && <PeoplePanel level={level} focusUsername={focusUsername} focusReportId={sanctionReportId || undefined} onFocusUsed={() => setFocusUsername('')} />}
+        {tab === 'appeals' && <AppealsPanel level={level} />}
+        {tab === 'audit' && level >= 3 && <AuditPanel />}
 
-        {tab === 'tools' && (
+        {tab === 'tools' && level >= 3 && (
           <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-white/70 p-3 ring-1 ring-blue-200">
             <button type="button" onClick={sendTestEmail} disabled={mailState.busy} className="rounded-xl bg-[#1e40af] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{mailState.busy ? 'Enviando…' : 'Enviar correo de prueba'}</button>
             <span className="text-sm text-slate-600">{mailState.text || 'Envía un correo a tu propia cuenta (solo sale si aceptó los términos).'}</span>
           </div>
         )}
 
-        {tab === 'reviews' && <p className="mb-4 max-w-2xl text-sm text-slate-600">Reseñas reportadas o sospechosas por la regla anterior. Aprobar la vuelve a mostrar y borra sus reportes; eliminar la borra definitivamente.</p>}
-        {tab === 'reviews' && error && <p role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-200">{error}</p>}
+        {tab === 'reviews' && level >= 3 && <p className="mb-4 max-w-2xl text-sm text-slate-600">Reseñas reportadas o sospechosas por la regla anterior. Aprobar la vuelve a mostrar y borra sus reportes; eliminar la borra definitivamente.</p>}
+        {tab === 'reviews' && level >= 3 && error && <p role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-200">{error}</p>}
 
-        {tab !== 'reviews' ? null : reviews === null ? (
+        {tab !== 'reviews' || level < 3 ? null : reviews === null ? (
           <div className="flex justify-center py-10" role="status" aria-label="Cargando reportes"><div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1e40af] border-t-transparent" /></div>
         ) : reviews.length === 0 ? (
           <section aria-label="Reportes de reseñas" className="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-900/5">

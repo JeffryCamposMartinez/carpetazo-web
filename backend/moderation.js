@@ -48,7 +48,7 @@ const NOT_FOUND = fail(404, 'Contenido no encontrado');
 const SELF = fail(400, 'No puedes reportar tu propio contenido');
 
 export const registerModeration = (app, deps) => {
-  const { prisma, authenticateToken, requireAdmin, badRequest, isUuid, currentUserId, hashConnection, sendUserEmail, escapeHtml, reviewHideReports } = deps;
+  const { prisma, authenticateToken, requireStaff, hooks, badRequest, isUuid, currentUserId, hashConnection, sendUserEmail, escapeHtml, reviewHideReports } = deps;
 
   // --- Qué se guarda como instantánea y quién puede reportar cada tipo (la decide el servidor, nunca el cliente) ---
   const resolvers = {
@@ -107,6 +107,21 @@ export const registerModeration = (app, deps) => {
       return { ownerId: message.senderId, snapshot: { content: keepValue(message.content), messages } };
     },
     message_image: (id, me) => resolvers.message(id, me, 'message_image'),
+    async order(id, me) {
+      // Solo participantes: el comprador (con cuenta) o el vendedor del pedido
+      const order = await prisma.order.findUnique({ where: { id }, select: { id: true, code: true, sellerId: true, buyerId: true, folderName: true, items: true, total: true, status: true, createdAt: true, updatedAt: true, createdIpHash: true, completedIpHash: true } });
+      if (!order) return NOT_FOUND;
+      let reporterRole = null;
+      if (order.buyerId === me.id) reporterRole = 'buyer';
+      else if (order.sellerId === me.id && order.buyerId) reporterRole = 'seller';
+      if (!reporterRole) return NOT_FOUND;
+      const items = Array.isArray(order.items) ? order.items.slice(0, 100) : [];
+      return {
+        ownerId: reporterRole === 'buyer' ? order.sellerId : order.buyerId,
+        reporterRole,
+        snapshot: { code: order.code, folderName: order.folderName, items, total: order.total, status: order.status, createdAt: order.createdAt, updatedAt: order.updatedAt, createdIpHash: order.createdIpHash, completedIpHash: order.completedIpHash }
+      };
+    },
     async wishlist_item(id, me) {
       const item = await prisma.wishlistItem.findFirst({ where: { id, moderationState: 'visible' }, select: { id: true, userId: true, name: true, detail: true, note: true } });
       if (!item) return NOT_FOUND;
@@ -218,14 +233,16 @@ export const registerModeration = (app, deps) => {
     }
   };
 
-  const notifyOwnerOfAction = async (ownerId, targetType, reasonLabel, action) => {
+  const notifyOwnerOfAction = async (ownerId, targetType, reasonLabel, action, publicMessage = '') => {
     if (!ownerId) return;
     const object = REPORT_TARGETS[targetType]?.label || 'tu contenido';
     const verb = action === 'remove' ? 'retiramos' : 'ocultamos';
+    const extraText = publicMessage ? `\n\nMensaje del equipo: ${publicMessage}` : '';
+    const extraHtml = publicMessage ? `<p><b>Mensaje del equipo:</b> ${escapeHtml(publicMessage)}</p>` : '';
     await sendUserEmail(ownerId, {
       subject: 'Aviso sobre tu contenido en Carpetazo',
-      text: `Hola:\n\nRevisamos un reporte y ${verb} ${object} porque podría incumplir las normas de Carpetazo (motivo: ${reasonLabel}).\n\nSi crees que fue un error, escríbenos a ${SUPPORT_EMAIL} dentro de los próximos 14 días y lo revisamos.\n\nEquipo Carpetazo`,
-      html: `<p>Hola:</p><p>Revisamos un reporte y ${verb} <b>${escapeHtml(object)}</b> porque podría incumplir las normas de Carpetazo (motivo: ${escapeHtml(reasonLabel)}).</p><p>Si crees que fue un error, escríbenos a <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a> dentro de los próximos 14 días y lo revisamos.</p><p>Equipo Carpetazo</p>`
+      text: `Hola:\n\nRevisamos un reporte y ${verb} ${object} porque podría incumplir las normas de Carpetazo (motivo: ${reasonLabel}).\n\nSi crees que fue un error, escríbenos a ${SUPPORT_EMAIL} o apela desde tu cuenta (Mi perfil → Moderación) dentro de los próximos 14 días y lo revisamos.${extraText}\n\nEquipo Carpetazo`,
+      html: `<p>Hola:</p><p>Revisamos un reporte y ${verb} <b>${escapeHtml(object)}</b> porque podría incumplir las normas de Carpetazo (motivo: ${escapeHtml(reasonLabel)}).</p><p>Si crees que fue un error, escríbenos a <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a> o apela desde tu cuenta (Mi perfil → Moderación) dentro de los próximos 14 días y lo revisamos.</p>${extraHtml}<p>Equipo Carpetazo</p>`
     });
   };
 
@@ -243,10 +260,31 @@ export const registerModeration = (app, deps) => {
   };
 
   // ============ Rutas de usuarios con sesión ============
-  app.get('/api/reports/reasons', authenticateToken, (req, res) => {
-    const type = String(req.query.targetType || '');
-    if (!REPORT_TARGET_TYPES.includes(type)) return badRequest(res, 'Tipo inválido');
-    res.json({ success: true, targetType: type, label: REPORT_TARGETS[type].label, reasons: publicReasons(type) });
+  // En un pedido las razones dependen de si quien reporta es el comprador o el vendedor
+  const orderRole = async (orderId, userId) => {
+    if (!isUuid(orderId || '')) return null;
+    const order = await prisma.order.findUnique({ where: { id: orderId }, select: { buyerId: true, sellerId: true } });
+    if (!order) return null;
+    if (order.buyerId === userId) return 'buyer';
+    if (order.sellerId === userId && order.buyerId) return 'seller';
+    return null;
+  };
+
+  app.get('/api/reports/reasons', authenticateToken, async (req, res) => {
+    try {
+      const type = String(req.query.targetType || '');
+      if (!REPORT_TARGET_TYPES.includes(type)) return badRequest(res, 'Tipo inválido');
+      let role = null;
+      if (type === 'order') {
+        const userId = await currentUserId(req);
+        role = userId ? await orderRole(String(req.query.targetId || ''), userId) : null;
+        if (!role) return res.status(404).json({ success: false, message: 'Contenido no encontrado' });
+      }
+      res.json({ success: true, targetType: type, label: REPORT_TARGETS[type].label, reasons: publicReasons(type, role) });
+    } catch (error) {
+      console.error('Error loading report reasons:', error);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
   });
 
   app.post('/api/reports', authenticateToken, async (req, res) => {
@@ -276,21 +314,31 @@ export const registerModeration = (app, deps) => {
 
       const resolved = await resolvers[targetType](targetId, me, targetType);
       if (resolved.error) return res.status(resolved.error.status).json({ success: false, message: resolved.error.message });
+      // Razón válida para el rol de quien reporta (pedidos)
+      if (reason.appliesTo && reason.appliesTo !== resolved.reporterRole) return badRequest(res, 'Motivo inválido');
 
       const accountOldEnough = now - new Date(me.createdAt).getTime() >= MIN_AGE_FOR_AUTO_HIDE_MS;
       const autoHide = Boolean(reason.autoHide && AUTO_HIDE_TYPES.includes(targetType) && accountOldEnough && lastHour <= 10);
 
       let report = null;
       let hiddenNow = false;
+      const afterCommit = [];
       for (let attempt = 0; attempt < 4 && !report; attempt += 1) {
+        afterCommit.length = 0;
         try {
           report = await prisma.$transaction(async (tx) => {
             const created = await tx.report.create({
               data: {
                 shortCode: newShortCode(), targetType, targetId, targetOwnerId: resolved.ownerId, reasonCode: reason.code, severity: reason.severity,
-                comment: comment || null, extra: Object.keys(extra).length ? extra : undefined, reporterId: me.id, snapshot: resolved.snapshot, createdIpHash: hashConnection(req)
+                comment: comment || null, extra: Object.keys(extra).length ? extra : undefined, reporterId: me.id, reporterRole: resolved.reporterRole || null, snapshot: resolved.snapshot, createdIpHash: hashConnection(req)
               }
             });
+            // Estafas: el reporte se une al caso abierto contra esa persona (o abre uno)
+            if (reason.fraud && resolved.ownerId && hooks.linkFraudCase) {
+              const linked = await hooks.linkFraudCase(tx, created);
+              if (linked?.caseId) created.caseId = linked.caseId;
+              if (linked?.after) afterCommit.push(linked.after);
+            }
             if (targetType === 'review') {
               // Misma regla de siempre: la reseña se oculta cuando la reportan compradores verificados distintos del vendedor
               const review = await tx.sellerReview.findUnique({ where: { id: targetId }, select: { id: true, sellerId: true } });
@@ -320,10 +368,11 @@ export const registerModeration = (app, deps) => {
         }
       }
       if (!report) throw new Error('No se pudo generar el código del reporte');
+      for (const task of afterCommit) task().catch((error) => console.error('Error after report:', error.message));
 
       if (reason.severity === 'S1') notifyAdminsOfCritical(report, `${REPORT_TARGETS[targetType].label} — ${reason.label}`).catch(() => {});
       // Respuesta mínima: nada del contenido ni de otras personas
-      res.status(201).json({ success: true, shortCode: report.shortCode, hidden: hiddenNow });
+      res.status(201).json({ success: true, shortCode: report.shortCode, hidden: hiddenNow, reportId: report.id, allowEvidence: Boolean(reason.evidence) });
     } catch (error) {
       console.error('Error creating report:', error);
       res.status(500).json({ success: false, message: 'Error interno' });
@@ -376,7 +425,7 @@ export const registerModeration = (app, deps) => {
     return new Map(users.map((user) => [user.id, user]));
   };
 
-  app.get('/api/admin/reports', authenticateToken, requireAdmin, async (req, res) => {
+  app.get('/api/admin/reports', authenticateToken, requireStaff(1), async (req, res) => {
     try {
       const status = ['open', 'dismissed', 'actioned', 'all'].includes(req.query.status) ? req.query.status : 'open';
       const severity = ['S1', 'S2', 'S3', 'S4'].includes(req.query.severity) ? req.query.severity : null;
@@ -414,17 +463,18 @@ export const registerModeration = (app, deps) => {
     }
   });
 
-  app.get('/api/admin/reports/:id', authenticateToken, requireAdmin, async (req, res) => {
+  app.get('/api/admin/reports/:id', authenticateToken, requireStaff(1), async (req, res) => {
     try {
       if (!isUuid(req.params.id)) return res.status(404).json({ success: false, message: 'Reporte no encontrado' });
       const report = await prisma.report.findUnique({ where: { id: req.params.id }, include: { reporter: { select: { id: true, username: true, name: true, createdAt: true } } } });
       if (!report) return res.status(404).json({ success: false, message: 'Reporte no encontrado' });
-      const [related, audit, owner, reporterStats, ownerStats] = await Promise.all([
+      const [related, audit, owner, reporterStats, ownerStats, evidence] = await Promise.all([
         prisma.report.findMany({ where: { targetType: report.targetType, targetId: report.targetId, id: { not: report.id } }, orderBy: { createdAt: 'desc' }, take: 20, select: { shortCode: true, reasonCode: true, targetType: true, severity: true, status: true, comment: true, createdAt: true, reporter: { select: { username: true } } } }),
         prisma.moderationAudit.findMany({ where: { OR: [{ reportId: report.id }, { targetType: report.targetType, targetId: report.targetId }] }, orderBy: { createdAt: 'desc' }, take: 50, select: { id: true, actorId: true, action: true, note: true, createdAt: true, reportId: true } }),
         report.targetOwnerId ? prisma.user.findUnique({ where: { id: report.targetOwnerId }, select: { id: true, username: true, name: true, createdAt: true, moderationHidden: true } }) : null,
         prisma.report.groupBy({ by: ['status'], where: { reporterId: report.reporterId }, _count: { _all: true } }),
-        report.targetOwnerId ? prisma.report.groupBy({ by: ['status'], where: { targetOwnerId: report.targetOwnerId }, _count: { _all: true } }) : []
+        report.targetOwnerId ? prisma.report.groupBy({ by: ['status'], where: { targetOwnerId: report.targetOwnerId }, _count: { _all: true } }) : [],
+        prisma.evidence.findMany({ where: { reportId: report.id }, orderBy: { createdAt: 'asc' }, select: { id: true, mime: true, size: true } })
       ]);
       const actors = await ownerCache(audit.map((entry) => entry.actorId));
       const asCounts = (groups) => Object.fromEntries(groups.map((group) => [group.status, group._count._all]));
@@ -432,8 +482,11 @@ export const registerModeration = (app, deps) => {
         success: true,
         report: {
           ...reportSummary(report), comment: report.comment, extra: report.extra, snapshot: report.snapshot, decisionNote: report.decisionNote,
-          reporter: report.reporter ? { username: report.reporter.username, name: report.reporter.name, createdAt: report.reporter.createdAt } : null,
-          allowedActions: report.targetType === 'user' ? ['dismiss'] : ADMIN_ACTIONS,
+          caseId: report.caseId,
+          reporterRole: report.reporterRole,
+          evidence: req.staffLevel >= 2 ? evidence : [],
+          reporter: report.reporter && req.staffLevel >= 2 ? { username: report.reporter.username, name: report.reporter.name, createdAt: report.reporter.createdAt } : null,
+          allowedActions: req.staffLevel < 2 ? [] : ['user', 'order'].includes(report.targetType) ? ['dismiss'] : ADMIN_ACTIONS,
           isImage: IMAGE_TYPES.includes(report.targetType)
         },
         owner: owner ? { username: owner.username, name: owner.name, createdAt: owner.createdAt, moderationHidden: owner.moderationHidden } : null,
@@ -448,18 +501,20 @@ export const registerModeration = (app, deps) => {
     }
   });
 
-  app.post('/api/admin/reports/:id/decision', authenticateToken, requireAdmin, async (req, res) => {
+  app.post('/api/admin/reports/:id/decision', authenticateToken, requireStaff(2), async (req, res) => {
     try {
       if (!isUuid(req.params.id)) return res.status(404).json({ success: false, message: 'Reporte no encontrado' });
       const action = req.body?.action;
       const note = cleanText(req.body?.note, NOTE_MAX);
+      const publicMessage = cleanText(req.body?.publicMessage, 500);
+      if (req.body?.publicMessage !== undefined && req.body?.publicMessage !== null && (typeof req.body.publicMessage !== 'string' || hasBadControlChars(req.body.publicMessage))) return badRequest(res, 'Mensaje inválido');
       if (!ADMIN_ACTIONS.includes(action)) return badRequest(res, 'Acción inválida');
       if (req.body?.note !== undefined && req.body?.note !== null && (typeof req.body.note !== 'string' || hasBadControlChars(req.body.note))) return badRequest(res, 'Nota inválida');
       if (action !== 'dismiss' && note.length < 5) return badRequest(res, 'Escribe el motivo de la decisión (mínimo 5 caracteres)');
       const actorId = await currentUserId(req);
       const report = await prisma.report.findUnique({ where: { id: req.params.id } });
       if (!report) return res.status(404).json({ success: false, message: 'Reporte no encontrado' });
-      if (report.targetType === 'user' && action !== 'dismiss') return badRequest(res, 'Las medidas sobre cuentas llegan con las sanciones. Por ahora solo puedes descartar o dejar una nota.');
+      if (['user', 'order'].includes(report.targetType) && action !== 'dismiss') return badRequest(res, 'Las medidas sobre cuentas y pedidos se aplican como sanción desde la ficha de la persona o desde el caso.');
       if (report.status !== 'open' && action !== 'restore') return res.status(409).json({ success: false, message: 'Este reporte ya fue resuelto' });
 
       const outcome = await prisma.$transaction(async (tx) => {
@@ -483,7 +538,7 @@ export const registerModeration = (app, deps) => {
       if (outcome.failed) return res.status(409).json({ success: false, message: outcome.failed });
 
       if (action === 'hide' || action === 'remove') {
-        notifyOwnerOfAction(report.targetOwnerId, report.targetType, findReason(report.targetType, report.reasonCode)?.label || 'Otro motivo', action).catch((error) => console.error('Error notifying owner:', error.message));
+        notifyOwnerOfAction(report.targetOwnerId, report.targetType, findReason(report.targetType, report.reasonCode)?.label || 'Otro motivo', action, publicMessage).catch((error) => console.error('Error notifying owner:', error.message));
       }
       res.json({ success: true, affected: outcome.affected });
     } catch (error) {
@@ -493,7 +548,7 @@ export const registerModeration = (app, deps) => {
   });
 
   // Nota interna: queda en la línea de tiempo y la ve solo el equipo
-  app.post('/api/admin/reports/:id/note', authenticateToken, requireAdmin, async (req, res) => {
+  app.post('/api/admin/reports/:id/note', authenticateToken, requireStaff(2), async (req, res) => {
     try {
       if (!isUuid(req.params.id)) return res.status(404).json({ success: false, message: 'Reporte no encontrado' });
       const raw = req.body?.note;
@@ -510,7 +565,7 @@ export const registerModeration = (app, deps) => {
     }
   });
 
-  app.get('/api/admin/audit', authenticateToken, requireAdmin, async (req, res) => {
+  app.get('/api/admin/audit', authenticateToken, requireStaff(3), async (req, res) => {
     try {
       const page = Math.max(1, Math.min(200, Number.parseInt(req.query.page, 10) || 1));
       const [rows, total] = await Promise.all([
@@ -524,4 +579,6 @@ export const registerModeration = (app, deps) => {
       res.status(500).json({ success: false, message: 'Error interno' });
     }
   });
+
+  return { applyHide, applyRestore, cleanText, hasBadControlChars, newShortCode, notifyAdminsOfCritical };
 };

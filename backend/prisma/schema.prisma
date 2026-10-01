@@ -38,6 +38,8 @@ model User {
   reviewsWritten  SellerReview[] @relation("ReviewsWritten")
   reviewReports   ReviewReport[]
   reportsMade     Report[]
+  sanctions       Sanction[] @relation("SanctionsReceived")
+  appeals         Appeal[]
   moderationHidden String[] @default([]) // partes del perfil ocultas por moderación: photo | banner | wallpaper | text
   termsAcceptances TermsAcceptance[]
   createdAt     DateTime @default(now())
@@ -288,6 +290,9 @@ model Report {
   decidedById   String?
   decidedAt     DateTime?
   autoActioned  Boolean  @default(false)    // true si el sistema ocultó el contenido antes de revisión
+  reporterRole  String?                     // buyer | seller | visitor (en reportes de pedido)
+  caseId        String?                     // caso de estafa al que se unió
+  evidence      Evidence[]
   createdIpHash String?
   createdAt     DateTime @default(now())
 
@@ -312,4 +317,94 @@ model ModerationAudit {
   @@index([createdAt])
   @@index([targetType, targetId])
   @@index([reportId])
+}
+
+// Medida contra una cuenta. El estado vigente de la cuenta sale de las sanciones activas.
+model Sanction {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation("SanctionsReceived", fields: [userId], references: [id], onDelete: Cascade)
+  type         String                      // warning | restrict_messages | suspend_selling | suspend | ban
+  reason       String                      // texto que ve la persona
+  note         String?                     // nota interna
+  reportId     String?
+  caseId       String?
+  status       String   @default("active") // pending_approval | active | revoked | expired | rejected
+  automatic    Boolean  @default(false)    // la aplicó el sistema (reversible)
+  expiresAt    DateTime?
+  createdById  String?
+  approvedById String?                     // segunda aprobación (baneo permanente)
+  revokedById  String?
+  revokedAt    DateTime?
+  revokeNote   String?
+  createdAt    DateTime @default(now())
+  appeals      Appeal[]
+
+  @@index([userId, status])
+  @@index([status, expiresAt])
+}
+
+// Apelación de quien recibió una sanción o una medida sobre su contenido
+model Appeal {
+  id           String   @id @default(uuid())
+  sanctionId   String?
+  sanction     Sanction? @relation(fields: [sanctionId], references: [id], onDelete: Cascade)
+  reportId     String?
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text         String
+  status       String   @default("open")   // open | accepted | rejected
+  decidedById  String?
+  decisionNote String?
+  decidedAt    DateTime?
+  createdAt    DateTime @default(now())
+
+  @@unique([sanctionId])
+  @@unique([reportId, userId])
+  @@index([status, createdAt])
+}
+
+// Caso de estafa: agrupa los reportes contra un mismo vendedor y lleva el descargo
+model FraudCase {
+  id              String   @id @default(uuid())
+  shortCode       String   @unique          // "CS-81KD2"
+  subjectUserId   String
+  status          String   @default("open") // open | awaiting_response | in_review | resolved
+  priority        String   @default("normal") // normal | high
+  responseDueAt   DateTime?
+  sellerResponse  String?
+  sellerRespondedAt DateTime?
+  resolution      String?                   // dismissed | warned | restricted | suspended | escalated
+  resolutionNote  String?
+  resolvedById    String?
+  resolvedAt      DateTime?
+  openedAt        DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([subjectUserId, status])
+  @@index([status, priority, openedAt])
+}
+
+// Evidencia de un reporte (capturas, comprobantes): se guarda en la base y solo la ve el equipo de moderación
+model Evidence {
+  id        String   @id @default(uuid())
+  reportId  String
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  mime      String
+  size      Int
+  sha256    String
+  data      Bytes
+  createdAt DateTime @default(now())
+
+  @@index([reportId])
+}
+
+// Bloqueo entre usuarios: quien es bloqueado no puede escribirle a quien bloqueó
+model UserBlock {
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
 }

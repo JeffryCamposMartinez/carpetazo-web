@@ -1323,7 +1323,7 @@ export default function SellerProfile() {
                   <ReportMenu
                     buttonStyle={heroMuted}
                     options={[
-                      { targetType: 'user', targetId: seller.id, label: 'Reportar a este usuario' },
+                      { targetType: 'user', targetId: seller.id, blockUserId: seller.id, label: 'Reportar a este usuario' },
                       { targetType: 'profile_image', targetId: seller.photoURL ? seller.id : null, label: 'Reportar la foto de perfil' },
                       { targetType: 'profile_banner', targetId: seller.bannerBase64 ? seller.id : null, label: 'Reportar el banner' },
                       { targetType: 'profile_wallpaper', targetId: seller.wallpaperBase64 ? seller.id : null, label: 'Reportar el fondo del perfil' },

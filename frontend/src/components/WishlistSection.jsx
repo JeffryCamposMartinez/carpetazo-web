@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
+import ReportButton from './ReportButton';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 
@@ -103,6 +104,7 @@ export default function WishlistSection({ username, seller, isOwner = false, var
             {(item.detail || item.tcg) && <p className="line-clamp-2 text-xs text-slate-500">{[item.tcg, item.detail].filter(Boolean).join(' · ')}</p>}
             {item.maxPrice != null && <p className="text-xs font-bold tabular-nums text-slate-700">Paga hasta {formatCLP(item.maxPrice)}</p>}
             {item.note && <p className="line-clamp-2 text-xs italic text-slate-500">{item.note}</p>}
+            {!isOwner && item.id && <div><ReportButton targetType="wishlist_item" targetId={item.id} /></div>}
             {!isOwner && (
               <button
                 type="button"

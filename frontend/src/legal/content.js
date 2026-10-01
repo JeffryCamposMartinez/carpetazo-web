@@ -231,7 +231,7 @@ export const termsBlocks = [
  },
  {
   "t": "p",
-  "x": "11.4. **Te avisaremos** si se aplica una medida contra tu contenido o tu cuenta, con el motivo, y puedes **apelar** dentro de **14 días** escribiendo a carpetazo.soporte@gmail.com o desde la plataforma cuando esa opción esté disponible. La apelación la revisa una persona distinta de quien decidió."
+  "x": "11.4. **Te avisaremos** si se aplica una medida contra tu contenido o tu cuenta, con el motivo, y puedes **apelar** dentro de **14 días** escribiendo a carpetazo.soporte@gmail.com o desde la plataforma cuando esa opción esté disponible. La apelación la revisa una persona distinta de quien decidió; si en ese momento no hay otra persona disponible en el equipo, la revisará quien corresponda y quedará registrado."
  },
  {
   "t": "p",

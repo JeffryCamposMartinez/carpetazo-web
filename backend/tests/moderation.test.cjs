@@ -18,7 +18,7 @@ const DAY = 24 * 60 * 60 * 1000;
     ok('catálogo sin sesión → 401', (await call('GET', '/reports/reasons?targetType=folder')).status === 401);
     let r = await call('GET', '/reports/reasons?targetType=folder', 'jerry');
     ok('catálogo de carpeta → razones sin lógica interna', r.status === 200 && r.j.reasons.length >= 5 && r.j.reasons.every((x) => x.code && x.label && !('severity' in x) && !('autoHide' in x)));
-    ok('catálogo con tipo inválido → 400', (await call('GET', '/reports/reasons?targetType=order', 'jerry')).status === 400);
+    ok('catálogo con tipo inválido → 400', (await call('GET', '/reports/reasons?targetType=hack', 'jerry')).status === 400);
 
     const base = { targetType: 'folder', targetId: folderId, reasonCode: 'folder.spam' };
     ok('reportar sin sesión → 401', (await call('POST', '/reports', null, base)).status === 401);
@@ -38,7 +38,7 @@ const DAY = 24 * 60 * 60 * 1000;
     // --- Reportar una carpeta ---
     r = await call('POST', '/reports', 'jerry', { ...base, comment: 'Carpeta repetida para inflar visitas' });
     ok('reporte válido → 201 con código de seguimiento', r.status === 201 && /^RP-[A-Z0-9]{5}$/.test(r.j.shortCode) && r.j.hidden === false, JSON.stringify(r.j));
-    ok('la respuesta no trae nada más que el código', Object.keys(r.j).sort().join() === 'hidden,shortCode,success');
+    ok('la respuesta no trae nada más que el código', Object.keys(r.j).sort().join() === 'allowEvidence,hidden,reportId,shortCode,success');
     ok('el mismo reporte dos veces → 409', (await call('POST', '/reports', 'jerry', base)).status === 409);
     r = await call('GET', '/reports/mine', 'jerry');
     ok('"Mis reportes": estado simplificado y sin datos de terceros', r.status === 200 && r.j.reports.length === 1 && r.j.reports[0].status === 'received' && !('targetId' in r.j.reports[0]) && !JSON.stringify(r.j).includes(NAMES.seller));

@@ -699,7 +699,7 @@ export default function Header() {
                   <Link to={`/${userUsername || currentUser.uid}`} onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 font-semibold flex items-center gap-3">
                     <span translate="no" className="material-symbols-outlined text-[20px]">storefront</span> Ver perfil público
                   </Link>
-                  {appUser?.role === 'admin' && (
+                  {['admin', 'moderator', 'support'].includes(appUser?.role) && (
                     <Link to="/moderacion" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 font-semibold flex items-center gap-3">
                       <span translate="no" className="material-symbols-outlined text-[20px]">admin_panel_settings</span> Moderación
                     </Link>
@@ -895,7 +895,7 @@ export default function Header() {
                 { to: '/mensajes', label: 'Mensajes', icon: 'chat', active: location.pathname === '/mensajes', badge: unreadMessages },
                 { to: '/perfil', label: 'Mi perfil', icon: 'person', active: location.pathname === '/perfil' },
                 { to: `/${userUsername || currentUser?.uid || ''}`, label: 'Mi perfil público', icon: 'badge', active: false },
-                ...(appUser?.role === 'admin' ? [{ to: '/moderacion', label: 'Moderación', icon: 'admin_panel_settings', active: location.pathname === '/moderacion' }] : []),
+                ...(['admin', 'moderator', 'support'].includes(appUser?.role) ? [{ to: '/moderacion', label: 'Moderación', icon: 'admin_panel_settings', active: location.pathname === '/moderacion' }] : []),
               ];
               const renderItem = (item) => (
                 <Link

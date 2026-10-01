@@ -50,6 +50,7 @@ export default function Messages() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [blockedIds, setBlockedIds] = useState(() => new Set());
   const [remoteTyping, setRemoteTyping] = useState(false);
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -66,6 +67,21 @@ export default function Messages() {
   const quietRef = useRef(0); // revisiones seguidas sin cambios (ritmo de las consultas)
 
   const activeOther = useMemo(() => getOtherUser(activeChat, currentUser), [activeChat, currentUser]);
+  useEffect(() => {
+    if (!currentUser) return;
+    api.getBlocks().then((res) => setBlockedIds(new Set((res.blocks || []).map((block) => block.userId)))).catch(() => {});
+  }, [currentUser]);
+  const toggleBlock = async () => {
+    if (!activeOther?.id) return;
+    const blocked = blockedIds.has(activeOther.id);
+    if (!blocked && !window.confirm('¿Bloquear a ' + activeOther.name + '? No podrán escribirse hasta que la desbloquees.')) return;
+    try {
+      if (blocked) await api.unblockUser(activeOther.id); else await api.blockUser(activeOther.id);
+      setBlockedIds((previous) => { const next = new Set(previous); if (blocked) next.delete(activeOther.id); else next.add(activeOther.id); return next; });
+    } catch (error) {
+      setErrorMsg(error.message || 'No se pudo cambiar el bloqueo.');
+    }
+  };
   const totalUnread = useMemo(() => chats.reduce((total, chat) => total + Number(chat.unreadCount || 0), 0), [chats]);
 
   useEffect(() => {
@@ -440,6 +456,9 @@ export default function Messages() {
                     <h2 className="truncate font-black">{activeOther.name}</h2>
                     <p className="text-xs font-semibold text-blue-100">{remoteTyping ? 'escribiendo…' : 'Conversación privada'}</p>
                   </div>
+                  {activeOther?.id && (
+                    <button type="button" onClick={toggleBlock} className="ml-auto shrink-0 rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white ring-1 ring-white/20 hover:bg-white/20">{blockedIds.has(activeOther.id) ? 'Desbloquear' : 'Bloquear'}</button>
+                  )}
                 </header>
 
                 {errorMsg && <div className="m-4 p-3 rounded-xl bg-red-50 text-red-700 text-sm font-semibold">{errorMsg}</div>}
@@ -465,7 +484,7 @@ export default function Messages() {
                             {(body.imageUrl || body.imageBase64) && <img src={body.imageUrl || body.imageBase64} alt="Adjunto" className="mb-2 max-h-72 rounded-xl object-contain ring-1 ring-black/5" />}
                             {body.text && <p className="whitespace-pre-wrap break-words">{body.text}</p>}
                             {!own && !message.hidden && !message.pending && (
-                              <div className="mt-1"><ReportMenu label="Reportar" buttonClassName="inline-flex h-7 items-center gap-1 rounded-full px-2 text-[11px] font-bold text-slate-400 hover:text-red-600" options={[{ targetType: 'message', targetId: message.id, label: 'Reportar este mensaje' }, { targetType: 'message_image', targetId: (body.imageUrl || body.imageBase64) ? message.id : null, label: 'Reportar la imagen' }]} /></div>
+                              <div className="mt-1"><ReportMenu label="Reportar" buttonClassName="inline-flex h-7 items-center gap-1 rounded-full px-2 text-[11px] font-bold text-slate-400 hover:text-red-600" options={[{ targetType: 'message', targetId: message.id, blockUserId: activeOther?.id, label: 'Reportar este mensaje' }, { targetType: 'message_image', targetId: (body.imageUrl || body.imageBase64) ? message.id : null, label: 'Reportar la imagen' }]} /></div>
                             )}
                             <p className={`mt-1 text-right text-[10px] ${own ? 'text-blue-100' : 'text-slate-400'}`}>
                               {message.createdAt ? new Date(message.createdAt).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }) : ''}

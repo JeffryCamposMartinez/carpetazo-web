@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { api } from '../utils/api';
 import { chileData } from '../utils/chileData';
 import PasswordCard from '../components/PasswordCard';
+import MyModeration from '../components/MyModeration';
 import { PALETTES } from '../utils/profileThemes';
 
 const chileBanks = [
@@ -61,7 +62,8 @@ const tabs = [
   { id: 'addresses', label: 'Direcciones', icon: 'location_on', description: 'Lugares donde puedes recibir pedidos.' },
   { id: 'payments', label: 'Pagos', icon: 'account_balance', description: 'Datos bancarios para recibir ventas.' },
   { id: 'social', label: 'Redes', icon: 'share', description: 'Enlaces visibles en tu perfil público.' },
-  { id: 'security', label: 'Cuenta', icon: 'shield', description: 'Estado de sesión y acciones sensibles.' }
+  { id: 'security', label: 'Cuenta', icon: 'shield', description: 'Estado de sesión y acciones sensibles.' },
+  { id: 'moderation', label: 'Moderación', icon: 'gavel', description: 'Medidas, apelaciones, tus reportes y personas bloqueadas.' }
 ];
 
 const normalizeUsername = (value = '') => (
@@ -583,6 +585,8 @@ const ProfilePage = () => {
                   <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('social')} disabled={Boolean(savingKey)}>{savingKey === 'social' ? 'Guardando...' : 'Guardar redes'}</ActionButton></div>
                 </section>
               )}
+
+              {activeTab === 'moderation' && <MyModeration />}
 
               {activeTab === 'security' && (
                 <section className="space-y-6">

@@ -78,6 +78,14 @@ export const apiFetch = async (endpoint, options = {}) => {
   return response.json();
 };
 
+// Descarga una imagen protegida (evidencias) como blob, con la sesión
+export const apiBlob = async (endpoint) => {
+  const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+  const response = await fetch(apiUrl(endpoint), { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+  if (!response.ok) throw new Error('Error: ' + response.status);
+  return response.blob();
+};
+
 const getPublicFoldersShared = () => {
   if (publicFoldersCache && Date.now() - publicFoldersCache.at < PUBLIC_FOLDERS_TTL_MS) return Promise.resolve(JSON.parse(publicFoldersCache.text));
   if (!publicFoldersPending) {
@@ -124,9 +132,31 @@ export const api = {
   getMyReports: () => apiFetch('/reports/mine'),
   getAdminReports: (params = {}) => apiFetch('/admin/reports?' + new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== ''))),
   getAdminReport: (id) => apiFetch('/admin/reports/' + encodeURIComponent(id)),
-  decideReport: (id, action, note) => apiFetch('/admin/reports/' + encodeURIComponent(id) + '/decision', { method: 'POST', body: JSON.stringify({ action, note }) }),
+  decideReport: (id, action, note, publicMessage) => apiFetch('/admin/reports/' + encodeURIComponent(id) + '/decision', { method: 'POST', body: JSON.stringify({ action, note, publicMessage }) }),
   noteReport: (id, note) => apiFetch('/admin/reports/' + encodeURIComponent(id) + '/note', { method: 'POST', body: JSON.stringify({ note }) }),
   getModerationAudit: (page = 1) => apiFetch('/admin/audit?page=' + page),
+  getReportReasonsFor: (targetType, targetId) => apiFetch('/reports/reasons?targetType=' + encodeURIComponent(targetType) + '&targetId=' + encodeURIComponent(targetId)),
+  uploadReportEvidence: (reportId, file) => { const formData = new FormData(); formData.append('image', file); return apiFetch('/reports/' + encodeURIComponent(reportId) + '/evidence', { method: 'POST', body: formData, isMultipart: true }); },
+  getEvidenceBlob: (id) => apiBlob('/admin/evidence/' + encodeURIComponent(id)),
+  getMyModeration: () => apiFetch('/me/moderation'),
+  findMyOrderByCode: (code) => apiFetch('/me/orders/' + encodeURIComponent(code)),
+  createAppeal: (payload) => apiFetch('/appeals', { method: 'POST', body: JSON.stringify(payload) }),
+  respondToCase: (id, text) => apiFetch('/me/cases/' + encodeURIComponent(id) + '/response', { method: 'POST', body: JSON.stringify({ text }) }),
+  getBlocks: () => apiFetch('/blocks'),
+  blockUser: (userId) => apiFetch('/blocks', { method: 'POST', body: JSON.stringify({ userId }) }),
+  unblockUser: (userId) => apiFetch('/blocks/' + encodeURIComponent(userId), { method: 'DELETE' }),
+  getAdminCases: (params = {}) => apiFetch('/admin/cases?' + new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== ''))),
+  getAdminCase: (id) => apiFetch('/admin/cases/' + encodeURIComponent(id)),
+  requestCaseResponse: (id) => apiFetch('/admin/cases/' + encodeURIComponent(id) + '/request-response', { method: 'POST', body: JSON.stringify({}) }),
+  resolveCase: (id, payload) => apiFetch('/admin/cases/' + encodeURIComponent(id) + '/resolve', { method: 'POST', body: JSON.stringify(payload) }),
+  getAdminSanctions: (status) => apiFetch('/admin/sanctions?status=' + (status || 'active')),
+  getUserModeration: (username) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/moderation'),
+  applySanction: (username, payload) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/sanctions', { method: 'POST', body: JSON.stringify(payload) }),
+  approveSanction: (id) => apiFetch('/admin/sanctions/' + encodeURIComponent(id) + '/approve', { method: 'POST', body: JSON.stringify({}) }),
+  revokeSanction: (id, note) => apiFetch('/admin/sanctions/' + encodeURIComponent(id) + '/revoke', { method: 'POST', body: JSON.stringify({ note }) }),
+  setStaffRole: (username, role) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/role', { method: 'POST', body: JSON.stringify({ role }) }),
+  getAdminAppeals: (status) => apiFetch('/admin/appeals?status=' + (status || 'open')),
+  decideAppeal: (id, action, note) => apiFetch('/admin/appeals/' + encodeURIComponent(id) + '/decision', { method: 'POST', body: JSON.stringify({ action, note }) }),
   sendTestEmail: () => apiFetch('/admin/test-email', { method: 'POST', body: JSON.stringify({}) }),
   approveReview: (id) => apiFetch('/admin/reviews/' + encodeURIComponent(id) + '/approve', { method: 'POST' }),
   deleteReview: (id) => apiFetch('/admin/reviews/' + encodeURIComponent(id), { method: 'DELETE' }),

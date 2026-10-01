@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../utils/api';
+import { useRef } from 'react';
 
 const SEVERITY = {
   S1: { label: 'Crítica', className: 'bg-red-600 text-white' },
@@ -16,7 +17,7 @@ const STATUS = {
 const STATUS_TABS = [['open', 'Pendientes'], ['actioned', 'Con medida'], ['dismissed', 'Descartados'], ['all', 'Todos']];
 const TYPE_LABELS = {
   user: 'Cuenta', profile_image: 'Foto de perfil', profile_banner: 'Banner', profile_wallpaper: 'Fondo de perfil', profile_text: 'Texto de perfil',
-  folder: 'Carpeta', card: 'Carta', card_image: 'Foto de carta', review: 'Reseña', message: 'Mensaje', message_image: 'Imagen de chat', wishlist_item: 'Carta deseada'
+  order: 'Pedido', folder: 'Carpeta', card: 'Carta', card_image: 'Foto de carta', review: 'Reseña', message: 'Mensaje', message_image: 'Imagen de chat', wishlist_item: 'Carta deseada'
 };
 const ACTIONS = {
   dismiss: { label: 'Descartar (sin infracción)', className: 'border-2 border-slate-400 text-slate-700 hover:bg-slate-50', needsNote: false },
@@ -24,7 +25,7 @@ const ACTIONS = {
   remove: { label: 'Quitar', className: 'bg-red-600 text-white hover:bg-red-700', needsNote: true },
   restore: { label: 'Restaurar', className: 'bg-emerald-600 text-white hover:bg-emerald-700', needsNote: true }
 };
-const TIMELINE_LABELS = { 'decision.dismiss': 'Descartó', 'decision.hide': 'Ocultó', 'decision.remove': 'Quitó', 'decision.restore': 'Restauró', note: 'Nota interna', 'auto.hide': 'Ocultado automático' };
+const TIMELINE_LABELS = { 'sanction.applied': 'Medida aplicada', 'case.opened': 'Caso abierto', 'evidence.viewed': 'Vio una evidencia', 'decision.dismiss': 'Descartó', 'decision.hide': 'Ocultó', 'decision.remove': 'Quitó', 'decision.restore': 'Restauró', note: 'Nota interna', 'auto.hide': 'Ocultado automático' };
 
 const dateTime = (iso) => (iso ? new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)) : '');
 const Badge = ({ className, children }) => <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-extrabold ${className}`}>{children}</span>;
@@ -62,6 +63,7 @@ function SnapshotView({ report }) {
   if (targetType === 'folder') return <div className="space-y-1">{line('Nombre', snapshot.name)}{line('Descripción', snapshot.description)}{line('Juego', snapshot.tcg)}{line('Cartas', snapshot.cardCount)}{line('Dueño', snapshot.ownerUsername)}</div>;
   if (targetType === 'card') return <div className="space-y-1">{line('Carta', snapshot.name)}{line('Carpeta', snapshot.folderName)}{line('Precio', snapshot.price)}{line('Stock', snapshot.stock)}</div>;
   if (targetType === 'review') return <div className="space-y-1">{line('Calificación', `${snapshot.rating} de 5`)}{line('Comentario', snapshot.comment)}{line('Vendedor', snapshot.sellerUsername)}{line('Autor', snapshot.reviewerUsername)}</div>;
+  if (targetType === 'order') return <div className="space-y-1">{line('Código', snapshot.code)}{line('Carpeta', snapshot.folderName)}{line('Total', snapshot.total)}{line('Estado', snapshot.status)}{line('Creado', snapshot.createdAt && dateTime(snapshot.createdAt))}{line('Actualizado', snapshot.updatedAt && dateTime(snapshot.updatedAt))}{Array.isArray(snapshot.items) && <ul className="text-sm">{snapshot.items.map((item, index) => <li key={index}>· {item.quantity || 1} × {item.name || item.id}</li>)}</ul>}</div>;
   if (targetType === 'wishlist_item') return <div className="space-y-1">{line('Carta', snapshot.name)}{line('Detalle', snapshot.detail)}{line('Nota', snapshot.note)}</div>;
   if (targetType === 'message' || targetType === 'message_image') {
     return (
@@ -82,12 +84,34 @@ function SnapshotView({ report }) {
   return null;
 }
 
-function ReportDetail({ id, onClose, onChanged }) {
+// Evidencias privadas: se descargan con la sesión y se muestran difuminadas hasta pulsar "Mostrar"
+function EvidenceThumb({ evidence, index }) {
+  const [url, setUrl] = useState('');
+  const [error, setError] = useState(false);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    let revoked = false;
+    let objectUrl = '';
+    api.getEvidenceBlob(evidence.id).then((blob) => { if (revoked) return; objectUrl = URL.createObjectURL(blob); setUrl(objectUrl); }).catch(() => setError(true));
+    return () => { revoked = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [evidence.id]);
+  if (error) return <p className="text-sm italic text-red-600">No se pudo cargar la evidencia {index + 1}.</p>;
+  if (!url) return <div className="h-24 w-24 animate-pulse rounded-xl bg-slate-200" />;
+  return (
+    <div className="relative inline-block max-w-full overflow-hidden rounded-xl bg-slate-100">
+      <img src={url} alt={'Evidencia ' + (index + 1)} className={'max-h-60 max-w-full object-contain transition ' + (shown ? '' : 'blur-2xl')} />
+      <button type="button" onClick={() => setShown((value) => !value)} className="absolute inset-x-0 bottom-2 mx-auto w-fit rounded-full bg-slate-900/85 px-4 py-1.5 text-xs font-extrabold text-white">{shown ? 'Ocultar' : 'Mostrar'}</button>
+    </div>
+  );
+}
+
+function ReportDetail({ id, level, onClose, onChanged, onOpenPerson }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [action, setAction] = useState('');
   const [note, setNote] = useState('');
   const [internalNote, setInternalNote] = useState('');
+  const [publicMessage, setPublicMessage] = useState('');
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
@@ -104,9 +128,10 @@ function ReportDetail({ id, onClose, onChanged }) {
     setBusy(true);
     setError('');
     try {
-      await api.decideReport(id, action, note.trim() || undefined);
+      await api.decideReport(id, action, note.trim() || undefined, publicMessage.trim() || undefined);
       setAction('');
       setNote('');
+      setPublicMessage('');
       load();
       onChanged();
     } catch (err) {
@@ -146,6 +171,13 @@ function ReportDetail({ id, onClose, onChanged }) {
               <ul className="rounded-xl bg-slate-50 p-3 text-sm text-slate-700">{Object.entries(report.extra).map(([key, value]) => <li key={key}><span className="font-bold text-slate-500">{key}:</span> {value}</li>)}</ul>
             )}
 
+            {report.evidence?.length > 0 && (
+              <section aria-label="Evidencias">
+                <h3 className="mb-1 text-xs font-extrabold uppercase tracking-wide text-slate-500">Evidencias ({report.evidence.length})</h3>
+                <div className="flex flex-wrap gap-2">{report.evidence.map((item, index) => <EvidenceThumb key={item.id} evidence={item} index={index} />)}</div>
+              </section>
+            )}
+
             <section aria-label="Contenido reportado">
               <h3 className="mb-1 text-xs font-extrabold uppercase tracking-wide text-slate-500">Contenido (copia al momento del reporte)</h3>
               <SnapshotView report={report} />
@@ -156,6 +188,7 @@ function ReportDetail({ id, onClose, onChanged }) {
                 <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Dueño del contenido</h3>
                 {data.owner ? (
                   <>
+                    {data.owner.username && <button type="button" onClick={() => onOpenPerson(data.owner.username, report.id)} className="mt-1 text-xs font-extrabold text-blue-700 underline-offset-2 hover:underline">Ver ficha y aplicar una medida</button>}
                     <p className="mt-1 font-bold">{data.owner.username ? <Link to={`/${data.owner.username}`} className="underline-offset-2 hover:underline">{data.owner.name || data.owner.username} (@{data.owner.username})</Link> : 'Cuenta eliminada'}</p>
                     <p className="text-xs text-slate-500">Alta: {dateTime(data.owner.createdAt)}</p>
                     <p className="text-xs text-slate-500">Reportes recibidos: {Object.entries(data.ownerReports).map(([key, value]) => `${STATUS[key]?.label || key}: ${value}`).join(' · ') || 'ninguno'}</p>
@@ -191,15 +224,16 @@ function ReportDetail({ id, onClose, onChanged }) {
                   ))}
                 </ol>
               )}
-              <div className="mt-2 flex gap-2">
+              {level >= 2 && <div className="mt-2 flex gap-2">
                 <input type="text" maxLength={1000} value={internalNote} onChange={(event) => setInternalNote(event.target.value)} placeholder="Nota interna (solo el equipo)" aria-label="Nota interna" className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-[#1e40af]" />
                 <button type="button" disabled={busy || internalNote.trim().length < 2} onClick={saveNote} className="rounded-xl bg-slate-700 px-4 text-sm font-bold text-white disabled:opacity-50">Guardar</button>
-              </div>
+              </div>}
             </section>
 
             <section aria-label="Decisión" className="rounded-2xl border border-slate-200 p-3">
               <h3 className="mb-2 text-xs font-extrabold uppercase tracking-wide text-slate-500">Decisión</h3>
-              {report.targetType === 'user' && <p className="mb-2 text-xs font-semibold text-slate-500">Las medidas sobre cuentas (advertencia, suspensión) llegan con la Fase B. Por ahora solo se puede descartar.</p>}
+              {['user', 'order'].includes(report.targetType) && <p className="mb-2 text-xs font-semibold text-slate-500">Sobre cuentas y pedidos solo se descarta desde aquí. Para advertir o suspender usa "Ver ficha y aplicar una medida" o el caso de estafa.</p>}
+              {level < 2 && <p className="mb-2 text-xs font-semibold text-slate-500">Tu rol es de solo lectura: no puedes decidir.</p>}
               <div className="flex flex-wrap gap-2">
                 {report.allowedActions.filter((item) => report.status === 'open' ? item !== 'restore' : item === 'restore').map((item) => (
                   <button key={item} type="button" onClick={() => { setAction(item); setError(''); }} aria-pressed={action === item} className={`h-11 rounded-full px-4 text-sm font-extrabold ${ACTIONS[item].className} ${action === item ? 'ring-4 ring-blue-300' : ''}`}>{ACTIONS[item].label}</button>
@@ -212,7 +246,14 @@ function ReportDetail({ id, onClose, onChanged }) {
                     Motivo de la decisión {ACTIONS[action].needsNote ? '(obligatorio)' : '(opcional)'}
                     <textarea rows={3} maxLength={1000} value={note} onChange={(event) => setNote(event.target.value)} className="mt-1 w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium outline-none focus:border-[#1e40af]" />
                   </label>
-                  {(action === 'hide' || action === 'remove') && <p className="text-xs font-semibold text-slate-500">Se le avisará por correo a la persona (sin decir quién reportó) y podrá escribirnos para apelar.</p>}
+                  {(action === 'hide' || action === 'remove') && (
+                    <>
+                      <label className="block text-sm font-extrabold text-slate-700">Mensaje para la persona (opcional, va en el correo)
+                        <textarea rows={2} maxLength={500} value={publicMessage} onChange={(event) => setPublicMessage(event.target.value)} className="mt-1 w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium outline-none focus:border-[#1e40af]" />
+                      </label>
+                      <p className="text-xs font-semibold text-slate-500">Se le avisará por correo (sin decir quién reportó) y podrá apelar durante 14 días.</p>
+                    </>
+                  )}
                   <button type="button" disabled={busy} onClick={decide} className="h-11 w-full rounded-full bg-[#12315f] px-6 text-sm font-extrabold text-white disabled:opacity-50">{busy ? 'Aplicando…' : `Confirmar: ${ACTIONS[action].label}`}</button>
                 </div>
               )}
@@ -224,13 +265,17 @@ function ReportDetail({ id, onClose, onChanged }) {
   );
 }
 
-export default function ReportsPanel() {
+export default function ReportsPanel({ level = 1, onOpenPerson = () => {}, initialReportId = '', onInitialUsed = () => {} }) {
   const [filters, setFilters] = useState({ status: 'open', severity: '', targetType: '', q: '' });
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [list, setList] = useState(null);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState(null);
+  const usedInitial = useRef(false);
+  useEffect(() => {
+    if (initialReportId && !usedInitial.current) { usedInitial.current = true; setSelected(initialReportId); setFilters((previous) => ({ ...previous, status: 'all' })); onInitialUsed(); }
+  }, [initialReportId, onInitialUsed]);
 
   const load = useCallback(() => {
     setError('');
@@ -305,7 +350,7 @@ export default function ReportsPanel() {
 
       {selected ? (
         <section aria-label="Detalle del reporte" className="max-h-[calc(100vh-140px)] overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 lg:sticky lg:top-4">
-          <ReportDetail id={selected} onClose={() => setSelected(null)} onChanged={load} />
+          <ReportDetail id={selected} level={level} onClose={() => setSelected(null)} onChanged={load} onOpenPerson={onOpenPerson} />
         </section>
       ) : (
         <section className="hidden items-center justify-center rounded-2xl bg-white/60 p-8 text-center text-sm font-semibold text-slate-500 lg:flex">Elige un reporte para ver el detalle y decidir.</section>

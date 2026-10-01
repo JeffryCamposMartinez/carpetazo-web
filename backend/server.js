@@ -17,6 +17,8 @@ dotenv.config();
 import { initializeApp } from 'firebase-admin/app';
 import nodemailer from 'nodemailer';
 import { registerModeration } from './moderation.js';
+import { createRestrictions, registerSanctions } from './moderationB.js';
+import { REPORT_TARGETS, findReason } from './reportReasons.js';
 import { getAuth } from 'firebase-admin/auth';
 
 const FIREBASE_PROJECT_ID = 'carpetazo-db9d7';
@@ -54,6 +56,26 @@ const adminEmails = (process.env.ADMIN_EMAILS || '')
   .filter(Boolean);
 
 const isAdminEmail = (email) => Boolean(email && adminEmails.includes(String(email).toLowerCase()));
+
+// Equipo de moderación: 1 = soporte (solo lectura), 2 = moderador, 3 = administrador
+const requireStaff = (minLevel) => async (req, res, next) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const firebaseAdminClaim = req.user?.admin === true || req.user?.role === 'admin';
+    const envAdmin = req.user.email_verified === true && isAdminEmail(req.user.email);
+    let level = 0;
+    if (firebaseAdminClaim || envAdmin || user?.role === 'admin') level = 3;
+    else if (user?.role === 'moderator') level = 2;
+    else if (user?.role === 'support') level = 1;
+    if (level < minLevel) return res.status(403).json({ success: false, message: 'Acceso restringido' });
+    req.staffLevel = level;
+    req.dbUser = user;
+    next();
+  } catch (error) {
+    console.error('Error checking staff permissions:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+};
 
 const requireAdmin = async (req, res, next) => {
   try {
@@ -293,11 +315,22 @@ app.get('/api/legal/versions', routeLimiter(15 * 60 * 1000, 300));
 app.post('/api/users/me/accept-terms', routeLimiter(15 * 60 * 1000, 30));
 app.delete('/api/users/me/unaccepted', routeLimiter(15 * 60 * 1000, 10));
 app.post('/api/admin/test-email', routeLimiter(15 * 60 * 1000, 10));
-app.post('/api/reports', routeLimiter(15 * 60 * 1000, 30));
+app.post('/api/reports', routeLimiter(15 * 60 * 1000, 80));
 app.get('/api/reports/reasons', routeLimiter(15 * 60 * 1000, 200));
 app.get('/api/reports/mine', routeLimiter(15 * 60 * 1000, 100));
 app.use('/api/admin/reports', routeLimiter(15 * 60 * 1000, 300));
 app.use('/api/admin/audit', routeLimiter(15 * 60 * 1000, 120));
+app.use('/api/admin/cases', routeLimiter(15 * 60 * 1000, 300));
+app.use('/api/admin/sanctions', routeLimiter(15 * 60 * 1000, 200));
+app.use('/api/admin/appeals', routeLimiter(15 * 60 * 1000, 200));
+app.use('/api/admin/users', routeLimiter(15 * 60 * 1000, 200));
+app.use('/api/admin/evidence', routeLimiter(15 * 60 * 1000, 300));
+app.post('/api/reports/:id/evidence', routeLimiter(15 * 60 * 1000, 20));
+app.post('/api/appeals', routeLimiter(15 * 60 * 1000, 10));
+app.get('/api/me/moderation', routeLimiter(15 * 60 * 1000, 100));
+app.post('/api/me/cases/:id/response', routeLimiter(15 * 60 * 1000, 10));
+app.use('/api/blocks', routeLimiter(15 * 60 * 1000, 100));
+app.get('/api/me/orders/:code', routeLimiter(15 * 60 * 1000, 40));
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
@@ -345,6 +378,18 @@ app.use('/api', async (req, res, next) => {
     return next(); // token inválido o error momentáneo: la ruta responde con su propia validación
   }
 });
+// Sanciones vigentes: una cuenta suspendida no escribe; con restricciones parciales solo se corta lo que corresponde
+const restrictions = createRestrictions({ prisma, getAuth });
+app.use('/api', restrictions.gate);
+
+// Bloqueo entre usuarios: devuelve el motivo si no se puede escribir, o null
+const messageBlockReason = async (senderId, receiverId) => {
+  const rows = await prisma.userBlock.findMany({ where: { OR: [{ blockerId: receiverId, blockedId: senderId }, { blockerId: senderId, blockedId: receiverId }] }, select: { blockerId: true } });
+  if (rows.some((row) => row.blockerId === senderId)) return 'Bloqueaste a esta persona. Desbloquéala para escribirle.';
+  if (rows.length) return 'No puedes enviarle mensajes a esta persona.';
+  return null;
+};
+
 // Proxy con caché hacia TCGCSV (Pokémon inglés y japonés): el navegador no puede llamarlo directo por CORS
 const TCGCSV_ALLOWED_PATH = /^\/tcgplayer\/(3|85)\/(groups|\d+\/products)$/;
 const TCGCSV_TTL_MS = 30 * 60 * 1000;
@@ -474,8 +519,8 @@ app.post('/api/users/sync', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/admin/me', authenticateToken, requireAdmin, async (req, res) => {
-  res.json({ success: true, isAdmin: true, user: req.dbUser || null });
+app.get('/api/admin/me', authenticateToken, requireStaff(1), async (req, res) => {
+  res.json({ success: true, isAdmin: req.staffLevel >= 3, isStaff: true, level: req.staffLevel, role: req.staffLevel >= 3 ? 'admin' : req.dbUser?.role, user: req.dbUser ? { username: req.dbUser.username } : null });
 });
 const isUuid = (value = '') => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
@@ -2004,6 +2049,8 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
     const receiver = await resolveUserByAnyId(receiverId);
     if (!receiver) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     if (receiver.id === sender.id) return res.status(400).json({ success: false, message: 'No puedes enviarte mensajes a ti mismo.' });
+    const blockedReason = await messageBlockReason(sender.id, receiver.id);
+    if (blockedReason) return res.status(403).json({ success: false, code: 'blocked', message: blockedReason });
 
     const message = await prisma.message.create({
       data: {
@@ -2154,7 +2201,9 @@ app.post('/api/messages/:otherId', authenticateToken, async (req, res) => {
     if (otherId === currentUser.id) {
       return res.status(400).json({ success: false, message: 'No puedes enviarte mensajes a ti mismo.' });
     }
-    
+    const blockedReason = await messageBlockReason(currentUser.id, otherId);
+    if (blockedReason) return res.status(403).json({ success: false, code: 'blocked', message: blockedReason });
+
     const message = await prisma.message.create({
       data: {
         senderId: currentUser.id,
@@ -2260,7 +2309,9 @@ const sendUserEmail = async (userId, { subject, text, html }) => {
   }
 };
 
-registerModeration(app, { prisma, authenticateToken, requireAdmin, badRequest, isUuid, currentUserId, hashConnection, sendUserEmail, escapeHtml, reviewHideReports: REVIEW_HIDE_REPORTS });
+const moderationHooks = {};
+const moderation = registerModeration(app, { prisma, authenticateToken, requireStaff, hooks: moderationHooks, badRequest, isUuid, currentUserId, hashConnection, sendUserEmail, escapeHtml, reviewHideReports: REVIEW_HIDE_REPORTS });
+registerSanctions(app, { prisma, authenticateToken, requireStaff, hooks: moderationHooks, restrictions, moderation, badRequest, isUuid, currentUserId, sendUserEmail, escapeHtml, targetLabel: (type) => REPORT_TARGETS[type]?.label || 'contenido', reasonLabel: (type, code) => findReason(type, code)?.label || 'Otro motivo' });
 
 // Prueba del envío (solo administradores). Sin "username" se envía a sí mismo; con "username", a esa cuenta,
 // que igual debe tener los términos aceptados. El contenido es fijo: no se puede usar para escribir mensajes libres.
@@ -2787,7 +2838,8 @@ app.get('/api/users/:username', optionalAuth, async (req, res) => {
       }
     });
 
-    if (!user) {
+    // Una cuenta cerrada por moderación deja de tener perfil público
+    if (!user || (await restrictions.restrictionsFor(user.id)).has('ban')) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 

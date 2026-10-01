@@ -8,7 +8,10 @@ const COMMENT_MIN_REQUIRED = 20;
 
 // Hoja de reporte: en el teléfono sube desde abajo; en pantalla grande es un cuadro centrado.
 // Pasos: 1) qué pasa, 2) cuéntanos más, 3) confirmación con el código de seguimiento.
-function ReportSheet({ targetType, targetId, onClose, onReported }) {
+const BLOCK_SUGGESTED = ['user.harassment', 'user.threats', 'user.spam', 'message.harassment', 'message.threats', 'message.sexual', 'message.spam', 'order.harassment'];
+const EVIDENCE_MAX = 3;
+
+function ReportSheet({ targetType, targetId, blockUserId, onClose, onReported }) {
   const [step, setStep] = useState(1);
   const [catalog, setCatalog] = useState(null);
   const [loadError, setLoadError] = useState('');
@@ -18,15 +21,18 @@ function ReportSheet({ targetType, targetId, onClose, onReported }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
+  const [files, setFiles] = useState([]);
+  const [evidenceNote, setEvidenceNote] = useState('');
+  const [blocked, setBlocked] = useState(false);
   const dialogRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
-    api.getReportReasons(targetType)
+    (targetType === 'order' ? api.getReportReasonsFor(targetType, targetId) : api.getReportReasons(targetType))
       .then((res) => { if (!cancelled) setCatalog(res); })
       .catch(() => { if (!cancelled) setLoadError('No se pudo cargar el formulario. Intenta de nuevo.'); });
     return () => { cancelled = true; };
-  }, [targetType]);
+  }, [targetType, targetId]);
 
   // El fondo no se desplaza, el foco entra al cuadro y Esc lo cierra
   useEffect(() => {
@@ -66,6 +72,14 @@ function ReportSheet({ targetType, targetId, onClose, onReported }) {
     try {
       const cleanExtra = Object.fromEntries(Object.entries(extra).map(([key, value]) => [key, String(value || '').trim()]).filter(([, value]) => value));
       const res = await api.createReport({ targetType, targetId, reasonCode, comment: comment.trim() || undefined, extra: cleanExtra });
+      // Evidencias: se suben una a una; si alguna falla el reporte igual quedó enviado
+      if (res.allowEvidence && files.length) {
+        let failed = 0;
+        for (const file of files.slice(0, EVIDENCE_MAX)) {
+          try { await api.uploadReportEvidence(res.reportId, file); } catch { failed += 1; }
+        }
+        if (failed) setEvidenceNote(`${failed === 1 ? 'No se pudo subir 1 imagen' : `No se pudieron subir ${failed} imágenes`}. El reporte sí se envió; puedes escribirnos a carpetazo.soporte@gmail.com con las capturas.`);
+      }
       setResult(res);
       setStep(3);
       onReported?.(res);
@@ -128,6 +142,16 @@ function ReportSheet({ targetType, targetId, onClose, onReported }) {
                 <textarea rows={4} maxLength={COMMENT_MAX} value={comment} onChange={(event) => setComment(event.target.value)} className="mt-1 w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-800 outline-none focus:border-[#1e40af]" />
                 <span className="mt-1 block text-right text-xs font-semibold text-slate-400">{comment.length}/{COMMENT_MAX}</span>
               </label>
+              {reason.allowEvidence && (
+                <div>
+                  <label className="block text-sm font-extrabold text-slate-700">
+                    Capturas o comprobantes (opcional, hasta {EVIDENCE_MAX})
+                    <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => setFiles(Array.from(event.target.files || []).filter((file) => file.size <= 5 * 1024 * 1024).slice(0, EVIDENCE_MAX))} className="mt-1 block w-full text-sm font-medium text-slate-600 file:mr-3 file:rounded-full file:border-0 file:bg-slate-100 file:px-4 file:py-2 file:text-sm file:font-bold file:text-slate-700" />
+                  </label>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">JPG, PNG o WebP de hasta 5 MB. Solo las ve el equipo de moderación.</p>
+                  {files.length > 0 && <p className="mt-1 text-xs font-bold text-[#12315f]">{files.length} {files.length === 1 ? 'imagen lista' : 'imágenes listas'} para enviar</p>}
+                </div>
+              )}
               {targetType.startsWith('message') && <p className="text-xs font-semibold text-slate-500">Incluiremos los últimos mensajes de esta conversación en el reporte. Nadie más del equipo tiene acceso a tus chats.</p>}
               {reason.code === 'user.scam' && <p className="text-xs font-semibold text-slate-500">Si ya pagaste, junta el comprobante y el código de pedido. Entre más datos, más rápido podemos ayudarte.</p>}
               {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</p>}
@@ -139,6 +163,13 @@ function ReportSheet({ targetType, targetId, onClose, onReported }) {
               <p>Gracias. Revisaremos tu reporte y tomaremos las medidas que correspondan.</p>
               <p className="rounded-2xl bg-slate-50 px-4 py-3 font-bold text-[#12315f]">Código de seguimiento: <span className="font-mono tracking-wider">{result.shortCode}</span></p>
               {result.hidden && <p className="text-xs font-semibold text-slate-500">Mientras lo revisamos, el contenido dejó de mostrarse.</p>}
+              {evidenceNote && <p role="alert" className="rounded-xl bg-amber-50 px-4 py-3 text-xs font-bold text-amber-900">{evidenceNote}</p>}
+              {blockUserId && BLOCK_SUGGESTED.includes(reasonCode) && (
+                blocked
+                  ? <p className="text-xs font-bold text-emerald-700">Listo: bloqueaste a esta persona. Puedes desbloquearla desde Mi perfil → Moderación.</p>
+                  : <button type="button" onClick={async () => { try { await api.blockUser(blockUserId); setBlocked(true); } catch (err) { setError(err.message || 'No se pudo bloquear.'); } }} className="w-full rounded-xl border-2 border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">Bloquear a esta persona</button>
+              )}
+              {error && <p role="alert" className="text-xs font-bold text-red-700">{error}</p>}
             </div>
           )}
         </div>
@@ -165,7 +196,7 @@ function ReportSheet({ targetType, targetId, onClose, onReported }) {
 }
 
 // Botón "Reportar": sin sesión pide ingresar; no aparece para el dueño del contenido (el servidor igual lo rechaza)
-export default function ReportButton({ targetType, targetId, label = 'Reportar', className = '', onReported, children }) {
+export default function ReportButton({ targetType, targetId, blockUserId, label = 'Reportar', className = '', onReported, children }) {
   const { currentUser } = useAuth();
   const [open, setOpen] = useState(false);
 
@@ -180,7 +211,7 @@ export default function ReportButton({ targetType, targetId, label = 'Reportar',
       <button type="button" onClick={start} className={className || 'text-xs font-bold text-slate-400 underline-offset-2 hover:text-red-600 hover:underline'}>
         {children || label}
       </button>
-      {open && <ReportSheet targetType={targetType} targetId={targetId} onClose={() => setOpen(false)} onReported={onReported} />}
+      {open && <ReportSheet targetType={targetType} targetId={targetId} blockUserId={blockUserId} onClose={() => setOpen(false)} onReported={onReported} />}
     </>
   );
 }
@@ -223,7 +254,7 @@ export function ReportMenu({ options, label = 'Reportar', buttonClassName = '', 
           ))}
         </div>
       )}
-      {target && <ReportSheet targetType={target.targetType} targetId={target.targetId} onClose={() => setTarget(null)} />}
+      {target && <ReportSheet targetType={target.targetType} targetId={target.targetId} blockUserId={target.blockUserId} onClose={() => setTarget(null)} />}
     </div>
   );
 }
