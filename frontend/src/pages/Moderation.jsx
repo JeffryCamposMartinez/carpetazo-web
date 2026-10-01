@@ -102,7 +102,7 @@ export default function Moderation() {
 
   return (
     <div className="mx-auto w-full max-w-[1280px] px-3 py-3 sm:px-6 sm:py-6">
-      <div className="rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 p-4 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] md:rounded-[2rem] md:p-8">
+      <div className="rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 text-slate-800 p-4 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] md:rounded-[2rem] md:p-8">
         <header className="mb-4">
           <h1 className="text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Moderación</h1>
           <p className="mt-1 max-w-2xl text-sm text-slate-600 md:text-base">Reportes de contenido ordenados por gravedad. Cada decisión queda registrada en la auditoría.</p>
