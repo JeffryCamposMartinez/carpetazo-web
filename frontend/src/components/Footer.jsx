@@ -39,7 +39,7 @@ export default function Footer() {
     >
       <div className="flex items-center gap-2 hover:text-white transition-colors duration-300">
         <span translate="no" className="material-symbols-outlined text-[18px]">mail</span>
-        <a href="mailto:carpetazoco@gmail.com" className="text-sm font-medium">carpetazoco@gmail.com</a>
+        <a href="mailto:carpetazo.soporte@gmail.com" className="text-sm font-medium">carpetazo.soporte@gmail.com</a>
       </div>
       <p className="text-xs font-medium tracking-wide text-center" style={{ color: themedFooterStyle ? 'inherit' : undefined, opacity: themedFooterStyle ? 0.8 : undefined }}>
         &copy; {new Date().getFullYear()} Carpetazo.cl. Todos los derechos reservados.
