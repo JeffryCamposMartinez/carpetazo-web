@@ -792,7 +792,7 @@ export default function SellerProfile() {
   const isPosterLayout = publicTheme.profileLayout === 'poster';
   const displayScale = getDisplayScale(publicTheme.font);
   // Nombre: crece con la pantalla, acotado entre móvil y escritorio (más grande en el diseño póster)
-  const displayNameSize = `clamp(${(1.7 * displayScale).toFixed(2)}rem, ${(1.05 * displayScale).toFixed(2)}rem + ${(2.4 * displayScale).toFixed(2)}vw, ${((isPosterLayout ? 3.6 : 2.9) * displayScale).toFixed(2)}rem)`;
+  const displayNameSize = `clamp(${(1.7 * displayScale).toFixed(2)}rem, ${(1.05 * displayScale).toFixed(2)}rem + ${(2.4 * displayScale).toFixed(2)}vw, ${((isPosterLayout ? 3.2 : 2.9) * displayScale).toFixed(2)}rem)`;
   const selectedDistribution = profileDistributionOptions.find(option => option.id === publicTheme.profileDistribution) || profileDistributionOptions[0];
   const getDistributionOrder = (moduleName) => {
     const index = selectedDistribution.order.indexOf(moduleName);
@@ -1117,7 +1117,7 @@ export default function SellerProfile() {
     classic: 'pt-[140px] sm:pt-[200px] md:py-12',
     compact: 'pt-[70px] sm:pt-[96px] md:pt-[112px] md:pb-6',
     showcase: 'pt-[120px] sm:pt-[170px] md:pt-[200px] md:pb-10',
-    poster: 'pt-[180px] sm:pt-[250px] md:pt-[290px] md:pb-12',
+    poster: 'pt-[150px] sm:pt-[190px] md:pt-[150px] md:pb-10',
     'side-showcase': 'pt-[120px] sm:pt-[170px] md:pt-[190px] md:pb-10'
   }[layoutId];
   const heroContainerClass = {

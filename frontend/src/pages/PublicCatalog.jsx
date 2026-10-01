@@ -4,6 +4,7 @@ import api, { API_BASE_URL, apiFetch } from '../utils/api';
 import PokemonCard from '../components/PokemonCard';
 import AlbumView from '../components/AlbumView';
 import Toast from '../components/Toast';
+import LiquidTabs from '../components/LiquidTabs';
 import { useAuth } from '../contexts/AuthContext';
 import PublicCatalogFilters from '../components/folder/filters/PublicCatalogFilters';
 import WishlistSection from '../components/WishlistSection';
@@ -833,24 +834,22 @@ function PublicCatalog() {
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="flex flex-1 items-center rounded-full bg-slate-100 p-1 md:flex-none">
-                      <button
-                        type="button"
-                        onClick={() => setViewMode('album')}
-                        aria-pressed={viewMode === 'album'}
-                        className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-bold transition-all md:flex-none ${viewMode === 'album' ? 'bg-[#12315f] text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-                      >
-                        <span translate="no" className="material-symbols-outlined text-[18px]">auto_stories</span> <span className="hidden min-[420px]:inline">Álbum</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setViewMode('grid')}
-                        aria-pressed={viewMode === 'grid'}
-                        className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-bold transition-all md:flex-none ${viewMode === 'grid' ? 'bg-[#12315f] text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-                      >
-                        <span translate="no" className="material-symbols-outlined text-[18px]">grid_view</span> <span className="hidden min-[420px]:inline">Cuadrícula</span>
-                      </button>
-                    </div>
+                    <LiquidTabs
+                      ariaLabel="Vista del catálogo"
+                      axis="auto"
+                      layout="inline"
+                      value={viewMode}
+                      onChange={setViewMode}
+                      className="flex-1 rounded-full bg-slate-100 p-1 md:flex-none"
+                      buttonClassName="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-bold md:flex-none"
+                      indicatorClassName="rounded-full bg-[#12315f] shadow-sm"
+                      activeTextClassName="text-white"
+                      inactiveTextClassName="text-slate-500 hover:text-slate-800"
+                      options={[
+                        { value: 'album', label: <><span translate="no" className="material-symbols-outlined text-[18px]" aria-hidden="true">auto_stories</span><span className="hidden min-[420px]:inline">Álbum</span><span className="sr-only min-[420px]:hidden">Álbum</span></> },
+                        { value: 'grid', label: <><span translate="no" className="material-symbols-outlined text-[18px]" aria-hidden="true">grid_view</span><span className="hidden min-[420px]:inline">Cuadrícula</span><span className="sr-only min-[420px]:hidden">Cuadrícula</span></> }
+                      ]}
+                    />
                     <button
                       type="button"
                       onClick={() => setIsMobileFiltersOpen((value) => !value)}

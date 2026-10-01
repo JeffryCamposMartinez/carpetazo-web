@@ -17,6 +17,9 @@ export default function LiquidTabs({
   activeTextClassName = 'text-yellow-400',
   inactiveTextClassName = 'text-blue-900 hover:text-blue-900/70',
   layout = 'grid', // 'grid': columnas iguales · 'inline': cada opción con su ancho
+  // 'x': el indicador ocupa todo el alto y se desliza en horizontal (comportamiento original)
+  // 'auto': toma la caja exacta del botón activo y se estira en la dirección del cambio (sirve en fila o en columna)
+  axis = 'x',
   indicatorStyle,
   activeTextStyle,
   inactiveTextStyle,
@@ -34,7 +37,8 @@ export default function LiquidTabs({
   const measure = () => {
     const btn = buttonRefs.current[activeIndex];
     if (!containerRef.current || !btn) return;
-    setBox((previous) => (previous && previous.left === btn.offsetLeft && previous.width === btn.offsetWidth ? previous : { left: btn.offsetLeft, width: btn.offsetWidth }));
+    const next = { left: btn.offsetLeft, width: btn.offsetWidth, top: btn.offsetTop, height: btn.offsetHeight };
+    setBox((previous) => (previous && ['left', 'width', 'top', 'height'].every((key) => previous[key] === next[key]) ? previous : next));
   };
 
   const measureRef = useRef(measure);
@@ -49,10 +53,33 @@ export default function LiquidTabs({
     const before = previousBox.current;
     previousBox.current = box;
     el.style.width = `${box.width}px`;
-    el.style.transform = `translate3d(${box.left}px, 0, 0)`;
+    if (axis === 'auto') {
+      el.style.height = `${box.height}px`;
+      el.style.transform = `translate3d(${box.left}px, ${box.top}px, 0)`;
+    } else {
+      el.style.transform = `translate3d(${box.left}px, 0, 0)`;
+    }
     if (!before || !animateRef.current || typeof el.animate !== 'function') return;
-    if (before.left === box.left && before.width === box.width) return;
+    if (['left', 'width', 'top', 'height'].every((key) => before[key] === box[key])) return;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+
+    if (axis === 'auto') {
+      // Igual que en horizontal, pero en los dos ejes: primero cubre ambas opciones y luego se recoge en la nueva
+      const minLeft = Math.min(before.left, box.left);
+      const maxRight = Math.max(before.left + before.width, box.left + box.width);
+      const minTop = Math.min(before.top, box.top);
+      const maxBottom = Math.max(before.top + before.height, box.top + box.height);
+      el.getAnimations?.().forEach((animation) => animation.cancel());
+      el.animate(
+        [
+          { transform: `translate3d(${before.left}px, ${before.top}px, 0) scale(${before.width / box.width}, ${before.height / box.height})` },
+          { transform: `translate3d(${minLeft}px, ${minTop}px, 0) scale(${(maxRight - minLeft) / box.width}, ${(maxBottom - minTop) / box.height})`, offset: 0.45 },
+          { transform: `translate3d(${box.left}px, ${box.top}px, 0) scale(1, 1)` },
+        ],
+        { duration: DURATION_MS, easing: EASING }
+      );
+      return;
+    }
 
     const minLeft = Math.min(before.left, box.left);
     const maxRight = Math.max(before.left + before.width, box.left + box.width);
@@ -89,8 +116,8 @@ export default function LiquidTabs({
         <span
           ref={indicatorRef}
           aria-hidden="true"
-          className={`pointer-events-none absolute bottom-0 left-0 top-0 ${indicatorClassName}`}
-          style={{ transformOrigin: '0 50%', willChange: 'transform', ...indicatorStyle }}
+          className={`pointer-events-none absolute left-0 top-0 ${axis === 'auto' ? '' : 'bottom-0'} ${indicatorClassName}`}
+          style={{ transformOrigin: axis === 'auto' ? '0 0' : '0 50%', willChange: 'transform', ...indicatorStyle }}
         />
       )}
       {options.map((o, i) => {

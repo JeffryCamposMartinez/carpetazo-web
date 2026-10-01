@@ -1,4 +1,5 @@
 import React from 'react';
+import LiquidTabs from '../LiquidTabs';
 
 const formatCLP = (value) => {
   const number = Number(value || 0);
@@ -212,24 +213,26 @@ export const InventoryViewSwitcher = ({
           <span className="ml-0.5">{gridDensity}</span>
         </button>
       )}
-      {[
-        { value: 'album', label: 'Álbum', icon: 'auto_stories' },
-        { value: 'grid', label: 'Cuadrícula', icon: 'grid_view' },
-      ].map(option => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => onChange(option.value)}
-          className={`flex h-12 w-12 items-center justify-center rounded-full text-xs font-bold transition-all md:h-auto md:w-auto md:gap-2 md:rounded-lg md:px-4 md:py-2 md:text-sm ${
-            mode === option.value
-              ? 'bg-[#1e40af] text-white shadow-md md:bg-white md:text-[#1e40af] md:shadow-sm'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          <span translate="no" className="material-symbols-outlined text-[21px] md:text-[18px]">{option.icon}</span>
-          <span className="sr-only md:not-sr-only">{option.label}</span>
-        </button>
-      ))}
+      {/* Álbum / Cuadrícula: el indicador fluye en vertical en la pastilla flotante del teléfono y en horizontal en escritorio */}
+      <LiquidTabs
+        ariaLabel="Vista de la carpeta"
+        axis="auto"
+        layout="inline"
+        value={mode}
+        onChange={onChange}
+        className="flex-col md:flex-row"
+        buttonClassName="flex h-12 w-12 items-center justify-center rounded-full text-xs font-bold md:h-auto md:w-auto md:gap-2 md:rounded-lg md:px-4 md:py-2 md:text-sm"
+        indicatorClassName="rounded-full bg-[#1e40af] shadow-md md:rounded-lg md:bg-white md:shadow-sm"
+        activeTextClassName="text-white md:text-[#1e40af]"
+        inactiveTextClassName="text-gray-500 hover:text-gray-700"
+        options={[
+          { value: 'album', label: 'Álbum', icon: 'auto_stories' },
+          { value: 'grid', label: 'Cuadrícula', icon: 'grid_view' },
+        ].map((option) => ({
+          value: option.value,
+          label: <><span translate="no" className="material-symbols-outlined text-[21px] md:text-[18px]" aria-hidden="true">{option.icon}</span><span className="sr-only md:not-sr-only">{option.label}</span></>
+        }))}
+      />
     </div>
   </div>
 );
