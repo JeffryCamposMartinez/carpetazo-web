@@ -24,6 +24,10 @@ export function useAuth() {
 
 const providerIds = (user) => (user?.providerData || []).map((provider) => provider.providerId);
 
+// Una cuenta solo de correo y contraseña debe verificar su correo antes de entrar. Si la cuenta tiene Google enlazado, Google ya verificó
+// ese correo: al crear una contraseña en el perfil, Firebase puede dejar "emailVerified" en falso y no se debe sacar a la persona por eso.
+const mustVerifyEmail = (user) => Boolean(user) && !user.emailVerified && providerIds(user).includes('password') && !providerIds(user).includes('google.com');
+
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [appUser, setAppUser] = useState(null);
@@ -44,7 +48,7 @@ export function AuthProvider({ children }) {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    if (!user.emailVerified) {
+    if (mustVerifyEmail(user)) {
       // Reenviar la verificación automáticamente si intenta ingresar y no está verificado
       await sendEmailVerification(user);
       await signOut(auth);
@@ -173,7 +177,7 @@ export function AuthProvider({ children }) {
     // Suscribirse a los cambios en el estado de autenticación
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       // Si el usuario está autenticado pero no verificado, y es login por Contraseña
-      if (user && !user.emailVerified && user.providerData.some(p => p.providerId === 'password')) {
+      if (mustVerifyEmail(user)) {
         await signOut(auth);
         setCurrentUser(null);
         setAppUser(null);
