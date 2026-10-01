@@ -347,7 +347,7 @@ app.use(express.urlencoded({ limit: '2mb', extended: true }));
 
 // --- Términos y Condiciones y Política de Privacidad: versiones vigentes y aceptación ---
 // Si cambia el texto de alguno, se sube su versión aquí y en frontend/src/legal/versions.js (una prueba las compara).
-const LEGAL_CURRENT = { termsVersion: '2026-10-03', privacyVersion: '2026-10-03' };
+const LEGAL_CURRENT = { termsVersion: '2026-10-05', privacyVersion: '2026-10-05' };
 const NEW_ACCOUNT_WINDOW_MS = 24 * 60 * 60 * 1000; // solo una cuenta recién creada puede elegir su usuario al aceptar
 const ACCEPTED_CACHE_MS = 5 * 60 * 1000;
 const acceptedCache = new Map(); // firebaseUid -> hasta cuándo se da por vigente (solo aceptaciones vigentes)
