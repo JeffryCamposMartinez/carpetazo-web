@@ -117,7 +117,7 @@ export function ReviewModal({ pending, onClose, onDone }) {
   );
 }
 
-// Reseñas públicas de un vendedor (perfil). Sin reseñas: solo el dueño ve una explicación.
+// Reseñas públicas de un vendedor (perfil). Sin reseñas se muestra una explicación (distinta para el dueño).
 export default function ReviewsSection({ username, isOwner = false, colors = {} }) {
   const { currentUser, appUser } = useAuth();
   const [notice, setNotice] = useState('');
@@ -137,23 +137,34 @@ export default function ReviewsSection({ username, isOwner = false, colors = {} 
     return () => { cancelled = true; };
   }, [username]);
 
+  // Al llegar desde un enlace "#resenas", se baja a la sección cuando ya cargó
+  useEffect(() => {
+    if (data && window.location.hash === '#resenas') document.getElementById('resenas')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [data]);
+
   if (!data) return null;
   if (data.count === 0) {
-    return isOwner ? (
+    return (
       <div className="rounded-2xl border border-dashed p-5 text-center" style={{ borderColor: `${primary}55`, color: text }}>
-        <p className="text-lg font-extrabold">Aún no tienes reseñas</p>
-        <p className="mt-1 text-sm font-medium opacity-70">Aparecen cuando un comprador con cuenta califica un pedido que confirmaste.</p>
+        <p className="text-lg font-extrabold">{isOwner ? 'Aún no tienes reseñas' : 'Este vendedor aún no tiene reseñas'}</p>
+        <p className="mt-1 text-sm font-medium opacity-70">
+          {isOwner
+            ? 'Aparecen cuando un comprador con cuenta califica un pedido que confirmaste.'
+            : 'Las reseñas las dejan compradores con cuenta después de un pedido confirmado.'}
+        </p>
       </div>
-    ) : null;
+    );
   }
 
-  // Reportar: la reseña deja de mostrarse y contar hasta que se revise
+  // Reportar: va a moderación; se oculta cuando varias personas (que no son el vendedor) la reportan
   const report = async (review) => {
-    if (!window.confirm('¿Reportar esta reseña? Dejará de mostrarse hasta que sea revisada.')) return;
+    if (!window.confirm('¿Reportar esta reseña? Se enviará a moderación para revisarla.')) return;
     try {
-      await api.reportReview(review.id);
-      setItems((previous) => previous.filter((item) => item.id !== review.id));
-      setData((previous) => (previous ? { ...previous, count: Math.max(0, previous.count - 1), average: previous.count - 1 >= 3 ? previous.average : null, showAverage: previous.count - 1 >= 3 && previous.showAverage } : previous));
+      const res = await api.reportReview(review.id);
+      if (res?.hidden) {
+        setItems((previous) => previous.filter((item) => item.id !== review.id));
+        setData((previous) => (previous ? { ...previous, count: Math.max(0, previous.count - 1), average: previous.count - 1 >= 3 ? previous.average : null, showAverage: previous.count - 1 >= 3 && previous.showAverage } : previous));
+      }
       setNotice('Gracias. La reseña quedó reportada y se enviará a moderación para revisarla.');
     } catch (error) {
       setNotice(error.message || 'No se pudo reportar la reseña.');

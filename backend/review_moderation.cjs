@@ -1,4 +1,4 @@
-// Moderación de reseñas: lista las que no cuentan (reportadas o desde la misma conexión) y permite aprobarlas o borrarlas.
+// Moderación de reseñas: lista las reportadas (visibles u ocultas) y las que no cuentan por venir de la misma conexión; permite aprobarlas o borrarlas.
 // Uso:  node review_moderation.cjs list
 //       node review_moderation.cjs approve <id>   (vuelve a contar y se muestra; se borran sus reportes)
 //       node review_moderation.cjs remove <id>    (borra la reseña; el comprador podrá volver a calificar ese vendedor)
@@ -18,7 +18,7 @@ const [command, id] = process.argv.slice(2);
 (async () => {
   if (command === 'list') {
     const rows = await prisma.sellerReview.findMany({
-      where: { counts: false },
+      where: { OR: [{ counts: false }, { flag: 'reported' }] },
       orderBy: { createdAt: 'desc' },
       include: {
         seller: { select: { username: true } },
@@ -28,7 +28,7 @@ const [command, id] = process.argv.slice(2);
     });
     if (rows.length === 0) console.log('No hay reseñas pendientes de revisión.');
     for (const r of rows) {
-      console.log(`\n${r.id}  [${r.flag}]  ${r.rating}★  vendedor=@${r.seller?.username}  comprador=@${r.reviewer?.username}  ${r.createdAt.toISOString().slice(0, 10)}`);
+      console.log(`\n${r.id}  [${r.flag}${r.counts ? ', visible' : ', oculta'}]  ${r.rating}★  vendedor=@${r.seller?.username}  comprador=@${r.reviewer?.username}  ${r.createdAt.toISOString().slice(0, 10)}`);
       if (r.comment) console.log(`  "${r.comment}"`);
       r.reports.forEach((rep) => console.log(`  reporte: ${rep.reason || '(sin motivo)'}`));
     }

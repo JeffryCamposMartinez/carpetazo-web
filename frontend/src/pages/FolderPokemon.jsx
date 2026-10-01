@@ -25,6 +25,7 @@ class ErrorBoundary extends React.Component {
 import { useParams, useNavigate } from 'react-router-dom';
 import { api, apiUrl } from '../utils/api';
 import { getTcgConfig } from '../config/tcgConfig';
+import { classifyTcgcsvCard } from '../utils/tcgcsvPokemon';
 import { useAuth } from '../contexts/AuthContext';
 
 import Toast from '../components/Toast';
@@ -80,26 +81,6 @@ const getPreviewReorderedCards = (cardArray = [], dragCardId, targetIndex) => {
 };
 
 const normalizeTcgProductId = (value) => (value === undefined || value === null ? '' : String(value));
-
-// Clasifica una carta de TCGCSV (Card Type / CardType) en la categoría y tipos que usan los filtros
-const TCGCSV_TYPE_ES = {
-  grass: 'Planta', fire: 'Fuego', water: 'Agua', lightning: 'Rayo', psychic: 'Psíquico', fighting: 'Lucha',
-  darkness: 'Oscura', dark: 'Oscura', metal: 'Metálica', fairy: 'Hada', dragon: 'Dragón', colorless: 'Incolora',
-};
-const classifyTcgcsvCard = (name, ext) => {
-  const ct = String(ext['Card Type'] || ext.CardType || '');
-  const types = [...new Set((ct.match(/[A-Za-z]+/g) || []).map(w => TCGCSV_TYPE_ES[w.toLowerCase()]).filter(Boolean))];
-  let category;
-  if (/energy|^special$/i.test(ct)) category = 'Energía';
-  else if (/trainer|supporter|item|stadium|tool|machine/i.test(ct)) category = 'Entrenador';
-  else if (ct || ext.HP || ext.Stage) category = 'Pokémon';
-  else if (/\bEnergy\b/i.test(name)) category = 'Energía'; // ediciones sin metadatos
-  // Energías básicas japonesas vienen como "Basic Energy": el tipo está en el nombre
-  const nameTypes = category === 'Energía' && types.length === 0
-    ? [...new Set((name.match(/[A-Za-z]+/g) || []).map(w => TCGCSV_TYPE_ES[w.toLowerCase()]).filter(Boolean))]
-    : types;
-  return { category, types: nameTypes };
-};
 
 const PAGE_SIZE = 20;
 
@@ -186,7 +167,7 @@ function FolderPokemonInner(props) {
     if (originalUrl.startsWith('blob:')) return originalUrl;
     if (originalUrl.startsWith('data:')) return originalUrl;
     if (originalUrl.includes('tcgplayer-cdn.tcgplayer.com')) return originalUrl;
-    return apiUrl('/proxy-image?productId=' + encodeURIComponent(productId));
+    return apiUrl('/proxy-image?url=' + encodeURIComponent(originalUrl));
   };
 
   const { id } = useParams();
@@ -745,14 +726,7 @@ const [isSearching, setIsSearching] = useState(false);
 
     setSavingCatalogOrder(true);
     try {
-      await Promise.all(nextCards.map((card, index) => (
-        api.updateCard(id, card.id, {
-          data: {
-            ...(card.data || {}),
-            catalogOrder: index
-          }
-        })
-      )));
+      await api.saveFolderOrder(id, nextCards.map((card) => card.id));
       setHasUnsavedCatalogOrder(false);
       showToast('Orden actualizado correctamente', 'success');
     } catch (error) {
@@ -1672,6 +1646,7 @@ const [isSearching, setIsSearching] = useState(false);
               onClick={toggleMultiSelectMode}
               className={`${multiSelectMode ? 'bg-[#1e40af] text-white border-[#1e40af]' : 'bg-white text-[#1e40af] border-gray-200 hover:bg-gray-100'} w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95 border`}
               title={multiSelectMode ? 'Desactivar selección múltiple' : 'Activar selección múltiple'}
+              aria-label={multiSelectMode ? 'Desactivar selección múltiple' : 'Activar selección múltiple'}
             >
               <span translate="no" className="material-symbols-outlined text-[22px]">library_add</span>
               {selectedQueue.length > 0 && (
@@ -1685,6 +1660,7 @@ const [isSearching, setIsSearching] = useState(false);
               onClick={() => { const isMobile = window.innerWidth <= 768; const maxCols = isMobile ? 3 : 5; const minCols = isMobile ? 1 : 2; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }}
               className="bg-white hover:bg-gray-100 text-[#1e40af] border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
               title="Cambiar vista"
+              aria-label="Cambiar vista"
             >
               <span translate="no" className="material-symbols-outlined text-[20px]">grid_view</span>
               <span className="ml-1">{gridCols}</span>
@@ -1695,6 +1671,7 @@ const [isSearching, setIsSearching] = useState(false);
               onClick={() => { setSearchQuery(''); setSearchPhysicalProduct(''); setSearchSet(''); setMylType(''); setMylRace(''); setMylCost(''); scrollToTopIfNeeded(); }} 
               className="bg-white hover:bg-red-50 text-gray-500 hover:text-red-500 border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
               title="Limpiar filtros"
+              aria-label="Limpiar filtros"
             >
               <span translate="no" className="material-symbols-outlined text-[22px]">filter_alt_off</span>
             </button>
@@ -1804,6 +1781,8 @@ const [isSearching, setIsSearching] = useState(false);
                 onClick={toggleMultiSelectMode}
                 className={`${multiSelectMode ? 'bg-[#1e40af] text-white border-[#1e40af]' : 'bg-white text-[#1e40af] border-gray-200 hover:bg-gray-100'} relative w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95 border`}
                 title={multiSelectMode ? 'Desactivar selección múltiple' : 'Activar selección múltiple'}
+                aria-label={multiSelectMode ? 'Desactivar selección múltiple' : 'Activar selección múltiple'}
+              aria-label={multiSelectMode ? 'Desactivar selección múltiple' : 'Activar selección múltiple'}
             >
                 <span translate="no" className="material-symbols-outlined text-[22px]">library_add</span>
                 {selectedQueue.length > 0 && (
@@ -1817,6 +1796,8 @@ const [isSearching, setIsSearching] = useState(false);
                 onClick={() => { const isMobile = window.innerWidth <= 768; const maxCols = isMobile ? 3 : 5; const minCols = isMobile ? 1 : 2; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }}
                 className="bg-white hover:bg-gray-100 text-[#1e40af] border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
                 title="Cambiar vista"
+                aria-label="Cambiar vista"
+              aria-label="Cambiar vista"
             >
                 <span translate="no" className="material-symbols-outlined text-[20px]">grid_view</span>
                 <span className="ml-1">{gridCols}</span>
@@ -1826,6 +1807,7 @@ const [isSearching, setIsSearching] = useState(false);
                 onClick={() => { setSearchQuery(''); setSearchPhysicalProduct(''); setSearchSet(''); setMylType(''); setMylRace(''); setMylCost(''); scrollToTopIfNeeded(); }} 
                 className="bg-white hover:bg-red-50 text-gray-500 hover:text-red-500 border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
                 title="Limpiar filtros"
+              aria-label="Limpiar filtros"
             >
                 <span translate="no" className="material-symbols-outlined text-[22px]">filter_alt_off</span>
             </button>
@@ -1855,6 +1837,7 @@ const [isSearching, setIsSearching] = useState(false);
                   onClick={() => fileInputRef.current?.click()}
                   className="absolute -bottom-3 -right-3 z-[60] bg-[#1e40af] text-white rounded-full w-10 h-10 flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.5)] hover:bg-blue-800 hover:scale-110 transition-all border-2 border-white"
                   title="Subir foto real de la carta"
+                  aria-label="Subir foto real de la carta"
                 >
                   <span translate="no" className="material-symbols-outlined text-[20px]">photo_camera</span>
                 </button>

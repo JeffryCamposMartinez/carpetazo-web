@@ -43,7 +43,7 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 const prisma = new PrismaClient();
 
 const adminEmails = (process.env.ADMIN_EMAILS || '')
@@ -244,8 +244,12 @@ app.use('/api/orders/mine/:id/status', routeLimiter(15 * 60 * 1000, 120));
 app.use('/api/folders/me/stats', routeLimiter(15 * 60 * 1000, 600));
 app.use('/api/orders/mine/pending', routeLimiter(15 * 60 * 1000, 600));
 // Rutas que escriben datos o hacen consultas pesadas
+app.get('/api/folders/search', routeLimiter(15 * 60 * 1000, 300));
+app.get('/api/sellers', routeLimiter(15 * 60 * 1000, 300));
+app.get('/api/home/featured', routeLimiter(15 * 60 * 1000, 300));
 app.post('/api/folders', routeLimiter(15 * 60 * 1000, 60));
 app.put('/api/folders/:id', routeLimiter(15 * 60 * 1000, 200));
+app.put('/api/folders/:id/order', routeLimiter(15 * 60 * 1000, 60));
 app.delete('/api/folders/:id', routeLimiter(15 * 60 * 1000, 60));
 app.post('/api/folders/:id/cards', routeLimiter(15 * 60 * 1000, 600));
 app.put('/api/folders/:id/cards/:cardId', routeLimiter(15 * 60 * 1000, 600));
@@ -388,6 +392,7 @@ app.post('/api/users/sync', authenticateToken, async (req, res) => {
           name: req.body.displayName || user.name,
           username: validUsername(req.body.username) || user.username || validUsername(normalizeUsername(user.name).slice(0, 20)) || `user_${firebaseUid.slice(0, 12).toLowerCase()}`,
           photoURL: user.photoURL || (isAllowedStoredImageUrl(req.body.photoURL) ? req.body.photoURL : null),
+          ...(user.role === 'deleted' ? { role: 'user', email: email || user.email } : {}),
           ...(req.user.email_verified === true && isAdminEmail(email) && user.role !== 'admin' ? { role: 'admin' } : {})
         }
       });
@@ -400,78 +405,9 @@ app.post('/api/users/sync', authenticateToken, async (req, res) => {
   }
 });
 
-const DATA_DIR = process.env.DATA_DIR || __dirname;
-
-const dataPath = path.join(DATA_DIR, 'data.json');
-const ordersPath = path.join(DATA_DIR, 'orders.json');
-const historyPath = path.join(DATA_DIR, 'history.json');
-
-// --- INICIO: Inicializar volumen en Coolify ---
-if (DATA_DIR !== __dirname) {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  ['data.json', 'orders.json', 'history.json'].forEach(file => {
-    const targetPath = path.join(DATA_DIR, file);
-    const sourcePath = path.join(__dirname, file);
-    if (!fs.existsSync(targetPath) && fs.existsSync(sourcePath)) {
-      fs.copyFileSync(sourcePath, targetPath);
-      console.log(`Inicializado ${file} en disco persistente`);
-    }
-  });
-}
-// --- FIN ---
-
-// Helper to read data
-const getCards = () => {
-    try {
-        const data = fs.readFileSync(dataPath, 'utf8');
-        return JSON.parse(data);
-    } catch (err) {
-        return [];
-    }
-};
-
-
 app.get('/api/admin/me', authenticateToken, requireAdmin, async (req, res) => {
   res.json({ success: true, isAdmin: true, user: req.dbUser || null });
 });
-// Helper to write data
-const saveCards = (cards) => {
-    fs.writeFileSync(dataPath, JSON.stringify(cards, null, 2));
-};
-
-// Helper to read orders
-const getOrders = () => {
-    try {
-        if (!fs.existsSync(ordersPath)) return {};
-        const data = fs.readFileSync(ordersPath, 'utf8');
-        return JSON.parse(data);
-    } catch (err) {
-        return {};
-    }
-};
-
-// Helper to write orders
-const saveOrders = (orders) => {
-    fs.writeFileSync(ordersPath, JSON.stringify(orders, null, 2));
-};
-
-// Helper to read history
-const getHistory = () => {
-    try {
-        if (!fs.existsSync(historyPath)) return [];
-        const data = fs.readFileSync(historyPath, 'utf8');
-        return JSON.parse(data);
-    } catch (err) {
-        return [];
-    }
-};
-
-// Helper to write history
-const saveHistory = (history) => {
-    fs.writeFileSync(historyPath, JSON.stringify(history, null, 2));
-};
-
-
 const isUuid = (value = '') => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
 const normalizeOrderItems = (items = []) => {
@@ -517,35 +453,6 @@ const generateOrderCode = async () => {
   }
 
   return crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
-};
-
-const findOrderByCodeOrId = async (codeOrId) => {
-  if (!codeOrId) return null;
-
-  return prisma.order.findFirst({
-    where: {
-      OR: [
-        { code: codeOrId },
-        ...(isUuid(codeOrId) ? [{ id: codeOrId }] : [])
-      ]
-    }
-  });
-};
-
-const deductOrderStock = async (order) => {
-  const items = normalizeOrderItems(order.items || []);
-
-  for (const item of items) {
-    if (!item.id) continue;
-
-    const card = await prisma.card.findUnique({ where: { id: item.id } }).catch(() => null);
-    if (!card) continue;
-
-    await prisma.card.update({
-      where: { id: item.id },
-      data: { stock: Math.max(0, Number(card.stock || 0) - Number(item.quantity || 1)) }
-    });
-  }
 };
 
 // PUT update card in folder
@@ -628,6 +535,7 @@ app.put('/api/folders/:id', authenticateToken, async (req, res) => {
     }
     if (name !== undefined && !isShortText(name, 100)) return badRequest(res, 'Nombre de carpeta inválido');
     if (!isOptionalText(color, 40) || !isOptionalText(tcg, 60)) return badRequest(res, 'Datos de carpeta inválidos');
+    if (tcg !== undefined && tcg !== folder.tcg) return badRequest(res, 'El juego de una carpeta no se puede cambiar');
     if (isPublic !== undefined && typeof isPublic !== 'boolean') return badRequest(res, 'Datos de carpeta inválidos');
 
     // Actualizar
@@ -649,160 +557,36 @@ app.put('/api/folders/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// PUT update order status
-
-app.put('/api/orders/:id', authenticateToken, requireAdmin, async (req, res) => {
+// PUT folder order: guarda el orden del álbum en una sola transacción (ids de sus cartas, en el orden deseado)
+app.put('/api/folders/:id/order', authenticateToken, async (req, res) => {
   try {
-    const { status } = req.body;
+    if (!isUuid(req.params.id)) return res.status(404).json({ success: false, message: 'Carpeta no encontrada' });
+    const owner = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
+    const folder = await prisma.folder.findUnique({ where: { id: req.params.id }, select: { id: true, userId: true } });
+    if (!folder || !owner || folder.userId !== owner.id) return res.status(404).json({ success: false, message: 'Carpeta no encontrada' });
 
-    if (!status) {
-      return res.status(400).json({ success: false, message: 'Estado requerido' });
+    const ids = req.body?.ids;
+    if (!Array.isArray(ids) || ids.length === 0 || ids.length > 5000 || ids.some((id) => typeof id !== 'string' || !isUuid(id)) || new Set(ids).size !== ids.length) {
+      return badRequest(res, 'Orden inválido');
     }
+    const cards = await prisma.card.findMany({ where: { folderId: folder.id }, select: { id: true, data: true } });
+    const byId = new Map(cards.map((card) => [card.id, card]));
+    if (ids.some((id) => !byId.has(id))) return badRequest(res, 'El orden incluye cartas que no son de esta carpeta');
 
-    const existingOrder = await findOrderByCodeOrId(req.params.id);
-
-    if (!existingOrder) {
-      return res.status(404).json({ success: false, message: 'Pedido no encontrado' });
-    }
-
-    if (status === 'completed' && existingOrder.status !== 'completed') {
-      await deductOrderStock(existingOrder);
-    }
-
-    const order = await prisma.order.update({
-      where: { id: existingOrder.id },
-      data: { status }
-    });
-
-    res.json({ success: true, order: formatOrderForUi(order) });
+    // Las cartas que no vengan en la lista quedan al final, en su orden actual
+    const listed = new Set(ids);
+    const rest = cards.filter((card) => !listed.has(card.id)).sort((a, b) => Number(a.data?.catalogOrder ?? 1e9) - Number(b.data?.catalogOrder ?? 1e9)).map((card) => card.id);
+    const finalOrder = [...ids, ...rest];
+    await prisma.$transaction(finalOrder.map((id, index) => prisma.card.update({
+      where: { id },
+      data: { data: { ...(byId.get(id).data && typeof byId.get(id).data === 'object' ? byId.get(id).data : {}), catalogOrder: index } }
+    })));
+    res.json({ success: true, count: finalOrder.length });
   } catch (error) {
-    console.error('Error al actualizar orden:', error);
+    console.error('Error saving folder order:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
-
-
-// GET all cards
-app.get('/api/cards', authenticateToken, requireAdmin, (req, res) => {
-    const cards = getCards();
-    res.json({
-        success: true,
-        data: cards
-    });
-});
-
-// POST new card
-app.post('/api/cards', authenticateToken, requireAdmin, (req, res) => {
-    const { id, name, pseudoName, hp, price, stock, imageUrl, types, set, rarity, supertype, number, total, language } = req.body;
-    
-    if (!id || !name || price === undefined || stock === undefined) {
-        return res.status(400).json({ success: false, message: 'Missing required fields' });
-    }
-
-    const cards = getCards();
-    
-    // Check if card already exists
-    const existingIndex = cards.findIndex(c => c.id === id);
-    if (existingIndex >= 0) {
-        // Update stock and price
-        cards[existingIndex].stock = parseInt(stock);
-        cards[existingIndex].price = parseFloat(price);
-    } else {
-        // Add new card
-        cards.push({
-            id,
-            name,
-            pseudoName: pseudoName || '',
-            hp: hp || 'N/A',
-            price: parseFloat(price),
-            stock: parseInt(stock),
-            imageUrl,
-            types: types || [],
-            set: set || 'Unknown',
-            rarity: rarity || 'Unknown',
-            supertype: supertype || 'Unknown',
-            number: number || req.body.number || id.split('-')[1] || '0',
-            total: total || req.body.total || '???',
-            language: language || req.body.language || 'English'
-        });
-    }
-
-    saveCards(cards);
-    
-    res.json({ success: true, message: 'Card saved successfully' });
-});
-
-// POST update existing card stock and price
-app.post('/api/cards/update', authenticateToken, requireAdmin, (req, res) => {
-    const { id, price, stock } = req.body;
-    
-    if (!id || price === undefined || stock === undefined) {
-        return res.status(400).json({ success: false, message: 'Missing required fields' });
-    }
-
-    const cards = getCards();
-    const existingIndex = cards.findIndex(c => c.id === id);
-    
-    if (existingIndex >= 0) {
-        cards[existingIndex].stock = parseInt(stock);
-        cards[existingIndex].price = parseFloat(price);
-        saveCards(cards);
-        res.json({ success: true, message: 'Card updated successfully' });
-    } else {
-        res.status(404).json({ success: false, message: 'Card not found' });
-    }
-});
-
-// POST delete a card
-app.post('/api/cards/delete', authenticateToken, requireAdmin, (req, res) => {
-    const { id } = req.body;
-    if (!id) {
-        return res.status(400).json({ success: false, message: 'Missing card ID' });
-    }
-    let cards = getCards();
-    const initialLength = cards.length;
-    cards = cards.filter(c => c.id !== id);
-    if (cards.length < initialLength) {
-        saveCards(cards);
-        res.json({ success: true, message: 'Card deleted successfully' });
-    } else {
-        res.status(404).json({ success: false, message: 'Card not found' });
-    }
-});
-
-// GET all pending orders
-
-app.get('/api/orders', authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const orders = await prisma.order.findMany({
-      where: { status: 'pending' },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    res.json({ success: true, data: orders.map(formatOrderForUi) });
-  } catch (error) {
-    console.error('Error loading orders:', error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-
-// GET history
-
-app.get('/api/history', authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const history = await prisma.order.findMany({
-      where: { status: { not: 'pending' } },
-      orderBy: { updatedAt: 'desc' }
-    });
-
-    res.json({ success: true, data: history.map(formatOrderForUi) });
-  } catch (error) {
-    console.error('Error loading order history:', error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
 
 // POST create short order code
 
@@ -845,10 +629,26 @@ app.post('/api/orders/create', async (req, res) => {
     // Datos del vendedor: tema (para saber si recibe mensajes y si comparte sus datos bancarios) y datos para transferir
     const seller = await prisma.user.findUnique({ where: { id: folder.userId }, select: { name: true, fullName: true, rut: true, bankDetails: true, publicTheme: true } });
     const sellerTheme = seller?.publicTheme && typeof seller.publicTheme === 'object' ? seller.publicTheme : {};
+    // Ningún vendedor puede pedirse a sí mismo (por WhatsApp ni por mensaje)
+    if (buyer && folder.userId === buyer.id) return res.status(400).json({ success: false, message: 'No puedes enviarte un pedido a ti mismo' });
     if (viaMessage) {
-      if (folder.userId === buyer.id) return res.status(400).json({ success: false, message: 'No puedes enviarte un pedido a ti mismo' });
       if (sellerTheme.showMessageButton === 'off') return res.status(400).json({ success: false, message: 'Este vendedor no recibe pedidos por mensaje' });
     }
+
+    // Anti-spam y reserva: los pedidos pendientes recientes de la carpeta reservan su stock y limitan cuántos puede dejar una misma persona
+    const reserveSince = new Date(Date.now() - ORDER_RESERVE_DAYS * 24 * 60 * 60 * 1000);
+    const pendingOrders = await prisma.order.findMany({ where: { folderId: folder.id, status: 'pending', createdAt: { gt: reserveSince } }, select: { items: true, createdIpHash: true, buyerId: true } });
+    if (pendingOrders.length >= ORDER_MAX_PENDING_PER_FOLDER) {
+      return res.status(429).json({ success: false, message: 'Este vendedor tiene muchos pedidos pendientes. Intenta más tarde.' });
+    }
+    const myConnection = hashConnection(req);
+    const mine = pendingOrders.filter((pending) => pending.createdIpHash === myConnection || (buyer && pending.buyerId === buyer.id)).length;
+    if (mine >= ORDER_MAX_PENDING_PER_BUYER) {
+      return res.status(429).json({ success: false, message: 'Ya tienes pedidos pendientes con este vendedor. Espera a que los atienda.' });
+    }
+    const reserved = new Map();
+    pendingOrders.forEach((pending) => normalizeOrderItems(pending.items).forEach((item) => reserved.set(String(item.id), (reserved.get(String(item.id)) || 0) + Number(item.quantity || 1))));
+    const asked = new Map();
 
     // Nombre, precio y vendedor salen de la base de datos; del cliente solo se acepta id y cantidad
     const cardsById = new Map(folder.cards.map((card) => [card.id, card]));
@@ -863,6 +663,12 @@ app.post('/api/orders/create', async (req, res) => {
       }
       const requested = Math.floor(Number(raw.quantity ?? raw.q ?? 1));
       const quantity = Number.isFinite(requested) && requested > 0 ? Math.min(requested, 99) : 1;
+      const askedTotal = (asked.get(card.id) || 0) + quantity;
+      asked.set(card.id, askedTotal);
+      const available = Number(card.stock || 0) - (reserved.get(card.id) || 0);
+      if (askedTotal > available) {
+        return res.status(409).json({ success: false, message: available <= 0 ? `"${card.name}" ya no está disponible` : `Solo quedan ${available} de "${card.name}"` });
+      }
       const price = Number.isFinite(card.price) && card.price > 0 ? card.price : 0;
       total += price * quantity;
       items.push({ id: card.id, name: card.name, quantity, q: quantity, price });
@@ -923,6 +729,9 @@ app.post('/api/orders/create', async (req, res) => {
 // --- Reseñas de vendedores ---
 // Solo el comprador de un pedido completado puede calificar, una vez por pedido; la reseña no se edita ni se responde.
 const REVIEWS_PAGE_SIZE = 10;
+const ORDER_RESERVE_DAYS = 7; // un pedido pendiente reserva su stock hasta por una semana
+const ORDER_MAX_PENDING_PER_FOLDER = 50;
+const ORDER_MAX_PENDING_PER_BUYER = 3;
 // Identificador anónimo de la conexión (hash con sal; no se guarda la IP). Define IP_HASH_SALT en el servidor para que no sea reversible.
 const hashConnection = (req) => crypto.createHash('sha256').update(`${process.env.IP_HASH_SALT || 'carpetazo'}|${req.ip || ''}`).digest('hex').slice(0, 32);
 
@@ -1004,7 +813,9 @@ app.get('/api/reviews/pending', authenticateToken, async (req, res) => {
   }
 });
 
-// Reportar una reseña: deja de contar y de mostrarse hasta que se revise.
+// Reportar una reseña: siempre queda para moderación; deja de contar y de mostrarse cuando la reportan
+// REVIEW_HIDE_REPORTS personas distintas del vendedor calificado (así un vendedor no puede ocultar sus reseñas malas).
+const REVIEW_HIDE_REPORTS = 2;
 // Destino: sección /moderacion (frontend/src/pages/Moderation.jsx, aún vacía); mientras tanto, backend/review_moderation.cjs
 app.post('/api/reviews/:id/report', authenticateToken, async (req, res) => {
   try {
@@ -1015,20 +826,24 @@ app.post('/api/reviews/:id/report', authenticateToken, async (req, res) => {
     if (!isOptionalText(reason, 200) || (typeof reason === 'string' && hasControlChars(reason.replace(/[\r\n]/g, ' ')))) return badRequest(res, 'Motivo inválido');
 
     // Solo se pueden reportar reseñas visibles; quien la escribió no puede reportarla
-    const review = await prisma.sellerReview.findFirst({ where: { id: req.params.id, counts: true }, select: { id: true, reviewerId: true } });
+    const review = await prisma.sellerReview.findFirst({ where: { id: req.params.id, counts: true }, select: { id: true, reviewerId: true, sellerId: true } });
     if (!review) return res.status(404).json({ success: false, message: 'Reseña no encontrada' });
     if (review.reviewerId === reporterId) return badRequest(res, 'No puedes reportar tu propia reseña');
 
+    let hidden = false;
     try {
-      await prisma.$transaction([
-        prisma.reviewReport.create({ data: { reviewId: review.id, reporterId, reason: reason ? String(reason).trim() || null : null } }),
-        prisma.sellerReview.update({ where: { id: review.id }, data: { counts: false, flag: 'reported' } })
-      ]);
+      hidden = await prisma.$transaction(async (tx) => {
+        await tx.reviewReport.create({ data: { reviewId: review.id, reporterId, reason: reason ? String(reason).trim() || null : null } });
+        const others = await tx.reviewReport.count({ where: { reviewId: review.id, reporterId: { not: review.sellerId } } });
+        const hide = others >= REVIEW_HIDE_REPORTS;
+        await tx.sellerReview.update({ where: { id: review.id }, data: { flag: 'reported', ...(hide ? { counts: false } : {}) } });
+        return hide;
+      });
     } catch (error) {
       if (error.code === 'P2002') return res.status(409).json({ success: false, message: 'Ya reportaste esta reseña' });
       throw error;
     }
-    res.json({ success: true });
+    res.json({ success: true, hidden });
   } catch (error) {
     console.error('Error reporting review:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
@@ -1199,66 +1014,6 @@ app.post('/api/orders/mine/:id/status', authenticateToken, async (req, res) => {
   }
 });
 
-// POST process order (discount stock using order code)
-
-app.post('/api/process-order', authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const { code } = req.body || {};
-
-    if (!code) {
-      return res.status(400).json({ success: false, message: 'Código de pedido requerido' });
-    }
-
-    const order = await findOrderByCodeOrId(code);
-
-    if (!order || order.status !== 'pending') {
-      return res.status(404).json({ success: false, message: 'Pedido no encontrado o ya procesado' });
-    }
-
-    await deductOrderStock(order);
-
-    const updatedOrder = await prisma.order.update({
-      where: { id: order.id },
-      data: { status: 'completed' }
-    });
-
-    res.json({ success: true, message: 'Pedido procesado correctamente', order: formatOrderForUi(updatedOrder) });
-  } catch (error) {
-    console.error('Error processing order:', error);
-    res.status(500).json({ success: false, message: 'Error interno al procesar el pedido' });
-  }
-});
-
-
-// POST reject order
-
-app.post('/api/reject-order', authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const { code } = req.body || {};
-
-    if (!code) {
-      return res.status(400).json({ success: false, message: 'Código de pedido requerido' });
-    }
-
-    const order = await findOrderByCodeOrId(code);
-
-    if (!order || order.status !== 'pending') {
-      return res.status(404).json({ success: false, message: 'Pedido no encontrado o ya procesado' });
-    }
-
-    const updatedOrder = await prisma.order.update({
-      where: { id: order.id },
-      data: { status: 'rejected' }
-    });
-
-    res.json({ success: true, message: 'Pedido rechazado correctamente', order: formatOrderForUi(updatedOrder) });
-  } catch (error) {
-    console.error('Error rejecting order:', error);
-    res.status(500).json({ success: false, message: 'Error interno al rechazar el pedido' });
-  }
-});
-
-
 // --- POKEMON TCG API PROXY CON CACHÉ ---
 const tcgCache = new Map();
 const CACHE_DURATION = 1000 * 60 * 60; // 1 hora en milisegundos
@@ -1360,6 +1115,9 @@ app.get('/api/folders/me/stats', authenticateToken, async (req, res) => {
   }
 });
 
+// Juegos válidos de una carpeta (así se guardan en Folder.tcg)
+const FOLDER_TCGS = ['Pokemon', 'Mitos y Leyendas', 'Magic', 'YuGiOh', 'OnePiece'];
+
 // Crear carpeta
 app.post('/api/folders', authenticateToken, async (req, res) => {
   try {
@@ -1367,6 +1125,7 @@ app.post('/api/folders', authenticateToken, async (req, res) => {
     const { name, description, isPublic, tcg, color } = req.body;
     if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     if (!isShortText(name, 100) || !isOptionalText(description, 1000) || !isOptionalText(tcg, 60) || !isOptionalText(color, 40)
+      || (tcg !== undefined && tcg !== null && !FOLDER_TCGS.includes(tcg))
       || (isPublic !== undefined && typeof isPublic !== 'boolean')) {
       return badRequest(res, 'Datos de carpeta inválidos');
     }
@@ -1463,6 +1222,140 @@ const toPublicSeller = (user, viewerUid = null, reviewSummary = null) => {
     reviewSummary: reviewSummary || { average: null, count: 0, showAverage: false }
   };
 };
+
+// --- Listados públicos paginados (carpetas, vendedores y destacados de Inicio): se filtran y ordenan en la base ---
+const FOLDERS_PAGE_SIZE = 40;
+const SELLERS_PAGE_SIZE = 24;
+const currentWeekNumber = () => Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
+// Texto de búsqueda seguro para ILIKE (se escapan \, % y _)
+const likePattern = (text) => `%${text.replace(/[\\%_]/g, '\\$&')}%`;
+// Un juego puede estar guardado con otro nombre en las carpetas (Pokemon / Pokémon, YuGiOh / Yu-Gi-Oh!, OnePiece / One Piece)
+const tcgVariants = (name) => {
+  const stored = CARD_SEARCH_TCG_ALIASES[name];
+  const shown = Object.entries(CARD_SEARCH_TCG_ALIASES).find(([, value]) => value === name)?.[0];
+  return [...new Set([name, stored, shown].filter(Boolean))];
+};
+const validListText = (...texts) => texts.every((text) => text.length <= 80 && !/[\u0000-\u001f]/.test(text));
+
+// Carpetas públicas con dueño y cantidad de cartas, en el orden de los ids recibidos
+const loadPublicFolders = async (ids) => {
+  if (ids.length === 0) return [];
+  const week = currentWeekNumber();
+  const rows = await prisma.folder.findMany({
+    where: { id: { in: ids }, isPublic: true },
+    select: {
+      id: true, name: true, tcg: true, color: true, createdAt: true, totalVisits: true, weeklyVisits: true, lastVisitWeek: true,
+      user: { select: { name: true, username: true, photoURL: true } },
+      _count: { select: { cards: true } }
+    }
+  });
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  return ids.filter((id) => byId.has(id)).map((id) => {
+    const row = byId.get(id);
+    return { ...row, validWeeklyVisits: row.lastVisitWeek === week ? row.weeklyVisits : 0, validTotalVisits: row.totalVisits };
+  });
+};
+
+const folderFilterSql = ({ like, tcgs }) => Prisma.sql`f."isPublic" = true
+  ${like ? Prisma.sql`AND (f."name" ILIKE ${like} OR u."name" ILIKE ${like} OR u."username" ILIKE ${like})` : Prisma.empty}
+  ${tcgs ? Prisma.sql`AND f."tcg" = ANY(${tcgs})` : Prisma.empty}`;
+const folderOrderSql = (sort) => {
+  if (sort === 'name') return Prisma.sql`LOWER(f."name") ASC, f."createdAt" DESC`;
+  if (sort === 'total') return Prisma.sql`f."totalVisits" DESC, f."createdAt" DESC`;
+  return Prisma.sql`(CASE WHEN f."lastVisitWeek" = ${currentWeekNumber()} THEN f."weeklyVisits" ELSE 0 END) DESC, f."totalVisits" DESC, f."createdAt" DESC`;
+};
+
+app.get('/api/folders/search', async (req, res) => {
+  try {
+    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    const tcgRaw = typeof req.query.tcg === 'string' ? req.query.tcg.trim() : '';
+    const sort = typeof req.query.sort === 'string' ? req.query.sort : 'weekly';
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    if (!validListText(q, tcgRaw) || !['weekly', 'total', 'name'].includes(sort) || page < 1 || page > 1000) return badRequest(res, 'Búsqueda inválida');
+
+    const filter = folderFilterSql({ like: q ? likePattern(q) : null, tcgs: tcgRaw ? tcgVariants(tcgRaw) : null });
+    const [idRows, totalRows, tcgRows] = await Promise.all([
+      prisma.$queryRaw`SELECT f."id" FROM "Folder" f JOIN "User" u ON u."id" = f."userId" WHERE ${filter} ORDER BY ${folderOrderSql(sort)} LIMIT ${FOLDERS_PAGE_SIZE} OFFSET ${(page - 1) * FOLDERS_PAGE_SIZE}`,
+      prisma.$queryRaw`SELECT COUNT(*)::int AS n FROM "Folder" f JOIN "User" u ON u."id" = f."userId" WHERE ${filter}`,
+      prisma.$queryRaw`SELECT f."tcg", COUNT(*)::int AS n FROM "Folder" f WHERE f."isPublic" = true GROUP BY f."tcg"`
+    ]);
+    const total = totalRows[0]?.n || 0;
+    res.json({
+      success: true,
+      folders: await loadPublicFolders(idRows.map((row) => row.id)),
+      total,
+      page,
+      pages: Math.max(1, Math.ceil(total / FOLDERS_PAGE_SIZE)),
+      counts: tcgRows.map((row) => ({ tcg: row.tcg, count: row.n }))
+    });
+  } catch (error) {
+    console.error('Error searching folders:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Vendedores = dueños de carpetas públicas, con sus cifras sumadas
+const querySellers = ({ like, sort, limit, offset }) => {
+  const filter = Prisma.sql`1 = 1 ${like ? Prisma.sql`AND (u."name" ILIKE ${like} OR u."username" ILIKE ${like})` : Prisma.empty}`;
+  const order = sort === 'name' ? Prisma.sql`LOWER(u."name") ASC` : sort === 'cards' ? Prisma.sql`cards DESC, visits DESC` : Prisma.sql`visits DESC, cards DESC`;
+  return Promise.all([
+    prisma.$queryRaw`
+      SELECT u."name", u."username", u."photoURL",
+             COUNT(f."id")::int AS folders,
+             COALESCE(SUM(c.cnt), 0)::int AS cards,
+             COALESCE(SUM(f."totalVisits"), 0)::int AS visits,
+             ARRAY_AGG(DISTINCT f."tcg") AS tcgs
+      FROM "User" u
+      JOIN "Folder" f ON f."userId" = u."id" AND f."isPublic" = true
+      LEFT JOIN (SELECT "folderId", COUNT(*) AS cnt FROM "Card" GROUP BY "folderId") c ON c."folderId" = f."id"
+      WHERE ${filter}
+      GROUP BY u."id"
+      ORDER BY ${order}
+      LIMIT ${limit} OFFSET ${offset}`,
+    prisma.$queryRaw`SELECT COUNT(DISTINCT u."id")::int AS n FROM "User" u JOIN "Folder" f ON f."userId" = u."id" AND f."isPublic" = true WHERE ${filter}`
+  ]);
+};
+
+app.get('/api/sellers', async (req, res) => {
+  try {
+    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    const sort = typeof req.query.sort === 'string' ? req.query.sort : 'visits';
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    if (!validListText(q) || !['visits', 'cards', 'name'].includes(sort) || page < 1 || page > 1000) return badRequest(res, 'Búsqueda inválida');
+    const [rows, totalRows] = await querySellers({ like: q ? likePattern(q) : null, sort, limit: SELLERS_PAGE_SIZE, offset: (page - 1) * SELLERS_PAGE_SIZE });
+    const total = totalRows[0]?.n || 0;
+    res.json({ success: true, sellers: rows, total, page, pages: Math.max(1, Math.ceil(total / SELLERS_PAGE_SIZE)) });
+  } catch (error) {
+    console.error('Error loading sellers:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Todo lo que muestra la portada: cifras, carpetas por juego, más visitadas, nuevas y mejores vendedores
+app.get('/api/home/featured', async (_req, res) => {
+  try {
+    const filter = folderFilterSql({ like: null, tcgs: null });
+    const [visitedIds, newestIds, tcgRows, statRows, sellerResult] = await Promise.all([
+      prisma.$queryRaw`SELECT f."id" FROM "Folder" f JOIN "User" u ON u."id" = f."userId" WHERE ${filter} ORDER BY ${folderOrderSql('weekly')} LIMIT 5`,
+      prisma.$queryRaw`SELECT f."id" FROM "Folder" f JOIN "User" u ON u."id" = f."userId" WHERE ${filter} ORDER BY f."createdAt" DESC LIMIT 5`,
+      prisma.$queryRaw`SELECT f."tcg", COUNT(*)::int AS n FROM "Folder" f WHERE f."isPublic" = true GROUP BY f."tcg"`,
+      prisma.$queryRaw`SELECT COUNT(DISTINCT f."id")::int AS folders, COUNT(DISTINCT f."userId")::int AS sellers, (SELECT COUNT(*) FROM "Card" c JOIN "Folder" f2 ON f2."id" = c."folderId" AND f2."isPublic" = true)::int AS cards FROM "Folder" f WHERE f."isPublic" = true`,
+      querySellers({ like: null, sort: 'visits', limit: 5, offset: 0 })
+    ]);
+    const stats = statRows[0] || { folders: 0, sellers: 0, cards: 0 };
+    res.json({
+      success: true,
+      stats: { folders: stats.folders, sellers: stats.sellers, cards: stats.cards },
+      counts: tcgRows.map((row) => ({ tcg: row.tcg, count: row.n })),
+      visited: await loadPublicFolders(visitedIds.map((row) => row.id)),
+      newest: await loadPublicFolders(newestIds.map((row) => row.id)),
+      topSellers: sellerResult[0]
+    });
+  } catch (error) {
+    console.error('Error loading featured:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
 
 app.get('/api/folders/:id', optionalAuth, async (req, res) => {
   try {
@@ -1975,70 +1868,6 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
   }
 });
 
-// Obtener mis mensajes recibidos
-app.get('/api/messages/me', authenticateToken, async (req, res) => {
-  try {
-    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });    if (!user) return res.status(401).json({ success: false, message: 'Usuario no encontrado' });
-
-    const messages = await prisma.message.findMany({
-
-      where: {
-        OR: [
-          { senderId: user.id },
-          { receiverId: user.id }
-        ]
-      },
-
-      orderBy: { createdAt: 'desc' }
-    });
-    const chatsMap = new Map();
-    for (const msg of messages) {
-      const partnerId = msg.senderId === user.id ? msg.receiverId : msg.senderId;
-      if (partnerId === user.id || chatsMap.has(partnerId)) continue;
-      chatsMap.set(partnerId, msg);
-    }
-
-    const chats = Array.from(chatsMap.values());
-    const partnerIds = chats
-      .map(msg => msg.senderId === user.id ? msg.receiverId : msg.senderId)
-      .filter(Boolean);
-
-    const partners = partnerIds.length
-      ? await prisma.user.findMany({
-          where: { id: { in: partnerIds } },
-          select: { id: true, firebaseUid: true, name: true, username: true, photoURL: true }
-        })
-      : [];
-
-    const unreadCounts = messages.reduce((counts, msg) => {
-      if (msg.senderId !== user.id && msg.receiverId === user.id && !msg.isRead) {
-        counts.set(msg.senderId, (counts.get(msg.senderId) || 0) + 1);
-      }
-      return counts;
-    }, new Map());
-
-    const enrichedChats = chats.map(msg => {
-      const partnerId = msg.senderId === user.id ? msg.receiverId : msg.senderId;
-      const partner = partners.find(partnerUser => partnerUser.id === partnerId) || null;
-      const unreadCount = unreadCounts.get(partnerId) || 0;
-
-      return {
-        ...msg,
-        unreadCount,
-        partner,
-        otherUser: partner
-      };
-    });
-
-    const totalUnread = Array.from(unreadCounts.values()).reduce((total, count) => total + count, 0);
-
-    res.json({ success: true, messages: enrichedChats, chats: enrichedChats, totalUnread });
-  } catch (error) {
-    console.error('Error fetching messages/me:', error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
 // Marcar mensaje como ledo
 app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
   try {
@@ -2184,73 +2013,50 @@ app.post('/api/messages/:otherId', authenticateToken, async (req, res) => {
   }
 });
 
-// GET user chats (last message with each person)
-app.get('/api/chats', authenticateToken, async (req, res) => {
-  try {
-    const currentUser = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    if (!currentUser) return res.status(401).json({ success: false });
-    
-    // Note: A real implementation would use a distinct query or group by.
-    // For simplicity, we just fetch all messages for the user and group them in JS
-    const messages = await prisma.message.findMany({
-      where: {
-        OR: [
-          { senderId: currentUser.id },
-          { receiverId: currentUser.id }
-        ]
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-    
-    const chatsMap = new Map();
-    for (const msg of messages) {
-      const otherId = msg.senderId === currentUser.id ? msg.receiverId : msg.senderId;
-      if (otherId === currentUser.id) continue;
-      if (!chatsMap.has(otherId)) {
-        chatsMap.set(otherId, msg);
-      }
-    }
-    
-    const chats = Array.from(chatsMap.values());
-    
-    // We should also fetch the user info for each chat partner
-    const otherIds = chats.map(c => c.senderId === currentUser.id ? c.receiverId : c.senderId);
-    
-    const users = await prisma.user.findMany({
-      where: { id: { in: otherIds } },
-      select: { id: true, firebaseUid: true, name: true, username: true, photoURL: true }
-    });
-    
-    const unreadCounts = messages.reduce((counts, msg) => {
-      if (msg.senderId !== currentUser.id && msg.receiverId === currentUser.id && !msg.isRead) {
-        const otherId = msg.senderId;
-        counts.set(otherId, (counts.get(otherId) || 0) + 1);
-      }
-      return counts;
-    }, new Map());
-    const totalUnread = Array.from(unreadCounts.values()).reduce((total, count) => total + count, 0);
+// GET user chats: último mensaje con cada persona y no leídos, resueltos en la base (sin traer todo el historial)
+app.get('/api/chats', authenticateToken, async (req, res) => {
+  try {
+    const currentUser = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    if (!currentUser) return res.status(401).json({ success: false });
 
-    const enrichedChats = chats.map(c => {
+    const [lastMessages, unreadRows] = await Promise.all([
+      prisma.$queryRaw`
+        SELECT * FROM (
+          SELECT DISTINCT ON (m.partner) m."id", m."senderId", m."receiverId", m."content", m."isRead", m."createdAt"
+          FROM (
+            SELECT *, CASE WHEN "senderId" = ${currentUser.id} THEN "receiverId" ELSE "senderId" END AS partner
+            FROM "Message"
+            WHERE "senderId" = ${currentUser.id} OR "receiverId" = ${currentUser.id}
+          ) m
+          WHERE m.partner <> ${currentUser.id}
+          ORDER BY m.partner, m."createdAt" DESC
+        ) last
+        ORDER BY "createdAt" DESC`,
+      prisma.message.groupBy({ by: ['senderId'], where: { receiverId: currentUser.id, isRead: false, senderId: { not: currentUser.id } }, _count: { _all: true } })
+    ]);
 
-      const partnerId = c.senderId === currentUser.id ? c.receiverId : c.senderId;
-      const partner = users.find(u => u.id === partnerId) || {};
-      return {
-        ...c,
-        unreadCount: unreadCounts.get(partnerId) || 0,
-        partner,
-        otherUser: partner
-      };
-    });
-    
+    const unreadCounts = new Map(unreadRows.map((row) => [row.senderId, row._count._all]));
+    const totalUnread = [...unreadCounts.values()].reduce((total, count) => total + count, 0);
+    const partnerIds = lastMessages.map((msg) => (msg.senderId === currentUser.id ? msg.receiverId : msg.senderId));
+    const users = partnerIds.length
+      ? await prisma.user.findMany({ where: { id: { in: partnerIds } }, select: { id: true, firebaseUid: true, name: true, username: true, photoURL: true } })
+      : [];
+    const usersById = new Map(users.map((user) => [user.id, user]));
+
+    const enrichedChats = lastMessages.map((msg) => {
+      const partnerId = msg.senderId === currentUser.id ? msg.receiverId : msg.senderId;
+      const partner = usersById.get(partnerId) || {};
+      return { ...msg, unreadCount: unreadCounts.get(partnerId) || 0, partner, otherUser: partner };
+    });
+
     res.json({ success: true, chats: enrichedChats, totalUnread });
+  } catch (error) {
+    console.error('Error fetching chats:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
 
-  } catch (error) {
-    console.error('Error fetching chats:', error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-
+
 // User profile management
 app.get('/api/users/me', authenticateToken, async (req, res) => {
   try {
@@ -2534,22 +2340,45 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
 app.delete('/api/users/me', authenticateToken, async (req, res) => {
   try {
     const firebaseUid = req.user.sub;
+    const current = await prisma.user.findUnique({ where: { firebaseUid }, select: { id: true, photoURL: true, bannerBase64: true, wallpaperBase64: true } });
+    if (!current) return res.status(404).json({ success: false, error: 'User not found' });
 
-    const user = await prisma.user.update({
-      where: { firebaseUid },
-      data: {
-        username: `deleted_${Date.now()}_${firebaseUid.slice(0, 8)}`,
-        name: 'Usuario Eliminado',
-        fullName: null,
-        photoURL: null,
-        bio: 'Cuenta eliminada'
-      }
-    });
+    // Se borran los datos personales; quedan las filas anonimizadas (pedidos, reseñas y conversaciones de otras personas las referencian)
+    const tag = `${Date.now()}_${firebaseUid.slice(0, 8)}`;
+    const deletedMessage = JSON.stringify({ v: 1, text: 'Mensaje eliminado', imageUrl: null, imageBase64: null });
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: current.id },
+        data: {
+          role: 'deleted',
+          email: `deleted_${tag}@deleted.invalid`,
+          username: `deleted_${tag}`,
+          name: 'Usuario Eliminado',
+          fullName: null,
+          photoURL: null,
+          bannerBase64: null,
+          wallpaperBase64: null,
+          bannerDominantColor: null,
+          bannerComplementaryColor: null,
+          bio: null,
+          phone: null,
+          rut: null,
+          facebookUrl: null,
+          instagramUrl: null,
+          youtubeUrl: null,
+          publicTheme: Prisma.DbNull,
+          addresses: Prisma.DbNull,
+          bankDetails: Prisma.DbNull
+        }
+      }),
+      prisma.folder.updateMany({ where: { userId: current.id }, data: { isPublic: false } }),
+      prisma.wishlistItem.deleteMany({ where: { userId: current.id } }),
+      prisma.message.updateMany({ where: { senderId: current.id }, data: { content: deletedMessage } }),
+      prisma.order.updateMany({ where: { buyerId: current.id }, data: { buyerId: null, buyerName: 'Comprador eliminado' } })
+    ]);
 
-    await prisma.folder.updateMany({
-      where: { userId: user.id },
-      data: { isPublic: false }
-    });
+    // Las imágenes propias se borran de R2 (si falla no detiene la eliminación)
+    await Promise.all([current.photoURL, current.bannerBase64, current.wallpaperBase64].filter(Boolean).map((url) => deleteR2ObjectByPublicUrl(url)));
 
     res.json({ success: true });
   } catch (error) {

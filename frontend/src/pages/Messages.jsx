@@ -60,6 +60,9 @@ export default function Messages() {
   const optimisticImageUrlsRef = useRef(new Set());
   const typingTimeoutRef = useRef(null);
   const lastTypingSentRef = useRef(false);
+  const messagesCountRef = useRef('');
+  const typingRef = useRef(false);
+  const quietRef = useRef(0); // revisiones seguidas sin cambios (ritmo de las consultas)
 
   const activeOther = useMemo(() => getOtherUser(activeChat, currentUser), [activeChat, currentUser]);
   const totalUnread = useMemo(() => chats.reduce((total, chat) => total + Number(chat.unreadCount || 0), 0), [chats]);
@@ -67,6 +70,9 @@ export default function Messages() {
   useEffect(() => {
     activeChatRef.current = activeChat;
   }, [activeChat]);
+
+  useEffect(() => { messagesCountRef.current = `${messages.length}:${totalUnread}`; }, [messages.length, totalUnread]);
+  useEffect(() => { typingRef.current = remoteTyping; }, [remoteTyping]);
 
   const loadChats = async ({ silent = false } = {}) => {
     if (!currentUser) return;
@@ -192,20 +198,30 @@ export default function Messages() {
   useEffect(() => {
     if (!currentUser) return undefined;
 
-    const handleFocus = () => refreshMessagesRealtime();
+    const handleFocus = () => { quietRef.current = 0; refreshMessagesRealtime(); };
     const handleVisibilityChange = () => {
       if (!document.hidden) refreshMessagesRealtime();
     };
 
-    const intervalId = window.setInterval(() => {
-      if (!document.hidden) refreshMessagesRealtime();
-    }, 3000);
+    // Intervalo adaptativo: 3 s mientras hay movimiento, 6 s tras 10 revisiones sin cambios y 10 s tras 30
+    let timer = null;
+    let lastSeen = '';
+    const nextDelay = () => (quietRef.current < 10 ? 3000 : quietRef.current < 30 ? 6000 : 10000);
+    const poll = async () => {
+      if (!document.hidden) {
+        await refreshMessagesRealtime();
+        const marker = `${messagesCountRef.current}:${typingRef.current}`;
+        if (marker === lastSeen) quietRef.current += 1; else { quietRef.current = 0; lastSeen = marker; }
+      }
+      timer = window.setTimeout(poll, nextDelay());
+    };
+    timer = window.setTimeout(poll, nextDelay());
 
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      window.clearInterval(intervalId);
+      window.clearTimeout(timer);
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
@@ -295,6 +311,7 @@ export default function Messages() {
     const imagePreviewUrl = pendingImage?.previewUrl || null;
     const tempId = `temp-${Date.now()}`;
     if (imagePreviewUrl) optimisticImageUrlsRef.current.add(imagePreviewUrl);
+    quietRef.current = 0;
     shouldStickToBottomRef.current = true;
     setSending(true);
     setNewMessage('');

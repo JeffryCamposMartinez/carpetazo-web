@@ -8,30 +8,12 @@ import { useAuth } from '../contexts/AuthContext';
 import PublicCatalogFilters from '../components/folder/filters/PublicCatalogFilters';
 import WishlistSection from '../components/WishlistSection';
 import { Stars } from '../components/Reviews';
+import { ensureExternalUrl, formatWhatsAppNumber, getInstagramHref } from '../utils/contact';
 import { wishlistPayloadFromCard } from '../utils/wishlistPayload';
 
 const isLocalhostWithProductionApi = () => {
   if (typeof window === 'undefined') return false;
   return ['localhost', '127.0.0.1'].includes(window.location.hostname) && API_BASE_URL.includes('api.carpetazo.cl');
-};
-
-const formatWhatsAppNumber = (phone = '') => {
-  const cleanPhone = String(phone).replace(/[^0-9]/g, '');
-  if (!cleanPhone) return '';
-  return cleanPhone.startsWith('56') ? cleanPhone : `56${cleanPhone}`;
-};
-
-const ensureExternalUrl = (url = '') => {
-  const cleanUrl = String(url).trim();
-  if (!cleanUrl) return '';
-  return /^https?:\/\//i.test(cleanUrl) ? cleanUrl : `https://${cleanUrl.replace(/^@/, '')}`;
-};
-
-const getInstagramHref = (value = '') => {
-  const cleanValue = String(value).trim();
-  if (!cleanValue) return '';
-  if (/^https?:\/\//i.test(cleanValue)) return cleanValue;
-  return `https://instagram.com/${cleanValue.replace('@', '')}`;
 };
 
 // Cifras grandes con separador de miles; desde 100.000 en formato corto para que nunca desborden
@@ -175,7 +157,7 @@ function PublicCatalog() {
         setFolderData(folder);
 
                 // Track folder visits
-        if (!currentUser || currentUser.uid !== folder.userId) {
+        if (!folder.user?.isOwner) {
           const currentWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
           apiFetch('/folders/' + folderId + '/visit', { method: 'POST', body: JSON.stringify({ currentWeek }) }).catch(err => console.error("Error updating visits", err));
         }
@@ -369,6 +351,10 @@ function PublicCatalog() {
 
   const handleWhatsAppCheckout = async () => {
     if (cart.length === 0) return;
+    if (isOwner) {
+      showToast('No puedes enviarte un pedido a ti mismo.', 'error');
+      return;
+    }
 
     const phone = sellerData?.phone?.replace(/\D/g, '') || '';
     if (!phone) return handleMessageCheckout();
@@ -433,7 +419,7 @@ function PublicCatalog() {
     } catch (error) {
       console.error("Error al generar pedido:", error);
       try { newWindow?.close(); } catch (_error) { /* ya cerrada */ }
-      showToast("Hubo un error al procesar el pedido.", "error");
+      showToast(error?.message || "Hubo un error al procesar el pedido.", "error");
     } finally {
       setIsProcessingCheckout(false);
     }
@@ -702,16 +688,16 @@ function PublicCatalog() {
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                         <Link to={sellerPath} className="truncate text-base font-extrabold hover:underline md:text-lg">{sellerData?.displayName || 'Vendedor anónimo'}</Link>
                         {sellerData?.reviewSummary?.showAverage ? (
-                          <Link to={sellerPath} className="flex items-center gap-1.5 text-xs font-bold text-[#facc15] hover:underline" title="Ver reseñas">
+                          <Link to={`${sellerPath}#resenas`} className="flex items-center gap-1.5 text-xs font-bold text-[#facc15] hover:underline" title="Ver reseñas">
                             <Stars value={sellerData.reviewSummary.average} size={14} />
                             {sellerData.reviewSummary.average.toFixed(1)} · {sellerData.reviewSummary.count} {sellerData.reviewSummary.count === 1 ? 'reseña' : 'reseñas'}
                           </Link>
                         ) : sellerData?.reviewSummary?.count > 0 ? (
-                          <Link to={sellerPath} className="text-xs font-bold text-[#facc15] hover:underline" title="Ver reseñas">
+                          <Link to={`${sellerPath}#resenas`} className="text-xs font-bold text-[#facc15] hover:underline" title="Ver reseñas">
                             {sellerData.reviewSummary.count} {sellerData.reviewSummary.count === 1 ? 'reseña' : 'reseñas'}
                           </Link>
                         ) : (
-                          <span className="text-xs font-semibold text-blue-200">Sin reseñas todavía</span>
+                          <Link to={`${sellerPath}#resenas`} className="text-xs font-semibold text-blue-200 hover:underline" title="Ver reseñas">Sin reseñas todavía</Link>
                         )}
                       </div>
                       <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs font-semibold text-blue-100">
@@ -1051,7 +1037,7 @@ function PublicCatalog() {
               <h2 className="font-headline-md text-2xl font-bold flex items-center gap-2 text-gray-900">
                 <span translate="no" className="material-symbols-outlined">shopping_cart</span> Tu Pedido
               </h2>
-              <button className="text-gray-500 hover:text-gray-900 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100" onClick={() => setIsCartOpen(false)}>
+              <button aria-label="Cerrar carrito" className="text-gray-500 hover:text-gray-900 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100" onClick={() => setIsCartOpen(false)}>
                 <span translate="no" className="material-symbols-outlined text-xl">close</span>
               </button>
             </div>
@@ -1094,19 +1080,35 @@ function PublicCatalog() {
                   <button type="button" onClick={() => window.dispatchEvent(new Event('carpetazo:open-auth'))} className="ml-1 font-extrabold underline">Iniciar sesión</button>
                 </div>
               )}
-              <button
-                className={`w-full text-white p-4 rounded-xl font-extrabold flex justify-center items-center gap-3 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${messageMode ? 'bg-[#1e40af] hover:bg-[#1d4ed8] shadow-[0_4px_15px_rgba(30,64,175,0.3)]' : 'bg-[#25D366] hover:bg-[#128C7E] shadow-[0_4px_15px_rgba(37,211,102,0.3)]'}`} 
-                disabled={cart.length === 0 || isProcessingCheckout || (messageMode && !socialEnabled('showMessageButton'))}
-                onClick={handleWhatsAppCheckout}
-              >
-                <span translate="no" className="material-symbols-outlined text-2xl">
-                  {isProcessingCheckout ? 'hourglass_empty' : 'chat'}
-                </span>
-                {isProcessingCheckout ? 'Procesando...' : messageMode ? (currentUser ? 'Enviar pedido por mensaje' : 'Iniciar sesión y enviar pedido') : 'Generar Pedido por WhatsApp'}
-              </button>
+              {!messageMode && (
+                <button
+                  className="w-full text-white p-4 rounded-xl font-extrabold flex justify-center items-center gap-3 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none bg-[#25D366] hover:bg-[#128C7E] shadow-[0_4px_15px_rgba(37,211,102,0.3)]"
+                  disabled={cart.length === 0 || isProcessingCheckout}
+                  onClick={handleWhatsAppCheckout}
+                >
+                  <span translate="no" className="material-symbols-outlined text-2xl">
+                    {isProcessingCheckout ? 'hourglass_empty' : 'chat'}
+                  </span>
+                  {isProcessingCheckout ? 'Procesando...' : 'Generar Pedido por WhatsApp'}
+                </button>
+              )}
+              {(messageMode || socialEnabled('showMessageButton')) && (
+                <button
+                  className={`w-full p-4 rounded-xl font-extrabold flex justify-center items-center gap-3 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${messageMode ? 'text-white bg-[#1e40af] hover:bg-[#1d4ed8] shadow-[0_4px_15px_rgba(30,64,175,0.3)]' : 'mt-2 text-[#1e40af] bg-white ring-2 ring-[#1e40af] hover:bg-blue-50'}`}
+                  disabled={cart.length === 0 || isProcessingCheckout || !socialEnabled('showMessageButton')}
+                  onClick={handleMessageCheckout}
+                >
+                  <span translate="no" className="material-symbols-outlined text-2xl">
+                    {isProcessingCheckout ? 'hourglass_empty' : 'mail'}
+                  </span>
+                  {isProcessingCheckout ? 'Procesando...' : currentUser ? 'Enviar pedido por mensaje' : 'Iniciar sesión y enviar pedido por mensaje'}
+                </button>
+              )}
               <p className="text-[10px] text-center text-gray-500 mt-3">
                 {!messageMode
-                  ? 'Al presionar, se abrirá WhatsApp con el detalle de tu pedido para coordinar el pago y envío directamente con el vendedor.'
+                  ? socialEnabled('showMessageButton')
+                    ? 'WhatsApp abre un chat con el detalle de tu pedido. Por mensaje, el pedido llega al vendedor dentro de Carpetazo con un código (necesitas una cuenta). En ambos casos coordinan el pago y el envío directamente.'
+                    : 'Al presionar, se abrirá WhatsApp con el detalle de tu pedido para coordinar el pago y envío directamente con el vendedor.'
                   : socialEnabled('showMessageButton')
                     ? 'Este vendedor no usa WhatsApp. Tu pedido le llegará como mensaje de Carpetazo con el detalle y un código, y ahí coordinan el pago y el envío. Necesitas una cuenta.'
                     : 'Este vendedor no recibe pedidos por WhatsApp ni por mensaje por ahora.'}

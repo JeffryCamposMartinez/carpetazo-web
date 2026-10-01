@@ -39,10 +39,14 @@ const get = async (path) => {
 
   check('/cards/recent', await get('/cards/recent?limit=5'));
   check('/cards/search', await get('/cards/search?q=a'));
+  check('/folders/search', await get('/folders/search'));
+  check('/sellers', await get('/sellers'));
+  check('/home/featured', await get('/home/featured'));
+  if (usernames[0]) check('/users/:username/reviews', await get(`/users/${encodeURIComponent(usernames[0])}/reviews`));
 
   if (problems.length) {
     console.error('FUGA DE DATOS en rutas públicas:\n - ' + problems.join('\n - '));
     process.exit(1);
   }
-  console.log(`OK: sin campos privados en ${2 + usernames.length + 2 + (usernames[0] ? 1 : 0)} respuestas públicas revisadas.`);
+  console.log(`OK: sin campos privados en ${2 + usernames.length + 5 + (usernames[0] ? 2 : 0)} respuestas públicas revisadas.`);
 })().catch((err) => { console.error('Error:', err.message); process.exit(2); });

@@ -18,94 +18,78 @@ const SORT_OPTIONS = [
   { value: 'name', label: 'Nombre (A-Z)' },
 ];
 
-const ITEMS_PER_PAGE = 40;
-
 // Compara juegos sin tildes ni signos: "Pokemon" y "Pokémon" son el mismo
 const normalize = (text) => (text || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
 
+// La búsqueda, el juego, el orden y la página se resuelven en el servidor (40 carpetas por página)
 export default function FoldersPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [folders, setFolders] = useState([]);
+  const urlQuery = searchParams.get('q') || '';
+  const selectedTcg = searchParams.get('tcg') || 'Todos';
+  const sortBy = SORT_OPTIONS.some((option) => option.value === searchParams.get('sort')) ? searchParams.get('sort') : 'weekly';
+  const page = Math.max(1, Number.parseInt(searchParams.get('page'), 10) || 1);
+
+  const [searchQuery, setSearchQuery] = useState(urlQuery);
+  const [result, setResult] = useState({ folders: [], total: 0, pages: 1, counts: [] });
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
-  const [selectedTcg, setSelectedTcg] = useState(searchParams.get('tcg') || 'Todos');
-  const [sortBy, setSortBy] = useState('weekly');
-  const [currentPage, setCurrentPage] = useState(1);
+
+  const updateParams = (changes, { resetPage = true } = {}) => {
+    const next = new URLSearchParams(searchParams);
+    Object.entries({ ...changes, ...(resetPage ? { page: '' } : {}) }).forEach(([key, value]) => { if (value) next.set(key, value); else next.delete(key); });
+    setSearchParams(next, { replace: true });
+  };
+
+  // El texto se envía a la búsqueda un momento después de dejar de escribir
+  useEffect(() => {
+    if (searchQuery === urlQuery) return undefined;
+    const timer = setTimeout(() => updateParams({ q: searchQuery.trim() }), 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+  useEffect(() => { setSearchQuery(urlQuery); }, [urlQuery]);
 
   useEffect(() => {
     let cancelled = false;
-    const load = async () => {
-      setLoading(true);
-      setFailed(false);
-      try {
-        const currentWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
-        const response = await api.getPublicFolders();
-        const all = response.success ? response.folders : [];
-        for (const folder of all) {
-          folder.validWeeklyVisits = folder.lastVisitWeek === currentWeek ? (folder.weeklyVisits || 0) : 0;
-          folder.validTotalVisits = folder.totalVisits || 0;
-          folder.cardsCount = folder._count?.cards ?? folder.cards?.length ?? 0;
-          folder.avatarUrl = folder.user?.photoURL || null;
-          folder.user = folder.user?.name || folder.user?.username || 'Vendedor anónimo';
-          folder.location = '';
-        }
-        if (!cancelled) startTransition(() => setFolders(all));
-      } catch (error) {
-        console.error('Error fetching folders:', error);
-        if (!cancelled) setFailed(true);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    load();
+    setLoading(true);
+    setFailed(false);
+    const params = new URLSearchParams();
+    if (urlQuery) params.set('q', urlQuery);
+    if (selectedTcg !== 'Todos') params.set('tcg', selectedTcg);
+    if (sortBy !== 'weekly') params.set('sort', sortBy);
+    if (page > 1) params.set('page', String(page));
+    api.searchFolders(params.toString())
+      .then((res) => { if (!cancelled) startTransition(() => setResult(res.success ? res : { folders: [], total: 0, pages: 1, counts: [] })); })
+      .catch((error) => { console.error('Error fetching folders:', error); if (!cancelled) setFailed(true); })
+      .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, []);
+  }, [urlQuery, selectedTcg, sortBy, page]);
 
-  // El enlace puede traer la búsqueda (?q=) y el juego (?tcg=)
-  useEffect(() => {
-    setSearchQuery(searchParams.get('q') || '');
-    const tcg = searchParams.get('tcg');
-    setSelectedTcg(tcg || 'Todos');
-  }, [searchParams]);
-
-  const updateParams = (changes) => {
-    const next = new URLSearchParams(searchParams);
-    Object.entries(changes).forEach(([key, value]) => { if (value) next.set(key, value); else next.delete(key); });
-    setSearchParams(next, { replace: true });
-    setCurrentPage(1);
-  };
+  // LazyFolderCard espera el nombre del vendedor como texto
+  const foldersToRender = useMemo(() => result.folders.map((folder) => ({
+    ...folder,
+    cardsCount: folder._count?.cards ?? 0,
+    avatarUrl: folder.user?.photoURL || null,
+    user: folder.user?.name || folder.user?.username || 'Vendedor anónimo',
+    location: '',
+  })), [result.folders]);
 
   const countsByTcg = useMemo(() => {
     const counts = new Map();
-    folders.forEach((folder) => { const key = normalize(folder.tcg); counts.set(key, (counts.get(key) || 0) + 1); });
+    result.counts.forEach(({ tcg, count }) => { const key = normalize(tcg); counts.set(key, (counts.get(key) || 0) + count); });
     return counts;
-  }, [folders]);
+  }, [result.counts]);
+  const totalFolders = useMemo(() => result.counts.reduce((sum, item) => sum + item.count, 0), [result.counts]);
 
-  const filteredFolders = useMemo(() => {
-    let result = [...folders];
-    if (selectedTcg !== 'Todos') result = result.filter((folder) => folder.tcg && normalize(folder.tcg) === normalize(selectedTcg));
-    const term = searchQuery.trim().toLowerCase();
-    if (term) result = result.filter((folder) => (folder.name || '').toLowerCase().includes(term) || (folder.user || '').toLowerCase().includes(term));
-    if (sortBy === 'weekly') result.sort((a, b) => b.validWeeklyVisits - a.validWeeklyVisits || b.validTotalVisits - a.validTotalVisits);
-    else if (sortBy === 'total') result.sort((a, b) => b.validTotalVisits - a.validTotalVisits);
-    else result.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es'));
-    return result;
-  }, [folders, selectedTcg, searchQuery, sortBy]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredFolders.length / ITEMS_PER_PAGE));
-  const page = Math.min(currentPage, totalPages);
-  const foldersToRender = filteredFolders.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
-  const hasFilters = selectedTcg !== 'Todos' || Boolean(searchQuery.trim()) || sortBy !== 'weekly';
+  const hasFilters = selectedTcg !== 'Todos' || Boolean(urlQuery) || sortBy !== 'weekly';
+  const totalPages = result.pages;
 
   const clearFilters = () => {
-    setSortBy('weekly');
+    setSearchQuery('');
     setSearchParams(new URLSearchParams(), { replace: true });
-    setCurrentPage(1);
   };
 
   const goToPage = (next) => {
-    setCurrentPage(next);
+    updateParams({ page: next > 1 ? String(next) : '' }, { resetPage: false });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -127,7 +111,7 @@ export default function FoldersPage() {
               inputMode="search"
               enterKeyHint="search"
               value={searchQuery}
-              onChange={(event) => { const value = event.target.value.slice(0, 80); setSearchQuery(value); updateParams({ q: value.trim() ? value : '' }); }}
+              onChange={(event) => setSearchQuery(event.target.value.slice(0, 80))}
               placeholder="Buscar por carpeta o vendedor"
               aria-label="Buscar carpeta o vendedor"
               className="h-11 w-full rounded-full border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-medium text-slate-900 transition focus:border-[#1e40af] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#facc15]/70"
@@ -135,7 +119,7 @@ export default function FoldersPage() {
           </div>
           <select
             value={sortBy}
-            onChange={(event) => { setSortBy(event.target.value); setCurrentPage(1); }}
+            onChange={(event) => updateParams({ sort: event.target.value === 'weekly' ? '' : event.target.value })}
             aria-label="Ordenar carpetas"
             className="h-11 rounded-full border border-slate-200 bg-white px-4 text-sm font-bold text-[#12315f] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70"
           >
@@ -152,7 +136,7 @@ export default function FoldersPage() {
             className={`${chipBase} ${selectedTcg === 'Todos' ? 'border-[#12315f] bg-[#12315f] text-white' : 'border-slate-200 bg-white text-[#12315f] hover:border-[#12315f]/40'}`}
           >
             Todos
-            <span className={`text-xs tabular-nums ${selectedTcg === 'Todos' ? 'text-blue-200' : 'text-slate-400'}`}>{folders.length}</span>
+            <span className={`text-xs tabular-nums ${selectedTcg === 'Todos' ? 'text-blue-200' : 'text-slate-400'}`}>{totalFolders}</span>
           </button>
           {TCG_CATEGORIES.map((tcg) => {
             const active = normalize(selectedTcg) === normalize(tcg.name);
@@ -176,7 +160,7 @@ export default function FoldersPage() {
         </div>
 
         <p className="mb-4 text-sm font-semibold text-slate-600" aria-live="polite">
-          {loading ? 'Cargando carpetas…' : failed ? '' : `${filteredFolders.length.toLocaleString('es-CL')} ${filteredFolders.length === 1 ? 'carpeta' : 'carpetas'}`}
+          {loading ? 'Cargando carpetas…' : failed ? '' : `${result.total.toLocaleString('es-CL')} ${result.total === 1 ? 'carpeta' : 'carpetas'}`}
           {!loading && !failed && hasFilters && (
             <button type="button" onClick={clearFilters} className="ml-3 font-bold text-[#1e40af] underline-offset-2 hover:underline">Quitar filtros</button>
           )}

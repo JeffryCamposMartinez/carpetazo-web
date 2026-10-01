@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../utils/api';
 import { chileData } from '../utils/chileData';
+import { PALETTES } from '../utils/profileThemes';
 
 const chileBanks = [
   'Banco de Chile - Edwards',
@@ -32,18 +33,7 @@ const chileBanks = [
 
 const accountTypes = ['Cuenta corriente', 'Cuenta vista', 'Cuenta de ahorro', 'Cuenta Rut'];
 
-const profileThemes = [
-  { id: 'classic-blue', name: 'Azul Carpetazo', primary: '#1e40af', secondary: '#93c5fd', accent: '#facc15', surface: '#DBEAFE', card: '#ffffff', text: '#1a2b4b', font: 'Inter' },
-  { id: 'royal-purple', name: 'Púrpura Real', primary: '#5b21b6', secondary: '#7c3aed', accent: '#f0abfc', surface: '#2e1065', card: '#ede9fe', text: '#1e1b4b', font: 'Montserrat' },
-  { id: 'emerald-market', name: 'Esmeralda', primary: '#047857', secondary: '#059669', accent: '#fbbf24', surface: '#064e3b', card: '#d1fae5', text: '#052e16', font: 'Nunito' },
-  { id: 'crimson-fire', name: 'Fuego Carmesí', primary: '#991b1b', secondary: '#dc2626', accent: '#fb923c', surface: '#450a0a', card: '#fee2e2', text: '#450a0a', font: 'Oswald' },
-  { id: 'midnight-gold', name: 'Medianoche Oro', primary: '#020617', secondary: '#1e293b', accent: '#facc15', surface: '#0f172a', card: '#f8fafc', text: '#020617', font: 'Merriweather' },
-  { id: 'ocean-cyan', name: 'Océano', primary: '#155e75', secondary: '#0891b2', accent: '#22d3ee', surface: '#164e63', card: '#cffafe', text: '#083344', font: 'Poppins' },
-  { id: 'rose-pop', name: 'Rosa Pop', primary: '#be185d', secondary: '#db2777', accent: '#f472b6', surface: '#831843', card: '#fce7f3', text: '#500724', font: 'Quicksand' },
-  { id: 'amber-sun', name: 'Sol Ámbar', primary: '#92400e', secondary: '#d97706', accent: '#fb7185', surface: '#78350f', card: '#fef3c7', text: '#451a03', font: 'Rubik' },
-  { id: 'slate-neon', name: 'Neón Slate', primary: '#0f172a', secondary: '#334155', accent: '#38bdf8', surface: '#020617', card: '#e2e8f0', text: '#0f172a', font: 'Space Grotesk' },
-  { id: 'mythic-green', name: 'Mítico Verde', primary: '#365314', secondary: '#4d7c0f', accent: '#84cc16', surface: '#1a2e05', card: '#ecfccb', text: '#1a2e05', font: 'Cinzel' }
-];
+const profileThemes = PALETTES;
 
 const defaultPublicTheme = profileThemes[0];
 
@@ -181,7 +171,7 @@ const ActionButton = ({ children, variant = 'primary', className = '', ...props 
 };
 
 const ProfilePage = () => {
-  const { currentUser, refreshAppUser } = useAuth();
+  const { currentUser, refreshAppUser, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('general');
   const [profileData, setProfileData] = useState(emptyProfile);
@@ -410,10 +400,17 @@ const ProfilePage = () => {
     setSavingKey('delete-account');
     try {
       await api.deleteProfile();
+      let accessDeleted = true;
       try {
         await deleteUser(currentUser);
       } catch (error) {
+        // Firebase exige haber iniciado sesión hace poco para borrar el acceso; los datos ya se eliminaron
+        accessDeleted = false;
         console.warn('Firebase account deletion needs reauth or failed:', error);
+      }
+      if (!accessDeleted) {
+        await logout().catch(() => {});
+        alert('Tus datos personales fueron eliminados. Tu acceso (Google o correo) sigue existiendo: si vuelves a entrar, empezarás con una cuenta vacía.');
       }
       navigate('/');
     } catch (error) {
@@ -584,7 +581,7 @@ const ProfilePage = () => {
               {activeTab === 'security' && (
                 <section className="space-y-6">
                   <div className="rounded-3xl bg-slate-50 p-5 ring-1 ring-slate-200"><h3 className="text-lg font-black text-[#1a2b4b]">Sesión actual</h3><p className="mt-2 text-sm font-semibold text-slate-500">ID Firebase: <span className="break-all font-mono text-xs">{currentUser.uid}</span></p><p className="mt-1 text-sm font-semibold text-slate-500">Correo: {currentUser.email}</p></div>
-                  <div className="rounded-3xl border border-red-200 bg-red-50 p-5"><h3 className="text-lg font-black text-red-700">Zona de peligro</h3><p className="mt-2 text-sm font-semibold text-red-600">Esto desactiva tu perfil en la base de datos y deja tus carpetas privadas. Para confirmar escribe <b>eliminar</b>.</p><div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]"><TextInput value={deleteConfirmationText} onChange={e => setDeleteConfirmationText(e.target.value)} placeholder="eliminar" className="border-red-200 focus:border-red-500 focus:ring-red-100" /><ActionButton variant="danger" onClick={handleDeleteAccount} disabled={deleteConfirmationText.toLowerCase() !== 'eliminar' || savingKey === 'delete-account'}>{savingKey === 'delete-account' ? 'Eliminando...' : 'Eliminar cuenta'}</ActionButton></div></div>
+                  <div className="rounded-3xl border border-red-200 bg-red-50 p-5"><h3 className="text-lg font-black text-red-700">Zona de peligro</h3><p className="mt-2 text-sm font-semibold text-red-600">Esto elimina tus datos personales (nombre, correo, RUT, teléfono, direcciones, datos bancarios, lista de deseos y tus mensajes), deja tus carpetas privadas y no se puede deshacer. Para confirmar escribe <b>eliminar</b>.</p><div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]"><TextInput value={deleteConfirmationText} onChange={e => setDeleteConfirmationText(e.target.value)} placeholder="eliminar" className="border-red-200 focus:border-red-500 focus:ring-red-100" /><ActionButton variant="danger" onClick={handleDeleteAccount} disabled={deleteConfirmationText.toLowerCase() !== 'eliminar' || savingKey === 'delete-account'}>{savingKey === 'delete-account' ? 'Eliminando...' : 'Eliminar cuenta'}</ActionButton></div></div>
                 </section>
               )}
             </>

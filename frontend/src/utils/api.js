@@ -13,7 +13,19 @@ const PUBLIC_FOLDERS_TTL_MS = 60 * 1000;
 const searchCardsCache = new Map(); // consulta -> { at, json }
 let publicFoldersCache = null; // { at, text }
 let publicFoldersPending = null;
-const clearPublicFoldersCache = () => { publicFoldersCache = null; searchCardsCache.clear(); };
+const listingCache = new Map(); // listados paginados: endpoint + consulta -> { at, json }
+const clearPublicFoldersCache = () => { publicFoldersCache = null; searchCardsCache.clear(); listingCache.clear(); };
+
+const listingShared = (endpoint, queryString = '') => {
+  const key = endpoint + '?' + queryString;
+  const hit = listingCache.get(key);
+  if (hit && Date.now() - hit.at < PUBLIC_FOLDERS_TTL_MS) return Promise.resolve(hit.json);
+  return apiFetch(endpoint + (queryString ? '?' + queryString : '')).then((json) => {
+    if (listingCache.size >= 40) listingCache.delete(listingCache.keys().next().value);
+    listingCache.set(key, { at: Date.now(), json });
+    return json;
+  });
+};
 
 const searchCardsShared = (queryString = '') => {
   const hit = searchCardsCache.get(queryString);
@@ -89,6 +101,9 @@ export const api = {
   
   // Folders
   getPublicFolders: () => getPublicFoldersShared(),
+  searchFolders: (queryString = '') => listingShared('/folders/search', queryString),
+  getSellers: (queryString = '') => listingShared('/sellers', queryString),
+  getFeatured: () => listingShared('/home/featured'),
   getRecentCards: (limit = 12) => apiFetch('/cards/recent?limit=' + limit),
   searchCards: (queryString = '') => searchCardsShared(queryString),
   getSellerReviews: (username, page = 1) => apiFetch('/users/' + encodeURIComponent(username) + '/reviews?page=' + page),
@@ -106,6 +121,7 @@ export const api = {
   getFolder: (id) => apiFetch('/folders/' + id),
   createFolder: (data) => apiFetch('/folders', { method: 'POST', body: JSON.stringify(data) }),
   deleteFolder: (id) => apiFetch('/folders/' + id, { method: 'DELETE' }),
+  saveFolderOrder: (id, ids) => apiFetch('/folders/' + id + '/order', { method: 'PUT', body: JSON.stringify({ ids }) }),
   updateFolder: (id, data) => apiFetch('/folders/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   
   // Cards
@@ -114,7 +130,6 @@ export const api = {
   deleteCard: (folderId, cardId) => apiFetch('/folders/' + folderId + '/cards/' + cardId, { method: 'DELETE' }),
   
   // Messages/Chats
-  getMyMessages: () => apiFetch('/messages/me'),
   getChats: () => apiFetch('/chats'),
   getMessages: (otherId) => apiFetch('/messages/' + otherId),
   sendMessage: (otherId, content) => apiFetch('/messages/' + otherId, { method: 'POST', body: JSON.stringify({ content }) }),
@@ -159,14 +174,9 @@ export const api = {
 
   // Orders
   createOrder: (data) => apiFetch('/orders/create', { method: 'POST', body: JSON.stringify(data) }),
-  updateOrder: (id, data) => apiFetch('/orders/' + id, { method: 'PUT', body: JSON.stringify(data) }),
   getMyOrders: () => apiFetch('/orders/mine'),
   getMyPendingOrders: (since) => apiFetch('/orders/mine/pending' + (since ? `?since=${encodeURIComponent(since)}` : '')),
   setMyOrderStatus: (id, status) => apiFetch('/orders/mine/' + id + '/status', { method: 'POST', body: JSON.stringify({ status }) }),
-  getOrders: () => apiFetch('/orders'),
-  getHistory: () => apiFetch('/history'),
-  processOrder: (code) => apiFetch('/process-order', { method: 'POST', body: JSON.stringify({ code }) }),
-  rejectOrder: (code) => apiFetch('/reject-order', { method: 'POST', body: JSON.stringify({ code }) }),
 };
 
 export default api;

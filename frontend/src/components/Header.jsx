@@ -213,7 +213,7 @@ export default function Header() {
       // Lo visto se lee directo del navegador: en la primera carga el estado aún no se restauró y todo aparecería como nuevo
       let seenOrders = seenRef.current.orders;
       try { seenOrders = JSON.parse(localStorage.getItem(`carpetazo:bell-seen:${currentUser.uid}`) || 'null')?.orders || seenOrders; } catch (_error) { /* sin almacenamiento */ }
-      api.getMyPendingOrders(seenOrders)
+      const ordersPromise = api.getMyPendingOrders(seenOrders)
         .then((ordersResult) => {
           if (!cancelled && ordersResult?.success) {
             setPendingOrders(previous => (
@@ -221,10 +221,13 @@ export default function Header() {
                 ? previous
                 : { count: ordersResult.count, unseen: ordersResult.unseen ?? ordersResult.count, orders: ordersResult.orders }
             ));
+            return `${ordersResult.count}:${ordersResult.unseen}`;
           }
+          return '';
         })
-        .catch(() => {});
+        .catch(() => '');
 
+      let chatSignature = 'sin-datos';
       try {
         const result = await api.getChats();
         const nextChats = (result.chats || []).filter(chat => {
@@ -236,6 +239,7 @@ export default function Header() {
           const filteredTotal = nextChats.reduce((sum, chat) => sum + Number(chat.unreadCount || 0), 0);
           setUnreadMessages(Number.isFinite(filteredTotal) ? filteredTotal : (Number.isFinite(total) ? total : 0));
           setNotificationChats(nextChats.filter(chat => Number(chat.unreadCount || 0) > 0));
+          chatSignature = `${filteredTotal}:${nextChats[0]?.id || ''}:${nextChats[0]?.createdAt || ''}`;
         }
       } catch (error) {
         if (!cancelled) {
@@ -243,22 +247,37 @@ export default function Header() {
           setNotificationChats([]);
         }
       }
+
+      // Si nada cambió respecto de la consulta anterior, la próxima se espacia
+      const signature = `${await ordersPromise}|${chatSignature}`;
+      if (signature === lastSignature) idleChecks += 1;
+      else { idleChecks = 0; lastSignature = signature; }
     };
 
-    loadUnreadMessages();
-    const intervalId = window.setInterval(loadUnreadMessages, 8000);
-    window.addEventListener('focus', loadUnreadMessages);
-    window.addEventListener('carpetazo:messages-updated', loadUnreadMessages);
-    window.addEventListener('carpetazo:orders-updated', loadUnreadMessages);
-    document.addEventListener('visibilitychange', loadUnreadMessages);
+    // Intervalo adaptativo: 8 s con actividad, 15 s tras 4 consultas iguales y 30 s tras 10; cualquier evento lo reinicia
+    let timer = null;
+    let idleChecks = 0;
+    let lastSignature = '';
+    const nextDelay = () => (idleChecks < 4 ? 8000 : idleChecks < 10 ? 15000 : 30000);
+    const tick = async () => {
+      await loadUnreadMessages();
+      if (!cancelled) timer = window.setTimeout(tick, nextDelay());
+    };
+    const wake = () => { idleChecks = 0; window.clearTimeout(timer); tick(); };
+
+    tick();
+    window.addEventListener('focus', wake);
+    window.addEventListener('carpetazo:messages-updated', wake);
+    window.addEventListener('carpetazo:orders-updated', wake);
+    document.addEventListener('visibilitychange', wake);
 
     return () => {
       cancelled = true;
-      window.clearInterval(intervalId);
-      window.removeEventListener('focus', loadUnreadMessages);
-      window.removeEventListener('carpetazo:messages-updated', loadUnreadMessages);
-      window.removeEventListener('carpetazo:orders-updated', loadUnreadMessages);
-      document.removeEventListener('visibilitychange', loadUnreadMessages);
+      window.clearTimeout(timer);
+      window.removeEventListener('focus', wake);
+      window.removeEventListener('carpetazo:messages-updated', wake);
+      window.removeEventListener('carpetazo:orders-updated', wake);
+      document.removeEventListener('visibilitychange', wake);
     };
   }, [currentUser?.uid, location.pathname]);
 

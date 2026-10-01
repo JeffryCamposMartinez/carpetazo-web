@@ -253,66 +253,28 @@ function BrowseByGame({ counts, loading }) {
 }
 
 export default function FeaturedZone({ recentCards = [], loadingCards = false }) {
-  const [folders, setFolders] = useState([]);
+  // Un solo pedido trae lo que muestra la portada (carpetas más visitadas, nuevas, mejores vendedores y cifras)
+  const [data, setData] = useState(null);
   const [loadingFolders, setLoadingFolders] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    const currentWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
-
-    api.getPublicFolders()
-      .then((res) => {
-        if (cancelled) return;
-        const list = res.success ? res.folders : [];
-        list.forEach((folder) => {
-          folder.validWeeklyVisits = folder.lastVisitWeek === currentWeek ? (folder.weeklyVisits || 0) : 0;
-          folder.validTotalVisits = folder.totalVisits || 0;
-        });
-        setFolders(list);
-      })
+    api.getFeatured()
+      .then((res) => { if (!cancelled && res.success) setData(res); })
       .catch((error) => console.error('Error cargando carpetas destacadas:', error))
       .finally(() => { if (!cancelled) setLoadingFolders(false); });
-
     return () => { cancelled = true; };
   }, []);
 
-  const visitedFolders = useMemo(
-    () => [...folders]
-      .sort((a, b) => (b.validWeeklyVisits - a.validWeeklyVisits) || (b.validTotalVisits - a.validTotalVisits))
-      .slice(0, 5),
-    [folders]
-  );
-
-  const newFolders = useMemo(
-    () => [...folders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5),
-    [folders]
-  );
-
-  const sellers = useMemo(() => {
-    const map = new Map();
-    folders.forEach((folder) => {
-      const user = folder.user || {};
-      const key = user.username || user.firebaseUid || folder.userId || folder.id;
-      const entry = map.get(key) || { key, name: user.name || user.username || 'Vendedor', username: user.username, photoURL: user.photoURL, visits: 0, folders: 0, cards: 0 };
-      entry.visits += folder.validTotalVisits || 0;
-      entry.folders += 1;
-      entry.cards += folder._count?.cards || 0;
-      map.set(key, entry);
-    });
-    return [...map.values()].sort((a, b) => (b.visits - a.visits) || (b.cards - a.cards)).slice(0, 5);
-  }, [folders]);
-
-  const stats = useMemo(() => ({
-    folders: folders.length,
-    sellers: new Set(folders.map((f) => f.user?.username || f.userId)).size,
-    cards: folders.reduce((sum, f) => sum + (f._count?.cards || 0), 0),
-  }), [folders]);
-
+  const visitedFolders = data?.visited || [];
+  const newFolders = data?.newest || [];
+  const sellers = useMemo(() => (data?.topSellers || []).map((seller) => ({ key: seller.username || seller.name, name: seller.name || seller.username || 'Vendedor', username: seller.username, photoURL: seller.photoURL, visits: seller.visits, folders: seller.folders, cards: seller.cards })), [data]);
+  const stats = data?.stats || { folders: 0, sellers: 0, cards: 0 };
   const gameCounts = useMemo(() => {
     const counts = {};
-    folders.forEach((f) => { const key = normalize(f.tcg); counts[key] = (counts[key] || 0) + 1; });
+    (data?.counts || []).forEach(({ tcg, count }) => { const key = normalize(tcg); counts[key] = (counts[key] || 0) + count; });
     return counts;
-  }, [folders]);
+  }, [data]);
 
   return (
     <div className="w-full pb-16 pt-8 sm:pt-10">

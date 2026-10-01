@@ -169,13 +169,17 @@ export default function Dashboard() {
   useEffect(() => {
     if (!currentUser || activeTab !== 'carpetas') return undefined;
     let cancelled = false;
+    let lastStatsSignature = '';
 
     const refreshVisits = async () => {
-      if (document.visibilityState !== 'visible') return;
+      if (document.visibilityState !== 'visible') return false;
       try {
         const res = await api.getMyFolderStats();
-        if (cancelled || !res?.success) return;
+        if (cancelled || !res?.success) return false;
         const byId = new Map(res.folders.map(f => [f.id, f]));
+        const statsSignature = JSON.stringify(res.folders.map(f => [f.id, f.weeklyVisits, f.totalVisits, f.lastVisitWeek]));
+        const changedStats = statsSignature !== lastStatsSignature;
+        lastStatsSignature = statsSignature;
         setFolders(prev => {
           let changed = false;
           const next = prev.map(folder => {
@@ -188,17 +192,26 @@ export default function Dashboard() {
           });
           return changed ? next : prev; // sin cambios no se vuelve a renderizar
         });
+        return changedStats;
       } catch (_error) {
-        // se reintenta en el siguiente ciclo
+        return false; // se reintenta en el siguiente ciclo
       }
     };
 
-    const timer = setInterval(refreshVisits, 10000);
+    // 10 s mientras cambian las visitas; si nada cambia en 6 consultas seguidas, cada 30 s
+    let timer = null;
+    let quiet = 0;
+    const loop = async () => {
+      const changed = await refreshVisits();
+      quiet = changed ? 0 : quiet + 1;
+      if (!cancelled) timer = setTimeout(loop, quiet >= 6 ? 30000 : 10000);
+    };
+    timer = setTimeout(loop, 10000);
     const onVisible = () => { if (document.visibilityState === 'visible') refreshVisits(); };
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       cancelled = true;
-      clearInterval(timer);
+      clearTimeout(timer);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [currentUser, activeTab]);

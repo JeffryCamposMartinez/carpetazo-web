@@ -10,23 +10,6 @@ const SORTS = [
 
 const formatNumber = (value) => Number(value || 0).toLocaleString('es-CL');
 
-// Un vendedor es la suma de sus carpetas públicas
-const groupSellers = (folders) => {
-  const sellers = new Map();
-  folders.forEach((folder) => {
-    const user = folder.user || {};
-    const key = user.username || folder.userId;
-    if (!key) return;
-    const entry = sellers.get(key) || { key, name: user.name || user.username || 'Vendedor', username: user.username || '', photoURL: user.photoURL || '', folders: 0, cards: 0, visits: 0, tcgs: new Set() };
-    entry.folders += 1;
-    entry.cards += folder._count?.cards || 0;
-    entry.visits += folder.totalVisits || 0;
-    if (folder.tcg) entry.tcgs.add(folder.tcg);
-    sellers.set(key, entry);
-  });
-  return [...sellers.values()].map((seller) => ({ ...seller, tcgs: [...seller.tcgs] }));
-};
-
 function Avatar({ seller }) {
   return seller.photoURL ? (
     <img src={seller.photoURL} alt="" loading="lazy" className="h-14 w-14 flex-shrink-0 rounded-full border-2 border-[#facc15] bg-white object-cover" />
@@ -35,32 +18,37 @@ function Avatar({ seller }) {
   );
 }
 
+// La búsqueda, el orden y la página se resuelven en el servidor (24 vendedores por página)
 export default function SellersPage() {
-  const [folders, setFolders] = useState([]);
+  const [result, setResult] = useState({ sellers: [], total: 0, pages: 1 });
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [sort, setSort] = useState('visits');
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    const timer = setTimeout(() => { setDebouncedQuery(query.trim()); setPage(1); }, 350);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   useEffect(() => {
     let cancelled = false;
-    api.getPublicFolders()
-      .then((res) => { if (!cancelled) startTransition(() => setFolders(res.success ? res.folders : [])); })
+    setLoading(true);
+    setFailed(false);
+    const params = new URLSearchParams();
+    if (debouncedQuery) params.set('q', debouncedQuery);
+    if (sort !== 'visits') params.set('sort', sort);
+    if (page > 1) params.set('page', String(page));
+    api.getSellers(params.toString())
+      .then((res) => { if (!cancelled) startTransition(() => setResult(res.success ? res : { sellers: [], total: 0, pages: 1 })); })
       .catch(() => { if (!cancelled) setFailed(true); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, []);
+  }, [debouncedQuery, sort, page]);
 
-  const sellers = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    const list = groupSellers(folders).filter((seller) => !term || seller.name.toLowerCase().includes(term) || seller.username.toLowerCase().includes(term));
-    const sorters = {
-      visits: (a, b) => (b.visits - a.visits) || (b.cards - a.cards),
-      cards: (a, b) => (b.cards - a.cards) || (b.visits - a.visits),
-      name: (a, b) => a.name.localeCompare(b.name, 'es'),
-    };
-    return list.sort(sorters[sort]);
-  }, [folders, query, sort]);
+  const sellers = useMemo(() => result.sellers.map((seller) => ({ ...seller, key: seller.username || seller.name, photoURL: seller.photoURL || '', tcgs: seller.tcgs || [] })), [result.sellers]);
 
   return (
     <div className="mx-auto w-full max-w-[1470px] px-3 py-3 sm:px-6 sm:py-6 lg:px-8">
@@ -82,7 +70,7 @@ export default function SellersPage() {
               className="h-11 w-full rounded-full border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-medium text-slate-900 transition focus:border-[#1e40af] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#facc15]/70"
             />
           </div>
-          <select value={sort} onChange={(event) => setSort(event.target.value)} aria-label="Ordenar" className="h-11 rounded-full border border-slate-200 bg-white px-4 text-sm font-bold text-[#12315f] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70">
+          <select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} aria-label="Ordenar" className="h-11 rounded-full border border-slate-200 bg-white px-4 text-sm font-bold text-[#12315f] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70">
             {SORTS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </div>
@@ -130,6 +118,18 @@ export default function SellersPage() {
               );
             })}
           </ul>
+        )}
+
+        {!loading && !failed && result.pages > 1 && (
+          <nav aria-label="Paginación" className="mt-6 flex items-center justify-center gap-3">
+            <button type="button" disabled={page <= 1} onClick={() => { setPage(page - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex h-10 items-center gap-1 rounded-full bg-white px-4 text-sm font-bold text-[#12315f] shadow-sm ring-1 ring-slate-900/5 disabled:opacity-40">
+              <span translate="no" className="material-symbols-outlined text-[18px]">chevron_left</span> Anterior
+            </button>
+            <span className="text-sm font-semibold tabular-nums text-slate-600">Página {page} de {result.pages}</span>
+            <button type="button" disabled={page >= result.pages} onClick={() => { setPage(page + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex h-10 items-center gap-1 rounded-full bg-white px-4 text-sm font-bold text-[#12315f] shadow-sm ring-1 ring-slate-900/5 disabled:opacity-40">
+              Siguiente <span translate="no" className="material-symbols-outlined text-[18px]">chevron_right</span>
+            </button>
+          </nav>
         )}
       </div>
     </div>

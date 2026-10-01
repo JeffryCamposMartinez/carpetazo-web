@@ -7,7 +7,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env'), quiet: true });
 const { PrismaClient } = require('@prisma/client');
 
-const ROOT = process.argv[2] || 'C:/Users/Jeffry/Desktop/CarpetazoUpdater/Descargas/Mitos_y_Leyendas';
+const ROOT = process.argv[2] || (process.env.CARPETAZO_DOWNLOADS ? process.env.CARPETAZO_DOWNLOADS + '/Mitos_y_Leyendas' : 'C:/Users/Jeffry/Desktop/CarpetazoUpdater/Descargas/Mitos_y_Leyendas');
 const OUT_DIR = process.argv[3] || path.join(__dirname, 'prisma', 'migrations', '20260930024500_backfill_product_physical_links');
 const CATEGORY_ID = 99;
 

@@ -11,7 +11,7 @@ try {
 const prisma = new PrismaClient();
 
 const CATEGORY_ID = 99;
-const BASE_DIR = 'C:\\Users\\Jeffry\\Desktop\\CarpetazoUpdater\\Descargas\\Mitos_y_Leyendas';
+const BASE_DIR = (process.env.CARPETAZO_DOWNLOADS ? process.env.CARPETAZO_DOWNLOADS + '\\Mitos_y_Leyendas' : 'C:\\Users\\Jeffry\\Desktop\\CarpetazoUpdater\\Descargas\\Mitos_y_Leyendas');
 const DATABASES = ['Imperio_DB', 'Furia_Extendido_DB', 'Primera_Era_DB'];
 const DRY_RUN = process.argv.includes('--dry-run');
 

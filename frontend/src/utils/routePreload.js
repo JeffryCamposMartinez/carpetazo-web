@@ -40,7 +40,9 @@ export const preloadRoute = (path) => {
 
 // Datos públicos de cada sección: quedan listos en memoria antes de que la pantalla los pida
 const prefetchSectionData = () => {
-  api.getPublicFolders().catch(() => {}); // portada, Carpetas y Vendedores
+  api.getFeatured().catch(() => {}); // portada
+  api.searchFolders('').catch(() => {}); // Carpetas (primera página)
+  api.getSellers('').catch(() => {}); // Vendedores (primera página)
   api.searchCards('').catch(() => {}); // Cartas (primera página)
 };
 
