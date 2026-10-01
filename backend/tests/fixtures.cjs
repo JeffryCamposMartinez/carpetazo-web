@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const B = 'http://localhost:8000/api';
 const UID_PREFIX = 'cztest-';
 const PEOPLE = ['seller', 'jerry', 'ignacio', 'ale', 'jeffry', 'nobuyer', 'admin'];
-const U = Object.fromEntries([...PEOPLE, 'temp', 'ghost', 'newbie', 'oldie', 'leaver'].map((name) => [name, UID_PREFIX + name]));
+const U = Object.fromEntries([...PEOPLE, 'temp', 'ghost', 'newbie', 'oldie', 'leaver', 'mailnew'].map((name) => [name, UID_PREFIX + name]));
 const NAMES = Object.fromEntries(PEOPLE.map((name) => [name, 'cztest_' + name]));
 // Correo que la simulación de Firebase da al administrador de prueba (ver tests/auth-stub.mjs y tests/run.cjs)
 const ADMIN_EMAIL = U.admin + '@test.local';

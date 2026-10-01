@@ -20,6 +20,7 @@ export default function Moderation() {
   const [reviews, setReviews] = useState(null);
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState('');
+  const [mailState, setMailState] = useState({ busy: false, text: '' });
 
   useEffect(() => {
     if (!currentUser) { setState('denied'); return undefined; }
@@ -38,6 +39,17 @@ export default function Moderation() {
   }, []);
 
   useEffect(() => { if (state === 'ok') load(); }, [state, load]);
+
+  const sendTestEmail = async () => {
+    setMailState({ busy: true, text: '' });
+    try {
+      const res = await api.sendTestEmail();
+      const reasons = { terms_not_accepted: 'la cuenta no ha aceptado los términos', not_configured: 'el envío no está configurado en el servidor', send_failed: 'el servidor de correo rechazó el envío', no_recipient: 'la cuenta no tiene correo válido' };
+      setMailState({ busy: false, text: res.sent ? 'Correo enviado. Revisa tu bandeja (y spam).' : `No se envió: ${reasons[res.reason] || 'motivo desconocido'}.` });
+    } catch (err) {
+      setMailState({ busy: false, text: err.message || 'No se pudo enviar el correo.' });
+    }
+  };
 
   const act = async (review, action) => {
     if (action === 'delete' && !window.confirm('¿Eliminar esta reseña? No se puede deshacer y el comprador podrá volver a calificar a este vendedor.')) return;
@@ -77,6 +89,11 @@ export default function Moderation() {
           <h1 className="text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Moderación</h1>
           <p className="mt-1 max-w-2xl text-sm text-slate-600 md:text-base">Reseñas reportadas o sospechosas. Aprobar la vuelve a mostrar y borra sus reportes; eliminar la borra definitivamente.</p>
         </header>
+
+        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl bg-white/70 p-3 ring-1 ring-blue-200">
+          <button type="button" onClick={sendTestEmail} disabled={mailState.busy} className="rounded-xl bg-[#1e40af] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{mailState.busy ? 'Enviando…' : 'Enviar correo de prueba'}</button>
+          <span className="text-sm text-slate-600">{mailState.text || 'Envía un correo a tu propia cuenta (solo sale si aceptó los términos).'}</span>
+        </div>
 
         {error && <p role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-200">{error}</p>}
 

@@ -5,7 +5,7 @@ const { setup, cleanup, prisma, ADMIN_EMAIL } = require('./fixtures.cjs');
 
 const root = path.join(__dirname, '..');
 const server = spawn(process.execPath, ['--import', './tests/register.mjs', 'server.js'], {
-  cwd: root, env: { ...process.env, TEST_AUTH_STUB: '1', PORT: '8000', ADMIN_EMAILS: ADMIN_EMAIL }, stdio: 'inherit'
+  cwd: root, env: { ...process.env, TEST_AUTH_STUB: '1', PORT: '8000', ADMIN_EMAILS: ADMIN_EMAIL, MAIL_TEST_OUTBOX: '1', SMTP_USER: '', SMTP_PASS: '' }, stdio: 'inherit'
 });
 let failed = false;
 server.on('exit', (code) => { if (code) { console.error('El servidor de pruebas no pudo iniciar.'); process.exit(1); } });

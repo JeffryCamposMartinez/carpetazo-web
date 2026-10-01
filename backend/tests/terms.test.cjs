@@ -86,6 +86,20 @@ const { prisma, NAMES, call, ok, acceptTerms } = require('./fixtures.cjs');
     ok('sesión sin cuenta en la base → 404', r.status === 404);
     await acceptTerms('jerry'); // ya aceptado: aceptar de nuevo es válido y no rompe nada
     ok('aceptar de nuevo la misma versión es inofensivo', (await call('GET', '/users/me', 'jerry')).j.legal.accepted === true);
+
+    // Correos: solo a cuentas con los términos aceptados (el envío real queda en memoria durante las pruebas)
+    ok('correo de prueba: usuario común → 403', (await call('POST', '/admin/test-email', 'jerry', {})).status === 403);
+    ok('correo de prueba: sin sesión → 401', (await call('POST', '/admin/test-email', null, {})).status === 401);
+    r = await call('POST', '/admin/test-email', 'admin', {});
+    ok('correo de prueba al propio administrador (aceptó) → se envía', r.status === 200 && r.j.sent === true, JSON.stringify(r.j));
+    r = await call('POST', '/admin/test-email', 'admin', { username: NAMES.jerry });
+    ok('correo a una cuenta que aceptó → se envía', r.status === 200 && r.j.sent === true, JSON.stringify(r.j));
+    await call('POST', '/users/sync', 'mailnew', { displayName: 'Sin Aceptar', username: 'cztest_mailnew' });
+    r = await call('POST', '/admin/test-email', 'admin', { username: 'cztest_mailnew' });
+    ok('correo a una cuenta que NO aceptó → no se envía', r.status === 200 && r.j.sent === false && r.j.reason === 'terms_not_accepted', JSON.stringify(r.j));
+    r = await call('POST', '/admin/test-email', 'admin', { username: 'no_existe_xyz' });
+    ok('correo a un usuario inexistente → 404', r.status === 404);
+    ok('correo con usuario inválido → 400', (await call('POST', '/admin/test-email', 'admin', { username: 'a' })).status === 400);
   } finally {
     await prisma.$disconnect();
   }

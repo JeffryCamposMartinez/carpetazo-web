@@ -119,6 +119,7 @@ export const api = {
   createReview: (data) => apiFetch('/reviews', { method: 'POST', body: JSON.stringify(data) }),
   reportReview: (id, reason) => apiFetch('/reviews/' + encodeURIComponent(id) + '/report', { method: 'POST', body: JSON.stringify({ reason }) }),
   getModerationReviews: () => apiFetch('/admin/reviews'),
+  sendTestEmail: () => apiFetch('/admin/test-email', { method: 'POST', body: JSON.stringify({}) }),
   approveReview: (id) => apiFetch('/admin/reviews/' + encodeURIComponent(id) + '/approve', { method: 'POST' }),
   deleteReview: (id) => apiFetch('/admin/reviews/' + encodeURIComponent(id), { method: 'DELETE' }),
   getMyWishlist: () => apiFetch('/wishlist/me'),

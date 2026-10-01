@@ -1,51 +1,52 @@
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
-import express from 'express';
+import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import sharp from 'sharp';
-import crypto from 'crypto';
-import fs from 'fs';
+import crypto from 'crypto';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '.env') });
-dotenv.config();
+dotenv.config();
 import { initializeApp } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-
-const FIREBASE_PROJECT_ID = 'carpetazo-db9d7';
-
-initializeApp({
-  projectId: FIREBASE_PROJECT_ID
-});
-
-// Middleware to validate Firebase ID Token
-const authenticateToken = async (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Format: Bearer <TOKEN>
-
-  if (!token) {
-    return res.status(401).json({ success: false, message: 'Token de autenticación requerido' });
-  }
-
-  try {
-    const decodedToken = await getAuth().verifyIdToken(token);
-    req.user = decodedToken; // Contains user payload (uid, email, etc.)
-    req.user.sub = decodedToken.uid; // Ensure 'sub' maps to 'uid' for backwards compatibility
-    next();
-  } catch (error) {
-    console.error('Error al verificar token Firebase:', error.message);
-    return res.status(403).json({ success: false, message: 'Token de autenticación inválido o expirado' });
-  }
-};
-
-import { PrismaClient, Prisma } from '@prisma/client';
-const prisma = new PrismaClient();
-
+import nodemailer from 'nodemailer';
+import { getAuth } from 'firebase-admin/auth';
+
+const FIREBASE_PROJECT_ID = 'carpetazo-db9d7';
+
+initializeApp({
+  projectId: FIREBASE_PROJECT_ID
+});
+
+// Middleware to validate Firebase ID Token
+const authenticateToken = async (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Format: Bearer <TOKEN>
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Token de autenticación requerido' });
+  }
+
+  try {
+    const decodedToken = await getAuth().verifyIdToken(token);
+    req.user = decodedToken; // Contains user payload (uid, email, etc.)
+    req.user.sub = decodedToken.uid; // Ensure 'sub' maps to 'uid' for backwards compatibility
+    next();
+  } catch (error) {
+    console.error('Error al verificar token Firebase:', error.message);
+    return res.status(403).json({ success: false, message: 'Token de autenticación inválido o expirado' });
+  }
+};
+
+import { PrismaClient, Prisma } from '@prisma/client';
+const prisma = new PrismaClient();
+
 const adminEmails = (process.env.ADMIN_EMAILS || '')
   .split(',')
   .map(email => email.trim().toLowerCase())
@@ -249,7 +250,7 @@ app.use('/api/users/username/check', routeLimiter(15 * 60 * 1000, 60));
 app.use('/api/users/username/available', routeLimiter(15 * 60 * 1000, 60));
 app.use('/api/orders/mine/:id/status', routeLimiter(15 * 60 * 1000, 120));
 app.use('/api/folders/me/stats', routeLimiter(15 * 60 * 1000, 600));
-app.use('/api/orders/mine/pending', routeLimiter(15 * 60 * 1000, 600));
+app.use('/api/orders/mine/pending', routeLimiter(15 * 60 * 1000, 600));
 // Rutas que escriben datos o hacen consultas pesadas
 app.get('/api/folders/search', routeLimiter(15 * 60 * 1000, 300));
 app.get('/api/sellers', routeLimiter(15 * 60 * 1000, 300));
@@ -290,53 +291,54 @@ app.use('/api/admin/reviews', routeLimiter(15 * 60 * 1000, 300));
 app.get('/api/legal/versions', routeLimiter(15 * 60 * 1000, 300));
 app.post('/api/users/me/accept-terms', routeLimiter(15 * 60 * 1000, 30));
 app.delete('/api/users/me/unaccepted', routeLimiter(15 * 60 * 1000, 10));
+app.post('/api/admin/test-email', routeLimiter(15 * 60 * 1000, 10));
 
 app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ limit: '2mb', extended: true }));
-
-// --- Términos y Condiciones y Política de Privacidad: versiones vigentes y aceptación ---
-// Si cambia el texto de alguno, se sube su versión aquí y en frontend/src/legal/versions.js (una prueba las compara).
-const LEGAL_CURRENT = { termsVersion: '2026-10-03', privacyVersion: '2026-10-03' };
-const NEW_ACCOUNT_WINDOW_MS = 24 * 60 * 60 * 1000; // solo una cuenta recién creada puede elegir su usuario al aceptar
-const ACCEPTED_CACHE_MS = 5 * 60 * 1000;
-const acceptedCache = new Map(); // firebaseUid -> hasta cuándo se da por vigente (solo aceptaciones vigentes)
-
-const latestAcceptance = (userId) => prisma.termsAcceptance.findFirst({ where: { userId }, orderBy: { acceptedAt: 'desc' }, select: { termsVersion: true, privacyVersion: true, isAdult: true, acceptedAt: true } });
-const isCurrentAcceptance = (row) => Boolean(row && row.isAdult && row.termsVersion === LEGAL_CURRENT.termsVersion && row.privacyVersion === LEGAL_CURRENT.privacyVersion);
-
-// Estado que se envía al propio usuario: qué versión rige, si ya aceptó y si puede elegir su usuario en este paso
-const getLegalStatus = async (user) => {
-  const last = await latestAcceptance(user.id);
-  return {
-    current: LEGAL_CURRENT,
-    accepted: isCurrentAcceptance(last),
-    acceptedAt: last?.acceptedAt || null,
-    canChooseUsername: !last && Date.now() - new Date(user.createdAt).getTime() < NEW_ACCOUNT_WINDOW_MS
-  };
-};
-
-// Sin aceptación vigente no se puede escribir nada (crear, editar, pedir, escribir...); leer sí, y las rutas de abajo siempre
-const TERMS_EXEMPT = [['POST', '/api/users/sync'], ['POST', '/api/users/me/accept-terms'], ['DELETE', '/api/users/me/unaccepted'], ['DELETE', '/api/users/me']];
-app.use('/api', async (req, res, next) => {
-  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
-  const path = req.originalUrl.split('?')[0].replace(/\/+$/, '');
-  if (TERMS_EXEMPT.some(([method, route]) => method === req.method && route === path)) return next();
-  const token = String(req.headers['authorization'] || '').split(' ')[1];
-  if (!token) return next(); // sin sesión: cada ruta decide si lo permite
-  try {
-    const decoded = await getAuth().verifyIdToken(token);
-    if ((acceptedCache.get(decoded.uid) || 0) > Date.now()) return next();
-    const user = await prisma.user.findUnique({ where: { firebaseUid: decoded.uid }, select: { id: true, role: true } });
-    if (!user || user.role === 'deleted') return next();
-    if (isCurrentAcceptance(await latestAcceptance(user.id))) {
-      acceptedCache.set(decoded.uid, Date.now() + ACCEPTED_CACHE_MS);
-      return next();
-    }
-    return res.status(403).json({ success: false, code: 'terms_required', message: 'Debes aceptar los Términos y Condiciones para continuar' });
-  } catch (_error) {
-    return next(); // token inválido o error momentáneo: la ruta responde con su propia validación
-  }
-});
+app.use(express.urlencoded({ limit: '2mb', extended: true }));
+
+// --- Términos y Condiciones y Política de Privacidad: versiones vigentes y aceptación ---
+// Si cambia el texto de alguno, se sube su versión aquí y en frontend/src/legal/versions.js (una prueba las compara).
+const LEGAL_CURRENT = { termsVersion: '2026-10-03', privacyVersion: '2026-10-03' };
+const NEW_ACCOUNT_WINDOW_MS = 24 * 60 * 60 * 1000; // solo una cuenta recién creada puede elegir su usuario al aceptar
+const ACCEPTED_CACHE_MS = 5 * 60 * 1000;
+const acceptedCache = new Map(); // firebaseUid -> hasta cuándo se da por vigente (solo aceptaciones vigentes)
+
+const latestAcceptance = (userId) => prisma.termsAcceptance.findFirst({ where: { userId }, orderBy: { acceptedAt: 'desc' }, select: { termsVersion: true, privacyVersion: true, isAdult: true, acceptedAt: true } });
+const isCurrentAcceptance = (row) => Boolean(row && row.isAdult && row.termsVersion === LEGAL_CURRENT.termsVersion && row.privacyVersion === LEGAL_CURRENT.privacyVersion);
+
+// Estado que se envía al propio usuario: qué versión rige, si ya aceptó y si puede elegir su usuario en este paso
+const getLegalStatus = async (user) => {
+  const last = await latestAcceptance(user.id);
+  return {
+    current: LEGAL_CURRENT,
+    accepted: isCurrentAcceptance(last),
+    acceptedAt: last?.acceptedAt || null,
+    canChooseUsername: !last && Date.now() - new Date(user.createdAt).getTime() < NEW_ACCOUNT_WINDOW_MS
+  };
+};
+
+// Sin aceptación vigente no se puede escribir nada (crear, editar, pedir, escribir...); leer sí, y las rutas de abajo siempre
+const TERMS_EXEMPT = [['POST', '/api/users/sync'], ['POST', '/api/users/me/accept-terms'], ['DELETE', '/api/users/me/unaccepted'], ['DELETE', '/api/users/me']];
+app.use('/api', async (req, res, next) => {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  const path = req.originalUrl.split('?')[0].replace(/\/+$/, '');
+  if (TERMS_EXEMPT.some(([method, route]) => method === req.method && route === path)) return next();
+  const token = String(req.headers['authorization'] || '').split(' ')[1];
+  if (!token) return next(); // sin sesión: cada ruta decide si lo permite
+  try {
+    const decoded = await getAuth().verifyIdToken(token);
+    if ((acceptedCache.get(decoded.uid) || 0) > Date.now()) return next();
+    const user = await prisma.user.findUnique({ where: { firebaseUid: decoded.uid }, select: { id: true, role: true } });
+    if (!user || user.role === 'deleted') return next();
+    if (isCurrentAcceptance(await latestAcceptance(user.id))) {
+      acceptedCache.set(decoded.uid, Date.now() + ACCEPTED_CACHE_MS);
+      return next();
+    }
+    return res.status(403).json({ success: false, code: 'terms_required', message: 'Debes aceptar los Términos y Condiciones para continuar' });
+  } catch (_error) {
+    return next(); // token inválido o error momentáneo: la ruta responde con su propia validación
+  }
+});
 // Proxy con caché hacia TCGCSV (Pokémon inglés y japonés): el navegador no puede llamarlo directo por CORS
 const TCGCSV_ALLOWED_PATH = /^\/tcgplayer\/(3|85)\/(groups|\d+\/products)$/;
 const TCGCSV_TTL_MS = 30 * 60 * 1000;
@@ -421,51 +423,51 @@ app.get('/api/proxy-image', async (req, res) => {
   }
 });
 
-
-// Sincronizar o crear usuario en la BD al iniciar sesin
-app.post('/api/users/sync', authenticateToken, async (req, res) => {
-  try {
-    const firebaseUid = req.user.sub;
-    const email = req.user.email || '';
-    if (!isOptionalText(req.body?.displayName, 100) || !isOptionalText(req.body?.username, 60)) return badRequest(res, 'Datos de usuario inválidos');
-    
-    let user = await prisma.user.findUnique({
-      where: { firebaseUid }
-    });
-    
-    if (!user) {
-      user = await prisma.user.create({
-        data: { 
-          firebaseUid, 
-          email,
-          name: req.body.displayName || '',
+
+// Sincronizar o crear usuario en la BD al iniciar sesin
+app.post('/api/users/sync', authenticateToken, async (req, res) => {
+  try {
+    const firebaseUid = req.user.sub;
+    const email = req.user.email || '';
+    if (!isOptionalText(req.body?.displayName, 100) || !isOptionalText(req.body?.username, 60)) return badRequest(res, 'Datos de usuario inválidos');
+    
+    let user = await prisma.user.findUnique({
+      where: { firebaseUid }
+    });
+    
+    if (!user) {
+      user = await prisma.user.create({
+        data: { 
+          firebaseUid, 
+          email,
+          name: req.body.displayName || '',
           username: validUsername(req.body.username) || validUsername(normalizeUsername(req.body.displayName).slice(0, 20)) || `user_${firebaseUid.slice(0, 12).toLowerCase()}`,
           photoURL: isAllowedStoredImageUrl(req.body.photoURL) ? req.body.photoURL : null,
-          role: req.user.email_verified === true && isAdminEmail(email) ? 'admin' : 'user'
-        }
-      });
-    } else {
-      if (user.role === 'deleted') await prisma.termsAcceptance.deleteMany({ where: { userId: user.id } });
-      user = await prisma.user.update({
-        where: { firebaseUid },
-        data: {
-          name: req.body.displayName || user.name,
+          role: req.user.email_verified === true && isAdminEmail(email) ? 'admin' : 'user'
+        }
+      });
+    } else {
+      if (user.role === 'deleted') await prisma.termsAcceptance.deleteMany({ where: { userId: user.id } });
+      user = await prisma.user.update({
+        where: { firebaseUid },
+        data: {
+          name: req.body.displayName || user.name,
           username: validUsername(req.body.username) || user.username || validUsername(normalizeUsername(user.name).slice(0, 20)) || `user_${firebaseUid.slice(0, 12).toLowerCase()}`,
           photoURL: user.photoURL || (isAllowedStoredImageUrl(req.body.photoURL) ? req.body.photoURL : null),
           ...(user.role === 'deleted' ? { role: 'user', email: email || user.email } : {}),
-          ...(req.user.email_verified === true && isAdminEmail(email) && user.role !== 'admin' ? { role: 'admin' } : {})
-        }
-      });
-    }
-    
-    res.json({ success: true, user, legal: await getLegalStatus(user) });
-  } catch (error) {
-    if (error.code === 'P2002') return res.status(409).json({ success: false, error: 'Ese nombre de usuario ya está en uso' });
-    console.error('Error syncing user:', error);
-    res.status(500).json({ success: false, error: 'Failed to sync user' });
-  }
-});
-
+          ...(req.user.email_verified === true && isAdminEmail(email) && user.role !== 'admin' ? { role: 'admin' } : {})
+        }
+      });
+    }
+    
+    res.json({ success: true, user, legal: await getLegalStatus(user) });
+  } catch (error) {
+    if (error.code === 'P2002') return res.status(409).json({ success: false, error: 'Ese nombre de usuario ya está en uso' });
+    console.error('Error syncing user:', error);
+    res.status(500).json({ success: false, error: 'Failed to sync user' });
+  }
+});
+
 app.get('/api/admin/me', authenticateToken, requireAdmin, async (req, res) => {
   res.json({ success: true, isAdmin: true, user: req.dbUser || null });
 });
@@ -516,16 +518,16 @@ const generateOrderCode = async () => {
   return crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
 };
 
-// PUT update card in folder
-app.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res) => {
-  try {
-    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    const folder = await prisma.folder.findUnique({ where: { id: req.params.id } });
-    
-    if (!user || !folder || folder.userId !== user.id) {
-      return res.status(403).json({ success: false, message: 'Not authorized' });
-    }
-    
+// PUT update card in folder
+app.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const folder = await prisma.folder.findUnique({ where: { id: req.params.id } });
+    
+    if (!user || !folder || folder.userId !== user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    
     const { price, stock, data } = req.body;
     if (!isValidPrice(price) || !isValidStock(stock) || !isSmallObject(data)) {
       return badRequest(res, 'Datos de carta inválidos');
@@ -542,54 +544,54 @@ app.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res) =>
         ...data
       };
     }
-    
+    
     const inFolder = await prisma.card.findFirst({ where: { id: req.params.cardId, folderId: req.params.id }, select: { id: true } });
     if (!inFolder) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
 
-    const card = await prisma.card.update({
-      where: { id: req.params.cardId, folderId: req.params.id },
-      data: dataToUpdate
-    });
-    
-    res.json({ success: true, card });
-  } catch (error) {
-    console.error('Error updating card:', error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-// DELETE card from folder
-app.delete('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res) => {
-  try {
-    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    const folder = await prisma.folder.findUnique({ where: { id: req.params.id } });
-    
-    if (!user || !folder || folder.userId !== user.id) {
-      return res.status(403).json({ success: false, message: 'Not authorized' });
-    }
-    
+    const card = await prisma.card.update({
+      where: { id: req.params.cardId, folderId: req.params.id },
+      data: dataToUpdate
+    });
+    
+    res.json({ success: true, card });
+  } catch (error) {
+    console.error('Error updating card:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// DELETE card from folder
+app.delete('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const folder = await prisma.folder.findUnique({ where: { id: req.params.id } });
+    
+    if (!user || !folder || folder.userId !== user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    
     const removed = await prisma.card.deleteMany({ where: { id: req.params.cardId, folderId: req.params.id } });
     if (removed.count === 0) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
-    
-    res.json({ success: true, message: 'Card deleted' });
-  } catch (error) {
-    console.error('Error deleting card:', error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-// PUT update folder
-app.put('/api/folders/:id', authenticateToken, async (req, res) => {
-  try {
-    const { name, color, tcg, isPublic } = req.body;
-    
-    // Validar propiedad de la carpeta
-    const folder = await prisma.folder.findUnique({
-      where: { id: req.params.id }
-    });
-    
-    if (!folder) return res.status(404).json({ success: false, message: 'Carpeta no encontrada' });
-    
+    
+    res.json({ success: true, message: 'Card deleted' });
+  } catch (error) {
+    console.error('Error deleting card:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// PUT update folder
+app.put('/api/folders/:id', authenticateToken, async (req, res) => {
+  try {
+    const { name, color, tcg, isPublic } = req.body;
+    
+    // Validar propiedad de la carpeta
+    const folder = await prisma.folder.findUnique({
+      where: { id: req.params.id }
+    });
+    
+    if (!folder) return res.status(404).json({ success: false, message: 'Carpeta no encontrada' });
+    
     const owner = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
     if (!owner || folder.userId !== owner.id) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
@@ -600,24 +602,24 @@ app.put('/api/folders/:id', authenticateToken, async (req, res) => {
     if (isPublic !== undefined && typeof isPublic !== 'boolean') return badRequest(res, 'Datos de carpeta inválidos');
 
     // Actualizar
-    const data = {};
-    if (name !== undefined) data.name = name;
-    if (color !== undefined) data.color = color;
-    if (tcg !== undefined) data.tcg = tcg;
-    if (isPublic !== undefined) data.isPublic = isPublic;
-
-    const updated = await prisma.folder.update({
-      where: { id: req.params.id },
-      data
-    });
-
-    res.json({ success: true, folder: updated });
-  } catch (error) {
-    console.error('Error al actualizar carpeta:', error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
+    const data = {};
+    if (name !== undefined) data.name = name;
+    if (color !== undefined) data.color = color;
+    if (tcg !== undefined) data.tcg = tcg;
+    if (isPublic !== undefined) data.isPublic = isPublic;
+
+    const updated = await prisma.folder.update({
+      where: { id: req.params.id },
+      data
+    });
+
+    res.json({ success: true, folder: updated });
+  } catch (error) {
+    console.error('Error al actualizar carpeta:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
 // PUT folder order: guarda el orden del álbum en una sola transacción (ids de sus cartas, en el orden deseado)
 app.put('/api/folders/:id/order', authenticateToken, async (req, res) => {
   try {
@@ -1142,94 +1144,94 @@ app.post('/api/orders/mine/:id/status', authenticateToken, async (req, res) => {
   }
 });
 
-// --- POKEMON TCG API PROXY CON CACHÉ ---
-const tcgCache = new Map();
-const CACHE_DURATION = 1000 * 60 * 60; // 1 hora en milisegundos
-const TCG_CACHE_MAX = 200; // tope de entradas: consultas distintas no pueden llenar la memoria
-const setTcgCache = (key, data) => {
-  if (tcgCache.size >= TCG_CACHE_MAX) tcgCache.delete(tcgCache.keys().next().value);
-  tcgCache.set(key, { timestamp: Date.now(), data });
-};
-
-app.get('/api/tcg/sets', async (req, res) => {
-    const cacheKey = 'sets';
-    
-    if (tcgCache.has(cacheKey)) {
-        const cached = tcgCache.get(cacheKey);
-        if (Date.now() - cached.timestamp < CACHE_DURATION) {
-            return res.json(cached.data);
-        }
-    }
-    
-    try {
-        const fetchOptions = process.env.POKEMON_TCG_API_KEY ? { headers: { 'X-Api-Key': process.env.POKEMON_TCG_API_KEY } } : {};
-          const response = await fetch('https://api.pokemontcg.io/v2/sets?orderBy=-releaseDate', fetchOptions);
-        if (!response.ok) throw new Error('Error fetching sets');
-        const data = await response.json();
-        
-        setTcgCache(cacheKey, data);
-        res.json(data);
-    } catch (error) {
-        console.error('TCG API Sets Error:', error);
-        res.status(500).json({ error: 'Failed to fetch sets' });
-    }
-});
-
-app.get('/api/tcg/cards', async (req, res) => {
-    const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-    if (query.length > 200) return badRequest(res, 'Búsqueda inválida');
-    const cacheKey = `cards_${query}`;
-    
-    if (tcgCache.has(cacheKey)) {
-        const cached = tcgCache.get(cacheKey);
-        if (Date.now() - cached.timestamp < CACHE_DURATION) {
-            return res.json(cached.data);
-        }
-    }
-    
-    try {
-        const url = query 
-            ? `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(query)}` 
-            : 'https://api.pokemontcg.io/v2/cards';
-            
-        const fetchOptions = process.env.POKEMON_TCG_API_KEY ? { headers: { 'X-Api-Key': process.env.POKEMON_TCG_API_KEY } } : {};
-          const response = await fetch(url, fetchOptions);
-        if (!response.ok) throw new Error('Error fetching cards');
-        const data = await response.json();
-        
-        setTcgCache(cacheKey, data);
-        res.json(data);
-    } catch (error) {
-        console.error('TCG API Cards Error:', error);
-        res.status(500).json({ error: 'Failed to fetch cards' });
-    }
-});
-
-
-// ==========================================
-// NUEVAS RUTAS PRISMA (REEMPLAZO FIRESTORE)
-// ==========================================
-
-// --- CARPETAS ---
-
-// Obtener mis carpetas
-app.get('/api/folders/me', authenticateToken, async (req, res) => {
-  try {
-    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-
-    const folders = await prisma.folder.findMany({
-      where: { userId: user.id },
-      include: { _count: { select: { cards: true } } },
-      orderBy: { createdAt: 'desc' }
-    });
-    res.json({ success: true, folders });
-  } catch (error) {
+// --- POKEMON TCG API PROXY CON CACHÉ ---
+const tcgCache = new Map();
+const CACHE_DURATION = 1000 * 60 * 60; // 1 hora en milisegundos
+const TCG_CACHE_MAX = 200; // tope de entradas: consultas distintas no pueden llenar la memoria
+const setTcgCache = (key, data) => {
+  if (tcgCache.size >= TCG_CACHE_MAX) tcgCache.delete(tcgCache.keys().next().value);
+  tcgCache.set(key, { timestamp: Date.now(), data });
+};
+
+app.get('/api/tcg/sets', async (req, res) => {
+    const cacheKey = 'sets';
+    
+    if (tcgCache.has(cacheKey)) {
+        const cached = tcgCache.get(cacheKey);
+        if (Date.now() - cached.timestamp < CACHE_DURATION) {
+            return res.json(cached.data);
+        }
+    }
+    
+    try {
+        const fetchOptions = process.env.POKEMON_TCG_API_KEY ? { headers: { 'X-Api-Key': process.env.POKEMON_TCG_API_KEY } } : {};
+          const response = await fetch('https://api.pokemontcg.io/v2/sets?orderBy=-releaseDate', fetchOptions);
+        if (!response.ok) throw new Error('Error fetching sets');
+        const data = await response.json();
+        
+        setTcgCache(cacheKey, data);
+        res.json(data);
+    } catch (error) {
+        console.error('TCG API Sets Error:', error);
+        res.status(500).json({ error: 'Failed to fetch sets' });
+    }
+});
+
+app.get('/api/tcg/cards', async (req, res) => {
+    const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    if (query.length > 200) return badRequest(res, 'Búsqueda inválida');
+    const cacheKey = `cards_${query}`;
+    
+    if (tcgCache.has(cacheKey)) {
+        const cached = tcgCache.get(cacheKey);
+        if (Date.now() - cached.timestamp < CACHE_DURATION) {
+            return res.json(cached.data);
+        }
+    }
+    
+    try {
+        const url = query 
+            ? `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(query)}` 
+            : 'https://api.pokemontcg.io/v2/cards';
+            
+        const fetchOptions = process.env.POKEMON_TCG_API_KEY ? { headers: { 'X-Api-Key': process.env.POKEMON_TCG_API_KEY } } : {};
+          const response = await fetch(url, fetchOptions);
+        if (!response.ok) throw new Error('Error fetching cards');
+        const data = await response.json();
+        
+        setTcgCache(cacheKey, data);
+        res.json(data);
+    } catch (error) {
+        console.error('TCG API Cards Error:', error);
+        res.status(500).json({ error: 'Failed to fetch cards' });
+    }
+});
+
+
+// ==========================================
+// NUEVAS RUTAS PRISMA (REEMPLAZO FIRESTORE)
+// ==========================================
+
+// --- CARPETAS ---
+
+// Obtener mis carpetas
+app.get('/api/folders/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const folders = await prisma.folder.findMany({
+      where: { userId: user.id },
+      include: { _count: { select: { cards: true } } },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ success: true, folders });
+  } catch (error) {
     console.error('Error en la ruta:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
+  }
+});
+
 // Visitas de las carpetas del usuario: consulta liviana para el contador en tiempo real del panel
 app.get('/api/folders/me/stats', authenticateToken, async (req, res) => {
   try {
@@ -1249,39 +1251,39 @@ app.get('/api/folders/me/stats', authenticateToken, async (req, res) => {
   }
 });
 
-// Juegos válidos de una carpeta (así se guardan en Folder.tcg)
-const FOLDER_TCGS = ['Pokemon', 'Mitos y Leyendas', 'Magic', 'YuGiOh', 'OnePiece'];
-
-// Crear carpeta
-app.post('/api/folders', authenticateToken, async (req, res) => {
-  try {
-    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+// Juegos válidos de una carpeta (así se guardan en Folder.tcg)
+const FOLDER_TCGS = ['Pokemon', 'Mitos y Leyendas', 'Magic', 'YuGiOh', 'OnePiece'];
+
+// Crear carpeta
+app.post('/api/folders', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
     const { name, description, isPublic, tcg, color } = req.body;
     if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     if (!isShortText(name, 100) || !isOptionalText(description, 1000) || !isOptionalText(tcg, 60) || !isOptionalText(color, 40)
       || (tcg !== undefined && tcg !== null && !FOLDER_TCGS.includes(tcg))
       || (isPublic !== undefined && typeof isPublic !== 'boolean')) {
       return badRequest(res, 'Datos de carpeta inválidos');
-    }
-    
-    const folder = await prisma.folder.create({
-      data: {
-        name,
-        description,
-        isPublic: isPublic !== undefined ? isPublic : false,
+    }
+    
+    const folder = await prisma.folder.create({
+      data: {
+        name,
+        description,
+        isPublic: isPublic !== undefined ? isPublic : false,
         userId: user.id,
         tcg: tcg || 'Pokemon',
-        color: color || 'red'
-      }
-    });
-    res.json({ success: true, folder });
-  } catch (error) {
+        color: color || 'red'
+      }
+    });
+    res.json({ success: true, folder });
+  } catch (error) {
     console.error('Error en la ruta:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-// Obtener detalles de una carpeta (y sus cartas)
+  }
+});
+
+// Obtener detalles de una carpeta (y sus cartas)
 // --- Vistas públicas: nunca se devuelve la entidad de la base de datos ---
 // Cualquier campo que no esté en estas listas NO sale por las rutas públicas (correo, RUT, banco, rol, firebaseUid…).
 const optionalAuth = async (req, _res, next) => {
@@ -1491,32 +1493,32 @@ app.get('/api/home/featured', async (_req, res) => {
   }
 });
 
-app.get('/api/folders/:id', optionalAuth, async (req, res) => {
-  try {
-    const folder = await prisma.folder.findUnique({
-      where: { id: req.params.id },
+app.get('/api/folders/:id', optionalAuth, async (req, res) => {
+  try {
+    const folder = await prisma.folder.findUnique({
+      where: { id: req.params.id },
       include: {
         cards: {
           orderBy: { createdAt: 'asc' }
         },
         user: { select: PUBLIC_SELLER_SELECT }
-      }
-    });
-    // Una carpeta privada no existe para nadie más que su dueño (mismo 404 que una carpeta inexistente)
-    const isFolderOwner = Boolean(req.user?.sub && folder?.user?.firebaseUid && folder.user.firebaseUid === req.user.sub);
-    if (!folder || (!folder.isPublic && !isFolderOwner)) return res.status(404).json({ success: false, message: 'Folder not found' });
-    res.json({ success: true, folder: { ...folder, user: toPublicSeller(folder.user, req.user?.sub, await getReviewSummary(folder.user.id)) } });
-  } catch (error) {
-    console.error('Error fetching folder:', error);
+      }
+    });
+    // Una carpeta privada no existe para nadie más que su dueño (mismo 404 que una carpeta inexistente)
+    const isFolderOwner = Boolean(req.user?.sub && folder?.user?.firebaseUid && folder.user.firebaseUid === req.user.sub);
+    if (!folder || (!folder.isPublic && !isFolderOwner)) return res.status(404).json({ success: false, message: 'Folder not found' });
+    res.json({ success: true, folder: { ...folder, user: toPublicSeller(folder.user, req.user?.sub, await getReviewSummary(folder.user.id)) } });
+  } catch (error) {
+    console.error('Error fetching folder:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
+  }
+});
+
   // Registrar visita a carpeta
   const recentVisits = new Map();
-  app.post('/api/folders/:id/visit', async (req, res) => {
-    try {
-      const folderId = req.params.id;
+  app.post('/api/folders/:id/visit', async (req, res) => {
+    try {
+      const folderId = req.params.id;
       const currentWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
 
       // Una visita por IP y carpeta cada 30 minutos (evita inflar el contador)
@@ -1526,60 +1528,60 @@ app.get('/api/folders/:id', optionalAuth, async (req, res) => {
       recentVisits.set(visitKey, now);
       if (recentVisits.size > 5000) {
         for (const [key, time] of recentVisits) if (time < now - 30 * 60 * 1000) recentVisits.delete(key);
-      }
-      
-      // Solo cuentan las visitas a carpetas públicas
-      const folder = await prisma.folder.findUnique({ where: { id: folderId }, select: { isPublic: true, lastVisitWeek: true } });
-      if (!folder || !folder.isPublic) return res.status(404).json({ success: false });
-
-      if (folder.lastVisitWeek !== currentWeek) {
-        await prisma.folder.update({
-          where: { id: folderId },
-          data: { weeklyVisits: 1, lastVisitWeek: currentWeek, totalVisits: { increment: 1 } }
-        });
-      } else {
-        await prisma.folder.update({
-          where: { id: folderId },
-          data: { weeklyVisits: { increment: 1 }, totalVisits: { increment: 1 } }
-        });
-      }
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Error registering visit:', error);
-      res.status(500).json({ success: false });
-    }
-  });
-
-  // Borrar carpeta
-app.delete('/api/folders/:id', authenticateToken, async (req, res) => {
-  try {
-    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    const folder = await prisma.folder.findUnique({ where: { id: req.params.id } });
-    
-    if (!user || !folder || folder.userId !== user.id) {
-      return res.status(403).json({ success: false, message: 'Not authorized' });
-    }
-    
-    await prisma.folder.delete({ where: { id: req.params.id } });
-    res.json({ success: true, message: 'Folder deleted' });
-  } catch (error) {
+      }
+      
+      // Solo cuentan las visitas a carpetas públicas
+      const folder = await prisma.folder.findUnique({ where: { id: folderId }, select: { isPublic: true, lastVisitWeek: true } });
+      if (!folder || !folder.isPublic) return res.status(404).json({ success: false });
+
+      if (folder.lastVisitWeek !== currentWeek) {
+        await prisma.folder.update({
+          where: { id: folderId },
+          data: { weeklyVisits: 1, lastVisitWeek: currentWeek, totalVisits: { increment: 1 } }
+        });
+      } else {
+        await prisma.folder.update({
+          where: { id: folderId },
+          data: { weeklyVisits: { increment: 1 }, totalVisits: { increment: 1 } }
+        });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error registering visit:', error);
+      res.status(500).json({ success: false });
+    }
+  });
+
+  // Borrar carpeta
+app.delete('/api/folders/:id', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const folder = await prisma.folder.findUnique({ where: { id: req.params.id } });
+    
+    if (!user || !folder || folder.userId !== user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    
+    await prisma.folder.delete({ where: { id: req.params.id } });
+    res.json({ success: true, message: 'Folder deleted' });
+  } catch (error) {
     console.error('Error en la ruta:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-// --- CARTAS DE CARPETAS ---
-
-// Agregar carta a una carpeta
-app.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
-  try {
-    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    const folder = await prisma.folder.findUnique({ where: { id: req.params.id } });
-    
-    if (!user || !folder || folder.userId !== user.id) {
-      return res.status(403).json({ success: false, message: 'Not authorized' });
-    }
-    
+  }
+});
+
+// --- CARTAS DE CARPETAS ---
+
+// Agregar carta a una carpeta
+app.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const folder = await prisma.folder.findUnique({ where: { id: req.params.id } });
+    
+    if (!user || !folder || folder.userId !== user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    
     const { tcgId, name, imageUrl, price, stock, data } = req.body;
     if (!isShortText(String(tcgId ?? ''), 100) || !isShortText(name, 300) || !isValidPrice(price) || !isValidStock(stock) || !isSmallObject(data)) {
       return badRequest(res, 'Datos de carta inválidos');
@@ -1587,50 +1589,50 @@ app.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
     if (imageUrl && !isAllowedStoredImageUrl(imageUrl)) {
       return res.status(400).json({ success: false, error: 'URL de imagen no permitida' });
     }
-      
-      const card = await prisma.card.create({
-        data: {
-          tcgId,
-          name,
-          imageUrl,
-          price: parseFloat(price) || null,
-          stock: stock !== undefined ? parseInt(stock) : 1,
-          data: data || null,
-          folderId: folder.id
-        }
-      });
-    res.json({ success: true, card });
-  } catch (error) {
+      
+      const card = await prisma.card.create({
+        data: {
+          tcgId,
+          name,
+          imageUrl,
+          price: parseFloat(price) || null,
+          stock: stock !== undefined ? parseInt(stock) : 1,
+          data: data || null,
+          folderId: folder.id
+        }
+      });
+    res.json({ success: true, card });
+  } catch (error) {
     console.error('Error en la ruta:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-// Borrar carta de una carpeta
-app.delete('/api/cards/:id', authenticateToken, async (req, res) => {
-  try {
-    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    const card = await prisma.card.findUnique({ 
-      where: { id: req.params.id },
-      include: { folder: true }
-    });
-    
-    if (!user || !card || card.folder.userId !== user.id) {
-      return res.status(403).json({ success: false, message: 'Not authorized' });
-    }
-    
-    await prisma.card.delete({ where: { id: req.params.id } });
-    res.json({ success: true, message: 'Card deleted' });
-  } catch (error) {
+  }
+});
+
+// Borrar carta de una carpeta
+app.delete('/api/cards/:id', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const card = await prisma.card.findUnique({ 
+      where: { id: req.params.id },
+      include: { folder: true }
+    });
+    
+    if (!user || !card || card.folder.userId !== user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    
+    await prisma.card.delete({ where: { id: req.params.id } });
+    res.json({ success: true, message: 'Card deleted' });
+  } catch (error) {
     console.error('Error en la ruta:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-
-// --- RUTAS PÚBLICAS Y MENSAJES ---
-
-// Obtener todas las carpetas pblicas
+  }
+});
+
+
+// --- RUTAS PÚBLICAS Y MENSAJES ---
+
+// Obtener todas las carpetas pblicas
 // Cartas subidas más recientemente en carpetas públicas (portada)
 app.get('/api/cards/recent', async (req, res) => {
   try {
@@ -1673,64 +1675,64 @@ app.get('/api/cards/recent', async (req, res) => {
   }
 });
 
-// --- Lista de cartas deseadas ---
-const WISHLIST_MAX_ITEMS = 200;
-const WISHLIST_PAGE_SIZE = 24;
-const WISHLIST_GAMES = ['Pokémon', 'Mitos y Leyendas', 'One Piece', 'Magic', 'Yu-Gi-Oh!', 'Riftbound'];
-const WISHLIST_GAME_BY_CATEGORY = { 1: 'Pokémon', 99: 'Mitos y Leyendas' };
-const WISHLIST_OWN_SELECT = { id: true, categoryId: true, productId: true, name: true, game: true, detail: true, imageUrl: true, quantity: true, maxPrice: true, priceVisible: true, note: true, createdAt: true };
-const hasControlChars = (text) => /[\u0000-\u001f]/.test(text);
-
-const currentUserId = async (req) => {
-  const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
-  return user?.id || null;
-};
-
-// Juego: solo los de la lista del sitio ("Pokemon" sin tilde se acepta). null = sin juego; undefined = inválido
-const normalizeWishlistGame = (value) => {
-  if (value === undefined || value === null || value === '') return null;
-  if (typeof value !== 'string') return undefined;
+// --- Lista de cartas deseadas ---
+const WISHLIST_MAX_ITEMS = 200;
+const WISHLIST_PAGE_SIZE = 24;
+const WISHLIST_GAMES = ['Pokémon', 'Mitos y Leyendas', 'One Piece', 'Magic', 'Yu-Gi-Oh!', 'Riftbound'];
+const WISHLIST_GAME_BY_CATEGORY = { 1: 'Pokémon', 99: 'Mitos y Leyendas' };
+const WISHLIST_OWN_SELECT = { id: true, categoryId: true, productId: true, name: true, game: true, detail: true, imageUrl: true, quantity: true, maxPrice: true, priceVisible: true, note: true, createdAt: true };
+const hasControlChars = (text) => /[\u0000-\u001f]/.test(text);
+
+const currentUserId = async (req) => {
+  const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
+  return user?.id || null;
+};
+
+// Juego: solo los de la lista del sitio ("Pokemon" sin tilde se acepta). null = sin juego; undefined = inválido
+const normalizeWishlistGame = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'string') return undefined;
   const GAME_ALIASES = { Pokemon: 'Pokémon', YuGiOh: 'Yu-Gi-Oh!', OnePiece: 'One Piece' }; // nombres con que se guardan las carpetas
-  const game = GAME_ALIASES[value.trim()] || value.trim();
-  return WISHLIST_GAMES.includes(game) ? game : undefined;
-};
-
-// Cantidad, precio máximo, visibilidad del precio y nota: se validan igual al crear y al editar
-const parseWishlistFields = (body) => {
-  const out = {};
-  if (body.quantity !== undefined) {
-    const quantity = Number(body.quantity);
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) return { error: 'Cantidad inválida' };
-    out.quantity = quantity;
-  }
-  if (body.maxPrice !== undefined) {
-    if (body.maxPrice === null || body.maxPrice === '') out.maxPrice = null;
-    else if (!isValidPrice(body.maxPrice)) return { error: 'Precio inválido' };
-    else out.maxPrice = Number(body.maxPrice);
-  }
-  if (body.priceVisible !== undefined) {
-    if (typeof body.priceVisible !== 'boolean') return { error: 'Dato inválido' };
-    out.priceVisible = body.priceVisible;
-  }
-  if (body.note !== undefined) {
-    if (body.note !== null && (!isOptionalText(body.note, 140) || hasControlChars(String(body.note).replace(/[\r\n]/g, ' ')))) return { error: 'Nota inválida' };
-    out.note = body.note ? String(body.note).trim() || null : null;
-  }
-  return { data: out };
-};
-
-app.get('/api/wishlist/me', authenticateToken, async (req, res) => {
-  try {
-    const userId = await currentUserId(req);
-    if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-    const items = await prisma.wishlistItem.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: WISHLIST_MAX_ITEMS, select: WISHLIST_OWN_SELECT });
-    res.json({ success: true, items, limit: WISHLIST_MAX_ITEMS });
-  } catch (error) {
-    console.error('Error loading wishlist:', error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
+  const game = GAME_ALIASES[value.trim()] || value.trim();
+  return WISHLIST_GAMES.includes(game) ? game : undefined;
+};
+
+// Cantidad, precio máximo, visibilidad del precio y nota: se validan igual al crear y al editar
+const parseWishlistFields = (body) => {
+  const out = {};
+  if (body.quantity !== undefined) {
+    const quantity = Number(body.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) return { error: 'Cantidad inválida' };
+    out.quantity = quantity;
+  }
+  if (body.maxPrice !== undefined) {
+    if (body.maxPrice === null || body.maxPrice === '') out.maxPrice = null;
+    else if (!isValidPrice(body.maxPrice)) return { error: 'Precio inválido' };
+    else out.maxPrice = Number(body.maxPrice);
+  }
+  if (body.priceVisible !== undefined) {
+    if (typeof body.priceVisible !== 'boolean') return { error: 'Dato inválido' };
+    out.priceVisible = body.priceVisible;
+  }
+  if (body.note !== undefined) {
+    if (body.note !== null && (!isOptionalText(body.note, 140) || hasControlChars(String(body.note).replace(/[\r\n]/g, ' ')))) return { error: 'Nota inválida' };
+    out.note = body.note ? String(body.note).trim() || null : null;
+  }
+  return { data: out };
+};
+
+app.get('/api/wishlist/me', authenticateToken, async (req, res) => {
+  try {
+    const userId = await currentUserId(req);
+    if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const items = await prisma.wishlistItem.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: WISHLIST_MAX_ITEMS, select: WISHLIST_OWN_SELECT });
+    res.json({ success: true, items, limit: WISHLIST_MAX_ITEMS });
+  } catch (error) {
+    console.error('Error loading wishlist:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
 // Cartas de la lista que hoy tienen otros vendedores (catálogos públicos, con stock y dentro del precio máximo)
 const WISHLIST_MATCH_TCG = { 1: 'Pokemon', 99: 'Mitos y Leyendas' };
 const WISHLIST_MATCHES_PER_ITEM = 5;
@@ -1769,263 +1771,263 @@ app.get('/api/wishlist/matches', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/wishlist', authenticateToken, async (req, res) => {
-  try {
-    const userId = await currentUserId(req);
-    if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-
-    const { productId, name, imageUrl, external } = req.body || {};
-    const parsed = parseWishlistFields(req.body || {});
-    if (parsed.error) return badRequest(res, parsed.error);
-    if (productId !== undefined && productId !== null && (typeof productId !== 'string' || productId.length > 40 || hasControlChars(productId))) return badRequest(res, 'Carta inválida');
-    const game = normalizeWishlistGame(req.body?.game);
-    if (game === undefined) return badRequest(res, 'Juego inválido');
-    const rawDetail = req.body?.detail;
-    if (rawDetail !== undefined && rawDetail !== null && (!isOptionalText(rawDetail, 100) || hasControlChars(String(rawDetail)))) return badRequest(res, 'Detalle inválido');
-    const detail = rawDetail ? String(rawDetail).trim() || null : null;
-
-    // Carta del catálogo propio (Mitos y Leyendas, Pokémon del catálogo): nombre, imagen, juego y edición salen de la base
-    const catalog = productId
-      ? await prisma.tcgProduct.findUnique({ where: { productId }, select: { productId: true, name: true, imageUrl: true, categoryId: true, group: { select: { name: true } } } })
-      : null;
-    let identity;
-    if (catalog) {
-      identity = { productId: catalog.productId, categoryId: catalog.categoryId, name: catalog.name, game: WISHLIST_GAME_BY_CATEGORY[catalog.categoryId] || game, detail: catalog.group?.name || detail, imageUrl: catalog.imageUrl || null };
-    } else if (external !== undefined) {
-      // Pokémon de TCGCSV (inglés 3, japonés 85): el catálogo no está en la base, el identificador se valida por forma
-      const externalCategory = Number(external?.categoryId);
-      const externalId = typeof external?.productId === 'string' || typeof external?.productId === 'number' ? String(external.productId) : '';
-      if (![3, 85].includes(externalCategory) || !/^\d{1,12}$/.test(externalId)) return badRequest(res, 'Carta inválida');
-      if (!isShortText(name, 100) || hasControlChars(name)) return badRequest(res, 'Carta inválida');
-      identity = { productId: `tcgcsv:${externalCategory}:${externalId}`, categoryId: 1, name: name.trim(), game: 'Pokémon', detail, imageUrl: imageUrl && isAllowedStoredImageUrl(imageUrl) ? imageUrl : null };
-    } else {
-      if (!isShortText(name, 100) || hasControlChars(name)) return badRequest(res, 'Escribe el nombre de la carta');
-      identity = { productId: null, categoryId: null, name: name.trim(), game, detail, imageUrl: imageUrl && isAllowedStoredImageUrl(imageUrl) ? imageUrl : null };
-    }
-
-    const item = await prisma.$transaction(async (tx) => {
-      const existing = identity.productId
-        ? await tx.wishlistItem.findUnique({ where: { userId_productId: { userId, productId: identity.productId } } })
-        : await tx.wishlistItem.findFirst({ where: { userId, productId: null, detail: identity.detail, name: { equals: identity.name, mode: 'insensitive' } } });
-      if (existing) {
-        // La misma carta no se duplica: se suma a la cantidad que ya buscaba
-        const quantity = Math.min(99, existing.quantity + (parsed.data.quantity ?? 1));
-        return tx.wishlistItem.update({ where: { id: existing.id }, data: { ...parsed.data, quantity }, select: WISHLIST_OWN_SELECT });
-      }
-      if ((await tx.wishlistItem.count({ where: { userId } })) >= WISHLIST_MAX_ITEMS) return null;
-      return tx.wishlistItem.create({ data: { userId, ...identity, ...parsed.data }, select: WISHLIST_OWN_SELECT });
-    });
-    if (!item) return badRequest(res, `Tu lista ya tiene ${WISHLIST_MAX_ITEMS} cartas. Quita alguna para agregar más.`);
-    res.json({ success: true, item });
-  } catch (error) {
-    console.error('Error adding wishlist item:', error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-app.put('/api/wishlist/:id', authenticateToken, async (req, res) => {
-  try {
-    const userId = await currentUserId(req);
-    if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-    const parsed = parseWishlistFields(req.body || {});
-    if (parsed.error) return badRequest(res, parsed.error);
-    const owned = await prisma.wishlistItem.findFirst({ where: { id: req.params.id, userId }, select: { id: true } });
-    if (!owned) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
-    const item = await prisma.wishlistItem.update({ where: { id: owned.id }, data: parsed.data, select: WISHLIST_OWN_SELECT });
-    res.json({ success: true, item });
-  } catch (error) {
-    console.error('Error updating wishlist item:', error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-app.delete('/api/wishlist/:id', authenticateToken, async (req, res) => {
-  try {
-    const userId = await currentUserId(req);
-    if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-    const removed = await prisma.wishlistItem.deleteMany({ where: { id: req.params.id, userId } });
-    if (removed.count === 0) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting wishlist item:', error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-// Lista pública de un jugador: solo si no la ocultó, y sin ningún dato privado
-app.get('/api/users/:username/wishlist', async (req, res) => {
-  try {
-    const username = typeof req.params.username === 'string' ? req.params.username.trim() : '';
-    const page = Number.parseInt(req.query.page, 10) || 1;
-    if (!username || username.length > 60 || page < 1 || page > 100) return badRequest(res, 'Consulta inválida');
-    const user = await prisma.user.findUnique({ where: { username }, select: { id: true, publicTheme: true } });
-    if (!user) return res.status(404).json({ success: false, message: 'Vendedor no encontrado' });
-    const theme = user.publicTheme && typeof user.publicTheme === 'object' ? user.publicTheme : {};
-    if (theme.showWishlist === 'off') return res.json({ success: true, hidden: true, total: 0, page: 1, pages: 1, items: [] });
-
-    const [total, rows] = await prisma.$transaction([
-      prisma.wishlistItem.count({ where: { userId: user.id } }),
-      prisma.wishlistItem.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * WISHLIST_PAGE_SIZE,
-        take: WISHLIST_PAGE_SIZE,
-        select: WISHLIST_OWN_SELECT,
-      }),
-    ]);
-    res.json({
-      success: true,
-      hidden: false,
-      total,
-      page,
-      pages: Math.max(1, Math.ceil(total / WISHLIST_PAGE_SIZE)),
-      items: rows.map((row) => ({
-        id: row.id,
-        name: row.name,
-        imageUrl: row.imageUrl,
-        quantity: row.quantity,
-        note: row.note,
-        maxPrice: row.priceVisible ? row.maxPrice : null,
-        tcg: row.game || WISHLIST_GAME_BY_CATEGORY[row.categoryId] || null,
-        detail: row.detail,
-      })),
-    });
-  } catch (error) {
-    console.error('Error loading public wishlist:', error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-// Búsqueda pública de cartas a la venta (solo carpetas públicas y con stock)
+app.post('/api/wishlist', authenticateToken, async (req, res) => {
+  try {
+    const userId = await currentUserId(req);
+    if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+
+    const { productId, name, imageUrl, external } = req.body || {};
+    const parsed = parseWishlistFields(req.body || {});
+    if (parsed.error) return badRequest(res, parsed.error);
+    if (productId !== undefined && productId !== null && (typeof productId !== 'string' || productId.length > 40 || hasControlChars(productId))) return badRequest(res, 'Carta inválida');
+    const game = normalizeWishlistGame(req.body?.game);
+    if (game === undefined) return badRequest(res, 'Juego inválido');
+    const rawDetail = req.body?.detail;
+    if (rawDetail !== undefined && rawDetail !== null && (!isOptionalText(rawDetail, 100) || hasControlChars(String(rawDetail)))) return badRequest(res, 'Detalle inválido');
+    const detail = rawDetail ? String(rawDetail).trim() || null : null;
+
+    // Carta del catálogo propio (Mitos y Leyendas, Pokémon del catálogo): nombre, imagen, juego y edición salen de la base
+    const catalog = productId
+      ? await prisma.tcgProduct.findUnique({ where: { productId }, select: { productId: true, name: true, imageUrl: true, categoryId: true, group: { select: { name: true } } } })
+      : null;
+    let identity;
+    if (catalog) {
+      identity = { productId: catalog.productId, categoryId: catalog.categoryId, name: catalog.name, game: WISHLIST_GAME_BY_CATEGORY[catalog.categoryId] || game, detail: catalog.group?.name || detail, imageUrl: catalog.imageUrl || null };
+    } else if (external !== undefined) {
+      // Pokémon de TCGCSV (inglés 3, japonés 85): el catálogo no está en la base, el identificador se valida por forma
+      const externalCategory = Number(external?.categoryId);
+      const externalId = typeof external?.productId === 'string' || typeof external?.productId === 'number' ? String(external.productId) : '';
+      if (![3, 85].includes(externalCategory) || !/^\d{1,12}$/.test(externalId)) return badRequest(res, 'Carta inválida');
+      if (!isShortText(name, 100) || hasControlChars(name)) return badRequest(res, 'Carta inválida');
+      identity = { productId: `tcgcsv:${externalCategory}:${externalId}`, categoryId: 1, name: name.trim(), game: 'Pokémon', detail, imageUrl: imageUrl && isAllowedStoredImageUrl(imageUrl) ? imageUrl : null };
+    } else {
+      if (!isShortText(name, 100) || hasControlChars(name)) return badRequest(res, 'Escribe el nombre de la carta');
+      identity = { productId: null, categoryId: null, name: name.trim(), game, detail, imageUrl: imageUrl && isAllowedStoredImageUrl(imageUrl) ? imageUrl : null };
+    }
+
+    const item = await prisma.$transaction(async (tx) => {
+      const existing = identity.productId
+        ? await tx.wishlistItem.findUnique({ where: { userId_productId: { userId, productId: identity.productId } } })
+        : await tx.wishlistItem.findFirst({ where: { userId, productId: null, detail: identity.detail, name: { equals: identity.name, mode: 'insensitive' } } });
+      if (existing) {
+        // La misma carta no se duplica: se suma a la cantidad que ya buscaba
+        const quantity = Math.min(99, existing.quantity + (parsed.data.quantity ?? 1));
+        return tx.wishlistItem.update({ where: { id: existing.id }, data: { ...parsed.data, quantity }, select: WISHLIST_OWN_SELECT });
+      }
+      if ((await tx.wishlistItem.count({ where: { userId } })) >= WISHLIST_MAX_ITEMS) return null;
+      return tx.wishlistItem.create({ data: { userId, ...identity, ...parsed.data }, select: WISHLIST_OWN_SELECT });
+    });
+    if (!item) return badRequest(res, `Tu lista ya tiene ${WISHLIST_MAX_ITEMS} cartas. Quita alguna para agregar más.`);
+    res.json({ success: true, item });
+  } catch (error) {
+    console.error('Error adding wishlist item:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+app.put('/api/wishlist/:id', authenticateToken, async (req, res) => {
+  try {
+    const userId = await currentUserId(req);
+    if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const parsed = parseWishlistFields(req.body || {});
+    if (parsed.error) return badRequest(res, parsed.error);
+    const owned = await prisma.wishlistItem.findFirst({ where: { id: req.params.id, userId }, select: { id: true } });
+    if (!owned) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
+    const item = await prisma.wishlistItem.update({ where: { id: owned.id }, data: parsed.data, select: WISHLIST_OWN_SELECT });
+    res.json({ success: true, item });
+  } catch (error) {
+    console.error('Error updating wishlist item:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+app.delete('/api/wishlist/:id', authenticateToken, async (req, res) => {
+  try {
+    const userId = await currentUserId(req);
+    if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const removed = await prisma.wishlistItem.deleteMany({ where: { id: req.params.id, userId } });
+    if (removed.count === 0) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting wishlist item:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Lista pública de un jugador: solo si no la ocultó, y sin ningún dato privado
+app.get('/api/users/:username/wishlist', async (req, res) => {
+  try {
+    const username = typeof req.params.username === 'string' ? req.params.username.trim() : '';
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    if (!username || username.length > 60 || page < 1 || page > 100) return badRequest(res, 'Consulta inválida');
+    const user = await prisma.user.findUnique({ where: { username }, select: { id: true, publicTheme: true } });
+    if (!user) return res.status(404).json({ success: false, message: 'Vendedor no encontrado' });
+    const theme = user.publicTheme && typeof user.publicTheme === 'object' ? user.publicTheme : {};
+    if (theme.showWishlist === 'off') return res.json({ success: true, hidden: true, total: 0, page: 1, pages: 1, items: [] });
+
+    const [total, rows] = await prisma.$transaction([
+      prisma.wishlistItem.count({ where: { userId: user.id } }),
+      prisma.wishlistItem.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * WISHLIST_PAGE_SIZE,
+        take: WISHLIST_PAGE_SIZE,
+        select: WISHLIST_OWN_SELECT,
+      }),
+    ]);
+    res.json({
+      success: true,
+      hidden: false,
+      total,
+      page,
+      pages: Math.max(1, Math.ceil(total / WISHLIST_PAGE_SIZE)),
+      items: rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        imageUrl: row.imageUrl,
+        quantity: row.quantity,
+        note: row.note,
+        maxPrice: row.priceVisible ? row.maxPrice : null,
+        tcg: row.game || WISHLIST_GAME_BY_CATEGORY[row.categoryId] || null,
+        detail: row.detail,
+      })),
+    });
+  } catch (error) {
+    console.error('Error loading public wishlist:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Búsqueda pública de cartas a la venta (solo carpetas públicas y con stock)
 const CARD_SEARCH_PAGE_SIZE = 24;
 // Las carpetas guardan el juego como Pokemon / YuGiOh / OnePiece; el sitio lo muestra como Pokémon / Yu-Gi-Oh! / One Piece
-const CARD_SEARCH_TCG_ALIASES = { 'Pokémon': 'Pokemon', 'Yu-Gi-Oh!': 'YuGiOh', 'One Piece': 'OnePiece' };
-const CARD_SEARCH_SORTS = {
-  recent: [{ createdAt: 'desc' }],
-  price_asc: [{ price: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
-  price_desc: [{ price: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
-};
-app.get('/api/cards/search', async (req, res) => {
-  try {
-    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-    const tcgRaw = typeof req.query.tcg === 'string' ? req.query.tcg.trim() : '';
-    const tcg = CARD_SEARCH_TCG_ALIASES[tcgRaw] || tcgRaw;
-    const sort = typeof req.query.sort === 'string' ? req.query.sort : 'recent';
-    const page = Number.parseInt(req.query.page, 10) || 1;
-    if (q.length > 80 || tcg.length > 60 || /[\u0000-\u001f]/.test(q + tcg) || !Object.hasOwn(CARD_SEARCH_SORTS, sort) || page < 1 || page > 1000) {
-      return badRequest(res, 'Búsqueda inválida');
-    }
-
-    const where = {
-      stock: { gt: 0 },
-      folder: { isPublic: true, ...(tcg ? { tcg } : {}) },
-      ...(q ? { name: { contains: q, mode: 'insensitive' } } : {}),
-    };
-    const [total, cards] = await prisma.$transaction([
-      prisma.card.count({ where }),
-      prisma.card.findMany({
-        where,
-        orderBy: CARD_SEARCH_SORTS[sort],
-        skip: (page - 1) * CARD_SEARCH_PAGE_SIZE,
-        take: CARD_SEARCH_PAGE_SIZE,
-        select: {
-          id: true,
-          name: true,
-          tcgId: true,
-          imageUrl: true,
-          price: true,
-          stock: true,
-          data: true,
-          folder: { select: { id: true, name: true, tcg: true, user: { select: { name: true, username: true, photoURL: true } } } },
-        },
-      }),
-    ]);
-
-    // Solo campos públicos: el JSON `data` de la carta puede traer más cosas
-    res.json({
-      success: true,
-      total,
-      page,
-      pages: Math.max(1, Math.ceil(total / CARD_SEARCH_PAGE_SIZE)),
-      cards: cards.map(({ data, ...card }) => ({
-        ...card,
-        language: data && typeof data === 'object' ? data.language || null : null,
-        set: data && typeof data === 'object' ? data.set || null : null,
-      })),
-    });
-  } catch (error) {
-    console.error('Error searching cards:', error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-app.get('/api/folders', async (req, res) => {
-  try {
-    const folders = await prisma.folder.findMany({
-      where: { isPublic: true },
+const CARD_SEARCH_TCG_ALIASES = { 'Pokémon': 'Pokemon', 'Yu-Gi-Oh!': 'YuGiOh', 'One Piece': 'OnePiece' };
+const CARD_SEARCH_SORTS = {
+  recent: [{ createdAt: 'desc' }],
+  price_asc: [{ price: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
+  price_desc: [{ price: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
+};
+app.get('/api/cards/search', async (req, res) => {
+  try {
+    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    const tcgRaw = typeof req.query.tcg === 'string' ? req.query.tcg.trim() : '';
+    const tcg = CARD_SEARCH_TCG_ALIASES[tcgRaw] || tcgRaw;
+    const sort = typeof req.query.sort === 'string' ? req.query.sort : 'recent';
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    if (q.length > 80 || tcg.length > 60 || /[\u0000-\u001f]/.test(q + tcg) || !Object.hasOwn(CARD_SEARCH_SORTS, sort) || page < 1 || page > 1000) {
+      return badRequest(res, 'Búsqueda inválida');
+    }
+
+    const where = {
+      stock: { gt: 0 },
+      folder: { isPublic: true, ...(tcg ? { tcg } : {}) },
+      ...(q ? { name: { contains: q, mode: 'insensitive' } } : {}),
+    };
+    const [total, cards] = await prisma.$transaction([
+      prisma.card.count({ where }),
+      prisma.card.findMany({
+        where,
+        orderBy: CARD_SEARCH_SORTS[sort],
+        skip: (page - 1) * CARD_SEARCH_PAGE_SIZE,
+        take: CARD_SEARCH_PAGE_SIZE,
+        select: {
+          id: true,
+          name: true,
+          tcgId: true,
+          imageUrl: true,
+          price: true,
+          stock: true,
+          data: true,
+          folder: { select: { id: true, name: true, tcg: true, user: { select: { name: true, username: true, photoURL: true } } } },
+        },
+      }),
+    ]);
+
+    // Solo campos públicos: el JSON `data` de la carta puede traer más cosas
+    res.json({
+      success: true,
+      total,
+      page,
+      pages: Math.max(1, Math.ceil(total / CARD_SEARCH_PAGE_SIZE)),
+      cards: cards.map(({ data, ...card }) => ({
+        ...card,
+        language: data && typeof data === 'object' ? data.language || null : null,
+        set: data && typeof data === 'object' ? data.set || null : null,
+      })),
+    });
+  } catch (error) {
+    console.error('Error searching cards:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+app.get('/api/folders', async (req, res) => {
+  try {
+    const folders = await prisma.folder.findMany({
+      where: { isPublic: true },
       include: { user: { select: { name: true, username: true, photoURL: true } }, _count: { select: { cards: true } } },
-      orderBy: { createdAt: 'desc' }
-    });
-    res.json({ success: true, folders });
-  } catch (error) {
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ success: true, folders });
+  } catch (error) {
     console.error('Error en la ruta:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-// Enviar un mensaje
-app.post('/api/messages', authenticateToken, async (req, res) => {
-  try {
-    const sender = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    const { receiverId, content } = req.body;
-    
+  }
+});
+
+// Enviar un mensaje
+app.post('/api/messages', authenticateToken, async (req, res) => {
+  try {
+    const sender = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const { receiverId, content } = req.body;
+    
     if (!receiverId || !content) return res.status(400).json({ success: false, message: 'Missing fields' });
     if (typeof receiverId !== 'string' || !isAllowedMessageContent(content)) return badRequest(res, 'Mensaje inválido');
     if (!sender) return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
     if (receiverId === sender.id || receiverId === sender.firebaseUid || receiverId === sender.username) {
       return res.status(400).json({ success: false, message: 'No puedes enviarte mensajes a ti mismo.' });
-    }
-    
-    const receiver = await resolveUserByAnyId(receiverId);
-    if (!receiver) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-    if (receiver.id === sender.id) return res.status(400).json({ success: false, message: 'No puedes enviarte mensajes a ti mismo.' });
-
-    const message = await prisma.message.create({
-      data: {
-        senderId: sender.id,
-        receiverId: receiver.id,
-        content
-      }
-    });
-    res.json({ success: true, message });
-  } catch (error) {
+    }
+    
+    const receiver = await resolveUserByAnyId(receiverId);
+    if (!receiver) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    if (receiver.id === sender.id) return res.status(400).json({ success: false, message: 'No puedes enviarte mensajes a ti mismo.' });
+
+    const message = await prisma.message.create({
+      data: {
+        senderId: sender.id,
+        receiverId: receiver.id,
+        content
+      }
+    });
+    res.json({ success: true, message });
+  } catch (error) {
     console.error('Error en la ruta:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-// Marcar mensaje como ledo
-app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
-  try {
-    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    const message = await prisma.message.findUnique({ where: { id: req.params.id } });
-    
-    if (!user || !message || message.receiverId !== user.id) {
-      return res.status(403).json({ success: false, message: 'Not authorized' });
-    }
-    
-    await prisma.message.update({
-      where: { id: req.params.id },
-      data: { isRead: true }
-    });
-    res.json({ success: true });
-  } catch (error) {
+  }
+});
+
+// Marcar mensaje como ledo
+app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const message = await prisma.message.findUnique({ where: { id: req.params.id } });
+    
+    if (!user || !message || message.receiverId !== user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    
+    await prisma.message.update({
+      where: { id: req.params.id },
+      data: { isRead: true }
+    });
+    res.json({ success: true });
+  } catch (error) {
     console.error('Error en la ruta:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-
+  }
+});
+
+
 // Contenido de un mensaje: texto plano o {v, text, imageUrl, imageBase64}. La imagen solo de hosts permitidos
 // (una URL cualquiera dejaría a quien envía ver la IP de quien lee) o una imagen embebida en base64.
 const isAllowedMessageContent = (content) => {
@@ -2101,25 +2103,25 @@ app.get('/api/messages/:otherId', authenticateToken, async (req, res) => {
     const otherUser = await resolveUserByAnyId(req.params.otherId);
     if (!otherUser) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     const otherId = otherUser.id;
-    
-    const messages = await prisma.message.findMany({
-      where: {
-        OR: [
-          { senderId: currentUser.id, receiverId: otherId },
-          { senderId: otherId, receiverId: currentUser.id }
-        ]
-      },
-      orderBy: { createdAt: 'asc' }
-    });
-    
-    res.json({ success: true, messages });
-  } catch (error) {
-    console.error('Error fetching messages:', error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-// POST new message
+    
+    const messages = await prisma.message.findMany({
+      where: {
+        OR: [
+          { senderId: currentUser.id, receiverId: otherId },
+          { senderId: otherId, receiverId: currentUser.id }
+        ]
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+    
+    res.json({ success: true, messages });
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// POST new message
 app.post('/api/messages/:otherId', authenticateToken, async (req, res) => {
   try {
     const currentUser = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
@@ -2128,22 +2130,22 @@ app.post('/api/messages/:otherId', authenticateToken, async (req, res) => {
     const otherUser = await resolveUserByAnyId(req.params.otherId);
     if (!otherUser) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     const otherId = otherUser.id;
-    const { content } = req.body;
-    
+    const { content } = req.body;
+    
     if (!content) return res.status(400).json({ success: false });
     if (!isAllowedMessageContent(content)) return badRequest(res, 'Mensaje inválido');
     if (otherId === currentUser.id) {
       return res.status(400).json({ success: false, message: 'No puedes enviarte mensajes a ti mismo.' });
-    }
-    
-    const message = await prisma.message.create({
-      data: {
-        senderId: currentUser.id,
-        receiverId: otherId,
-        content
-      }
-    });
-    
+    }
+    
+    const message = await prisma.message.create({
+      data: {
+        senderId: currentUser.id,
+        receiverId: otherId,
+        content
+      }
+    });
+    
     res.json({
       success: true,
       message,
@@ -2154,12 +2156,12 @@ app.post('/api/messages/:otherId', authenticateToken, async (req, res) => {
         photoURL: otherUser.photoURL
       }
     });
-  } catch (error) {
-    console.error('Error sending message:', error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
+  } catch (error) {
+    console.error('Error sending message:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
 // GET user chats: último mensaje con cada persona y no leídos, resueltos en la base (sin traer todo el historial)
 app.get('/api/chats', authenticateToken, async (req, res) => {
   try {
@@ -2205,6 +2207,61 @@ app.get('/api/chats', authenticateToken, async (req, res) => {
 
 
 // User profile management
+// --- Correos ---
+// Se envían por SMTP (Gmail con contraseña de aplicación: SMTP_USER y SMTP_PASS en el servidor).
+// Regla: SOLO se escribe a cuentas activas que tengan aceptada la versión vigente de los Términos y la Política.
+// En las pruebas (MAIL_TEST_OUTBOX=1, sin credenciales) los correos no salen: quedan en memoria.
+const mailTransport = process.env.SMTP_USER && process.env.SMTP_PASS
+  ? nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: false,
+    requireTLS: true,
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+  })
+  : process.env.MAIL_TEST_OUTBOX === '1' ? nodemailer.createTransport({ jsonTransport: true }) : null;
+const MAIL_FROM = `"Carpetazo" <${process.env.SMTP_USER || 'pruebas@carpetazo.test'}>`;
+
+const escapeHtml = (text) => String(text ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// Devuelve { sent, reason }. Nunca lanza: un correo que no sale no debe romper la acción del usuario.
+const sendUserEmail = async (userId, { subject, text, html }) => {
+  try {
+    if (!mailTransport) return { sent: false, reason: 'not_configured' };
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true, role: true } });
+    if (!user || user.role === 'deleted' || !user.email || user.email.endsWith('@deleted.invalid')) return { sent: false, reason: 'no_recipient' };
+    if (!isCurrentAcceptance(await latestAcceptance(user.id))) return { sent: false, reason: 'terms_not_accepted' };
+    await mailTransport.sendMail({ from: MAIL_FROM, to: user.email, subject, text, html });
+    return { sent: true };
+  } catch (error) {
+    console.error('Error sending email:', error.message);
+    return { sent: false, reason: 'send_failed' };
+  }
+};
+
+// Prueba del envío (solo administradores). Sin "username" se envía a sí mismo; con "username", a esa cuenta,
+// que igual debe tener los términos aceptados. El contenido es fijo: no se puede usar para escribir mensajes libres.
+app.post('/api/admin/test-email', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const username = req.body?.username;
+    if (username !== undefined && (typeof username !== 'string' || !validUsername(username))) return badRequest(res, 'Usuario inválido');
+    const target = username
+      ? await prisma.user.findUnique({ where: { username: validUsername(username) }, select: { id: true, name: true } })
+      : await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true, name: true } });
+    if (!target) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const name = target.name || 'Hola';
+    const result = await sendUserEmail(target.id, {
+      subject: 'Correo de prueba de Carpetazo',
+      text: `${name}:\n\nEste es un correo de prueba de Carpetazo.cl. Si lo recibiste, el envío de avisos funciona.\n\nEquipo Carpetazo\nhttps://carpetazo.cl`,
+      html: `<p>${escapeHtml(name)}:</p><p>Este es un correo de prueba de <b>Carpetazo.cl</b>. Si lo recibiste, el envío de avisos funciona.</p><p>Equipo Carpetazo<br><a href="https://carpetazo.cl">carpetazo.cl</a></p>`
+    });
+    res.json({ success: true, sent: result.sent, reason: result.reason || null });
+  } catch (error) {
+    console.error('Error in test email:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
 app.get('/api/legal/versions', (_req, res) => {
   res.json({ success: true, ...LEGAL_CURRENT });
 });
@@ -3013,16 +3070,16 @@ app.use((err, _req, res, _next) => {
   res.status(err?.status && err.status < 500 ? err.status : 500).json({ success: false, message: 'Error interno del servidor' });
 });
 
-app.listen(port, () => {
-    console.log(`🚀 Servidor backend corriendo en http://localhost:${port}`);
-});
-
-
-
-
-
-
-
+app.listen(port, () => {
+    console.log(`🚀 Servidor backend corriendo en http://localhost:${port}`);
+});
+
+
+
+
+
+
+
 
 
 
