@@ -171,6 +171,23 @@ export const registerModerationC = (app, deps) => {
     }
   });
 
+  // ============ Contadores para el menú del panel (cualquier integrante del equipo) ============
+  app.get('/api/admin/summary', authenticateToken, requireStaff(1), async (_req, res) => {
+    try {
+      const [reports, critical, cases, appeals, pendingBans] = await Promise.all([
+        prisma.report.count({ where: { status: 'open' } }),
+        prisma.report.count({ where: { status: 'open', severity: 'S1' } }),
+        prisma.fraudCase.count({ where: { status: { not: 'resolved' } } }),
+        prisma.appeal.count({ where: { status: 'open' } }),
+        prisma.sanction.count({ where: { status: 'pending_approval' } })
+      ]);
+      res.json({ success: true, reports, criticalReports: critical, cases, appeals, pendingBans });
+    } catch (error) {
+      console.error('Error loading summary:', error);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
   // ============ Métricas ============
   app.get('/api/admin/metrics', authenticateToken, requireStaff(3), async (_req, res) => {
     try {

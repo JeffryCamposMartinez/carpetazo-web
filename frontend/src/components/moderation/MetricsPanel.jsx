@@ -9,7 +9,7 @@ const SANCTION_LABELS = { warning: 'Advertencias', restrict_messages: 'Mensajes 
 
 const Card = ({ title, value, hint, tone = 'text-[#12315f]' }) => (
   <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5">
-    <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">{title}</p>
+    <p className="text-sm font-bold text-slate-500">{title}</p>
     <p className={`mt-1 text-3xl font-black tabular-nums ${tone}`}>{value}</p>
     {hint && <p className="mt-0.5 text-xs font-semibold text-slate-500">{hint}</p>}
   </div>
@@ -71,7 +71,7 @@ export default function MetricsPanel() {
         </div>
         {data.scans.last30d.recentIssues?.length > 0 && (
           <div className="mt-3 rounded-xl bg-amber-50 p-3 ring-1 ring-amber-200">
-            <h4 className="text-xs font-extrabold uppercase tracking-wide text-amber-900">Últimos problemas con los servicios</h4>
+            <h4 className="text-sm font-bold text-amber-900">Últimos problemas con los servicios</h4>
             <ul className="mt-1 space-y-0.5 text-xs text-amber-950">
               {data.scans.last30d.recentIssues.map((issue, index) => <li key={index}><span className="font-bold">{new Date(issue.createdAt).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}</span> · {issue.kind === 'card' ? 'carta' : 'perfil'} · {issue.verdict === 'unavailable' ? 'sin servicio' : `respondió ${issue.provider}`} · <code>{issue.detail}</code></li>)}
             </ul>
@@ -98,13 +98,13 @@ export default function MetricsPanel() {
             <li className={data.cases.responseOverdue ? 'font-bold text-red-600' : ''}>Descargos vencidos sin respuesta: <b>{data.cases.responseOverdue}</b></li>
             <li>Apelaciones abiertas: <b>{data.appeals.open}</b>{data.appeals.open ? ` (la más antigua: ${hoursLabel(data.appeals.oldestOpenHours)})` : ''}</li>
           </ul>
-          <h4 className="mt-3 text-xs font-extrabold uppercase tracking-wide text-slate-500">Medidas vigentes</h4>
+          <h4 className="mt-3 text-sm font-bold text-slate-500">Medidas vigentes</h4>
           {Object.keys(data.sanctionsActive).length === 0 ? <p className="text-sm text-slate-500">Ninguna.</p> : <ul className="text-sm">{Object.entries(data.sanctionsActive).map(([type, count]) => <li key={type}>{SANCTION_LABELS[type] || type}: <b>{count}</b></li>)}</ul>}
         </section>
         <section aria-label="Tipos y motivos" className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5">
           <h3 className="text-sm font-extrabold text-[#12315f]">Qué se reporta (30 días)</h3>
           <ul className="mt-2 space-y-1 text-sm">{last.byType.length === 0 ? <li className="text-slate-500">Sin reportes.</li> : last.byType.map((item) => <li key={item.type} className="flex justify-between"><span>{item.label}</span><b className="tabular-nums">{item.count}</b></li>)}</ul>
-          <h4 className="mt-3 text-xs font-extrabold uppercase tracking-wide text-slate-500">Motivos más frecuentes</h4>
+          <h4 className="mt-3 text-sm font-bold text-slate-500">Motivos más frecuentes</h4>
           <ul className="space-y-1 text-sm">{last.topReasons.map((item) => <li key={item.code} className="flex justify-between gap-3"><span className="min-w-0">{item.label}</span><b className="tabular-nums">{item.count}</b></li>)}</ul>
         </section>
         <section aria-label="Detección automática" className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5">

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../utils/api';
-import { Badge, ErrorBox, Pills, Spinner, dateTime } from './shared';
+import { Badge, DetailHeader, DetailPane, EmptyState, ErrorBox, Pills, Spinner, dateTime, relativeTime } from './shared';
 
 const STATUS = {
   open: { label: 'Nuevo', className: 'bg-blue-100 text-blue-800' },
@@ -63,12 +63,9 @@ function CaseDetail({ id, level, onClose, onChanged, onOpenPerson, onOpenReport 
   const needsDays = resolution === 'restricted' || resolution === 'suspended';
   const item = data?.case;
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
-        <h2 className="min-w-0 truncate text-base font-black text-[#12315f]">{item ? `${item.shortCode} · Estafa` : 'Cargando…'}</h2>
-        <button type="button" onClick={onClose} className="rounded-full px-3 py-1.5 text-sm font-bold text-slate-600 hover:bg-slate-100">Cerrar</button>
-      </div>
-      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <DetailHeader title={item ? 'Caso de estafa' : 'Cargando…'} subtitle={item ? item.shortCode : undefined} onClose={onClose} />
+      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 pb-10">
         <ErrorBox>{error}</ErrorBox>
         {!data && !error && <Spinner />}
         {item && (
@@ -94,7 +91,7 @@ function CaseDetail({ id, level, onClose, onChanged, onOpenPerson, onOpenReport 
             )}
 
             <section>
-              <h3 className="mb-1 text-xs font-extrabold uppercase tracking-wide text-slate-500">Reportes ({data.reports.length})</h3>
+              <h3 className="mb-1 text-sm font-bold text-slate-500">Reportes ({data.reports.length})</h3>
               <ul className="space-y-2">
                 {data.reports.map((report) => (
                   <li key={report.id} className="rounded-xl bg-slate-50 p-3 text-sm">
@@ -113,7 +110,7 @@ function CaseDetail({ id, level, onClose, onChanged, onOpenPerson, onOpenReport 
             </section>
 
             <section>
-              <h3 className="mb-1 text-xs font-extrabold uppercase tracking-wide text-slate-500">Descargo del vendedor</h3>
+              <h3 className="mb-1 text-sm font-bold text-slate-500">Descargo del vendedor</h3>
               {item.sellerResponse ? (
                 <p className="whitespace-pre-line break-words rounded-xl bg-emerald-50 p-3 text-sm text-slate-700 ring-1 ring-emerald-200">{item.sellerResponse}<span className="mt-1 block text-xs font-bold text-emerald-800">Recibido {dateTime(item.sellerRespondedAt)}</span></p>
               ) : <p className="text-sm italic text-slate-400">{item.status === 'awaiting_response' ? 'Esperando su respuesta.' : 'Todavía no se pide el descargo.'}</p>}
@@ -124,13 +121,13 @@ function CaseDetail({ id, level, onClose, onChanged, onOpenPerson, onOpenReport 
 
             {data.sanctions.length > 0 && (
               <section>
-                <h3 className="mb-1 text-xs font-extrabold uppercase tracking-wide text-slate-500">Medidas sobre la cuenta</h3>
+                <h3 className="mb-1 text-sm font-bold text-slate-500">Medidas sobre la cuenta</h3>
                 <ul className="space-y-1 text-sm text-slate-700">{data.sanctions.map((sanction) => <li key={sanction.id}>· {sanction.type} — {sanction.status}{sanction.automatic ? ' (automática)' : ''}</li>)}</ul>
               </section>
             )}
 
             <section>
-              <h3 className="mb-1 text-xs font-extrabold uppercase tracking-wide text-slate-500">Línea de tiempo</h3>
+              <h3 className="mb-1 text-sm font-bold text-slate-500">Línea de tiempo</h3>
               {data.timeline.length === 0 ? <p className="text-sm italic text-slate-400">Sin acciones todavía.</p> : (
                 <ol className="space-y-1.5">{data.timeline.map((entry) => <li key={entry.id} className="text-sm text-slate-700"><span className="font-bold">{entry.action}</span> · {entry.actor} · <span className="text-xs text-slate-400">{dateTime(entry.createdAt)}</span>{entry.note && <span className="block text-slate-600">{entry.note}</span>}</li>)}</ol>
               )}
@@ -138,7 +135,7 @@ function CaseDetail({ id, level, onClose, onChanged, onOpenPerson, onOpenReport 
 
             {item.status !== 'resolved' && item.allowedActions.includes('resolve') && (
               <section aria-label="Resolver el caso" className="rounded-2xl border border-slate-200 p-3">
-                <h3 className="mb-2 text-xs font-extrabold uppercase tracking-wide text-slate-500">Resolver</h3>
+                <h3 className="mb-2 text-sm font-bold text-slate-500">Resolver</h3>
                 <label className="block text-sm font-extrabold text-slate-700">
                   Decisión
                   <select value={resolution} onChange={(event) => setResolution(event.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold">
@@ -169,7 +166,7 @@ function CaseDetail({ id, level, onClose, onChanged, onOpenPerson, onOpenReport 
             {item.status === 'resolved' && <p className="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Resuelto: {item.resolution}{item.resolutionNote ? ` — ${item.resolutionNote}` : ''}</p>}
             {level >= 3 && (
               <section aria-label="Informe para autoridades" className="rounded-2xl border border-slate-200 p-3">
-                <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Informe para autoridades</h3>
+                <h3 className="text-sm font-bold text-slate-500">Informe para autoridades</h3>
                 <p className="mt-1 text-xs font-semibold text-slate-500">Genera un documento con los reportes, el descargo, las medidas y la línea de tiempo. No incluye correos, RUT, teléfonos ni datos bancarios (esos se entregan solo con requerimiento formal, revisado por un abogado).</p>
                 <button type="button" disabled={busy} onClick={exportReport} className="mt-2 h-10 rounded-full border-2 border-[#12315f] px-5 text-sm font-extrabold text-[#12315f] disabled:opacity-50">Descargar informe</button>
               </section>
@@ -195,8 +192,8 @@ export default function CasesPanel({ level, onOpenPerson, onOpenReport }) {
   useEffect(() => { load(); }, [load]);
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-      <section aria-label="Casos de estafa" className={selected ? 'hidden lg:block' : ''}>
+    <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] xl:gap-5">
+      <section aria-label="Casos de estafa" className={selected ? 'hidden xl:block' : ''}>
         <Pills label="Estado del caso" value={status} onChange={(value) => { setPage(1); setStatus(value); }} options={[['active', 'Abiertos'], ['awaiting_response', 'Esperando descargo'], ['in_review', 'En revisión'], ['resolved', 'Resueltos']]} />
         <ErrorBox>{error}</ErrorBox>
         {list === null ? <Spinner /> : list.cases.length === 0 ? (
@@ -209,16 +206,19 @@ export default function CasesPanel({ level, onOpenPerson, onOpenReport }) {
           <ul className="space-y-2">
             {list.cases.map((item) => (
               <li key={item.id}>
-                <button type="button" onClick={() => setSelected(item.id)} aria-current={selected === item.id} className={`w-full rounded-2xl bg-white p-3 text-left shadow-sm ring-1 transition hover:ring-[#1e40af] ${selected === item.id ? 'ring-2 ring-[#1e40af]' : 'ring-slate-900/5'}`}>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge className={STATUS[item.status]?.className}>{STATUS[item.status]?.label}</Badge>
-                    {item.priority === 'high' && <Badge className="bg-red-600 text-white">Alta</Badge>}
-                    <Badge className="bg-rose-100 text-rose-800">{item.reportCount} {item.reportCount === 1 ? 'reporte' : 'reportes'}</Badge>
-                    <span className="ml-auto text-xs font-semibold text-slate-500">{dateTime(item.openedAt)}</span>
+                <button type="button" onClick={() => setSelected(item.id)} aria-current={selected === item.id} className={`relative flex w-full items-start gap-3 overflow-hidden rounded-xl bg-white py-3 pl-5 pr-3 text-left transition-shadow hover:shadow-md ${selected === item.id ? 'ring-2 ring-[#1e40af]' : 'ring-1 ring-slate-900/5'}`}>
+                  <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1.5 ${item.priority === 'high' ? 'bg-red-600' : 'bg-[#1e40af]'}`} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[15px] font-extrabold leading-snug text-[#12315f]">@{item.subject?.username || 'cuenta eliminada'}</p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                      <span className={`font-bold ${item.priority === 'high' ? 'text-red-700' : 'text-slate-600'}`}>{item.priority === 'high' ? 'Prioridad alta' : 'Prioridad normal'}</span>
+                      <span>{item.reportCount} {item.reportCount === 1 ? 'reporte' : 'reportes'}</span>
+                      <span className="font-bold">{STATUS[item.status]?.label}</span>
+                      {item.responded && item.status === 'in_review' && <span className="font-bold text-emerald-700">Ya respondió</span>}
+                    </div>
+                    {item.responseDueAt && item.status === 'awaiting_response' && <p className="mt-1 text-xs font-bold text-amber-800">Debe responder antes del {dateTime(item.responseDueAt)}</p>}
                   </div>
-                  <p className="mt-1.5 text-sm font-extrabold text-[#12315f]">{item.shortCode} · @{item.subject?.username || 'cuenta eliminada'}</p>
-                  {item.responseDueAt && item.status === 'awaiting_response' && <p className="text-xs font-bold text-amber-800">Responde hasta {dateTime(item.responseDueAt)}</p>}
-                  {item.responded && item.status === 'in_review' && <p className="text-xs font-bold text-emerald-700">El vendedor ya respondió</p>}
+                  <div className="shrink-0 text-right text-xs text-slate-500"><time dateTime={item.openedAt} title={dateTime(item.openedAt)}>{relativeTime(item.openedAt)}</time><p className="mt-0.5 font-mono">{item.shortCode}</p></div>
                 </button>
               </li>
             ))}
@@ -233,10 +233,10 @@ export default function CasesPanel({ level, onOpenPerson, onOpenReport }) {
         )}
       </section>
       {selected ? (
-        <section aria-label="Detalle del caso" className="max-h-[calc(100vh-140px)] overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 lg:sticky lg:top-4">
+        <DetailPane label="Detalle del caso">
           <CaseDetail id={selected} level={level} onClose={() => setSelected(null)} onChanged={load} onOpenPerson={onOpenPerson} onOpenReport={onOpenReport} />
-        </section>
-      ) : <section className="hidden items-center justify-center rounded-2xl bg-white/60 p-8 text-center text-sm font-semibold text-slate-500 lg:flex">Elige un caso para ver los reportes, el descargo y resolver.</section>}
+        </DetailPane>
+      ) : <section className="hidden items-center justify-center rounded-2xl bg-white/60 p-10 text-center text-sm font-semibold text-slate-500 xl:flex">Elige un caso para ver los reportes, el descargo y resolver.</section>}
     </div>
   );
 }

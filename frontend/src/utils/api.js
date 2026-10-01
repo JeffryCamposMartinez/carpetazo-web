@@ -136,6 +136,7 @@ export const api = {
   noteReport: (id, note) => apiFetch('/admin/reports/' + encodeURIComponent(id) + '/note', { method: 'POST', body: JSON.stringify({ note }) }),
   getModerationAudit: (page = 1) => apiFetch('/admin/audit?page=' + page),
   getModerationMetrics: () => apiFetch('/admin/metrics'),
+  getModerationSummary: () => apiFetch('/admin/summary'),
   getRetention: () => apiFetch('/admin/retention'),
   runRetention: () => apiFetch('/admin/retention/run', { method: 'POST', body: JSON.stringify({}) }),
   exportCase: (id, purpose, reference) => apiFetch('/admin/cases/' + encodeURIComponent(id) + '/export', { method: 'POST', body: JSON.stringify({ purpose, reference: reference || undefined }) }),

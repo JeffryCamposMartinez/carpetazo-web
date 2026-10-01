@@ -35,9 +35,9 @@ export default function RetentionPanel() {
 
   if (!data && !error) return <Spinner />;
   return (
-    <section aria-label="Retención de datos" className="rounded-2xl bg-white/70 p-4 ring-1 ring-blue-200">
+    <section aria-label="Retención de datos" className="rounded-2xl bg-white p-4 ring-1 ring-slate-900/5">
       <h3 className="text-lg font-extrabold text-[#12315f]">Retención de datos</h3>
-      <p className="mt-1 text-sm text-slate-600">Cada día se eliminan solos los registros de moderación que superaron su plazo. Nunca se borra un reporte con una apelación abierta.</p>
+      <p className="mt-1 text-sm leading-relaxed text-slate-600">Cada día se eliminan solos los registros de moderación que superaron su plazo. Nunca se borra un reporte con una apelación abierta.</p>
       <ErrorBox>{error}</ErrorBox>
       {data && (
         <>
@@ -48,7 +48,7 @@ export default function RetentionPanel() {
         </>
       )}
       {result && <p role="status" className="mt-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800">{result.total === 0 ? 'No había nada que eliminar.' : `Eliminado: ${Object.entries(result.counts).filter(([, value]) => value > 0).map(([key, value]) => `${value} ${COUNT_LABELS[key] || key}`).join(', ')}.`}</p>}
-      <button type="button" disabled={busy} onClick={run} className="mt-3 h-11 rounded-full border-2 border-slate-400 px-5 text-sm font-extrabold text-slate-700 disabled:opacity-50">{busy ? 'Ejecutando…' : 'Ejecutar ahora'}</button>
+      <button type="button" disabled={busy} onClick={run} className="mt-3 h-11 rounded-full border-2 border-slate-400 px-6 text-sm font-extrabold text-slate-700 disabled:opacity-50">{busy ? 'Ejecutando…' : 'Ejecutar ahora'}</button>
     </section>
   );
 }

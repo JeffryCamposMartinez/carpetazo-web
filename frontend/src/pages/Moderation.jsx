@@ -10,9 +10,21 @@ import PeoplePanel from '../components/moderation/PeoplePanel';
 import AppealsPanel from '../components/moderation/AppealsPanel';
 import MetricsPanel from '../components/moderation/MetricsPanel';
 import RetentionPanel from '../components/moderation/RetentionPanel';
+import ModNav from '../components/moderation/ModNav';
+import { EmptyState, Spinner } from '../components/moderation/shared';
 
 // Pestañas según el rol: soporte (1) lee, moderador (2) decide, administrador (3) además ve reseñas, auditoría y herramientas
-const TABS = [['reports', 'Reportes', 1], ['cases', 'Estafas', 1], ['people', 'Personas y medidas', 1], ['appeals', 'Apelaciones', 1], ['reviews', 'Reseñas marcadas', 3], ['metrics', 'Métricas', 3], ['audit', 'Auditoría', 3], ['tools', 'Herramientas', 3]];
+const TABS = [
+  { id: 'reports', label: 'Reportes', icon: 'flag', min: 1 },
+  { id: 'cases', label: 'Estafas', icon: 'security', min: 1 },
+  { id: 'people', label: 'Personas y medidas', icon: 'groups', min: 1 },
+  { id: 'appeals', label: 'Apelaciones', icon: 'gavel', min: 1 },
+  { id: 'reviews', label: 'Reseñas marcadas', icon: 'reviews', min: 3 },
+  { id: 'metrics', label: 'Métricas', icon: 'monitoring', min: 3 },
+  { id: 'audit', label: 'Auditoría', icon: 'history', min: 3 },
+  { id: 'tools', label: 'Herramientas', icon: 'build', min: 3 }
+];
+const ROLE_LABELS = { 1: 'Soporte (solo lectura)', 2: 'Moderador', 3: 'Administrador' };
 
 // Sección de moderación (solo administradores): reseñas reportadas o sospechosas, para aprobarlas o eliminarlas.
 // El servidor vuelve a comprobar que quien llama es administrador en cada acción.
@@ -28,6 +40,7 @@ export default function Moderation() {
   const { currentUser } = useAuth();
   const [state, setState] = useState('checking'); // checking | denied | ok
   const [tab, setTab] = useState('reports');
+  const [summary, setSummary] = useState(null);
   const [level, setLevel] = useState(0);
   const [focusUsername, setFocusUsername] = useState('');
   const [focusReportId, setFocusReportId] = useState('');
@@ -54,6 +67,22 @@ export default function Moderation() {
   }, []);
 
   useEffect(() => { if (state === 'ok' && level >= 3) load(); }, [state, level, load]);
+
+  // Contadores del menú: se actualizan al cambiar de sección y cada minuto
+  useEffect(() => {
+    if (state !== 'ok') return undefined;
+    let cancelled = false;
+    const load = () => api.getModerationSummary().then((res) => { if (!cancelled) setSummary(res); }).catch(() => {});
+    load();
+    const timer = window.setInterval(load, 60000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [state, tab]);
+
+  const navItems = TABS.filter((item) => level >= item.min).map((item) => ({
+    ...item,
+    count: item.id === 'reports' ? summary?.reports : item.id === 'cases' ? summary?.cases : item.id === 'appeals' ? summary?.appeals : item.id === 'people' ? summary?.pendingBans : 0,
+    alert: item.id === 'reports' && (summary?.criticalReports || 0) > 0
+  }));
 
   const openPerson = (username, reportId) => { setFocusUsername(username); setSanctionReportId(reportId || ''); setTab('people'); };
   const openReport = (id) => { setFocusReportId(id); setTab('reports'); };
@@ -102,18 +131,15 @@ export default function Moderation() {
 
   return (
     <div className="mx-auto w-full max-w-[1280px] px-3 py-3 sm:px-6 sm:py-6">
-      <div className="rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 text-slate-800 p-4 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] md:rounded-[2rem] md:p-8">
-        <header className="mb-4">
-          <h1 className="text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Moderación</h1>
-          <p className="mt-1 max-w-2xl text-sm text-slate-600 md:text-base">Reportes de contenido ordenados por gravedad. Cada decisión queda registrada en la auditoría.</p>
+      <div className="rounded-[1.4rem] border border-white/70 bg-[#DBEAFE]/95 p-3 text-slate-800 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] sm:p-4 lg:rounded-[2rem] lg:p-6">
+        <header className="mb-3 flex flex-wrap items-end justify-between gap-x-4 gap-y-1 px-1 lg:mb-5">
+          <h1 className="text-[1.75rem] font-extrabold leading-none tracking-tight text-[#12315f] lg:text-4xl">Moderación</h1>
+          <p className="text-sm font-semibold text-slate-600">Tu rol: {ROLE_LABELS[level]}</p>
         </header>
 
-        <div role="tablist" aria-label="Secciones de moderación" className="mb-5 flex flex-wrap gap-2">
-          {TABS.filter(([, , min]) => level >= min).map(([value, label]) => (
-            <button key={value} role="tab" type="button" aria-selected={tab === value} onClick={() => setTab(value)} className={`h-11 rounded-full px-5 text-sm font-extrabold ${tab === value ? 'bg-[#12315f] text-white' : 'bg-white text-[#12315f] ring-1 ring-slate-300'}`}>{label}</button>
-          ))}
-        </div>
-
+        <div className="lg:flex lg:items-start lg:gap-6">
+        <ModNav items={navItems} value={tab} onChange={setTab} />
+        <div className="min-w-0 flex-1">
         {tab === 'reports' && <ReportsPanel level={level} onOpenPerson={openPerson} initialReportId={focusReportId} onInitialUsed={() => setFocusReportId('')} />}
         {tab === 'cases' && <CasesPanel level={level} onOpenPerson={openPerson} onOpenReport={openReport} />}
         {tab === 'people' && <PeoplePanel level={level} focusUsername={focusUsername} focusReportId={sanctionReportId || undefined} onFocusUsed={() => setFocusUsername('')} />}
@@ -121,64 +147,64 @@ export default function Moderation() {
         {tab === 'metrics' && level >= 3 && <MetricsPanel />}
         {tab === 'audit' && level >= 3 && <AuditPanel />}
 
-        {tab === 'tools' && level >= 3 && <div className="mb-4"><RetentionPanel /></div>}
-
         {tab === 'tools' && level >= 3 && (
-          <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-white/70 p-3 ring-1 ring-blue-200">
-            <button type="button" onClick={sendTestEmail} disabled={mailState.busy} className="rounded-xl bg-[#1e40af] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{mailState.busy ? 'Enviando…' : 'Enviar correo de prueba'}</button>
-            <span className="text-sm text-slate-600">{mailState.text || 'Envía un correo a tu propia cuenta (solo sale si aceptó los términos).'}</span>
+          <div className="mx-auto max-w-3xl space-y-4">
+            <RetentionPanel />
+            <section aria-label="Prueba de correo" className="rounded-2xl bg-white p-4 ring-1 ring-slate-900/5">
+              <h3 className="text-lg font-extrabold text-[#12315f]">Correo de prueba</h3>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600">Envía un correo a tu propia cuenta para comprobar que los avisos llegan. Solo sale si aceptaste los términos vigentes.</p>
+              <button type="button" onClick={sendTestEmail} disabled={mailState.busy} className="mt-3 h-11 rounded-full bg-[#1e40af] px-6 text-sm font-extrabold text-white disabled:opacity-60">{mailState.busy ? 'Enviando…' : 'Enviar correo de prueba'}</button>
+              {mailState.text && <p role="status" className="mt-2 text-sm font-semibold text-slate-700">{mailState.text}</p>}
+            </section>
           </div>
         )}
 
-        {tab === 'reviews' && level >= 3 && <p className="mb-4 max-w-2xl text-sm text-slate-600">Reseñas reportadas o sospechosas por la regla anterior. Aprobar la vuelve a mostrar y borra sus reportes; eliminar la borra definitivamente.</p>}
-        {tab === 'reviews' && level >= 3 && error && <p role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-200">{error}</p>}
-
-        {tab !== 'reviews' || level < 3 ? null : reviews === null ? (
-          <div className="flex justify-center py-10" role="status" aria-label="Cargando reportes"><div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1e40af] border-t-transparent" /></div>
-        ) : reviews.length === 0 ? (
-          <section aria-label="Reportes de reseñas" className="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-900/5">
-            <span translate="no" className="material-symbols-outlined text-5xl text-[#1e40af]/40">task_alt</span>
-            <h2 className="mt-2 text-lg font-extrabold text-[#12315f]">No hay nada pendiente</h2>
-            <p className="mx-auto mt-1 max-w-md text-sm text-slate-600">Cuando alguien reporte una reseña, o una parezca sospechosa, aparecerá aquí.</p>
+        {tab === 'reviews' && level >= 3 && (
+          <section aria-label="Reseñas marcadas" className="mx-auto max-w-3xl">
+            <p className="mb-3 px-1 text-sm leading-relaxed text-slate-600">Reseñas reportadas o sospechosas por la regla anterior. Aprobar la vuelve a mostrar y borra sus reportes; eliminar la borra para siempre.</p>
+            {error && <p role="alert" className="mb-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-200">{error}</p>}
+            {reviews === null ? <Spinner label="Cargando reseñas" /> : reviews.length === 0 ? (
+              <EmptyState title="No hay reseñas pendientes">Cuando una reseña sea reportada o parezca sospechosa, aparecerá aquí.</EmptyState>
+            ) : (
+              <ul className="space-y-3">
+                {reviews.map((review) => (
+                  <li key={review.id} className="relative overflow-hidden rounded-xl bg-white py-3.5 pl-5 pr-4 ring-1 ring-slate-900/5">
+                    <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1.5 ${review.counts ? 'bg-amber-400' : 'bg-slate-300'}`} />
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <Stars value={review.rating} size={18} />
+                        <p className="mt-1 text-xs font-bold text-slate-600">{review.counts ? 'Visible' : 'Oculta'}<span className="ml-3 font-normal text-slate-500">{FLAG_LABELS[review.flag] || review.flag}</span></p>
+                      </div>
+                      <time dateTime={review.createdAt} className="shrink-0 text-xs text-slate-500">{dateLabel(review.createdAt)}</time>
+                    </div>
+                    <p className="mt-2 text-sm text-slate-700">
+                      <span className="font-bold text-slate-500">Vendedor </span>
+                      {review.seller?.username ? <Link to={`/${review.seller.username}`} className="font-semibold text-[#1e40af] underline-offset-2 hover:underline">{personLabel(review.seller)}</Link> : personLabel(review.seller)}
+                      <span className="ml-3 font-bold text-slate-500">Comprador </span>{personLabel(review.reviewer)}
+                    </p>
+                    {review.comment
+                      ? <blockquote className="mt-2 whitespace-pre-line break-words rounded-lg bg-slate-50 px-3 py-2.5 text-[15px] leading-relaxed text-slate-800">{review.comment}</blockquote>
+                      : <p className="mt-2 text-sm italic text-slate-400">Sin comentario</p>}
+                    {review.reports?.length > 0 && (
+                      <div className="mt-3">
+                        <p className="text-sm font-bold text-slate-500">{review.reports.length} {review.reports.length === 1 ? 'reporte' : 'reportes'}</p>
+                        <ul className="mt-1 space-y-0.5">
+                          {review.reports.map((report, index) => <li key={index} className="text-sm text-slate-600">{report.reason || 'Sin motivo'} <span className="text-xs text-slate-400">({dateLabel(report.createdAt)})</span></li>)}
+                        </ul>
+                      </div>
+                    )}
+                    <div className="mt-3 grid grid-cols-2 gap-2 sm:flex">
+                      <button type="button" disabled={busyId === review.id} onClick={() => act(review, 'approve')} className="h-11 rounded-full bg-[#12315f] px-6 text-sm font-extrabold text-white disabled:opacity-50">Aprobar</button>
+                      <button type="button" disabled={busyId === review.id} onClick={() => act(review, 'delete')} className="h-11 rounded-full border-2 border-red-600 px-6 text-sm font-extrabold text-red-700 hover:bg-red-50 disabled:opacity-50">Eliminar</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
-        ) : (
-          <ul className="space-y-3" aria-label="Reportes de reseñas">
-            {reviews.map((review) => (
-              <li key={review.id} className="rounded-2xl bg-white p-4 text-[#12315f] shadow-sm ring-1 ring-slate-900/5 md:p-5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Stars value={review.rating} size={18} />
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-extrabold ${review.counts ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-700'}`}>
-                    {review.counts ? 'Visible' : 'Oculta'}
-                  </span>
-                  <span className="text-xs font-bold text-slate-500">{FLAG_LABELS[review.flag] || review.flag}</span>
-                  <span className="ml-auto text-xs font-semibold text-slate-500">{dateLabel(review.createdAt)}</span>
-                </div>
-                <p className="mt-2 text-sm font-semibold">
-                  <span className="text-slate-500">Vendedor:</span>{' '}
-                  {review.seller?.username ? <Link to={`/${review.seller.username}`} className="underline-offset-2 hover:underline">{personLabel(review.seller)}</Link> : personLabel(review.seller)}
-                  <span className="text-slate-500"> · Comprador:</span> {personLabel(review.reviewer)}
-                </p>
-                {review.comment
-                  ? <p className="mt-2 whitespace-pre-line break-words rounded-xl bg-slate-50 p-3 text-sm text-slate-700">{review.comment}</p>
-                  : <p className="mt-2 text-sm italic text-slate-400">Sin comentario</p>}
-                {review.reports?.length > 0 && (
-                  <div className="mt-3">
-                    <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">{review.reports.length} {review.reports.length === 1 ? 'reporte' : 'reportes'}</p>
-                    <ul className="mt-1 space-y-1">
-                      {review.reports.map((report, index) => (
-                        <li key={index} className="text-sm text-slate-600">· {report.reason || 'Sin motivo'} <span className="text-xs text-slate-400">({dateLabel(report.createdAt)})</span></li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                <div className="mt-4 flex gap-2">
-                  <button type="button" disabled={busyId === review.id} onClick={() => act(review, 'approve')} className="h-11 flex-1 rounded-full bg-[#12315f] px-4 text-sm font-extrabold text-white disabled:opacity-50 sm:flex-none">Aprobar</button>
-                  <button type="button" disabled={busyId === review.id} onClick={() => act(review, 'delete')} className="h-11 flex-1 rounded-full border-2 border-red-600 px-4 text-sm font-extrabold text-red-700 hover:bg-red-50 disabled:opacity-50 sm:flex-none">Eliminar</button>
-                </div>
-              </li>
-            ))}
-          </ul>
         )}
+        </div>
+        </div>
       </div>
     </div>
   );

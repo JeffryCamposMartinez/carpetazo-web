@@ -143,6 +143,13 @@ const picture = (seed) => {
     ok('métricas: tasa de descartados y tiempos', (r.j.last30Days.dismissedRate === null || typeof r.j.last30Days.dismissedRate === 'number') && 'average' in r.j.last30Days.hoursToDecision);
     ok('métricas: no traen correos ni identificadores de personas', !/@[a-z0-9.-]+\.[a-z]{2,}|firebase|cztest-/i.test(JSON.stringify(r.j)));
 
+    // --- Contadores del menú ---
+    ok('contadores sin sesión → 401', (await call('GET', '/admin/summary')).status === 401);
+    ok('contadores para un usuario común → 403', (await call('GET', '/admin/summary', 'jerry')).status === 403);
+    r = await call('GET', '/admin/summary', 'ignacio');
+    ok('contadores para un moderador: números de pendientes', r.status === 200 && ['reports', 'criticalReports', 'cases', 'appeals', 'pendingBans'].every((key) => typeof r.j[key] === 'number'), JSON.stringify(r.j));
+    ok('contadores: no traen datos de personas', !/@|username|cztest/i.test(JSON.stringify(r.j)));
+
     // --- Retención ---
     const oldDismissed = await prisma.report.create({ data: { shortCode: code() + 'A', targetType: 'folder', targetId: crypto.randomUUID(), reasonCode: 'folder.spam', severity: 'S4', reporterId: buy1Id, status: 'dismissed', decision: 'dismiss', decidedAt: new Date(Date.now() - 200 * DAY), snapshot: {} } });
     const midDismissed = await prisma.report.create({ data: { shortCode: code() + 'B', targetType: 'folder', targetId: crypto.randomUUID(), reasonCode: 'folder.spam', severity: 'S4', reporterId: buy1Id, status: 'dismissed', decision: 'dismiss', decidedAt: new Date(Date.now() - 100 * DAY), snapshot: {} } });

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../utils/api';
 import { useRef } from 'react';
+import { DetailHeader, DetailPane, EmptyState, FilterSheet, Pills, SEVERITY_STYLE, Spinner, relativeTime } from './shared';
 
 const SEVERITY = {
   S1: { label: 'Crítica', className: 'bg-red-600 text-white' },
@@ -149,12 +150,9 @@ function ReportDetail({ id, level, onClose, onChanged, onOpenPerson }) {
 
   const report = data?.report;
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
-        <h2 className="min-w-0 truncate text-base font-black text-[#12315f]">{report ? `${report.shortCode} · ${TYPE_LABELS[report.targetType] || report.targetType}` : 'Cargando…'}</h2>
-        <button type="button" onClick={onClose} className="rounded-full px-3 py-1.5 text-sm font-bold text-slate-600 hover:bg-slate-100">Cerrar</button>
-      </div>
-      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <DetailHeader title={report ? (TYPE_LABELS[report.targetType] || report.targetType) : 'Cargando…'} subtitle={report ? report.shortCode : undefined} onClose={onClose} />
+      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 pb-10">
         {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-200">{error}</p>}
         {!data && !error && <div className="flex justify-center py-10" role="status" aria-label="Cargando"><div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1e40af] border-t-transparent" /></div>}
         {report && (
@@ -175,19 +173,19 @@ function ReportDetail({ id, level, onClose, onChanged, onOpenPerson }) {
 
             {report.evidence?.length > 0 && (
               <section aria-label="Evidencias">
-                <h3 className="mb-1 text-xs font-extrabold uppercase tracking-wide text-slate-500">Evidencias ({report.evidence.length})</h3>
+                <h3 className="mb-1 text-sm font-bold text-slate-500">Evidencias ({report.evidence.length})</h3>
                 <div className="flex flex-wrap gap-2">{report.evidence.map((item, index) => <EvidenceThumb key={item.id} evidence={item} index={index} />)}</div>
               </section>
             )}
 
             <section aria-label="Contenido reportado">
-              <h3 className="mb-1 text-xs font-extrabold uppercase tracking-wide text-slate-500">Contenido (copia al momento del reporte)</h3>
+              <h3 className="mb-1 text-sm font-bold text-slate-500">Contenido (copia al momento del reporte)</h3>
               <SnapshotView report={report} />
             </section>
 
             <section className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl bg-slate-50 p-3 text-sm">
-                <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Dueño del contenido</h3>
+                <h3 className="text-sm font-bold text-slate-500">Dueño del contenido</h3>
                 {data.owner ? (
                   <>
                     {data.owner.username && <button type="button" onClick={() => onOpenPerson(data.owner.username, report.id)} className="mt-1 text-xs font-extrabold text-blue-700 underline-offset-2 hover:underline">Ver ficha y aplicar una medida</button>}
@@ -199,7 +197,7 @@ function ReportDetail({ id, level, onClose, onChanged, onOpenPerson }) {
                 ) : <p className="mt-1 text-slate-500">Sin dueño registrado.</p>}
               </div>
               <div className="rounded-xl bg-slate-50 p-3 text-sm">
-                <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Quien reportó (solo el equipo lo ve)</h3>
+                <h3 className="text-sm font-bold text-slate-500">Quien reportó (solo el equipo lo ve)</h3>
                 <p className="mt-1 font-bold">{report.reporter?.username ? `${report.reporter.name || report.reporter.username} (@${report.reporter.username})` : 'Cuenta eliminada'}</p>
                 {report.reporter?.createdAt && <p className="text-xs text-slate-500">Alta: {dateTime(report.reporter.createdAt)}</p>}
                 <p className="text-xs text-slate-500">Reportes que hizo: {Object.entries(data.reporterReports).map(([key, value]) => `${STATUS[key]?.label || key}: ${value}`).join(' · ') || 'ninguno'}</p>
@@ -208,7 +206,7 @@ function ReportDetail({ id, level, onClose, onChanged, onOpenPerson }) {
 
             {data.related.length > 0 && (
               <section>
-                <h3 className="mb-1 text-xs font-extrabold uppercase tracking-wide text-slate-500">Otros reportes sobre lo mismo ({data.related.length})</h3>
+                <h3 className="mb-1 text-sm font-bold text-slate-500">Otros reportes sobre lo mismo ({data.related.length})</h3>
                 <ul className="space-y-1">
                   {data.related.map((item) => (
                     <li key={item.shortCode} className="text-sm text-slate-600">· <Badge className={SEVERITY[item.severity]?.className}>{item.severity}</Badge> {item.reasonLabel} <span className="text-xs text-slate-400">({item.shortCode}, {STATUS[item.status]?.label}, {dateTime(item.createdAt)}{item.reporter ? `, @${item.reporter}` : ''})</span></li>
@@ -218,7 +216,7 @@ function ReportDetail({ id, level, onClose, onChanged, onOpenPerson }) {
             )}
 
             <section>
-              <h3 className="mb-1 text-xs font-extrabold uppercase tracking-wide text-slate-500">Línea de tiempo</h3>
+              <h3 className="mb-1 text-sm font-bold text-slate-500">Línea de tiempo</h3>
               {data.timeline.length === 0 ? <p className="text-sm italic text-slate-400">Sin acciones todavía.</p> : (
                 <ol className="space-y-1.5">
                   {data.timeline.map((entry) => (
@@ -233,10 +231,10 @@ function ReportDetail({ id, level, onClose, onChanged, onOpenPerson }) {
             </section>
 
             <section aria-label="Decisión" className="rounded-2xl border border-slate-200 p-3">
-              <h3 className="mb-2 text-xs font-extrabold uppercase tracking-wide text-slate-500">Decisión</h3>
+              <h3 className="mb-2 text-sm font-bold text-slate-500">Decisión</h3>
               {['user', 'order'].includes(report.targetType) && <p className="mb-2 text-xs font-semibold text-slate-500">Sobre cuentas y pedidos solo se descarta desde aquí. Para advertir o suspender usa "Ver ficha y aplicar una medida" o el caso de estafa.</p>}
               {level < 2 && <p className="mb-2 text-xs font-semibold text-slate-500">Tu rol es de solo lectura: no puedes decidir.</p>}
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                 {report.allowedActions.filter((item) => report.status === 'open' ? item !== 'restore' : item === 'restore').map((item) => (
                   <button key={item} type="button" onClick={() => { setAction(item); setError(''); }} aria-pressed={action === item} className={`h-11 rounded-full px-4 text-sm font-extrabold ${ACTIONS[item].className} ${action === item ? 'ring-4 ring-blue-300' : ''}`}>{ACTIONS[item].label}</button>
                 ))}
@@ -274,6 +272,7 @@ export default function ReportsPanel({ level = 1, onOpenPerson = () => {}, initi
   const [list, setList] = useState(null);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
   const usedInitial = useRef(false);
   useEffect(() => {
     if (initialReportId && !usedInitial.current) { usedInitial.current = true; setSelected(initialReportId); setFilters((previous) => ({ ...previous, status: 'all' })); onInitialUsed(); }
@@ -288,59 +287,78 @@ export default function ReportsPanel({ level = 1, onOpenPerson = () => {}, initi
   useEffect(() => { load(); }, [load]);
 
   const setFilter = (patch) => { setPage(1); setFilters((previous) => ({ ...previous, ...patch })); };
-  const counts = list?.counts || {};
+  const activeFilters = [filters.severity, filters.targetType].filter(Boolean).length;
+  const submitSearch = (event) => { event.preventDefault(); setFilter({ q: search.trim() }); };
+
+  const selectClass = 'h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-[#12315f] outline-none focus:border-[#1e40af] lg:h-10';
+  const fields = (
+    <>
+      <select aria-label="Gravedad" value={filters.severity} onChange={(event) => setFilter({ severity: event.target.value })} className={selectClass}>
+        <option value="">Cualquier gravedad</option>
+        {Object.entries(SEVERITY).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
+      </select>
+      <select aria-label="Tipo de contenido" value={filters.targetType} onChange={(event) => setFilter({ targetType: event.target.value })} className={selectClass}>
+        <option value="">Cualquier contenido</option>
+        {Object.entries(TYPE_LABELS).map(([key, value]) => <option key={key} value={key}>{value}</option>)}
+      </select>
+    </>
+  );
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-      <section aria-label="Cola de reportes" className={selected ? 'hidden lg:block' : ''}>
-        <div role="tablist" aria-label="Estado" className="mb-3 flex flex-wrap gap-2">
-          {STATUS_TABS.map(([value, label]) => (
-            <button key={value} role="tab" aria-selected={filters.status === value} type="button" onClick={() => setFilter({ status: value })} className={`h-10 rounded-full px-4 text-sm font-extrabold ${filters.status === value ? 'bg-[#12315f] text-white' : 'bg-white text-[#12315f] ring-1 ring-slate-300'}`}>
-              {label}{value !== 'all' && counts[value] !== undefined ? ` (${counts[value]})` : ''}
-            </button>
-          ))}
-        </div>
-        <form className="mb-3 flex flex-wrap gap-2" onSubmit={(event) => { event.preventDefault(); setFilter({ q: search.trim() }); }}>
-          <select aria-label="Gravedad" value={filters.severity} onChange={(event) => setFilter({ severity: event.target.value })} className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold">
-            <option value="">Toda gravedad</option>
-            {Object.entries(SEVERITY).map(([key, value]) => <option key={key} value={key}>{key} · {value.label}</option>)}
-          </select>
-          <select aria-label="Tipo" value={filters.targetType} onChange={(event) => setFilter({ targetType: event.target.value })} className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold">
-            <option value="">Todo tipo</option>
-            {Object.entries(TYPE_LABELS).map(([key, value]) => <option key={key} value={key}>{value}</option>)}
-          </select>
-          <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Código RP-… o usuario" aria-label="Buscar" maxLength={40} className="h-10 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#1e40af]" />
-          <button type="submit" className="h-10 rounded-xl bg-[#1e40af] px-4 text-sm font-bold text-white">Buscar</button>
-        </form>
-        {error && <p role="alert" className="mb-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-200">{error}</p>}
-        {list === null ? (
-          <div className="flex justify-center py-10" role="status" aria-label="Cargando reportes"><div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1e40af] border-t-transparent" /></div>
-        ) : list.reports.length === 0 ? (
-          <div className="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-900/5">
-            <span translate="no" className="material-symbols-outlined text-5xl text-[#1e40af]/40">task_alt</span>
-            <h2 className="mt-2 text-lg font-extrabold text-[#12315f]">No hay reportes aquí</h2>
-            <p className="mx-auto mt-1 max-w-md text-sm text-slate-600">Cuando alguien reporte contenido, aparecerá en esta cola ordenado por gravedad.</p>
+    <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] xl:items-start xl:gap-5">
+      <section aria-label="Cola de reportes" className={selected ? 'hidden xl:block' : ''}>
+        <Pills label="Estado" value={filters.status} onChange={(value) => setFilter({ status: value })} options={STATUS_TABS} counts={list?.counts} />
+
+        <form onSubmit={submitSearch} className="mb-3 flex flex-wrap gap-2">
+          <div className="relative min-w-0 flex-1">
+            <span translate="no" aria-hidden="true" className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">search</span>
+            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Código RP o usuario" aria-label="Buscar reporte" maxLength={40} className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-sm text-slate-800 outline-none focus:border-[#1e40af]" />
           </div>
+          <button type="button" onClick={() => setShowFilters(true)} className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-bold text-[#12315f] ring-1 ring-slate-300 lg:hidden">
+            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">tune</span>
+            Filtros
+            {activeFilters > 0 && <span className="rounded-full bg-[#facc15] px-1.5 text-xs font-extrabold text-[#12315f]">{activeFilters}</span>}
+          </button>
+          <div className="hidden w-full grid-cols-2 gap-2 lg:grid">{fields}</div>
+        </form>
+
+        <FilterSheet open={showFilters} onClose={() => setShowFilters(false)}>
+          <label className="block text-sm font-bold text-slate-700">Gravedad<div className="mt-1">{fields.props.children[0]}</div></label>
+          <label className="block text-sm font-bold text-slate-700">Contenido<div className="mt-1">{fields.props.children[1]}</div></label>
+          {activeFilters > 0 && <button type="button" onClick={() => setFilter({ severity: '', targetType: '' })} className="h-11 w-full rounded-full border-2 border-slate-300 text-sm font-bold text-slate-700">Quitar filtros</button>}
+        </FilterSheet>
+
+        {error && <p role="alert" className="mb-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-200">{error}</p>}
+        {list === null ? <Spinner label="Cargando reportes" /> : list.reports.length === 0 ? (
+          <EmptyState title={filters.status === 'open' ? 'La cola está al día' : 'No hay reportes aquí'}>
+            {filters.status === 'open' ? 'Cuando alguien reporte contenido aparecerá aquí, con lo más grave primero.' : 'Prueba con otro estado o quita los filtros.'}
+          </EmptyState>
         ) : (
           <ul className="space-y-2">
-            {list.reports.map((item) => (
-              <li key={item.id}>
-                <button type="button" onClick={() => setSelected(item.id)} aria-current={selected === item.id} className={`w-full rounded-2xl bg-white p-3 text-left shadow-sm ring-1 transition hover:ring-[#1e40af] ${selected === item.id ? 'ring-2 ring-[#1e40af]' : 'ring-slate-900/5'}`}>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge className={SEVERITY[item.severity]?.className}>{item.severity} · {SEVERITY[item.severity]?.label}</Badge>
-                    <Badge className={STATUS[item.status]?.className}>{STATUS[item.status]?.label}</Badge>
-                    {item.autoActioned && <Badge className="bg-purple-100 text-purple-800">Auto</Badge>}
-                    {item.automatic && <Badge className="bg-cyan-100 text-cyan-800">Detección automática</Badge>}
-                    {!item.automatic && item.weight < 0.5 && <Badge className="bg-amber-100 text-amber-900">Baja reputación</Badge>}
-                    {item.openForSameTarget > 1 && <Badge className="bg-rose-100 text-rose-800">{item.openForSameTarget} reportes</Badge>}
-                    <span className="ml-auto text-xs font-semibold text-slate-500">{dateTime(item.createdAt)}</span>
-                  </div>
-                  <p className="mt-1.5 text-sm font-extrabold text-[#12315f]">{TYPE_LABELS[item.targetType] || item.targetType}: {item.reasonLabel}</p>
-                  <p className="text-xs font-semibold text-slate-500">{item.shortCode}{item.owner?.username ? ` · @${item.owner.username}` : ''}</p>
-                  {item.comment && <p className="mt-1 line-clamp-2 text-sm text-slate-600">{item.comment}</p>}
-                </button>
-              </li>
-            ))}
+            {list.reports.map((item) => {
+              const severity = SEVERITY_STYLE[item.severity] || SEVERITY_STYLE.S4;
+              return (
+                <li key={item.id}>
+                  <button type="button" onClick={() => setSelected(item.id)} aria-current={selected === item.id} className={`relative flex w-full items-start gap-3 overflow-hidden rounded-xl bg-white py-3 pl-5 pr-3 text-left transition-shadow hover:shadow-md ${selected === item.id ? 'ring-2 ring-[#1e40af]' : 'ring-1 ring-slate-900/5'}`}>
+                    <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1.5 ${severity.bar}`} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[15px] font-extrabold leading-snug text-[#12315f]">{TYPE_LABELS[item.targetType] || item.targetType}: {String(item.reasonLabel).replace(/^Detección automática:s*/, '')}</p>
+                      {item.comment && <p className="mt-1 line-clamp-2 text-sm leading-snug text-slate-600">{item.comment}</p>}
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                        <span className={`font-bold ${severity.text}`}>{severity.label}</span>
+                        {item.owner?.username && <span>@{item.owner.username}</span>}
+                        {item.status !== 'open' && <span className="font-bold">{STATUS[item.status]?.label}</span>}
+                        {item.openForSameTarget > 1 && <span className="font-bold text-rose-700">{item.openForSameTarget} reportes sobre lo mismo</span>}
+                        {item.automatic && <span className="font-bold text-cyan-700">Detección automática</span>}
+                        {item.autoActioned && <span className="font-bold text-purple-700">Ya oculto</span>}
+                        {!item.automatic && item.weight < 0.5 && <span className="font-bold text-amber-800">Baja reputación</span>}
+                      </div>
+                    </div>
+                    <time dateTime={item.createdAt} title={dateTime(item.createdAt)} className="shrink-0 pt-0.5 text-xs text-slate-500">{relativeTime(item.createdAt)}</time>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
         {list && list.pages > 1 && (
@@ -353,11 +371,11 @@ export default function ReportsPanel({ level = 1, onOpenPerson = () => {}, initi
       </section>
 
       {selected ? (
-        <section aria-label="Detalle del reporte" className="max-h-[calc(100vh-140px)] overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 lg:sticky lg:top-4">
+        <DetailPane label="Detalle del reporte">
           <ReportDetail id={selected} level={level} onClose={() => setSelected(null)} onChanged={load} onOpenPerson={onOpenPerson} />
-        </section>
+        </DetailPane>
       ) : (
-        <section className="hidden items-center justify-center rounded-2xl bg-white/60 p-8 text-center text-sm font-semibold text-slate-500 lg:flex">Elige un reporte para ver el detalle y decidir.</section>
+        <section className="hidden items-center justify-center rounded-2xl bg-white/60 p-10 text-center text-sm font-semibold text-slate-500 xl:flex">Elige un reporte de la lista para ver el contenido y decidir.</section>
       )}
     </div>
   );

@@ -1,16 +1,43 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../utils/api';
+import { EmptyState, ErrorBox, Spinner, relativeTime } from './shared';
 
-const ACTION_LABELS = {
-  'decision.dismiss': 'Descartó el reporte',
-  'decision.hide': 'Ocultó el contenido',
-  'decision.remove': 'Quitó el contenido',
-  'decision.restore': 'Restauró el contenido',
-  'auto.hide': 'Ocultado automático (sistema)',
-  note: 'Nota interna'
+// Cada acción tiene un nombre claro y un color de franja según qué tipo de decisión fue
+const ACTIONS = {
+  'decision.dismiss': { label: 'Descartó el reporte', tone: 'bg-slate-400' },
+  'decision.hide': { label: 'Ocultó el contenido', tone: 'bg-amber-500' },
+  'decision.remove': { label: 'Quitó el contenido', tone: 'bg-red-600' },
+  'decision.restore': { label: 'Restauró el contenido', tone: 'bg-emerald-600' },
+  'decision.sanction': { label: 'Aplicó una medida', tone: 'bg-red-600' },
+  'auto.hide': { label: 'Ocultado automáticamente', tone: 'bg-purple-500' },
+  'scan.blocked': { label: 'Imagen rechazada por el escaneo', tone: 'bg-purple-500' },
+  'phash.blocked': { label: 'Imagen rechazada por huella prohibida', tone: 'bg-purple-500' },
+  'phash.banned': { label: 'Huella de imagen prohibida', tone: 'bg-purple-500' },
+  'retention.run': { label: 'Limpieza automática de datos', tone: 'bg-slate-300' },
+  'sanction.applied': { label: 'Medida aplicada', tone: 'bg-red-600' },
+  'sanction.requested': { label: 'Cierre de cuenta solicitado', tone: 'bg-red-600' },
+  'sanction.approved': { label: 'Cierre de cuenta aprobado', tone: 'bg-red-600' },
+  'sanction.revoked': { label: 'Medida levantada', tone: 'bg-emerald-600' },
+  'sanction.expired': { label: 'Medida vencida', tone: 'bg-slate-300' },
+  'appeal.created': { label: 'Apelación recibida', tone: 'bg-[#1e40af]' },
+  'appeal.accepted': { label: 'Apelación aceptada', tone: 'bg-emerald-600' },
+  'appeal.rejected': { label: 'Apelación rechazada', tone: 'bg-slate-500' },
+  'case.opened': { label: 'Caso de estafa abierto', tone: 'bg-rose-500' },
+  'case.exported': { label: 'Informe de caso exportado', tone: 'bg-[#12315f]' },
+  'evidence.viewed': { label: 'Vio una evidencia', tone: 'bg-slate-400' },
+  'role.changed': { label: 'Cambió un rol del equipo', tone: 'bg-[#12315f]' },
+  note: { label: 'Nota interna', tone: 'bg-slate-400' }
 };
 
-const dateTime = (iso) => new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
+const dayLabel = (iso) => {
+  const day = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date(Date.now() - 86400000);
+  if (day.toDateString() === today.toDateString()) return 'Hoy';
+  if (day.toDateString() === yesterday.toDateString()) return 'Ayer';
+  return new Intl.DateTimeFormat('es-CL', { weekday: 'long', day: 'numeric', month: 'long' }).format(day);
+};
+const clock = (iso) => new Intl.DateTimeFormat('es-CL', { hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
 
 // Registro de todas las acciones de moderación: solo se agrega, nunca se edita
 export default function AuditPanel() {
@@ -27,29 +54,55 @@ export default function AuditPanel() {
     return () => { cancelled = true; };
   }, [page]);
 
-  if (!data) return <div className="flex justify-center py-10" role="status" aria-label="Cargando auditoría"><div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1e40af] border-t-transparent" /></div>;
+  // Las entradas se agrupan por día: en un registro importa cuándo pasó, no la fecha repetida en cada línea
+  const groups = useMemo(() => {
+    const map = new Map();
+    for (const entry of data?.entries || []) {
+      const key = dayLabel(entry.createdAt);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(entry);
+    }
+    return [...map.entries()];
+  }, [data]);
+
+  if (!data) return <Spinner label="Cargando auditoría" />;
 
   return (
-    <section aria-label="Auditoría">
-      {error && <p role="alert" className="mb-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-200">{error}</p>}
+    <section aria-label="Auditoría" className="mx-auto max-w-3xl">
+      <p className="mb-3 px-1 text-sm text-slate-600">Todo lo que se decide en moderación queda aquí, con quién lo hizo. No se puede editar ni borrar.</p>
+      <ErrorBox>{error}</ErrorBox>
       {data.entries.length === 0 ? (
-        <p className="rounded-2xl bg-white p-6 text-center text-sm font-semibold text-slate-600 shadow-sm ring-1 ring-slate-900/5">Todavía no hay acciones registradas.</p>
+        <EmptyState icon="history" title="Todavía no hay acciones">Cuando alguien decida un reporte o aplique una medida, quedará registrado en esta lista.</EmptyState>
       ) : (
-        <ul className="space-y-2">
-          {data.entries.map((entry) => (
-            <li key={entry.id} className="rounded-2xl bg-white p-3 text-sm shadow-sm ring-1 ring-slate-900/5">
-              <p className="font-extrabold text-[#12315f]">{ACTION_LABELS[entry.action] || entry.action}</p>
-              <p className="text-xs font-semibold text-slate-500">{entry.actor} · {dateTime(entry.createdAt)}{entry.targetType ? ` · ${entry.targetType}` : ''}</p>
-              {entry.note && <p className="mt-1 whitespace-pre-line break-words text-slate-600">{entry.note}</p>}
-            </li>
+        <div className="space-y-5">
+          {groups.map(([day, entries]) => (
+            <div key={day}>
+              <h2 className="mb-2 px-1 text-sm font-bold capitalize text-slate-500">{day}</h2>
+              <ul className="space-y-2">
+                {entries.map((entry) => {
+                  const action = ACTIONS[entry.action] || { label: entry.action, tone: 'bg-slate-300' };
+                  return (
+                    <li key={entry.id} className="relative overflow-hidden rounded-xl bg-white py-3 pl-5 pr-3 ring-1 ring-slate-900/5">
+                      <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1.5 ${action.tone}`} />
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="min-w-0 text-[15px] font-extrabold leading-snug text-[#12315f]">{action.label}</p>
+                        <time dateTime={entry.createdAt} title={new Date(entry.createdAt).toLocaleString('es-CL')} className="shrink-0 pt-0.5 text-xs text-slate-500">{clock(entry.createdAt)}</time>
+                      </div>
+                      {entry.note && <p className="mt-1 whitespace-pre-line break-words text-sm leading-snug text-slate-600">{entry.note}</p>}
+                      <p className="mt-1.5 text-xs text-slate-500"><span className="font-bold text-slate-600">{entry.actor}</span>{entry.targetType ? <span className="ml-3">sobre {entry.targetType}</span> : null}<span className="ml-3">{relativeTime(entry.createdAt)}</span></p>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
       {data.pages > 1 && (
-        <div className="mt-3 flex items-center justify-between">
-          <button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className="h-10 rounded-full bg-white px-4 text-sm font-bold ring-1 ring-slate-300 disabled:opacity-40">Anterior</button>
+        <div className="mt-4 flex items-center justify-between">
+          <button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className="h-11 rounded-full bg-white px-5 text-sm font-bold text-[#12315f] ring-1 ring-slate-300 disabled:opacity-40">Anterior</button>
           <span className="text-sm font-semibold text-slate-600">Página {page} de {data.pages}</span>
-          <button type="button" disabled={page >= data.pages} onClick={() => setPage((value) => value + 1)} className="h-10 rounded-full bg-white px-4 text-sm font-bold ring-1 ring-slate-300 disabled:opacity-40">Siguiente</button>
+          <button type="button" disabled={page >= data.pages} onClick={() => setPage((value) => value + 1)} className="h-11 rounded-full bg-white px-5 text-sm font-bold text-[#12315f] ring-1 ring-slate-300 disabled:opacity-40">Siguiente</button>
         </div>
       )}
     </section>
