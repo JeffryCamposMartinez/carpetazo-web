@@ -126,7 +126,7 @@ export default function LandingPage() {
             ].map((item, idx) => (
               <div 
                 key={idx} 
-                className="tcg-card w-44 h-64 md:w-72 md:h-[26rem] flex-shrink-0 relative group cursor-pointer mt-4 -skew-x-[15deg] transition-transform duration-500 [&.force-hover]:scale-[1.1] [&.force-hover]:z-30"
+                className="tcg-card w-44 h-64 md:w-[min(18rem,26.5vh)] md:h-[min(26rem,38vh)] flex-shrink-0 relative group cursor-pointer mt-4 -skew-x-[15deg] transition-transform duration-500 [&.force-hover]:scale-[1.1] [&.force-hover]:z-30"
               >
                 {/* The Skewed Card Frame */}
                 <div className="w-full h-full overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.3)] border-4 border-white rounded-xl relative">
