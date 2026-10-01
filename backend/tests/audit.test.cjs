@@ -46,6 +46,17 @@ const { folderId, cardId } = fixtures();
     ok('pokemontcg.io: consulta de 201 → 400 (sin llamar afuera)', (await call('GET', '/tcg/cards?q=' + 'a'.repeat(201))).status === 400);
     ok('proxy de imágenes: no se llama a sí mismo → 400', (await call('GET', '/proxy-image?url=' + encodeURIComponent('https://api.carpetazo.cl/api/proxy-image?url=x'))).status === 400);
 
+    // Imágenes: solo https, hosts permitidos y sin caracteres que rompan el CSS
+    ok('imagen de perfil en un bucket R2 ajeno → 400', (await call('PUT', '/users/me', 'ale', { bannerBase64: 'https://pub-otrapersona.r2.dev/x.webp' })).status === 400);
+    ok('imagen con ")" que cerraría el url() del CSS → 400', (await call('PUT', '/users/me', 'ale', { bannerBase64: 'https://lh3.googleusercontent.com/a.png),url(https://evil.example/t' })).status === 400);
+    ok('imagen de Google válida → 200', (await call('PUT', '/users/me', 'ale', { photoURL: 'https://lh3.googleusercontent.com/a/foto' })).status === 200);
+    ok('mensaje con imagen de un host cualquiera → 400', (await call('POST', '/messages/' + NAMES.seller, 'ale', { content: JSON.stringify({ v: 1, text: '', imageUrl: 'https://evil.example/pixel.png', imageBase64: null }) })).status === 400);
+    ok('mensaje con imagen embebida que no es imagen → 400', (await call('POST', '/messages/' + NAMES.seller, 'ale', { content: JSON.stringify({ v: 1, text: '', imageUrl: null, imageBase64: 'data:text/html;base64,PGI+' }) })).status === 400);
+    ok('mensaje con imagen embebida png → 200', (await call('POST', '/messages/' + NAMES.seller, 'ale', { content: JSON.stringify({ v: 1, text: 'foto', imageUrl: null, imageBase64: 'data:image/png;base64,iVBORw0KGgo=' }) })).status === 200);
+    ok('mensaje de texto plano → 200', (await call('POST', '/messages/' + NAMES.seller, 'ale', { content: 'hola (texto plano)' })).status === 200);
+    ok('proxy de imágenes: http → 400', (await call('GET', '/proxy-image?url=' + encodeURIComponent('http://images.pokemontcg.io/x.png'))).status === 400);
+    ok('proxy de imágenes: bucket R2 ajeno → 400', (await call('GET', '/proxy-image?url=' + encodeURIComponent('https://pub-otrapersona.r2.dev/x.png'))).status === 400);
+
     // Cuenta eliminada: su perfil deja de existir
     const before = await call('GET', '/users/' + NAMES.nobuyer);
     await call('DELETE', '/users/me', 'nobuyer');

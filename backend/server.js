@@ -110,9 +110,9 @@ const getAllowedProxyImageHosts = () => {
 const isAllowedProxyImageUrl = (rawUrl) => {
   try {
     const url = new URL(String(rawUrl || ''));
-    if (!['http:', 'https:'].includes(url.protocol)) return false;
-    const host = url.hostname.toLowerCase();
-    return getAllowedProxyImageHosts().has(host) || host.endsWith('.r2.dev');
+    if (url.protocol !== 'https:') return false;
+    // Solo hosts conocidos; R2 únicamente el bucket propio (ya incluido en la lista desde R2_PUBLIC_URL)
+    return getAllowedProxyImageHosts().has(url.hostname.toLowerCase());
   } catch (_error) {
     return false;
   }
@@ -134,12 +134,19 @@ const validUsername = (value) => {
 };
 
 // Imágenes guardadas: solo https y hosts conocidos (R2, TCGplayer, avatares de Google)
+// Bucket propio de R2 (R2_PUBLIC_URL): cualquiera puede crear un *.r2.dev, así que solo se acepta el nuestro
+const ownR2Host = () => {
+  try { return new URL(process.env.R2_PUBLIC_URL || '').hostname.toLowerCase(); } catch (_error) { return ''; }
+};
 const isAllowedStoredImageUrl = (rawUrl) => {
   try {
-    const url = new URL(String(rawUrl || ''));
+    const raw = String(rawUrl || '');
+    // Estas URLs se insertan en CSS (url(...)): sin espacios, paréntesis, comillas ni barras invertidas
+    if (raw.length > 2000 || /[\s()'"\\<>]/.test(raw)) return false;
+    const url = new URL(raw);
     if (url.protocol !== 'https:') return false;
     const host = url.hostname.toLowerCase();
-    return getAllowedProxyImageHosts().has(host) || host.endsWith('.r2.dev') || host.endsWith('.googleusercontent.com');
+    return getAllowedProxyImageHosts().has(host) || (host === ownR2Host() && host !== '') || host.endsWith('.googleusercontent.com');
   } catch (_error) {
     return false;
   }
@@ -1925,7 +1932,7 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
     const { receiverId, content } = req.body;
     
     if (!receiverId || !content) return res.status(400).json({ success: false, message: 'Missing fields' });
-    if (typeof receiverId !== 'string' || !isShortText(content, 1500000)) return badRequest(res, 'Mensaje inválido');
+    if (typeof receiverId !== 'string' || !isAllowedMessageContent(content)) return badRequest(res, 'Mensaje inválido');
     if (!sender) return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
     if (receiverId === sender.id || receiverId === sender.firebaseUid || receiverId === sender.username) {
       return res.status(400).json({ success: false, message: 'No puedes enviarte mensajes a ti mismo.' });
@@ -1971,6 +1978,18 @@ app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
 });
 
 
+// Contenido de un mensaje: texto plano o {v, text, imageUrl, imageBase64}. La imagen solo de hosts permitidos
+// (una URL cualquiera dejaría a quien envía ver la IP de quien lee) o una imagen embebida en base64.
+const isAllowedMessageContent = (content) => {
+  if (!isShortText(content, 1500000)) return false;
+  let body;
+  try { body = JSON.parse(content); } catch (_error) { return true; }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return true;
+  if (body.imageUrl && !isAllowedStoredImageUrl(body.imageUrl)) return false;
+  if (body.imageBase64 && !/^data:image[/](png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(String(body.imageBase64))) return false;
+  return body.text === undefined || body.text === null || typeof body.text === 'string';
+};
+
 const resolveUserByAnyId = async (identifier) => {
   const value = String(identifier || '').trim();
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -2064,7 +2083,7 @@ app.post('/api/messages/:otherId', authenticateToken, async (req, res) => {
     const { content } = req.body;
     
     if (!content) return res.status(400).json({ success: false });
-    if (!isShortText(content, 1500000)) return badRequest(res, 'Mensaje inválido');
+    if (!isAllowedMessageContent(content)) return badRequest(res, 'Mensaje inválido');
     if (otherId === currentUser.id) {
       return res.status(400).json({ success: false, message: 'No puedes enviarte mensajes a ti mismo.' });
     }
@@ -2348,8 +2367,10 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
       updateData.username = username || current.username;
     }
 
+    // Una imagen nueva debe ser de un host permitido; la que ya estaba guardada se acepta tal cual (datos anteriores a la regla)
+    const storedImages = await prisma.user.findUnique({ where: { firebaseUid }, select: { photoURL: true, bannerBase64: true, wallpaperBase64: true } });
     for (const field of ['photoURL', 'bannerBase64', 'wallpaperBase64']) {
-      if (updateData[field] !== undefined && !checkImageField(updateData[field])) {
+      if (updateData[field] !== undefined && updateData[field] !== storedImages?.[field] && !checkImageField(updateData[field])) {
         return res.status(400).json({ success: false, error: 'URL de imagen no permitida' });
       }
     }
