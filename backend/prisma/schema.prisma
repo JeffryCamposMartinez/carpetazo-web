@@ -37,6 +37,8 @@ model User {
   reviewsReceived SellerReview[] @relation("ReviewsReceived")
   reviewsWritten  SellerReview[] @relation("ReviewsWritten")
   reviewReports   ReviewReport[]
+  reportsMade     Report[]
+  moderationHidden String[] @default([]) // partes del perfil ocultas por moderación: photo | banner | wallpaper | text
   termsAcceptances TermsAcceptance[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -52,6 +54,7 @@ model Folder {
   tcg         String   @default("Pokemon")
   color       String   @default("red")
   isPublic    Boolean  @default(true)
+  moderationState String @default("visible") // visible | hidden | removed (lo decide moderación, no el dueño)
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   cards       Card[]
@@ -70,6 +73,7 @@ model Card {
   price     Float?
   stock     Int      @default(1)
   data      Json?
+  moderationState String @default("visible") // visible | image_hidden | hidden | removed
   folderId  String
   folder    Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -85,6 +89,7 @@ model Message {
   senderId  String
   receiverId String
   content   String
+  moderationState String @default("visible") // visible | hidden (no se muestra al receptor)
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
@@ -207,6 +212,7 @@ model WishlistItem {
   maxPrice     Float?
   priceVisible Boolean  @default(false)
   note         String?
+  moderationState String @default("visible") // visible | hidden
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -260,4 +266,50 @@ model TermsAcceptance {
   acceptedAt     DateTime @default(now())
 
   @@index([userId, acceptedAt])
+}
+
+// Reporte genérico de contenido (usuarios, perfil, carpetas, cartas, fotos, reseñas, mensajes, lista de deseos)
+model Report {
+  id            String   @id @default(uuid())
+  shortCode     String   @unique            // "RP-4F9K2": seguimiento
+  targetType    String
+  targetId      String
+  targetOwnerId String?                     // dueño del contenido, lo decide el servidor
+  reasonCode    String                      // ej. "card_image.sexual_explicit"
+  severity      String                      // S1 | S2 | S3 | S4, copiado del catálogo
+  comment       String?
+  extra         Json?
+  reporterId    String
+  reporter      User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  snapshot      Json                        // instantánea al reportar: borrar o editar no destruye la prueba
+  status        String   @default("open")   // open | dismissed | actioned
+  decision      String?                     // dismiss | hide | remove | restore
+  decisionNote  String?                     // nota interna
+  decidedById   String?
+  decidedAt     DateTime?
+  autoActioned  Boolean  @default(false)    // true si el sistema ocultó el contenido antes de revisión
+  createdIpHash String?
+  createdAt     DateTime @default(now())
+
+  @@unique([reporterId, targetType, targetId, reasonCode])
+  @@index([targetType, targetId])
+  @@index([targetOwnerId, createdAt])
+  @@index([status, severity, createdAt])
+}
+
+// Registro de acciones de moderación: solo se agrega, nunca se edita
+model ModerationAudit {
+  id         String   @id @default(uuid())
+  actorId    String?
+  action     String                         // decision.dismiss | decision.hide | decision.remove | decision.restore | note | auto.hide
+  targetType String?
+  targetId   String?
+  reportId   String?
+  note       String?
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetType, targetId])
+  @@index([reportId])
 }

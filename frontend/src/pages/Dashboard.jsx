@@ -305,7 +305,7 @@ export default function Dashboard() {
       showToast(newStatus ? 'Carpeta publicada' : 'Carpeta hecha privada');
     } catch (error) {
       console.error("Error al cambiar estado público:", error);
-      showToast('Error al cambiar privacidad');
+      showToast(error.message || 'Error al cambiar privacidad');
     }
   };
 
@@ -460,6 +460,9 @@ export default function Dashboard() {
               </button>
 
               {/* Acciones rápidas bajo la carpeta */}
+              {folder.moderationState && folder.moderationState !== 'visible' && (
+                <p role="status" className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 ring-1 ring-amber-200">Moderación ocultó esta carpeta. Si crees que fue un error, escríbenos a carpetazo.soporte@gmail.com.</p>
+              )}
               <div className="mt-3 flex items-center justify-between gap-2 px-1">
                 <button
                   type="button"

@@ -9,6 +9,7 @@ import { updateProfile as updateFirebaseProfile } from 'firebase/auth';
 import { api } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import { getFolderFilter } from './Dashboard';
+import { ReportMenu } from '../components/ReportButton';
 
 const getAverageRGB = (imgEl, width, height) => {
   const canvas = document.createElement('canvas');
@@ -1315,6 +1316,20 @@ export default function SellerProfile() {
                       <span translate="no" className="material-symbols-outlined text-[20px]">edit</span>
                     </button>
                   )}
+                </div>
+              )}
+              {!isOwner && seller?.id && (
+                <div className={`mt-3 ${isCenteredLayout ? 'flex justify-center' : ''}`}>
+                  <ReportMenu
+                    buttonStyle={heroMuted}
+                    options={[
+                      { targetType: 'user', targetId: seller.id, label: 'Reportar a este usuario' },
+                      { targetType: 'profile_image', targetId: seller.photoURL ? seller.id : null, label: 'Reportar la foto de perfil' },
+                      { targetType: 'profile_banner', targetId: seller.bannerBase64 ? seller.id : null, label: 'Reportar el banner' },
+                      { targetType: 'profile_wallpaper', targetId: seller.wallpaperBase64 ? seller.id : null, label: 'Reportar el fondo del perfil' },
+                      { targetType: 'profile_text', targetId: seller.id, label: 'Reportar el nombre o la biografía' }
+                    ]}
+                  />
                 </div>
               )}
             </div>

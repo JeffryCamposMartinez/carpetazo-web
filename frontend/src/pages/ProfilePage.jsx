@@ -172,7 +172,7 @@ const ActionButton = ({ children, variant = 'primary', className = '', ...props 
 };
 
 const ProfilePage = () => {
-  const { currentUser, refreshAppUser, logout } = useAuth();
+  const { currentUser, appUser, refreshAppUser, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('general');
   const [profileData, setProfileData] = useState(emptyProfile);
@@ -442,6 +442,11 @@ const ProfilePage = () => {
         </div>
       )}
       {profileError && <div className="mb-4 rounded-2xl bg-red-50 p-4 text-sm font-bold text-red-700 ring-1 ring-red-100">{profileError}</div>}
+      {appUser?.moderationHidden?.length > 0 && (
+        <div role="status" className="mb-4 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-900 ring-1 ring-amber-200">
+          Moderación retiró {appUser.moderationHidden.map((part) => ({ photo: 'tu foto de perfil', banner: 'tu banner', wallpaper: 'tu fondo de perfil', text: 'el texto de tu perfil' })[part] || part).join(', ')} por incumplir las normas. Puedes subir otro contenido. Si crees que fue un error, escríbenos a carpetazo.soporte@gmail.com.
+        </div>
+      )}
 
       <div className="grid min-w-0 gap-4 lg:grid-cols-[290px_1fr] lg:gap-5">
         <aside className="min-w-0 space-y-3 lg:space-y-4">

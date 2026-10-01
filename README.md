@@ -52,7 +52,7 @@ Antes de subir un cambio con migración: respaldo de la base (Coolify → Backup
 ## Pruebas y verificación
 
 - `npm run test:contract` (backend): las rutas públicas no filtran datos privados. Acepta la URL base como argumento.
-- `npm run test:session` (backend): pruebas de rutas con sesión (propio vs ajeno, pedidos, reseñas, lista de deseos, borrado de cuenta). Usa una simulación de Firebase solo para pruebas y una base de **desarrollo**; ver `backend/tests/README.md`.
+- `npm run test:session` (backend): pruebas de rutas con sesión (propio vs ajeno, pedidos, reseñas, lista de deseos, borrado de cuenta, términos, correos y moderación). Usa una simulación de Firebase solo para pruebas y una base de **desarrollo**; ver `backend/tests/README.md`.
 
 ## Textos legales y aceptación
 
@@ -60,6 +60,18 @@ Antes de subir un cambio con migración: respaldo de la base (Coolify → Backup
 - `npm run build` (frontend) también genera `dist/terminos/index.html` y `dist/privacidad/index.html` con el texto completo en el HTML (`scripts/prerender-legal.mjs`), para que lo lean verificadores que no ejecutan JavaScript, como el de Google. La dirección directa es la que termina en `/` (por ejemplo `https://carpetazo.cl/privacidad/`).
 - Cada cuenta debe aceptar la versión vigente (`LEGAL_CURRENT` en `backend/server.js`, igual que `frontend/src/legal/versions.js`; una prueba exige que coincidan). Sin aceptación vigente el servidor rechaza cualquier escritura con `403 terms_required`. Al cambiar un texto se sube la versión en ambos archivos y todos deben aceptar de nuevo.
 - Las cuentas nuevas se crean solo con Google. Quien ya tenía correo y contraseña sigue entrando así, y cualquier cuenta con Google puede crear una contraseña en su perfil.
+
+## Reportes y moderación
+
+- Cualquier persona con sesión puede reportar usuarios, foto/banner/fondo/texto de perfil, carpetas, cartas, fotos de carta, reseñas, mensajes y cartas deseadas. Las razones salen de `backend/reportReasons.js` (el cliente solo las consulta) y las rutas están en `backend/moderation.js`.
+- El reporte es anónimo para el reportado. Guarda una copia del contenido al momento de reportar y se limita a 20 por hora y 60 por día por persona.
+- Una imagen con motivo crítico (menores, contenido sexual) se oculta sola si la reporta una cuenta de más de 24 horas; el resto queda en cola.
+- Panel `/moderacion` (solo administradores): cola por gravedad, detalle, decisión (descartar, ocultar, quitar, restaurar), notas internas y auditoría (`ModerationAudit`, solo se agrega). Cada decisión avisa por correo al dueño del contenido, sin decir quién reportó.
+- El contenido oculto no se serializa en las rutas públicas; el estado de moderación solo lo ve el dueño. Fase B pendiente: casos de estafa, sanciones, apelaciones, bloqueo y roles (documento 20 del proyecto).
+
+## Correos
+
+- Se envían por SMTP con `SMTP_USER` y `SMTP_PASS` (Gmail con contraseña de aplicación) en las variables del backend; sin ellas no se envía nada. Nunca se escribe a una cuenta que no tenga aceptados los Términos vigentes. Prueba: botón en `/moderacion` → Herramientas.
 
 ## Base de datos
 

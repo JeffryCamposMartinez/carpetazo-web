@@ -11,6 +11,7 @@ import WishlistSection from '../components/WishlistSection';
 import { Stars } from '../components/Reviews';
 import { ensureExternalUrl, formatWhatsAppNumber, getInstagramHref } from '../utils/contact';
 import { wishlistPayloadFromCard } from '../utils/wishlistPayload';
+import { ReportMenu } from '../components/ReportButton';
 
 const isLocalhostWithProductionApi = () => {
   if (typeof window === 'undefined') return false;
@@ -747,6 +748,9 @@ function PublicCatalog() {
                     ))}
                     </div>
                   )}
+                  {!isOwner && folderData?.id && (
+                    <ReportMenu label="Reportar" buttonClassName="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-bold text-blue-100 hover:bg-white/10" options={[{ targetType: 'folder', targetId: folderData.id, label: 'Reportar esta carpeta' }, { targetType: 'user', targetId: sellerData?.id, label: 'Reportar al vendedor' }]} />
+                  )}
                   {!isOwner && visibleContactOptions.length === 0 && (
                     <span className="text-xs font-semibold text-blue-200">Sin contacto público</span>
                   )}
@@ -961,6 +965,9 @@ function PublicCatalog() {
                     const availableStock = Number(card.stock || 0) - (cartItem ? cartItem.quantity : 0);
                     return (
                       <div className="flex items-center gap-1 w-full mt-2" onClick={(e) => e.stopPropagation()}>
+                        {!isOwner && (
+                          <ReportMenu label="" buttonClassName="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 shadow-sm hover:text-red-600" options={[{ targetType: 'card', targetId: card.id, label: 'Reportar esta carta' }, { targetType: 'card_image', targetId: card.imageUrl && (card.isCustomImage || card.data?.isCustomImage) ? card.id : null, label: 'Reportar la foto de esta carta' }]} />
+                        )}
                         {!isOwner && (
                           <button
                           type="button"

@@ -16,6 +16,7 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 dotenv.config();
 import { initializeApp } from 'firebase-admin/app';
 import nodemailer from 'nodemailer';
+import { registerModeration } from './moderation.js';
 import { getAuth } from 'firebase-admin/auth';
 
 const FIREBASE_PROJECT_ID = 'carpetazo-db9d7';
@@ -292,6 +293,11 @@ app.get('/api/legal/versions', routeLimiter(15 * 60 * 1000, 300));
 app.post('/api/users/me/accept-terms', routeLimiter(15 * 60 * 1000, 30));
 app.delete('/api/users/me/unaccepted', routeLimiter(15 * 60 * 1000, 10));
 app.post('/api/admin/test-email', routeLimiter(15 * 60 * 1000, 10));
+app.post('/api/reports', routeLimiter(15 * 60 * 1000, 30));
+app.get('/api/reports/reasons', routeLimiter(15 * 60 * 1000, 200));
+app.get('/api/reports/mine', routeLimiter(15 * 60 * 1000, 100));
+app.use('/api/admin/reports', routeLimiter(15 * 60 * 1000, 300));
+app.use('/api/admin/audit', routeLimiter(15 * 60 * 1000, 120));
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
@@ -545,8 +551,9 @@ app.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res) =>
       };
     }
     
-    const inFolder = await prisma.card.findFirst({ where: { id: req.params.cardId, folderId: req.params.id }, select: { id: true } });
+    const inFolder = await prisma.card.findFirst({ where: { id: req.params.cardId, folderId: req.params.id }, select: { id: true, moderationState: true } });
     if (!inFolder) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
+    if (inFolder.moderationState === 'hidden') return res.status(403).json({ success: false, message: 'Esta carta fue ocultada por moderación.' });
 
     const card = await prisma.card.update({
       where: { id: req.params.cardId, folderId: req.params.id },
@@ -599,6 +606,7 @@ app.put('/api/folders/:id', authenticateToken, async (req, res) => {
     if (name !== undefined && !isShortText(name, 100)) return badRequest(res, 'Nombre de carpeta inválido');
     if (!isOptionalText(color, 40) || !isOptionalText(tcg, 60)) return badRequest(res, 'Datos de carpeta inválidos');
     if (tcg !== undefined && tcg !== folder.tcg) return badRequest(res, 'El juego de una carpeta no se puede cambiar');
+    if (isPublic === true && folder.moderationState !== 'visible') return res.status(403).json({ success: false, message: 'Esta carpeta fue ocultada por moderación. Escríbenos a carpetazo.soporte@gmail.com si crees que fue un error.' });
     if (isPublic !== undefined && typeof isPublic !== 'boolean') return badRequest(res, 'Datos de carpeta inválidos');
 
     // Actualizar
@@ -1499,6 +1507,7 @@ app.get('/api/folders/:id', optionalAuth, async (req, res) => {
       where: { id: req.params.id },
       include: {
         cards: {
+          where: { moderationState: { in: ['visible', 'image_hidden'] } },
           orderBy: { createdAt: 'asc' }
         },
         user: { select: PUBLIC_SELLER_SELECT }
@@ -1507,7 +1516,10 @@ app.get('/api/folders/:id', optionalAuth, async (req, res) => {
     // Una carpeta privada no existe para nadie más que su dueño (mismo 404 que una carpeta inexistente)
     const isFolderOwner = Boolean(req.user?.sub && folder?.user?.firebaseUid && folder.user.firebaseUid === req.user.sub);
     if (!folder || (!folder.isPublic && !isFolderOwner)) return res.status(404).json({ success: false, message: 'Folder not found' });
-    res.json({ success: true, folder: { ...folder, user: toPublicSeller(folder.user, req.user?.sub, await getReviewSummary(folder.user.id)) } });
+    // El estado de moderación solo lo ve el dueño; para los demás no se serializa
+    const { moderationState: _folderState, ...publicFolder } = folder;
+    const cards = isFolderOwner ? folder.cards : folder.cards.map(({ moderationState: _cardState, ...card }) => card);
+    res.json({ success: true, folder: { ...(isFolderOwner ? folder : publicFolder), cards, user: toPublicSeller(folder.user, req.user?.sub, await getReviewSummary(folder.user.id)) } });
   } catch (error) {
     console.error('Error fetching folder:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
@@ -1638,7 +1650,7 @@ app.get('/api/cards/recent', async (req, res) => {
   try {
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 12, 1), 30);
     const cards = await prisma.card.findMany({
-      where: { stock: { gt: 0 }, imageUrl: { not: null }, folder: { isPublic: true } },
+      where: { stock: { gt: 0 }, imageUrl: { not: null }, moderationState: 'visible', folder: { isPublic: true } },
       orderBy: { createdAt: 'desc' },
       take: limit,
       select: {
@@ -1746,7 +1758,7 @@ app.get('/api/wishlist/matches', authenticateToken, async (req, res) => {
     if (wanted.length === 0) return res.json({ success: true, matches: {} });
 
     const cards = await prisma.card.findMany({
-      where: { stock: { gt: 0 }, price: { not: null }, tcgId: { in: [...new Set(wanted.map((item) => item.tcgId))] }, folder: { isPublic: true, userId: { not: userId } } },
+      where: { stock: { gt: 0 }, price: { not: null }, moderationState: 'visible', tcgId: { in: [...new Set(wanted.map((item) => item.tcgId))] }, folder: { isPublic: true, userId: { not: userId } } },
       orderBy: { price: 'asc' },
       take: 2000,
       select: { id: true, tcgId: true, price: true, stock: true, folder: { select: { id: true, name: true, tcg: true, user: { select: { name: true, username: true, photoURL: true } } } } },
@@ -1866,9 +1878,9 @@ app.get('/api/users/:username/wishlist', async (req, res) => {
     if (theme.showWishlist === 'off') return res.json({ success: true, hidden: true, total: 0, page: 1, pages: 1, items: [] });
 
     const [total, rows] = await prisma.$transaction([
-      prisma.wishlistItem.count({ where: { userId: user.id } }),
+      prisma.wishlistItem.count({ where: { userId: user.id, moderationState: 'visible' } }),
       prisma.wishlistItem.findMany({
-        where: { userId: user.id },
+        where: { userId: user.id, moderationState: 'visible' },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * WISHLIST_PAGE_SIZE,
         take: WISHLIST_PAGE_SIZE,
@@ -1920,6 +1932,7 @@ app.get('/api/cards/search', async (req, res) => {
 
     const where = {
       stock: { gt: 0 },
+      moderationState: 'visible',
       folder: { isPublic: true, ...(tcg ? { tcg } : {}) },
       ...(q ? { name: { contains: q, mode: 'insensitive' } } : {}),
     };
@@ -2114,7 +2127,11 @@ app.get('/api/messages/:otherId', authenticateToken, async (req, res) => {
       orderBy: { createdAt: 'asc' }
     });
     
-    res.json({ success: true, messages });
+    // Un mensaje ocultado por moderación no se muestra a quien lo recibió (el autor sigue viendo el suyo)
+    const shown = messages.map(({ moderationState, ...message }) => (moderationState === 'hidden' && message.senderId !== currentUser.id
+      ? { ...message, content: HIDDEN_MESSAGE_TEXT, hidden: true }
+      : message));
+    res.json({ success: true, messages: shown });
   } catch (error) {
     console.error('Error fetching messages:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
@@ -2162,6 +2179,8 @@ app.post('/api/messages/:otherId', authenticateToken, async (req, res) => {
   }
 });
 
+const HIDDEN_MESSAGE_TEXT = 'Mensaje oculto por moderación';
+
 // GET user chats: último mensaje con cada persona y no leídos, resueltos en la base (sin traer todo el historial)
 app.get('/api/chats', authenticateToken, async (req, res) => {
   try {
@@ -2171,7 +2190,7 @@ app.get('/api/chats', authenticateToken, async (req, res) => {
     const [lastMessages, unreadRows] = await Promise.all([
       prisma.$queryRaw`
         SELECT * FROM (
-          SELECT DISTINCT ON (m.partner) m."id", m."senderId", m."receiverId", m."content", m."isRead", m."createdAt"
+          SELECT DISTINCT ON (m.partner) m."id", m."senderId", m."receiverId", m."content", m."moderationState", m."isRead", m."createdAt"
           FROM (
             SELECT *, CASE WHEN "senderId" = ${currentUser.id} THEN "receiverId" ELSE "senderId" END AS partner
             FROM "Message"
@@ -2195,7 +2214,9 @@ app.get('/api/chats', authenticateToken, async (req, res) => {
     const enrichedChats = lastMessages.map((msg) => {
       const partnerId = msg.senderId === currentUser.id ? msg.receiverId : msg.senderId;
       const partner = usersById.get(partnerId) || {};
-      return { ...msg, unreadCount: unreadCounts.get(partnerId) || 0, partner, otherUser: partner };
+      const { moderationState, ...chatMessage } = msg;
+      const hiddenForMe = moderationState === 'hidden' && msg.senderId !== currentUser.id;
+      return { ...chatMessage, ...(hiddenForMe ? { content: HIDDEN_MESSAGE_TEXT, hidden: true } : {}), unreadCount: unreadCounts.get(partnerId) || 0, partner, otherUser: partner };
     });
 
     res.json({ success: true, chats: enrichedChats, totalUnread });
@@ -2238,6 +2259,8 @@ const sendUserEmail = async (userId, { subject, text, html }) => {
     return { sent: false, reason: 'send_failed' };
   }
 };
+
+registerModeration(app, { prisma, authenticateToken, requireAdmin, badRequest, isUuid, currentUserId, hashConnection, sendUserEmail, escapeHtml, reviewHideReports: REVIEW_HIDE_REPORTS });
 
 // Prueba del envío (solo administradores). Sin "username" se envía a sí mismo; con "username", a esa cuenta,
 // que igual debe tener los términos aceptados. El contenido es fijo: no se puede usar para escribir mensajes libres.
@@ -2532,11 +2555,31 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
     }
 
     // Una imagen nueva debe ser de un host permitido; la que ya estaba guardada se acepta tal cual (datos anteriores a la regla)
-    const storedImages = await prisma.user.findUnique({ where: { firebaseUid }, select: { photoURL: true, bannerBase64: true, wallpaperBase64: true } });
+    const storedImages = await prisma.user.findUnique({ where: { firebaseUid }, select: { id: true, photoURL: true, bannerBase64: true, wallpaperBase64: true, moderationHidden: true } });
     for (const field of ['photoURL', 'bannerBase64', 'wallpaperBase64']) {
       if (updateData[field] !== undefined && updateData[field] !== storedImages?.[field] && !checkImageField(updateData[field])) {
         return res.status(400).json({ success: false, error: 'URL de imagen no permitida' });
       }
+    }
+    // Contenido retirado por moderación: no se puede volver a subir el mismo; una imagen o texto nuevo limpia el aviso
+    const hiddenParts = storedImages?.moderationHidden || [];
+    if (hiddenParts.length) {
+      const moderated = { photo: ['profile_image', ['photoURL'], ['photoURL']], banner: ['profile_banner', ['bannerBase64'], ['bannerBase64']], wallpaper: ['profile_wallpaper', ['wallpaperBase64'], ['wallpaperBase64']], text: ['profile_text', ['name', 'bio', 'facebookUrl', 'instagramUrl', 'youtubeUrl'], ['bio', 'facebookUrl', 'instagramUrl', 'youtubeUrl']] };
+      let remaining = [...hiddenParts];
+      for (const part of hiddenParts) {
+        const [reportType, guarded, clearing] = moderated[part] || [];
+        if (!reportType) continue;
+        const retired = await prisma.report.findMany({ where: { targetOwnerId: storedImages.id, targetType: reportType, status: { in: ['open', 'actioned'] } }, select: { snapshot: true } });
+        for (const field of guarded) {
+          const incoming = updateData[field];
+          if (!incoming) continue;
+          if (retired.some((row) => (row.snapshot?.value ?? row.snapshot?.[field]) === incoming)) {
+            return res.status(403).json({ success: false, error: 'Este contenido fue retirado por moderación y no se puede volver a publicar' });
+          }
+        }
+        if (clearing.some((field) => updateData[field])) remaining = remaining.filter((item) => item !== part);
+      }
+      if (remaining.length !== hiddenParts.length) updateData.moderationHidden = remaining;
     }
     for (const field of Object.keys(SOCIAL_DOMAINS)) {
       if (updateData[field] !== undefined && !checkSocialField(field, updateData[field])) {

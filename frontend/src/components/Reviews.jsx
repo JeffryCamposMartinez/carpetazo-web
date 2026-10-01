@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
+import ReportButton from './ReportButton';
 
 const STAR_PATH = 'M12 2.5l2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 17.52l-5.88 3.09 1.12-6.55L2.48 9.42l6.58-.96L12 2.5z';
 
@@ -157,18 +158,12 @@ export default function ReviewsSection({ username, isOwner = false, colors = {} 
   }
 
   // Reportar: va a moderación; se oculta cuando varias personas (que no son el vendedor) la reportan
-  const report = async (review) => {
-    if (!window.confirm('¿Reportar esta reseña? Se enviará a moderación para revisarla.')) return;
-    try {
-      const res = await api.reportReview(review.id);
-      if (res?.hidden) {
-        setItems((previous) => previous.filter((item) => item.id !== review.id));
-        setData((previous) => (previous ? { ...previous, count: Math.max(0, previous.count - 1), average: previous.count - 1 >= 3 ? previous.average : null, showAverage: previous.count - 1 >= 3 && previous.showAverage } : previous));
-      }
-      setNotice('Gracias. La reseña quedó reportada y se enviará a moderación para revisarla.');
-    } catch (error) {
-      setNotice(error.message || 'No se pudo reportar la reseña.');
+  const afterReport = (review, res) => {
+    if (res?.hidden) {
+      setItems((previous) => previous.filter((item) => item.id !== review.id));
+      setData((previous) => (previous ? { ...previous, count: Math.max(0, previous.count - 1), average: previous.count - 1 >= 3 ? previous.average : null, showAverage: previous.count - 1 >= 3 && previous.showAverage } : previous));
     }
+    setNotice('Gracias. La reseña quedó reportada y se enviará a moderación para revisarla.');
     window.setTimeout(() => setNotice(''), 4000);
   };
 
@@ -214,7 +209,7 @@ export default function ReviewsSection({ username, isOwner = false, colors = {} 
               </div>
               {review.comment && <p className="mt-3 whitespace-pre-line break-words text-sm leading-relaxed text-slate-700">{review.comment}</p>}
               {currentUser && appUser?.username !== review.reviewer?.username && (
-                <button type="button" onClick={() => report(review)} className="mt-2 text-xs font-bold text-slate-400 underline-offset-2 hover:text-red-600 hover:underline">Reportar</button>
+                <div className="mt-2"><ReportButton targetType="review" targetId={review.id} onReported={(res) => afterReport(review, res)} /></div>
               )}
             </li>
           );

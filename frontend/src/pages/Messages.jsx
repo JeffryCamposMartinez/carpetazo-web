@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
+import { ReportMenu } from '../components/ReportButton';
 
 const encodeMessage = ({ text, imageUrl, imageBase64 }) => JSON.stringify({
   v: 1,
@@ -463,6 +464,9 @@ export default function Messages() {
                           <div className={`max-w-[84%] rounded-2xl px-3 py-2.5 shadow-sm ring-1 md:max-w-[68%] md:px-4 md:py-3 ${own ? 'rounded-br-md bg-[#1e40af] text-white ring-blue-300' : 'rounded-bl-md bg-white text-slate-900 ring-blue-100'} ${message.pending ? 'opacity-75' : ''}`}>
                             {(body.imageUrl || body.imageBase64) && <img src={body.imageUrl || body.imageBase64} alt="Adjunto" className="mb-2 max-h-72 rounded-xl object-contain ring-1 ring-black/5" />}
                             {body.text && <p className="whitespace-pre-wrap break-words">{body.text}</p>}
+                            {!own && !message.hidden && !message.pending && (
+                              <div className="mt-1"><ReportMenu label="Reportar" buttonClassName="inline-flex h-7 items-center gap-1 rounded-full px-2 text-[11px] font-bold text-slate-400 hover:text-red-600" options={[{ targetType: 'message', targetId: message.id, label: 'Reportar este mensaje' }, { targetType: 'message_image', targetId: (body.imageUrl || body.imageBase64) ? message.id : null, label: 'Reportar la imagen' }]} /></div>
+                            )}
                             <p className={`mt-1 text-right text-[10px] ${own ? 'text-blue-100' : 'text-slate-400'}`}>
                               {message.createdAt ? new Date(message.createdAt).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }) : ''}
                               <TickIcon />

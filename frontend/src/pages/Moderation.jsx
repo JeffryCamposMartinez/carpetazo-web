@@ -3,6 +3,10 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../utils/api';
 import { Stars } from '../components/Reviews';
+import ReportsPanel from '../components/moderation/ReportsPanel';
+import AuditPanel from '../components/moderation/AuditPanel';
+
+const TABS = [['reports', 'Reportes'], ['reviews', 'Reseñas marcadas'], ['audit', 'Auditoría'], ['tools', 'Herramientas']];
 
 // Sección de moderación (solo administradores): reseñas reportadas o sospechosas, para aprobarlas o eliminarlas.
 // El servidor vuelve a comprobar que quien llama es administrador en cada acción.
@@ -17,6 +21,7 @@ const personLabel = (person) => (person?.username ? `${person.name || person.use
 export default function Moderation() {
   const { currentUser } = useAuth();
   const [state, setState] = useState('checking'); // checking | denied | ok
+  const [tab, setTab] = useState('reports');
   const [reviews, setReviews] = useState(null);
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState('');
@@ -83,21 +88,33 @@ export default function Moderation() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1100px] px-3 py-3 sm:px-6 sm:py-6">
+    <div className="mx-auto w-full max-w-[1280px] px-3 py-3 sm:px-6 sm:py-6">
       <div className="rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 p-4 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] md:rounded-[2rem] md:p-8">
-        <header className="mb-5">
+        <header className="mb-4">
           <h1 className="text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Moderación</h1>
-          <p className="mt-1 max-w-2xl text-sm text-slate-600 md:text-base">Reseñas reportadas o sospechosas. Aprobar la vuelve a mostrar y borra sus reportes; eliminar la borra definitivamente.</p>
+          <p className="mt-1 max-w-2xl text-sm text-slate-600 md:text-base">Reportes de contenido ordenados por gravedad. Cada decisión queda registrada en la auditoría.</p>
         </header>
 
-        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl bg-white/70 p-3 ring-1 ring-blue-200">
-          <button type="button" onClick={sendTestEmail} disabled={mailState.busy} className="rounded-xl bg-[#1e40af] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{mailState.busy ? 'Enviando…' : 'Enviar correo de prueba'}</button>
-          <span className="text-sm text-slate-600">{mailState.text || 'Envía un correo a tu propia cuenta (solo sale si aceptó los términos).'}</span>
+        <div role="tablist" aria-label="Secciones de moderación" className="mb-5 flex flex-wrap gap-2">
+          {TABS.map(([value, label]) => (
+            <button key={value} role="tab" type="button" aria-selected={tab === value} onClick={() => setTab(value)} className={`h-11 rounded-full px-5 text-sm font-extrabold ${tab === value ? 'bg-[#12315f] text-white' : 'bg-white text-[#12315f] ring-1 ring-slate-300'}`}>{label}</button>
+          ))}
         </div>
 
-        {error && <p role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-200">{error}</p>}
+        {tab === 'reports' && <ReportsPanel />}
+        {tab === 'audit' && <AuditPanel />}
 
-        {reviews === null ? (
+        {tab === 'tools' && (
+          <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-white/70 p-3 ring-1 ring-blue-200">
+            <button type="button" onClick={sendTestEmail} disabled={mailState.busy} className="rounded-xl bg-[#1e40af] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{mailState.busy ? 'Enviando…' : 'Enviar correo de prueba'}</button>
+            <span className="text-sm text-slate-600">{mailState.text || 'Envía un correo a tu propia cuenta (solo sale si aceptó los términos).'}</span>
+          </div>
+        )}
+
+        {tab === 'reviews' && <p className="mb-4 max-w-2xl text-sm text-slate-600">Reseñas reportadas o sospechosas por la regla anterior. Aprobar la vuelve a mostrar y borra sus reportes; eliminar la borra definitivamente.</p>}
+        {tab === 'reviews' && error && <p role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-200">{error}</p>}
+
+        {tab !== 'reviews' ? null : reviews === null ? (
           <div className="flex justify-center py-10" role="status" aria-label="Cargando reportes"><div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1e40af] border-t-transparent" /></div>
         ) : reviews.length === 0 ? (
           <section aria-label="Reportes de reseñas" className="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-900/5">

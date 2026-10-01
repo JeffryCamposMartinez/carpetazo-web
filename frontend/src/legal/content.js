@@ -33,7 +33,7 @@ export const termsBlocks = [
  },
  {
   "t": "p",
-  "x": "2.2. Podemos modificar estos Términos. Si el cambio es relevante, te avisaremos **con anticipación** por correo y dentro de la plataforma, y te pediremos aceptarlos de nuevo. Las versiones anteriores se conservan y puedes pedirlas escribiéndonos."
+  "x": "2.2. Podemos modificar estos Términos. Si el cambio es relevante, te avisaremos **con al menos 30 días corridos de anticipación** por correo y dentro de la plataforma, y te pediremos aceptarlos de nuevo. Durante ese plazo puedes seguir usando Carpetazo con la versión que ya aceptaste; si no estás de acuerdo, puedes eliminar tu cuenta antes de que el cambio entre en vigencia. Si un cambio es necesario por exigencia legal, de una autoridad o para frenar un riesgo urgente de seguridad o fraude, podrá regir antes, y te lo informaremos igualmente. Los cambios que solo corrigen errores de forma o aclaran el texto sin afectar tus derechos u obligaciones no requieren este plazo. Las versiones anteriores se conservan y puedes pedirlas escribiéndonos."
  },
  {
   "t": "p",
@@ -621,7 +621,7 @@ export const privacyBlocks = [
  },
  {
   "t": "p",
-  "x": "Si cambia de forma relevante, te avisaremos con anticipación y publicaremos la nueva versión con su fecha."
+  "x": "Si cambia de forma relevante, te avisaremos **con al menos 30 días corridos de anticipación** por correo y dentro de la plataforma, y publicaremos la nueva versión con su fecha. Si el cambio es necesario por exigencia legal o de una autoridad, podrá regir antes y te lo informaremos igualmente."
  },
  {
   "t": "h2",
