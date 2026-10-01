@@ -166,18 +166,18 @@ const cardStyleOptions = [
   { id: 'solid', name: 'Sólido', description: 'Contenedores fuertes y definidos.' },
   { id: 'neon', name: 'Neón', description: 'Brillo/acento alrededor de tarjetas.' },
   { id: 'minimal', name: 'Minimal', description: 'Limpio, plano y elegante.' },
-  { id: 'holographic', name: 'Holográfico', description: 'Brillos diagonales tipo carta foil.' },
+  { id: 'holographic', name: 'Foil', description: 'Borde iridiscente de carta brillante.' },
   { id: 'comic', name: 'Comic', description: 'Borde grueso y sombra ilustrada.' },
   { id: 'crystal', name: 'Cristal', description: 'Glassmorphism transparente.' },
   { id: 'brutalist', name: 'Brutalista', description: 'Bloques duros, crudos y raros.' },
-  { id: 'sticker', name: 'Sticker', description: 'Como pegatina flotante.' },
-  { id: 'terminal', name: 'Terminal', description: 'Oscuro, técnico y digital.' },
-  { id: 'sunset', name: 'Atardecer', description: 'Gradiente cálido abstracto.' },
-  { id: 'cosmic', name: 'Cósmico', description: 'Profundo, espacial y brillante.' },
-  { id: 'toxic', name: 'Tóxico', description: 'Acentos intensos y mutantes.' },
+  { id: 'sticker', name: 'Sticker', description: 'Contorno blanco de pegatina.' },
+  { id: 'terminal', name: 'Terminal', description: 'Fondo oscuro y texto claro.' },
+  { id: 'sunset', name: 'Atardecer', description: 'Franja cálida en el borde superior.' },
+  { id: 'cosmic', name: 'Cósmico', description: 'Noche con nebulosas y estrellas.' },
+  { id: 'toxic', name: 'Ácido', description: 'Borde de acento y franjas de advertencia.' },
   { id: 'paper', name: 'Papel', description: 'Suave, coleccionable y artesanal.' },
-  { id: 'metal', name: 'Metal', description: 'Plateado, duro y premium.' },
-  { id: 'prism', name: 'Prisma', description: 'Gradiente angular multicolor.' }
+  { id: 'metal', name: 'Metal', description: 'Placa cepillada con borde plateado.' },
+  { id: 'prism', name: 'Prisma', description: 'Borde con los colores de tu tema.' }
 ];
 
 const backgroundStyleOptions = [
@@ -198,13 +198,13 @@ const backgroundStyleOptions = [
 const sideBackgroundOptions = [
     { id: 'solid-surface', name: 'Original', description: 'El fondo simple oficial.' },
   { id: 'site-wallpaper', name: 'Fondo Carpetazo', description: 'El wallpaper oficial de la página.' },
-  { id: 'theme-glow', name: 'Glow del tema', description: 'Laterales con luces del color elegido.' },
+  { id: 'theme-glow', name: 'Luces del tema', description: 'Dos luces suaves con tus colores.' },
   { id: 'premium-dark', name: 'Oscuro premium', description: 'Bandas negras con profundidad.' },
-  { id: 'binder-shelf', name: 'Repisa TCG', description: 'Textura de álbum y colección.' },
-  { id: 'pixel-room', name: 'Pixel room', description: 'Patrón gamer retro.' },
-  { id: 'foil-side', name: 'Foil lateral', description: 'Brillos diagonales fuertes.' },
+  { id: 'binder-shelf', name: 'Hoja de carpeta', description: 'Bolsillos como una página de 9 cartas.' },
+  { id: 'pixel-room', name: 'Píxeles', description: 'Rejilla retro muy suave.' },
+  { id: 'foil-side', name: 'Reflejo foil', description: 'Un brillo diagonal tornasol.' },
   { id: 'clean-fade', name: 'Degradado limpio', description: 'Minimal, sin distraer.' },
-  { id: 'comic-wall', name: 'Comic wall', description: 'Puntos y explosiones pop.' }
+  { id: 'comic-wall', name: 'Trama cómic', description: 'Puntos de imprenta en tus colores.' }
 ];
 
 const avatarFrameOptions = [
@@ -219,11 +219,11 @@ const avatarFrameOptions = [
 ];
 
 const profileLayoutOptions = [
-  { id: 'classic', name: 'Clásico', description: 'Hero amplio y carpetas abajo.' },
-  { id: 'side-showcase', name: 'Gamer', description: 'Hero + vitrina lateral.' },
-  { id: 'showcase', name: 'Showcase', description: 'Todo centrado como exposición.' },
-  { id: 'compact', name: 'Compacto', description: 'Más información en menos altura.' },
-  { id: 'poster', name: 'Poster', description: 'Nombre grande y teatral.' }
+  { id: 'classic', name: 'Clásico', description: 'Banner grande y foto a un lado.' },
+  { id: 'side-showcase', name: 'Gamer', description: 'Foto junto al nombre, como ficha de jugador.' },
+  { id: 'showcase', name: 'Showcase', description: 'Foto y datos centrados en la tarjeta.' },
+  { id: 'compact', name: 'Compacto', description: 'Banner bajo: tus carpetas aparecen antes.' },
+  { id: 'poster', name: 'Póster', description: 'Nombre grande sobre tu banner.' }
 ];
 
 const profileEffectOptions = [
@@ -332,10 +332,11 @@ const getProfileBackgroundStyle = (theme) => {
 
 const getSideBackgroundStyle = (theme) => {
   const style = theme.sideBackgroundStyle || defaultPublicTheme.sideBackgroundStyle;
+  // Las franjas acompañan sin competir con el perfil: intensidad baja y un solo motivo por opción
   const styles = {
-      'solid-surface': {
-        backgroundColor: theme.surface
-      },
+    'solid-surface': {
+      backgroundColor: theme.surface
+    },
     'site-wallpaper': {
       backgroundColor: '#08204a',
       backgroundImage: "linear-gradient(90deg, rgba(6,18,42,0.2), rgba(6,18,42,0.72), rgba(6,18,42,0.2)), url('/images/background.webp')",
@@ -343,35 +344,42 @@ const getSideBackgroundStyle = (theme) => {
       backgroundPosition: 'center',
       backgroundAttachment: 'fixed'
     },
+    // Dos luces grandes y difusas del tema sobre un fondo profundo
     'theme-glow': {
       backgroundColor: theme.text,
-      backgroundImage: `radial-gradient(circle at 12% 20%, ${theme.primary}aa, transparent 28%), radial-gradient(circle at 88% 70%, ${theme.accent}88, transparent 26%), linear-gradient(135deg, ${theme.text}, ${theme.primary})`
+      backgroundImage: `radial-gradient(55% 45% at 0% 18%, ${theme.primary}a6, transparent 70%), radial-gradient(45% 40% at 100% 82%, ${theme.accent}66, transparent 70%)`
     },
     'premium-dark': {
       backgroundColor: '#05070d',
-      backgroundImage: `radial-gradient(circle at 18% 18%, ${theme.secondary}44, transparent 28%), linear-gradient(180deg, #111827, #020617)`
+      backgroundImage: `radial-gradient(50% 35% at 50% 0%, ${theme.secondary}33, transparent 70%), linear-gradient(180deg, #0f1522, #03050a)`
     },
+    // Hoja de carpeta: bolsillos con proporción de carta, como una página de 9 cartas
     'binder-shelf': {
-      backgroundColor: theme.surface,
-      backgroundImage: `repeating-linear-gradient(90deg, ${theme.primary}55 0 14px, ${theme.text}66 14px 18px, transparent 18px 42px), linear-gradient(135deg, ${theme.surface}, ${theme.secondary}55)`
+      backgroundColor: theme.text,
+      backgroundImage: `linear-gradient(90deg, ${theme.text} 0 8px, transparent 8px), linear-gradient(${theme.text} 0 8px, transparent 8px), linear-gradient(160deg, ${theme.primary}80, ${theme.secondary}59)`,
+      backgroundSize: '46px 64px, 46px 64px, 100% 100%'
     },
+    // Rejilla de píxeles tenue
     'pixel-room': {
       backgroundColor: theme.text,
-      backgroundImage: `linear-gradient(90deg, ${theme.accent}44 2px, transparent 2px), linear-gradient(${theme.primary}44 2px, transparent 2px), linear-gradient(135deg, ${theme.text}, ${theme.primary})`,
-      backgroundSize: '28px 28px, 28px 28px, 100% 100%'
+      backgroundImage: `linear-gradient(90deg, ${theme.accent}1f 1px, transparent 1px), linear-gradient(${theme.accent}1f 1px, transparent 1px), radial-gradient(70% 50% at 50% 0%, ${theme.primary}40, transparent 70%)`,
+      backgroundSize: '16px 16px, 16px 16px, 100% 100%'
     },
+    // Un solo reflejo diagonal, como luz sobre una carta foil
     'foil-side': {
-      backgroundColor: theme.surface,
-      backgroundImage: `repeating-linear-gradient(125deg, transparent 0 20px, ${theme.accent}55 20px 24px, transparent 24px 44px), linear-gradient(135deg, ${theme.primary}, ${theme.secondary}, ${theme.card})`
+      backgroundColor: theme.text,
+      backgroundImage: `linear-gradient(115deg, transparent 22%, ${theme.secondary}38 40%, ${theme.accent}33 50%, #f0abfc26 58%, transparent 76%), repeating-linear-gradient(115deg, rgba(255,255,255,0.035) 0 2px, transparent 2px 10px)`
     },
     'clean-fade': {
       backgroundColor: theme.surface,
-      backgroundImage: `linear-gradient(135deg, ${theme.surface}, ${theme.card}, ${theme.secondary}55)`
+      backgroundImage: `linear-gradient(180deg, ${theme.card}, ${theme.surface} 60%, ${theme.secondary}33)`
     },
+    // Trama de puntos de cómic sobre el color base
     'comic-wall': {
-      backgroundColor: theme.accent,
-      backgroundImage: `radial-gradient(circle, ${theme.text}22 1px, transparent 2px), conic-gradient(from 180deg at 50% 50%, ${theme.accent}, ${theme.card}, ${theme.primary}, ${theme.accent})`,
-      backgroundSize: '18px 18px, 100% 100%'
+      backgroundColor: theme.surface,
+      backgroundImage: `radial-gradient(circle, ${theme.accent}b3 1.6px, transparent 2px), radial-gradient(circle, ${theme.primary}40 1.6px, transparent 2px)`,
+      backgroundSize: '16px 16px, 16px 16px',
+      backgroundPosition: '0 0, 8px 8px'
     }
   };
   return styles[style] || styles['site-wallpaper'];
@@ -410,159 +418,140 @@ const getDisplayScale = (font) => {
 };
 const BODY_FONT_STACK = 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 
+// Estilos con superficie oscura: el texto pasa a claro y el color principal al acento, para que todo se lea
+const DARK_CARD_STYLES = {
+  terminal: { card: '#0b1512', text: '#dcf5e7' },
+  cosmic: { card: '#0e1128', text: '#e8eaff' }
+};
+const resolveSurfaceTheme = (theme) => {
+  const dark = DARK_CARD_STYLES[theme.cardStyle];
+  return dark ? { ...theme, ...dark, primary: theme.accent } : theme;
+};
+
+// Borde con degradado: el cuerpo de la tarjeta queda liso (se lee bien) y el brillo vive solo en el contorno
+const gradientEdge = (fill, edge, width = '2px') => ({
+  borderStyle: 'solid',
+  borderWidth: width,
+  borderColor: 'transparent',
+  background: `linear-gradient(${fill}, ${fill}) padding-box, ${edge} border-box`
+});
+
 const getCardStyle = (theme) => {
   const style = theme.cardStyle || defaultPublicTheme.cardStyle;
   const common = { backgroundColor: `${theme.card}e8` };
 
   if (style === 'solid') {
-    return {
-      ...common,
-      backgroundColor: theme.card,
-      borderRadius: '1.25rem',
-      boxShadow: `0 18px 45px ${theme.text}24`,
-      borderColor: `${theme.primary}66`
-    };
+    return { ...common, backgroundColor: theme.card, borderRadius: '1.25rem', boxShadow: `0 18px 45px ${theme.text}24`, borderColor: `${theme.primary}66` };
   }
 
   if (style === 'neon') {
-    return {
-      ...common,
-      borderRadius: '2rem',
-      boxShadow: `0 0 0 1px ${theme.accent}88, 0 0 32px ${theme.accent}55, 0 22px 60px ${theme.primary}35`,
-      borderColor: `${theme.accent}88`
-    };
+    return { ...common, borderRadius: '1.75rem', boxShadow: `0 0 0 1px ${theme.accent}88, 0 0 28px ${theme.accent}44, 0 22px 60px ${theme.primary}30`, borderColor: `${theme.accent}88` };
   }
 
   if (style === 'minimal') {
-    return {
-      ...common,
-      backgroundColor: theme.card,
-      borderRadius: '0.9rem',
-      boxShadow: 'none',
-      borderColor: `${theme.text}18`
-    };
+    return { ...common, backgroundColor: theme.card, borderRadius: '0.9rem', boxShadow: 'none', borderColor: `${theme.text}18` };
   }
 
+  // Foil: contorno iridiscente como el borde de una carta brillante y un reflejo tenue arriba
   if (style === 'holographic') {
     return {
-      borderRadius: '2rem',
-      backgroundImage: `linear-gradient(135deg, ${theme.card}ee, ${theme.secondary}55 32%, ${theme.accent}66 48%, ${theme.card}ee 68%), linear-gradient(45deg, transparent, rgba(255,255,255,0.55), transparent)`,
-      boxShadow: `0 22px 70px ${theme.primary}33`,
-      borderColor: `${theme.accent}99`
+      ...gradientEdge(theme.card, `conic-gradient(from 210deg, #f0abfc, #93c5fd, #a7f3d0, #fde68a, ${theme.accent}, #f0abfc)`, '2.5px'),
+      background: `linear-gradient(115deg, transparent 0 38%, rgba(255,255,255,0.4) 46%, transparent 54%) padding-box, linear-gradient(${theme.card}, ${theme.card}) padding-box, conic-gradient(from 210deg, #f0abfc, #93c5fd, #a7f3d0, #fde68a, ${theme.accent}, #f0abfc) border-box`,
+      borderRadius: '1.5rem',
+      boxShadow: `0 20px 50px ${theme.primary}2e`
     };
   }
 
   if (style === 'comic') {
-    return {
-      backgroundColor: theme.card,
-      borderRadius: '1.3rem',
-      boxShadow: `8px 8px 0 ${theme.text}, 0 18px 35px ${theme.primary}30`,
-      borderColor: theme.text,
-      borderWidth: '3px'
-    };
+    return { backgroundColor: theme.card, borderRadius: '1.3rem', boxShadow: `6px 6px 0 ${theme.text}`, borderColor: theme.text, borderWidth: '3px' };
   }
 
   if (style === 'crystal') {
-    return {
-      backgroundColor: `${theme.card}9c`,
-      borderRadius: '2.4rem',
-      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.7), 0 28px 70px ${theme.text}2c`,
-      borderColor: 'rgba(255,255,255,0.65)',
-      backdropFilter: 'blur(18px) saturate(1.25)'
-    };
+    return { backgroundColor: `${theme.card}b8`, borderRadius: '2rem', boxShadow: `inset 0 1px 0 rgba(255,255,255,0.7), 0 24px 60px ${theme.text}26`, borderColor: 'rgba(255,255,255,0.65)', backdropFilter: 'blur(16px) saturate(1.2)' };
   }
 
   if (style === 'brutalist') {
-    return {
-      backgroundColor: theme.card,
-      borderRadius: '0.15rem',
-      boxShadow: `12px 12px 0 ${theme.accent}`,
-      borderColor: theme.text,
-      borderWidth: '4px'
-    };
+    return { backgroundColor: theme.card, borderRadius: '0.15rem', boxShadow: `8px 8px 0 ${theme.accent}`, borderColor: theme.text, borderWidth: '3px' };
   }
 
+  // Sticker: contorno blanco troquelado y sombra de pegatina despegada (sin girar el contenido)
   if (style === 'sticker') {
-    return {
-      backgroundColor: theme.card,
-      borderRadius: '2.25rem 1rem 2.25rem 1rem',
-      boxShadow: `0 0 0 5px #fff, 0 20px 45px ${theme.text}33`,
-      borderColor: `${theme.primary}33`,
-      transform: 'rotate(-0.45deg)'
-    };
+    return { backgroundColor: theme.card, borderRadius: '1.6rem', boxShadow: `0 0 0 4px #ffffff, 0 0 0 5px ${theme.text}1f, 0 16px 32px ${theme.text}2b`, borderColor: 'transparent' };
   }
 
+  // Terminal: superficie oscura con líneas de monitor muy suaves; el texto ya viene claro (resolveSurfaceTheme)
   if (style === 'terminal') {
     return {
-      backgroundColor: '#07110f',
-      borderRadius: '1rem',
-      boxShadow: `0 0 0 1px ${theme.accent}99, inset 0 0 30px ${theme.primary}30`,
-      borderColor: `${theme.accent}99`,
-      color: '#d9ffe5'
+      backgroundColor: theme.card,
+      backgroundImage: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 3px)',
+      borderRadius: '0.85rem',
+      boxShadow: `0 0 0 1px ${theme.accent}59, 0 18px 40px rgba(0,0,0,0.45)`,
+      borderColor: `${theme.accent}59`
     };
   }
 
+  // Atardecer: franja cálida en el borde superior y un tinte leve que se desvanece
   if (style === 'sunset') {
     return {
-      borderRadius: '2rem',
-      backgroundImage: `linear-gradient(135deg, ${theme.accent}cc, ${theme.primary}dd 48%, ${theme.secondary}dd)`,
-      boxShadow: `0 22px 55px ${theme.accent}40`,
-      borderColor: 'rgba(255,255,255,0.35)'
+      backgroundColor: theme.card,
+      backgroundImage: `linear-gradient(90deg, ${theme.accent}, ${theme.primary}, ${theme.secondary}), linear-gradient(180deg, ${theme.accent}1f, transparent 45%)`,
+      backgroundSize: '100% 6px, 100% 100%',
+      backgroundRepeat: 'no-repeat',
+      borderRadius: '1.4rem',
+      boxShadow: `0 18px 44px ${theme.accent}33`,
+      borderColor: `${theme.accent}40`
     };
   }
 
+  // Cósmico: superficie nocturna con dos nebulosas suaves y algunas estrellas; el texto ya viene claro
   if (style === 'cosmic') {
     return {
-      borderRadius: '2rem',
-      backgroundImage: `radial-gradient(circle at 20% 10%, ${theme.accent}88, transparent 26%), radial-gradient(circle at 80% 0%, ${theme.secondary}66, transparent 28%), linear-gradient(135deg, #050816, ${theme.primary})`,
-      boxShadow: `0 0 42px ${theme.secondary}55, 0 28px 70px #0008`,
-      borderColor: `${theme.secondary}88`
+      backgroundColor: theme.card,
+      backgroundImage: `radial-gradient(1px 1px at 18% 28%, #ffffffcc, transparent), radial-gradient(1px 1px at 72% 64%, #ffffffaa, transparent), radial-gradient(1.5px 1.5px at 88% 18%, #ffffffbb, transparent), radial-gradient(120% 80% at 100% 0%, ${theme.secondary}3d, transparent 60%), radial-gradient(90% 70% at 0% 100%, ${theme.accent}24, transparent 60%)`,
+      borderRadius: '1.6rem',
+      boxShadow: `0 0 0 1px ${theme.secondary}55, 0 24px 60px rgba(0,0,0,0.45)`,
+      borderColor: `${theme.secondary}55`
     };
   }
 
+  // Ácido: borde de acento con franjas de advertencia solo en la esquina
   if (style === 'toxic') {
     return {
-      borderRadius: '1.6rem',
-      backgroundImage: `linear-gradient(135deg, ${theme.card}, ${theme.accent}77), repeating-linear-gradient(45deg, transparent 0 10px, ${theme.primary}22 10px 20px)`,
-      boxShadow: `0 0 0 2px ${theme.accent}, 0 18px 60px ${theme.accent}66`,
+      backgroundColor: theme.card,
+      backgroundImage: `repeating-linear-gradient(-45deg, ${theme.accent}40 0 6px, transparent 6px 12px)`,
+      backgroundSize: '72px 72px',
+      backgroundPosition: 'top right',
+      backgroundRepeat: 'no-repeat',
+      borderRadius: '1.1rem',
+      boxShadow: `0 0 0 2px ${theme.accent}, 0 14px 36px ${theme.accent}33`,
       borderColor: theme.accent
     };
   }
 
   if (style === 'paper') {
-    return {
-      backgroundColor: theme.card,
-      borderRadius: '1.1rem',
-      backgroundImage: 'linear-gradient(0deg, rgba(255,255,255,0.45), rgba(0,0,0,0.025))',
-      boxShadow: `0 14px 30px ${theme.text}18`,
-      borderColor: `${theme.text}22`
-    };
+    return { backgroundColor: theme.card, borderRadius: '1.1rem', backgroundImage: 'linear-gradient(0deg, rgba(255,255,255,0.45), rgba(0,0,0,0.025))', boxShadow: `0 14px 30px ${theme.text}18`, borderColor: `${theme.text}22` };
   }
 
+  // Metal: placa cepillada clara con contorno plateado
   if (style === 'metal') {
     return {
-      borderRadius: '1.4rem',
-      backgroundImage: `linear-gradient(135deg, #ffffff, ${theme.card}, #94a3b8, ${theme.card}, #ffffff)`,
-      boxShadow: `inset 0 1px 0 #fff, 0 22px 50px ${theme.text}30`,
-      borderColor: '#cbd5e1'
+      ...gradientEdge('#f1f4f8', 'linear-gradient(135deg, #ffffff, #94a3b8 30%, #e2e8f0 55%, #64748b 80%, #f8fafc)', '2.5px'),
+      background: 'repeating-linear-gradient(90deg, rgba(255,255,255,0.55) 0 1px, transparent 1px 4px) padding-box, linear-gradient(180deg, #fafbfc, #e9edf2) padding-box, linear-gradient(135deg, #ffffff, #94a3b8 30%, #e2e8f0 55%, #64748b 80%, #f8fafc) border-box',
+      borderRadius: '1.25rem',
+      boxShadow: `inset 0 1px 0 #ffffff, 0 18px 40px ${theme.text}26`
     };
   }
 
+  // Prisma: contorno con los tres colores del tema; el contenido sobre fondo liso
   if (style === 'prism') {
     return {
-      borderRadius: '2rem',
-      backgroundImage: `conic-gradient(from 180deg at 50% 50%, ${theme.primary}, ${theme.secondary}, ${theme.accent}, ${theme.card}, ${theme.primary})`,
-      boxShadow: `0 24px 60px ${theme.primary}40`,
-      borderColor: 'rgba(255,255,255,0.5)'
+      ...gradientEdge(theme.card, `conic-gradient(from 140deg, ${theme.primary}, ${theme.secondary}, ${theme.accent}, ${theme.primary})`, '3px'),
+      borderRadius: '1.5rem',
+      boxShadow: `0 20px 50px ${theme.primary}33`
     };
   }
 
-  return {
-    ...common,
-    borderRadius: '2rem',
-    boxShadow: `0 24px 70px ${theme.text}24`,
-    borderColor: 'rgba(255,255,255,0.4)'
-  };
+  return { ...common, borderRadius: '2rem', boxShadow: `0 24px 70px ${theme.text}24`, borderColor: 'rgba(255,255,255,0.4)' };
 };
 
 // Opción de personalización: vista previa grande + nombre + descripción, con el mismo aviso de "seleccionada" en todo el panel
@@ -648,51 +637,66 @@ const MiniProfile = ({ theme, avatarUrl, initial = 'V' }) => (
 // Escena en miniatura: el fondo elegido con un perfil encima
 const MiniScene = ({ theme, avatarUrl, initial, background }) => (
   <span className="relative block h-[104px] overflow-hidden rounded-xl" style={background || getProfileBackgroundStyle(theme)}>
-    <MiniProfile theme={theme} avatarUrl={avatarUrl} initial={initial} />
+    <MiniProfile theme={resolveSurfaceTheme(theme)} avatarUrl={avatarUrl} initial={initial} />
   </span>
 );
 
-// Esquemas de estructura: se entiende de un vistazo cómo queda la parte de arriba del perfil
+// Esquemas de la presentación: muestran la forma real que toma la parte de arriba del perfil en el teléfono
 const wire = 'rounded-[3px]';
 const LayoutWire = ({ id }) => {
-  const dark = 'bg-[#12315f]';
-  const soft = 'bg-slate-300';
-  const gold = 'bg-[#facc15]';
+  const banner = 'bg-[#12315f]';
+  const card = 'bg-white ring-1 ring-slate-200';
+  const line = 'bg-slate-300';
+  const name = 'bg-[#12315f]';
+  const photo = 'bg-[#facc15] ring-2 ring-white';
   return (
-    <span className="relative block h-[104px] overflow-hidden rounded-xl bg-slate-100 p-2" aria-hidden="true">
+    <span className="relative block h-[104px] overflow-hidden rounded-xl bg-slate-100" aria-hidden="true">
       {id === 'classic' && (
         <>
-          <span className={`block h-9 ${wire} ${dark}`} />
-          <span className="-mt-3 ml-2 flex items-end gap-1.5"><span className={`h-7 w-7 rounded-lg border-2 border-slate-100 ${gold}`} /><span className={`mb-1 h-2 w-14 ${wire} ${soft}`} /></span>
-          <span className="mt-2 grid grid-cols-4 gap-1.5"><span className={`h-9 ${wire} bg-emerald-500`} /><span className={`h-9 ${wire} bg-emerald-500`} /><span className={`h-9 ${wire} bg-emerald-500`} /><span className={`h-9 ${wire} bg-emerald-500`} /></span>
+          <span className={`absolute inset-x-0 top-0 h-12 ${banner}`} />
+          <span className={`absolute left-2.5 top-6 h-8 w-8 rounded-lg ${photo}`} />
+          <span className={`absolute inset-x-2 bottom-2 top-[62px] rounded-md p-1.5 ${card}`}>
+            <span className={`block h-1.5 w-2/3 ${wire} ${name}`} /><span className={`mt-1 block h-1 w-1/3 ${wire} ${line}`} />
+          </span>
         </>
-      )}
-      {id === 'side-showcase' && (
-        <span className="grid h-full grid-cols-[1.7fr_1fr] gap-1.5">
-          <span className="flex flex-col gap-1.5"><span className={`h-10 ${wire} ${dark}`} /><span className="grid flex-1 grid-cols-2 gap-1.5"><span className={`${wire} bg-emerald-500`} /><span className={`${wire} bg-emerald-500`} /></span></span>
-          <span className="flex flex-col gap-1.5"><span className={`flex-1 ${wire} ${gold}`} /><span className={`flex-1 ${wire} ${soft}`} /></span>
-        </span>
-      )}
-      {id === 'showcase' && (
-        <span className="flex h-full flex-col items-center gap-1.5">
-          <span className={`h-9 w-full ${wire} ${dark}`} />
-          <span className={`-mt-6 h-9 w-9 rounded-full border-2 border-slate-100 ${gold}`} />
-          <span className={`h-2 w-16 ${wire} ${soft}`} />
-          <span className="grid w-full grid-cols-3 gap-1.5"><span className={`h-7 ${wire} bg-emerald-500`} /><span className={`h-7 ${wire} bg-emerald-500`} /><span className={`h-7 ${wire} bg-emerald-500`} /></span>
-        </span>
       )}
       {id === 'compact' && (
         <>
-          <span className={`flex h-8 items-center gap-2 px-1.5 ${wire} ${dark}`}><span className={`h-5 w-5 rounded-md ${gold}`} /><span className="h-1.5 w-12 rounded-full bg-white/70" /></span>
-          <span className="mt-1.5 grid grid-cols-5 gap-1"><span className={`h-8 ${wire} bg-emerald-500`} /><span className={`h-8 ${wire} bg-emerald-500`} /><span className={`h-8 ${wire} bg-emerald-500`} /><span className={`h-8 ${wire} bg-emerald-500`} /><span className={`h-8 ${wire} bg-emerald-500`} /></span>
-          <span className={`mt-1.5 block h-3 ${wire} ${soft}`} />
+          <span className={`absolute inset-x-0 top-0 h-6 ${banner}`} />
+          <span className={`absolute left-2.5 top-3 h-6 w-6 rounded-md ${photo}`} />
+          <span className={`absolute inset-x-2 top-[38px] rounded-md p-1.5 ${card}`}>
+            <span className={`block h-1.5 w-1/2 ${wire} ${name}`} /><span className={`mt-1 block h-1 w-1/4 ${wire} ${line}`} />
+          </span>
+          <span className="absolute inset-x-2 bottom-2 grid grid-cols-4 gap-1"><span className={`h-5 ${wire} bg-emerald-500`} /><span className={`h-5 ${wire} bg-emerald-500`} /><span className={`h-5 ${wire} bg-emerald-500`} /><span className={`h-5 ${wire} bg-emerald-500`} /></span>
+        </>
+      )}
+      {id === 'showcase' && (
+        <>
+          <span className={`absolute inset-x-0 top-0 h-11 ${banner}`} />
+          <span className={`absolute inset-x-5 bottom-2 top-[50px] flex flex-col items-center rounded-md pt-4 ${card}`}>
+            <span className={`block h-1.5 w-1/2 ${wire} ${name}`} /><span className={`mt-1 block h-1 w-1/4 ${wire} ${line}`} />
+          </span>
+          <span className={`absolute left-1/2 top-7 h-9 w-9 -translate-x-1/2 rounded-full ${photo}`} />
         </>
       )}
       {id === 'poster' && (
-        <span className="flex h-full flex-col items-center justify-center gap-1.5">
-          <span className={`flex h-14 w-full flex-col items-center justify-center gap-1 ${wire} ${dark}`}><span className="h-3.5 w-24 rounded-full bg-white" /><span className={`h-1.5 w-14 rounded-full ${gold}`} /></span>
-          <span className="grid w-full grid-cols-3 gap-1.5"><span className={`h-6 ${wire} bg-emerald-500`} /><span className={`h-6 ${wire} bg-emerald-500`} /><span className={`h-6 ${wire} bg-emerald-500`} /></span>
+        <span className="absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-b from-[#1e40af] to-[#05070d] pb-2.5">
+          <span className={`h-7 w-7 rounded-lg ${photo}`} />
+          <span className="mt-1.5 block h-2.5 w-3/4 rounded-[3px] bg-white" />
+          <span className="mt-1 block h-1 w-1/3 rounded-[3px] bg-[#facc15]" />
         </span>
+      )}
+      {id === 'side-showcase' && (
+        <>
+          <span className={`absolute inset-x-0 top-0 h-10 ${banner}`} />
+          <span className={`absolute inset-x-2 bottom-2 top-[30px] rounded-md p-1.5 ${card}`}>
+            <span className="flex items-center gap-1.5">
+              <span className={`h-8 w-8 shrink-0 rounded-md ${photo}`} />
+              <span className="flex-1"><span className={`block h-1.5 w-4/5 ${wire} ${name}`} /><span className={`mt-1 block h-1 w-1/2 ${wire} ${line}`} /></span>
+            </span>
+            <span className="mt-1.5 flex gap-1"><span className="h-2 w-8 rounded-full bg-slate-200" /><span className="h-2 w-8 rounded-full bg-slate-200" /></span>
+          </span>
+        </>
       )}
     </span>
   );
@@ -772,10 +776,11 @@ export default function SellerProfile() {
   const isOwner = Boolean(seller?.isOwner ?? (currentUser?.uid && seller?.firebaseUid === currentUser.uid));
   const displayName = seller?.name || seller?.fullName || seller?.username || 'Vendedor Anónimo';
   const avatarUrl = seller?.photoURL;
-  const publicTheme = useMemo(() => ({
+  const savedTheme = useMemo(() => ({
     ...defaultPublicTheme,
     ...(seller?.publicTheme && typeof seller.publicTheme === 'object' ? seller.publicTheme : {})
   }), [seller?.publicTheme]);
+  const publicTheme = useMemo(() => resolveSurfaceTheme(savedTheme), [savedTheme]);
   const primaryAddress = useMemo(() => (
     seller?.addresses?.find(address => address.isDefault) || seller?.addresses?.[0] || null
   ), [seller?.addresses]);
@@ -783,10 +788,8 @@ export default function SellerProfile() {
   const profileLevel = Math.max(1, Math.round((folders.length * 2) + (totalCards / 12) + 1));
   const spotlightFolders = folders.slice(0, 3);
   const showProfileShowcase = folders.length > 0 && publicTheme.showcaseStyle !== 'minimal';
-  const themeDirty = savedThemeJson !== '' && themeKey(publicTheme) !== savedThemeJson;
-  const isSideShowcaseLayout = publicTheme.profileLayout === 'side-showcase';
+  const themeDirty = savedThemeJson !== '' && themeKey(savedTheme) !== savedThemeJson;
   const isPosterLayout = publicTheme.profileLayout === 'poster';
-  const isCompactLayout = publicTheme.profileLayout === 'compact';
   const displayScale = getDisplayScale(publicTheme.font);
   // Nombre: crece con la pantalla, acotado entre móvil y escritorio (más grande en el diseño póster)
   const displayNameSize = `clamp(${(1.7 * displayScale).toFixed(2)}rem, ${(1.05 * displayScale).toFixed(2)}rem + ${(2.4 * displayScale).toFixed(2)}vw, ${((isPosterLayout ? 3.6 : 2.9) * displayScale).toFixed(2)}rem)`;
@@ -799,7 +802,7 @@ export default function SellerProfile() {
   const isNarrowStatsPanel = ['compact-shop', 'premium-gallery', 'trading-desk', 'sidebar-left', 'sidebar-right'].includes(selectedDistribution.id);
 
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent('carpetazo:public-profile-theme', { detail: { theme: publicTheme } }));
+    window.dispatchEvent(new CustomEvent('carpetazo:public-profile-theme', { detail: { theme: savedTheme } }));
     return () => {
       window.dispatchEvent(new CustomEvent('carpetazo:public-profile-theme', { detail: { theme: null } }));
     };
@@ -990,7 +993,7 @@ export default function SellerProfile() {
     setSeller(prev => ({
       ...prev,
       publicTheme: {
-        ...publicTheme,
+        ...savedTheme,
         id: 'custom',
         name: 'Tema personalizado',
         [field]: value
@@ -1002,7 +1005,7 @@ export default function SellerProfile() {
     setSeller(prev => ({
       ...prev,
       publicTheme: {
-        ...publicTheme,
+        ...savedTheme,
         id: theme.id,
         name: theme.name,
         primary: theme.primary,
@@ -1023,7 +1026,7 @@ export default function SellerProfile() {
   };
 
   const saveCurrentTheme = () => handleThemeChange({
-    ...publicTheme,
+    ...savedTheme,
     id: publicTheme.id === 'custom' ? 'custom' : publicTheme.id,
     name: publicTheme.id === 'custom' ? 'Tema personalizado' : publicTheme.name
   });
@@ -1096,6 +1099,85 @@ export default function SellerProfile() {
   const cardCountLabel = `${totalCards.toLocaleString('es-CL')} ${totalCards === 1 ? 'carta' : 'cartas'}`;
   const textMuted = { color: publicTheme.text, opacity: 0.7 };
 
+  // Presentación: cada opción cambia de verdad la forma de la cabecera, también en móvil
+  const layoutId = ['classic', 'compact', 'showcase', 'poster', 'side-showcase'].includes(publicTheme.profileLayout) ? publicTheme.profileLayout : 'classic';
+  const isGamerLayout = layoutId === 'side-showcase';
+  const isCenteredLayout = layoutId === 'showcase' || layoutId === 'poster';
+  // En el póster el texto va directo sobre el banner oscurecido: blanco con el acento del tema
+  const heroTheme = isPosterLayout ? { ...publicTheme, text: '#ffffff', primary: publicTheme.accent } : publicTheme;
+  const heroMuted = { color: heroTheme.text, opacity: 0.75 };
+  const heroBanner = {
+    classic: 'h-[230px] sm:h-[300px] md:inset-0 md:h-auto',
+    compact: 'h-[118px] sm:h-[150px] md:h-[170px]',
+    showcase: 'h-[200px] sm:h-[260px] md:h-[300px]',
+    poster: 'bottom-0 h-auto',
+    'side-showcase': 'h-[180px] sm:h-[240px] md:h-[270px]'
+  }[layoutId];
+  const heroPadding = {
+    classic: 'pt-[140px] sm:pt-[200px] md:py-12',
+    compact: 'pt-[70px] sm:pt-[96px] md:pt-[112px] md:pb-6',
+    showcase: 'pt-[120px] sm:pt-[170px] md:pt-[200px] md:pb-10',
+    poster: 'pt-[180px] sm:pt-[250px] md:pt-[290px] md:pb-12',
+    'side-showcase': 'pt-[120px] sm:pt-[170px] md:pt-[190px] md:pb-10'
+  }[layoutId];
+  const heroContainerClass = {
+    classic: 'flex-col justify-end gap-5 md:flex-row md:items-end',
+    compact: 'flex-col justify-end gap-3 md:flex-row md:items-end md:gap-5',
+    showcase: 'flex-col items-center',
+    poster: 'flex-col items-center gap-4',
+    'side-showcase': 'flex-col'
+  }[layoutId];
+  const avatarSizeClass = {
+    classic: 'h-28 w-28 sm:h-36 sm:w-36 md:h-40 md:w-40',
+    compact: 'h-20 w-20 sm:h-24 sm:w-24',
+    showcase: 'h-28 w-28 sm:h-32 sm:w-32',
+    poster: 'h-24 w-24 sm:h-28 sm:w-28',
+    'side-showcase': 'h-[76px] w-[76px] sm:h-24 sm:w-24 md:h-28 md:w-28'
+  }[layoutId];
+  const isSmallAvatar = layoutId === 'compact' || isGamerLayout;
+
+  const avatarBlock = (
+    <div className={`relative z-20 shrink-0 ${avatarSizeClass}`}>
+      {/* Nivel como la gema de coste de una carta */}
+      <div
+        className={`absolute z-20 flex flex-col items-center justify-center rounded-full shadow-[0_6px_16px_rgba(0,0,0,0.35)] ring-4 ${isSmallAvatar ? '-right-2.5 -top-2.5 h-10 w-10' : '-right-3 -top-3 h-12 w-12 md:h-14 md:w-14'}`}
+        style={{ backgroundColor: publicTheme.accent, color: readableOn(publicTheme.accent), '--tw-ring-color': isPosterLayout ? '#05070d' : publicTheme.card }}
+        title={`Nivel ${profileLevel} del perfil`}
+        aria-label={`Nivel ${profileLevel}`}
+        role="img"
+      >
+        <span className={`font-bold leading-none opacity-80 ${isSmallAvatar ? 'text-[8px]' : 'text-[9px]'}`} aria-hidden="true">nivel</span>
+        <span className="font-black leading-none tabular-nums" style={{ fontFamily: 'var(--seller-font)', fontSize: `${((isSmallAvatar ? 0.95 : 1.15) * Math.max(displayScale, 0.75)).toFixed(2)}rem` }} aria-hidden="true">{profileLevel}</span>
+      </div>
+      <div className={`h-full w-full p-[4px] shadow-[0_18px_44px_rgba(0,0,0,0.4)] ${isSmallAvatar ? 'rounded-[1.4rem]' : 'rounded-[2.2rem] sm:p-[5px]'}`} style={{ background: getAvatarFrameStyle(publicTheme) }}>
+        <div className={`h-full w-full overflow-hidden bg-white ring-2 ring-white/90 ${isSmallAvatar ? 'rounded-[1.15rem]' : 'rounded-[1.9rem]'}`}>
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+          ) : (
+            <div className={`flex h-full w-full items-center justify-center font-black text-white ${isSmallAvatar ? 'text-3xl' : 'text-5xl'}`} style={{ backgroundImage: `linear-gradient(135deg, ${publicTheme.text}, ${publicTheme.primary})` }}>
+              {displayName[0]?.toUpperCase() || 'V'}
+            </div>
+          )}
+        </div>
+      </div>
+      {isOwner && (
+        isSmallAvatar ? (
+          <label className="absolute -bottom-1 -left-1 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-black/75 text-white shadow-lg ring-2 ring-white transition hover:bg-black/90" title="Cambiar foto">
+            <span translate="no" className="material-symbols-outlined text-[16px]">photo_camera</span>
+            <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleImageUpload(event, 'avatar')} aria-label="Cambiar foto de perfil" />
+          </label>
+        ) : (
+          <label className="absolute inset-x-4 bottom-2 z-10 flex h-8 cursor-pointer items-center justify-center gap-1 rounded-full bg-black/70 text-xs font-bold text-white shadow-lg ring-1 ring-white/30 transition hover:bg-black/85">
+            <span translate="no" className="material-symbols-outlined text-[15px]">photo_camera</span>
+            Cambiar foto
+            <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleImageUpload(event, 'avatar')} aria-label="Cambiar foto de perfil" />
+          </label>
+        )
+      )}
+    </div>
+  );
+
+
   return (
     <div
       className="min-h-screen [&_h1]:[font-family:var(--seller-font)] [&_section_h2]:[font-family:var(--seller-font)] [&_section_h2]:[font-size:var(--seller-h2)]"
@@ -1104,14 +1186,16 @@ export default function SellerProfile() {
       <div className="mx-auto w-full max-w-[1470px] xl:px-4 2xl:px-6" style={getSideBackgroundStyle(publicTheme)}>
       <div className={`relative min-h-screen w-full overflow-hidden shadow-[0_0_90px_rgba(0,0,0,0.22)] ${getEffectClassName(publicTheme)}`} style={getProfileBackgroundStyle(publicTheme)}>
 
-      {/* Presentación */}
-      <section className="relative overflow-visible" style={{ backgroundColor: publicTheme.card }}>
+      {/* Presentación: la forma cambia según la opción elegida (Clásico, Compacto, Showcase, Póster o Gamer) */}
+      <section className="relative overflow-visible" style={{ backgroundColor: isPosterLayout ? '#05070d' : publicTheme.card }}>
         {seller?.bannerBase64 ? (
-          <div className="absolute inset-x-0 top-0 h-[250px] bg-cover bg-center sm:h-[320px] md:inset-0 md:h-auto" style={{ backgroundImage: `url(${seller.bannerBase64})` }} />
+          <div className={`absolute inset-x-0 top-0 bg-cover bg-center ${heroBanner}`} style={{ backgroundImage: `url(${seller.bannerBase64})` }} />
         ) : (
-          <div className="absolute inset-x-0 top-0 h-[250px] sm:h-[320px] md:inset-0 md:h-auto" style={{ backgroundImage: `linear-gradient(135deg, ${publicTheme.text}, ${publicTheme.primary}, ${publicTheme.secondary})` }} />
+          <div className={`absolute inset-x-0 top-0 ${heroBanner}`} style={{ backgroundImage: `linear-gradient(135deg, ${publicTheme.text}, ${publicTheme.primary}, ${publicTheme.secondary})` }} />
         )}
-        <div className="absolute inset-x-0 top-0 h-[250px] bg-gradient-to-b from-black/25 via-transparent to-black/30 sm:h-[320px] md:inset-0 md:h-auto md:bg-gradient-to-t md:from-black/30 md:via-transparent md:to-black/10" />
+        {isPosterLayout
+          ? <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/45 to-black/85" />
+          : <div className={`absolute inset-x-0 top-0 bg-gradient-to-b from-black/25 via-transparent to-black/30 ${heroBanner}`} />}
 
         {savingImage && (
           <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/70" role="status" aria-label="Subiendo imagen">
@@ -1139,78 +1223,26 @@ export default function SellerProfile() {
           </div>
         )}
 
-        <div className={`relative z-10 mx-auto flex w-full max-w-[1220px] flex-col justify-end gap-5 px-4 pb-6 pt-[150px] sm:px-6 sm:pt-[220px] md:flex-row md:items-end md:px-8 ${isCompactLayout ? 'md:py-8' : 'md:py-12'} ${isPosterLayout ? 'md:items-center' : ''}`}>
-          <div className="relative z-20 h-28 w-28 shrink-0 sm:h-36 sm:w-36 md:h-40 md:w-40">
-            {/* Nivel como la gema de coste de una carta */}
-            <div
-              className="absolute -right-3 -top-3 z-20 flex h-12 w-12 flex-col items-center justify-center rounded-full shadow-[0_6px_16px_rgba(0,0,0,0.35)] ring-4 md:h-14 md:w-14"
-              style={{ backgroundColor: publicTheme.accent, color: readableOn(publicTheme.accent), '--tw-ring-color': publicTheme.card }}
-              title={`Nivel ${profileLevel} del perfil`}
-              aria-label={`Nivel ${profileLevel}`}
-              role="img"
-            >
-              <span className="text-[9px] font-bold leading-none opacity-80" aria-hidden="true">nivel</span>
-              <span className="font-black leading-none tabular-nums" style={{ fontFamily: 'var(--seller-font)', fontSize: `${(1.15 * Math.max(displayScale, 0.75)).toFixed(2)}rem` }} aria-hidden="true">{profileLevel}</span>
-            </div>
-            <div className="h-full w-full rounded-[2.2rem] p-[5px] shadow-[0_18px_44px_rgba(0,0,0,0.4)]" style={{ background: getAvatarFrameStyle(publicTheme) }}>
-              <div className="h-full w-full overflow-hidden rounded-[1.9rem] bg-white ring-2 ring-white/90">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-5xl font-black text-white" style={{ backgroundImage: `linear-gradient(135deg, ${publicTheme.text}, ${publicTheme.primary})` }}>
-                    {displayName[0]?.toUpperCase() || 'V'}
-                  </div>
-                )}
-              </div>
-            </div>
-            {isOwner && (
-              <label className="absolute inset-x-4 bottom-2 z-10 flex h-8 cursor-pointer items-center justify-center gap-1 rounded-full bg-black/70 text-xs font-bold text-white shadow-lg ring-1 ring-white/30 transition hover:bg-black/85">
-                <span translate="no" className="material-symbols-outlined text-[15px]">photo_camera</span>
-                Cambiar foto
-                <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleImageUpload(event, 'avatar')} aria-label="Cambiar foto de perfil" />
-              </label>
-            )}
-          </div>
+        <div className={`relative z-10 mx-auto flex w-full max-w-[1220px] px-4 pb-6 sm:px-6 md:px-8 ${heroPadding} ${heroContainerClass}`}>
+          {!isGamerLayout && avatarBlock}
 
-          <div className={`relative min-w-0 flex-1 p-4 ring-1 sm:p-5 md:p-6 ${isPosterLayout ? 'md:text-center' : ''}`} style={getCardStyle(publicTheme)}>
-            <div className={`flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between ${isPosterLayout ? 'lg:flex-col lg:items-center' : ''}`}>
-              <div className="min-w-0">
-                <h1 className="break-words font-black leading-[1.05]" style={{ color: publicTheme.text, fontSize: displayNameSize }}>
-                  {displayName}
-                  {/* Pegado a la última palabra del nombre, aunque ocupe varias líneas */}
-                  <span translate="no" className="material-symbols-outlined ml-1.5 align-[-0.12em] text-[22px] leading-none" style={{ color: publicTheme.primary, fontVariationSettings: "'FILL' 1" }} title="Vendedor verificado" aria-label="Vendedor verificado">verified</span>
-                </h1>
-                <p className="mt-1.5 text-[15px] font-bold leading-snug" style={{ color: publicTheme.primary }}>@{seller?.username}</p>
-                {seller?.fullName && <p className="text-sm font-medium leading-snug" style={textMuted}>{seller.fullName}</p>}
-
-                {/* Datos del vendedor en fichas cortas: se leen de un vistazo y se acomodan en varias líneas en móvil */}
-                <ul className={`mt-3 flex flex-wrap gap-1.5 ${isPosterLayout ? 'md:justify-center' : ''}`} aria-label="Datos del vendedor">
-                  {[
-                    { icon: 'folder_open', label: folderCountLabel },
-                    { icon: 'style', label: cardCountLabel },
-                    ...(primaryAddress ? [{ icon: 'location_on', label: [primaryAddress.comuna, primaryAddress.region].filter(Boolean).join(', ') || primaryAddress.name }] : [])
-                  ].map((chip) => (
-                    <li key={chip.icon} className="inline-flex h-8 max-w-full items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold tabular-nums" style={{ backgroundColor: `${publicTheme.primary}14`, color: publicTheme.text, boxShadow: `inset 0 0 0 1px ${publicTheme.primary}2e` }}>
-                      <span translate="no" className="material-symbols-outlined shrink-0 text-[17px]" style={{ color: publicTheme.primary }} aria-hidden="true">{chip.icon}</span>
-                      <span className="truncate">{chip.label}</span>
-                    </li>
-                  ))}
-                  {seller?.reviewSummary && (
-                    <li>
-                      <a href="#resenas" className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold tabular-nums transition hover:brightness-95 focus:outline-none focus-visible:ring-2" style={{ backgroundColor: seller.reviewSummary.count > 0 ? '#fef3c7' : `${publicTheme.primary}14`, color: seller.reviewSummary.count > 0 ? '#713f12' : publicTheme.text, boxShadow: `inset 0 0 0 1px ${seller.reviewSummary.count > 0 ? '#f59e0b55' : `${publicTheme.primary}2e`}` }}>
-                        {seller.reviewSummary.showAverage
-                          ? <><Stars value={seller.reviewSummary.average} size={14} />{seller.reviewSummary.average.toFixed(1)}<span className="font-semibold opacity-75">({seller.reviewSummary.count})</span></>
-                          : seller.reviewSummary.count > 0
-                            ? <><span translate="no" className="material-symbols-outlined text-[17px]" style={{ fontVariationSettings: "'FILL' 1", color: '#d97706' }} aria-hidden="true">star</span>{seller.reviewSummary.count} {seller.reviewSummary.count === 1 ? 'reseña' : 'reseñas'}</>
-                            : <><span translate="no" className="material-symbols-outlined text-[17px]" style={{ color: publicTheme.primary }} aria-hidden="true">star</span>Sin reseñas todavía</>}
-                      </a>
-                    </li>
-                  )}
-                </ul>
+          <div className={`relative min-w-0 ${isCenteredLayout ? 'w-full max-w-[780px] text-center' : 'flex-1'} ${isPosterLayout ? 'px-1' : `p-4 ring-1 sm:p-5 md:p-6 ${layoutId === 'showcase' ? '-mt-14 pt-16 sm:-mt-16 sm:pt-20' : ''}`}`} style={isPosterLayout ? undefined : getCardStyle(publicTheme)}>
+            <div className={`flex flex-col gap-4 ${isCenteredLayout ? 'items-center' : 'lg:flex-row lg:items-start lg:justify-between'}`}>
+              <div className={`min-w-0 ${isGamerLayout ? 'flex items-center gap-4' : ''}`}>
+                {isGamerLayout && avatarBlock}
+                <div className="min-w-0">
+                  <h1 className={`break-words font-black leading-[1.05] ${isPosterLayout ? 'drop-shadow-[0_3px_14px_rgba(0,0,0,0.55)]' : ''}`} style={{ color: heroTheme.text, fontSize: displayNameSize }}>
+                    {displayName}
+                    {/* Pegado a la última palabra del nombre, aunque ocupe varias líneas */}
+                    <span translate="no" className="material-symbols-outlined ml-1.5 align-[-0.12em] text-[22px] leading-none" style={{ color: heroTheme.primary, fontVariationSettings: "'FILL' 1" }} title="Vendedor verificado" aria-label="Vendedor verificado">verified</span>
+                  </h1>
+                  <p className="mt-1.5 text-[15px] font-bold leading-snug" style={{ color: heroTheme.primary }}>@{seller?.username}</p>
+                  {seller?.fullName && <p className="text-sm font-medium leading-snug" style={heroMuted}>{seller.fullName}</p>}
+                </div>
               </div>
 
               {heroActions.length > 0 && (
-                <div className="flex items-center gap-2">
+                <div className={`flex items-center gap-2 ${isCenteredLayout ? 'w-full max-w-sm justify-center' : ''}`}>
                   {heroActions.map((action) => action.id === 'message' ? (
                     <button
                       key="message"
@@ -1239,22 +1271,47 @@ export default function SellerProfile() {
               )}
             </div>
 
+            {/* Datos del vendedor en fichas cortas: se leen de un vistazo y se acomodan en varias líneas en móvil */}
+            <ul className={`mt-3 flex flex-wrap gap-1.5 ${isCenteredLayout ? 'justify-center' : ''}`} aria-label="Datos del vendedor">
+              {[
+                { icon: 'folder_open', label: folderCountLabel },
+                { icon: 'style', label: cardCountLabel },
+                ...(primaryAddress ? [{ icon: 'location_on', label: [primaryAddress.comuna, primaryAddress.region].filter(Boolean).join(', ') || primaryAddress.name }] : [])
+              ].map((chip) => (
+                <li key={chip.icon} className={`inline-flex h-8 max-w-full items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold tabular-nums ${isPosterLayout ? 'backdrop-blur-sm' : ''}`} style={{ backgroundColor: isPosterLayout ? 'rgba(255,255,255,0.14)' : `${heroTheme.primary}14`, color: heroTheme.text, boxShadow: `inset 0 0 0 1px ${isPosterLayout ? 'rgba(255,255,255,0.28)' : `${heroTheme.primary}2e`}` }}>
+                  <span translate="no" className="material-symbols-outlined shrink-0 text-[17px]" style={{ color: heroTheme.primary }} aria-hidden="true">{chip.icon}</span>
+                  <span className="truncate">{chip.label}</span>
+                </li>
+              ))}
+              {seller?.reviewSummary && (
+                <li>
+                  <a href="#resenas" className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold tabular-nums transition hover:brightness-95 focus:outline-none focus-visible:ring-2" style={{ backgroundColor: seller.reviewSummary.count > 0 ? '#fef3c7' : isPosterLayout ? 'rgba(255,255,255,0.14)' : `${heroTheme.primary}14`, color: seller.reviewSummary.count > 0 ? '#713f12' : heroTheme.text, boxShadow: `inset 0 0 0 1px ${seller.reviewSummary.count > 0 ? '#f59e0b55' : isPosterLayout ? 'rgba(255,255,255,0.28)' : `${heroTheme.primary}2e`}` }}>
+                    {seller.reviewSummary.showAverage
+                      ? <><Stars value={seller.reviewSummary.average} size={14} />{seller.reviewSummary.average.toFixed(1)}<span className="font-semibold opacity-75">({seller.reviewSummary.count})</span></>
+                      : seller.reviewSummary.count > 0
+                        ? <><span translate="no" className="material-symbols-outlined text-[17px]" style={{ fontVariationSettings: "'FILL' 1", color: '#d97706' }} aria-hidden="true">star</span>{seller.reviewSummary.count} {seller.reviewSummary.count === 1 ? 'reseña' : 'reseñas'}</>
+                        : <><span translate="no" className="material-symbols-outlined text-[17px]" style={{ color: heroTheme.primary }} aria-hidden="true">star</span>Sin reseñas todavía</>}
+                  </a>
+                </li>
+              )}
+            </ul>
+
             <div className="mt-4">
               {isEditingBio ? (
-                <div className="space-y-3">
-                  <textarea value={tempBio} onChange={(event) => setTempBio(event.target.value)} maxLength={500} aria-label="Biografía" className="min-h-24 w-full rounded-xl border px-4 py-3 text-sm font-semibold outline-none focus:ring-4" style={{ backgroundColor: publicTheme.card, borderColor: `${publicTheme.primary}55`, color: publicTheme.text }} placeholder="Cuéntale a la comunidad quién eres y qué coleccionas" />
+                <div className="space-y-3 text-left">
+                  <textarea value={tempBio} onChange={(event) => setTempBio(event.target.value)} maxLength={500} aria-label="Biografía" className="min-h-24 w-full rounded-xl border px-4 py-3 text-sm font-semibold outline-none focus:ring-4" style={{ backgroundColor: publicTheme.card === 'transparent' ? '#ffffff' : publicTheme.card, borderColor: `${publicTheme.primary}55`, color: publicTheme.text }} placeholder="Cuéntale a la comunidad quién eres y qué coleccionas" />
                   <div className="flex justify-end gap-2">
-                    <button onClick={() => setIsEditingBio(false)} className="h-10 rounded-full px-4 text-sm font-bold text-slate-600 hover:bg-black/5">Cancelar</button>
+                    <button onClick={() => setIsEditingBio(false)} className="h-10 rounded-full px-4 text-sm font-bold hover:bg-black/5" style={heroMuted}>Cancelar</button>
                     <button onClick={handleSaveBio} disabled={savingBio} className="h-10 rounded-full px-5 text-sm font-extrabold disabled:opacity-60" style={{ backgroundColor: publicTheme.primary, color: readableOn(publicTheme.primary) }}>{savingBio ? 'Guardando…' : 'Guardar biografía'}</button>
                   </div>
                 </div>
               ) : (
-                <div className="flex items-start gap-2">
-                  <p className={`min-h-6 max-w-[65ch] flex-1 whitespace-pre-line break-words border-l-4 pl-3 text-[15px] font-medium leading-relaxed ${isPosterLayout ? 'md:mx-auto md:text-left' : ''}`} style={{ borderColor: `${publicTheme.primary}66`, color: publicTheme.text, opacity: seller?.bio ? 0.85 : 0.6 }}>
+                <div className={`flex items-start gap-2 ${isCenteredLayout ? 'justify-center' : ''}`}>
+                  <p className={`min-h-6 max-w-[65ch] whitespace-pre-line break-words border-l-4 pl-3 text-left text-[15px] font-medium leading-relaxed ${isCenteredLayout ? '' : 'flex-1'} ${layoutId === 'compact' ? 'line-clamp-3' : ''}`} style={{ borderColor: `${heroTheme.primary}66`, color: heroTheme.text, opacity: seller?.bio ? 0.85 : 0.6 }}>
                     {seller?.bio ? seller.bio : isOwner ? 'Aún no escribes tu biografía.' : 'Este vendedor aún no escribe su biografía.'}
                   </p>
                   {isOwner && (
-                    <button onClick={() => { setTempBio(seller?.bio || ''); setIsEditingBio(true); }} aria-label="Editar biografía" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full hover:bg-black/5" style={{ color: publicTheme.primary }}>
+                    <button onClick={() => { setTempBio(seller?.bio || ''); setIsEditingBio(true); }} aria-label="Editar biografía" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full hover:bg-black/5" style={{ color: heroTheme.primary }}>
                       <span translate="no" className="material-symbols-outlined text-[20px]">edit</span>
                     </button>
                   )}
@@ -1482,7 +1539,7 @@ export default function SellerProfile() {
                   <div className="grid grid-cols-2 gap-2.5">
                     {cardStyleOptions.map((option) => (
                       <OptionTile key={option.id} selected={publicTheme.cardStyle === option.id} onClick={() => handleThemeFieldChange('cardStyle', option.id)} name={option.name} description={option.description}>
-                        <MiniScene theme={{ ...publicTheme, cardStyle: option.id }} avatarUrl={avatarUrl} initial={displayName[0]?.toUpperCase()} />
+                        <MiniScene theme={{ ...savedTheme, cardStyle: option.id }} avatarUrl={avatarUrl} initial={displayName[0]?.toUpperCase()} />
                       </OptionTile>
                     ))}
                   </div>
@@ -1495,7 +1552,7 @@ export default function SellerProfile() {
                     <div className="grid grid-cols-2 gap-2.5">
                       {backgroundStyleOptions.map((option) => (
                         <OptionTile key={option.id} selected={publicTheme.backgroundStyle === option.id} onClick={() => handleThemeFieldChange('backgroundStyle', option.id)} name={option.name} description={option.description}>
-                          <MiniScene theme={{ ...publicTheme, backgroundStyle: option.id }} avatarUrl={avatarUrl} initial={displayName[0]?.toUpperCase()} />
+                          <MiniScene theme={{ ...savedTheme, backgroundStyle: option.id }} avatarUrl={avatarUrl} initial={displayName[0]?.toUpperCase()} />
                         </OptionTile>
                       ))}
                     </div>
@@ -1504,7 +1561,7 @@ export default function SellerProfile() {
                     <div className="grid grid-cols-2 gap-2.5">
                       {sideBackgroundOptions.map((option) => (
                         <OptionTile key={option.id} selected={publicTheme.sideBackgroundStyle === option.id} onClick={() => handleThemeFieldChange('sideBackgroundStyle', option.id)} name={option.name} description={option.description}>
-                          <span className="relative block h-[84px] overflow-hidden rounded-xl" style={getSideBackgroundStyle({ ...publicTheme, sideBackgroundStyle: option.id })}>
+                          <span className="relative block h-[84px] overflow-hidden rounded-xl" style={getSideBackgroundStyle({ ...savedTheme, sideBackgroundStyle: option.id })}>
                             <span className="absolute inset-y-2 left-[24%] right-[24%] rounded-lg bg-white/90 p-2 shadow-lg">
                               <span className="block h-1.5 w-3/4 rounded-full bg-[#12315f]" />
                               <span className="mt-1.5 block h-1 w-1/2 rounded-full bg-slate-300" />
@@ -1520,7 +1577,7 @@ export default function SellerProfile() {
                       {avatarFrameOptions.map((option) => (
                         <OptionTile key={option.id} selected={publicTheme.avatarFrame === option.id} onClick={() => handleThemeFieldChange('avatarFrame', option.id)} name={option.name} description={option.description}>
                           <span className="flex h-[92px] items-center justify-center rounded-xl bg-slate-100">
-                            <span className="h-[68px] w-[68px] rounded-[1.3rem] p-[4px] shadow-lg" style={{ background: getAvatarFrameStyle({ ...publicTheme, avatarFrame: option.id }) }}>
+                            <span className="h-[68px] w-[68px] rounded-[1.3rem] p-[4px] shadow-lg" style={{ background: getAvatarFrameStyle({ ...savedTheme, avatarFrame: option.id }) }}>
                               <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-[1.05rem] bg-white text-lg font-black text-slate-500 ring-2 ring-white/90">
                                 {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : displayName[0]?.toUpperCase()}
                               </span>
@@ -1543,7 +1600,7 @@ export default function SellerProfile() {
                     <div className="grid grid-cols-2 gap-2.5">
                       {profileEffectOptions.map((option) => (
                         <OptionTile key={option.id} selected={publicTheme.profileEffect === option.id} onClick={() => handleThemeFieldChange('profileEffect', option.id)} name={option.name} description={option.description}>
-                          <span className={`relative block h-[84px] overflow-hidden rounded-xl bg-[#0f172a] ${getEffectClassName({ ...publicTheme, profileEffect: option.id })}`}>
+                          <span className={`relative block h-[84px] overflow-hidden rounded-xl bg-[#0f172a] ${getEffectClassName({ ...savedTheme, profileEffect: option.id })}`}>
                             <span className="absolute inset-x-3 bottom-2.5 top-4 z-[2] flex items-center gap-2 rounded-lg bg-white/90 p-2 shadow-lg">
                               <span className="h-7 w-7 shrink-0 rounded-lg bg-[#facc15]" />
                               <span className="flex-1"><span className="block h-1.5 w-4/5 rounded-full bg-[#12315f]" /><span className="mt-1 block h-1 w-1/2 rounded-full bg-slate-300" /></span>
