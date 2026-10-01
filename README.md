@@ -56,7 +56,7 @@ Antes de subir un cambio con migración: respaldo de la base (Coolify → Backup
 
 ## Base de datos
 
-Migraciones en `backend/prisma/migrations`, siempre aditivas; ver `backend/prisma/README.md`. Respaldo: `npm run db:backup`. Moderación de reseñas reportadas: `node backend/review_moderation.cjs list`.
+Migraciones en `backend/prisma/migrations`, siempre aditivas; ver `backend/prisma/README.md`. Respaldo: `npm run db:backup`. Moderación de reseñas reportadas o sospechosas: sección `/moderacion` (solo administradores) o `node backend/review_moderation.cjs list`.
 
 ## Healthcheck
 

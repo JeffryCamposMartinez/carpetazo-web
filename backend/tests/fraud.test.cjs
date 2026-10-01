@@ -1,21 +1,11 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-const B = 'http://localhost:8000/api';
-const F = 'ca393529-f3a8-4429-9fca-49d6cf71a0f5';
-const U = { seller: 'x7ixqotUu3aXfcCsTpyPEx64GgS2', jerry: 'rS5nDQJ1KChdDJhWvbPcNktr3Nr1', ignacio: 'vqbEaDAh24QkSMhjZT4SImXCtlQ2', ale: 'rKkJWG0q2eR7lIBMsjt1CFZBwQ12', jeffry: 'ljxBEIxkI5hJJ76NKuhXQlI8jhU2' };
-const SELLER_USERNAME = 'rigoberto_godoy_espinoza';
-const call = async (method, path, uid, body, ip) => {
-  const r = await fetch(B + path, { method, headers: { 'Content-Type': 'application/json', ...(ip ? { 'X-Forwarded-For': ip } : {}), ...(uid ? { Authorization: 'Bearer test-' + U[uid] } : {}) }, body: body ? JSON.stringify(body) : undefined });
-  let j = null; try { j = await r.json(); } catch (_) {}
-  return { status: r.status, j };
-};
-const ok = (n, c, e = '') => { console.log((c ? 'OK   ' : 'FALLA') + ' ' + n + ' ' + e); if (!c) process.exitCode = 1; };
+// Reseñas: antifraude (una por pareja, misma conexión, promedio desde 3), reportes y moderación.
+const { prisma, call, ok, fixtures } = require('./fixtures.cjs');
+
+const { folderId: F, cardId, sellerUsername: SELLER_USERNAME } = fixtures();
 const summary = async () => (await call('GET', '/users/' + SELLER_USERNAME + '/reviews')).j;
 
 (async () => {
-  const card = (await call('GET', '/folders/' + F)).j.folder.cards.find((c) => c.stock > 6 && c.price > 0);
-  console.log('CARD ' + JSON.stringify({ id: card.id, stock: card.stock }));
-  const items = [{ id: card.id, quantity: 1 }];
+  const items = [{ id: cardId, quantity: 1 }];
   const orders = [];
   const buy = async (who, createIp, confirmIp) => {
     const r = await call('POST', '/orders/create', who, { folderId: F, via: 'message', items }, createIp);
@@ -67,22 +57,38 @@ const summary = async () => (await call('GET', '/users/' + SELLER_USERNAME + '/r
   r = await call('POST', '/reviews/' + jerryReview.id + '/report', 'seller', { reason: 'No me gusta' });
   s = await summary();
   ok('E: el vendedor reporta su reseña → 200 pero sigue visible', r.status === 200 && r.j.hidden === false && s.count === 3 && s.reviews.some((x) => x.id === jerryReview.id), JSON.stringify([r.status, r.j?.hidden, s.count]));
+  r = await call('POST', '/reviews/' + jerryReview.id + '/report', 'nobuyer', { reason: 'Cuenta sin compras' });
+  ok('E: reporte de una cuenta sin compras → 200 pero no cuenta para ocultar', r.status === 200 && r.j.hidden === false, JSON.stringify([r.status, r.j?.hidden]));
   r = await call('POST', '/reviews/' + jerryReview.id + '/report', 'ale', { reason: 'Parece falsa' });
   s = await summary();
-  ok('E: un reporte ajeno → 200 y todavía visible', r.status === 200 && r.j.hidden === false && s.count === 3, JSON.stringify([r.status, r.j?.hidden, s.count]));
+  ok('E: un reporte de comprador verificado → todavía visible', r.status === 200 && r.j.hidden === false && s.count === 3, JSON.stringify([r.status, r.j?.hidden, s.count]));
   ok('E: reportar dos veces la misma → 409', (await call('POST', '/reviews/' + jerryReview.id + '/report', 'ale', {})).status === 409);
   r = await call('POST', '/reviews/' + jerryReview.id + '/report', 'ignacio', {});
   s = await summary();
-  ok('E: segundo reporte ajeno → se oculta y vuelve a ocultarse el promedio', r.j?.hidden === true && s.count === 2 && s.average === null && !s.reviews.some((x) => x.id === jerryReview.id), JSON.stringify([s.count, s.average]));
+  ok('E: segundo comprador verificado → se oculta y vuelve a ocultarse el promedio', r.j?.hidden === true && s.count === 2 && s.average === null && !s.reviews.some((x) => x.id === jerryReview.id), JSON.stringify([s.count, s.average]));
   ok('E: reportar una ya oculta → 404', (await call('POST', '/reviews/' + jerryReview.id + '/report', 'jeffry', {})).status === 404);
 
-  // Limpieza: borra las reseñas, pedidos y mensajes de la prueba y devuelve el stock que descontaron los pedidos completados
-  const made = await prisma.order.findMany({ where: { id: { in: orders } }, select: { code: true } });
-  await prisma.$transaction([
-    prisma.sellerReview.deleteMany({ where: { orderId: { in: orders } } }),
-    prisma.message.deleteMany({ where: { OR: made.filter((o) => o.code).map((o) => ({ content: { contains: o.code } })) } }),
-    prisma.order.deleteMany({ where: { id: { in: orders } } }),
-    prisma.card.update({ where: { id: card.id }, data: { stock: { increment: orders.length } } })
-  ]);
+  // F) moderación (solo administradores)
+  ok('F: sin sesión → 401', (await call('GET', '/admin/reviews')).status === 401);
+  ok('F: usuario común → 403', (await call('GET', '/admin/reviews', 'jerry')).status === 403);
+  ok('F: usuario común no puede aprobar → 403', (await call('POST', '/admin/reviews/' + jerryReview.id + '/approve', 'jerry')).status === 403);
+  ok('F: usuario común no puede borrar → 403', (await call('DELETE', '/admin/reviews/' + jerryReview.id, 'jerry')).status === 403);
+  r = await call('GET', '/admin/reviews', 'admin');
+  const listed = r.j?.reviews || [];
+  const hiddenOne = listed.find((x) => x.id === jerryReview.id);
+  ok('F: el admin ve la reportada (oculta) con sus 4 reportes', r.status === 200 && hiddenOne && hiddenOne.counts === false && hiddenOne.reports.length === 4, JSON.stringify([r.status, hiddenOne?.reports?.length]));
+  ok('F: y la de la misma conexión', listed.some((x) => x.flag === 'same_connection'));
+  ok('F: sin correos ni datos privados', !JSON.stringify(r.j).match(/email|"rut"|bankDetails|firebaseUid/i));
+  ok('F: id inválido → 404', (await call('POST', '/admin/reviews/nada/approve', 'admin')).status === 404);
+  r = await call('POST', '/admin/reviews/' + jerryReview.id + '/approve', 'admin');
+  s = await summary();
+  ok('F: aprobar → vuelve a mostrarse y contar', r.status === 200 && s.count === 3 && s.reviews.some((x) => x.id === jerryReview.id), JSON.stringify([r.status, s.count]));
+  ok('F: aprobada ya no aparece en moderación', !(await call('GET', '/admin/reviews', 'admin')).j.reviews.some((x) => x.id === jerryReview.id));
+  const suspicious = listed.find((x) => x.flag === 'same_connection');
+  r = await call('DELETE', '/admin/reviews/' + suspicious.id, 'admin');
+  ok('F: eliminar → 200 y luego 404', r.status === 200 && (await call('DELETE', '/admin/reviews/' + suspicious.id, 'admin')).status === 404);
+  ok('F: el comprador puede volver a calificar a ese vendedor', (await call('GET', '/reviews/pending', 'ignacio')).j.pending.length === 1);
+
+  // La limpieza general de tests/run.cjs borra pedidos, reseñas y mensajes de prueba
   await prisma.$disconnect();
 })();

@@ -276,6 +276,10 @@ app.post('/api/reviews', routeLimiter(15 * 60 * 1000, 20));
 app.get('/api/reviews/pending', routeLimiter(15 * 60 * 1000, 300));
 app.post('/api/reviews/:id/report', routeLimiter(15 * 60 * 1000, 10));
 app.get('/api/users/:username/reviews', routeLimiter(15 * 60 * 1000, 300));
+app.get('/api/tcg/sets', routeLimiter(15 * 60 * 1000, 120));
+app.get('/api/tcg/cards', routeLimiter(15 * 60 * 1000, 120));
+app.get('/api/folders', routeLimiter(15 * 60 * 1000, 120));
+app.use('/api/admin/reviews', routeLimiter(15 * 60 * 1000, 300));
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
@@ -322,7 +326,7 @@ app.get('/api/proxy-image', async (req, res) => {
     return res.status(400).json({ success: false, message: 'URL de imagen requerida' });
   }
 
-  if (!isAllowedProxyImageUrl(imageUrl)) {
+  if (!isAllowedProxyImageUrl(imageUrl) || new URL(imageUrl).pathname.startsWith('/api/')) {
     return res.status(400).json({ success: false, message: 'URL de imagen no permitida' });
   }
 
@@ -341,7 +345,7 @@ app.get('/api/proxy-image', async (req, res) => {
     }
 
     const contentType = response.headers.get('content-type') || 'application/octet-stream';
-    if (!contentType.toLowerCase().startsWith('image/')) {
+    if (!contentType.toLowerCase().startsWith('image/') || contentType.toLowerCase().includes('svg')) {
       return res.status(415).json({ success: false, message: 'El recurso no es una imagen' });
     }
 
@@ -369,6 +373,7 @@ app.post('/api/users/sync', authenticateToken, async (req, res) => {
   try {
     const firebaseUid = req.user.sub;
     const email = req.user.email || '';
+    if (!isOptionalText(req.body?.displayName, 100) || !isOptionalText(req.body?.username, 60)) return badRequest(res, 'Datos de usuario inválidos');
     
     let user = await prisma.user.findUnique({
       where: { firebaseUid }
@@ -400,6 +405,7 @@ app.post('/api/users/sync', authenticateToken, async (req, res) => {
     
     res.json({ success: true, user });
   } catch (error) {
+    if (error.code === 'P2002') return res.status(409).json({ success: false, error: 'Ese nombre de usuario ya está en uso' });
     console.error('Error syncing user:', error);
     res.status(500).json({ success: false, error: 'Failed to sync user' });
   }
@@ -461,7 +467,7 @@ app.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res) =>
     const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
     const folder = await prisma.folder.findUnique({ where: { id: req.params.id } });
     
-    if (!folder || folder.userId !== user.id) {
+    if (!user || !folder || folder.userId !== user.id) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     
@@ -503,7 +509,7 @@ app.delete('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res)
     const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
     const folder = await prisma.folder.findUnique({ where: { id: req.params.id } });
     
-    if (!folder || folder.userId !== user.id) {
+    if (!user || !folder || folder.userId !== user.id) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     
@@ -635,10 +641,17 @@ app.post('/api/orders/create', async (req, res) => {
       if (sellerTheme.showMessageButton === 'off') return res.status(400).json({ success: false, message: 'Este vendedor no recibe pedidos por mensaje' });
     }
 
-    // Anti-spam y reserva: los pedidos pendientes recientes de la carpeta reservan su stock y limitan cuántos puede dejar una misma persona
+    // Anti-spam y reserva: los pedidos pendientes recientes de la carpeta reservan su stock y limitan cuántos puede dejar una misma persona.
+    // Con cuenta reservan 7 días; sin cuenta solo 24 horas y con un cupo propio, para que pedidos anónimos no bloqueen el stock ni la carpeta.
     const reserveSince = new Date(Date.now() - ORDER_RESERVE_DAYS * 24 * 60 * 60 * 1000);
-    const pendingOrders = await prisma.order.findMany({ where: { folderId: folder.id, status: 'pending', createdAt: { gt: reserveSince } }, select: { items: true, createdIpHash: true, buyerId: true } });
-    if (pendingOrders.length >= ORDER_MAX_PENDING_PER_FOLDER) {
+    const anonSince = Date.now() - ORDER_ANON_RESERVE_HOURS * 60 * 60 * 1000;
+    const pendingOrders = (await prisma.order.findMany({ where: { folderId: folder.id, status: 'pending', createdAt: { gt: reserveSince } }, select: { items: true, createdIpHash: true, buyerId: true, createdAt: true } }))
+      .filter((pending) => pending.buyerId || pending.createdAt.getTime() > anonSince);
+    const anonPending = pendingOrders.filter((pending) => !pending.buyerId).length;
+    if (!buyer && anonPending >= ORDER_MAX_ANON_PENDING_PER_FOLDER) {
+      return res.status(429).json({ success: false, message: 'Este vendedor tiene muchos pedidos sin cuenta pendientes. Inicia sesión para hacer tu pedido.' });
+    }
+    if (buyer && pendingOrders.length - anonPending >= ORDER_MAX_PENDING_PER_FOLDER) {
       return res.status(429).json({ success: false, message: 'Este vendedor tiene muchos pedidos pendientes. Intenta más tarde.' });
     }
     const myConnection = hashConnection(req);
@@ -729,8 +742,10 @@ app.post('/api/orders/create', async (req, res) => {
 // --- Reseñas de vendedores ---
 // Solo el comprador de un pedido completado puede calificar, una vez por pedido; la reseña no se edita ni se responde.
 const REVIEWS_PAGE_SIZE = 10;
-const ORDER_RESERVE_DAYS = 7; // un pedido pendiente reserva su stock hasta por una semana
+const ORDER_RESERVE_DAYS = 7; // un pedido pendiente de un comprador con cuenta reserva su stock hasta por una semana
+const ORDER_ANON_RESERVE_HOURS = 24; // uno sin cuenta, solo un día
 const ORDER_MAX_PENDING_PER_FOLDER = 50;
+const ORDER_MAX_ANON_PENDING_PER_FOLDER = 15;
 const ORDER_MAX_PENDING_PER_BUYER = 3;
 // Identificador anónimo de la conexión (hash con sal; no se guarda la IP). Define IP_HASH_SALT en el servidor para que no sea reversible.
 const hashConnection = (req) => crypto.createHash('sha256').update(`${process.env.IP_HASH_SALT || 'carpetazo'}|${req.ip || ''}`).digest('hex').slice(0, 32);
@@ -813,10 +828,10 @@ app.get('/api/reviews/pending', authenticateToken, async (req, res) => {
   }
 });
 
-// Reportar una reseña: siempre queda para moderación; deja de contar y de mostrarse cuando la reportan
-// REVIEW_HIDE_REPORTS personas distintas del vendedor calificado (así un vendedor no puede ocultar sus reseñas malas).
+// Reportar una reseña: siempre queda para moderación (/moderacion). Deja de contar y de mostrarse cuando la reportan
+// REVIEW_HIDE_REPORTS compradores verificados (con al menos una compra completada) distintos del vendedor calificado:
+// así ni el vendedor ni cuentas recién creadas pueden ocultar reseñas por su cuenta.
 const REVIEW_HIDE_REPORTS = 2;
-// Destino: sección /moderacion (frontend/src/pages/Moderation.jsx, aún vacía); mientras tanto, backend/review_moderation.cjs
 app.post('/api/reviews/:id/report', authenticateToken, async (req, res) => {
   try {
     if (!isUuid(req.params.id)) return res.status(404).json({ success: false, message: 'Reseña no encontrada' });
@@ -834,8 +849,11 @@ app.post('/api/reviews/:id/report', authenticateToken, async (req, res) => {
     try {
       hidden = await prisma.$transaction(async (tx) => {
         await tx.reviewReport.create({ data: { reviewId: review.id, reporterId, reason: reason ? String(reason).trim() || null : null } });
-        const others = await tx.reviewReport.count({ where: { reviewId: review.id, reporterId: { not: review.sellerId } } });
-        const hide = others >= REVIEW_HIDE_REPORTS;
+        const reporters = await tx.reviewReport.findMany({ where: { reviewId: review.id, reporterId: { not: review.sellerId } }, select: { reporterId: true } });
+        const verified = reporters.length
+          ? await tx.order.groupBy({ by: ['buyerId'], where: { buyerId: { in: reporters.map((row) => row.reporterId) }, status: 'completed' } })
+          : [];
+        const hide = verified.length >= REVIEW_HIDE_REPORTS;
         await tx.sellerReview.update({ where: { id: review.id }, data: { flag: 'reported', ...(hide ? { counts: false } : {}) } });
         return hide;
       });
@@ -877,6 +895,57 @@ app.get('/api/users/:username/reviews', async (req, res) => {
     });
   } catch (error) {
     console.error('Error loading reviews:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// --- Moderación de reseñas (solo administradores): reportadas, visibles u ocultas, y las de la misma conexión ---
+app.get('/api/admin/reviews', authenticateToken, requireAdmin, async (_req, res) => {
+  try {
+    const rows = await prisma.sellerReview.findMany({
+      where: { OR: [{ counts: false }, { flag: 'reported' }] },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      select: {
+        id: true, rating: true, comment: true, counts: true, flag: true, createdAt: true,
+        seller: { select: { name: true, username: true } },
+        reviewer: { select: { name: true, username: true } },
+        reports: { orderBy: { createdAt: 'desc' }, select: { reason: true, createdAt: true } }
+      }
+    });
+    res.json({ success: true, reviews: rows });
+  } catch (error) {
+    console.error('Error loading reviews for moderation:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Aprobar: vuelve a mostrarse y contar; se borran sus reportes
+app.post('/api/admin/reviews/:id/approve', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    if (!isUuid(req.params.id)) return res.status(404).json({ success: false, message: 'Reseña no encontrada' });
+    const review = await prisma.sellerReview.findUnique({ where: { id: req.params.id }, select: { id: true } });
+    if (!review) return res.status(404).json({ success: false, message: 'Reseña no encontrada' });
+    await prisma.$transaction([
+      prisma.reviewReport.deleteMany({ where: { reviewId: review.id } }),
+      prisma.sellerReview.update({ where: { id: review.id }, data: { counts: true, flag: null } })
+    ]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error approving review:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Eliminar: se borra la reseña (y sus reportes); el comprador podrá volver a calificar a ese vendedor
+app.delete('/api/admin/reviews/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    if (!isUuid(req.params.id)) return res.status(404).json({ success: false, message: 'Reseña no encontrada' });
+    const deleted = await prisma.sellerReview.deleteMany({ where: { id: req.params.id } });
+    if (deleted.count === 0) return res.status(404).json({ success: false, message: 'Reseña no encontrada' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting review:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
@@ -993,8 +1062,11 @@ app.post('/api/orders/mine/:id/status', authenticateToken, async (req, res) => {
       return res.status(409).json({ success: false, message: 'Este pedido ya fue gestionado' });
     }
 
-    // Completar descuenta el stock de las cartas de la carpeta en la misma transacción
+    // Completar descuenta el stock de las cartas de la carpeta en la misma transacción.
+    // El cambio de estado se reclama primero (solo si sigue pendiente): dos clics simultáneos no descuentan el stock dos veces.
     const updated = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.order.updateMany({ where: { id: order.id, status: 'pending' }, data: { status } });
+      if (claimed.count === 0) return null;
       if (status === 'completed') {
         for (const item of normalizeOrderItems(order.items)) {
           const id = String(item.id || '');
@@ -1006,6 +1078,7 @@ app.post('/api/orders/mine/:id/status', authenticateToken, async (req, res) => {
       }
       return tx.order.update({ where: { id: order.id }, data: { status, ...(status === 'completed' ? { completedIpHash: hashConnection(req) } : {}) } });
     });
+    if (!updated) return res.status(409).json({ success: false, message: 'Este pedido ya fue gestionado' });
 
     res.json({ success: true, order: formatOrderForUi(updated) });
   } catch (error) {
@@ -1017,6 +1090,11 @@ app.post('/api/orders/mine/:id/status', authenticateToken, async (req, res) => {
 // --- POKEMON TCG API PROXY CON CACHÉ ---
 const tcgCache = new Map();
 const CACHE_DURATION = 1000 * 60 * 60; // 1 hora en milisegundos
+const TCG_CACHE_MAX = 200; // tope de entradas: consultas distintas no pueden llenar la memoria
+const setTcgCache = (key, data) => {
+  if (tcgCache.size >= TCG_CACHE_MAX) tcgCache.delete(tcgCache.keys().next().value);
+  tcgCache.set(key, { timestamp: Date.now(), data });
+};
 
 app.get('/api/tcg/sets', async (req, res) => {
     const cacheKey = 'sets';
@@ -1034,7 +1112,7 @@ app.get('/api/tcg/sets', async (req, res) => {
         if (!response.ok) throw new Error('Error fetching sets');
         const data = await response.json();
         
-        tcgCache.set(cacheKey, { timestamp: Date.now(), data });
+        setTcgCache(cacheKey, data);
         res.json(data);
     } catch (error) {
         console.error('TCG API Sets Error:', error);
@@ -1043,7 +1121,8 @@ app.get('/api/tcg/sets', async (req, res) => {
 });
 
 app.get('/api/tcg/cards', async (req, res) => {
-    const query = req.query.q || '';
+    const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    if (query.length > 200) return badRequest(res, 'Búsqueda inválida');
     const cacheKey = `cards_${query}`;
     
     if (tcgCache.has(cacheKey)) {
@@ -1063,7 +1142,7 @@ app.get('/api/tcg/cards', async (req, res) => {
         if (!response.ok) throw new Error('Error fetching cards');
         const data = await response.json();
         
-        tcgCache.set(cacheKey, { timestamp: Date.now(), data });
+        setTcgCache(cacheKey, data);
         res.json(data);
     } catch (error) {
         console.error('TCG API Cards Error:', error);
@@ -1394,8 +1473,9 @@ app.get('/api/folders/:id', optionalAuth, async (req, res) => {
         for (const [key, time] of recentVisits) if (time < now - 30 * 60 * 1000) recentVisits.delete(key);
       }
       
-      const folder = await prisma.folder.findUnique({ where: { id: folderId } });
-      if (!folder) return res.status(404).json({ success: false });
+      // Solo cuentan las visitas a carpetas públicas
+      const folder = await prisma.folder.findUnique({ where: { id: folderId }, select: { isPublic: true, lastVisitWeek: true } });
+      if (!folder || !folder.isPublic) return res.status(404).json({ success: false });
 
       if (folder.lastVisitWeek !== currentWeek) {
         await prisma.folder.update({
@@ -1410,6 +1490,7 @@ app.get('/api/folders/:id', optionalAuth, async (req, res) => {
       }
       res.json({ success: true });
     } catch (error) {
+      console.error('Error registering visit:', error);
       res.status(500).json({ success: false });
     }
   });
@@ -1420,7 +1501,7 @@ app.delete('/api/folders/:id', authenticateToken, async (req, res) => {
     const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
     const folder = await prisma.folder.findUnique({ where: { id: req.params.id } });
     
-    if (!folder || folder.userId !== user.id) {
+    if (!user || !folder || folder.userId !== user.id) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     
@@ -1440,7 +1521,7 @@ app.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
     const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
     const folder = await prisma.folder.findUnique({ where: { id: req.params.id } });
     
-    if (!folder || folder.userId !== user.id) {
+    if (!user || !folder || folder.userId !== user.id) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     
@@ -1479,7 +1560,7 @@ app.delete('/api/cards/:id', authenticateToken, async (req, res) => {
       include: { folder: true }
     });
     
-    if (!card || card.folder.userId !== user.id) {
+    if (!user || !card || card.folder.userId !== user.id) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     
@@ -1874,7 +1955,7 @@ app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
     const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
     const message = await prisma.message.findUnique({ where: { id: req.params.id } });
     
-    if (!message || message.receiverId !== user.id) {
+    if (!user || !message || message.receiverId !== user.id) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     
@@ -2001,7 +2082,6 @@ app.post('/api/messages/:otherId', authenticateToken, async (req, res) => {
       message,
       otherUser: {
         id: otherUser.id,
-        firebaseUid: otherUser.firebaseUid,
         name: otherUser.name,
         username: otherUser.username,
         photoURL: otherUser.photoURL
@@ -2039,7 +2119,7 @@ app.get('/api/chats', authenticateToken, async (req, res) => {
     const totalUnread = [...unreadCounts.values()].reduce((total, count) => total + count, 0);
     const partnerIds = lastMessages.map((msg) => (msg.senderId === currentUser.id ? msg.receiverId : msg.senderId));
     const users = partnerIds.length
-      ? await prisma.user.findMany({ where: { id: { in: partnerIds } }, select: { id: true, firebaseUid: true, name: true, username: true, photoURL: true } })
+      ? await prisma.user.findMany({ where: { id: { in: partnerIds } }, select: { id: true, name: true, username: true, photoURL: true } })
       : [];
     const usersById = new Map(users.map((user) => [user.id, user]));
 
@@ -2249,6 +2329,15 @@ app.put('/api/users/me', authenticateToken, async (req, res) => {
       }
     }
 
+    // Textos libres del perfil: tipo y largo acotados (el nombre no puede quedar vacío)
+    const PROFILE_TEXT_LIMITS = { name: 100, fullName: 150, bio: 600, phone: 30, rut: 20, bannerDominantColor: 40, bannerComplementaryColor: 40 };
+    for (const [field, max] of Object.entries(PROFILE_TEXT_LIMITS)) {
+      if (updateData[field] === undefined) continue;
+      const valid = field === 'name' ? isShortText(updateData[field], max) : isOptionalText(updateData[field], max);
+      if (!valid || (typeof updateData[field] === 'string' && hasControlChars(updateData[field].replace(/[\r\n]/g, ' ')))) {
+        return res.status(400).json({ success: false, error: 'Datos de perfil inválidos' });
+      }
+    }
     if (updateData.username !== undefined) {
       const username = validUsername(updateData.username);
       // Nombres antiguos que no cumplen la política se conservan mientras no se cambien
@@ -2454,7 +2543,8 @@ app.get('/api/users/:username', optionalAuth, async (req, res) => {
 
     const user = await prisma.user.findFirst({
       where: {
-        OR: publicUserLookup
+        OR: publicUserLookup,
+        NOT: { role: 'deleted' }
       },
       select: {
         ...PUBLIC_SELLER_SELECT,
@@ -2576,6 +2666,7 @@ app.get('/api/tcg/:categoryId/filter-options', async (req, res) => {
 app.post('/api/tcg/products/metadata', async (req, res) => {
   try {
     const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+    if (ids.length > 500) return badRequest(res, 'Demasiadas cartas');
     const productIds = [...new Set(ids.map(id => String(id)).filter(id => Boolean(id)))];
 
     if (productIds.length === 0) {
@@ -2718,6 +2809,11 @@ app.get('/api/tcg/blocks', async (req, res) => {
 app.get('/api/tcg/search', async (req, res) => {
   try {
     const { q, categoryId, groupId, blockId, mylType, mylRace, mylFrequency, mylCost, physicalProductId } = req.query;
+    const textParams = [q, mylType, mylRace, mylFrequency, mylCost, physicalProductId, groupId];
+    if (textParams.some((value) => value !== undefined && (typeof value !== 'string' || value.length > 80))
+      || [categoryId, blockId].some((value) => value !== undefined && !/^\d{1,9}$/.test(String(value)))) {
+      return badRequest(res, 'Búsqueda inválida');
+    }
 
     let whereClause = {};
     if (q) {

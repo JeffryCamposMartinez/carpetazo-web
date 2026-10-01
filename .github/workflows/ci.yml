@@ -54,6 +54,50 @@ jobs:
         env:
           DATABASE_URL: postgresql://user:password@localhost:5432/carpetazo
 
+  session-tests:
+    name: Session and ownership tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: carpetazo
+          POSTGRES_PASSWORD: carpetazo
+          POSTGRES_DB: carpetazo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U carpetazo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Base temporal de la CI (se descarta al terminar); la simulación de sesión solo acepta bases locales
+      DATABASE_URL: postgresql://carpetazo:carpetazo@localhost:5432/carpetazo_test
+      IP_HASH_SALT: ci-only-salt
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Prepare database
+        run: npm run build
+        working-directory: backend
+
+      - name: Run session tests
+        run: npm run test:session
+        working-directory: backend
+
   public-contract:
     name: Public API contract (production)
     needs: verify

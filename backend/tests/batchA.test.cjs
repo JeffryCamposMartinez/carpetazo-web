@@ -1,14 +1,5 @@
-const path = require('path');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-const B = 'http://localhost:8000/api';
-const U = { seller: 'x7ixqotUu3aXfcCsTpyPEx64GgS2', jerry: 'rS5nDQJ1KChdDJhWvbPcNktr3Nr1', ignacio: 'vqbEaDAh24QkSMhjZT4SImXCtlQ2', temp: 'tempDeleteMeUid0000000001' };
-const call = async (method, p, who, body, ip) => {
-  const r = await fetch(B + p, { method, headers: { 'Content-Type': 'application/json', ...(ip ? { 'X-Forwarded-For': ip } : {}), ...(who ? { Authorization: 'Bearer test-' + U[who] } : {}) }, body: body ? JSON.stringify(body) : undefined });
-  let j = null; try { j = await r.json(); } catch (_) {}
-  return { status: r.status, j };
-};
-const ok = (n, c, e = '') => { console.log((c ? 'OK   ' : 'FALLA') + ' ' + n + ' ' + e); if (!c) process.exitCode = 1; };
+// Lote A: orden de carpeta, reserva de stock, límites de pedidos, carpetas por juego y borrado de cuenta.
+const { prisma, NAMES, call, ok } = require('./fixtures.cjs');
 
 (async () => {
   const cleanup = { folders: [], orders: [] };
@@ -66,7 +57,7 @@ const ok = (n, c, e = '') => { console.log((c ? 'OK   ' : 'FALLA') + ' ' + n + '
     await call('POST', '/users/sync', 'temp', { displayName: 'Persona Temporal', username: 'temp_borrar_1' });
     await call('PUT', '/users/me', 'temp', { fullName: 'Nombre Completo', phone: '+56911112222', rut: '11111111-1', bio: 'hola', bankDetails: { bank: 'Banco X', accountType: 'Cuenta vista', accountNumber: '123456' }, addresses: [{ region: 'RM', comuna: 'Santiago', street: 'Calle 1', number: '10' }], publicTheme: { showWishlist: 'on' } });
     await call('POST', '/wishlist', 'temp', { name: 'Carta deseada borrar' });
-    await call('POST', '/messages/' + 'rigoberto_godoy_espinoza', 'temp', { content: 'mensaje de la persona' });
+    await call('POST', '/messages/' + NAMES.seller, 'temp', { content: 'mensaje de la persona' });
     const tempBuy = await call('POST', '/orders/create', 'temp', { folderId: fid, via: 'message', items: [{ id: c3, quantity: 1 }] }, '8.8.8.8');
     if (tempBuy.j?.order) cleanup.orders.push(tempBuy.j.order.id);
     const me0 = (await call('GET', '/users/me', 'temp')).j.user;
@@ -86,14 +77,8 @@ const ok = (n, c, e = '') => { console.log((c ? 'OK   ' : 'FALLA') + ' ' + n + '
 
     // ---- el resto sigue igual
     ok('carpeta privada de otro sigue oculta (404)', (await call('PUT', '/folders/' + fid, 'seller', { isPublic: false })).status === 200 && (await call('GET', '/folders/' + fid, null)).status === 404);
-    const tmpUser = await prisma.user.findUnique({ where: { firebaseUid: U.temp } });
-    if (tmpUser) await prisma.user.delete({ where: { id: tmpUser.id } });
   } finally {
-    await prisma.message.deleteMany({ where: { content: { contains: 'mensaje de la persona' } } }).catch(() => {});
-    await prisma.message.deleteMany({ where: { content: { contains: 'Mensaje eliminado' } } }).catch(() => {});
-    await prisma.message.deleteMany({ where: { content: { contains: 'Te hice un pedido desde tu carpeta "TEST lote A' } } }).catch(() => {});
-    await prisma.order.deleteMany({ where: { folderId: { in: cleanup.folders } } }).catch(() => {});
-    for (const f of cleanup.folders) await prisma.folder.delete({ where: { id: f } }).catch(() => {});
+    // El resto lo borra la limpieza general de tests/run.cjs
     await prisma.$disconnect();
   }
 })();
