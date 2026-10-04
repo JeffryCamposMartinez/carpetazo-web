@@ -15,7 +15,9 @@ export default function PokemonCard({ card, availableStock, cartQuantity, onAddT
   const searchTerm = cardCode ? `${card.name} ${cardCode}` : card.name;
 
   // URLs de búsqueda
-  const tcgPlayerUrl = card.tcgplayer?.url || `https://www.tcgplayer.com/search/pokemon/product?productLineName=pokemon&q=${encodeURIComponent(searchTerm)}`;
+  // El enlace guardado en la carta lo escribe el vendedor: solo se usa si es https de TCGplayer
+  const savedTcgPlayerUrl = /^https:\/\/([a-z0-9-]+\.)*tcgplayer\.com(\/|$)/i.test(String(card.tcgplayer?.url || '')) ? card.tcgplayer.url : '';
+  const tcgPlayerUrl = savedTcgPlayerUrl || `https://www.tcgplayer.com/search/pokemon/product?productLineName=pokemon&q=${encodeURIComponent(searchTerm)}`;
   const tcgMatchUrl = `https://tcgmatch.cl/cartas/busqueda/q=${encodeURIComponent(searchTerm)}`;
 
   const langMap = {

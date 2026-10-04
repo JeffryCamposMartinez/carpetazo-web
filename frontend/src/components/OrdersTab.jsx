@@ -143,7 +143,7 @@ function OrderSlip({ order, busy, onDecide, showToast }) {
             type="button"
             onClick={copyCode}
             title="Copiar código"
-            className={`${NUM} group -ml-1 flex items-center gap-2 rounded-lg px-1 text-4xl font-bold tracking-[0.12em] text-[#1a2b4b] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]`}
+            className={`${NUM} group -ml-1 flex min-h-11 items-center gap-2 rounded-lg px-1 text-4xl font-bold tracking-[0.12em] text-[#1a2b4b] transition-transform duration-150 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]`}
           >
             {order.code}
             <Icon name="content_copy" className="text-lg text-slate-400 group-hover:text-[#1e40af]" />
@@ -166,11 +166,11 @@ function OrderSlip({ order, busy, onDecide, showToast }) {
                 type="button"
                 disabled={busy}
                 onClick={() => onDecide(order, confirming)}
-                className={`h-10 flex-1 rounded-lg text-sm font-bold text-white disabled:opacity-60 ${confirming === 'completed' ? 'bg-[#047857] hover:bg-[#065f46]' : 'bg-[#b91c1c] hover:bg-[#991b1b]'}`}
+                className={`h-11 flex-1 rounded-lg text-sm font-bold text-white transition-[background-color,transform] duration-150 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60 ${confirming === 'completed' ? 'bg-[#047857] hover:bg-[#065f46]' : 'bg-[#b91c1c] hover:bg-[#991b1b]'}`}
               >
                 {busy ? 'Guardando…' : confirming === 'completed' ? 'Sí, confirmar venta' : 'Sí, rechazar'}
               </button>
-              <button type="button" onClick={() => setConfirming(null)} className="h-10 rounded-lg px-3 text-sm font-semibold text-slate-600 hover:bg-slate-100">
+              <button type="button" onClick={() => setConfirming(null)} className="h-11 rounded-lg px-4 text-sm font-semibold text-slate-600 transition-[background-color,transform] duration-150 hover:bg-slate-100 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
                 Volver
               </button>
             </div>
@@ -183,14 +183,14 @@ function OrderSlip({ order, busy, onDecide, showToast }) {
             <button
               type="button"
               onClick={() => setConfirming('completed')}
-              className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#047857] font-bold text-white shadow-sm hover:bg-[#065f46] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#047857]"
+              className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#047857] font-bold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-[#065f46] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#047857]"
             >
               <Icon name="check_circle" className="text-xl" /> Confirmar venta
             </button>
             <button
               type="button"
               onClick={() => setConfirming('rejected')}
-              className="h-10 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-200/60 hover:text-[#b91c1c] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b91c1c]"
+              className="h-11 rounded-xl text-sm font-semibold text-slate-600 transition-[background-color,color,transform] duration-150 hover:bg-slate-200/60 hover:text-[#b91c1c] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b91c1c]"
             >
               Rechazar pedido
             </button>
@@ -222,7 +222,7 @@ function Requests({ orders, onDecide, busyId, showToast, onGoToFolders, emptyAct
         title="No tienes pedidos por atender"
         text="Cuando alguien arme un carrito en una de tus carpetas públicas y lo envíe por WhatsApp, el pedido aparecerá aquí para que confirmes la venta."
         action={(
-          <button type="button" onClick={onGoToFolders} className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-[#1e40af] px-6 font-bold text-white hover:bg-[#1e3a8a]">
+          <button type="button" onClick={onGoToFolders} className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-[#1e40af] px-6 font-bold text-white transition-[background-color,transform] duration-150 hover:bg-[#1e3a8a] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 focus-visible:ring-offset-[#DBEAFE]">
             <Icon name="share" className="text-lg" /> {emptyActionLabel}
           </button>
         )}
@@ -510,7 +510,7 @@ function History({ orders }) {
           onChange={setRange}
           options={RANGES.map((r) => ({ value: r.id, label: r.label }))}
           className="w-full rounded-xl bg-white p-1 ring-1 ring-slate-200 sm:w-max"
-          buttonClassName="h-9 whitespace-nowrap rounded-lg px-2 text-sm font-bold sm:px-4 focus-visible:ring-2 focus-visible:ring-[#1e40af]"
+          buttonClassName="h-10 whitespace-nowrap rounded-lg px-2 text-sm font-bold sm:px-4 focus-visible:ring-2 focus-visible:ring-[#1e40af]"
           indicatorClassName="rounded-lg bg-[#1e40af]"
           indicatorStyle={{ top: 4, bottom: 4 }}
           activeTextClassName="text-white"
@@ -527,7 +527,7 @@ function History({ orders }) {
             type="button"
             onClick={() => downloadCsv(ledger)}
             disabled={!ledger.length}
-            className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-[#1e40af] ring-1 ring-slate-300 hover:bg-slate-50 disabled:opacity-50"
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-[#1e40af] ring-1 ring-slate-300 transition-[background-color,transform] duration-150 hover:bg-slate-50 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:opacity-50"
           >
             <Icon name="download" className="text-lg" /> Exportar CSV
           </button>

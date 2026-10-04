@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { auth, googleProvider } from '../firebase';
 import { api } from '../utils/api';
 import { takePendingAcceptance } from '../legal/pending';
+import AppSplash from '../components/AppSplash';
 import {
   onAuthStateChanged,
   signInWithPopup,
@@ -225,12 +226,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {loading ? (
-        <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#1a2b4b] relative z-50">
-          <img src="/images/logos/logo_completo.webp" alt="Carpetazo" className="h-20 md:h-28 mb-6 brightness-0 invert opacity-90 animate-pulse" />
-          <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-white"></div>
-        </div>
-      ) : children}
+      {loading ? <AppSplash /> : children}
     </AuthContext.Provider>
   );
 }

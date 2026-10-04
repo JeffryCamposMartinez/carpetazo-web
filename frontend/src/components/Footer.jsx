@@ -34,16 +34,16 @@ export default function Footer() {
 
   return (
     <footer 
-      className="w-full bg-[#0a1120] text-white/70 py-6 mt-auto flex flex-col items-center justify-center gap-2 border-t border-white/5 relative z-10"
+      className="w-full bg-[#0a1120] text-white/70 pb-6 pt-3 mt-auto flex flex-col items-center justify-center gap-0.5 border-t border-white/5 relative z-10"
       style={themedFooterStyle}
     >
-      <div className="flex items-center gap-2 hover:text-white transition-colors duration-300">
-        <span translate="no" className="material-symbols-outlined text-[18px]">mail</span>
-        <a href="mailto:carpetazo.soporte@gmail.com" className="text-sm font-medium">carpetazo.soporte@gmail.com</a>
-      </div>
-      <nav aria-label="Información legal" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs font-semibold">
-        <Link to="/terminos" className="underline-offset-2 hover:text-white hover:underline">Términos y Condiciones</Link>
-        <Link to="/privacidad" className="underline-offset-2 hover:text-white hover:underline">Política de Privacidad</Link>
+      <a href="mailto:carpetazo.soporte@gmail.com" className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors duration-150 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+        <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">mail</span>
+        carpetazo.soporte@gmail.com
+      </a>
+      <nav aria-label="Información legal" className="flex flex-wrap items-center justify-center gap-x-2 text-xs font-semibold">
+        <Link to="/terminos" className="inline-flex min-h-11 items-center rounded-lg px-2 underline-offset-2 transition-colors duration-150 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">Términos y Condiciones</Link>
+        <Link to="/privacidad" className="inline-flex min-h-11 items-center rounded-lg px-2 underline-offset-2 transition-colors duration-150 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">Política de Privacidad</Link>
       </nav>
       <p className="text-xs font-medium tracking-wide text-center" style={{ color: themedFooterStyle ? 'inherit' : undefined, opacity: themedFooterStyle ? 0.8 : undefined }}>
         &copy; {new Date().getFullYear()} Carpetazo.cl. Todos los derechos reservados.

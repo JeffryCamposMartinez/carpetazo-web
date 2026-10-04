@@ -7,7 +7,7 @@ import {
   filterPokemonCards,
 } from '../utils/tcgcsvPokemon';
 
-// Juegos del sitio. Solo los marcados tienen buscador con filtros; en el resto se escribe la carta a mano.
+// Juegos del sitio. Solo los marcados tienen buscador con filtros; el resto llegará pronto.
 export const WISHLIST_GAMES = [
   { name: 'Pokémon', available: true },
   { name: 'Mitos y Leyendas', available: true },
@@ -23,7 +23,7 @@ const PAGE = 20;
 
 const cardLabel = (name, number) => (number && !name.includes(number) ? `${name} - ${number}` : name);
 
-export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyKey = '' }) {
+export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyKey = '', resetRef = null }) {
   const [game, setGame] = useState('Pokémon');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchSet, setSearchSet] = useState('');
@@ -53,10 +53,6 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
   const [hint, setHint] = useState('');
   const seq = useRef(0);
 
-  // Manual
-  const [manualName, setManualName] = useState('');
-  const [manualDetail, setManualDetail] = useState('');
-
   const isPokemon = game === 'Pokémon';
   const isMyl = game === 'Mitos y Leyendas';
   const selectedGame = WISHLIST_GAMES.find((item) => item.name === game);
@@ -66,6 +62,7 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
     setSearchBlock(''); setSearchPhysicalProduct(''); setMylType(''); setMylRace(''); setMylCost('');
     setResults([]); setHint(''); setVisible(PAGE);
   };
+  if (resetRef) resetRef.current = resetFilters;
 
   // Datos de cada juego: ediciones, bloques y productos
   useEffect(() => {
@@ -188,13 +185,6 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
     }
   };
 
-  const manualReady = manualName.trim().length >= 1;
-  const addManual = async () => {
-    if (!manualReady) return;
-    await onAdd({ name: manualName.trim(), detail: manualDetail.trim() || undefined, game }, manualName.trim());
-    setManualName(''); setManualDetail('');
-  };
-
   const inputClass = 'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base text-slate-900 focus:border-[#1e40af] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70';
 
   return (
@@ -249,33 +239,32 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
 
       {!selectedGame?.available && (
         <p className="rounded-xl bg-amber-50 px-3 py-2.5 text-sm font-semibold text-amber-900 ring-1 ring-amber-200">
-          El buscador de {game} llegará pronto. Mientras tanto, escribe la carta a mano abajo.
+          El buscador de {game} llegará pronto.
         </p>
       )}
 
       {selectedGame?.available && (
         <div aria-live="polite">
-          {hint && <p className="px-1 text-sm text-slate-500">{hint}</p>}
           {searching && results.length === 0 && <p className="px-1 text-sm text-slate-500">Buscando…</p>}
           {!hint && !searching && results.length === 0 && <p className="px-1 text-sm text-slate-500">No encontramos cartas con esos filtros.</p>}
           {results.length > 0 && (
             <>
               <p className="mb-1.5 px-1 text-xs font-semibold text-slate-500">{results.length.toLocaleString('es-CL')} {results.length === 1 ? 'resultado' : 'resultados'}</p>
-              <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <ul className="grid grid-cols-3 gap-2 sm:gap-3">
                 {results.slice(0, visible).map((row) => (
-                  <li key={row.key} className="flex items-center gap-3 p-2.5">
-                    <span className="h-14 w-10 shrink-0 overflow-hidden rounded bg-slate-100">
-                      {row.imageUrl && <img src={row.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />}
+                  <li key={row.key} className="flex min-w-0 flex-col gap-1.5 rounded-xl bg-white p-1.5 ring-1 ring-slate-200 sm:p-2">
+                    <span className="block aspect-[5/7] w-full overflow-hidden rounded-lg bg-slate-100">
+                      {row.imageUrl ? <img src={row.imageUrl} alt={row.label} loading="lazy" className="h-full w-full object-contain" /> : <span className="flex h-full items-center justify-center px-1 text-center text-[11px] font-semibold text-slate-500">Sin imagen</span>}
                     </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-bold text-[#12315f]">{row.label}</span>
-                      <span className="block truncate text-xs text-slate-500">{row.sub}</span>
+                    <span className="min-w-0 px-0.5">
+                      <span className="line-clamp-2 block text-[12px] font-bold leading-tight text-[#12315f] sm:text-[13px]" title={row.label}>{row.label}</span>
+                      <span className="mt-0.5 line-clamp-1 block text-[11px] text-slate-500" title={row.sub}>{row.sub}</span>
                     </span>
                     <button
                       type="button"
                       disabled={busyKey === row.key}
                       onClick={() => onAdd({ ...row.payload }, row.label, row.key)}
-                      className={`h-10 shrink-0 rounded-full px-4 text-sm font-extrabold disabled:opacity-60 ${addedKeys.has(row.key) ? 'bg-emerald-100 text-emerald-800' : 'bg-[#facc15] text-[#12315f]'}`}
+                      className={`mt-auto h-10 w-full rounded-full text-[13px] font-extrabold transition-[transform,filter] duration-150 hover:brightness-95 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:opacity-60 ${addedKeys.has(row.key) ? 'bg-emerald-100 text-emerald-800' : 'bg-[#facc15] text-[#12315f]'}`}
                     >
                       {addedKeys.has(row.key) ? 'Sumar otra' : 'Agregar'}
                     </button>
@@ -294,20 +283,6 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
           )}
         </div>
       )}
-
-      <details className="rounded-2xl bg-white ring-1 ring-slate-200" open={!selectedGame?.available}>
-        <summary className="flex min-h-12 cursor-pointer items-center gap-2 px-4 text-sm font-extrabold text-[#12315f]">
-          <span translate="no" className="material-symbols-outlined text-[20px]">edit</span>
-          ¿No la encuentras? Escríbela a mano
-        </summary>
-        <div className="space-y-2 px-4 pb-4">
-          <input type="text" value={manualName} maxLength={100} onChange={(event) => setManualName(event.target.value)} placeholder="Nombre de la carta" aria-label="Nombre de la carta a mano" className={inputClass} />
-          <input type="text" value={manualDetail} maxLength={100} onChange={(event) => setManualDetail(event.target.value)} placeholder="Edición o versión (opcional)" aria-label="Edición o versión" className={inputClass} />
-          <button type="button" disabled={!manualReady || busyKey === 'manual'} onClick={addManual} className="h-11 w-full rounded-full bg-[#12315f] text-sm font-extrabold text-white disabled:opacity-40">
-            Agregar a mi lista
-          </button>
-        </div>
-      </details>
     </div>
   );
 }

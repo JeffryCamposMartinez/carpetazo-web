@@ -6,6 +6,7 @@ import ScrollToTop from './components/ScrollToTop';
 import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
 import AcceptTermsGate from './components/AcceptTermsGate';
+import AppSplash from './components/AppSplash';
 import { pageLoaders, preloadMainSections } from './utils/routePreload';
 
 // Cada pantalla se descarga solo cuando se visita: el primer arranque en móvil pesa mucho menos
@@ -24,8 +25,16 @@ const SellersPage = lazy(pageLoaders.sellers);
 const LegalPage = lazy(pageLoaders.legal);
 const NotFound = lazy(pageLoaders.notFound);
 
+// La primera pantalla carga bajo el splash oscuro con el logo; después, al navegar, solo la barra fina
+let firstPageShown = false;
+function FirstPageShown() {
+  useEffect(() => { firstPageShown = true; }, []);
+  return null;
+}
+
 // Barra fina de carga mientras llega la pantalla (sin saltos de diseño)
 function RouteLoading() {
+  if (!firstPageShown) return <AppSplash />;
   return (
     <div className="flex-1" role="status" aria-label="Cargando">
       <div className="h-[3px] w-full overflow-hidden bg-transparent">
@@ -55,6 +64,7 @@ function App() {
           <div className="flex-1 flex flex-col">
             <RouteBoundary>
             <Suspense fallback={<RouteLoading />}>
+            <FirstPageShown />
             <Routes>
               <Route path="/bienvenida" element={<LandingPage />} />
               <Route path="/" element={<ExplorePage />} />

@@ -13,20 +13,25 @@ function Spinner() {
 function TermsCheckbox({ checked, onChange, showError, inputRef }) {
   return (
     <div>
-      <label className={`flex cursor-pointer items-start gap-3 rounded-2xl p-3.5 ring-1 transition ${showError ? 'bg-red-50 ring-red-300' : 'bg-slate-50 ring-slate-200'}`}>
-        <input
-          ref={inputRef}
-          type="checkbox"
-          checked={checked}
-          onChange={(event) => onChange(event.target.checked)}
-          aria-describedby={showError ? 'auth-terms-error' : undefined}
-          className="mt-0.5 h-6 w-6 shrink-0 cursor-pointer accent-[#12315f]"
-        />
+      <label className={`flex cursor-pointer items-start gap-3 rounded-2xl p-3.5 ring-1 transition-[background-color,box-shadow] duration-150 focus-within:ring-2 focus-within:ring-[#1e40af] ${showError ? 'bg-red-50 ring-red-300' : checked ? 'bg-blue-50 ring-blue-200' : 'bg-slate-50 ring-slate-200'}`}>
+        <span className="relative mt-0.5 flex h-6 w-6 shrink-0">
+          <input
+            ref={inputRef}
+            type="checkbox"
+            checked={checked}
+            onChange={(event) => onChange(event.target.checked)}
+            aria-describedby={showError ? 'auth-terms-error' : undefined}
+            className={`peer absolute inset-0 h-6 w-6 cursor-pointer appearance-none rounded-md border-2 bg-white transition-[background-color,border-color] duration-150 checked:border-[#12315f] checked:bg-[#12315f] focus:outline-none ${showError ? 'border-red-500' : 'border-slate-400'}`}
+          />
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="pointer-events-none absolute inset-0 m-auto h-4 w-4 scale-75 text-white opacity-0 transition-[opacity,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] peer-checked:scale-100 peer-checked:opacity-100">
+            <path d="M5 12.5l4.5 4.5L19 7.5" />
+          </svg>
+        </span>
         <span className="text-[13px] font-semibold leading-snug text-slate-800">
           Tengo 18 años o más y acepto los{' '}
-          <a href="/terminos" target="_blank" rel="noopener noreferrer" className="font-extrabold text-blue-600 underline underline-offset-2">Términos y Condiciones</a>{' '}
+          <a href="/terminos" target="_blank" rel="noopener noreferrer" className="font-extrabold text-[#1e40af] underline underline-offset-2">Términos y Condiciones</a>{' '}
           y la{' '}
-          <a href="/privacidad" target="_blank" rel="noopener noreferrer" className="font-extrabold text-blue-600 underline underline-offset-2">Política de Privacidad</a>.
+          <a href="/privacidad" target="_blank" rel="noopener noreferrer" className="font-extrabold text-[#1e40af] underline underline-offset-2">Política de Privacidad</a>.
         </span>
       </label>
       {showError && <p id="auth-terms-error" role="alert" className="mt-1.5 pl-1 text-xs font-bold text-red-600">Marca la casilla para poder continuar.</p>}
@@ -67,6 +72,14 @@ export default function AuthModal({ isOpen, onClose }) {
     if (agreed) return true;
     setShowTermsError(true);
     checkboxRef.current?.focus();
+    // Temblor corto para señalar la casilla (sin movimiento si el sistema pide reducirlo)
+    const box = checkboxRef.current?.closest('label');
+    if (box && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      box.animate(
+        [{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(-3px)' }, { transform: 'translateX(0)' }],
+        { duration: 320, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' }
+      );
+    }
     return false;
   };
 
@@ -145,23 +158,23 @@ export default function AuthModal({ isOpen, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={titles[view]}>
-      <div className="fixed inset-0 bg-[#0a1120]/75 backdrop-blur-md animate-fadeIn" onClick={loading ? null : onClose}></div>
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={titles[view]}>
+      <div className="sheet-backdrop fixed inset-0 bg-[#0a1120]/75 backdrop-blur-md" onClick={loading ? null : onClose}></div>
 
-      <div className="relative w-full max-w-md bg-white rounded-3xl border border-gray-100 shadow-2xl overflow-hidden z-10 p-6 md:p-8 animate-scaleUp">
+      <div className="auth-sheet relative z-10 max-h-[calc(100dvh-1rem)] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-6 shadow-[0_-12px_40px_-12px_rgba(8,18,42,0.45)] sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl sm:p-8 sm:shadow-[0_24px_60px_-20px_rgba(8,18,42,0.55)]">
         <button
           type="button"
           onClick={onClose}
           disabled={loading}
           aria-label="Cerrar"
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors p-1.5 rounded-full hover:bg-gray-50 focus:outline-none"
+          className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full text-slate-500 transition-[background-color,color,transform] duration-150 hover:bg-slate-100 hover:text-[#12315f] active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:opacity-40"
         >
           <span translate="no" className="material-symbols-outlined text-[24px]">close</span>
         </button>
 
-        <div className="flex flex-col items-center mb-6">
-          <img src="/images/logos/logo_completo.webp" alt="Carpetazo.cl" className="h-16 w-auto object-contain mb-2" />
-          <h2 className="text-lg font-extrabold text-[#12315f]">{titles[view]}</h2>
+        <div className="mb-5 flex flex-col items-center">
+          <img src="/images/logos/logo_completo.webp" alt="Carpetazo.cl" className="mb-3 h-16 w-auto object-contain" />
+          <h2 className="text-xl font-extrabold tracking-tight text-[#12315f]">{titles[view]}</h2>
         </div>
 
         {errorMsg && (
@@ -180,34 +193,39 @@ export default function AuthModal({ isOpen, onClose }) {
 
         {view === 'login' && (
           <div className="space-y-4">
-            <TermsCheckbox checked={agreed} onChange={(value) => { setAgreed(value); if (value) setShowTermsError(false); }} showError={showTermsError} inputRef={checkboxRef} />
-
             <button
               type="button"
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="w-full h-12 border-2 border-[#12315f] bg-white hover:bg-blue-50 text-[#12315f] font-extrabold rounded-full transition-all flex items-center justify-center gap-3 active:scale-[0.99] shadow-sm disabled:opacity-50"
+              className="flex h-[52px] w-full items-center justify-center gap-3 rounded-full bg-[#12315f] pl-2 pr-6 text-[15px] font-extrabold text-white shadow-[0_1px_2px_rgba(8,18,42,0.3),0_10px_24px_-10px_rgba(18,49,95,0.7)] transition-[background-color,transform] duration-150 hover:bg-[#1e40af] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-80"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-[#12315f] border-t-transparent rounded-full animate-spin"></div>
+                <>
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                  Conectando con Google…
+                </>
               ) : (
                 <>
-                  <img src="/images/logos/google.svg" alt="" className="w-5 h-5" />
-                  Continuar con Google
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white">
+                    <img src="/images/logos/google.svg" alt="" className="h-5 w-5" />
+                  </span>
+                  <span className="flex-1 text-center">Continuar con Google</span>
                 </>
               )}
             </button>
 
-            <p className="text-center text-xs text-gray-500 leading-relaxed">
+            <p className="text-center text-[13px] leading-relaxed text-slate-600">
               Si es tu primera vez, se crea tu cuenta. Solo usamos tu nombre, correo y foto de Google.
             </p>
 
-            <p className="text-center text-xs text-gray-500 pt-4 border-t border-gray-100 font-medium">
-              ¿Ya creaste una contraseña?{' '}
-              <button type="button" onClick={() => setView('email')} className="text-blue-600 hover:text-blue-700 font-bold">
+            <TermsCheckbox checked={agreed} onChange={(value) => { setAgreed(value); if (value) setShowTermsError(false); }} showError={showTermsError} inputRef={checkboxRef} />
+
+            <div className="flex flex-wrap items-center justify-center gap-x-1 border-t border-slate-100 pt-2 text-center text-[13px] font-medium text-slate-600">
+              ¿Ya creaste una contraseña?
+              <button type="button" onClick={() => setView('email')} className="inline-flex min-h-11 items-center rounded-full px-2 font-bold text-[#1e40af] underline decoration-[#1e40af]/30 underline-offset-[3px] transition-[text-decoration-color,transform] duration-150 hover:decoration-[#1e40af] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
                 Ingresar con correo y contraseña
               </button>
-            </p>
+            </div>
           </div>
         )}
 

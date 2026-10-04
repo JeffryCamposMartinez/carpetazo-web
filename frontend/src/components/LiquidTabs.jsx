@@ -17,6 +17,9 @@ export default function LiquidTabs({
   activeTextClassName = 'text-yellow-400',
   inactiveTextClassName = 'text-blue-900 hover:text-blue-900/70',
   layout = 'grid', // 'grid': columnas iguales · 'inline': cada opción con su ancho
+  navigation = false, // true: son enlaces de navegación (aria-current="page") y no botones de estado (aria-pressed)
+  tabs = false, // true: pestañas de un mismo panel (role="tablist", aria-selected y flechas del teclado)
+  idPrefix = 'tab', // con `tabs`: cada pestaña lleva id `${idPrefix}-${value}` para enlazarla con su panel
   // 'x': el indicador ocupa todo el alto y se desliza en horizontal (comportamiento original)
   // 'auto': toma la caja exacta del botón activo y se estira en la dirección del cambio (sirve en fila o en columna)
   axis = 'x',
@@ -39,6 +42,18 @@ export default function LiquidTabs({
     if (!containerRef.current || !btn) return;
     const next = { left: btn.offsetLeft, width: btn.offsetWidth, top: btn.offsetTop, height: btn.offsetHeight };
     setBox((previous) => (previous && ['left', 'width', 'top', 'height'].every((key) => previous[key] === next[key]) ? previous : next));
+  };
+
+  // Patrón de pestañas: las flechas, Inicio y Fin mueven la selección y el foco
+  const onTabsKeyDown = (event) => {
+    if (!tabs) return;
+    const keys = { ArrowRight: 1, ArrowLeft: -1, Home: 'first', End: 'last' };
+    if (!(event.key in keys)) return;
+    event.preventDefault();
+    const step = keys[event.key];
+    const next = step === 'first' ? 0 : step === 'last' ? options.length - 1 : (activeIndex + step + options.length) % options.length;
+    onChange(options[next].value);
+    buttonRefs.current[next]?.focus();
   };
 
   const measureRef = useRef(measure);
@@ -107,8 +122,9 @@ export default function LiquidTabs({
   return (
     <div
       ref={containerRef}
-      role="group"
+      role={tabs ? 'tablist' : 'group'}
       aria-label={ariaLabel}
+      onKeyDown={onTabsKeyDown}
       className={`relative ${layout === 'inline' ? 'flex items-center' : 'grid'} ${className}`}
       style={layout === 'inline' ? undefined : { gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
@@ -127,7 +143,12 @@ export default function LiquidTabs({
             type="button"
             key={o.value}
             ref={el => { buttonRefs.current[i] = el; }}
-            aria-pressed={active}
+            id={tabs ? `${idPrefix}-${o.value}` : undefined}
+            role={tabs ? 'tab' : undefined}
+            aria-selected={tabs ? active : undefined}
+            tabIndex={tabs ? (active ? 0 : -1) : undefined}
+            aria-pressed={navigation || tabs ? undefined : active}
+            aria-current={navigation && active ? 'page' : undefined}
             onClick={() => onChange(o.value)}
             style={active ? activeTextStyle : inactiveTextStyle}
             className={`relative z-10 outline-none transition-colors duration-300 ${active ? activeTextClassName : inactiveTextClassName} ${buttonClassName}`}

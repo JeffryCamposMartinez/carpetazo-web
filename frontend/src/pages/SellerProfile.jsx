@@ -3,6 +3,7 @@ import WishlistSection from '../components/WishlistSection';
 import ReviewsSection, { Stars } from '../components/Reviews';
 import { ensureExternalUrl, formatWhatsAppNumber, getInstagramHref } from '../utils/contact';
 import { PALETTES } from '../utils/profileThemes';
+import { loadThemeFonts } from '../utils/themeFonts';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { updateProfile as updateFirebaseProfile } from 'firebase/auth';
@@ -792,6 +793,10 @@ export default function SellerProfile() {
   const themeDirty = savedThemeJson !== '' && themeKey(savedTheme) !== savedThemeJson;
   const isPosterLayout = publicTheme.profileLayout === 'poster';
   const displayScale = getDisplayScale(publicTheme.font);
+  // Fuentes del perfil: solo la del texto (Inter) y la elegida; al abrir el selector, todas para la vista previa
+  useEffect(() => {
+    loadThemeFonts(themePanelTab === 'font' ? ['Inter', ...fontOptions] : ['Inter', publicTheme.font]);
+  }, [publicTheme.font, themePanelTab]);
   // Nombre: crece con la pantalla, acotado entre móvil y escritorio (más grande en el diseño póster)
   const displayNameSize = `clamp(${(1.7 * displayScale).toFixed(2)}rem, ${(1.05 * displayScale).toFixed(2)}rem + ${(2.4 * displayScale).toFixed(2)}vw, ${((isPosterLayout ? 3.2 : 2.9) * displayScale).toFixed(2)}rem)`;
   const selectedDistribution = profileDistributionOptions.find(option => option.id === publicTheme.profileDistribution) || profileDistributionOptions[0];
