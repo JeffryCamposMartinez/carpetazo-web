@@ -214,6 +214,26 @@ const isSmallObject = (value, maxBytes = 20000) => value === undefined || value 
   || (typeof value === 'object' && !Array.isArray(value) && JSON.stringify(value).length <= maxBytes);
 const badRequest = (res, message) => res.status(400).json({ success: false, message });
 
+// El JSON `data` de una carta lo escribe el vendedor y el sitio lo mezcla sobre la carta al mostrarla:
+// no puede pisar precio, stock, id, nombre ni imagen (la imagen retirada por moderación volvería a verse), ni traer enlaces a otros sitios
+const CARD_DATA_RESERVED = ['id', 'folderId', 'name', 'tcgId', 'imageUrl', 'price', 'stock', 'moderationState', 'createdAt', 'updatedAt', 'images', 'folder', 'user'];
+const isTcgplayerUrl = (value) => {
+  try {
+    const url = new URL(String(value));
+    const host = url.hostname.toLowerCase();
+    return url.protocol === 'https:' && (host === 'tcgplayer.com' || host.endsWith('.tcgplayer.com'));
+  } catch (_error) {
+    return false;
+  }
+};
+const cleanCardData = (data) => {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return data;
+  const out = { ...data };
+  CARD_DATA_RESERVED.forEach((key) => { delete out[key]; });
+  if (out.tcgplayer !== undefined && !(out.tcgplayer && typeof out.tcgplayer === 'object' && isTcgplayerUrl(out.tcgplayer.url))) delete out.tcgplayer;
+  return out;
+};
+
 const getR2KeyFromPublicUrl = (url) => {
   if (!url || !process.env.R2_PUBLIC_URL) return null;
 
@@ -222,9 +242,13 @@ const getR2KeyFromPublicUrl = (url) => {
 
   return decodeURIComponent(String(url).slice(publicBaseUrl.length));
 };
-const deleteR2ObjectByPublicUrl = async (url) => {
+// Carpeta de R2 de cada usuario (la misma que usa la subida de imágenes)
+const userR2Prefix = (firebaseUid) => 'Carpetazo.cl/Usuarios/' + String(firebaseUid || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_') + '/';
+// Solo se borra un archivo de la carpeta del propio usuario: una URL guardada en el perfil puede apuntar al archivo de otra persona
+const deleteR2ObjectByPublicUrl = async (url, ownerFirebaseUid) => {
   const key = getR2KeyFromPublicUrl(url);
-  if (!key || !process.env.R2_BUCKET_NAME) return;
+  if (!key || !process.env.R2_BUCKET_NAME || !ownerFirebaseUid) return;
+  if (!key.startsWith(userR2Prefix(ownerFirebaseUid)) || key.includes('..')) return;
 
   try {
     await r2Client.send(new DeleteObjectCommand({
@@ -578,7 +602,8 @@ const normalizeOrderItems = (items = []) => {
   });
 };
 
-const formatOrderForUi = (order) => {
+const formatOrderForUi = (rawOrder) => {
+  const { createdIpHash: _createdIpHash, completedIpHash: _completedIpHash, ...order } = rawOrder;
   const items = normalizeOrderItems(order.items || []);
   const createdAt = order.createdAt instanceof Date ? order.createdAt.toISOString() : order.createdAt;
   const updatedAt = order.updatedAt instanceof Date ? order.updatedAt.toISOString() : order.updatedAt;
@@ -628,10 +653,10 @@ app.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res) =>
       const existingCard = await prisma.card.findFirst({
         where: { id: req.params.cardId, folderId: req.params.id }
       });
-      dataToUpdate.data = {
+      dataToUpdate.data = cleanCardData({
         ...(existingCard?.data && typeof existingCard.data === 'object' ? existingCard.data : {}),
         ...data
-      };
+      });
     }
     
     const inFolder = await prisma.card.findFirst({ where: { id: req.params.cardId, folderId: req.params.id }, select: { id: true, moderationState: true } });
@@ -775,7 +800,7 @@ app.post('/api/orders/create', async (req, res) => {
       if (!buyer) return res.status(401).json({ success: false, message: 'Tu sesión venció o tu cuenta aún se está preparando. Intenta de nuevo' });
     }
 
-    const folder = await prisma.folder.findUnique({ where: { id: folderId }, include: { cards: true } });
+    const folder = await prisma.folder.findUnique({ where: { id: folderId }, include: { cards: { where: { moderationState: { not: 'hidden' } } } } });
     if (!folder || !folder.isPublic) {
       return res.status(404).json({ success: false, message: 'Carpeta no encontrada' });
     }
@@ -1602,7 +1627,8 @@ app.get('/api/folders/:id', optionalAuth, async (req, res) => {
     if (!folder || (!folder.isPublic && !isFolderOwner)) return res.status(404).json({ success: false, message: 'Folder not found' });
     // El estado de moderación solo lo ve el dueño; para los demás no se serializa
     const { moderationState: _folderState, ...publicFolder } = folder;
-    const cards = isFolderOwner ? folder.cards : folder.cards.map(({ moderationState: _cardState, ...card }) => card);
+    const cards = (isFolderOwner ? folder.cards : folder.cards.map(({ moderationState: _cardState, ...card }) => card))
+      .map((card) => ({ ...card, data: cleanCardData(card.data) }));
     res.json({ success: true, folder: { ...(isFolderOwner ? folder : publicFolder), cards, user: toPublicSeller(folder.user, req.user?.sub, await getReviewSummary(folder.user.id)) } });
   } catch (error) {
     console.error('Error fetching folder:', error);
@@ -1693,7 +1719,7 @@ app.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
           imageUrl,
           price: parseFloat(price) || null,
           stock: stock !== undefined ? parseInt(stock) : 1,
-          data: data || null,
+          data: cleanCardData(data) || null,
           folderId: folder.id
         }
       });
@@ -2569,13 +2595,17 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
     // 4) Se procesa y sube a R2 mientras se escanea: la espera del escaneo queda oculta detrás de la subida.
     //    El nombre es aleatorio y la base no lo referencia hasta tener veredicto; si se rechaza, se borra.
     const objectName = crypto.randomBytes(16).toString('hex');
-    const safeUid = String(req.user.sub || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filename = "Carpetazo.cl/Usuarios/" + safeUid + "/" + type + "/" + objectName + ".webp";
+    const filename = userR2Prefix(req.user.sub) + type + "/" + objectName + ".webp";
     const publicUrl = process.env.R2_PUBLIC_URL.replace(/\/$/, '') + "/" + filename;
     const forcedVerdict = process.env.TEST_AUTH_STUB === '1' ? String(req.headers['x-test-scan'] || '') || null : null;
 
     const storeProcessed = (async () => {
-      const processedBuffer = await sharp(req.file.buffer).webp({ quality: 100 }).toBuffer();
+      // Tamaño máximo según dónde se muestra (sin agrandar las pequeñas) y calidad 82: misma vista, una fracción del peso.
+      // rotate() aplica la orientación de la cámara (las fotos del celular ya no quedan giradas) y descarta los metadatos
+      const MAX_SIDE = { avatar: 512, banner: 1920, wallpaper: 2560, message: 1600, card: 1200 };
+      const processedBuffer = await sharp(req.file.buffer, { limitInputPixels: 80_000_000 }).rotate()
+        .resize({ width: MAX_SIDE[type], height: MAX_SIDE[type], fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 82 }).toBuffer();
       let dominantColor = null;
       let complementaryColor = null;
       if (isBanner) {
@@ -2609,7 +2639,7 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
         // Se recuerda el archivo rechazado: reintentarlo no gasta cuota
         hashBank.remember({ url: 'blocked:' + prepared.sha256, hash: prepared.hash, sha256: prepared.sha256, verdict: 'block', provider: scan.provider }).catch(() => {});
         prisma.moderationAudit.create({ data: { actorId: null, action: 'scan.blocked', targetType: 'user', targetId: String(req.user.sub || ''), note: 'Subida rechazada por el escaneo automático (' + (scan.provider || 'sin proveedor') + ')' } }).catch(() => {});
-        await deleteR2ObjectByPublicUrl(publicUrl);
+        await deleteR2ObjectByPublicUrl(publicUrl, req.user.sub);
         return res.status(400).json({ success: false, message: blockedMessage });
       }
 
@@ -2618,7 +2648,7 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
       if (scan.verdict === 'unavailable') {
         if (!(await isTrustedUploader(prisma, uploader))) {
           if (isCardImage) {
-            await deleteR2ObjectByPublicUrl(publicUrl);
+            await deleteR2ObjectByPublicUrl(publicUrl, req.user.sub);
             return res.status(503).json({ success: false, message: 'No pudimos revisar tu imagen en este momento. Intenta de nuevo en unos minutos.' });
           }
           hold = true;
@@ -2654,12 +2684,12 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
           : uploader?.photoURL;
 
       if (!isMessageImage && !isCardImage && previousImageUrl && previousImageUrl !== publicUrl) {
-        await deleteR2ObjectByPublicUrl(previousImageUrl);
+        await deleteR2ObjectByPublicUrl(previousImageUrl, req.user.sub);
       }
 
       res.json({ success: true, url: publicUrl, dominantColor, complementaryColor, ...(hold ? { pending: true } : {}) });
     } catch (error) {
-      if (!published) await deleteR2ObjectByPublicUrl(publicUrl);
+      if (!published) await deleteR2ObjectByPublicUrl(publicUrl, req.user.sub);
       throw error;
     }
   } catch (error) {
@@ -2887,7 +2917,7 @@ app.delete('/api/users/me', authenticateToken, async (req, res) => {
     ]);
 
     // Las imágenes propias se borran de R2 (si falla no detiene la eliminación)
-    await Promise.all([current.photoURL, current.bannerBase64, current.wallpaperBase64].filter(Boolean).map((url) => deleteR2ObjectByPublicUrl(url)));
+    await Promise.all([current.photoURL, current.bannerBase64, current.wallpaperBase64].filter(Boolean).map((url) => deleteR2ObjectByPublicUrl(url, firebaseUid)));
 
     res.json({ success: true });
   } catch (error) {
@@ -2985,7 +3015,8 @@ app.get('/api/users/:username', optionalAuth, async (req, res) => {
     }
 
     const { folders, ...seller } = user;
-    res.json({ success: true, user: { ...toPublicSeller(seller, req.user?.sub, await getReviewSummary(seller.id)), folders } });
+    const publicFolders = folders.map(({ moderationState: _state, ...folder }) => folder);
+    res.json({ success: true, user: { ...toPublicSeller(seller, req.user?.sub, await getReviewSummary(seller.id)), folders: publicFolders } });
   } catch (error) {
     console.error('Error fetching user:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
@@ -3020,13 +3051,34 @@ app.get('/api/tcg/:categoryId/groups', async (req, res) => {
   }
 });
 
+const FILTER_OPTIONS_TTL_MS = 30 * 60 * 1000;
+const filterOptionsCache = new Map(); // categoryId -> { at, data } o { pending: Promise }
 app.get('/api/tcg/:categoryId/filter-options', async (req, res) => {
   try {
     const categoryId = parseInt(req.params.categoryId);
     if (!Number.isFinite(categoryId)) {
       return res.status(400).json({ success: false, message: 'Invalid category id' });
     }
+    const cached = filterOptionsCache.get(categoryId);
+    if (cached?.data && Date.now() - cached.at < FILTER_OPTIONS_TTL_MS) return res.json({ success: true, data: cached.data });
+    if (cached?.pending) return res.json({ success: true, data: await cached.pending });
+    const pending = buildFilterOptions(categoryId);
+    filterOptionsCache.set(categoryId, { pending });
+    try {
+      const data = await pending;
+      filterOptionsCache.set(categoryId, { at: Date.now(), data });
+      return res.json({ success: true, data });
+    } catch (error) {
+      filterOptionsCache.delete(categoryId);
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error fetching TCG filter options:', error);
+    res.status(500).json({ success: false, message: 'Error fetching filter options' });
+  }
+});
 
+async function buildFilterOptions(categoryId) {
     const products = await prisma.tcgProduct.findMany({
       where: { categoryId },
       select: { extData: true },
@@ -3069,20 +3121,13 @@ app.get('/api/tcg/:categoryId/filter-options', async (req, res) => {
       return sortText(a, b);
     };
 
-    res.json({
-      success: true,
-      data: {
-        types: [...types].sort(sortText),
-        races: [...races].sort(sortText),
-        costs: [...costs].sort(sortNumberText),
-        rarities: [...rarities].sort(sortText),
-      },
-    });
-  } catch (error) {
-    console.error('Error fetching TCG filter options:', error);
-    res.status(500).json({ success: false, message: 'Error fetching filter options' });
-  }
-});
+    return {
+      types: [...types].sort(sortText),
+      races: [...races].sort(sortText),
+      costs: [...costs].sort(sortNumberText),
+      rarities: [...rarities].sort(sortText),
+    };
+}
 
 app.post('/api/tcg/products/metadata', async (req, res) => {
   try {

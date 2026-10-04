@@ -19,7 +19,7 @@ server.on('exit', (code) => { if (code) { console.error('El servidor de pruebas 
   try {
     if (!ready) throw new Error('La API de pruebas no respondió');
     const data = await setup();
-    for (const file of ['batchA', 'chats', 'fraud', 'orders', 'audit', 'terms', 'moderation', 'moderationB', 'moderationC', 'imageScan', 'sync']) {
+    for (const file of ['batchA', 'chats', 'fraud', 'orders', 'audit', 'terms', 'moderation', 'moderationB', 'moderationC', 'imageScan', 'sync', 'security']) {
       console.log('\n== ' + file);
       const r = spawnSync(process.execPath, [path.join(__dirname, file + '.test.cjs')], { cwd: root, stdio: 'inherit', env: { ...process.env, CZ_FIXTURES: JSON.stringify(data) } });
       if (r.status) failed = true;
