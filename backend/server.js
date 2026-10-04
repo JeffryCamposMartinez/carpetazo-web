@@ -3079,10 +3079,14 @@ app.get('/api/tcg/:categoryId/filter-options', async (req, res) => {
 });
 
 async function buildFilterOptions(categoryId) {
-    const products = await prisma.tcgProduct.findMany({
-      where: { categoryId },
-      select: { extData: true },
-    });
+    // Solo los pares nombre/valor que sirven de filtro, distintos y calculados en la base:
+    // antes se traía el JSON completo de cada carta del juego (decenas de MB) para quedarse con unas decenas de valores
+    const rows = await prisma.$queryRaw`
+      SELECT lower(e->>'name') AS name, e->>'value' AS value
+      FROM "TcgProduct" t, jsonb_array_elements(t."extData") e
+      WHERE t."categoryId" = ${categoryId} AND jsonb_typeof(t."extData") = 'array'
+        AND lower(e->>'name') IN ('type', 'race', 'cost', 'frequency', 'rarity', 'card number / rarity')
+      GROUP BY 1, 2`;
 
     const types = new Set();
     const races = new Set();
@@ -3098,19 +3102,14 @@ async function buildFilterOptions(categoryId) {
         .forEach(value => target.add(value));
     };
 
-    products.forEach((product) => {
-      const extData = Array.isArray(product.extData) ? product.extData : [];
-      extData.forEach((item) => {
-        if (!item || !item.name) return;
-        const name = String(item.name).toLowerCase();
-        if (name === 'type') addValue(types, item.value);
-        if (name === 'race') addValue(races, item.value);
-        if (name === 'cost') {
-          const cost = Number(item.value);
-          if (Number.isFinite(cost) && cost >= 0 && cost <= 10) addValue(costs, String(cost));
-        }
-        if (name === 'frequency' || name === 'rarity' || name === 'card number / rarity') addValue(rarities, item.value);
-      });
+    rows.forEach(({ name, value }) => {
+      if (name === 'type') addValue(types, value);
+      if (name === 'race') addValue(races, value);
+      if (name === 'cost') {
+        const cost = Number(value);
+        if (Number.isFinite(cost) && cost >= 0 && cost <= 10) addValue(costs, String(cost));
+      }
+      if (name === 'frequency' || name === 'rarity' || name === 'card number / rarity') addValue(rarities, value);
     });
 
     const sortText = (a, b) => a.localeCompare(b, 'es');
