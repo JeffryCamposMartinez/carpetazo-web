@@ -410,7 +410,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
   const renderPaginationControls = (inverted = false) => (
     <div className={`relative z-10 flex flex-col items-center w-full max-w-7xl px-5 md:px-4 ${inverted ? 'mt-6 md:mt-10' : 'mb-2 md:mb-4'}`} onClick={(e) => e.stopPropagation()}>
       {!inverted && (
-        <div className="md:hidden flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs mb-3 font-medium bg-slate-200/50 dark:bg-slate-800/50 px-3 py-1 rounded-full">
+        <div className="md:hidden flex items-center gap-1.5 text-slate-600 dark:text-slate-400 text-xs mb-3 font-medium bg-slate-200/50 dark:bg-slate-800/50 px-3 py-1 rounded-full">
           <span translate="no" className="material-symbols-outlined text-[16px]">swipe</span>
           Desliza para cambiar de página
         </div>
@@ -552,7 +552,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                    right: '50%'
                  }}
             >
-               <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/paper.png')]" />
+               <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[url('/images/paper.png')]" />
                
                {/* Stamped Logo Watermark */}
                <img 
@@ -570,7 +570,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                    left: '50%'
                  }}
             >
-               <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/paper.png')]" />
+               <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[url('/images/paper.png')]" />
             </div>
             
             {/* Center Spine Crease (Exactly at the page hinge) */}

@@ -1319,7 +1319,7 @@ export default function SellerProfile() {
                 </div>
               ) : (
                 <div className={`flex items-start gap-2 ${isCenteredLayout ? 'justify-center' : ''}`}>
-                  <p className={`min-h-6 max-w-[65ch] whitespace-pre-line break-words border-l-4 pl-3 text-left text-[15px] font-medium leading-relaxed ${isCenteredLayout ? '' : 'flex-1'} ${layoutId === 'compact' ? 'line-clamp-3' : ''}`} style={{ borderColor: `${heroTheme.primary}66`, color: heroTheme.text, opacity: seller?.bio ? 0.85 : 0.6 }}>
+                  <p className={`min-h-6 max-w-[65ch] whitespace-pre-line break-words border-l-4 pl-3 text-left text-[15px] font-medium leading-relaxed ${isCenteredLayout ? '' : 'flex-1'} ${layoutId === 'compact' ? 'line-clamp-3' : ''}`} style={{ borderColor: `${heroTheme.primary}66`, color: heroTheme.text, opacity: seller?.bio ? 0.85 : 0.75 }}>
                     {seller?.bio ? seller.bio : isOwner ? 'Aún no escribes tu biografía.' : 'Este vendedor aún no escribe su biografía.'}
                   </p>
                   {isOwner && (
@@ -1386,8 +1386,10 @@ export default function SellerProfile() {
                   ['Nivel del perfil', profileLevel, 'military_tech'],
                 ].map(([label, value, icon]) => (
                   <div key={label} className="flex items-center gap-3 py-3" style={{ borderColor: `${publicTheme.primary}22` }}>
-                    <span translate="no" className="material-symbols-outlined shrink-0 text-[24px]" style={{ color: publicTheme.primary }}>{icon}</span>
-                    <dt className="min-w-0 flex-1 text-sm font-semibold" style={textMuted}>{label}</dt>
+                    <dt className="flex min-w-0 flex-1 items-center gap-3 text-sm font-semibold">
+                      <span translate="no" aria-hidden="true" className="material-symbols-outlined shrink-0 text-[24px]" style={{ color: publicTheme.primary }}>{icon}</span>
+                      <span style={textMuted}>{label}</span>
+                    </dt>
                     <dd className="text-xl font-black tabular-nums" style={{ color: publicTheme.text }}>{value}</dd>
                   </div>
                 ))}

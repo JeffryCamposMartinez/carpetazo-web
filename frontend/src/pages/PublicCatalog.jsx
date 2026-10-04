@@ -708,7 +708,7 @@ function PublicCatalog() {
                             <span translate="no" className="material-symbols-outlined text-[15px]">location_on</span>{locationText}
                           </span>
                         )}
-                        <Link to={sellerPath} className="font-bold text-[#facc15] hover:underline">Ver más del vendedor</Link>
+                        <Link to={sellerPath} className="inline-flex min-h-6 items-center font-bold text-[#facc15] hover:underline">Ver más del vendedor</Link>
                       </div>
                     </div>
                   </div>

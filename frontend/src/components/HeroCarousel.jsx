@@ -135,7 +135,7 @@ export default function HeroCarousel() {
           style={{ transform: `translateX(-${currentSlide * 100}%)` }}
         >
           {slides.map((slide) => (
-            <div key={slide.id} className="w-full h-full flex-shrink-0 relative bg-[#0B1E45]" aria-hidden={slides[currentSlide].id !== slide.id}>
+            <div key={slide.id} className="w-full h-full flex-shrink-0 relative bg-[#0B1E45]" aria-hidden={slides[currentSlide].id !== slide.id} inert={slides[currentSlide].id !== slide.id}>
               {slide.content ? slide.content : (
                 <>
                   <div className="block md:hidden h-full w-full">{slide.mobileContent}</div>

@@ -28,12 +28,12 @@ const timeAgo = (iso) => {
 const LANGUAGE_CODES = { English: 'EN', Spanish: 'ES', Japanese: 'JP' };
 const isMyl = (tcg) => normalize(tcg) === 'mitos y leyendas';
 
-function SectionHeader({ id, title, note, to, linkLabel }) {
+function SectionHeader({ id, title, note, to, linkLabel, as: Heading = 'h3' }) {
   return (
     <div className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-1">
       <div>
-        <h3 id={id} className="text-xl font-extrabold tracking-tight text-[#1a2b4b] sm:text-2xl">{title}</h3>
-        {note && <p className="mt-0.5 max-w-prose text-sm text-[#1a2b4b]/65">{note}</p>}
+        <Heading id={id} className="text-xl font-extrabold tracking-tight text-[#1a2b4b] sm:text-2xl">{title}</Heading>
+        {note && <p className="mt-0.5 max-w-prose text-sm text-[#1a2b4b]/80">{note}</p>}
       </div>
       {to && (
         <Link to={to} className="rounded text-sm font-semibold text-[#1e40af] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e40af]">
@@ -115,7 +115,7 @@ function TopSellers({ sellers }) {
               <Avatar src={seller.photoURL} name={seller.name} />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-bold text-[#1a2b4b]">{seller.name}</p>
-                <p className="truncate text-xs text-[#1a2b4b]/60">
+                <p className="truncate text-xs text-[#1a2b4b]/75">
                   {seller.username ? `@${seller.username}` : 'Vendedor'} · {seller.folders} {seller.folders === 1 ? 'carpeta' : 'carpetas'} · {formatNumber(seller.cards)} cartas
                 </p>
                 <div className="mt-2 flex items-center gap-3">
@@ -159,9 +159,9 @@ function NewFolders({ folders }) {
               <Avatar src={folder.user?.photoURL} name={folder.user?.name || folder.user?.username} className="h-9 w-9" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold text-[#1a2b4b]">{folder.name}</p>
-                <p className="truncate text-xs text-[#1a2b4b]/60">{folder.tcg} · {folder.user?.name || folder.user?.username || 'Vendedor'}</p>
+                <p className="truncate text-xs text-[#1a2b4b]/75">{folder.tcg} · {folder.user?.name || folder.user?.username || 'Vendedor'}</p>
               </div>
-              <span className="shrink-0 text-xs text-[#1a2b4b]/55">{timeAgo(folder.createdAt)}</span>
+              <span className="shrink-0 text-xs text-[#1a2b4b]/75">{timeAgo(folder.createdAt)}</span>
             </Link>
           </li>
         ))}
@@ -228,7 +228,7 @@ function RecentCards({ cards, loading }) {
 function BrowseByGame({ counts, loading }) {
   return (
     <section aria-labelledby="destacados-juegos">
-      <SectionHeader id="destacados-juegos" title="Explora por juego" note="Entra directo a las carpetas del TCG que coleccionas." />
+      <SectionHeader as="h2" id="destacados-juegos" title="Explora por juego" note="Entra directo a las carpetas del TCG que coleccionas." />
       <div className="-mx-4 flex scroll-px-4 snap-x gap-3 overflow-x-auto px-4 pb-2 pt-1 sm:mx-0 sm:scroll-px-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {GAMES.map((game) => {
           const count = counts[normalize(game.name)] || 0;
@@ -241,7 +241,7 @@ function BrowseByGame({ counts, loading }) {
               <div className="flex h-16 w-full items-center justify-center">
                 <img src={game.logo} alt={game.name} className={`max-h-full max-w-[80%] object-contain ${game.scale}`} loading="lazy" />
               </div>
-              <span className="text-xs font-semibold text-[#1a2b4b]/65">
+              <span className="text-xs font-semibold text-[#1a2b4b]/80">
                 {loading ? ' ' : count > 0 ? `${count} ${count === 1 ? 'carpeta' : 'carpetas'}` : 'Sin carpetas aún'}
               </span>
             </Link>
