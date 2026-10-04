@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { auth, googleProvider } from '../firebase';
+import { auth, googleProvider, warmUpGoogleSignIn } from '../firebase';
 import { api } from '../utils/api';
 import { takePendingAcceptance } from '../legal/pending';
 import AppSplash from '../components/AppSplash';
 import {
   onAuthStateChanged,
   signInWithPopup,
+  browserPopupRedirectResolver,
   signOut,
   signInWithEmailAndPassword,
   sendEmailVerification,
@@ -41,7 +42,7 @@ export function AuthProvider({ children }) {
 
   // Las cuentas nuevas se crean solo con Google
   function loginWithGoogle() {
-    return signInWithPopup(auth, googleProvider);
+    return signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
   }
 
   // Cuentas que ya tenían correo y contraseña (y quienes crearon una contraseña en su perfil)
@@ -160,7 +161,7 @@ export function AuthProvider({ children }) {
     } catch (error) {
       if (error.code !== 'auth/requires-recent-login') throw error;
       // Por seguridad Firebase pide haber ingresado hace poco: se confirma con Google y se reintenta una vez
-      await reauthenticateWithPopup(user, googleProvider);
+      await reauthenticateWithPopup(user, googleProvider, browserPopupRedirectResolver);
       await apply();
     }
     await user.reload();
@@ -177,6 +178,8 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     // Suscribirse a los cambios en el estado de autenticación
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      // Con sesión iniciada se prepara la ventana de Google sin apuro (la usa "reautenticar" en el perfil)
+      if (user) window.setTimeout(() => { warmUpGoogleSignIn(); }, 3000);
       // Si el usuario está autenticado pero no verificado, y es login por Contraseña
       if (mustVerifyEmail(user)) {
         await signOut(auth);

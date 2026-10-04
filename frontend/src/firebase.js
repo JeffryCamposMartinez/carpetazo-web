@@ -1,6 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, browserPopupRedirectResolver, GoogleAuthProvider } from "firebase/auth";
+import { _getInstance } from "@firebase/auth/internal";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -16,8 +17,18 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Authentication and get a reference to the service
-export const auth = getAuth(app);
+// Igual que getAuth(), pero sin precargar en cada página el iframe de "Continuar con Google" (~130 kB y retrasa el primer dibujo en móvil)
+export const auth = initializeAuth(app, {
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence]
+});
+
+// Prepara la ventana de Google ANTES del toque (al abrir "Entrar" o con sesión iniciada): es la misma instancia que usa
+// signInWithPopup, así al tocar el botón la ventana se abre al instante, como antes (Safari en iPhone bloquea las que tardan)
+let googleWarmUp = null;
+export const warmUpGoogleSignIn = () => {
+  if (!googleWarmUp) googleWarmUp = _getInstance(browserPopupRedirectResolver)._initialize(auth).catch(() => { googleWarmUp = null; });
+  return googleWarmUp;
+};
 export const googleProvider = new GoogleAuthProvider();
 
 export default app;

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { warmUpGoogleSignIn } from '../firebase';
 import { markAcceptedBeforeLogin, clearPendingAcceptance } from '../legal/pending';
 
 const inputClass = 'w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white transition-all text-gray-800';
@@ -54,6 +55,9 @@ export default function AuthModal({ isOpen, onClose }) {
   const [agreed, setAgreed] = useState(false);
   const [showTermsError, setShowTermsError] = useState(false);
   const checkboxRef = useRef(null);
+
+  // Al abrir "Entrar" se prepara la ventana de Google: cuando la persona marque la casilla y toque el botón ya estará lista
+  useEffect(() => { warmUpGoogleSignIn(); }, []);
 
   useEffect(() => {
     setErrorMsg('');
