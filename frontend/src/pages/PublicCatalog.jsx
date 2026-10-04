@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import PublicCatalogFilters from '../components/folder/filters/PublicCatalogFilters';
 import WishlistSection from '../components/WishlistSection';
 import { Stars } from '../components/Reviews';
+import { bannerForScreen } from '../utils/responsiveImage';
 import { ensureExternalUrl, formatWhatsAppNumber, getInstagramHref } from '../utils/contact';
 import { wishlistPayloadFromCard } from '../utils/wishlistPayload';
 import { ReportMenu } from '../components/ReportButton';
@@ -664,7 +665,7 @@ function PublicCatalog() {
         return (
           <section className="relative mb-3 overflow-hidden rounded-[1.6rem] bg-[#0f2b57] text-white shadow-[0_22px_55px_-30px_rgba(15,23,42,0.8)] ring-1 ring-white/10 md:mb-5 md:rounded-[2rem]">
             {sellerData?.bannerBase64 && (
-              <div className="absolute inset-0 z-0 opacity-45" style={{ backgroundImage: `url(${sellerData.bannerBase64})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+              <div className="absolute inset-0 z-0 opacity-45" style={{ backgroundImage: `url(${bannerForScreen(sellerData.bannerBase64)})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
             )}
             <div className="absolute inset-0 z-[1] bg-gradient-to-br from-[#0f2b57]/95 via-[#12315f]/85 to-[#1e40af]/70" />
 

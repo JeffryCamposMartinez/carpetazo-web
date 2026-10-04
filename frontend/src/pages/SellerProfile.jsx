@@ -4,6 +4,7 @@ import ReviewsSection, { Stars } from '../components/Reviews';
 import { ensureExternalUrl, formatWhatsAppNumber, getInstagramHref } from '../utils/contact';
 import { PALETTES } from '../utils/profileThemes';
 import { loadThemeFonts } from '../utils/themeFonts';
+import { bannerForScreen } from '../utils/responsiveImage';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { updateProfile as updateFirebaseProfile } from 'firebase/auth';
@@ -1201,7 +1202,7 @@ export default function SellerProfile() {
       {/* Presentación: la forma cambia según la opción elegida (Clásico, Compacto, Showcase, Póster o Gamer) */}
       <section className="relative overflow-visible" style={{ backgroundColor: isPosterLayout ? '#05070d' : publicTheme.card }}>
         {seller?.bannerBase64 ? (
-          <div className={`absolute inset-x-0 top-0 bg-cover bg-center ${heroBanner}`} style={{ backgroundImage: `url(${seller.bannerBase64})` }} />
+          <div className={`absolute inset-x-0 top-0 bg-cover bg-center ${heroBanner}`} style={{ backgroundImage: `url(${bannerForScreen(seller.bannerBase64)})` }} />
         ) : (
           <div className={`absolute inset-x-0 top-0 ${heroBanner}`} style={{ backgroundImage: `linear-gradient(135deg, ${publicTheme.text}, ${publicTheme.primary}, ${publicTheme.secondary})` }} />
         )}

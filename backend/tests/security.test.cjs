@@ -4,10 +4,10 @@ const sharp = require('sharp');
 const { prisma, NAMES, B, U, call, ok } = require('./fixtures.cjs');
 
 const picture = (seed) => sharp({ create: { width: 64, height: 48, channels: 3, background: { r: (seed * 53) % 256, g: (seed * 97) % 256, b: (seed * 151) % 256 } } }).png().toBuffer();
-const upload = async (who, buffer) => {
+const upload = async (who, buffer, type = 'avatar') => {
   const form = new FormData();
   form.append('image', new Blob([buffer], { type: 'image/png' }), 'foto.png');
-  form.append('type', 'avatar');
+  form.append('type', type);
   const r = await fetch(B + '/users/upload-image', { method: 'POST', headers: { Authorization: 'Bearer test-' + U[who], 'x-test-scan': 'clear' }, body: form });
   return { status: r.status, j: await r.json().catch(() => null) };
 };
@@ -27,6 +27,17 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     r = await upload('ignacio', await picture(202));
     ok('cambiar otra vez la foto → 200', r.status === 200, String(r.status));
     ok('...y SÍ se borra la foto anterior propia', (await r2Log()).some((entry) => entry.op === 'delete' && entry.key === firstOwn));
+
+    // 1b) Portada: se guarda también su copia para celular (_m) y al cambiarla se borran las dos
+    r = await upload('ignacio', await picture(203), 'banner');
+    ok('subir una portada → 200', r.status === 200, String(r.status));
+    const bannerKey = keyOf(r.j.url);
+    const phoneKey = bannerKey.replace(/\.webp$/, '_m.webp');
+    ok('...y se guarda la copia para celular', (await r2Log()).some((entry) => entry.op === 'put' && entry.key === phoneKey), phoneKey);
+    r = await upload('ignacio', await picture(204), 'banner');
+    ok('cambiar la portada → 200', r.status === 200, String(r.status));
+    const deletedKeys = (await r2Log()).filter((entry) => entry.op === 'delete').map((entry) => entry.key);
+    ok('...y se borran la portada anterior y su copia para celular', deletedKeys.includes(bannerKey) && deletedKeys.includes(phoneKey));
 
     // 2) Datos libres de la carta: no pisan precio, id, nombre ni imagen, y no traen enlaces a otros sitios
     const folder = await call('POST', '/folders', 'seller', { name: 'TEST seguridad', tcg: 'Pokemon', color: 'blue', isPublic: true });

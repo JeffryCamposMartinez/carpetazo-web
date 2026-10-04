@@ -249,12 +249,16 @@ const deleteR2ObjectByPublicUrl = async (url, ownerFirebaseUid) => {
   const key = getR2KeyFromPublicUrl(url);
   if (!key || !process.env.R2_BUCKET_NAME || !ownerFirebaseUid) return;
   if (!key.startsWith(userR2Prefix(ownerFirebaseUid)) || key.includes('..')) return;
+  // Una portada tiene además su copia para celular (<nombre>_m.webp): se borran juntas
+  const keys = /\/banner\/[0-9a-f]{32}\.webp$/.test(key) ? [key, key.replace(/\.webp$/, '_m.webp')] : [key];
 
   try {
-    await r2Client.send(new DeleteObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
-      Key: key
-    }));
+    for (const objectKey of keys) {
+      await r2Client.send(new DeleteObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: objectKey
+      }));
+    }
   } catch (error) {
     console.warn('No se pudo eliminar imagen anterior de R2:', error?.message || error);
   }
@@ -2620,6 +2624,17 @@ app.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
         ContentType: 'image/webp',
         CacheControl: 'public, max-age=31536000, immutable'
       }));
+      // Copia de la portada para celular (el frontend la usa en pantallas chicas): misma URL con "_m"
+      if (isBanner) {
+        const phoneBuffer = await sharp(processedBuffer).resize({ width: 828, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
+        await r2Client.send(new PutObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: filename.replace(/\.webp$/, '_m.webp'),
+          Body: phoneBuffer,
+          ContentType: 'image/webp',
+          CacheControl: 'public, max-age=31536000, immutable'
+        }));
+      }
       return { dominantColor, complementaryColor };
     })();
     const scanning = cachedScan
