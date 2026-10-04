@@ -57,6 +57,8 @@ export const preloadMainNow = () => {
 export const preloadMainSections = () => {
   const run = preloadMainNow;
   if (typeof window === 'undefined') return undefined;
+  // Celular o "ahorro de datos": no se adelanta nada; el menú las descarga al tocarlo (preloadMainNow)
+  if (window.matchMedia('(max-width: 767px)').matches || navigator.connection?.saveData) return undefined;
   const timer = window.setTimeout(() => {
     if ('requestIdleCallback' in window) window.requestIdleCallback(run, { timeout: 3000 });
     else run(); // Safari de iPhone no tiene requestIdleCallback

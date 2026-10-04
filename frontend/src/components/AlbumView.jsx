@@ -552,7 +552,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                    right: '50%'
                  }}
             >
-               <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[url('/images/paper.png')]" />
+               <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[url('/images/paper.png')] max-sm:hidden" />
                
                {/* Stamped Logo Watermark */}
                <img 
@@ -570,7 +570,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
                    left: '50%'
                  }}
             >
-               <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[url('/images/paper.png')]" />
+               <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[url('/images/paper.png')] max-sm:hidden" />
             </div>
             
             {/* Center Spine Crease (Exactly at the page hinge) */}

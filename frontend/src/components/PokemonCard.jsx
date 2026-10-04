@@ -1,3 +1,6 @@
+// En celular las fotos de cartas se descargan al acercarse a la pantalla; en PC se mantienen como siempre
+const MOBILE_IMAGE_LOADING = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 'lazy' : undefined;
+
 export default function PokemonCard({ card, availableStock, cartQuantity, onAddToCart, onRemoveFromCart, onWish, wished = false }) {
   const isOutOfStock = availableStock <= 0;
   const isMyl = Boolean(card.type || card.race || card.cost || card.effect) && card.supertype !== 'Pokémon' && card.supertype !== 'Trainer' && card.supertype !== 'Energy';
@@ -39,6 +42,8 @@ export default function PokemonCard({ card, availableStock, cartQuantity, onAddT
       {/* Top Image Section */}
       <div className={`relative w-full ${isMyl ? 'aspect-[63/86] p-1.5' : 'aspect-[63/88] p-2'} bg-gray-50 flex items-center justify-center`}>
         <img 
+          loading={MOBILE_IMAGE_LOADING}
+          decoding="async"
           className={`w-full h-full object-fill ${isOutOfStock && cartQuantity === 0 ? 'grayscale opacity-60' : ''}`} 
           src={card.imageUrl} 
           alt={card.name} 

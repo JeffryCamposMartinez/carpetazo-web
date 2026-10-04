@@ -43,7 +43,7 @@ export default function HomeHero({ compact = false }) {
   return (
     <div className="relative isolate h-full w-full select-none overflow-hidden text-white">
       {/* Cuero de carpeta y costura, como el álbum */}
-      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[url('/images/leather.png')] opacity-25 mix-blend-overlay" />
+      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[url('/images/leather.png')] opacity-25 mix-blend-overlay max-sm:hidden" />
       <div aria-hidden="true" className={`pointer-events-none absolute z-40 border-2 border-dashed border-white/15 ${compact ? 'inset-2 rounded-[18px]' : 'inset-3.5 rounded-[24px]'}`} />
 
       {compact ? (
