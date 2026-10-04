@@ -50,7 +50,8 @@ ${renderBlocks(page.blocks)}
     .replace(/<meta name="description" content="[^"]*"\s*\/?>/, `<meta name="description" content="${escape(page.description)}" />`)
     .replace(/<meta property="og:url" content="[^"]*"\s*\/?>/, `<meta property="og:url" content="https://carpetazo.cl/${page.path}" />`)
     .replace(/<meta property="og:title" content="[^"]*"\s*\/?>/, `<meta property="og:title" content="${escape(pageTitle)}" />`)
-    .replace('<div id="root"></div>', `<div id="root">${article}</div>`);
+    // El root trae la pantalla de carga (splash): en estas páginas se reemplaza entero por el texto legal
+    .replace(/<div id="root">.*<\/div>/, () => `<div id="root">${article}</div>`);
   if (!html.includes(`<h1>${page.title}</h1>`)) throw new Error(`No se pudo insertar el texto de /${page.path} en index.html`);
   // Enlace canónico: la misma dirección, sin barra final
   html = html.replace('</head>', `  <link rel="canonical" href="https://carpetazo.cl/${page.path}" />\n  </head>`);
