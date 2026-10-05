@@ -1,31 +1,18 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api, { API_BASE_URL, apiFetch } from '../services/api';
-import CatalogCard from '../components/folder/CatalogCard';
-import AlbumView from '../components/folder/AlbumView';
 import Toast from '../components/ui/Toast';
-import LiquidTabs from '../components/ui/LiquidTabs';
 import { useAuth } from '../contexts/AuthContext';
-import PublicCatalogFilters from '../components/folder/filters/PublicCatalogFilters';
 import WishlistSection from '../components/wishlist/WishlistSection';
-import { Stars } from '../components/reviews/Reviews';
-import { bannerForScreen } from '../utils/responsiveImage';
 import { ensureExternalUrl, formatWhatsAppNumber, getInstagramHref } from '../utils/contact';
 import { wishlistPayloadFromCard } from '../utils/wishlistPayload';
-import { ReportMenu } from '../components/moderation/ReportButton';
-import { ContactIcon } from '../components/folder/ContactIcon';
+import CatalogCartDrawer from '../components/folder/catalog/CatalogCartDrawer';
+import CatalogBrowser from '../components/folder/catalog/CatalogBrowser';
+import CatalogCover from '../components/folder/catalog/CatalogCover';
 
 const isLocalhostWithProductionApi = () => {
   if (typeof window === 'undefined') return false;
   return ['localhost', '127.0.0.1'].includes(window.location.hostname) && API_BASE_URL.includes('api.carpetazo.cl');
-};
-
-// Cifras grandes con separador de miles; desde 100.000 en formato corto para que nunca desborden
-const formatCount = (value) => {
-  const number = Number(value) || 0;
-  return number >= 100000
-    ? new Intl.NumberFormat('es-CL', { notation: 'compact', maximumFractionDigits: 1 }).format(number)
-    : number.toLocaleString('es-CL');
 };
 
 function PublicCatalog() {
@@ -596,142 +583,24 @@ function PublicCatalog() {
     );
   }
 
+  const catalogCartDrawerProps = { cart, cartTotal, currentUser, formatCLP, handleMessageCheckout,
+    handleWhatsAppCheckout, isProcessingCheckout, messageMode, removeFromCart, setIsCartOpen, socialEnabled };
+
+  const catalogBrowserProps = { activeFilterCount, addToCart, addToWishlist, availableRarities, availableSets, cards,
+    cart, cartItemsCount, cartTotal, counts, decrementCart, folderData, formatCLP, isMobileFiltersOpen, isOwner,
+    isSetDropdownOpen, mylCost, mylFilterOptions, mylRace, mylType, onlyAvailable, quickRarity, searchQuery,
+    searchSet, selectedSupertype, selectedType, setIsMobileFiltersOpen, setIsSetDropdownOpen, setMylCost, setMylRace,
+    setMylType, setOnlyAvailable, setQuickRarity, setSearchQuery, setSearchSet, setSelectedSupertype, setSelectedType,
+    setSortBy, setViewMode, sortBy, sortedCards, viewMode, wanted };
+
+  const catalogCoverProps = { availableCardsCount, cards, contactSeller, folderData, isOwner, sellerData,
+    totalStock, visibleContactOptions };
+
   return (
     <>
       <div className="w-full max-w-[1470px] mx-auto px-3 py-3 sm:px-6 sm:py-6 lg:px-8">
       {/* Portada de la carpeta: nombre, vendedor, contacto y cifras */}
-      {(() => {
-        const messageOption = visibleContactOptions.find((contact) => contact.id === 'message');
-        const socialOptions = visibleContactOptions.filter((contact) => contact.id !== 'message');
-        const defaultAddress = sellerData?.addresses?.find((a) => a.isDefault) || sellerData?.addresses?.[0];
-        const locationText = defaultAddress
-          ? [defaultAddress.comuna, defaultAddress.region].filter(Boolean).join(', ')
-          : [sellerData?.comuna, sellerData?.region].filter(Boolean).join(', ');
-        const sellerPath = `/${sellerData?.username || folderData.userId}`;
-        const socialClass = {
-          whatsapp: 'text-green-600 hover:ring-green-300',
-          instagram: 'text-pink-600 hover:ring-pink-300',
-          facebook: 'text-blue-600 hover:ring-blue-300',
-          youtube: 'text-red-600 hover:ring-red-300',
-        };
-        const stats = [
-          { value: formatCount(cards.length), label: cards.length === 1 ? 'carta' : 'cartas' },
-          { value: formatCount(availableCardsCount), label: 'con stock' },
-          { value: formatCount(totalStock), label: totalStock === 1 ? 'copia' : 'copias' },
-        ];
-        return (
-          <section className="relative mb-3 overflow-hidden rounded-[1.6rem] bg-[#0f2b57] text-white shadow-[0_22px_55px_-30px_rgba(15,23,42,0.8)] ring-1 ring-white/10 md:mb-5 md:rounded-[2rem]">
-            {sellerData?.bannerBase64 && (
-              <div className="absolute inset-0 z-0 opacity-45" style={{ backgroundImage: `url(${bannerForScreen(sellerData.bannerBase64)})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-            )}
-            <div className="absolute inset-0 z-[1] bg-gradient-to-br from-[#0f2b57]/95 via-[#12315f]/85 to-[#1e40af]/70" />
-
-            <div className="relative z-10 flex flex-col gap-2.5 p-3 md:gap-6 md:p-8">
-              <div className="flex flex-col gap-2.5 md:flex-row md:items-start md:justify-between md:gap-8">
-                <div className="min-w-0 md:block">
-                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 md:block">
-                  {folderData?.tcg && (
-                    <span className="order-2 inline-flex items-center rounded-full bg-white/12 px-2.5 py-0.5 text-xs font-bold text-blue-100 ring-1 ring-white/20 md:order-none md:px-3 md:py-1">{folderData.tcg}</span>
-                  )}
-                  <h1 className="order-1 break-words text-[1.7rem] font-black leading-[1.05] tracking-[-0.03em] md:order-none md:mt-2 md:text-5xl">{folderData.name}</h1>
-                  </div>
-
-                  <div className="mt-2 flex items-center gap-2.5 md:mt-4 md:gap-3">
-                    <Link to={sellerPath} className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full border-2 border-[#facc15] bg-white shadow-lg transition-transform hover:scale-105 md:h-14 md:w-14" aria-label="Ver perfil del vendedor">
-                      {(sellerData?.avatarBase64 || sellerData?.photoURL) ? (
-                        <img src={sellerData?.avatarBase64 || sellerData?.photoURL} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#1a2b4b] to-[#3b82f6] text-xl font-black text-white">{(sellerData?.displayName || 'V')[0].toUpperCase()}</span>
-                      )}
-                    </Link>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                        <Link to={sellerPath} className="truncate text-base font-extrabold hover:underline md:text-lg">{sellerData?.displayName || 'Vendedor anónimo'}</Link>
-                        {sellerData?.reviewSummary?.showAverage ? (
-                          <Link to={`${sellerPath}#resenas`} className="flex items-center gap-1.5 text-xs font-bold text-[#facc15] hover:underline" title="Ver reseñas">
-                            <Stars value={sellerData.reviewSummary.average} size={14} />
-                            {sellerData.reviewSummary.average.toFixed(1)} · {sellerData.reviewSummary.count} {sellerData.reviewSummary.count === 1 ? 'reseña' : 'reseñas'}
-                          </Link>
-                        ) : sellerData?.reviewSummary?.count > 0 ? (
-                          <Link to={`${sellerPath}#resenas`} className="text-xs font-bold text-[#facc15] hover:underline" title="Ver reseñas">
-                            {sellerData.reviewSummary.count} {sellerData.reviewSummary.count === 1 ? 'reseña' : 'reseñas'}
-                          </Link>
-                        ) : (
-                          <Link to={`${sellerPath}#resenas`} className="text-xs font-semibold text-blue-200 hover:underline" title="Ver reseñas">Sin reseñas todavía</Link>
-                        )}
-                      </div>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs font-semibold text-blue-100">
-                        {locationText && (
-                          <span className="flex items-center gap-1">
-                            <span translate="no" className="material-symbols-outlined text-[15px]">location_on</span>{locationText}
-                          </span>
-                        )}
-                        <Link to={sellerPath} className="inline-flex min-h-6 items-center font-bold text-[#facc15] hover:underline">Ver más del vendedor</Link>
-                      </div>
-                    </div>
-                  </div>
-                  {sellerData?.bio && <p className="mt-3 hidden line-clamp-2 max-w-xl md:block border-l-2 border-[#facc15]/70 pl-3 text-sm italic text-blue-100">"{sellerData.bio}"</p>}
-                </div>
-
-                <div className="flex items-center gap-2 md:flex-wrap md:justify-end md:pt-1">
-                  {isOwner && (
-                    <Link
-                      to={`/carpeta/${folderData.id}`}
-                      className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#facc15] px-4 py-2.5 text-sm font-extrabold text-[#12315f] shadow-md transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-white/70 md:flex-none md:px-5"
-                    >
-                      <span translate="no" className="material-symbols-outlined text-[20px]">add_circle</span>
-                      <span className="md:hidden">Agregar cartas</span><span className="hidden md:inline">Agregar cartas a tu carpeta</span>
-                    </Link>
-                  )}
-                  {messageOption && (
-                    <button type="button" onClick={messageOption.onClick || contactSeller} className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#facc15] px-4 py-2.5 text-sm font-extrabold text-[#12315f] shadow-md transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-white/70 md:flex-none md:px-5">
-                      <ContactIcon type="message" className="h-4 w-4" />
-                      Contactar vendedor
-                    </button>
-                  )}
-                  {socialOptions.length > 0 && (
-                    <div className="flex items-center gap-2 md:justify-end md:gap-2.5">
-                    {socialOptions.map((contact) => (
-                      <a
-                        key={contact.id}
-                        href={contact.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={contact.label}
-                        title={contact.label}
-                        className={`flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md ring-2 ring-white/40 transition hover:-translate-y-0.5 hover:scale-105 ${socialClass[contact.id] || 'text-[#1a2b4b] hover:ring-[#facc15]'}`}
-                      >
-                        <ContactIcon type={contact.id} className="h-5 w-5" />
-                      </a>
-                    ))}
-                    </div>
-                  )}
-                  {!isOwner && folderData?.id && (
-                    <ReportMenu label="Reportar" buttonClassName="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-bold text-blue-100 hover:bg-white/10" options={[{ targetType: 'folder', targetId: folderData.id, label: 'Reportar esta carpeta' }, { targetType: 'user', targetId: sellerData?.id, blockUserId: sellerData?.id, label: 'Reportar al vendedor' }]} />
-                  )}
-                  {!isOwner && visibleContactOptions.length === 0 && (
-                    <span className="text-xs font-semibold text-blue-200">Sin contacto público</span>
-                  )}
-                </div>
-              </div>
-
-              <p className="text-xs font-bold tabular-nums text-blue-100 md:hidden">{stats.map((item) => `${item.value} ${item.label}`).join(' · ')}</p>
-
-              <dl className="hidden grid-cols-3 divide-x divide-white/15 rounded-2xl bg-white/8 ring-1 ring-white/15 md:grid">
-                {stats.map((item) => (
-                  <div key={item.label} className="min-w-0 px-2 py-1.5 text-center md:px-6 md:py-4">
-                    <dt className="sr-only">{item.label}</dt>
-                    <dd className="flex min-w-0 flex-col items-center gap-0.5 text-lg font-black tabular-nums leading-none md:block md:text-3xl">
-                      {item.value}
-                      <span className="text-[11px] font-bold text-blue-200 md:ml-1.5 md:text-sm">{item.label}</span>
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          </section>
-        );
-      })()}
+      <CatalogCover {...catalogCoverProps} />
 
       {sellerData?.username && (
         <WishlistSection
@@ -779,307 +648,12 @@ function PublicCatalog() {
         </button>
       </div>
 
-        <div className="relative z-10 flex min-h-[calc(100vh-230px)] w-full flex-col overflow-hidden rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] md:rounded-[2rem]">
-          <main className="relative z-20 flex flex-1 flex-col px-3 pb-3 pt-2 text-gray-900 sm:px-6 md:px-8 md:py-8">
-            <div className="mb-1 rounded-2xl bg-white p-2 shadow-sm ring-1 ring-slate-900/5 md:mb-5 md:p-3">
-              <form onSubmit={(event) => event.preventDefault()} className="flex flex-col gap-2 md:gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="relative min-w-0 flex-1">
-                    <span translate="no" className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">search</span>
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Buscar carta por nombre"
-                      aria-label="Buscar carta"
-                      className="h-10 w-full rounded-full border border-slate-200 bg-slate-50 pl-11 pr-3 text-sm font-medium text-slate-900 transition focus:border-[#1e40af] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#facc15]/70 md:h-11 md:pr-4"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <LiquidTabs
-                      ariaLabel="Vista del catálogo"
-                      axis="auto"
-                      layout="inline"
-                      value={viewMode}
-                      onChange={setViewMode}
-                      className="flex-1 rounded-full bg-slate-100 p-1 md:flex-none"
-                      buttonClassName="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-bold md:flex-none"
-                      indicatorClassName="rounded-full bg-[#12315f] shadow-sm"
-                      activeTextClassName="text-white"
-                      inactiveTextClassName="text-slate-500 hover:text-slate-800"
-                      options={[
-                        { value: 'album', label: <><span translate="no" className="material-symbols-outlined text-[18px]" aria-hidden="true">auto_stories</span><span className="hidden min-[420px]:inline">Álbum</span><span className="sr-only min-[420px]:hidden">Álbum</span></> },
-                        { value: 'grid', label: <><span translate="no" className="material-symbols-outlined text-[18px]" aria-hidden="true">grid_view</span><span className="hidden min-[420px]:inline">Cuadrícula</span><span className="sr-only min-[420px]:hidden">Cuadrícula</span></> }
-                      ]}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setIsMobileFiltersOpen((value) => !value)}
-                      aria-expanded={isMobileFiltersOpen}
-                      className={`relative flex h-10 w-10 flex-none items-center justify-center gap-2 rounded-full border px-0 text-sm font-black transition-all min-[420px]:w-auto min-[420px]:px-4 md:h-11 ${
-                        isMobileFiltersOpen || activeFilterCount > 0
-                          ? 'border-[#12315f] bg-[#12315f] text-white shadow-md'
-                          : 'border-slate-200 bg-white text-[#12315f] hover:border-[#12315f]/40'
-                      }`}
-                    >
-                      <span translate="no" className="material-symbols-outlined text-[20px]">tune</span>
-                      <span className="hidden min-[420px]:inline">Filtros</span>
-                      {activeFilterCount > 0 && (
-                        <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#facc15] px-1 text-[11px] font-black text-[#12315f] ring-2 ring-white min-[420px]:static min-[420px]:ring-0">{activeFilterCount}</span>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {isMobileFiltersOpen && (
-                  <div className="grid gap-2 border-t border-slate-100 pt-3">
-                    <PublicCatalogFilters
-                      tcg={folderData?.tcg}
-                      cards={cards}
-                      counts={counts}
-                      selectedSupertype={selectedSupertype}
-                      onSupertypeChange={setSelectedSupertype}
-                      selectedType={selectedType}
-                      onTypeChange={setSelectedType}
-                      searchSet={searchSet}
-                      setSearchSet={setSearchSet}
-                      availableSets={availableSets}
-                      isSetDropdownOpen={isSetDropdownOpen}
-                      setIsSetDropdownOpen={setIsSetDropdownOpen}
-                      mylType={mylType}
-                      setMylType={setMylType}
-                      mylRace={mylRace}
-                      setMylRace={setMylRace}
-                      mylCost={mylCost}
-                      setMylCost={setMylCost}
-                      mylFilterOptions={mylFilterOptions}
-                    />
-
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                      <label className="flex flex-col gap-1 text-[11px] font-black text-slate-500">
-                        Ordenar
-                        <select
-                          value={sortBy}
-                          onChange={(event) => setSortBy(event.target.value)}
-                          className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-[#1a2b4b] outline-none transition focus:border-[#1e40af] focus:ring-2 focus:ring-blue-100"
-                        >
-                          <option value="featured">Orden carpeta</option>
-                          <option value="price_asc">Precio ↑</option>
-                          <option value="price_desc">Precio ↓</option>
-                          <option value="stock_desc">Más stock</option>
-                          <option value="stock_asc">Menos stock</option>
-                          <option value="rarity_desc">Rareza</option>
-                          <option value="set_asc">Edición A-Z</option>
-                        </select>
-                      </label>
-                      <label className="flex flex-col gap-1 text-[11px] font-black text-slate-500">
-                        Rareza
-                        <select
-                          value={quickRarity}
-                          onChange={(event) => setQuickRarity(event.target.value)}
-                          className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-[#1a2b4b] outline-none transition focus:border-[#1e40af] focus:ring-2 focus:ring-blue-100"
-                        >
-                          <option value="">Todas</option>
-                          {availableRarities.map(rarity => (
-                            <option key={rarity} value={rarity}>{rarity}</option>
-                          ))}
-                        </select>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setOnlyAvailable(value => !value)}
-                        className={`mt-auto flex h-10 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-black transition-all ${
-                          onlyAvailable
-                            ? 'border-emerald-300 bg-emerald-50 text-emerald-700 shadow-sm'
-                            : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:text-[#1e40af]'
-                        }`}
-                      >
-                        <span translate="no" className="material-symbols-outlined text-[18px]">{onlyAvailable ? 'visibility' : 'visibility_off'}</span>
-                        Disponibles
-                      </button>
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2 text-xs font-bold text-slate-500">
-                      <span><strong className="text-[#1a2b4b]">{sortedCards.length}</strong> carta{sortedCards.length === 1 ? '' : 's'} en esta vista</span>
-                      <span>{cartItemsCount > 0 ? `${cartItemsCount} en el carrito · ${formatCLP(cartTotal)}` : 'Filtra, ordena y agrega al pedido sin salir de la carpeta'}</span>
-                    </div>
-                  </div>
-                )}
-              </form>
-            </div>
-
-          <div className="min-w-0">
-              {sortedCards.length === 0 || viewMode === 'album' ? (
-                <AlbumView tcg={folderData?.tcg} cards={sortedCards} 
-                  binderColor={folderData?.color || '#2f7336'}
-                  emptyMessage="Carpeta vacía con estos filtros. No encontramos cartas que coincidan con tu búsqueda actual."
-                  renderCardOverlays={(card) => Number(card.stock || 0) <= 0 ? (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-[4%] bg-transparent">
-                      <span className="relative rounded-full bg-slate-950/85 px-3 py-1 text-[10px] font-black text-white shadow-lg ring-2 ring-white/70 md:text-xs">Sin stock</span>
-                    </div>
-                  ) : null}
-                  renderCardActions={(card) => {
-                    const cartItem = cart.find(i => i.id === card.id);
-                    const availableStock = Number(card.stock || 0) - (cartItem ? cartItem.quantity : 0);
-                    return (
-                      <div className="flex items-center gap-1 w-full mt-2" onClick={(e) => e.stopPropagation()}>
-                        {!isOwner && (
-                          <ReportMenu label="" buttonClassName="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 shadow-sm hover:text-red-600" options={[{ targetType: 'card', targetId: card.id, label: 'Reportar esta carta' }, { targetType: 'card_image', targetId: card.imageUrl && (card.isCustomImage || card.data?.isCustomImage) ? card.id : null, label: 'Reportar la foto de esta carta' }]} />
-                        )}
-                        {!isOwner && (
-                          <button
-                          type="button"
-                          onClick={() => addToWishlist(card)}
-                          aria-pressed={Boolean(wanted[card.id])}
-                          aria-label={wanted[card.id] ? `${card.name} está en tu lista de deseadas` : `Agregar ${card.name} a mis deseadas`}
-                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white shadow-sm transition active:scale-90 ${wanted[card.id] ? 'text-rose-500' : 'text-slate-500'}`}
-                        >
-                          <span translate="no" className="material-symbols-outlined text-[16px]" style={wanted[card.id] ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>
-                        </button>
-                        )}
-                        {cartItem ? (
-                          <div className="flex items-center justify-between w-full bg-slate-100 rounded-md p-1 border border-slate-200">
-                            <button 
-                              onClick={() => decrementCart(card.id)}
-                              className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                            >
-                              <span translate="no" className="material-symbols-outlined text-[16px]">remove</span>
-                            </button>
-                            <span className="font-bold text-slate-800 text-xs px-2">{cartItem.quantity}</span>
-                            <button 
-                              onClick={() => addToCart(card)}
-                              disabled={availableStock <= 0}
-                              className="w-6 h-6 flex items-center justify-center bg-[#2563eb] rounded shadow-sm text-white hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors"
-                            >
-                              <span translate="no" className="material-symbols-outlined text-[16px]">add</span>
-                            </button>
-                          </div>
-                        ) : (
-                          <button 
-                            onClick={() => addToCart(card)}
-                            disabled={availableStock <= 0}
-                            className="w-full flex items-center justify-center gap-1 bg-[#2563eb] hover:bg-[#1d4ed8] text-white py-1.5 rounded-md font-bold transition-all disabled:opacity-50 shadow-sm text-[10px]"
-                          >
-                            <span translate="no" className="material-symbols-outlined text-[14px]">shopping_cart</span>
-                            {availableStock <= 0 ? 'Agotado' : 'Agregar'}
-                          </button>
-                        )}
-                      </div>
-                    );
-                  }}
-                />
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {sortedCards.map(card => {
-                  const cartItem = cart.find(i => i.id === card.id);
-                  const availableStock = Number(card.stock || 0) - (cartItem ? cartItem.quantity : 0);
-                  return (
-                    <CatalogCard 
-                      key={card.id} 
-                      card={card} 
-                      availableStock={availableStock}
-                      cartQuantity={cartItem ? cartItem.quantity : 0}
-                      onAddToCart={addToCart}
-                      onRemoveFromCart={() => decrementCart(card.id)}
-                      onWish={isOwner ? undefined : addToWishlist}
-                      wished={Boolean(wanted[card.id])}
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </div>
-      </main>
-        </div>
+        <CatalogBrowser {...catalogBrowserProps} />
       </div>
 
       {/* Cart Drawer */}
       {isCartOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex justify-end" onClick={() => setIsCartOpen(false)}>
-          <div className="bg-white border-l border-gray-200 w-full max-w-md h-full p-6 flex flex-col shadow-2xl animate-[slideIn_0.3s_ease_forwards]" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
-              <h2 className="font-headline-md text-2xl font-bold flex items-center gap-2 text-gray-900">
-                <span translate="no" className="material-symbols-outlined">shopping_cart</span> Tu Pedido
-              </h2>
-              <button aria-label="Cerrar carrito" className="text-gray-500 hover:text-gray-900 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100" onClick={() => setIsCartOpen(false)}>
-                <span translate="no" className="material-symbols-outlined text-xl">close</span>
-              </button>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto flex flex-col gap-3 custom-scrollbar pr-2">
-              {cart.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400 opacity-70">
-                  <span translate="no" className="material-symbols-outlined text-6xl mb-2">shopping_bag</span>
-                  <p>Tu carrito está vacío.</p>
-                </div>
-              ) : (
-                cart.map(item => (
-                  <div key={item.id} className="flex gap-4 bg-gray-50 p-3 rounded-xl border border-gray-200 shadow-sm relative group">
-                    <img src={item.imageUrl} referrerPolicy="no-referrer" alt={item.name} className="w-14 h-20 object-cover rounded-md shadow-sm" />
-                    <div className="flex-1 flex flex-col justify-center">
-                      <p className="font-bold text-sm text-gray-900 leading-tight mb-1 line-clamp-2">{item.name}</p>
-                      <p className="text-gray-500 text-xs mb-1">{item.set}</p>
-                      <div className="flex items-center gap-2 mt-auto">
-                        <span className="bg-white border border-gray-200 px-2 py-0.5 rounded text-xs font-bold text-gray-700">{item.quantity}x</span>
-                        <span className="text-[#1e40af] font-bold text-sm">{formatCLP(item.price)} c/u</span>
-                      </div>
-                    </div>
-                    <button className="absolute top-2 right-2 text-error/50 hover:text-error w-8 h-8 flex items-center justify-center rounded-full hover:bg-error/10 transition-colors" onClick={() => removeFromCart(item.id)}>
-                        <span translate="no" className="material-symbols-outlined text-sm">delete</span>
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="mt-6 pt-4 border-t border-gray-200">
-              <div className="flex justify-between items-center text-xl font-bold text-gray-900 mb-4">
-                <span>Total a pagar:</span>
-                <span className="text-[#1e40af] text-2xl">{formatCLP(cartTotal)}</span>
-              </div>
-              
-              {!currentUser && !messageMode && (
-                <div className="mb-3 rounded-xl bg-amber-50 p-3 text-xs font-semibold text-amber-900 ring-1 ring-amber-200">
-                  Estás comprando sin cuenta. Puedes pedir igual, pero <strong>no podrás calificar al vendedor</strong> después.
-                  <button type="button" onClick={() => window.dispatchEvent(new Event('carpetazo:open-auth'))} className="ml-1 font-extrabold underline">Iniciar sesión</button>
-                </div>
-              )}
-              {!messageMode && (
-                <button
-                  className="w-full text-white p-4 rounded-xl font-extrabold flex justify-center items-center gap-3 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none bg-[#25D366] hover:bg-[#128C7E] shadow-[0_4px_15px_rgba(37,211,102,0.3)]"
-                  disabled={cart.length === 0 || isProcessingCheckout}
-                  onClick={handleWhatsAppCheckout}
-                >
-                  <span translate="no" className="material-symbols-outlined text-2xl">
-                    {isProcessingCheckout ? 'hourglass_empty' : 'chat'}
-                  </span>
-                  {isProcessingCheckout ? 'Procesando...' : 'Generar Pedido por WhatsApp'}
-                </button>
-              )}
-              {(messageMode || socialEnabled('showMessageButton')) && (
-                <button
-                  className={`w-full p-4 rounded-xl font-extrabold flex justify-center items-center gap-3 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${messageMode ? 'text-white bg-[#1e40af] hover:bg-[#1d4ed8] shadow-[0_4px_15px_rgba(30,64,175,0.3)]' : 'mt-2 text-[#1e40af] bg-white ring-2 ring-[#1e40af] hover:bg-blue-50'}`}
-                  disabled={cart.length === 0 || isProcessingCheckout || !socialEnabled('showMessageButton')}
-                  onClick={handleMessageCheckout}
-                >
-                  <span translate="no" className="material-symbols-outlined text-2xl">
-                    {isProcessingCheckout ? 'hourglass_empty' : 'mail'}
-                  </span>
-                  {isProcessingCheckout ? 'Procesando...' : currentUser ? 'Enviar pedido por mensaje' : 'Iniciar sesión y enviar pedido por mensaje'}
-                </button>
-              )}
-              <p className="text-[10px] text-center text-gray-500 mt-3">
-                {!messageMode
-                  ? socialEnabled('showMessageButton')
-                    ? 'WhatsApp abre un chat con el detalle de tu pedido. Por mensaje, el pedido llega al vendedor dentro de Carpetazo con un código (necesitas una cuenta). En ambos casos coordinan el pago y el envío directamente.'
-                    : 'Al presionar, se abrirá WhatsApp con el detalle de tu pedido para coordinar el pago y envío directamente con el vendedor.'
-                  : socialEnabled('showMessageButton')
-                    ? 'Este vendedor no usa WhatsApp. Tu pedido le llegará como mensaje de Carpetazo con el detalle y un código, y ahí coordinan el pago y el envío. Necesitas una cuenta.'
-                    : 'Este vendedor no recibe pedidos por WhatsApp ni por mensaje por ahora.'}
-              </p>
-            </div>
-          </div>
-        </div>
+        <CatalogCartDrawer {...catalogCartDrawerProps} />
       )}
       <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: 'info' })} />
     </>

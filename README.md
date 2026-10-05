@@ -24,6 +24,7 @@ frontend/
   src/pages/             Una página por ruta
   src/components/<tema>/ Componentes por tema (auth, layout, ui, folder, profile, wishlist, orders…)
   src/contexts/          Estado global (sesión)
+  src/hooks/             Lógica con estado reutilizable
   src/services/          API, Firebase y catálogo externo
   src/config/            Datos estáticos y opciones
   src/utils/             Funciones puras

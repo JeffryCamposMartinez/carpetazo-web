@@ -4,23 +4,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, useRef, startTransition, lazy, Suspense } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
+import MobileMenu from './header/MobileMenu';
+import NotificationBellPanel from './header/NotificationBellPanel';
 
 // Ventanas que solo se abren a pedido: su código se descarga al abrirlas, no en la primera carga de cada página
 const AuthModal = lazy(() => import('../auth/AuthModal'));
 const ReviewModal = lazy(() => import('../reviews/Reviews').then((module) => ({ default: module.ReviewModal })));
-
-const decodeMessagePreview = (content = '') => {
-  try {
-    const parsed = JSON.parse(content);
-    if (parsed && typeof parsed === 'object' && parsed.v === 1) {
-      if (parsed.imageUrl || parsed.imageBase64) return '📷 Imagen';
-      return parsed.text || 'Mensaje nuevo';
-    }
-  } catch {
-    // Mensajes antiguos en texto plano.
-  }
-  return content || 'Mensaje nuevo';
-};
 
 export default function Header() {
   const { currentUser, appUser, logout, loginWithGoogle } = useAuth();
@@ -456,154 +445,6 @@ export default function Header() {
     });
   };
 
-  const NotificationBell = () => (
-    <div className="notification-dropdown relative">
-      <button
-        type="button"
-        onClick={openNotifications}
-        aria-label={totalNotifications > 0 ? `${totalNotifications} notificaciones sin atender` : 'Ver notificaciones'}
-        aria-haspopup="dialog"
-        aria-expanded={isNotificationOpen}
-        className="group relative flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition-[background-color,transform] duration-150 hover:bg-white/15 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"
-      >
-        <svg viewBox="0 0 50 30" className="h-6 w-8 overflow-visible" aria-hidden="true">
-          <g className="origin-[50%_2px] transition-transform duration-500 group-hover:animate-[bellRing_2.3s_ease-in-out]">
-            <path className="transition-transform duration-500 group-hover:animate-[bellBall_2.3s_ease-in-out]" fill="none" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" d="M28.7,25 c0,1.9-1.7,3.5-3.7,3.5s-3.7-1.6-3.7-3.5s1.7-3.5,3.7-3.5S28.7,23,28.7,25z" />
-            <path fill="#FFFFFF" stroke="currentColor" strokeWidth="2" strokeMiterlimit="10" d="M35.9,21.8c-1.2-0.7-4.1-3-3.4-8.7c0.1-1,0.1-2.1,0-3.1h0c-0.3-4.1-3.9-7.2-8.1-6.9c-3.7,0.3-6.6,3.2-6.9,6.9h0 c-0.1,1-0.1,2.1,0,3.1c0.6,5.7-2.2,8-3.4,8.7c-0.4,0.2-0.6,0.6-0.6,1v1.8c0,0.2,0.2,0.4,0.4,0.4h22.2c0.2,0,0.4-0.2,0.4-0.4v-1.8 C36.5,22.4,36.3,22,35.9,21.8L35.9,21.8z" />
-          </g>
-        </svg>
-        {totalNotifications > 0 && (
-          <span aria-hidden="true" className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ef233c] px-1 text-[11px] font-black leading-none text-white shadow-md ring-2 ring-[#11274a]">
-            {totalNotifications > 99 ? '99+' : totalNotifications}
-          </span>
-        )}
-      </button>
-
-      {isNotificationOpen && (
-        <div role="dialog" aria-label="Notificaciones" className="menu-pop [--menu-origin:top_right] absolute right-0 top-full z-50 mt-2 w-[min(310px,calc(100vw-1.5rem))] overflow-hidden rounded-3xl border border-[#facc15]/40 bg-white text-slate-900 shadow-2xl ring-1 ring-slate-900/5">
-          <div className="bg-gradient-to-r from-[#0f2b57] to-[#1e40af] px-4 py-3 text-white">
-            <p className="text-sm font-black">Notificaciones</p>
-            <p className="text-xs text-blue-100">Solicitudes de compra y mensajes</p>
-          </div>
-
-          {pendingOrders.count > 0 && (
-            <div className="border-b border-slate-100 py-2">
-              <p className="px-4 pb-1 pt-1 text-xs font-black text-slate-500">
-                {pendingOrders.count === 1 ? '1 solicitud de compra por atender' : `${pendingOrders.count} solicitudes de compra por atender`}
-              </p>
-              {pendingOrders.orders.map(order => (
-                <button
-                  key={order.id}
-                  type="button"
-                  onClick={openPendingOrders}
-                  className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-blue-50 ${openSnapshot && new Date(order.createdAt) > new Date(openSnapshot.ordersSince || 0) ? 'bg-blue-50/70' : ''}`}
-                >
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#facc15]/25 text-[#12315f] ring-2 ring-[#facc15]/50">
-                    <span translate="no" className="material-symbols-outlined text-[22px]">shopping_bag</span>
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2 truncate text-sm font-black">
-                      Pedido {order.code} · {order.folderName}
-                      {openSnapshot && new Date(order.createdAt) > new Date(openSnapshot.ordersSince || 0) && <span className="rounded-full bg-[#ef233c] px-1.5 py-px text-[10px] font-black text-white">Nuevo</span>}
-                    </span>
-                    <span className="block truncate text-xs font-semibold text-slate-500">
-                      {order.cards} {order.cards === 1 ? 'carta' : 'cartas'} · {formatOrderTotal(order.total)} · {orderAge(order.createdAt)}
-                    </span>
-                  </span>
-                </button>
-              ))}
-              {pendingOrders.count > pendingOrders.orders.length && (
-                <p className="px-4 pt-1 text-xs font-semibold text-slate-500">y {pendingOrders.count - pendingOrders.orders.length} más</p>
-              )}
-            </div>
-          )}
-
-          {wishMatches.items > 0 && (
-            <div className="border-b border-slate-100 py-2">
-              <button type="button" onClick={openWishlist} className="flex w-full items-center gap-3 px-4 py-2 text-left transition hover:bg-slate-50">
-                <span translate="no" className="material-symbols-outlined text-[22px] text-rose-500">favorite</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-black text-slate-800">{wishMatches.items === 1 ? '1 carta de tu lista está disponible' : `${wishMatches.items} cartas de tu lista están disponibles`}</span>
-                  <span className="block text-xs font-semibold text-slate-500">Ver quién las vende</span>
-                </span>
-              </button>
-            </div>
-          )}
-
-          {reviewPrompts.items.length > 0 && (
-            <div className="border-b border-slate-100 py-2">
-              <p className="px-4 pb-1 pt-1 text-xs font-black text-slate-500">
-                {reviewPrompts.items.length === 1 ? '1 compra por calificar' : `${reviewPrompts.items.length} compras por calificar`}
-              </p>
-              {reviewPrompts.items.slice(0, 3).map((item) => (
-                <button key={item.orderId} type="button" onClick={() => { setIsNotificationOpen(false); setReviewTarget(item); }} className="flex w-full items-center gap-3 px-4 py-2 text-left transition hover:bg-slate-50">
-                  <span translate="no" className="material-symbols-outlined text-[22px] text-amber-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-black text-slate-800">Califica a {item.seller?.name || item.seller?.username || 'tu vendedor'}</span>
-                    <span className="block truncate text-xs font-semibold text-slate-500">Pedido {item.code} · {item.folderName}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {notificationChats.length > 0 ? (
-            <div className="max-h-80 overflow-y-auto py-2">
-              {notificationChats.map(chat => {
-                const partner = getChatPartner(chat);
-                const unreadCount = Number(chat.unreadCount || 0);
-                return (
-                  <button
-                    key={chat.id}
-                    type="button"
-                    onClick={() => openNotificationChat(chat)}
-                    className={`flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-blue-50 ${openSnapshot?.chatIds.has(chatKey(chat)) ? 'bg-blue-50/70' : ''}`}
-                  >
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 font-black text-blue-700 ring-2 ring-[#facc15]/40">
-                      {partner.photoURL ? <img src={partner.photoURL} alt="" className="h-full w-full object-cover" /> : (partner.name || partner.username || 'U').charAt(0)}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-black">{partner.name || partner.username || 'Usuario'}</span>
-                      <span className="block truncate text-xs font-semibold text-slate-500">{decodeMessagePreview(chat.lastMessage || chat.content || '')}</span>
-                    </span>
-                    {unreadCount > 0 && (
-                      <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#ef233c] px-1.5 text-[11px] font-black text-white">
-                        {unreadCount > 99 ? '99+' : unreadCount}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          ) : pendingOrders.count === 0 && wishMatches.items === 0 && reviewPrompts.items.length === 0 ? (
-            <div className="px-4 py-6 text-center">
-              <p className="text-sm font-black text-slate-800">Sin notificaciones nuevas</p>
-              <p className="mt-1 text-xs font-semibold text-slate-500">Las solicitudes de compra y los mensajes aparecerán aquí.</p>
-            </div>
-          ) : null}
-
-          <div className="flex border-t border-slate-100">
-            {pendingOrders.count > 0 && (
-              <button type="button" onClick={openPendingOrders} className="flex-1 px-4 py-3 text-sm font-black text-[#1e40af] transition hover:bg-slate-50">
-                Ver solicitudes
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                setIsNotificationOpen(false);
-                navigate('/mensajes');
-              }}
-              className="flex-1 px-4 py-3 text-sm font-black text-[#1e40af] transition hover:bg-slate-50"
-            >
-              Ver mensajes
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
   const handleLogin = () => {
     setIsAuthModalOpen(true);
   };
@@ -710,6 +551,14 @@ export default function Header() {
     );
   };
 
+  const mobileMenuProps = { appUser, closeMobileMenu, currentUser, drawerRef, handleLogin, handleLogout,
+    isMobileMenuClosing, location, onDrawerTouchEnd, onDrawerTouchMove, onDrawerTouchStart, pendingOrders,
+    unreadMessages, userAvatar, userUsername };
+
+  const notificationBellPanelProps = { chatKey, formatOrderTotal, getChatPartner, isNotificationOpen, navigate,
+    notificationChats, openNotificationChat, openNotifications, openPendingOrders, openSnapshot, openWishlist,
+    orderAge, pendingOrders, reviewPrompts, setIsNotificationOpen, setReviewTarget, totalNotifications, wishMatches };
+
   return (
     <>
       {/* TopAppBar - Desktop */}
@@ -725,7 +574,7 @@ export default function Header() {
 
             {currentUser ? (
               <div className="relative z-30 flex items-center gap-2 justify-self-end">
-                <NotificationBell />
+                <NotificationBellPanel {...notificationBellPanelProps} />
                 <div className="relative profile-dropdown">
                   <button
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -832,7 +681,7 @@ export default function Header() {
             {/* Derecha: notificaciones o acceso */}
             <div className="z-30 flex min-w-[44px] justify-end">
               {currentUser ? (
-                <NotificationBell />
+                <NotificationBellPanel {...notificationBellPanelProps} />
               ) : (
                 <button onClick={handleLogin} className="flex h-11 items-center gap-1.5 rounded-full bg-[#facc15] px-4 text-[13px] font-extrabold text-[#12315f] shadow-[0_1px_2px_rgba(8,18,42,0.35)] transition-[filter,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
                   <img src="/images/logos/google.svg" alt="" className="w-4 h-4 bg-white rounded-full p-[1px]" />
@@ -867,101 +716,7 @@ export default function Header() {
 
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
-          <div className={`fixed inset-0 bg-black/60 ${isMobileMenuClosing ? 'animate-drawerFadeOut' : 'animate-fadeInOverlay'}`} onClick={closeMobileMenu}></div>
-          <div
-            ref={drawerRef}
-            onTouchStart={onDrawerTouchStart}
-            onTouchMove={onDrawerTouchMove}
-            onTouchEnd={onDrawerTouchEnd}
-            className={`relative w-[85%] max-w-sm bg-white h-full flex flex-col overflow-y-auto overscroll-contain shadow-2xl pb-[env(safe-area-inset-bottom)] ${isMobileMenuClosing ? 'animate-drawerSlideOut' : 'animate-slideInLeft'}`}
-          >
-            {/* Cabecera: logo y, con sesión, la cuenta */}
-            <div className="bg-gradient-to-br from-[#0f2b57] to-[#1e40af] px-4 pb-4 pt-3 text-white">
-              <div className="flex items-center justify-between">
-                <img src="/images/logos/logo_completo.webp" alt="Carpetazo.cl" className="h-16 w-auto object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)]" />
-                <button onClick={closeMobileMenu} aria-label="Cerrar menú" className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60">
-                  <span translate="no" className="material-symbols-outlined text-[26px]">close</span>
-                </button>
-              </div>
-              {currentUser && (
-                <Link to="/perfil" onClick={closeMobileMenu} className="mt-3 flex items-center gap-3 rounded-2xl bg-white/10 p-3 ring-1 ring-white/15 transition active:bg-white/15">
-                  {userAvatar || currentUser.photoURL ? (
-                    <img src={userAvatar || currentUser.photoURL} alt="" className="h-12 w-12 flex-shrink-0 rounded-full border-2 border-[#facc15] bg-white object-cover shadow-md" />
-                  ) : (
-                    <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-2 border-[#facc15] bg-[#12315f] text-xl font-black text-white">
-                      {(userUsername || currentUser.email || 'U')[0].toUpperCase()}
-                    </span>
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15px] font-extrabold">{userUsername || 'Usuario'}</span>
-                    <span className="block truncate text-xs font-medium text-blue-100">{currentUser.email}</span>
-                  </span>
-                  <span translate="no" className="material-symbols-outlined text-[20px] text-blue-200">chevron_right</span>
-                </Link>
-              )}
-            </div>
-
-            {(() => {
-              const rowBase = 'relative flex min-h-12 items-center gap-3.5 rounded-xl px-3 text-[15px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]/50';
-              const accountItems = [
-                { to: '/dashboard', label: 'Mis carpetas', icon: 'folder', active: location.pathname === '/dashboard' && !location.search.includes('solicitudes') },
-                ...(pendingOrders.count > 0 ? [{ to: '/dashboard?tab=solicitudes', label: 'Solicitudes de compra', icon: 'inbox', badge: pendingOrders.count }] : []),
-                { to: '/mensajes', label: 'Mensajes', icon: 'chat', active: location.pathname === '/mensajes', badge: unreadMessages },
-                { to: '/perfil', label: 'Mi perfil', icon: 'person', active: location.pathname === '/perfil' },
-                { to: `/${userUsername || currentUser?.uid || ''}`, label: 'Mi perfil público', icon: 'badge', active: false },
-                ...(['admin', 'moderator', 'support'].includes(appUser?.role) ? [{ to: '/moderacion', label: 'Moderación', icon: 'admin_panel_settings', active: location.pathname === '/moderacion' }] : []),
-              ];
-              const renderItem = (item) => (
-                <Link
-                  key={item.to + item.label}
-                  to={item.to}
-                  onClick={closeMobileMenu}
-                  aria-current={item.active ? 'page' : undefined}
-                  className={`${rowBase} ${item.active ? 'bg-blue-50 text-[#12315f]' : 'text-slate-700 active:bg-slate-100'}`}
-                >
-                  {item.active && <span aria-hidden="true" className="absolute inset-y-2 left-0 w-1 rounded-full bg-[#facc15]" />}
-                  <span translate="no" className={`material-symbols-outlined text-[22px] ${item.active ? 'text-[#1e40af]' : 'text-slate-400'}`} style={item.active ? { fontVariationSettings: "'FILL' 1" } : undefined}>{item.icon}</span>
-                  <span className="flex-1">{item.label}</span>
-                  {item.badge > 0 && (
-                    <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#ef233c] px-1.5 text-[11px] font-black text-white">{item.badge > 99 ? '99+' : item.badge}</span>
-                  )}
-                </Link>
-              );
-              return (
-                <div className="flex flex-1 flex-col px-3 pb-4 pt-3">
-                  {currentUser ? (
-                    <>
-                      <p className="mb-1 px-3 text-xs font-bold text-slate-400">Tu cuenta</p>
-                      <nav aria-label="Tu cuenta" className="flex flex-col gap-0.5">
-                        {accountItems.map(renderItem)}
-                      </nav>
-                      <div className="mt-auto pt-6">
-                        <button
-                          onClick={() => { closeMobileMenu(); handleLogout(); }}
-                          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-red-200 px-4 text-[15px] font-bold text-red-600 transition-colors active:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
-                        >
-                          <span translate="no" className="material-symbols-outlined text-[20px]">logout</span> Cerrar sesión
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="pt-2">
-                      <p className="mb-2 px-1 text-sm font-semibold text-slate-500">Entra para vender, guardar carpetas y hablar con vendedores.</p>
-                      <button
-                        onClick={() => { closeMobileMenu(); handleLogin(); }}
-                        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#facc15] px-4 text-[15px] font-extrabold text-[#12315f] shadow-md transition active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#12315f]/40"
-                      >
-                        <img src="/images/logos/google.svg" alt="" className="h-5 w-5 rounded-full bg-white p-[2px]" />
-                        Entrar
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
-        </div>
+        <MobileMenu {...mobileMenuProps} />
       )}
       {/* Authentication Modal */}
       {isAuthModalOpen && (

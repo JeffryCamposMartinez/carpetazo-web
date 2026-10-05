@@ -30,7 +30,8 @@ Mantener esta estructura; si algo no encaja, proponer dónde ponerlo antes de cr
 - `main.jsx` (entrada) · `app/`: `App.jsx` (rutas) y `routePreload.js` (carga diferida de páginas).
 - `pages/`: una página por ruta; puede importar componentes, nunca al revés.
 - `components/<tema>/` (`auth`, `layout`, `ui`, `folder`, `profile`, `home`, `wishlist`, `orders`, `reviews`, `moderation`): componentes y la lógica propia de ese tema. `ui/` solo piezas genéricas.
-- `contexts/`: estado global (sesión). `services/`: comunicación externa (`api`, `firebase`, `tcgcsvPokemon`).
+- `contexts/`: estado global (sesión). `hooks/`: lógica con estado reutilizable o extraída de un componente grande (`useCardSearch`). `services/`: comunicación externa (`api`, `firebase`, `tcgcsvPokemon`).
+- Un componente que pasa de ~400 líneas se divide: secciones visuales a `components/<tema>/<subtema>/` (por ejemplo `folder/tabs/`, `folder/album/`) y lógica a `hooks/`.
 - `config/`: datos estáticos y opciones (`tcgConfig`, `chileData`, `profileThemes`, `folderOptions`). `utils/`: funciones puras sin estado.
 - `legal/`: textos y versiones legales.
 

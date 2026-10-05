@@ -8,4 +8,4 @@ npm run dev      # http://localhost:5173 (envía /api a localhost:8000)
 npm run build    # build de producción + páginas legales prerenderizadas
 ```
 
-Estructura de `src/`: `app/` (rutas), `pages/`, `components/<tema>/`, `contexts/`, `services/`, `config/`, `utils/`, `legal/`.
+Estructura de `src/`: `app/` (rutas), `pages/`, `components/<tema>/`, `contexts/`, `hooks/`, `services/`, `config/`, `utils/`, `legal/`.
