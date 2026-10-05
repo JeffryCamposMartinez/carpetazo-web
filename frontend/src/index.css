@@ -353,3 +353,12 @@ body.public-profile-active::after {
   .studio-panel { animation: menu-fade 120ms linear both; }
 }
 
+
+/* Visor de cartas: la carta nueva entra desde el lado hacia el que se arrastró */
+@keyframes lightbox-in-next { from { opacity: 0; transform: translateX(48px); } to { opacity: 1; transform: none; } }
+@keyframes lightbox-in-prev { from { opacity: 0; transform: translateX(-48px); } to { opacity: 1; transform: none; } }
+.lightbox-in-next { animation: lightbox-in-next 240ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+.lightbox-in-prev { animation: lightbox-in-prev 240ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .lightbox-in-next, .lightbox-in-prev { animation: menu-fade 120ms linear both; }
+}
