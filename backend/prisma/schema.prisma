@@ -266,8 +266,14 @@ model TermsAcceptance {
   isAdult        Boolean  @default(true)   // declaró tener 18 años o más
   connectionHash String?                   // hash de la conexión (con sal), no la IP
   acceptedAt     DateTime @default(now())
+  // Evidencia para una eventual defensa legal (nunca se borra al reactivar una cuenta: se anula)
+  voidedAt       DateTime?                 // aceptación anterior a que la cuenta se borrara y reactivara: ya no rige
+  method         String?                   // cómo inició sesión: google.com | password
+  userAgent      String?                   // navegador/dispositivo informado por el navegador (máx. 300)
+  emailHash      String?                   // HMAC del correo con la sal del servidor: comprueba un correo sin guardarlo
 
   @@index([userId, acceptedAt])
+  @@index([emailHash])
 }
 
 // Reporte genérico de contenido (usuarios, perfil, carpetas, cartas, fotos, reseñas, mensajes, lista de deseos)

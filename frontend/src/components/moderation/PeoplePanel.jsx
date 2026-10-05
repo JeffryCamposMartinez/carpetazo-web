@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../utils/api';
 import { EmptyState, ErrorBox, Pills, QUICK_REASONS, SANCTION_TYPES, Spinner, dateOnly } from './shared';
+import TermsEvidence from './TermsEvidence';
 
 const STATUS = {
   active: { label: 'Vigente', bar: 'bg-red-600', text: 'text-red-700' },
@@ -220,6 +221,8 @@ export default function PeoplePanel({ level, focusUsername, focusReportId, onFoc
           <ul className="space-y-2">{list.map((item) => <SanctionRow key={item.id} sanction={item} level={level} onChanged={refresh} setError={setError} showUser />)}</ul>
         )}
       </section>
+
+      {level >= 3 && <TermsEvidence key={username} initialUsername={username} />}
     </div>
   );
 }

@@ -350,6 +350,7 @@ app.get('/api/legal/versions', routeLimiter(15 * 60 * 1000, 300));
 app.post('/api/users/me/accept-terms', routeLimiter(15 * 60 * 1000, 30));
 app.delete('/api/users/me/unaccepted', routeLimiter(15 * 60 * 1000, 10));
 app.post('/api/admin/test-email', routeLimiter(15 * 60 * 1000, 10));
+app.post('/api/admin/terms/evidence', routeLimiter(15 * 60 * 1000, 60));
 app.post('/api/reports', routeLimiter(15 * 60 * 1000, 80));
 app.get('/api/reports/reasons', routeLimiter(15 * 60 * 1000, 200));
 app.get('/api/reports/mine', routeLimiter(15 * 60 * 1000, 100));
@@ -381,7 +382,7 @@ const NEW_ACCOUNT_WINDOW_MS = 24 * 60 * 60 * 1000; // solo una cuenta recién cr
 const ACCEPTED_CACHE_MS = 5 * 60 * 1000;
 const acceptedCache = new Map(); // firebaseUid -> hasta cuándo se da por vigente (solo aceptaciones vigentes)
 
-const latestAcceptance = (userId) => prisma.termsAcceptance.findFirst({ where: { userId }, orderBy: { acceptedAt: 'desc' }, select: { termsVersion: true, privacyVersion: true, isAdult: true, acceptedAt: true } });
+const latestAcceptance = (userId) => prisma.termsAcceptance.findFirst({ where: { userId, voidedAt: null }, orderBy: { acceptedAt: 'desc' }, select: { termsVersion: true, privacyVersion: true, isAdult: true, acceptedAt: true } });
 const isCurrentAcceptance = (row) => Boolean(row && row.isAdult && row.termsVersion === LEGAL_CURRENT.termsVersion && row.privacyVersion === LEGAL_CURRENT.privacyVersion);
 
 // Estado que se envía al propio usuario: qué versión rige, si ya aceptó y si puede elegir su usuario en este paso
@@ -560,7 +561,8 @@ app.post('/api/users/sync', authenticateToken, async (req, res) => {
         }
       });
     } else {
-      if (user.role === 'deleted') await prisma.termsAcceptance.deleteMany({ where: { userId: user.id } });
+      // Cuenta borrada que vuelve: debe aceptar de nuevo, pero sus aceptaciones anteriores se conservan como evidencia (anuladas, no borradas)
+      if (user.role === 'deleted') await prisma.termsAcceptance.updateMany({ where: { userId: user.id, voidedAt: null }, data: { voidedAt: new Date() } });
       user = await prisma.user.update({
         where: { firebaseUid },
         data: {
@@ -925,7 +927,10 @@ const ORDER_MAX_PENDING_PER_FOLDER = 50;
 const ORDER_MAX_ANON_PENDING_PER_FOLDER = 15;
 const ORDER_MAX_PENDING_PER_BUYER = 3;
 // Identificador anónimo de la conexión (hash con sal; no se guarda la IP). Define IP_HASH_SALT en el servidor para que no sea reversible.
-const hashConnection = (req) => crypto.createHash('sha256').update(`${process.env.IP_HASH_SALT || 'carpetazo'}|${req.ip || ''}`).digest('hex').slice(0, 32);
+const hashIp = (ip) => crypto.createHash('sha256').update(`${process.env.IP_HASH_SALT || 'carpetazo'}|${ip || ''}`).digest('hex').slice(0, 32);
+const hashConnection = (req) => hashIp(req.ip);
+// Huella del correo (HMAC con la sal del servidor): permite comprobar después si un correo aceptó, sin guardarlo en claro
+const hashEmail = (email) => crypto.createHmac('sha256', process.env.IP_HASH_SALT || 'carpetazo').update(String(email).trim().toLowerCase()).digest('hex');
 
 app.post('/api/reviews', authenticateToken, async (req, res) => {
   try {
@@ -2420,6 +2425,50 @@ app.post('/api/admin/test-email', authenticateToken, requireAdmin, async (req, r
   }
 });
 
+// Evidencia de aceptación de Términos y Política para una defensa legal: historial completo (incluidas las anuladas y las de
+// cuentas borradas), buscable por usuario o por correo; con una IP indica qué aceptaciones se hicieron desde ella.
+app.post('/api/admin/terms/evidence', authenticateToken, requireStaff(3), async (req, res) => {
+  try {
+    const { username, email, ip } = req.body || {};
+    const cleanUsername = typeof username === 'string' ? username.trim().toLowerCase().replace(/^@/, '') : '';
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const cleanIp = typeof ip === 'string' ? ip.trim() : '';
+    if ((cleanUsername && !/^[a-z0-9_]{3,60}$/.test(cleanUsername)) || (cleanEmail && (cleanEmail.length > 254 || !/^[^\s@]+@[^\s@]+$/.test(cleanEmail))) || (cleanIp && !/^[0-9a-fA-F:.]{3,45}$/.test(cleanIp))) {
+      return badRequest(res, 'Datos de búsqueda inválidos');
+    }
+    if (!cleanUsername && !cleanEmail) return badRequest(res, 'Indica un usuario o un correo');
+    const owner = cleanUsername ? await prisma.user.findUnique({ where: { username: cleanUsername }, select: { id: true } }) : null;
+    const where = { OR: [...(owner ? [{ userId: owner.id }] : []), ...(cleanEmail ? [{ emailHash: hashEmail(cleanEmail) }] : [])] };
+    const rows = where.OR.length
+      ? await prisma.termsAcceptance.findMany({ where, orderBy: { acceptedAt: 'desc' }, take: 200, include: { user: { select: { username: true, role: true } } } })
+      : [];
+    const ipHashes = cleanIp ? [hashIp(cleanIp), hashIp('::ffff:' + cleanIp)] : [];
+    const emailHashValue = cleanEmail ? hashEmail(cleanEmail) : null;
+    await prisma.moderationAudit.create({ data: { actorId: await currentUserId(req), action: 'terms.evidence_viewed', targetType: 'user', targetId: owner?.id || null, note: 'Consultó la evidencia de aceptación de Términos (' + rows.length + ' registros)' } });
+    res.json({
+      success: true,
+      current: LEGAL_CURRENT,
+      acceptances: rows.map((row) => ({
+        id: row.id,
+        acceptedAt: row.acceptedAt,
+        termsVersion: row.termsVersion,
+        privacyVersion: row.privacyVersion,
+        isAdult: row.isAdult,
+        method: row.method,
+        userAgent: row.userAgent,
+        voidedAt: row.voidedAt,
+        username: row.user?.username || null,
+        accountDeleted: row.user?.role === 'deleted',
+        emailMatches: emailHashValue ? row.emailHash === emailHashValue : null,
+        ipMatches: cleanIp ? ipHashes.includes(row.connectionHash) : null
+      }))
+    });
+  } catch (error) {
+    console.error('Error loading terms evidence:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
 app.get('/api/legal/versions', (_req, res) => {
   res.json({ success: true, ...LEGAL_CURRENT });
 });
@@ -2444,7 +2493,7 @@ app.post('/api/users/me/accept-terms', authenticateToken, async (req, res) => {
     // Usuario nuevo y aceptación juntos: no puede quedar uno sin el otro
     await prisma.$transaction([
       ...(newUsername && newUsername !== user.username ? [prisma.user.update({ where: { id: user.id }, data: { username: newUsername } })] : []),
-      prisma.termsAcceptance.create({ data: { userId: user.id, termsVersion: LEGAL_CURRENT.termsVersion, privacyVersion: LEGAL_CURRENT.privacyVersion, isAdult: true, connectionHash: hashConnection(req) } })
+      prisma.termsAcceptance.create({ data: { userId: user.id, termsVersion: LEGAL_CURRENT.termsVersion, privacyVersion: LEGAL_CURRENT.privacyVersion, isAdult: true, connectionHash: hashConnection(req), method: typeof req.user.firebase?.sign_in_provider === 'string' ? req.user.firebase.sign_in_provider.slice(0, 40) : null, userAgent: String(req.headers['user-agent'] || '').slice(0, 300) || null, emailHash: req.user.email ? hashEmail(req.user.email) : null } })
     ]);
     acceptedCache.set(req.user.sub, Date.now() + ACCEPTED_CACHE_MS);
     res.json({ success: true, legal: await getLegalStatus(user) });
