@@ -1,5 +1,6 @@
 import React from 'react';
 import LiquidTabs from '../ui/LiquidTabs';
+import { DETAIL_MODES } from './folderCards';
 
 const formatCLP = (value) => {
   const number = Number(value || 0);
@@ -70,7 +71,7 @@ export const FolderInventorySummary = ({ cards = [], filteredCards = [], tcg, ha
 };
 
 export const InventoryStatusBar = ({ hasUnsavedCatalogOrder, savingCatalogOrder, onSave }) => (
-  <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-gray-50/70 px-3 py-2 text-sm sm:mb-3">
+  <div className={`mb-2 items-center justify-between gap-2 rounded-xl border border-gray-200 bg-gray-50/70 px-3 py-2 text-sm sm:mb-3 sm:flex ${hasUnsavedCatalogOrder ? 'flex' : 'hidden'}`}>
     <div className="flex min-w-0 items-center gap-2 text-gray-600 sm:items-start">
       <span translate="no" className={`material-symbols-outlined text-[18px] sm:mt-0.5 ${hasUnsavedCatalogOrder ? 'text-amber-600' : 'text-emerald-600'}`}>
         {hasUnsavedCatalogOrder ? 'edit_note' : 'verified'}
@@ -106,6 +107,7 @@ export const InventoryFilters = ({
   setIsOpen,
   onSelectSet,
   onClearFilters,
+  hasFilters = false,
 }) => (
   <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-gray-200 bg-gray-50/70 p-2.5 sm:mb-3 sm:p-3">
     <div className="flex flex-col gap-2 md:flex-row">
@@ -120,7 +122,9 @@ export const InventoryFilters = ({
         />
       </div>
 
-      <div className="relative w-full md:w-72">
+      {/* Celular: la edición y el botón de limpiar comparten fila (en pantallas anchas cada uno va en la fila principal) */}
+      <div className="flex gap-2 md:contents">
+      <div className="relative min-w-0 flex-1 md:w-72 md:flex-none">
         <button
           type="button"
           className="flex h-10 w-full items-center justify-between rounded-xl border border-gray-300 bg-white px-3 text-left text-sm text-gray-900 shadow-sm transition-colors hover:border-[#1e40af]"
@@ -162,12 +166,13 @@ export const InventoryFilters = ({
       <button
         type="button"
         onClick={onClearFilters}
-        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-500 shadow-sm transition-colors hover:bg-red-50 hover:text-red-500"
+        aria-label="Limpiar filtros"
+        className={`h-10 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold text-gray-500 shadow-sm transition-colors hover:bg-red-50 hover:text-red-500 md:inline-flex md:px-4 ${hasFilters ? 'inline-flex' : 'hidden'}`}
       >
         <span translate="no" className="material-symbols-outlined text-[18px]">filter_alt_off</span>
-        <span className="sm:hidden">Limpiar</span>
         <span className="hidden sm:inline">Limpiar filtros</span>
       </button>
+      </div>
     </div>
   </div>
 );
@@ -175,28 +180,27 @@ export const InventoryFilters = ({
 export const InventoryViewSwitcher = ({
   mode,
   onChange,
-  showCardDetails = false,
-  onToggleCardDetails,
+  detailMode = 'basic',
+  onCycleDetails,
   gridDensity,
   onCycleGridDensity,
 }) => (
   <div className="fixed bottom-[5.75rem] right-6 z-[1200] flex justify-end md:static md:mb-3 md:border-b md:border-gray-100 md:pb-2">
     <div className="w-14 rounded-full bg-white/95 p-1 shadow-2xl ring-4 ring-white/70 backdrop-blur md:w-auto md:flex md:flex-row md:items-center md:rounded-xl md:bg-gray-100 md:shadow-inner md:ring-0 md:backdrop-blur-0">
-      {onToggleCardDetails && (
+      {onCycleDetails && (
         <button
           type="button"
-          onClick={onToggleCardDetails}
+          onClick={onCycleDetails}
           className={`flex h-12 w-12 items-center justify-center rounded-full text-xs font-bold transition-all md:hidden ${
-            showCardDetails
+            detailMode !== 'none'
               ? 'bg-[#1e40af] text-white shadow-md md:bg-white md:text-[#1e40af] md:shadow-sm'
               : 'text-gray-500 hover:text-gray-700'
           }`}
-          title={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
-          aria-label={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
-          aria-pressed={showCardDetails}
+          title={`Información de las cartas: ${DETAIL_MODES[detailMode].label}. Toca para cambiar`}
+          aria-label={`Información de las cartas: ${DETAIL_MODES[detailMode].label}. Toca para cambiar`}
         >
           <span translate="no" className="material-symbols-outlined text-[21px] md:text-[18px]">
-            {showCardDetails ? 'visibility' : 'visibility_off'}
+            {DETAIL_MODES[detailMode].icon}
           </span>
           <span className="sr-only md:not-sr-only">Info</span>
         </button>

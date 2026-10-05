@@ -10,13 +10,14 @@ import { useAuth } from '../contexts/AuthContext';
 
 import { useToast } from '../components/ui/ToastProvider';
 import ConfirmModal from '../components/ui/ConfirmModal';
-import { chunkCardsByPage, getExtDataValue, normalizeTcgProductId, sortCatalogCards } from '../components/folder/folderCards';
+import { DETAIL_MODES, getExtDataValue, normalizeTcgProductId, sortCatalogCards } from '../components/folder/folderCards';
 import FolderSalesTab from '../components/folder/tabs/FolderSalesTab';
 import FolderCatalogTab from '../components/folder/tabs/FolderCatalogTab';
 import FolderAddTab from '../components/folder/tabs/FolderAddTab';
 import useCardSearch from '../hooks/useCardSearch';
 import { DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from '../components/folder/dragScroll';
 import useCatalogOrder from '../hooks/useCatalogOrder';
+import useInventoryTools from '../hooks/useInventoryTools';
 
 
 const PAGE_SIZE = 20;
@@ -299,7 +300,22 @@ const [isSearching, setIsSearching] = useState(false);
   const [catSet, setCatSet] = useState('');
   const [catalogViewMode, setCatalogViewMode] = useState('grid');
   const [catalogGridDensity, setCatalogGridDensity] = useState(3);
-  const [showCardDetails, setShowCardDetails] = useState(true);
+  const [catalogDesktopColumns, setCatalogDesktopColumns] = useState(5);
+  const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  // Información de las cartas del inventario: 'basic' (stock y precio) por defecto, 'full' o 'none'
+  const [cardDetailsMode, setCardDetailsMode] = useState('basic');
+  const showCardDetails = cardDetailsMode !== 'none';
+  // La pestaña Agregar solo distingue ver o no ver información
+  const setShowCardDetails = (next) => setCardDetailsMode((prev) => {
+    const wanted = typeof next === 'function' ? next(prev !== 'none') : next;
+    return wanted ? (prev === 'none' ? 'basic' : prev) : 'none';
+  });
+  const cycleCardDetailsMode = () => setCardDetailsMode((prev) => DETAIL_MODES[prev].next);
   const [cardDetailsPreferenceReady, setCardDetailsPreferenceReady] = useState(false);
   const [isCatSetDropdownOpen, setIsCatSetDropdownOpen] = useState(false);
   const [draggedCatalogCardId, setDraggedCatalogCardId] = useState(null);
@@ -316,22 +332,22 @@ const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     if (!currentUser?.uid) {
-      setShowCardDetails(true);
+      setCardDetailsMode('basic');
       setCardDetailsPreferenceReady(false);
       return;
     }
 
-    const storageKey = `carpetazo:folder-card-details:${currentUser.uid}`;
+    const storageKey = `carpetazo:folder-card-details-mode:${currentUser.uid}`;
     const savedPreference = window.localStorage.getItem(storageKey);
-    setShowCardDetails(savedPreference === null ? true : savedPreference === 'true');
+    setCardDetailsMode(DETAIL_MODES[savedPreference] ? savedPreference : 'basic');
     setCardDetailsPreferenceReady(true);
   }, [currentUser?.uid]);
 
   useEffect(() => {
     if (!currentUser?.uid || !cardDetailsPreferenceReady) return;
-    const storageKey = `carpetazo:folder-card-details:${currentUser.uid}`;
-    window.localStorage.setItem(storageKey, String(showCardDetails));
-  }, [showCardDetails, currentUser?.uid, cardDetailsPreferenceReady]);
+    const storageKey = `carpetazo:folder-card-details-mode:${currentUser.uid}`;
+    window.localStorage.setItem(storageKey, cardDetailsMode);
+  }, [cardDetailsMode, currentUser?.uid, cardDetailsPreferenceReady]);
 
   useEffect(() => {
     // Evita que la previsualización se quede pegada si se cambia de vista (grid <-> album) mientras se arrastra
@@ -582,7 +598,8 @@ const [isSearching, setIsSearching] = useState(false);
   // and completely destroy the browser's touch/drag event context, causing permanent freezes.
   // The drop target is visually indicated by the 'isDropTarget' CSS highlight instead.
   const previewCatalog = filteredCatalog;
-  const catalogPages = chunkCardsByPage(previewCatalog);
+
+  const inventory = useInventoryTools({ folderId: id, cards, setCards, filteredCatalog, showToast });
 
   const { getCatalogDragHandleProps, getCatalogDropProps, handleCatalogReorder, saveCatalogOrder } = useCatalogOrder({
     cards, catalogDragScrollSpeedRef, draggedCatalogCardId, fetchCards, filteredCatalog,
@@ -604,20 +621,25 @@ const [isSearching, setIsSearching] = useState(false);
     scrollToTopIfNeeded();
   };
 
+  // Escritorio: cartas por fila elegidas directamente (2, 3, 5 o 9). Teléfono: tres niveles de 1 a 3
+  const DESKTOP_COLUMN_OPTIONS = [2, 3, 5, 9];
+  const isDesktopGrid = viewportWidth > 768;
   const cycleCatalogGridDensity = () => {
-    const isMobile = window.innerWidth <= 768;
-    const maxDensity = isMobile ? 3 : 5;
-    const minDensity = isMobile ? 1 : 2;
-    setCatalogGridDensity(prev => (prev >= maxDensity ? minDensity : prev + 1));
+    if (isDesktopGrid) {
+      setCatalogDesktopColumns(prev => DESKTOP_COLUMN_OPTIONS[(DESKTOP_COLUMN_OPTIONS.indexOf(prev) + 1) % DESKTOP_COLUMN_OPTIONS.length]);
+      return;
+    }
+    setCatalogGridDensity(prev => (prev >= 3 ? 1 : prev + 1));
   };
 
-  const catalogGridClass = {
-    1: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4',
-    2: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5',
-    3: 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6',
-    4: 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-7',
-    5: 'grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 2xl:grid-cols-8',
-  }[catalogGridDensity] || 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5';
+  const DESKTOP_GRID_CLASS = { 2: 'grid-cols-[repeat(2,minmax(0,19rem))] justify-center', 3: 'grid-cols-[repeat(3,minmax(0,17rem))] justify-center', 5: 'grid-cols-5', 9: 'grid-cols-9' };
+  const catalogGridClass = isDesktopGrid ? DESKTOP_GRID_CLASS[catalogDesktopColumns] : {
+    1: 'grid-cols-1 sm:grid-cols-2',
+    2: 'grid-cols-2 sm:grid-cols-3',
+    3: 'grid-cols-3 sm:grid-cols-4',
+  }[catalogGridDensity];
+  const catalogGridColumns = isDesktopGrid ? catalogDesktopColumns : [[1, 2], [2, 3], [3, 4]][catalogGridDensity - 1][viewportWidth >= 640 ? 1 : 0];
+  const catalogGridDense = isDesktopGrid ? catalogDesktopColumns >= 5 : catalogGridDensity >= 3;
 
   const fetchOrders = async () => {
     try {
@@ -874,13 +896,13 @@ const [isSearching, setIsSearching] = useState(false);
     setSalesView, showToast };
 
   const folderCatalogTabProps = { availableSets, cards, catQuery, catSet, catalogDragFloatingPreview,
-    catalogDragFloatingPreviewRef, catalogGridClass, catalogGridDensity, catalogPages, catalogViewMode,
-    clearCatalogFilters, copyBuyerLink, cycleCatalogGridDensity, draggedCatalogCardId, dropCatalogIndex,
+    catalogDragFloatingPreviewRef, cardDetailsMode, catalogGridClass, catalogGridColumns, catalogGridDense, catalogViewMode,
+    clearCatalogFilters, currentFolderId: id, inventory, copyBuyerLink, cycleCardDetailsMode, cycleCatalogGridDensity, draggedCatalogCardId, dropCatalogIndex,
     filteredCatSets, filteredCatalog, folderData, getCatalogDragHandleProps, getCatalogDropProps,
     handleCatalogReorder, handleDeleteRequest, handleUpdateCard, hasCatalogFilters, hasUnsavedCatalogOrder,
     isCatSetDropdownOpen, isMylFolder, openBuyerPreview, previewCatalog, saveCatalogOrder, savingCatalogOrder,
     scrollToTopIfNeeded, setActiveTab, setCatQuery, setCatSet, setCatalogViewMode, setIsCatSetDropdownOpen,
-    setShowCardDetails, showCardDetails, showScrollTop };
+    showScrollTop };
 
   const folderAddTabProps = { activeQueueItemId, availableBlocks, availablePhysicalProducts, availableRarities,
     availableSets, decreaseQueueItemQuantity, fileInputRef, filterCounts, filterRarity, filterType,

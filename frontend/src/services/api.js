@@ -185,6 +185,9 @@ export const api = {
   addCard: (folderId, data) => apiFetch('/folders/' + folderId + '/cards', { method: 'POST', body: JSON.stringify(data) }),
   updateCard: (folderId, cardId, data) => apiFetch('/folders/' + folderId + '/cards/' + cardId, { method: 'PUT', body: JSON.stringify(data) }),
   deleteCard: (folderId, cardId) => apiFetch('/folders/' + folderId + '/cards/' + cardId, { method: 'DELETE' }),
+  updateCardsBulk: (folderId, updates) => apiFetch('/folders/' + folderId + '/cards-bulk', { method: 'PUT', body: JSON.stringify({ updates }) }),
+  deleteCardsBulk: (folderId, ids) => apiFetch('/folders/' + folderId + '/cards-bulk/delete', { method: 'POST', body: JSON.stringify({ ids }) }),
+  moveCardsBulk: (folderId, ids, targetFolderId) => apiFetch('/folders/' + folderId + '/cards-bulk/move', { method: 'POST', body: JSON.stringify({ ids, targetFolderId }) }),
   
   // Messages/Chats
   getChats: () => apiFetch('/chats'),

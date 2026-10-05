@@ -71,6 +71,99 @@ router.delete('/api/folders/:id/cards/:cardId', authenticateToken, async (req, r
   }
 });
 
+// --- EDICIÓN EN BLOQUE DE CARTAS (el vendedor elige varias en su inventario) ---
+// Rutas con prefijo propio ("cards-bulk") para no chocar con /cards/:cardId.
+const BULK_MAX = 500;
+const CARD_LANGUAGES = ['English', 'Spanish', 'Japanese'];
+const isCleanId = (value) => typeof value === 'string' && isUuid(value);
+const hasUniqueIds = (ids) => Array.isArray(ids) && ids.length > 0 && ids.length <= BULK_MAX && ids.every(isCleanId) && new Set(ids).size === ids.length;
+const isStrictPrice = (value) => value === undefined || (value !== null && value !== '' && Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 100000000);
+
+// Carpeta propia (404 si no existe o es ajena)
+const loadOwnFolder = async (req, res) => {
+  if (!isUuid(req.params.id)) { res.status(404).json({ success: false, message: 'Carpeta no encontrada' }); return null; }
+  const owner = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
+  const folder = await prisma.folder.findUnique({ where: { id: req.params.id }, select: { id: true, userId: true, tcg: true } });
+  if (!owner || !folder || folder.userId !== owner.id) { res.status(404).json({ success: false, message: 'Carpeta no encontrada' }); return null; }
+  return { owner, folder };
+};
+
+// PUT precio, stock e idioma de varias cartas a la vez: { updates: [{ id, price?, stock?, language? }] }
+router.put('/api/folders/:id/cards-bulk', authenticateToken, async (req, res) => {
+  try {
+    const own = await loadOwnFolder(req, res);
+    if (!own) return;
+    const updates = req.body?.updates;
+    const valid = Array.isArray(updates) && hasUniqueIds(updates.map((item) => item?.id)) && updates.every((item) => (
+      item && typeof item === 'object'
+      && isStrictPrice(item.price) && isValidStock(item.stock) && (item.stock === undefined || item.stock !== null && item.stock !== '')
+      && (item.language === undefined || CARD_LANGUAGES.includes(item.language))
+      && (item.price !== undefined || item.stock !== undefined || item.language !== undefined)
+    ));
+    if (!valid) return badRequest(res, 'Datos de cartas inválidos');
+
+    const cards = await prisma.card.findMany({ where: { folderId: own.folder.id, id: { in: updates.map((item) => item.id) } }, select: { id: true, data: true, moderationState: true } });
+    if (cards.length !== updates.length) return badRequest(res, 'La selección incluye cartas que no son de esta carpeta');
+    const byId = new Map(cards.map((card) => [card.id, card]));
+    // Las cartas ocultadas por moderación no se pueden editar: se omiten y se avisa cuántas
+    const editable = updates.filter((item) => byId.get(item.id).moderationState !== 'hidden');
+
+    await prisma.$transaction(editable.map((item) => {
+      const current = byId.get(item.id);
+      const data = {};
+      if (item.price !== undefined) data.price = parseFloat(item.price);
+      if (item.stock !== undefined) data.stock = parseInt(item.stock, 10);
+      if (item.language !== undefined) data.data = cleanCardData({ ...(current.data && typeof current.data === 'object' ? current.data : {}), language: item.language });
+      return prisma.card.update({ where: { id: item.id }, data });
+    }));
+    res.json({ success: true, count: editable.length, skipped: updates.length - editable.length });
+  } catch (error) {
+    console.error('Error en edición en bloque:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// POST eliminar varias cartas: { ids }
+router.post('/api/folders/:id/cards-bulk/delete', authenticateToken, async (req, res) => {
+  try {
+    const own = await loadOwnFolder(req, res);
+    if (!own) return;
+    const ids = req.body?.ids;
+    if (!hasUniqueIds(ids)) return badRequest(res, 'Selección inválida');
+    const removed = await prisma.card.deleteMany({ where: { folderId: own.folder.id, id: { in: ids } } });
+    if (removed.count === 0) return res.status(404).json({ success: false, message: 'Cartas no encontradas' });
+    res.json({ success: true, count: removed.count });
+  } catch (error) {
+    console.error('Error al eliminar cartas en bloque:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// POST mover varias cartas a otra carpeta propia del mismo juego: { ids, targetFolderId }
+router.post('/api/folders/:id/cards-bulk/move', authenticateToken, async (req, res) => {
+  try {
+    const own = await loadOwnFolder(req, res);
+    if (!own) return;
+    const { ids, targetFolderId } = req.body || {};
+    if (!hasUniqueIds(ids) || !isCleanId(targetFolderId) || targetFolderId === own.folder.id) return badRequest(res, 'Selección inválida');
+    const target = await prisma.folder.findUnique({ where: { id: targetFolderId }, select: { id: true, userId: true, tcg: true } });
+    if (!target || target.userId !== own.owner.id) return res.status(404).json({ success: false, message: 'Carpeta de destino no encontrada' });
+    if (target.tcg !== own.folder.tcg) return badRequest(res, 'Solo puedes mover cartas a una carpeta del mismo juego');
+
+    const cards = await prisma.card.findMany({ where: { folderId: own.folder.id, id: { in: ids } }, select: { id: true, data: true } });
+    if (cards.length !== ids.length) return badRequest(res, 'La selección incluye cartas que no son de esta carpeta');
+    // En la carpeta nueva quedan al final: se descarta la posición que tenían
+    await prisma.$transaction(cards.map((card) => {
+      const { catalogOrder: _discarded, ...rest } = card.data && typeof card.data === 'object' ? card.data : {};
+      return prisma.card.update({ where: { id: card.id }, data: { folderId: target.id, data: rest } });
+    }));
+    res.json({ success: true, count: cards.length });
+  } catch (error) {
+    console.error('Error al mover cartas en bloque:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
 // PUT update folder
 router.put('/api/folders/:id', authenticateToken, async (req, res) => {
   try {

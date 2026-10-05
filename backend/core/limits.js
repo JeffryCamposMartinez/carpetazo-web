@@ -31,6 +31,7 @@ export const applyRouteLimits = (app) => {
   app.use('/api/users/username/available', routeLimiter(15 * 60 * 1000, 60));
   app.use('/api/orders/mine/:id/status', routeLimiter(15 * 60 * 1000, 120));
   app.use('/api/folders/me/stats', routeLimiter(15 * 60 * 1000, 600));
+  app.use('/api/folders/:id/cards-bulk', routeLimiter(15 * 60 * 1000, 120));
   app.use('/api/orders/mine/pending', routeLimiter(15 * 60 * 1000, 600));
   // Rutas que escriben datos o hacen consultas pesadas
   app.get('/api/folders/search', routeLimiter(15 * 60 * 1000, 300));

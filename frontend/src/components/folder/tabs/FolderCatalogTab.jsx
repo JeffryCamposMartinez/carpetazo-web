@@ -1,20 +1,28 @@
 import AdminCardEdit from '../AdminCardEdit';
 import AlbumView from '../AlbumView';
-import { CATALOG_CARDS_PER_PAGE } from '../folderCards';
+import { CATALOG_CARDS_PER_PAGE, DETAIL_MODES, chunkCardsByPage } from '../folderCards';
+import CardLightbox from '../CardLightbox';
+import InventoryBulkBar from '../InventoryBulkBar';
+import InventoryToolbar from '../InventoryToolbar';
 import { DragFloatingPreview, FolderInventorySummary, InventoryEmptyState, InventoryFilters, InventoryStatusBar, InventoryViewSwitcher } from '../FolderInventoryComponents';
 
 export default function FolderCatalogTab({
   availableSets, cards, catQuery, catSet, catalogDragFloatingPreview, catalogDragFloatingPreviewRef,
-  catalogGridClass, catalogGridDensity, catalogPages, catalogViewMode, clearCatalogFilters, copyBuyerLink,
-  cycleCatalogGridDensity, draggedCatalogCardId, dropCatalogIndex, filteredCatSets, filteredCatalog,
+  cardDetailsMode, currentFolderId, inventory, catalogGridClass, catalogGridColumns, catalogGridDense, catalogViewMode, clearCatalogFilters, copyBuyerLink,
+  cycleCardDetailsMode, cycleCatalogGridDensity, draggedCatalogCardId, dropCatalogIndex, filteredCatSets, filteredCatalog,
   folderData, getCatalogDragHandleProps, getCatalogDropProps, handleCatalogReorder, handleDeleteRequest,
   handleUpdateCard, hasCatalogFilters, hasUnsavedCatalogOrder, isCatSetDropdownOpen, isMylFolder,
   openBuyerPreview, previewCatalog, saveCatalogOrder, savingCatalogOrder, scrollToTopIfNeeded, setActiveTab,
-  setCatQuery, setCatSet, setCatalogViewMode, setIsCatSetDropdownOpen, setShowCardDetails, showCardDetails,
+  setCatQuery, setCatSet, setCatalogViewMode, setIsCatSetDropdownOpen,
   showScrollTop
 }) {
+  const isGrid = catalogViewMode === 'grid';
+  const visibleCards = isGrid ? inventory.gridCards : filteredCatalog;
+  const gridPages = isGrid ? chunkCardsByPage(inventory.gridCards) : [];
+  const clearAllFilters = () => { clearCatalogFilters(); inventory.setQuickFilter(''); };
+
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-2.5 shadow-sm sm:p-4">
+    <div className={`rounded-2xl border border-gray-200 bg-white p-2.5 shadow-sm sm:p-4 ${inventory.selecting ? 'pb-28' : ''}`}>
       <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-black leading-tight text-[#1a2b4b] sm:text-xl">
@@ -68,30 +76,45 @@ export default function FolderCatalogTab({
         isOpen={isCatSetDropdownOpen}
         setIsOpen={setIsCatSetDropdownOpen}
         onSelectSet={(nextSet) => { setCatSet(nextSet); setIsCatSetDropdownOpen(false); scrollToTopIfNeeded(); }}
-        onClearFilters={clearCatalogFilters}
+        onClearFilters={clearAllFilters}
+        hasFilters={hasCatalogFilters || Boolean(inventory.quickFilter)}
       />
 
-      <InventoryViewSwitcher
+      {isGrid && (
+        <InventoryToolbar
+          counts={inventory.counts}
+          draftCount={inventory.draftCount}
+          onQuickFilter={inventory.setQuickFilter}
+          onSaveDrafts={inventory.saveDrafts}
+          onSort={inventory.setSortKey}
+          onStartSelecting={inventory.startSelecting}
+          quickFilter={inventory.quickFilter}
+          saving={inventory.busy}
+          selecting={inventory.selecting}
+          sortKey={inventory.sortKey}
+        />
+      )}
+
+      {!inventory.selecting && <InventoryViewSwitcher
         mode={catalogViewMode}
         onChange={setCatalogViewMode}
-        showCardDetails={showCardDetails}
-        onToggleCardDetails={() => setShowCardDetails(prev => !prev)}
-        gridDensity={catalogGridDensity}
+        detailMode={cardDetailsMode}
+        onCycleDetails={cycleCardDetailsMode}
+        gridDensity={catalogGridColumns}
         onCycleGridDensity={cycleCatalogGridDensity}
-      />
+      />}
 
-      <div className="fixed right-[max(1rem,calc((100vw-1470px)/2+1rem))] top-1/2 z-[1190] hidden -translate-y-1/2 flex-col gap-3 md:flex">
+      <div className={`fixed right-[max(1rem,calc((100vw-1470px)/2+1rem))] top-1/2 z-[1190] hidden -translate-y-1/2 flex-col gap-3 ${inventory.selecting ? '' : 'md:flex'}`}>
         {catalogViewMode === 'grid' && (
           <>
           <button
             type="button"
-            onClick={() => setShowCardDetails(prev => !prev)}
-            className={`flex h-12 w-12 items-center justify-center rounded-full border shadow-lg transition-all hover:scale-105 active:scale-95 ${showCardDetails ? 'border-[#1e40af] bg-[#1e40af] text-white' : 'border-blue-100 bg-white text-[#1e40af] hover:bg-blue-50'}`}
-            title={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
-            aria-label={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
-            aria-pressed={showCardDetails}
+            onClick={cycleCardDetailsMode}
+            className={`flex h-12 w-12 items-center justify-center rounded-full border shadow-lg transition-all hover:scale-105 active:scale-95 ${cardDetailsMode !== 'none' ? 'border-[#1e40af] bg-[#1e40af] text-white' : 'border-blue-100 bg-white text-[#1e40af] hover:bg-blue-50'}`}
+            title={`Información de las cartas: ${DETAIL_MODES[cardDetailsMode].label}. Toca para cambiar`}
+            aria-label={`Información de las cartas: ${DETAIL_MODES[cardDetailsMode].label}. Toca para cambiar`}
           >
-            <span translate="no" className="material-symbols-outlined text-[21px]">{showCardDetails ? 'visibility' : 'visibility_off'}</span>
+            <span translate="no" className="material-symbols-outlined text-[21px]">{DETAIL_MODES[cardDetailsMode].icon}</span>
           </button>
           <button
             type="button"
@@ -101,13 +124,13 @@ export default function FolderCatalogTab({
             aria-label="Cambiar tamaño de cuadrícula"
           >
             <span translate="no" className="material-symbols-outlined text-[20px]">grid_view</span>
-            <span className="ml-0.5">{catalogGridDensity}</span>
+            <span className="ml-0.5">{catalogGridColumns}</span>
           </button>
           </>
         )}
         <button
           type="button"
-          onClick={clearCatalogFilters}
+          onClick={clearAllFilters}
           className="flex h-12 w-12 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-lg transition-all hover:scale-105 hover:bg-red-50 hover:text-red-500 active:scale-95"
           title="Limpiar filtros"
           aria-label="Limpiar filtros"
@@ -146,10 +169,10 @@ export default function FolderCatalogTab({
         </div>
       )}
 
-      {filteredCatalog.length === 0 ? (
+      {visibleCards.length === 0 ? (
         <InventoryEmptyState
-          hasFilters={hasCatalogFilters}
-          onClearFilters={clearCatalogFilters}
+          hasFilters={hasCatalogFilters || Boolean(inventory.quickFilter)}
+          onClearFilters={clearAllFilters}
           onAddCards={() => setActiveTab('add')}
         />
       ) : catalogViewMode === 'album' ? (
@@ -171,7 +194,7 @@ export default function FolderCatalogTab({
             </div>
           )}
 
-          {catalogPages.map((pageCards, pageIndex) => (
+          {gridPages.map((pageCards, pageIndex) => (
             <section
               key={`catalog-page-${pageIndex}`}
               className="rounded-3xl border-2 border-blue-100 bg-gradient-to-br from-blue-50 via-white to-blue-50 p-4 shadow-sm"
@@ -198,7 +221,7 @@ export default function FolderCatalogTab({
                     <div
                       key={card.id || `catalog-${visibleIndex}`}
                       data-catalog-drop-index={visibleIndex}
-                      {...getCatalogDropProps(visibleIndex)}
+                      {...(inventory.dragEnabled ? getCatalogDropProps(visibleIndex) : {})}
                       className={`rounded-2xl transition-all ${
                         isDragging ? 'ring-4 ring-emerald-400/80 bg-emerald-50/80 scale-[1.02]' : ''
                       } ${
@@ -209,11 +232,16 @@ export default function FolderCatalogTab({
                         card={card}
                         onUpdate={handleUpdateCard}
                         onDelete={handleDeleteRequest}
-                        dragHandleProps={getCatalogDragHandleProps(card, visibleIndex)}
+                        dragHandleProps={inventory.dragEnabled ? getCatalogDragHandleProps(card, visibleIndex) : null}
+                        selectable={inventory.selecting}
+                        selected={inventory.selectedIds.has(card.id)}
+                        onToggleSelect={inventory.toggleSelected}
+                        onPreview={inventory.setPreviewId}
+                        onDraftChange={inventory.onDraftChange}
                         compact
-                        showDetails={showCardDetails}
+                        detailLevel={cardDetailsMode}
                         showLanguage={!isMylFolder}
-                        dense={catalogGridDensity >= 3}
+                        dense={catalogGridDense}
                       />
                     </div>
                   );
@@ -225,6 +253,27 @@ export default function FolderCatalogTab({
       )}
 
       <DragFloatingPreview preview={catalogDragFloatingPreview} previewRef={catalogDragFloatingPreviewRef} />
+
+      {isGrid && inventory.selecting && (
+        <InventoryBulkBar
+          busy={inventory.busy}
+          count={inventory.selectedIds.size}
+          currentFolderId={currentFolderId}
+          onAdjust={inventory.adjustPrices}
+          onClear={inventory.clearSelected}
+          onClose={inventory.stopSelecting}
+          onDelete={inventory.removeSelected}
+          onMove={inventory.moveSelected}
+          onSelectAll={inventory.selectAllVisible}
+          onSetValues={inventory.setValues}
+          tcg={folderData?.tcg}
+          total={inventory.gridCards.length}
+        />
+      )}
+
+      {isGrid && inventory.previewId && (
+        <CardLightbox cards={inventory.gridCards} cardId={inventory.previewId} onChange={inventory.setPreviewId} onClose={() => inventory.setPreviewId(null)} />
+      )}
     </div>
   );
 }

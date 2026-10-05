@@ -53,3 +53,10 @@ export const getExtDataValue = (extData, fieldName) => {
   }
   return '';
 };
+
+// Información que se ve en cada carta del inventario (botón del ojo): se pasa de uno a otro en este orden
+export const DETAIL_MODES = {
+  basic: { icon: 'sell', label: 'Solo precio y stock', next: 'full' },
+  full: { icon: 'visibility', label: 'Toda la información', next: 'none' },
+  none: { icon: 'visibility_off', label: 'Sin información', next: 'basic' },
+};

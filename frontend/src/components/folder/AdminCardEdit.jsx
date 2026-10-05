@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 
-const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, compact = false, showDetails = false, dense = false, showLanguage = false }) => {
+const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, compact = false, detailLevel = 'none', dense = false, showLanguage = false, selectable = false, selected = false, onToggleSelect, onPreview, onDraftChange }) => {
+  // 'full': nombre, edición, stock, precio e idioma · 'basic': solo stock y precio · 'none': solo la carta
+  const showDetails = detailLevel !== 'none';
+  const showInfo = detailLevel === 'full';
   const [imgError, setImgError] = useState(false);
   const [price, setPrice] = useState(card.price);
   const [stock, setStock] = useState(card.stock);
@@ -23,23 +26,53 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
 
   const hasChanges = price != card.price || stock != card.stock || (showLanguage && language !== (card.language || 'English'));
 
+  // Avisa al inventario qué cartas tienen cambios sin guardar (para «Guardar todos los cambios»)
+  useEffect(() => {
+    if (!onDraftChange) return undefined;
+    onDraftChange(card.id, showDetails && hasChanges ? { price, stock, ...(showLanguage ? { language } : {}) } : null);
+    return undefined;
+  }, [onDraftChange, card.id, showDetails, hasChanges, price, stock, language, showLanguage]);
+  useEffect(() => () => { if (onDraftChange) onDraftChange(card.id, null); }, [onDraftChange, card.id]);
+
+  const saveOnEnter = (event) => { if (event.key === 'Enter' && hasChanges && !saving) { event.preventDefault(); handleSave(); } };
+
   return (
-    <div className="bg-blue-50 rounded-2xl border border-gray-200 flex flex-col shadow-sm hover:shadow-md transition-shadow overflow-hidden relative group">
-      <div
-        {...dragHandleProps}
-        className={`${compact ? 'top-1.5 left-1.5 w-8 h-8' : 'top-2 left-2 w-9 h-9'} absolute z-10 rounded-full bg-white/90 text-[#1e40af] shadow-sm border border-blue-100 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-100 transition-opacity`}
-        style={{ touchAction: 'none' }}
-        title="Mantén y arrastra para ordenar"
-      >
-        <span translate="no" className="material-symbols-outlined text-[21px]">drag_indicator</span>
-      </div>
-      <button
-        onClick={() => onDelete(card.id)}
-        className={`${compact ? 'top-1.5 right-1.5 w-7 h-7' : 'top-2 right-2 w-8 h-8'} absolute z-10 flex items-center justify-center rounded-full bg-red-600 hover:bg-red-700 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-sm`}
-        title="Eliminar carta"
-      >
-        <span translate="no" className="material-symbols-outlined text-[18px]">delete</span>
-      </button>
+    <div className={`bg-blue-50 rounded-2xl border flex flex-col shadow-sm hover:shadow-md transition-shadow overflow-hidden relative group ${selected ? 'border-[#1e40af] ring-4 ring-[#1e40af]/40' : 'border-gray-200'}`}>
+      {selectable ? (
+        <button
+          type="button"
+          onClick={() => onToggleSelect(card.id)}
+          aria-pressed={selected}
+          aria-label={`${selected ? 'Quitar' : 'Elegir'} ${card.name}`}
+          className="absolute inset-0 z-20 flex items-start justify-start rounded-2xl p-1.5 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#facc15]"
+        >
+          <span className={`flex h-7 w-7 items-center justify-center rounded-full border-2 shadow-sm transition-colors ${selected ? 'border-[#1e40af] bg-[#1e40af] text-white' : 'border-white bg-white/80 text-transparent'}`}>
+            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px] font-bold">check</span>
+          </span>
+        </button>
+      ) : (
+        <>
+          {dragHandleProps && (
+            <div
+              {...dragHandleProps}
+              className={`${compact ? 'top-1.5 left-1.5 w-8 h-8' : 'top-2 left-2 w-9 h-9'} absolute z-10 rounded-full bg-white/90 text-[#1e40af] shadow-sm border border-blue-100 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-100 transition-opacity`}
+              style={{ touchAction: 'none' }}
+              title="Mantén y arrastra para ordenar"
+            >
+              <span translate="no" className="material-symbols-outlined text-[21px]">drag_indicator</span>
+            </div>
+          )}
+          {/* En pantallas táctiles no hay «pasar el mouse»: el botón de eliminar queda siempre a la vista */}
+          <button
+            onClick={() => onDelete(card.id)}
+            className={`${compact ? 'top-1.5 right-1.5 w-8 h-8 [@media(hover:hover)]:w-7 [@media(hover:hover)]:h-7' : 'top-2 right-2 w-8 h-8'} absolute z-10 flex items-center justify-center rounded-full bg-red-600 hover:bg-red-700 text-white opacity-100 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity shadow-sm`}
+            title="Eliminar carta"
+            aria-label={`Eliminar ${card.name}`}
+          >
+            <span translate="no" className="material-symbols-outlined text-[18px]">delete</span>
+          </button>
+        </>
+      )}
       <div className={`${compact && !showDetails ? 'p-1.5' : compact ? (dense ? 'p-1.5' : 'p-2.5') : 'p-4'} flex flex-col items-center flex-1`}>
         <div className={`w-full relative pt-[140%] ${showDetails ? (compact ? 'mb-2' : 'mb-3') : 'mb-0'}`}>
           {imgError || !card.imageUrl ? (
@@ -56,6 +89,9 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
                 onError={() => setImgError(true)} 
               />
             )}
+          {onPreview && !selectable && (
+            <button type="button" onClick={() => onPreview(card.id)} aria-label={`Ver ${card.name} en grande`} className="absolute inset-0 z-[1] cursor-zoom-in rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]" />
+          )}
           {showDetails && (Number(card.stock || 0) <= 0 || Number(card.price || 0) <= 0) && (
             <div className="absolute bottom-1 left-1 right-1 z-10 flex flex-wrap justify-center gap-1">
               {Number(card.stock || 0) <= 0 && (
@@ -67,7 +103,7 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
             </div>
           )}
         </div>
-        {showDetails && (
+        {showInfo && (
           <>
             <p className={`font-bold text-gray-900 text-center line-clamp-1 w-full ${dense ? 'text-[11px]' : compact ? 'text-xs' : 'text-sm'}`}>{card.name}</p>
             <p className={`${dense ? 'text-[9px] mb-1.5' : `text-[10px] ${compact ? 'mb-2' : 'mb-4'}`} text-gray-500 text-center truncate w-full`}>
@@ -91,7 +127,7 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
             <label className={`${dense ? 'text-[9px]' : 'text-[10px]'} text-gray-500 uppercase tracking-wider font-bold`}>Stock</label>
             <div className={`${dense ? 'grid grid-cols-[1.35rem_minmax(2rem,1fr)_1.35rem]' : `${compact ? 'w-full' : ''} flex items-center`} shadow-sm rounded-md overflow-hidden border border-gray-300`}>
               <button type="button" onClick={() => setStock(Math.max(0, parseInt(stock) - 1))} className={`${dense ? 'w-full text-xs' : compact ? 'w-8 text-sm' : 'w-6 text-sm'} h-7 flex items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors font-black text-gray-700`}>-</button>
-              <input type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} className={`${dense ? 'w-full min-w-[32px] text-[11px]' : compact ? 'flex-1 min-w-0 text-xs' : 'w-10 text-xs'} h-7 text-center bg-white focus:outline-none px-0 font-black border-x border-gray-300 text-gray-950 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`} />
+              <input type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} onKeyDown={saveOnEnter} className={`${dense ? 'w-full min-w-[32px] text-[11px]' : compact ? 'flex-1 min-w-0 text-xs' : 'w-10 text-xs'} h-7 text-center bg-white focus:outline-none px-0 font-black border-x border-gray-300 text-gray-950 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`} />
               <button type="button" onClick={() => setStock(parseInt(stock) + 1)} className={`${dense ? 'w-full text-xs' : compact ? 'w-8 text-sm' : 'w-6 text-sm'} h-7 flex items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors font-black text-gray-700`}>+</button>
             </div>
           </div>
@@ -99,10 +135,10 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
             <label className={`${dense ? 'text-[9px]' : 'text-[10px]'} text-gray-500 uppercase tracking-wider font-bold`}>Precio</label>
             <div className={`relative ${compact ? 'w-full' : 'w-24'}`}>
               <span className={`absolute ${dense ? 'left-1.5 text-[11px]' : 'left-2 text-xs'} top-1/2 -translate-y-1/2 text-gray-500 font-bold`}>$</span>
-              <input type="number" min="0" value={price} onChange={e => setPrice(e.target.value)} className={`w-full h-7 ${dense ? 'pl-4 pr-1 text-[11px]' : 'pl-6 pr-2 text-xs'} bg-white focus:outline-none font-bold rounded-md border border-gray-300 shadow-sm text-right text-gray-900 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`} />
+              <input type="number" min="0" value={price} onChange={e => setPrice(e.target.value)} onKeyDown={saveOnEnter} className={`w-full h-7 ${dense ? 'pl-4 pr-1 text-[11px]' : 'pl-6 pr-2 text-xs'} bg-white focus:outline-none font-bold rounded-md border border-gray-300 shadow-sm text-right text-gray-900 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`} />
             </div>
           </div>
-          {showLanguage && (
+          {showLanguage && showInfo && (
             <div className={`w-full bg-gray-50 ${dense ? 'px-1.5 py-1' : 'px-2 py-1.5'} rounded-lg border border-gray-200 shadow-sm ${compact ? 'flex flex-col gap-1' : 'flex justify-between items-center'}`}>
               <label className={`${dense ? 'text-[9px]' : 'text-[10px]'} text-gray-500 uppercase tracking-wider font-bold`}>Idioma</label>
               <div className={`relative ${compact ? 'w-full' : 'w-24'}`}>
@@ -140,9 +176,14 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
 }, (prev, next) => (
   prev.card === next.card
   && prev.compact === next.compact
-  && prev.showDetails === next.showDetails
+  && prev.detailLevel === next.detailLevel
   && prev.dense === next.dense
   && prev.showLanguage === next.showLanguage
+  && prev.selectable === next.selectable
+  && prev.selected === next.selected
+  && prev.onToggleSelect === next.onToggleSelect
+  && prev.onPreview === next.onPreview
+  && prev.onDraftChange === next.onDraftChange
   && prev.onUpdate === next.onUpdate
   && prev.onDelete === next.onDelete
   && prev.dragHandleProps === next.dragHandleProps
