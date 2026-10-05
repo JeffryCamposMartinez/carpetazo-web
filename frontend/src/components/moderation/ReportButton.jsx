@@ -220,16 +220,39 @@ export function ReportMenu({ options, label = 'Reportar', buttonClassName = '', 
   const { currentUser } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [target, setTarget] = useState(null);
-  const wrapperRef = useRef(null);
+  const [anchor, setAnchor] = useState(null); // posición del botón en pantalla (para el menú en pantallas anchas)
+  const [isPhone, setIsPhone] = useState(false);
+  const buttonRef = useRef(null);
+  const menuRef = useRef(null);
+  useBodyScrollLock(menuOpen && isPhone);
+
+  // El menú se dibuja en el <body>: dentro del perfil quedaba debajo de otros bloques y no se veía
+  const openMenu = () => {
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (rect) setAnchor({ left: rect.left, top: rect.top, bottom: rect.bottom });
+    setIsPhone(window.matchMedia('(max-width: 639px)').matches);
+    setMenuOpen((value) => !value);
+  };
 
   useEffect(() => {
     if (!menuOpen) return undefined;
-    const close = (event) => { if (!wrapperRef.current?.contains(event.target)) setMenuOpen(false); };
-    const onKey = (event) => { if (event.key === 'Escape') setMenuOpen(false); };
-    document.addEventListener('mousedown', close);
+    const closeOutside = (event) => {
+      if (!menuRef.current?.contains(event.target) && !buttonRef.current?.contains(event.target)) setMenuOpen(false);
+    };
+    const onKey = (event) => { if (event.key === 'Escape') { setMenuOpen(false); buttonRef.current?.focus({ preventScroll: true }); } };
+    const close = () => setMenuOpen(false);
+    document.addEventListener('mousedown', closeOutside);
     document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', onKey); };
-  }, [menuOpen]);
+    window.addEventListener('resize', close);
+    if (!isPhone) window.addEventListener('scroll', close, { passive: true });
+    menuRef.current?.querySelector('button')?.focus({ preventScroll: true });
+    return () => {
+      document.removeEventListener('mousedown', closeOutside);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', close);
+      window.removeEventListener('scroll', close);
+    };
+  }, [menuOpen, isPhone]);
 
   const items = options.filter((option) => option.targetId);
   if (items.length === 0) return null;
@@ -240,18 +263,44 @@ export function ReportMenu({ options, label = 'Reportar', buttonClassName = '', 
     setTarget(option);
   };
 
+  const itemClass = 'block w-full px-4 py-3 text-left text-[15px] font-semibold text-slate-700 hover:bg-blue-50 hover:text-[#12315f] focus:bg-blue-50 focus:outline-none sm:py-2.5 sm:text-sm';
+  const menuItems = items.map((option) => (
+    <button key={option.targetType} type="button" role="menuitem" onClick={() => choose(option)} className={itemClass}>{option.label}</button>
+  ));
+
+  // Pantallas anchas: junto al botón, hacia abajo y, si no cabe, hacia arriba; siempre dentro de la pantalla
+  const popoverStyle = anchor && (() => {
+    const width = 256;
+    const left = Math.max(8, Math.min(anchor.left, window.innerWidth - width - 8));
+    const room = window.innerHeight - anchor.bottom;
+    const needed = items.length * 44 + 16;
+    return room >= needed || room >= anchor.top
+      ? { left, top: anchor.bottom + 4, width }
+      : { left, bottom: window.innerHeight - anchor.top + 4, width };
+  })();
+
   return (
-    <div ref={wrapperRef} className="relative inline-block">
-      <button type="button" aria-label={label || "Reportar"} aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((value) => !value)} style={buttonStyle} className={buttonClassName || 'inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-bold text-slate-500 hover:bg-black/5 hover:text-red-600'}>
+    <div className="relative inline-block">
+      <button ref={buttonRef} type="button" aria-label={label || "Reportar"} aria-haspopup="menu" aria-expanded={menuOpen} onClick={openMenu} style={buttonStyle} className={buttonClassName || 'inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-bold text-slate-500 hover:bg-black/5 hover:text-red-600'}>
         <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">flag</span>
         {label}
       </button>
-      {menuOpen && (
-        <div role="menu" className="absolute left-0 z-20 mt-1 min-w-[14rem] overflow-hidden rounded-2xl border border-slate-200 bg-white py-1 shadow-xl">
-          {items.map((option) => (
-            <button key={option.targetType} type="button" role="menuitem" onClick={() => choose(option)} className="block w-full px-4 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-[#12315f]">{option.label}</button>
-          ))}
-        </div>
+      {menuOpen && createPortal(
+        isPhone ? (
+          <div className="fixed inset-0 z-[1400]">
+            <div className="sheet-backdrop absolute inset-0 bg-[#0b1d3d]/50" onClick={() => setMenuOpen(false)} aria-hidden="true" />
+            <div ref={menuRef} role="menu" aria-label="Qué quieres reportar" className="folder-sheet absolute inset-x-0 bottom-0 rounded-t-3xl bg-white px-2 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_40px_-12px_rgba(8,18,42,0.5)]">
+              <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-300" aria-hidden="true" />
+              <p className="px-4 pb-2 pt-1 text-sm font-extrabold text-[#12315f]">¿Qué quieres reportar?</p>
+              {menuItems}
+            </div>
+          </div>
+        ) : (
+          <div ref={menuRef} role="menu" aria-label="Qué quieres reportar" style={popoverStyle} className="fixed z-[1400] overflow-hidden rounded-2xl border border-slate-200 bg-white py-1 shadow-xl">
+            {menuItems}
+          </div>
+        ),
+        document.body
       )}
       {target && <ReportSheet targetType={target.targetType} targetId={target.targetId} blockUserId={target.blockUserId} onClose={() => setTarget(null)} />}
     </div>
