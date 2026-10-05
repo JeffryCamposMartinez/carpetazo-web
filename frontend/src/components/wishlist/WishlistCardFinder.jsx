@@ -18,10 +18,18 @@ export const WISHLIST_GAMES = [
 ];
 
 const MYL_CATEGORY = '99';
-const SCAN_BATCH = 6; // ediciones de Pokémon que se revisan por vez cuando no se elige una
+const SCAN_BATCH = 3; // ediciones de Pokémon que se descargan a la vez cuando no se elige una (igual que al agregar cartas a una carpeta)
 const PAGE = 20;
 
 const cardLabel = (name, number) => (number && !name.includes(number) ? `${name} - ${number}` : name);
+
+const pokemonRow = (card) => ({
+  key: `tcgcsv:${card.catId}:${card.productId}`,
+  payload: { external: { categoryId: card.catId, productId: card.productId }, name: cardLabel(card.name, card.number), imageUrl: card.imageUrl, detail: `${card.setName} · ${card.language}`, game: 'Pokémon' },
+  label: cardLabel(card.name, card.number),
+  sub: `${card.setName} · ${card.language}`,
+  imageUrl: card.imageUrl,
+});
 
 export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyKey = '', resetRef = null }) {
   const [game, setGame] = useState('Pokémon');
@@ -118,13 +126,6 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
 
       // Pokémon
       const filters = { query: term, supertype: selectedSupertype, type: selectedType };
-      const toRow = (card) => ({
-        key: `tcgcsv:${card.catId}:${card.productId}`,
-        payload: { external: { categoryId: card.catId, productId: card.productId }, name: cardLabel(card.name, card.number), imageUrl: card.imageUrl, detail: `${card.setName} · ${card.language}`, game: 'Pokémon' },
-        label: cardLabel(card.name, card.number),
-        sub: `${card.setName} · ${card.language}`,
-        imageUrl: card.imageUrl,
-      });
       setMoreEditions(false);
       if (searchSet) {
         const group = pokemonGroups.find((item) => String(item.groupId) === String(searchSet));
@@ -132,7 +133,7 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
         setHint(''); setSearching(true);
         try {
           const cards = filterPokemonCards(await fetchPokemonGroupCards(searchLang, group, controller.signal), filters);
-          if (mine === seq.current) setResults(cards.map(toRow));
+          if (mine === seq.current) setResults(cards.map(pokemonRow));
         } catch (_error) {
           if (mine === seq.current) setResults([]);
         } finally {
@@ -140,17 +141,13 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
         }
         return;
       }
-      if (term.length < 2) { setResults([]); setHint('Elige una edición o escribe el nombre de la carta.'); return; }
+      // Todas las ediciones: mismo criterio que al agregar a una carpeta (coincide nombre o número, de la edición más nueva a la más vieja)
+      if (!term && !selectedSupertype && !selectedType) { setResults([]); setHint('Elige una edición o escribe el nombre de la carta.'); return; }
       if (pokemonGroups.length === 0) return;
-      // Sin edición: se revisan las más nuevas primero, de a varias por vez
       setHint(''); setSearching(true); scanned.current = 0;
       try {
-        const found = [];
-        const batch = pokemonGroups.slice(0, SCAN_BATCH);
-        const lists = await Promise.all(batch.map((group) => fetchPokemonGroupCards(searchLang, group, controller.signal).catch(() => [])));
-        lists.forEach((list) => found.push(...filterPokemonCards(list, filters)));
-        scanned.current = batch.length;
-        if (mine === seq.current) { setResults(found.map(toRow)); setMoreEditions(pokemonGroups.length > batch.length); }
+        const { found, next } = await scanEditions(0, filters, controller.signal);
+        if (mine === seq.current) { scanned.current = next; setResults(found); setMoreEditions(next < pokemonGroups.length); }
       } finally {
         if (mine === seq.current) setSearching(false);
       }
@@ -160,26 +157,31 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
     return () => { clearTimeout(timer); controller.abort(); };
   }, [game, searchQuery, searchSet, searchLang, selectedSupertype, selectedType, pokemonGroups, mylFilters]);
 
+  // Descarga ediciones de a 3, de la más nueva a la más vieja, hasta juntar una página de coincidencias (o llegar a la última)
+  const scanEditions = async (from, filters, signal) => {
+    const found = [];
+    let at = from;
+    while (found.length < PAGE && at < pokemonGroups.length && !signal?.aborted) {
+      const batch = pokemonGroups.slice(at, at + SCAN_BATCH);
+      const lists = await Promise.all(batch.map((group) => fetchPokemonGroupCards(searchLang, group, signal).catch(() => [])));
+      lists.forEach((list) => found.push(...filterPokemonCards(list, filters).map(pokemonRow)));
+      at += batch.length;
+    }
+    return { found, next: at };
+  };
+
   const scanMoreEditions = async () => {
-    const term = searchQuery.trim();
-    const filters = { query: term, supertype: selectedSupertype, type: selectedType };
-    const batch = pokemonGroups.slice(scanned.current, scanned.current + SCAN_BATCH);
-    if (batch.length === 0) return;
+    const filters = { query: searchQuery.trim(), supertype: selectedSupertype, type: selectedType };
+    if (scanned.current >= pokemonGroups.length) return;
     setSearching(true);
     const mine = seq.current;
     try {
-      const lists = await Promise.all(batch.map((group) => fetchPokemonGroupCards(searchLang, group).catch(() => [])));
-      const extra = lists.flatMap((list) => filterPokemonCards(list, filters)).map((card) => ({
-        key: `tcgcsv:${card.catId}:${card.productId}`,
-        payload: { external: { categoryId: card.catId, productId: card.productId }, name: cardLabel(card.name, card.number), imageUrl: card.imageUrl, detail: `${card.setName} · ${card.language}`, game: 'Pokémon' },
-        label: cardLabel(card.name, card.number),
-        sub: `${card.setName} · ${card.language}`,
-        imageUrl: card.imageUrl,
-      }));
+      const { found, next } = await scanEditions(scanned.current, filters);
       if (mine !== seq.current) return;
-      scanned.current += batch.length;
-      setResults((previous) => [...previous, ...extra]);
-      setMoreEditions(scanned.current < pokemonGroups.length);
+      scanned.current = next;
+      setResults((previous) => [...previous, ...found]);
+      setMoreEditions(next < pokemonGroups.length);
+      setVisible((value) => value + PAGE);
     } finally {
       setSearching(false);
     }
