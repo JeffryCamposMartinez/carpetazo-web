@@ -27,7 +27,7 @@ function TextForm({ label, minLength, maxLength, submitLabel, onSubmit, onCancel
     <div className="mt-3 space-y-2">
       <label className="block text-sm font-extrabold text-slate-700">
         {label}
-        <textarea rows={4} maxLength={maxLength} value={text} onChange={(event) => setText(event.target.value)} className="mt-1 w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium outline-none focus:border-[#1e40af]" />
+        <textarea rows={4} maxLength={maxLength} value={text} onChange={(event) => setText(event.target.value)} className="mt-1 w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-base sm:text-sm font-medium outline-none focus:border-[#1e40af]" />
         <span className="block text-right text-xs font-semibold text-slate-400">{text.length}/{maxLength} (mínimo {minLength})</span>
       </label>
       {error && <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700">{error}</p>}
@@ -139,7 +139,7 @@ export default function MyModeration() {
       <Section title="Reportar un pedido">
         <p className="text-sm font-semibold text-slate-600">Si pagaste y algo salió mal (o vendiste y el comprador actuó de mala fe), ingresa el código del pedido.</p>
         <form onSubmit={findOrder} className="flex gap-2">
-          <input type="text" value={code} onChange={(event) => setCode(event.target.value)} maxLength={20} placeholder="Código del pedido" aria-label="Código del pedido" className="h-11 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold uppercase outline-none focus:border-[#1e40af]" />
+          <input type="text" value={code} onChange={(event) => setCode(event.target.value)} maxLength={20} placeholder="Código del pedido" aria-label="Código del pedido" className="h-11 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-base sm:text-sm font-semibold uppercase outline-none focus:border-[#1e40af]" />
           <button type="submit" disabled={code.trim().length < 3} className="h-11 rounded-xl bg-[#12315f] px-5 text-sm font-bold text-white disabled:opacity-50">Buscar</button>
         </form>
         {orderError && <p role="alert" className="text-sm font-bold text-red-700">{orderError}</p>}

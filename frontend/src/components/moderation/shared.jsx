@@ -61,14 +61,14 @@ export function DetailPane({ label, children }) {
   // En el teléfono el fondo no se desplaza mientras el detalle está abierto
   useBodyScrollLock(window.matchMedia('(max-width: 1279px)').matches);
   return (
-    <section aria-label={label} className="fixed inset-0 z-[70] flex flex-col overflow-hidden bg-white xl:sticky xl:inset-auto xl:top-4 xl:z-0 xl:max-h-[calc(100vh-2rem)] xl:rounded-2xl xl:shadow-sm xl:ring-1 xl:ring-slate-900/10">
+    <section aria-label={label} className="fixed inset-0 z-[70] flex flex-col overflow-hidden bg-white pt-[env(safe-area-inset-top)] xl:pt-0 xl:sticky xl:inset-auto xl:top-4 xl:z-0 xl:max-h-[calc(100vh-2rem)] xl:rounded-2xl xl:shadow-sm xl:ring-1 xl:ring-slate-900/10">
       {children}
     </section>
   );
 }
 
 export const DetailHeader = ({ title, subtitle, onClose }) => (
-  <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-3 py-2.5 xl:px-4">
+  <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 py-2.5 xl:px-4">
     <button type="button" onClick={onClose} aria-label="Volver a la lista" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#12315f] hover:bg-slate-100 xl:hidden">
       <span translate="no" aria-hidden="true" className="material-symbols-outlined">arrow_back</span>
     </button>
@@ -82,6 +82,7 @@ export const DetailHeader = ({ title, subtitle, onClose }) => (
 
 // Hoja inferior para los filtros en el teléfono
 export function FilterSheet({ open, onClose, title = 'Filtros', children }) {
+  useBodyScrollLock(open);
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (event) => { if (event.key === 'Escape') onClose(); };
@@ -90,8 +91,8 @@ export function FilterSheet({ open, onClose, title = 'Filtros', children }) {
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[80] flex items-end bg-slate-900/50 lg:hidden" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <div role="dialog" aria-modal="true" aria-label={title} className="w-full space-y-4 rounded-t-3xl bg-white p-5 pb-8 shadow-2xl">
+    <div className="sheet-backdrop fixed inset-0 z-[80] flex items-end bg-slate-900/50 lg:hidden" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <div role="dialog" aria-modal="true" aria-label={title} className="folder-sheet max-h-[90dvh] w-full space-y-4 overflow-y-auto overscroll-contain rounded-t-3xl bg-white p-5 pb-[max(2rem,env(safe-area-inset-bottom))] shadow-2xl">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-extrabold text-[#12315f]">{title}</h2>
           <button type="button" onClick={onClose} className="rounded-full px-3 py-1.5 text-sm font-bold text-[#1e40af] hover:bg-blue-50">Listo</button>

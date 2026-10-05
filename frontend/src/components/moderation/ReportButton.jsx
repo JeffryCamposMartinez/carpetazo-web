@@ -26,6 +26,10 @@ function ReportSheet({ targetType, targetId, blockUserId, onClose, onReported })
   const [evidenceNote, setEvidenceNote] = useState('');
   const [blocked, setBlocked] = useState(false);
   const dialogRef = useRef(null);
+  const scrollRef = useRef(null);
+
+  // Cada paso empieza arriba (en el celular el formulario es largo)
+  useEffect(() => { scrollRef.current?.scrollTo({ top: 0 }); }, [step]);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,26 +94,26 @@ function ReportSheet({ targetType, targetId, blockUserId, onClose, onReported })
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[300] flex items-end justify-center bg-slate-900/60 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className="sheet-backdrop fixed inset-0 z-[1500] flex items-end justify-center bg-slate-900/60 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="report-title"
         tabIndex={-1}
-        className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl outline-none sm:max-w-lg sm:rounded-3xl"
+        className="auth-sheet flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl outline-none sm:max-h-[90dvh] sm:max-w-lg sm:rounded-3xl"
       >
         <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 pb-3 pt-5">
           <div className="min-w-0">
             <h2 id="report-title" className="text-lg font-black text-[#12315f]">{step === 3 ? 'Recibimos tu reporte' : `Reportar ${catalog?.label || ''}`.trim()}</h2>
             {step !== 3 && <p className="mt-0.5 text-xs font-semibold text-slate-500">Tu reporte es anónimo. La persona reportada no sabrá quién fue.</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Cerrar" className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100">
+          <button type="button" onClick={onClose} aria-label="Cerrar" className="-mr-1 -mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-500 transition-transform duration-150 active:scale-90 hover:bg-slate-100">
             <span aria-hidden="true" className="text-xl leading-none">×</span>
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div ref={scrollRef} className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-5 py-4">
           {loadError && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{loadError}</p>}
           {!catalog && !loadError && <div className="flex justify-center py-10" role="status" aria-label="Cargando"><div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1e40af] border-t-transparent" /></div>}
 
@@ -133,12 +137,12 @@ function ReportSheet({ targetType, targetId, blockUserId, onClose, onReported })
               {reason.extra.map((field) => (
                 <label key={field.key} className="block text-sm font-extrabold text-slate-700">
                   {field.label}
-                  <input type="text" maxLength={120} value={extra[field.key] || ''} onChange={(event) => setExtra((previous) => ({ ...previous, [field.key]: event.target.value }))} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-800 outline-none focus:border-[#1e40af]" />
+                  <input type="text" maxLength={120} value={extra[field.key] || ''} onChange={(event) => setExtra((previous) => ({ ...previous, [field.key]: event.target.value }))} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-base sm:text-sm font-medium text-slate-800 outline-none focus:border-[#1e40af]" />
                 </label>
               ))}
               <label className="block text-sm font-extrabold text-slate-700">
                 Cuéntanos más {needsComment ? `(obligatorio, mínimo ${COMMENT_MIN_REQUIRED} caracteres)` : '(opcional)'}
-                <textarea rows={4} maxLength={COMMENT_MAX} value={comment} onChange={(event) => setComment(event.target.value)} className="mt-1 w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-800 outline-none focus:border-[#1e40af]" />
+                <textarea rows={4} maxLength={COMMENT_MAX} value={comment} onChange={(event) => setComment(event.target.value)} className="mt-1 w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-base sm:text-sm font-medium text-slate-800 outline-none focus:border-[#1e40af]" />
                 <span className="mt-1 block text-right text-xs font-semibold text-slate-400">{comment.length}/{COMMENT_MAX}</span>
               </label>
               {reason.allowEvidence && (
@@ -173,7 +177,7 @@ function ReportSheet({ targetType, targetId, blockUserId, onClose, onReported })
           )}
         </div>
 
-        <div className="flex gap-2 border-t border-slate-100 px-5 py-3">
+        <div className="flex gap-2 border-t border-slate-100 px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
           {step === 1 && (
             <>
               <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">Cancelar</button>

@@ -4,7 +4,7 @@ import { ErrorBox, Spinner } from './shared';
 
 const METHOD_LABELS = { 'google.com': 'Google', password: 'Correo y contraseña' };
 const dateTime = (value) => new Date(value).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'medium' });
-const field = 'h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-[15px] text-slate-800 outline-none focus:border-[#1e40af]';
+const field = 'h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-base sm:text-[15px] text-slate-800 outline-none focus:border-[#1e40af]';
 
 // Evidencia legal de aceptación de Términos y Política (solo administradores). La consulta queda en la auditoría.
 // El correo y la IP solo se comparan en el servidor con las huellas guardadas: nunca se guardan en claro.

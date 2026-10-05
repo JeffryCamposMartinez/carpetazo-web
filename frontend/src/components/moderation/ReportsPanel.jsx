@@ -225,7 +225,7 @@ function ReportDetail({ id, level, onClose, onChanged, onOpenPerson }) {
                 </ol>
               )}
               {level >= 2 && <div className="mt-2 flex gap-2">
-                <input type="text" maxLength={1000} value={internalNote} onChange={(event) => setInternalNote(event.target.value)} placeholder="Nota interna (solo el equipo)" aria-label="Nota interna" className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-[#1e40af]" />
+                <input type="text" maxLength={1000} value={internalNote} onChange={(event) => setInternalNote(event.target.value)} placeholder="Nota interna (solo el equipo)" aria-label="Nota interna" className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 text-base sm:text-sm outline-none focus:border-[#1e40af]" />
                 <button type="button" disabled={busy || internalNote.trim().length < 2} onClick={saveNote} className="rounded-xl bg-slate-700 px-4 text-sm font-bold text-white disabled:opacity-50">Guardar</button>
               </div>}
             </section>
@@ -244,12 +244,12 @@ function ReportDetail({ id, level, onClose, onChanged, onOpenPerson }) {
                 <div className="mt-3 space-y-2">
                   <label className="block text-sm font-extrabold text-slate-700">
                     Motivo de la decisión {ACTIONS[action].needsNote ? '(obligatorio)' : '(opcional)'}
-                    <textarea rows={3} maxLength={1000} value={note} onChange={(event) => setNote(event.target.value)} className="mt-1 w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium outline-none focus:border-[#1e40af]" />
+                    <textarea rows={3} maxLength={1000} value={note} onChange={(event) => setNote(event.target.value)} className="mt-1 w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-base sm:text-sm font-medium outline-none focus:border-[#1e40af]" />
                   </label>
                   {(action === 'hide' || action === 'remove') && (
                     <>
                       <label className="block text-sm font-extrabold text-slate-700">Mensaje para la persona (opcional, va en el correo)
-                        <textarea rows={2} maxLength={500} value={publicMessage} onChange={(event) => setPublicMessage(event.target.value)} className="mt-1 w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium outline-none focus:border-[#1e40af]" />
+                        <textarea rows={2} maxLength={500} value={publicMessage} onChange={(event) => setPublicMessage(event.target.value)} className="mt-1 w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-base sm:text-sm font-medium outline-none focus:border-[#1e40af]" />
                       </label>
                       <p className="text-xs font-semibold text-slate-500">Se le avisará por correo (sin decir quién reportó) y podrá apelar durante 14 días.</p>
                     </>
@@ -290,7 +290,7 @@ export default function ReportsPanel({ level = 1, onOpenPerson = () => {}, initi
   const activeFilters = [filters.severity, filters.targetType].filter(Boolean).length;
   const submitSearch = (event) => { event.preventDefault(); setFilter({ q: search.trim() }); };
 
-  const selectClass = 'h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-[#12315f] outline-none focus:border-[#1e40af] lg:h-10';
+  const selectClass = 'h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-base sm:text-sm font-semibold text-[#12315f] outline-none focus:border-[#1e40af] lg:h-10';
   const fields = (
     <>
       <select aria-label="Gravedad" value={filters.severity} onChange={(event) => setFilter({ severity: event.target.value })} className={selectClass}>
@@ -312,7 +312,7 @@ export default function ReportsPanel({ level = 1, onOpenPerson = () => {}, initi
         <form onSubmit={submitSearch} className="mb-3 flex flex-wrap gap-2">
           <div className="relative min-w-0 flex-1">
             <span translate="no" aria-hidden="true" className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">search</span>
-            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Código RP o usuario" aria-label="Buscar reporte" maxLength={40} className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-sm text-slate-800 outline-none focus:border-[#1e40af]" />
+            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Código RP o usuario" aria-label="Buscar reporte" maxLength={40} className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-base sm:text-sm text-slate-800 outline-none focus:border-[#1e40af]" />
           </div>
           <button type="button" onClick={() => setShowFilters(true)} className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-bold text-[#12315f] ring-1 ring-slate-300 lg:hidden">
             <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">tune</span>

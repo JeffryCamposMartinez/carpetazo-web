@@ -51,7 +51,7 @@ function AppealCard({ appeal, level, onChanged, setError }) {
           {action && (
             <div className="mt-3 space-y-2">
               <label className="block text-sm font-bold text-slate-700">Motivo de la decisión (se le envía a la persona)
-                <textarea rows={3} maxLength={1000} value={note} onChange={(event) => setNote(event.target.value)} className="mt-1 w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-[15px] font-normal outline-none focus:border-[#1e40af]" />
+                <textarea rows={3} maxLength={1000} value={note} onChange={(event) => setNote(event.target.value)} className="mt-1 w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-base sm:text-[15px] font-normal outline-none focus:border-[#1e40af]" />
               </label>
               <button type="button" disabled={busy || note.trim().length < 5} onClick={decide} className="h-12 w-full rounded-full bg-[#12315f] px-6 text-sm font-extrabold text-white disabled:opacity-50">{busy ? 'Enviando…' : action === 'accept' ? 'Aceptar la apelación' : 'Rechazar la apelación'}</button>
               <p className="text-xs text-slate-500">Debe decidir una persona distinta de quien tomó la medida. Si eres el único administrador, queda anotado.</p>

@@ -61,7 +61,7 @@ function SanctionForm({ username, level, reportId, onDone, onCancel, setError })
   const [busy, setBusy] = useState(false);
   const needsDays = type !== 'warning' && type !== 'ban';
   const types = SANCTION_TYPES.filter(([key]) => key !== 'ban' || level >= 3);
-  const field = 'mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 text-[15px] font-normal text-slate-800 outline-none focus:border-[#1e40af]';
+  const field = 'mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 text-base sm:text-[15px] font-normal text-slate-800 outline-none focus:border-[#1e40af]';
 
   const submit = async (event) => {
     event.preventDefault();
@@ -157,7 +157,7 @@ export default function PeoplePanel({ level, focusUsername, focusReportId, onFoc
         <form className="mb-3 flex gap-2" onSubmit={(event) => { event.preventDefault(); setShowForm(false); loadProfile(search.trim().toLowerCase().replace(/^@/, '')); }}>
           <div className="relative min-w-0 flex-1">
             <span translate="no" aria-hidden="true" className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">person_search</span>
-            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Usuario, sin la @" aria-label="Usuario" maxLength={20} className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-[15px] text-slate-800 outline-none focus:border-[#1e40af]" />
+            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Usuario, sin la @" aria-label="Usuario" maxLength={20} className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-base sm:text-[15px] text-slate-800 outline-none focus:border-[#1e40af]" />
           </div>
           <button type="submit" className="h-12 shrink-0 rounded-xl bg-[#1e40af] px-5 text-sm font-bold text-white">Buscar</button>
         </form>
