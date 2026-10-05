@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import ReportButton from '../moderation/ReportButton';
+import CardLightbox from '../ui/CardLightbox';
+import { describeWishlistItem } from './wishlistLightbox';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 
@@ -19,6 +21,7 @@ export default function WishlistSection({ username, seller, isOwner = false, var
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [open, setOpen] = useState(variant === 'profile');
+  const [previewId, setPreviewId] = useState(null); // carta que se ve en pantalla completa
 
   const primary = colors.primary || '#12315f';
   const accent = colors.accent || '#facc15';
@@ -86,17 +89,20 @@ export default function WishlistSection({ username, seller, isOwner = false, var
   }
 
   const grid = (
+    <>
     <ul className={`grid gap-3 ${variant === 'profile' ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'}`}>
       {items.map((item) => (
         <li key={item.id} className="flex min-w-0 flex-col overflow-hidden rounded-xl bg-white text-[#12315f] shadow-sm ring-1 ring-black/10">
           <div className="relative w-full bg-slate-100" style={{ aspectRatio: '63 / 88' }}>
             {item.imageUrl ? (
-              <img src={item.imageUrl} alt={item.name} loading="lazy" decoding="async" className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-md object-contain" />
+              <button type="button" onClick={() => setPreviewId(item.id)} aria-label={`Ver ${item.name} en grande`} className="absolute inset-0 cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#12315f]">
+                <img src={item.imageUrl} alt="" loading="lazy" decoding="async" className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-md object-contain" />
+              </button>
             ) : (
               <span className="absolute inset-0 flex items-center justify-center px-2 text-center text-xs font-semibold text-slate-400">Sin imagen</span>
             )}
             {item.quantity > 1 && (
-              <span className="absolute right-1.5 top-1.5 rounded-full bg-[#12315f] px-2 py-0.5 text-xs font-extrabold tabular-nums text-white shadow">x{item.quantity}</span>
+              <span className="pointer-events-none absolute right-1.5 top-1.5 rounded-full bg-[#12315f] px-2 py-0.5 text-xs font-extrabold tabular-nums text-white shadow">x{item.quantity}</span>
             )}
           </div>
           <div className="flex flex-1 flex-col gap-1 p-2.5">
@@ -120,6 +126,8 @@ export default function WishlistSection({ username, seller, isOwner = false, var
         </li>
       ))}
     </ul>
+    {previewId && <CardLightbox cards={items} cardId={previewId} onChange={setPreviewId} onClose={() => setPreviewId(null)} describe={describeWishlistItem} />}
+    </>
   );
 
   const more = page < pages && (

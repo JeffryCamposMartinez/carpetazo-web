@@ -5,8 +5,15 @@ import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 const formatCLP = (value) => `$${Number(value || 0).toLocaleString('es-CL')}`;
 const LANGUAGES = { English: 'Inglés', Spanish: 'Español', Japanese: 'Japonés' };
 
+// Datos que se muestran bajo la carta en el inventario: edición, idioma, precio y stock
+const describeInventoryCard = (card) => ({
+  subtitle: [card.set, LANGUAGES[card.language || card.data?.language]].filter(Boolean).join(' · '),
+  chips: [Number(card.price || 0) > 0 ? formatCLP(card.price) : 'Sin precio', Number(card.stock || 0) > 0 ? `${card.stock} en stock` : 'Sin stock'],
+});
+
 // Carta en grande con sus datos. Flechas del teclado o botones para pasar a la anterior y a la siguiente de la vista actual.
-export default function CardLightbox({ cards, cardId, onChange, onClose }) {
+// `describe(card)` devuelve { subtitle, chips, note } para mostrar otros datos (por defecto, los del inventario).
+export default function CardLightbox({ cards, cardId, onChange, onClose, describe = describeInventoryCard }) {
   const index = cards.findIndex((card) => card.id === cardId);
   const card = cards[index];
   const closeRef = useRef(null);
@@ -34,7 +41,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose }) {
   useEffect(() => { if (!card) onClose(); }, [card, onClose]);
   if (!card) return null;
 
-  const language = LANGUAGES[card.language || card.data?.language] || null;
+  const info = describe(card);
   const nav = 'absolute top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#12315f] shadow-lg transition-[transform,opacity] duration-150 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] disabled:opacity-30';
 
   return createPortal(
@@ -60,12 +67,15 @@ export default function CardLightbox({ cards, cardId, onChange, onClose }) {
 
       <div className="shrink-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 text-center text-white" onClick={(event) => event.stopPropagation()}>
         <p className="line-clamp-2 text-base font-extrabold leading-tight">{card.name}</p>
-        <p className="mt-0.5 text-xs text-white/70">{[card.set, language].filter(Boolean).join(' · ') || ' '}</p>
-        <p className="mt-2 inline-flex gap-3 rounded-full bg-white/10 px-4 py-1.5 text-sm font-bold tabular-nums">
-          <span>{Number(card.price || 0) > 0 ? formatCLP(card.price) : 'Sin precio'}</span>
-          <span className="text-white/40" aria-hidden="true">|</span>
-          <span>{Number(card.stock || 0) > 0 ? `${card.stock} en stock` : 'Sin stock'}</span>
-        </p>
+        <p className="mt-0.5 text-xs text-white/70">{info.subtitle || ' '}</p>
+        {info.chips?.length > 0 && (
+          <p className="mt-2 inline-flex flex-wrap justify-center gap-x-3 gap-y-1 rounded-full bg-white/10 px-4 py-1.5 text-sm font-bold tabular-nums">
+            {info.chips.map((chip, index) => (
+              <span key={chip} className="inline-flex items-center gap-3">{index > 0 && <span className="text-white/40" aria-hidden="true">|</span>}{chip}</span>
+            ))}
+          </p>
+        )}
+        {info.note && <p className="mx-auto mt-2 max-w-sm text-xs italic text-white/70">{info.note}</p>}
       </div>
     </div>,
     document.body

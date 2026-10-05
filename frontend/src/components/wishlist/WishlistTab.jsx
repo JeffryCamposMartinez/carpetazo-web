@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import WishlistCardFinder from './WishlistCardFinder';
 import WishlistFinderSheet from './WishlistFinderSheet';
+import CardLightbox from '../ui/CardLightbox';
+import { describeWishlistItem } from './wishlistLightbox';
 
 const LIMIT_FALLBACK = 200;
 
@@ -15,6 +17,7 @@ export default function WishlistTab({ showToast = () => {} }) {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [visible, setVisible] = useState(true);
+  const [previewId, setPreviewId] = useState(null); // carta de la lista que se ve en pantalla completa
   const [finderOpen, setFinderOpen] = useState(false); // móvil y tablet: el buscador es una hoja a pantalla completa que se abre al pedirla
   // Botones flotantes: limpiar los filtros del buscador y volver arriba (este aparece tras bajar un poco)
   const resetFinderRef = useRef(null);
@@ -239,9 +242,13 @@ export default function WishlistTab({ showToast = () => {} }) {
           {items.map((item) => (
             <li key={item.id} className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200 lg:bg-slate-50 lg:shadow-none">
               <div className="grid grid-cols-[60px_minmax(0,1fr)] items-start gap-x-3 sm:flex sm:items-center">
-                <span className="row-span-2 h-[84px] w-[60px] shrink-0 overflow-hidden rounded-lg bg-slate-100 ring-1 ring-black/5">
-                  {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" /> : <span className="flex h-full items-center justify-center px-1 text-center text-[10px] font-semibold text-slate-400">Sin imagen</span>}
-                </span>
+                {item.imageUrl ? (
+                  <button type="button" onClick={() => setPreviewId(item.id)} aria-label={`Ver ${item.name} en grande`} className="row-span-2 block h-[84px] w-[60px] shrink-0 cursor-zoom-in overflow-hidden rounded-lg bg-slate-100 ring-1 ring-black/5 transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
+                    <img src={item.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
+                  </button>
+                ) : (
+                  <span className="row-span-2 block h-[84px] w-[60px] shrink-0 overflow-hidden rounded-lg bg-slate-100 ring-1 ring-black/5"><span className="flex h-full items-center justify-center px-1 text-center text-[10px] font-semibold text-slate-400">Sin imagen</span></span>
+                )}
                 <div className="col-start-2 min-w-0 flex-1">
                   <p className="line-clamp-2 text-[15px] font-extrabold leading-tight text-[#12315f]">{item.name}</p>
                   <p className="mt-0.5 text-xs text-slate-500">
@@ -325,6 +332,10 @@ export default function WishlistTab({ showToast = () => {} }) {
         </span>
       </button>
       </div>
+
+      {previewId && (
+        <CardLightbox cards={items} cardId={previewId} onChange={setPreviewId} onClose={() => setPreviewId(null)} describe={describeWishlistItem} />
+      )}
 
       {finderOpen && !isWide && (
         <WishlistFinderSheet onClose={() => setFinderOpen(false)} onAdd={addItem} addedKeys={addedKeys} busyKey={busyId} count={items.length} limit={limit} />

@@ -1,7 +1,7 @@
 import AdminCardEdit from '../AdminCardEdit';
 import AlbumView from '../AlbumView';
 import { CATALOG_CARDS_PER_PAGE, DETAIL_MODES, chunkCardsByPage } from '../folderCards';
-import CardLightbox from '../CardLightbox';
+import CardLightbox from '../../ui/CardLightbox';
 import InventoryBulkBar from '../InventoryBulkBar';
 import InventoryToolbar from '../InventoryToolbar';
 import { DragFloatingPreview, FolderInventorySummary, InventoryEmptyState, InventoryFilters, InventoryStatusBar, InventoryViewSwitcher } from '../FolderInventoryComponents';
