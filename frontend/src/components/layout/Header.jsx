@@ -573,6 +573,9 @@ export default function Header() {
                       <Link role="menuitem" to="/dashboard" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
                         <span translate="no" className="material-symbols-outlined text-[20px]">folder</span> Mis carpetas
                       </Link>
+                      <Link role="menuitem" to="/dashboard?tab=deseadas" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
+                        <span translate="no" className="material-symbols-outlined text-[20px]">favorite</span> Mi lista de deseos
+                      </Link>
                       <Link role="menuitem" to="/mensajes" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
                         <span translate="no" className="material-symbols-outlined text-[20px]">chat</span> Mensajes
                       </Link>

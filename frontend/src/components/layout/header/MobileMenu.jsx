@@ -45,7 +45,8 @@ export default function MobileMenu({
         {(() => {
           const rowBase = 'relative flex min-h-12 items-center gap-3.5 rounded-xl px-3 text-[15px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]/50';
           const accountItems = [
-            { to: '/dashboard', label: 'Mis carpetas', icon: 'folder', active: location.pathname === '/dashboard' && !location.search.includes('solicitudes') },
+            { to: '/dashboard', label: 'Mis carpetas', icon: 'folder', active: location.pathname === '/dashboard' && !/tab=(solicitudes|deseadas)/.test(location.search) },
+            { to: '/dashboard?tab=deseadas', label: 'Mi lista de deseos', icon: 'favorite', active: location.pathname === '/dashboard' && location.search.includes('tab=deseadas') },
             ...(pendingOrders.count > 0 ? [{ to: '/dashboard?tab=solicitudes', label: 'Solicitudes de compra', icon: 'inbox', badge: pendingOrders.count }] : []),
             { to: '/mensajes', label: 'Mensajes', icon: 'chat', active: location.pathname === '/mensajes', badge: unreadMessages },
             { to: '/perfil', label: 'Mi perfil', icon: 'person', active: location.pathname === '/perfil' },
