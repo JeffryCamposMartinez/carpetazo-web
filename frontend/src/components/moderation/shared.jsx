@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 
 export const dateTime = (iso) => (iso ? new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)) : '');
 export const dateOnly = (iso) => (iso ? new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(iso)) : '');
@@ -57,14 +58,8 @@ export const Pills = ({ options, value, onChange, label, counts }) => (
 
 // Panel de detalle: pantalla completa en el teléfono (con su botón "Volver"); panel fijo a la derecha en pantallas grandes
 export function DetailPane({ label, children }) {
-  useEffect(() => {
-    // En el teléfono el fondo no se desplaza mientras el detalle está abierto
-    const small = window.matchMedia('(max-width: 1279px)').matches;
-    if (!small) return undefined;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = previous; };
-  }, []);
+  // En el teléfono el fondo no se desplaza mientras el detalle está abierto
+  useBodyScrollLock(window.matchMedia('(max-width: 1279px)').matches);
   return (
     <section aria-label={label} className="fixed inset-0 z-[70] flex flex-col overflow-hidden bg-white xl:sticky xl:inset-auto xl:top-4 xl:z-0 xl:max-h-[calc(100vh-2rem)] xl:rounded-2xl xl:shadow-sm xl:ring-1 xl:ring-slate-900/10">
       {children}

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 
 const formatCLP = (value) => `$${Number(value || 0).toLocaleString('es-CL')}`;
 const LANGUAGES = { English: 'Inglés', Spanish: 'Español', Japanese: 'Japonés' };
@@ -11,11 +12,10 @@ export default function CardLightbox({ cards, cardId, onChange, onClose }) {
   const closeRef = useRef(null);
   const state = useRef({});
   state.current = { index, cards, onChange, onClose };
+  useBodyScrollLock();
 
   useEffect(() => {
     const trigger = document.activeElement;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     closeRef.current?.focus();
     const onKey = (event) => {
       const { index: at, cards: list, onChange: change, onClose: close } = state.current;
@@ -25,7 +25,6 @@ export default function CardLightbox({ cards, cardId, onChange, onClose }) {
     };
     window.addEventListener('keydown', onKey);
     return () => {
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', onKey);
       if (trigger && typeof trigger.focus === 'function') trigger.focus();
     };

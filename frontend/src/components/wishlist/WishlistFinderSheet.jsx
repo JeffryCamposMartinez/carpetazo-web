@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import WishlistCardFinder from './WishlistCardFinder';
 
 // Móvil y tablet: el buscador de cartas ocupa toda la pantalla para que los resultados tengan espacio. Va al <body> para quedar sobre el encabezado.
@@ -9,16 +10,14 @@ export default function WishlistFinderSheet({ onClose, onAdd, addedKeys, busyKey
   // El padre se vuelve a pintar al agregar cartas: sin esta referencia el efecto se reiniciaría y devolvería el foco
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  useBodyScrollLock();
 
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     const trigger = document.activeElement;
     closeRef.current?.focus();
     const onKey = (event) => { if (event.key === 'Escape') onCloseRef.current(); };
     window.addEventListener('keydown', onKey);
     return () => {
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', onKey);
       if (trigger && typeof trigger.focus === 'function') trigger.focus();
     };

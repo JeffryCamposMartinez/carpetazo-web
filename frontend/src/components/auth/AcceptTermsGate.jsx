@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
+import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 
 // Pantalla que bloquea el uso de la cuenta hasta aceptar los Términos y Condiciones vigentes.
 // Aparece en el primer ingreso y cada vez que cambia la versión. No se puede cerrar: solo aceptar o salir.
@@ -24,12 +25,9 @@ export default function AcceptTermsGate() {
   }, [visible, chooseUsername, appUser?.username]);
 
   // El fondo no se desplaza y el foco entra al cuadro
+  useBodyScrollLock(visible);
   useEffect(() => {
-    if (!visible) return undefined;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    dialogRef.current?.focus();
-    return () => { document.body.style.overflow = previous; };
+    if (visible) dialogRef.current?.focus();
   }, [visible]);
 
   // Disponibilidad del usuario elegido (con una breve espera mientras escribe)

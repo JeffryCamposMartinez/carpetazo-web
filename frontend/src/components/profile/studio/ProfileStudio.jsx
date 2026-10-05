@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import useBodyScrollLock from '../../../hooks/useBodyScrollLock';
 import { loadThemeFonts } from '../../../utils/themeFonts';
 import { ALL_FONTS } from '../profileFonts';
 import { PANEL_TABS } from '../profileStyles';
@@ -20,6 +21,7 @@ export default function ProfileStudio({
   const closeRef = useRef(() => setThemePanelOpen(false));
   closeRef.current = () => setThemePanelOpen(false);
   const initial = displayName[0]?.toUpperCase() || 'V';
+  useBodyScrollLock();
 
   // Fuentes del propio editor y, en la pestaña de letra, todas las de la lista para ver cada muestra
   useEffect(() => { loadThemeFonts(['DM Sans', 'Manrope']); }, []);
@@ -31,8 +33,6 @@ export default function ProfileStudio({
   // Foco dentro del panel mientras está abierto; Escape cierra y el foco vuelve al botón que lo abrió
   useEffect(() => {
     const previous = document.activeElement;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     panelRef.current?.focus();
     const onKey = (event) => {
       if (event.key === 'Escape') closeRef.current();
@@ -45,8 +45,7 @@ export default function ProfileStudio({
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = previousOverflow;
-      if (previous && typeof previous.focus === 'function') previous.focus();
+      if (previous && typeof previous.focus === 'function') previous.focus({ preventScroll: true });
     };
   }, []);
 
@@ -54,7 +53,7 @@ export default function ProfileStudio({
 
   return createPortal(
     <>
-      <div className="sheet-backdrop fixed inset-0 z-[1300] bg-[#0a1322]/30" onClick={() => setThemePanelOpen(false)} aria-hidden="true" />
+      <div className="sheet-backdrop fixed inset-0 z-[1300] touch-none bg-[#0a1322]/30" onClick={() => setThemePanelOpen(false)} aria-hidden="true" />
       <aside
         ref={panelRef}
         tabIndex={-1}
@@ -64,7 +63,7 @@ export default function ProfileStudio({
         className="studio-panel fixed inset-x-0 bottom-0 z-[1301] flex h-[90dvh] flex-col overflow-hidden rounded-t-[24px] text-[14px] shadow-[0_-16px_50px_rgba(8,18,42,0.35)] outline-none sm:inset-y-0 sm:left-auto sm:right-0 sm:h-auto sm:w-[min(540px,100%)] sm:rounded-none sm:rounded-l-[24px]"
         style={{ backgroundColor: STUDIO.ground, color: STUDIO.ink, fontFamily: "'DM Sans', Inter, system-ui, sans-serif" }}
       >
-        <header className="relative shrink-0 overflow-hidden px-5 pt-5 text-white sm:px-7 sm:pt-7" style={{ background: 'radial-gradient(ellipse at 100% 0, rgba(50,89,138,0.44), transparent 60%), #12283f' }}>
+        <header className="relative shrink-0 touch-none overflow-hidden px-5 pt-5 text-white sm:px-7 sm:pt-7" style={{ background: 'radial-gradient(ellipse at 100% 0, rgba(50,89,138,0.44), transparent 60%), #12283f' }}>
           <span aria-hidden="true" className="pointer-events-none absolute -right-10 -top-[60px] h-[200px] w-[200px] rounded-full border border-white/5" />
           <span aria-hidden="true" className="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full bg-white/25 sm:hidden" />
           <div className="relative flex items-center gap-3">
@@ -99,7 +98,7 @@ export default function ProfileStudio({
           ))}
         </nav>
 
-        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-8 pt-6 [scrollbar-color:#c8d3e1_transparent] [scrollbar-width:thin] sm:px-7 sm:pt-7">
+        <div ref={bodyRef} className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-4 pb-8 pt-6 [scrollbar-color:#c8d3e1_transparent] [scrollbar-width:thin] sm:px-7 sm:pt-7">
           {themePanelTab === 'theme' && <StudioThemeTab applyThemePalette={applyThemePalette} avatarUrl={avatarUrl} handleThemeFieldChange={handleThemeFieldChange} initial={initial} publicTheme={savedTheme} />}
           {themePanelTab === 'font' && <StudioTypeTab displayName={displayName} onFields={handleThemeFieldsChange} publicTheme={savedTheme} totalCards={totalCards} />}
           {themePanelTab === 'cards' && <StudioCardsTab {...tabProps} />}

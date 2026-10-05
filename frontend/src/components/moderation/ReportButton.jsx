@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
+import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 
 const COMMENT_MAX = 500;
 const COMMENT_MIN_REQUIRED = 20;
@@ -35,10 +36,9 @@ function ReportSheet({ targetType, targetId, blockUserId, onClose, onReported })
   }, [targetType, targetId]);
 
   // El fondo no se desplaza, el foco entra al cuadro y Esc lo cierra
+  useBodyScrollLock();
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
     const previousFocus = document.activeElement;
-    document.body.style.overflow = 'hidden';
     dialogRef.current?.focus();
     const onKey = (event) => {
       if (event.key === 'Escape') onClose();
@@ -53,9 +53,8 @@ function ReportSheet({ targetType, targetId, blockUserId, onClose, onReported })
     };
     window.addEventListener('keydown', onKey);
     return () => {
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', onKey);
-      previousFocus?.focus?.();
+      previousFocus?.focus?.({ preventScroll: true });
     };
   }, [onClose]);
 

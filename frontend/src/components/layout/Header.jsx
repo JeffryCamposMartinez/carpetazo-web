@@ -7,6 +7,7 @@ import { api } from '../../services/api';
 import MobileMenu from './header/MobileMenu';
 import NotificationBellPanel from './header/NotificationBellPanel';
 import { useToast } from '../ui/ToastProvider';
+import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 
 // Ventanas que solo se abren a pedido: su código se descarga al abrirlas, no en la primera carga de cada página
 const AuthModal = lazy(() => import('../auth/AuthModal'));
@@ -32,12 +33,7 @@ export default function Header() {
   };
 
   // Con el menú abierto, la página de atrás no se desplaza
-  useEffect(() => {
-    if (!isMobileMenuOpen) return undefined;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = previous; };
-  }, [isMobileMenuOpen]);
+  useBodyScrollLock(isMobileMenuOpen);
 
   // Arrastrar el panel hacia la izquierda lo cierra, como en una app nativa
   const onDrawerTouchStart = (e) => {

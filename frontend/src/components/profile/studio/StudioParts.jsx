@@ -52,7 +52,7 @@ export function StudioSection({ title, hint, aside, children }) {
   );
 }
 
-const CARD = 'group min-w-0 rounded-[14px] border bg-white p-2 text-left shadow-[0_2px_3px_rgba(21,43,69,0.02),0_6px_15px_rgba(21,43,69,0.03)] transition-[transform,box-shadow,border-color] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2b63d8] focus-visible:ring-offset-2 [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-[0_6px_18px_rgba(21,43,69,0.07)] motion-reduce:transition-none motion-reduce:[@media(hover:hover)]:hover:translate-y-0';
+const CARD = 'group min-w-0 rounded-[14px] border bg-white p-2 text-left shadow-[0_2px_3px_rgba(21,43,69,0.02),0_6px_15px_rgba(21,43,69,0.03)] transition-[transform,box-shadow,border-color] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] focus:outline-none [@media(hover:hover)]:active:scale-[0.98] focus-visible:ring-[3px] focus-visible:ring-[#2b63d8] focus-visible:ring-offset-2 [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-[0_6px_18px_rgba(21,43,69,0.07)] motion-reduce:transition-none motion-reduce:[@media(hover:hover)]:hover:translate-y-0';
 export const cardState = (selected) => `${CARD} ${selected ? 'border-[#2454c6] shadow-[0_0_0_1px_#2454c6,0_5px_14px_rgba(36,84,198,0.1)]' : 'border-[#e2e8f0] [@media(hover:hover)]:hover:border-[#a2b8d5]'}`;
 
 // Opción con muestra: la vista previa ocupa la caja y debajo van el nombre (con marca si está elegida) y para qué sirve
