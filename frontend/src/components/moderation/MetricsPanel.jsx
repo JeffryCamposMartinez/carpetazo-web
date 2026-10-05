@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../../utils/api';
+import { api } from '../../services/api';
 import { ErrorBox, Spinner } from './shared';
 
 const SEVERITY_LABELS = { S1: 'Crítica', S2: 'Alta', S3: 'Media', S4: 'Baja' };

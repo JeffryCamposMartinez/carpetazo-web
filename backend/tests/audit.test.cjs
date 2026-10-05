@@ -1,4 +1,4 @@
-// Auditoría Fase 1 de server.js: validación de entradas, datos que no deben salir y rutas que no deben fallar con 500.
+// Auditoría Fase 1 de la API: validación de entradas, datos que no deben salir y rutas que no deben fallar con 500.
 const { prisma, NAMES, call, ok, fixtures } = require('./fixtures.cjs');
 
 const { folderId, cardId } = fixtures();

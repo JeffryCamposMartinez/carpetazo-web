@@ -1,6 +1,6 @@
 import React, { startTransition, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { api } from '../utils/api';
+import { api } from '../services/api';
 import { wishlistPayloadFromCard } from '../utils/wishlistPayload';
 import { useAuth } from '../contexts/AuthContext';
 

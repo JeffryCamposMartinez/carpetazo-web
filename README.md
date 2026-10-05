@@ -11,8 +11,23 @@ Carpetazo es una plataforma para vendedores y coleccionistas de Trading Card Gam
 ## Estructura
 
 ```text
-backend/                 API Express (server.js), Prisma (schema y migraciones), scripts de datos
-frontend/                App React/Vite
+backend/
+  server.js              Entrada: seguridad, límites, términos y montaje de las rutas
+  core/                  Piezas compartidas: sesión, validación, R2, correo, límites, términos
+  routes/                Un router por tema (users, uploads, folders, orders, wishlist, messages, catalog…)
+  moderation/            Reportes, sanciones, detección automática y escaneo de imágenes
+  scripts/               Tareas manuales: db/, catalog/, r2/, pokemon/, checks/ (contrato público)
+  prisma/                Esquema y migraciones
+  tests/                 Pruebas con sesión (npm run test:session)
+frontend/
+  src/app/               App.jsx (rutas) y carga diferida de páginas
+  src/pages/             Una página por ruta
+  src/components/<tema>/ Componentes por tema (auth, layout, ui, folder, profile, wishlist, orders…)
+  src/contexts/          Estado global (sesión)
+  src/services/          API, Firebase y catálogo externo
+  src/config/            Datos estáticos y opciones
+  src/utils/             Funciones puras
+  src/legal/             Textos y versiones legales
 tools/                   Herramientas de escritorio (MylDbUpdater)
 .github/workflows/ci.yml Validación (build, sintaxis, esquema) y contrato público
 ```
@@ -46,8 +61,8 @@ Antes de subir un cambio con migración: respaldo de la base (Coolify → Backup
 
 ### CI (`.github/workflows/ci.yml`)
 
-- **verify:** build del frontend, `node --check server.js` y `prisma validate`.
-- **public-contract:** espera el deploy y corre `node backend/check_public_contract.cjs https://api.carpetazo.cl/api`; falla si alguna respuesta pública trae correo, RUT, datos bancarios, rol, `firebaseUid` o campos privados de direcciones. Corre en cada *push*, cada 6 horas y a mano.
+- **verify:** build del frontend, `node --check` del backend y `prisma validate`.
+- **public-contract:** espera el deploy y corre `node backend/scripts/checks/check_public_contract.cjs https://api.carpetazo.cl/api`; falla si alguna respuesta pública trae correo, RUT, datos bancarios, rol, `firebaseUid` o campos privados de direcciones. Corre en cada *push*, cada 6 horas y a mano.
 
 ## Pruebas y verificación
 
@@ -58,24 +73,24 @@ Antes de subir un cambio con migración: respaldo de la base (Coolify → Backup
 
 - `/terminos` y `/privacidad` son páginas públicas. Su contenido sale de `frontend/src/legal/content.js`, **generado** desde el documento legal del proyecto (no se edita a mano).
 - `npm run build` (frontend) también genera `dist/terminos/index.html` y `dist/privacidad/index.html` con el texto completo en el HTML (`scripts/prerender-legal.mjs`), para que lo lean verificadores que no ejecutan JavaScript, como el de Google. La dirección directa es la que termina en `/` (por ejemplo `https://carpetazo.cl/privacidad/`).
-- Cada cuenta debe aceptar la versión vigente (`LEGAL_CURRENT` en `backend/server.js`, igual que `frontend/src/legal/versions.js`; una prueba exige que coincidan). Sin aceptación vigente el servidor rechaza cualquier escritura con `403 terms_required`. Al cambiar un texto se sube la versión en ambos archivos y todos deben aceptar de nuevo.
+- Cada cuenta debe aceptar la versión vigente (`LEGAL_CURRENT` en `backend/core/legal.js`, igual que `frontend/src/legal/versions.js`; una prueba exige que coincidan). Sin aceptación vigente el servidor rechaza cualquier escritura con `403 terms_required`. Al cambiar un texto se sube la versión en ambos archivos y todos deben aceptar de nuevo.
 - Las cuentas nuevas se crean solo con Google. Quien ya tenía correo y contraseña sigue entrando así, y cualquier cuenta con Google puede crear una contraseña en su perfil.
 
 ## Reportes y moderación
 
-- Cualquier persona con sesión puede reportar usuarios, foto/banner/fondo/texto de perfil, carpetas, cartas, fotos de carta, reseñas, mensajes y cartas deseadas. Las razones salen de `backend/reportReasons.js` (el cliente solo las consulta) y las rutas están en `backend/moderation.js`.
+- Cualquier persona con sesión puede reportar usuarios, foto/banner/fondo/texto de perfil, carpetas, cartas, fotos de carta, reseñas, mensajes y cartas deseadas. Las razones salen de `backend/moderation/reportReasons.js` (el cliente solo las consulta) y las rutas están en `backend/moderation/reports.js`.
 - El reporte es anónimo para el reportado. Guarda una copia del contenido al momento de reportar y se limita a 20 por hora y 60 por día por persona.
 - Una imagen con motivo crítico (menores, contenido sexual) se oculta sola si la reporta una cuenta de más de 24 horas; el resto queda en cola.
 - Panel `/moderacion` (solo administradores): cola por gravedad, detalle, decisión (descartar, ocultar, quitar, restaurar), notas internas y auditoría (`ModerationAudit`, solo se agrega). Cada decisión avisa por correo al dueño del contenido, sin decir quién reportó.
 - El contenido oculto no se serializa en las rutas públicas; el estado de moderación solo lo ve el dueño.
 - **Equipo y roles** (`User.role`): `support` solo lee, `moderator` decide y aplica medidas de hasta 30 días, `admin` (por `ADMIN_EMAILS` o rol en la base) además levanta medidas, decide apelaciones, cambia roles y ve la auditoría. Un administrador asigna los roles desde `/moderacion` → Personas y medidas.
 - **Estafas** (`FraudCase`): los reportes de estafa se agrupan en un caso por vendedor; el equipo pide el descargo (72 h; 48 h con prioridad alta) y resuelve. Con 3 compradores con pedido se pausan las ventas automáticamente (reversible).
-- **Sanciones** (`Sanction`): advertencia, restringir mensajes, suspender ventas, suspender cuenta y cerrar cuenta (necesita otro administrador que apruebe). Se aplican en `moderationB.js` (`createRestrictions` corta las escrituras de una cuenta suspendida) y vencen solas. La persona puede apelar 14 días desde Mi perfil → Moderación.
+- **Sanciones** (`Sanction`): advertencia, restringir mensajes, suspender ventas, suspender cuenta y cerrar cuenta (necesita otro administrador que apruebe). Se aplican en `moderation/sanctions.js` (`createRestrictions` corta las escrituras de una cuenta suspendida) y vencen solas. La persona puede apelar 14 días desde Mi perfil → Moderación.
 - **Bloqueo** entre usuarios (`UserBlock`) y **evidencias** de reportes (`Evidence`: hasta 3 imágenes, re-codificadas y guardadas en la base; solo las ve el equipo y cada vista queda en la auditoría).
 
-- **Detección y madurez** (`moderationC.js`): los filtros de texto (`textSignals.js`) crean reportes automáticos en reseñas, biografías y mensajes; cada imagen subida guarda su huella visual (`perceptual.js`) y una imagen confirmada como infracción impide subir otras parecidas; quienes reportan de mala fe pesan menos. Una limpieza diaria aplica los plazos de retención (`RETENTION`; se puede apagar con `RETENTION_DISABLED=1`). Métricas e informe de un caso para autoridades en `/moderacion` (solo administradores).
+- **Detección y madurez** (`moderation/automation.js`): los filtros de texto (`moderation/textSignals.js`) crean reportes automáticos en reseñas, biografías y mensajes; cada imagen subida guarda su huella visual (`moderation/perceptual.js`) y una imagen confirmada como infracción impide subir otras parecidas; quienes reportan de mala fe pesan menos. Una limpieza diaria aplica los plazos de retención (`RETENTION`; se puede apagar con `RETENTION_DISABLED=1`). Métricas e informe de un caso para autoridades en `/moderacion` (solo administradores).
 
-- **Escaneo de imágenes** (`imageScan.js`): fotos de perfil, banner, fondo y cartas pasan por Sightengine y, si no responde o se agota su cuota, por Google Cloud Vision (SafeSearch). Variables del backend: `SIGHTENGINE_USER`, `SIGHTENGINE_SECRET`, `GOOGLE_VISION_KEY`. Opcionales: `SIGHTENGINE_MONTHLY_LIMIT` (2000), `GOOGLE_VISION_MONTHLY_LIMIT` (1000), `IMAGE_SCAN_DISABLED=1`, `IMAGE_SCAN_BUDGET_MS` (3500), `TRUST_MIN_ACCOUNT_DAYS` (7). Sin claves el escaneo queda apagado. Las imágenes del chat y las evidencias nunca se envían. En local, `EXTRA_ENV_FILE` puede apuntar a otro archivo de variables. En Google Cloud conviene un tope de cuota y una alerta de presupuesto para garantizar costo cero.
+- **Escaneo de imágenes** (`moderation/imageScan.js`): fotos de perfil, banner, fondo y cartas pasan por Sightengine y, si no responde o se agota su cuota, por Google Cloud Vision (SafeSearch). Variables del backend: `SIGHTENGINE_USER`, `SIGHTENGINE_SECRET`, `GOOGLE_VISION_KEY`. Opcionales: `SIGHTENGINE_MONTHLY_LIMIT` (2000), `GOOGLE_VISION_MONTHLY_LIMIT` (1000), `IMAGE_SCAN_DISABLED=1`, `IMAGE_SCAN_BUDGET_MS` (3500), `TRUST_MIN_ACCOUNT_DAYS` (7). Sin claves el escaneo queda apagado. Las imágenes del chat y las evidencias nunca se envían. En local, `EXTRA_ENV_FILE` puede apuntar a otro archivo de variables. En Google Cloud conviene un tope de cuota y una alerta de presupuesto para garantizar costo cero.
 
 ## Correos
 
@@ -83,7 +98,7 @@ Antes de subir un cambio con migración: respaldo de la base (Coolify → Backup
 
 ## Base de datos
 
-Migraciones en `backend/prisma/migrations`, siempre aditivas; ver `backend/prisma/README.md`. Respaldo: `npm run db:backup`. Moderación de reseñas reportadas o sospechosas: sección `/moderacion` (solo administradores) o `node backend/review_moderation.cjs list`.
+Migraciones en `backend/prisma/migrations`, siempre aditivas; ver `backend/prisma/README.md`. Respaldo: `npm run db:backup`. Moderación de reseñas reportadas o sospechosas: sección `/moderacion` (solo administradores) o `node backend/scripts/db/review_moderation.cjs list`.
 
 ## Healthcheck
 

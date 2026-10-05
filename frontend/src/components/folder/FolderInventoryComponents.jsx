@@ -1,5 +1,5 @@
 import React from 'react';
-import LiquidTabs from '../LiquidTabs';
+import LiquidTabs from '../ui/LiquidTabs';
 
 const formatCLP = (value) => {
   const number = Number(value || 0);

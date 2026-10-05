@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../../utils/api';
-import LazyFolderCard from '../LazyFolderCard';
+import { api } from '../../services/api';
+import LazyFolderCard from '../folder/LazyFolderCard';
 
 const GAMES = [
   { name: 'Pokémon', logo: '/images/logos/pokemon.webp', scale: 'scale-100' },

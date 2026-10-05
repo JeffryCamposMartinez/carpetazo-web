@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { api } from '../utils/api';
+import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { ReportMenu } from '../components/ReportButton';
+import { ReportMenu } from '../components/moderation/ReportButton';
 
 const encodeMessage = ({ text, imageUrl, imageBase64 }) => JSON.stringify({
   v: 1,

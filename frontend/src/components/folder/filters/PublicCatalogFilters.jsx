@@ -1,5 +1,5 @@
 import React from 'react';
-import Filters from '../../Filters';
+import Filters from './Filters';
 
 const normalize = (value) => (value || '').toString().trim();
 

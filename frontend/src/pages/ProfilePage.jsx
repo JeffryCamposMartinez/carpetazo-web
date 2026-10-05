@@ -2,11 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { deleteUser, updateProfile as updateFirebaseProfile } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { api } from '../utils/api';
-import { chileData } from '../utils/chileData';
-import PasswordCard from '../components/PasswordCard';
-import MyModeration from '../components/MyModeration';
-import { PALETTES } from '../utils/profileThemes';
+import { api } from '../services/api';
+import { chileData } from '../config/chileData';
+import PasswordCard from '../components/auth/PasswordCard';
+import MyModeration from '../components/moderation/MyModeration';
+import { PALETTES } from '../config/profileThemes';
 
 const chileBanks = [
   'Banco de Chile - Edwards',

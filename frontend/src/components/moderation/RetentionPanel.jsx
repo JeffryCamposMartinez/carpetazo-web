@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api } from '../../utils/api';
+import { api } from '../../services/api';
 import { ErrorBox, Spinner, dateTime } from './shared';
 
 const POLICY_LABELS = {

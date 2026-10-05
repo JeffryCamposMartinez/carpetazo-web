@@ -1,10 +1,10 @@
-﻿node_modules/
+node_modules/
 dist/
 tools/**/bin/
 tools/**/obj/
 tools/**/out/
-backend/reporte_*.json
-backend/db_no_ability.json
+backend/scripts/reports/
+backend/scripts/pokemon/*.json
 backend/prisma/migrations/
 frontend/public/
 *.png

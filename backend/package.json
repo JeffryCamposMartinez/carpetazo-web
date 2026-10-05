@@ -7,8 +7,8 @@
     "start": "node server.js",
     "build": "npx prisma generate && npx prisma migrate deploy",
     "db:status": "npx prisma migrate status",
-    "db:backup": "node backup_db.cjs",
-    "test:contract": "node check_public_contract.cjs",
+    "db:backup": "node scripts/db/backup_db.cjs",
+    "test:contract": "node scripts/checks/check_public_contract.cjs",
     "test:session": "node tests/run.cjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -1,125 +1,17 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { api } from '../utils/api';
+import { api } from '../services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import OrdersTab from '../components/OrdersTab';
-import WishlistTab from '../components/WishlistTab';
-import LiquidTabs from '../components/LiquidTabs';
-import FlipCounter from '../components/FlipCounter';
+import OrdersTab from '../components/orders/OrdersTab';
+import WishlistTab from '../components/wishlist/WishlistTab';
+import LiquidTabs from '../components/ui/LiquidTabs';
+import FlipCounter from '../components/ui/FlipCounter';
+import FolderBinder from '../components/folder/FolderBinder';
+import FolderStatusChip from '../components/folder/FolderStatusChip';
+import { COLOR_NAMES, FOLDER_COLORS, TCG_OPTIONS } from '../config/folderOptions';
 // html2canvas + jsPDF pesan mucho: se descargan solo al generar un PDF
-const HiddenPDFGenerator = lazy(() => import('../components/HiddenPDFGenerator'));
-
-export const FOLDER_COLORS = [
-  { id: 'red', hex: '#d32f2f' },
-  { id: 'blue', hex: '#1976d2' },
-  { id: 'pink', hex: '#d81b60' },
-  { id: 'green', hex: '#2e7d32' },
-  { id: 'yellow', hex: '#fbc02d' },
-  { id: 'black', hex: '#424242' }
-];
-
-export const getFolderFilter = (color) => {
-  switch (color) {
-    case 'blue': return 'hue-rotate(220deg) brightness(0.9)';
-    case 'pink': return 'hue-rotate(320deg) brightness(1.1) saturate(0.8)';
-    case 'green': return 'hue-rotate(110deg) brightness(0.85) saturate(0.9)';
-    case 'yellow': return 'hue-rotate(55deg) brightness(1.2) saturate(0.9)';
-    case 'black': return 'grayscale(100%) brightness(0.55) contrast(1.1)';
-    case 'red':
-    default: return 'none';
-  }
-};
-
-const TCG_OPTIONS = [
-  ['Pokemon', 'Pokémon'],
-  ['Mitos y Leyendas', 'Mitos y Leyendas'],
-  ['Magic', 'Magic'],
-  ['YuGiOh', 'Yu-Gi-Oh!'],
-  ['OnePiece', 'One Piece']
-];
-const TCG_LABELS = Object.fromEntries(TCG_OPTIONS);
-const COLOR_NAMES = { red: 'rojo', blue: 'azul', pink: 'rosado', green: 'verde', yellow: 'amarillo', black: 'negro' };
-
-// La carpeta física: imagen de la carpeta teñida con su color, nombre, juego y cifras.
-// Es un contenedor de consulta: el tamaño del texto sigue al ancho de la propia carpeta (en una columna estrecha, en la vista previa del formulario o en un monitor grande)
-function FolderBinder({ folder }) {
-  return (
-    <div className="@container relative aspect-[32/37] w-full transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:-translate-y-1 group-active:scale-[0.985] motion-reduce:transition-none motion-reduce:group-hover:translate-y-0 motion-reduce:group-active:scale-100">
-      <div
-        className="absolute inset-0 bg-[url('/images/carpeta_v4.webp')] bg-[length:100%_100%] bg-no-repeat drop-shadow-md"
-        style={{ filter: getFolderFilter(folder.color) }}
-      />
-      <div className="relative z-10 flex h-full w-full flex-col justify-between pb-[15%] pl-[18%] pr-[16%] pt-[5%]">
-        <div className="flex flex-col">
-          {/* Cifras: secundarias, para que el nombre mande */}
-          <div className="flex justify-between gap-1" style={{ fontSize: 'clamp(0.6875rem, 6.4cqw, 0.8125rem)' }}>
-            <span className="flex items-center gap-[0.3em] rounded-md bg-black/25 px-[0.55em] py-[0.25em] font-semibold tabular-nums text-white/90" title="Visitas esta semana">
-              <span translate="no" aria-hidden="true" className="material-symbols-outlined" style={{ fontSize: '1.25em' }}>visibility</span>
-              <span className="sr-only">Visitas esta semana: </span>{folder.validWeeklyVisits || 0}
-            </span>
-            <span className="flex items-center gap-[0.3em] rounded-md bg-black/25 px-[0.55em] py-[0.25em] font-semibold tabular-nums text-white/90" title="Cartas en la carpeta">
-              <span translate="no" aria-hidden="true" className="material-symbols-outlined" style={{ fontSize: '1.25em' }}>style</span>
-              <span className="sr-only">Cartas en la carpeta: </span>{folder.cardsCount || 0}
-            </span>
-          </div>
-          <h3
-            className="mt-2 line-clamp-3 w-full break-words pr-1 font-extrabold leading-[1.08] text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.35)]"
-            style={{ fontSize: 'clamp(1.0625rem, 11.5cqw, 1.625rem)' }}
-            title={folder.name}
-          >
-            {folder.name}
-          </h3>
-        </div>
-        <div className="flex min-w-0 items-center gap-2">
-          <span
-            className="min-w-0 truncate whitespace-nowrap rounded-md border border-white/70 px-[0.6em] py-[0.3em] font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]"
-            style={{ fontSize: 'clamp(0.625rem, 5.2cqw, 0.75rem)' }}
-          >
-            {TCG_LABELS[folder.tcg] || folder.tcg}
-          </span>
-          {!folder.isPublic && (
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/35 text-white" title="Carpeta privada">
-              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[15px]">lock</span>
-            </span>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Estado de visibilidad: un solo componente para Pública y Privada (pensado para sumar otros estados sin rediseñar la fila)
-const FOLDER_STATUS = {
-  public: {
-    label: 'Pública',
-    icon: 'public',
-    action: 'Pulsa para hacerla privada',
-    className: 'bg-emerald-50 text-[#047857] ring-emerald-200 hover:bg-emerald-100'
-  },
-  private: {
-    label: 'Privada',
-    icon: 'lock',
-    action: 'Pulsa para publicarla',
-    className: 'bg-white text-slate-600 ring-slate-300 hover:bg-slate-50'
-  }
-};
-
-function FolderStatusChip({ folder, onToggle }) {
-  const status = FOLDER_STATUS[folder.isPublic ? 'public' : 'private'];
-  return (
-    <button
-      type="button"
-      onClick={(e) => onToggle(e, folder)}
-      aria-label={`${folder.name}: carpeta ${status.label.toLowerCase()}. ${status.action}`}
-      title={folder.isPublic ? 'Visible para compradores. Toca para hacerla privada.' : 'Solo tú la ves. Toca para publicarla.'}
-      className={`relative inline-flex h-9 items-center gap-1 rounded-full pl-2 pr-2 text-[13px] font-bold ring-1 @[10.75rem]:pr-2.5 transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] after:absolute after:-inset-x-0.5 after:-inset-y-1 after:content-[''] ${status.className}`}
-    >
-      <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">{status.icon}</span>
-      <span className="hidden @[10.75rem]:inline">{status.label}</span>
-    </button>
-  );
-}
+const HiddenPDFGenerator = lazy(() => import('../components/folder/HiddenPDFGenerator'));
 
 // Botón redondo de icono: 36 px visibles y 44 px de zona táctil
 const ICON_BUTTON = "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[background-color,transform] duration-150 hover:bg-white active:scale-[0.94] active:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] after:absolute after:-inset-1 after:content-['']";

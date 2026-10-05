@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../../utils/api';
+import { api } from '../../services/api';
 import { EmptyState, ErrorBox, Pills, QUICK_REASONS, SANCTION_TYPES, Spinner, dateOnly } from './shared';
 import TermsEvidence from './TermsEvidence';
 

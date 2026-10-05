@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { api } from '../utils/api';
-import { Stars } from '../components/Reviews';
+import { api } from '../services/api';
+import { Stars } from '../components/reviews/Reviews';
 import ReportsPanel from '../components/moderation/ReportsPanel';
 import AuditPanel from '../components/moderation/AuditPanel';
 import CasesPanel from '../components/moderation/CasesPanel';

@@ -1,5 +1,5 @@
 // GENERADO desde "Documentacion Carpetazo/22-borrador-terminos-y-privacidad.md" (Partes A y B). No editar a mano:
-// para cambiar un texto, edita el documento 22, regenera este archivo y sube la versión en versions.js y en backend/server.js.
+// para cambiar un texto, edita el documento 22, regenera este archivo y sube la versión en versions.js y en backend/core/legal.js.
 export const termsBlocks = [
  {
   "t": "h2",

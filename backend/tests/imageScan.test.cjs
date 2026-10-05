@@ -43,8 +43,8 @@ const response = (body, status = 200) => new Response(JSON.stringify(body), { st
 
 (async () => {
   try {
-    const scanModule = await import(pathToFileURL(path.join(__dirname, '..', 'imageScan.js')).href);
-    const perceptual = await import(pathToFileURL(path.join(__dirname, '..', 'perceptual.js')).href);
+    const scanModule = await import(pathToFileURL(path.join(__dirname, '..', 'moderation', 'imageScan.js')).href);
+    const perceptual = await import(pathToFileURL(path.join(__dirname, '..', 'moderation', 'perceptual.js')).href);
     const { decide, createImageScanner, prepareImage, cleanEnv } = scanModule;
 
     // --- Umbrales ---

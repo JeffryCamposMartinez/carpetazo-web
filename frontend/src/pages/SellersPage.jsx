@@ -1,6 +1,6 @@
 import React, { startTransition, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../utils/api';
+import { api } from '../services/api';
 
 const SORTS = [
   { value: 'visits', label: 'Más visitados' },

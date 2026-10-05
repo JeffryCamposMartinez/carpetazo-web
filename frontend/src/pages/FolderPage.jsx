@@ -1,0 +1,2008 @@
+﻿import LiquidTabs from '../components/ui/LiquidTabs';
+import OrdersTab from '../components/orders/OrdersTab';
+import { useState, useEffect, useRef } from 'react';
+
+import React from 'react';
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null, errorInfo: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  componentDidCatch(error, errorInfo) { this.setState({ errorInfo }); console.error(error, errorInfo); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '20px', background: 'white', color: 'red', zIndex: 9999, position: 'fixed', inset: 0, overflow: 'auto' }}>
+          <h1>React Crashed!</h1>
+          <pre>{this.state.error?.toString()}</pre>
+          <pre>{this.state.errorInfo?.componentStack}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+import { useParams, useNavigate } from 'react-router-dom';
+import { api, apiUrl } from '../services/api';
+import { getTcgConfig } from '../config/tcgConfig';
+import { classifyTcgcsvCard } from '../services/tcgcsvPokemon';
+import { useAuth } from '../contexts/AuthContext';
+
+import Toast from '../components/ui/Toast';
+import ConfirmModal from '../components/ui/ConfirmModal';
+import AlbumView from '../components/folder/AlbumView';
+import AdminCardEdit from '../components/folder/AdminCardEdit';
+import FolderAddSearchFilters from '../components/folder/filters/FolderAddSearchFilters';
+import {
+  DragFloatingPreview,
+  DuplicateCardNotice,
+  FolderInventorySummary,
+  InventoryEmptyState,
+  InventoryFilters,
+  InventoryStatusBar,
+  InventoryViewSwitcher,
+} from '../components/folder/FolderInventoryComponents';
+import { CATALOG_CARDS_PER_PAGE, cardLabel, chunkCardsByPage, getExtDataValue, normalizeTcgProductId, sortCatalogCards } from '../components/folder/folderCards';
+import { SafeImage } from '../components/folder/SafeImage';
+
+const DRAG_SCROLL_EDGE_PX = 120;
+const DRAG_SCROLL_MAX_SPEED = 28;
+
+const PAGE_SIZE = 20;
+
+function FolderPageInner(props) {
+
+  // La edición se toma de la propia carta (así no cambia al cambiar de idioma/lista de ediciones)
+  const getCardSetName = (card) => card?.group?.name || availableSets.find(s => s.groupId == (searchSet || card?.groupId))?.name;
+
+  const getProxyImageUrl = (productId, originalUrl) => {
+    if (!originalUrl) return '';
+    if (originalUrl.includes('api.carpetazo.cl/images') || originalUrl.includes('r2.dev') || originalUrl.includes('imagenes.carpetazo.cl')) return originalUrl;
+    if (originalUrl.startsWith('blob:')) return originalUrl;
+    if (originalUrl.startsWith('data:')) return originalUrl;
+    if (originalUrl.includes('tcgplayer-cdn.tcgplayer.com')) return originalUrl;
+    return apiUrl('/proxy-image?url=' + encodeURIComponent(originalUrl));
+  };
+
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const [folderData, setFolderData] = useState(null);
+  const [loadingFolder, setLoadingFolder] = useState(true);
+  
+  const [activeTab, setActiveTab] = useState('add'); // 'add', 'catalog', 'sales'
+
+  // --- ADD TO CATALOG STATE ---
+  const [searchQuery, setSearchQuery] = useState('');
+  const [gridCols, setGridCols] = useState(typeof window !== 'undefined' && window.innerWidth <= 768 ? 2 : 3);
+  const [searchCategory, setSearchCategory] = useState('1');
+  const [searchSet, setSearchSet] = useState('');
+  const [searchLang, setSearchLang] = useState('en');
+  const [availableSets, setAvailableSets] = useState([]);
+  const [availableBlocks, setAvailableBlocks] = useState([]);
+  const [availablePhysicalProducts, setAvailablePhysicalProducts] = useState([]);
+  const [searchPhysicalProduct, setSearchPhysicalProduct] = useState('');
+
+  // MYL Custom Filters
+  const [mylType, setMylType] = useState('');
+  const [mylRace, setMylRace] = useState('');
+  const [mylCost, setMylCost] = useState('');
+  const [searchBlock, setSearchBlock] = useState('2');
+  const [catBlock, setCatBlock] = useState('');
+
+  const filteredSearchSets = searchCategory === '99' && searchBlock !== '' ? availableSets.filter(s => s.blockId == searchBlock) : availableSets;
+  const filteredCatSets = (folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') && catBlock !== '' ? availableSets.filter(s => s.blockId == catBlock) : availableSets;
+  const [isSetDropdownOpen, setIsSetDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768) {
+        setGridCols(3);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  const [searchResults, setSearchResults] = useState([]);
+  const [hasSearchedAPI, setHasSearchedAPI] = useState(false);
+  const [filterType, setFilterType] = useState('all');
+  const [selectedType, setSelectedType] = useState('');
+  const [selectedSupertype, setSelectedSupertype] = useState('');
+
+const [filterRarity, setFilterRarity] = useState('');
+  const [availableRarities, setAvailableRarities] = useState([]);
+  const [rawSearchResults, setRawSearchResults] = useState([]);
+  
+  const filterCounts = React.useMemo(() => {
+    let p = 0, t = 0, e = 0;
+    if (rawSearchResults) {
+      rawSearchResults.forEach(c => {
+        if (c.extData?.category === 'Pokémon') p++;
+        else if (c.extData?.category === 'Entrenador') t++;
+        else if (c.extData?.category === 'Energía') e++;
+      });
+    }
+    return { pokemon: p, trainers: t, energy: e };
+  }, [rawSearchResults]);
+
+const [isSearching, setIsSearching] = useState(false);
+  const [selectedCard, setSelectedCard] = useState(null);
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [selectedQueue, setSelectedQueue] = useState([]);
+  const [activeQueueItemId, setActiveQueueItemId] = useState(null);
+  const [price, setPrice] = useState('');
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [hasMoreGroups, setHasMoreGroups] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const folderTcgConfig = getTcgConfig(folderData?.tcg);
+  const isMylFolder = folderTcgConfig.categoryId === '99' || searchCategory === '99';
+
+  const scrollToTopIfNeeded = () => {
+    if (window.scrollY > 0) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const getCardSelectionKey = (card) => normalizeTcgProductId(card?.productId || card?.tcgProductId || card?.id || card?.name);
+  const isBatchAdding = activeQueueItemId !== null;
+  const selectedQueueCountByCard = selectedQueue.reduce((acc, item) => {
+    const key = getCardSelectionKey(item.card);
+    acc[key] = (acc[key] || 0) + (item.quantity || 1);
+    return acc;
+  }, {});
+  const totalQueuedCards = selectedQueue.reduce((sum, item) => sum + (item.quantity || 1), 0);
+
+  const resetCardForm = () => {
+    setPrice('');
+    setStock('1');
+    setPseudoName('');
+  };
+
+  const toggleMultiSelectMode = () => {
+    if (!multiSelectMode) {
+      setSelectedCard(null);
+      resetCardForm();
+    }
+    setMultiSelectMode(prev => {
+      const next = !prev;
+      if (!next) {
+        setSelectedQueue([]);
+        setActiveQueueItemId(null);
+      }
+      return next;
+    });
+  };
+
+  const addCardToQueue = (card) => {
+    setSelectedQueue(prev => {
+      const key = getCardSelectionKey(card);
+      const existingIndex = prev.findIndex(item => getCardSelectionKey(item.card) === key);
+      
+      if (existingIndex >= 0) {
+        const next = [...prev];
+        next[existingIndex] = {
+          ...next[existingIndex],
+          quantity: (next[existingIndex].quantity || 1) + 1
+        };
+        return next;
+      }
+      
+      return [
+        ...prev,
+        {
+          queueId: `${key}-${Date.now()}`,
+          card,
+          quantity: 1
+        }
+      ];
+    });
+    
+    setTimeout(() => {
+      if (queueScrollRef.current) {
+        queueScrollRef.current.scrollTo({ top: queueScrollRef.current.scrollHeight, behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
+  const removeQueueItem = (queueId) => {
+    setSelectedQueue(prev => prev.filter(item => item.queueId !== queueId));
+    if (activeQueueItemId === queueId) {
+      setActiveQueueItemId(null);
+      setSelectedCard(null);
+      resetCardForm();
+    }
+  };
+
+  const decreaseQueueItemQuantity = (e, queueId) => {
+    e.preventDefault();
+    const item = selectedQueue.find(i => i.queueId === queueId);
+    if (!item) return;
+    
+    if (item.quantity > 1) {
+      setSelectedQueue(prev => prev.map(i => i.queueId === queueId ? { ...i, quantity: i.quantity - 1 } : i));
+    } else {
+      removeQueueItem(queueId);
+    }
+  };
+
+  const startQueuedAdd = () => {
+    const nextItem = selectedQueue[0];
+    if (!nextItem) return;
+    setActiveQueueItemId(nextItem.queueId);
+    setSelectedCard(nextItem.card);
+    setStock((nextItem.quantity || 1).toString());
+    setPseudoName('');
+    setPrice('');
+    if (window.innerWidth < 1024) {
+      setTimeout(() => {
+        document.getElementById('add-catalog-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  };
+
+  const handleResultCardClick = (card) => {
+    if (multiSelectMode) {
+      addCardToQueue(card);
+      return;
+    }
+    setActiveQueueItemId(null);
+    setSelectedCard(card);
+    resetCardForm();
+    if (window.innerWidth < 1024) {
+      setTimeout(() => {
+        document.getElementById('add-catalog-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  };
+
+  const handleRightClickResultCard = (e, card) => {
+    e.preventDefault();
+    if (!multiSelectMode) return;
+    
+    const key = getCardSelectionKey(card);
+    const existingItem = selectedQueue.find(item => getCardSelectionKey(item.card) === key);
+    
+    if (existingItem) {
+      decreaseQueueItemQuantity(e, existingItem.queueId);
+    }
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  const observerTarget = useRef(null);
+
+  // Vuelve a 20 solo cuando cambia la búsqueda/filtros (no cuando se anexan más ediciones)
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchQuery, searchSet, searchLang, selectedSupertype, selectedType, filterRarity, filterType]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting) {
+          if (visibleCount < searchResults.length) setVisibleCount(prev => prev + PAGE_SIZE);
+          else if (hasMoreGroups) loadMorePokemonRef.current?.();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    const target = observerTarget.current;
+    if (target) {
+      observer.observe(target);
+    }
+    return () => {
+      if (target) {
+        observer.unobserve(target);
+      }
+    };
+  }, [searchResults, visibleCount, hasMoreGroups]);
+  const [stock, setStock] = useState('1');
+  const [pseudoName, setPseudoName] = useState('');
+  const [language, setLanguage] = useState('English');
+  // Al seleccionar una carta, el idioma parte igual al idioma de esa carta (no al del filtro actual)
+  useEffect(() => {
+    if (selectedCard?.cardLanguage) setLanguage(selectedCard.cardLanguage);
+  }, [selectedCard?.id]);
+  const [isSaving, setIsSaving] = useState(false);
+  const abortControllerRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const queueScrollRef = useRef(null);
+
+  // --- UI STATE ---
+  const [toast, setToast] = useState({ message: '', type: 'info' });
+  const showToast = (message, type = 'info') => setToast({ message, type });
+  
+  const [confirmDialog, setConfirmDialog] = useState({ show: false, message: '', targetId: null });
+
+  // --- CATALOG MANAGEMENT STATE ---
+  
+  const [catQuery, setCatQuery] = useState('');
+  const [catSet, setCatSet] = useState('');
+  const [catalogViewMode, setCatalogViewMode] = useState('grid');
+  const [catalogGridDensity, setCatalogGridDensity] = useState(3);
+  const [showCardDetails, setShowCardDetails] = useState(true);
+  const [cardDetailsPreferenceReady, setCardDetailsPreferenceReady] = useState(false);
+  const [isCatSetDropdownOpen, setIsCatSetDropdownOpen] = useState(false);
+  const [draggedCatalogCardId, setDraggedCatalogCardId] = useState(null);
+  const [dropCatalogIndex, setDropCatalogIndex] = useState(null);
+  const [catalogDragFloatingPreview, setCatalogDragFloatingPreview] = useState(null);
+  const [savingCatalogOrder, setSavingCatalogOrder] = useState(false);
+  const [hasUnsavedCatalogOrder, setHasUnsavedCatalogOrder] = useState(false);
+  const catalogDragScrollFrameRef = useRef(null);
+  const catalogDragScrollSpeedRef = useRef(0);
+  const catalogDragFloatingPreviewRef = useRef(null);
+  const touchCatalogCardIdRef = useRef(null);
+  const touchCatalogDropIndexRef = useRef(null);
+  const isTouchDragRef = useRef(false);
+
+  useEffect(() => {
+    if (!currentUser?.uid) {
+      setShowCardDetails(true);
+      setCardDetailsPreferenceReady(false);
+      return;
+    }
+
+    const storageKey = `carpetazo:folder-card-details:${currentUser.uid}`;
+    const savedPreference = window.localStorage.getItem(storageKey);
+    setShowCardDetails(savedPreference === null ? true : savedPreference === 'true');
+    setCardDetailsPreferenceReady(true);
+  }, [currentUser?.uid]);
+
+  useEffect(() => {
+    if (!currentUser?.uid || !cardDetailsPreferenceReady) return;
+    const storageKey = `carpetazo:folder-card-details:${currentUser.uid}`;
+    window.localStorage.setItem(storageKey, String(showCardDetails));
+  }, [showCardDetails, currentUser?.uid, cardDetailsPreferenceReady]);
+
+  useEffect(() => {
+    // Evita que la previsualización se quede pegada si se cambia de vista (grid <-> album) mientras se arrastra
+    setDraggedCatalogCardId(null);
+    setDropCatalogIndex(null);
+    setCatalogDragFloatingPreview(null);
+    touchCatalogCardIdRef.current = null;
+    touchCatalogDropIndexRef.current = null;
+  }, [catalogViewMode]);
+
+  const moveCatalogDragFloatingPreview = (clientX, clientY) => {
+    if (!catalogDragFloatingPreviewRef.current || !Number.isFinite(clientX) || !Number.isFinite(clientY)) return;
+    catalogDragFloatingPreviewRef.current.style.transform = `translate3d(${clientX}px, ${clientY}px, 0) translate(-50%, -50%)`;
+  };
+
+  // --- SALES & HISTORY STATE ---
+  // Pedidos de esta carpeta: misma fuente y acciones que Solicitudes/Historial del panel
+  const [folderOrders, setFolderOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [salesView, setSalesView] = useState('solicitudes');
+  const [cards, setCards] = useState([]);
+
+  useEffect(() => {
+    if (!draggedCatalogCardId) return undefined;
+
+    const updateScrollSpeed = (clientY) => {
+      if (!Number.isFinite(clientY) || clientY <= 0) {
+        catalogDragScrollSpeedRef.current = 0;
+        return;
+      }
+
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+      if (clientY < DRAG_SCROLL_EDGE_PX) {
+        const intensity = (DRAG_SCROLL_EDGE_PX - clientY) / DRAG_SCROLL_EDGE_PX;
+        catalogDragScrollSpeedRef.current = -Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED);
+      } else if (clientY > viewportHeight - DRAG_SCROLL_EDGE_PX) {
+        const intensity = (clientY - (viewportHeight - DRAG_SCROLL_EDGE_PX)) / DRAG_SCROLL_EDGE_PX;
+        catalogDragScrollSpeedRef.current = Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED);
+      } else {
+        catalogDragScrollSpeedRef.current = 0;
+      }
+    };
+
+    const handleWindowDragOver = (event) => {
+      updateScrollSpeed(event.clientY);
+      moveCatalogDragFloatingPreview(event.clientX, event.clientY);
+    };
+
+    const tick = () => {
+      const speed = catalogDragScrollSpeedRef.current;
+      if (speed !== 0) {
+        window.scrollBy({ top: speed, left: 0, behavior: 'auto' });
+      }
+      catalogDragScrollFrameRef.current = window.requestAnimationFrame(tick);
+    };
+
+    window.addEventListener('dragover', handleWindowDragOver);
+    catalogDragScrollFrameRef.current = window.requestAnimationFrame(tick);
+
+    return () => {
+      window.removeEventListener('dragover', handleWindowDragOver);
+      catalogDragScrollSpeedRef.current = 0;
+      if (catalogDragScrollFrameRef.current) {
+        window.cancelAnimationFrame(catalogDragScrollFrameRef.current);
+        catalogDragScrollFrameRef.current = null;
+      }
+    };
+  }, [draggedCatalogCardId]);
+
+  useEffect(() => {
+    if (activeTab !== 'sales') return;
+    fetchOrders();
+  }, [activeTab]);
+
+  // Fetch logic
+  
+
+  
+
+  const fetchCards = async () => {
+    try {
+      const res = await api.getFolder(id);
+      if(res.success && res.folder) {
+        const mappedCards = sortCatalogCards((res.folder.cards || []).map(c => ({ ...c, ...(c.data || {}), data: c.data || {} })));
+        setCards(mappedCards);
+        setHasUnsavedCatalogOrder(false);
+      }
+    } catch (err) { console.error('Error fetching cards:', err); }
+  };
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const init = async () => {
+      try {
+        const res = await api.getFolder(id);
+        if (res.success && res.folder) {
+          setFolderData(res.folder);
+          setSearchCategory(getTcgConfig(res.folder.tcg).categoryId);
+          const mappedCards = sortCatalogCards((res.folder.cards || []).map(c => ({ ...c, ...(c.data || {}), data: c.data || {} })));
+          setCards(mappedCards);
+          setHasUnsavedCatalogOrder(false);
+        }
+      } catch (e) { console.error(e); } finally { setLoadingFolder(false); }
+    };
+    init();
+  }, [id]);
+
+  useEffect(() => {
+    let stale = false;
+    if (!searchCategory) {
+      setAvailableSets([]);
+      setSearchSet('');
+      return undefined;
+    }
+    api.getTcgBlocks(searchCategory).then(res => {
+      if(!stale && res.success) {
+        const sorted = res.data.sort((a, b) => {
+          if (a.id === 2) return -1;
+          if (b.id === 2) return 1;
+          return 0;
+        });
+        setAvailableBlocks(sorted);
+      }
+    }).catch(console.error);
+    api.getTcgPhysicalProducts().then(res => { if(!stale && res.success) setAvailablePhysicalProducts(res.data); }).catch(console.error);
+    if (searchCategory === '1') {
+      setAvailableSets([]);
+      // Cancelar cualquier carga en curso del idioma anterior y limpiar sus resultados
+      pokeGenRef.current++;
+      pokeQueueRef.current = [];
+      pokeLoadingRef.current = false;
+      abortControllerRef.current?.abort();
+      setHasMoreGroups(false);
+      setRawSearchResults([]);
+      setSearchResults([]);
+      setIsSearching(false);
+      const catId = searchLang === 'ja' ? 85 : 3;
+      // Ediciones sin cartas (solo sellado), generado con scripts/find_empty_tcgcsv_groups.cjs
+      Promise.all([
+        fetch(apiUrl(`/tcgcsv/tcgplayer/${catId}/groups`)).then(r => r.json()),
+        fetch('/empty-groups-tcgcsv.json').then(r => r.json()).catch(() => ({})),
+      ])
+        .then(([json, emptyGroups]) => {
+          if (stale) return;
+          const groups = (json.results || [])
+            .filter(g => new Date(g.publishedOn) <= new Date())
+            .filter(g => emptyGroups[catId]?.[g.groupId] !== g.modifiedOn);
+          // TCGCSV pone la fecha de importación a promos/varios: si muchas ediciones comparten día, van al final por nombre
+          const perDay = {};
+          (json.results || []).forEach(g => { const d = g.publishedOn.slice(0, 10); perDay[d] = (perDay[d] || 0) + 1; });
+          const undated = g => perDay[g.publishedOn.slice(0, 10)] >= 8;
+          groups.sort((a, b) => (undated(a) - undated(b)) || (undated(a) ? a.name.localeCompare(b.name) : new Date(b.publishedOn) - new Date(a.publishedOn)));
+          setAvailableSets(groups.map(g => ({ groupId: g.groupId, id: g.groupId, name: g.name, publishedOn: g.publishedOn })));
+        })
+        .catch(console.error);
+      return () => { stale = true; };
+    }
+      api.getTcgGroups(searchCategory)
+      .then(res => {
+        if (!stale && res.success) {
+          let sortedSets = res.data.sort((a,b) => new Date(b.publishedOn || 0) - new Date(a.publishedOn || 0));
+          
+          
+          
+          setAvailableSets(sortedSets);
+          if (sortedSets.length > 0 && !searchSet) {
+             // Default to the most recent set or leave empty
+          }
+        }
+      })
+      .catch(console.error);
+    return () => { stale = true; };
+  }, [searchCategory, searchLang]);
+
+  // --- MANEJO DE CATÁLOGO LOGIC ---
+  const handleUpdateCard = async (cardIdToUpdate, newPrice, newStock, newLanguage) => {
+    try {
+      const payload = { price: parseFloat(newPrice), stock: parseInt(newStock) };
+      if (newLanguage) payload.data = { language: newLanguage };
+      await api.updateCard(id, cardIdToUpdate, payload);
+      // Optimistic update locally
+      setCards(prev => prev.map(c => c.id === cardIdToUpdate ? {
+        ...c,
+        price: payload.price,
+        stock: payload.stock,
+        ...(newLanguage ? { language: newLanguage, data: { ...(c.data || {}), language: newLanguage } } : {}),
+      } : c));
+      showToast('Carta actualizada correctamente', 'success');
+    } catch (error) {
+      console.error(error);
+      showToast('Error de conexión al actualizar la carta.', 'error');
+    }
+  };
+
+  const handleDeleteRequest = (id) => {
+    setConfirmDialog({ show: true, message: '¿Estás seguro de eliminar esta carta del catálogo?', targetId: id });
+  };
+
+  const executeDeleteCard = async () => {
+    const cardIdToDelete = confirmDialog.targetId;
+    setConfirmDialog({ show: false, message: '', targetId: null });
+    try {
+      await api.deleteCard(id, cardIdToDelete);
+      if (true) {
+        setCards(cards.filter(c => c.id !== cardIdToDelete));
+        showToast('Carta eliminada exitosamente', 'success');
+      } else {
+        showToast(result.message, 'error');
+      }
+    } catch (error) {
+      console.error(error);
+      showToast('Error de conexión al eliminar la carta.', 'error');
+    }
+  };
+
+  const orderedCatalogCards = sortCatalogCards(cards);
+
+  const filteredCatalog = orderedCatalogCards.filter(card => {
+    const normalizedQuery = catQuery.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const normalizedName = (card.name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const matchesQuery = catQuery === '' || normalizedName.includes(normalizedQuery);
+    const matchesSupertype = true;
+    const matchesType = true;
+    const matchesSet = catSet === '' 
+      ? true 
+      : catSet === 'otros' 
+        ? !availableSets.some(s => s.name === card.set)
+        : availableSets.some(s => s.groupId == catSet && s.name === card.set);
+    
+    // Client-side MYL filtering
+    let matchesMyl = true;
+    if (folderData?.tcg === 'Mitos y Leyendas' || searchCategory === '99') {
+      if (mylType && card.extData?.type !== mylType) matchesMyl = false;
+      if (mylCost && parseInt(card.extData?.cost) !== parseInt(mylCost)) matchesMyl = false;
+        if (searchPhysicalProduct && !(card.physicalProductIds || [card.physicalProductId]).some(id => String(id) === String(searchPhysicalProduct))) matchesMyl = false;
+      if (mylRace) {
+        if (!card.extData?.race) matchesMyl = false;
+        else if (Array.isArray(card.extData.race) && !card.extData.race.includes(mylRace)) matchesMyl = false;
+        else if (typeof card.extData.race === 'string' && card.extData.race !== mylRace) matchesMyl = false;
+      }
+    }
+    
+    return matchesQuery && matchesSupertype && matchesType && matchesSet && matchesMyl;
+  });
+
+  // IMPORTANT: We do NOT pass draggedCatalogCardId or dropCatalogIndex to getPreviewReorderedCards
+  // during Grid Mode. If we shift the array live, cards move across <section> boundaries, unmount,
+  // and completely destroy the browser's touch/drag event context, causing permanent freezes.
+  // The drop target is visually indicated by the 'isDropTarget' CSS highlight instead.
+  const previewCatalog = filteredCatalog;
+  const catalogPages = chunkCardsByPage(previewCatalog);
+
+  const saveCatalogOrder = async () => {
+    const nextCards = sortCatalogCards(cards);
+    if (!hasUnsavedCatalogOrder || savingCatalogOrder) return;
+
+    setSavingCatalogOrder(true);
+    try {
+      await api.saveFolderOrder(id, nextCards.map((card) => card.id));
+      setHasUnsavedCatalogOrder(false);
+      showToast('Orden actualizado correctamente', 'success');
+    } catch (error) {
+      console.error(error);
+      showToast('No se pudo guardar el nuevo orden.', 'error');
+      fetchCards();
+    } finally {
+      setSavingCatalogOrder(false);
+    }
+  };
+
+  const handleCatalogReorder = (dragCardId, targetVisibleIndex) => {
+    if (!dragCardId || targetVisibleIndex === null || targetVisibleIndex === undefined) return;
+
+    const visibleCards = filteredCatalog;
+    const targetCard = visibleCards[targetVisibleIndex] || null;
+    if (targetCard?.id === dragCardId) return;
+
+    const currentOrdered = sortCatalogCards(cards);
+    const fromIndex = currentOrdered.findIndex(card => card.id === dragCardId);
+    const toIndex = targetCard
+      ? currentOrdered.findIndex(card => card.id === targetCard.id)
+      : currentOrdered.length;
+    if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
+
+    const nextOrdered = [...currentOrdered];
+    const [movedCard] = nextOrdered.splice(fromIndex, 1);
+    const dropIndex = Math.min(toIndex, nextOrdered.length);
+    nextOrdered.splice(dropIndex, 0, movedCard);
+
+    const reorderedCards = nextOrdered.map((card, index) => ({
+      ...card,
+      catalogOrder: index,
+      data: {
+        ...(card.data || {}),
+        catalogOrder: index
+      }
+    }));
+
+    setCards(reorderedCards);
+    setHasUnsavedCatalogOrder(true);
+    setDraggedCatalogCardId(null);
+    setDropCatalogIndex(null);
+  };
+
+  const getCatalogDragHandleProps = (card, visibleIndex) => ({
+    draggable: !savingCatalogOrder,
+    onDragStart: (event) => {
+      if (isTouchDragRef.current) {
+        event.preventDefault();
+        return;
+      }
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', card.id);
+      const emptyImg = new Image(); emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+      event.dataTransfer.setDragImage(emptyImg, 0, 0);
+      setDraggedCatalogCardId(card.id);
+      setCatalogDragFloatingPreview({ card });
+      requestAnimationFrame(() => moveCatalogDragFloatingPreview(event.clientX, event.clientY));
+      setDropCatalogIndex(visibleIndex);
+    },
+    onDragEnd: () => {
+      setDraggedCatalogCardId(null);
+      setCatalogDragFloatingPreview(null);
+      setDropCatalogIndex(null);
+    },
+    onTouchStart: (event) => {
+      if (savingCatalogOrder) return;
+      isTouchDragRef.current = true;
+      event.stopPropagation();
+      touchCatalogCardIdRef.current = card.id;
+      setDraggedCatalogCardId(card.id);
+      const startTouch = event.touches?.[0];
+      setCatalogDragFloatingPreview({ card });
+      if (startTouch) requestAnimationFrame(() => moveCatalogDragFloatingPreview(startTouch.clientX, startTouch.clientY));
+      setDropCatalogIndex(visibleIndex);
+      touchCatalogDropIndexRef.current = visibleIndex;
+
+      const handleTouchMove = (e) => {
+        const touch = e.touches?.[0];
+        if (!touch) return;
+        if (e.cancelable) e.preventDefault(); // Prevent native scroll to stop touchcancel
+        moveCatalogDragFloatingPreview(touch.clientX, touch.clientY);
+
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        if (touch.clientY < DRAG_SCROLL_EDGE_PX) {
+          const intensity = (DRAG_SCROLL_EDGE_PX - touch.clientY) / DRAG_SCROLL_EDGE_PX;
+          catalogDragScrollSpeedRef.current = -Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED);
+        } else if (touch.clientY > viewportHeight - DRAG_SCROLL_EDGE_PX) {
+          const intensity = (touch.clientY - (viewportHeight - DRAG_SCROLL_EDGE_PX)) / DRAG_SCROLL_EDGE_PX;
+          catalogDragScrollSpeedRef.current = Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED);
+        } else {
+          catalogDragScrollSpeedRef.current = 0;
+        }
+
+        const dropEl = document.elementFromPoint(touch.clientX, touch.clientY)?.closest?.('[data-catalog-drop-index]');
+        if (dropEl?.dataset?.catalogDropIndex !== undefined) {
+          const nextIndex = Number(dropEl.dataset.catalogDropIndex);
+          if (Number.isFinite(nextIndex)) {
+            if (touchCatalogDropIndexRef.current !== nextIndex) {
+              touchCatalogDropIndexRef.current = nextIndex;
+              setDropCatalogIndex(nextIndex);
+            }
+          }
+        }
+      };
+
+      const handleTouchEnd = () => {
+        const targetIndex = touchCatalogDropIndexRef.current;
+        const dragId = touchCatalogCardIdRef.current;
+        if (dragId && Number.isFinite(targetIndex)) {
+          handleCatalogReorder(dragId, targetIndex);
+        }
+        cleanup();
+      };
+
+      const cleanup = () => {
+        isTouchDragRef.current = false;
+        catalogDragScrollSpeedRef.current = 0;
+        touchCatalogCardIdRef.current = null;
+        touchCatalogDropIndexRef.current = null;
+        setDraggedCatalogCardId(null);
+        setCatalogDragFloatingPreview(null);
+        setDropCatalogIndex(null);
+        window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('touchend', handleTouchEnd);
+        window.removeEventListener('touchcancel', cleanup);
+      };
+
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('touchend', handleTouchEnd);
+      window.addEventListener('touchcancel', cleanup);
+    }
+  });
+
+  const getCatalogDropProps = (visibleIndex) => ({
+    onDragEnter: (event) => {
+      event.preventDefault();
+      setDropCatalogIndex(visibleIndex);
+    },
+    onDragOver: (event) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'move';
+      setDropCatalogIndex(visibleIndex);
+    },
+    onDrop: (event) => {
+      event.preventDefault();
+      const dragId = event.dataTransfer.getData('text/plain') || draggedCatalogCardId;
+      setCatalogDragFloatingPreview(null);
+      handleCatalogReorder(dragId, visibleIndex);
+    }
+  });
+
+  const hasCatalogFilters = Boolean(catQuery || catSet || searchPhysicalProduct || mylType || mylRace || mylCost);
+
+  const clearCatalogFilters = () => {
+    setCatQuery('');
+    setCatSet('');
+    setSearchPhysicalProduct('');
+    setMylType('');
+    setMylRace('');
+    setMylCost('');
+    setIsCatSetDropdownOpen(false);
+    scrollToTopIfNeeded();
+  };
+
+  const cycleCatalogGridDensity = () => {
+    const isMobile = window.innerWidth <= 768;
+    const maxDensity = isMobile ? 3 : 5;
+    const minDensity = isMobile ? 1 : 2;
+    setCatalogGridDensity(prev => (prev >= maxDensity ? minDensity : prev + 1));
+  };
+
+  const catalogGridClass = {
+    1: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4',
+    2: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5',
+    3: 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6',
+    4: 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-7',
+    5: 'grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 2xl:grid-cols-8',
+  }[catalogGridDensity] || 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5';
+
+  const fetchOrders = async () => {
+    try {
+      const result = await api.getMyOrders();
+      if (result.success) setFolderOrders((result.orders || []).filter(order => order.folderId === id));
+    } catch (err) {
+      console.error('Error al cargar pedidos:', err);
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  // Al confirmar una venta el stock cambió en el servidor: se recargan las cartas
+  const handleOrderUpdated = (updated) => {
+    window.dispatchEvent(new Event('carpetazo:orders-updated')); // la campana se actualiza al instante
+    setFolderOrders(prev => prev.map(o => (o.id === updated.id ? { ...o, status: updated.status, updatedAt: updated.updatedAt } : o)));
+    if (updated.status === 'completed') fetchCards();
+  };
+
+  const openBuyerPreview = () => {
+    window.open(`/c/${id}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const copyBuyerLink = async () => {
+    const url = `${window.location.origin}/c/${id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast('Enlace público copiado', 'success');
+    } catch (error) {
+      console.error(error);
+      showToast('No se pudo copiar el enlace.', 'error');
+    }
+  };
+
+  const renderCatalogTab = () => (
+    <div className="rounded-2xl border border-gray-200 bg-white p-2.5 shadow-sm sm:p-4">
+      <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-black leading-tight text-[#1a2b4b] sm:text-xl">
+            <span translate="no" className="material-symbols-outlined text-[22px] text-[#1e40af]">inventory_2</span>
+            Inventario Actual
+          </h2>
+          <p className="text-xs text-gray-500">Carpeta de {folderData?.tcg || 'este TCG'}.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+          <button
+            type="button"
+            onClick={openBuyerPreview}
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-blue-100 bg-blue-50 px-3 text-xs font-black text-[#1e40af] shadow-sm transition-colors hover:bg-blue-100 sm:gap-2 sm:px-4"
+          >
+            <span translate="no" className="material-symbols-outlined text-[18px]">visibility</span>
+            <span className="truncate">Vista</span>
+            <span className="hidden sm:inline">comprador</span>
+          </button>
+          <button
+            type="button"
+            onClick={copyBuyerLink}
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 text-xs font-black text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-[#1e40af] sm:gap-2 sm:px-4"
+          >
+            <span translate="no" className="material-symbols-outlined text-[18px]">link</span>
+            <span className="truncate">Copiar</span>
+            <span className="hidden sm:inline">enlace</span>
+          </button>
+        </div>
+      </div>
+
+      <FolderInventorySummary
+        cards={cards}
+        filteredCards={filteredCatalog}
+        tcg={folderData?.tcg}
+        hasUnsavedCatalogOrder={hasUnsavedCatalogOrder}
+        catalogViewMode={catalogViewMode}
+      />
+
+      <InventoryStatusBar
+        hasUnsavedCatalogOrder={hasUnsavedCatalogOrder}
+        savingCatalogOrder={savingCatalogOrder}
+        onSave={saveCatalogOrder}
+      />
+
+      <InventoryFilters
+        query={catQuery}
+        onQueryChange={(e) => { setCatQuery(e.target.value); scrollToTopIfNeeded(); }}
+        selectedSet={catSet}
+        availableSets={availableSets}
+        filteredSets={filteredCatSets}
+        isOpen={isCatSetDropdownOpen}
+        setIsOpen={setIsCatSetDropdownOpen}
+        onSelectSet={(nextSet) => { setCatSet(nextSet); setIsCatSetDropdownOpen(false); scrollToTopIfNeeded(); }}
+        onClearFilters={clearCatalogFilters}
+      />
+
+      <InventoryViewSwitcher
+        mode={catalogViewMode}
+        onChange={setCatalogViewMode}
+        showCardDetails={showCardDetails}
+        onToggleCardDetails={() => setShowCardDetails(prev => !prev)}
+        gridDensity={catalogGridDensity}
+        onCycleGridDensity={cycleCatalogGridDensity}
+      />
+
+      <div className="fixed right-[max(1rem,calc((100vw-1470px)/2+1rem))] top-1/2 z-[1190] hidden -translate-y-1/2 flex-col gap-3 md:flex">
+        {catalogViewMode === 'grid' && (
+          <>
+          <button
+            type="button"
+            onClick={() => setShowCardDetails(prev => !prev)}
+            className={`flex h-12 w-12 items-center justify-center rounded-full border shadow-lg transition-all hover:scale-105 active:scale-95 ${showCardDetails ? 'border-[#1e40af] bg-[#1e40af] text-white' : 'border-blue-100 bg-white text-[#1e40af] hover:bg-blue-50'}`}
+            title={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
+            aria-label={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
+            aria-pressed={showCardDetails}
+          >
+            <span translate="no" className="material-symbols-outlined text-[21px]">{showCardDetails ? 'visibility' : 'visibility_off'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={cycleCatalogGridDensity}
+            className="relative flex h-12 w-12 items-center justify-center rounded-full border border-blue-100 bg-white text-sm font-black text-[#1e40af] shadow-lg transition-all hover:scale-105 hover:bg-blue-50 active:scale-95"
+            title="Cambiar tamaño de cuadrícula"
+            aria-label="Cambiar tamaño de cuadrícula"
+          >
+            <span translate="no" className="material-symbols-outlined text-[20px]">grid_view</span>
+            <span className="ml-0.5">{catalogGridDensity}</span>
+          </button>
+          </>
+        )}
+        <button
+          type="button"
+          onClick={clearCatalogFilters}
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-lg transition-all hover:scale-105 hover:bg-red-50 hover:text-red-500 active:scale-95"
+          title="Limpiar filtros"
+          aria-label="Limpiar filtros"
+        >
+          <span translate="no" className="material-symbols-outlined text-[21px]">filter_alt_off</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className={`flex h-12 w-12 items-center justify-center rounded-full border-2 border-white/20 bg-[#1e40af] text-white shadow-lg transition-all hover:scale-105 hover:bg-blue-800 active:scale-95 ${showScrollTop ? 'opacity-100 scale-100' : 'pointer-events-none scale-0 opacity-0'}`}
+          title="Volver arriba"
+          aria-label="Volver arriba"
+        >
+          <span translate="no" className="material-symbols-outlined text-[24px]">arrow_upward</span>
+        </button>
+      </div>
+
+      {hasUnsavedCatalogOrder && (
+        <div className="fixed bottom-6 right-[5.75rem] z-[1200] md:bottom-8 md:right-[max(1rem,calc((100vw-1470px)/2+1rem))]">
+          <button
+            type="button"
+            onClick={saveCatalogOrder}
+            disabled={savingCatalogOrder}
+            className="inline-flex h-14 whitespace-nowrap items-center gap-2 rounded-full bg-[#1e40af] px-4 text-xs font-black text-white shadow-2xl ring-4 ring-white/70 transition-all hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-70 sm:px-5 sm:text-sm"
+          >
+            <span translate="no" className="material-symbols-outlined text-[20px]">
+              {savingCatalogOrder ? 'hourglass_empty' : 'save'}
+            </span>
+            <span className="hidden min-[360px]:inline">
+              {savingCatalogOrder ? 'Guardando orden...' : 'Guardar orden del álbum'}
+            </span>
+            <span className="min-[360px]:hidden">
+              {savingCatalogOrder ? 'Guardando...' : 'Orden'}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {filteredCatalog.length === 0 ? (
+        <InventoryEmptyState
+          hasFilters={hasCatalogFilters}
+          onClearFilters={clearCatalogFilters}
+          onAddCards={() => setActiveTab('add')}
+        />
+      ) : catalogViewMode === 'album' ? (
+        <div className="rounded-2xl bg-[#dbeafe] py-6 overflow-hidden">
+          <AlbumView
+            tcg={folderData?.tcg}
+            cards={previewCatalog}
+            binderColor={folderData?.color || '#2f7336'}
+            emptyMessage="No se encontraron cartas que coincidan con los filtros."
+            reorderEnabled={!savingCatalogOrder}
+            onReorderCard={handleCatalogReorder}
+          />
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {savingCatalogOrder && (
+            <div className="sticky top-24 z-20 mx-auto w-fit rounded-full bg-[#1e40af] px-4 py-2 text-sm font-bold text-white shadow-lg">
+              Guardando nuevo orden...
+            </div>
+          )}
+
+          {catalogPages.map((pageCards, pageIndex) => (
+            <section
+              key={`catalog-page-${pageIndex}`}
+              className="rounded-3xl border-2 border-blue-100 bg-gradient-to-br from-blue-50 via-white to-blue-50 p-4 shadow-sm"
+            >
+              <div className="mb-4 flex items-center justify-between gap-3 border-b border-blue-100 pb-3">
+                <div>
+                  <h3 className="text-lg font-black text-[#1a2b4b]">Página {pageIndex + 1}</h3>
+                  <p className="text-xs font-medium text-gray-500">
+                    Estas {pageCards.length} carta{pageCards.length === 1 ? '' : 's'} se verán juntas en esta página del álbum.
+                  </p>
+                </div>
+                <span className="rounded-full bg-[#1e40af] px-3 py-1 text-xs font-bold text-white">
+                  {pageCards.length}/{CATALOG_CARDS_PER_PAGE}
+                </span>
+              </div>
+
+              <div className={`grid ${catalogGridClass} gap-3 xl:gap-4`}>
+                {pageCards.map((card, cardIndex) => {
+                  const visibleIndex = pageIndex * CATALOG_CARDS_PER_PAGE + cardIndex;
+                  const isDragging = draggedCatalogCardId === card.id;
+                  const isDropTarget = dropCatalogIndex === visibleIndex && draggedCatalogCardId && draggedCatalogCardId !== card.id;
+
+                  return (
+                    <div
+                      key={card.id || `catalog-${visibleIndex}`}
+                      data-catalog-drop-index={visibleIndex}
+                      {...getCatalogDropProps(visibleIndex)}
+                      className={`rounded-2xl transition-all ${
+                        isDragging ? 'ring-4 ring-emerald-400/80 bg-emerald-50/80 scale-[1.02]' : ''
+                      } ${
+                        isDropTarget ? 'ring-4 ring-[#1e40af]/30 bg-blue-100/70 scale-[1.02]' : ''
+                      }`}
+                    >
+                      <AdminCardEdit
+                        card={card}
+                        onUpdate={handleUpdateCard}
+                        onDelete={handleDeleteRequest}
+                        dragHandleProps={getCatalogDragHandleProps(card, visibleIndex)}
+                        compact
+                        showDetails={showCardDetails}
+                        showLanguage={!isMylFolder}
+                        dense={catalogGridDensity >= 3}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+
+      <DragFloatingPreview preview={catalogDragFloatingPreview} previewRef={catalogDragFloatingPreviewRef} />
+    </div>
+  );
+
+  // --- AGREGAR AL CATÁLOGO LOGIC ---
+  useEffect(() => {
+    if (isSearching && abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      setIsSearching(false);
+    }
+    setHasSearchedAPI(false);
+  }, [searchQuery, searchCategory, searchSet]);
+
+  
+  useEffect(() => {
+    let filtered = rawSearchResults;
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      filtered = filtered.filter(c => 
+        (c.name && c.name.toLowerCase().includes(q)) || 
+        (c.cleanName && c.cleanName.toLowerCase().includes(q)) ||
+        ((getExtDataValue(c.extData, 'Number') || '').toLowerCase().includes(q) || (getExtDataValue(c.extData, 'Card Number / Rarity') || '').toLowerCase().includes(q) || (getExtDataValue(c.extData, 'localId') || '').toLowerCase().includes(q))
+      );
+    }
+
+    filtered = applyCardFilters(filtered);
+
+    // Custom Sorting for Mitos y Leyendas
+    if (searchCategory === '99') {
+      const typeOrder = {
+        'ORO': 1,
+        'ALIADO': 2,
+        'TALISMAN': 3,
+        'TALISMÁN': 3,
+        'TOTEM': 4,
+        'TÓTEM': 4,
+        'ARMA': 5
+      };
+      
+      const editionOrder = {
+        'Espada Sagrada': 1,
+        'Helenica': 2,
+        'Tierras Altas': 3,
+        'Dominios de RA': 4
+      };
+
+      
+    }
+
+    setSearchResults(filtered);
+  }, [rawSearchResults, filterType, filterRarity, searchQuery, mylType, mylRace, mylCost, searchPhysicalProduct, selectedSupertype, selectedType]);
+
+  // Si con los filtros actuales no alcanzan resultados para llenar la primera página, seguir cargando ediciones
+  useEffect(() => {
+    if (searchCategory === '1' && hasMoreGroups && !isSearching && searchResults.length < PAGE_SIZE) {
+      loadMorePokemonRef.current?.();
+    }
+  }, [searchResults, hasMoreGroups, isSearching, selectedSupertype, selectedType, filterRarity]);
+
+  // Al cargar las ediciones de Pokémon con "Todas las ediciones", buscar solo para no dejar la lista en blanco
+  useEffect(() => {
+    if (searchCategory === '1' && availableSets.length > 0 && !searchSet && activeTab === 'add' && !loadingFolder) {
+      handleSearchAPI({ preventDefault: () => {} });
+    }
+  }, [availableSets]);
+
+  const [initialSearchTriggered, setInitialSearchTriggered] = useState(false);
+  useEffect(() => {
+    if (!loadingFolder && searchCategory && !initialSearchTriggered && activeTab === 'add') {
+      setInitialSearchTriggered(true);
+      handleSearchAPI({ preventDefault: () => {} });
+    }
+  }, [loadingFolder, searchCategory, initialSearchTriggered, activeTab]);
+
+  // --- Pokémon (TCGCSV): en "Todas las ediciones" se cargan ediciones de a poco, de la más nueva a la más vieja ---
+  const pokeQueueRef = useRef([]);
+  const pokeGroupCacheRef = useRef(new Map());
+  const pokeGenRef = useRef(0);
+  const pokeLoadingRef = useRef(false);
+  const pokeCatRef = useRef(3);
+  const loadMorePokemonRef = useRef(null);
+
+  const fetchPokemonGroup = async (group, catId, signal) => {
+    const key = `${catId}-${group.groupId}`;
+    if (pokeGroupCacheRef.current.has(key)) return pokeGroupCacheRef.current.get(key);
+    const json = await (await fetch(apiUrl(`/tcgcsv/tcgplayer/${catId}/${group.groupId}/products`), { signal })).json();
+    const list = (json.results || [])
+      .map(p => {
+        const ext = {};
+        (p.extendedData || []).forEach(e => { ext[e.name] = e.value; });
+        return { p, ext };
+      })
+      .filter(({ ext }) => ext.Number)
+      .map(({ p, ext }) => ({
+        id: p.productId,
+        tcgProductId: p.productId,
+        name: p.name,
+        imageUrl: (p.imageUrl || '').replace('_200w', '_400w'),
+        categoryId: 1,
+        cardLanguage: catId === 85 ? 'Japanese' : 'English',
+        groupId: p.groupId,
+        group: { id: p.groupId, name: group?.name || '', publishedOn: group?.publishedOn },
+        extData: { ...ext, localId: ext.Number, ...classifyTcgcsvCard(p.name, ext) },
+      }));
+    const extractNum = (str) => { const m = (str || '').match(/\d+/); return m ? parseInt(m[0], 10) : 0; };
+    list.sort((a, b) => {
+      const idA = String(a.extData.localId), idB = String(b.extData.localId);
+      return extractNum(idA) - extractNum(idB) || idA.localeCompare(idB);
+    });
+    pokeGroupCacheRef.current.set(key, list);
+    return list;
+  };
+
+  // Filtros de categoría, tipo y rareza (también los usa la carga por ediciones para saber cuándo hay suficientes resultados)
+  const applyCardFilters = (list) => {
+    if (selectedSupertype) {
+        const catMap = { "Pokémon": "Pokémon", "Trainer": "Entrenador", "Energy": "Energía" };
+        list = list.filter(c => c.extData?.category === catMap[selectedSupertype]);
+      }
+      
+      if (selectedType) {
+          const typeMap = {
+            "Grass": "Planta", "Fire": "Fuego", "Water": "Agua", "Lightning": "Rayo",
+            "Psychic": "Psíquico", "Fighting": "Lucha", "Darkness": "Oscura", 
+            "Metal": "Metálica", "Fairy": "Hada", "Dragon": "Dragón", "Colorless": "Incolora"
+          };
+          const energyMap = {
+            "Grass": "Planta", "Fire": "Fuego", "Water": "Agua", "Lightning": "Rayo",
+            "Psychic": "Psíquic", "Fighting": "Lucha", "Darkness": "Oscura", 
+            "Metal": "Metálic", "Fairy": "Hada", "Dragon": "Dragón", "Colorless": "Incolora"
+          };
+          
+          const targetType = typeMap[selectedType] || selectedType;
+          const targetEnergy = energyMap[selectedType] || targetType;
+          
+          list = list.filter(c => {
+             if (c.extData?.types && Array.isArray(c.extData.types) && c.extData.types.length > 0) {
+                return c.extData.types.includes(targetType);
+             }
+             if (c.extData?.category === "Energía") {
+                 return (c.name || "").includes(targetEnergy);
+             }
+             return false;
+          });
+        }
+
+    if (filterRarity) {
+      list = list.filter(c => {
+        const rVal = getExtDataValue(c.extData, 'Rarity') || getExtDataValue(c.extData, 'Card Number / Rarity'); return rVal === filterRarity;
+      });
+    }
+    return list;
+  };
+
+  // Carga ediciones de la cola hasta juntar `target` cartas que coincidan con el texto buscado
+  const loadPokemonGroups = async (target, gen, signal, q) => {
+    const catId = pokeCatRef.current;
+    const all = [];
+    let matches = 0;
+    while (matches < target && pokeQueueRef.current.length > 0 && gen === pokeGenRef.current) {
+      const batch = pokeQueueRef.current.splice(0, 3);
+      const lists = await Promise.all(batch.map(g => fetchPokemonGroup(g, catId, signal).catch(err => { if (err.name === 'AbortError') throw err; return []; })));
+      if (gen !== pokeGenRef.current) return [];
+      lists.forEach(l => {
+        const byText = l.filter(c => !q || c.name.toLowerCase().includes(q) || String(c.extData.Number).toLowerCase().includes(q));
+        all.push(...byText);
+        matches += applyCardFilters(byText).length;
+      });
+    }
+    if (gen === pokeGenRef.current) setHasMoreGroups(pokeQueueRef.current.length > 0);
+    return all;
+  };
+
+  const loadMorePokemon = async () => {
+    if (pokeLoadingRef.current || pokeQueueRef.current.length === 0) return;
+    pokeLoadingRef.current = true;
+    const gen = pokeGenRef.current;
+    try {
+      const added = await loadPokemonGroups(10, gen, abortControllerRef.current?.signal, searchQuery.trim().toLowerCase());
+      if (gen === pokeGenRef.current && added.length) {
+        setRawSearchResults(prev => [...prev, ...added]);
+        setAvailableRarities(prev => [...new Set([...prev, ...added.map(c => c.extData.Rarity).filter(Boolean)])].sort());
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') console.error(err);
+    } finally {
+      pokeLoadingRef.current = false;
+    }
+  };
+  loadMorePokemonRef.current = loadMorePokemon;
+
+  const handleSearchAPI = async (e) => {
+    e.preventDefault();
+    if (!searchCategory) {
+      showToast('Selecciona un TCG.', 'error');
+      return;
+    }
+    
+    
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    abortControllerRef.current = new AbortController();
+
+    setIsSearching(true);
+    try {
+      let cards = [];
+      if (searchCategory === '1') {
+          const q = searchQuery.trim().toLowerCase();
+          const catId = searchLang === 'ja' ? 85 : 3;
+          const gen = ++pokeGenRef.current;
+          pokeLoadingRef.current = false;
+          setHasMoreGroups(false);
+          if (searchSet) {
+            pokeQueueRef.current = [];
+            const group = availableSets.find(s => s.groupId == searchSet) || { groupId: searchSet };
+            cards = (await fetchPokemonGroup(group, catId, abortControllerRef.current.signal))
+              .filter(c => !q || c.name.toLowerCase().includes(q) || String(c.extData.Number).toLowerCase().includes(q));
+          } else {
+            // Todas las ediciones: esperar a que cargue la lista de ediciones (la búsqueda se relanza sola)
+            if (availableSets.length === 0) {
+              setIsSearching(false);
+              return;
+            }
+            pokeQueueRef.current = [...availableSets];
+            pokeCatRef.current = catId;
+            cards = await loadPokemonGroups(1, gen, abortControllerRef.current.signal, q);
+            if (gen !== pokeGenRef.current) return;
+          }
+        } else {
+          const mylFilters = searchCategory === '99' ? { type: mylType, race: mylRace, cost: mylCost, blockId: searchBlock, physicalProductId: searchPhysicalProduct } : {};
+          
+          if (searchSet && searchQuery.trim() === '') {
+            const response = await api.getTcgProducts(searchCategory, searchSet, mylFilters);
+            cards = response.data || [];
+          } else {
+            const response = await api.searchTcgProducts(searchQuery.trim(), searchCategory, searchSet, mylFilters);
+            cards = response.data || [];
+          }
+        }
+
+      const rarities = new Set();
+      cards.forEach(c => {
+        const rVal = getExtDataValue(c.extData, 'Rarity') || getExtDataValue(c.extData, 'Card Number / Rarity'); if (rVal) rarities.add(rVal);
+      });
+      setAvailableRarities(Array.from(rarities).sort());
+      setFilterRarity('');
+      setFilterType('all');
+      
+        const extractNum = (str) => {
+          const match = (str || '').match(/\d+/);
+          return match ? parseInt(match[0], 10) : 0;
+        };
+
+        cards.sort((a, b) => {
+          if (!searchSet) {
+            // Intentar alinear exactamente con el orden visual del dropdown (availableSets)
+            let indexA = availableSets.findIndex(s => s.groupId === a.groupId);
+            let indexB = availableSets.findIndex(s => s.groupId === b.groupId);
+            
+            if (indexA !== -1 && indexB !== -1) {
+              if (indexA !== indexB) return indexA - indexB;
+            } else {
+              // Fallback si availableSets aun no carga: ordenar por fecha del backend
+              const dateA = a.group?.publishedOn ? new Date(a.group.publishedOn).getTime() : 0;
+              const dateB = b.group?.publishedOn ? new Date(b.group.publishedOn).getTime() : 0;
+              if (dateB !== dateA) return dateB - dateA;
+              // Desempate de seguridad: si dos ediciones salieron el mismo dia (ej. Celebracion 30), agruparlas por su ID para no mezclarlas
+              if (b.groupId !== a.groupId) return (b.groupId || 0) - (a.groupId || 0);
+            }
+          }
+          
+          // Orden numérico interno de la edición (001, 002)
+          const idA = (a.extData?.localId || '').toString();
+          const idB = (b.extData?.localId || '').toString();
+          const numA = extractNum(idA);
+          const numB = extractNum(idB);
+          if (numA !== numB) return numA - numB;
+          return idA.localeCompare(idB);
+        });
+
+        setRawSearchResults(cards);
+
+      setHasSearchedAPI(true);
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error(error);
+        showToast('Error al buscar cartas en la API', 'error');
+      }
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  
+    const firstRenderFilters = useRef(true);
+    useEffect(() => {
+      if (firstRenderFilters.current) {
+        firstRenderFilters.current = false;
+        return;
+      }
+      if (activeTab === 'add' && !loadingFolder && searchCategory) {
+        const timeoutId = setTimeout(() => {
+          handleSearchAPI({ preventDefault: () => {} });
+        }, 500);
+        return () => clearTimeout(timeoutId);
+      }
+    }, [searchBlock, searchSet, searchPhysicalProduct, mylType, mylRace, mylCost, searchQuery]);
+
+    const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Sube una imagen válida', 'error');
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('type', 'card');
+      const uploadResult = await api.uploadImage(formData);
+      const imageUrl = uploadResult.url;
+
+      setSelectedCard(prev => {
+        if (!prev) return prev;
+        const safeId = String(prev.id || prev.productId || prev.tcgProductId || '');
+        return {
+          ...prev,
+          isCustomImage: true,
+          id: safeId.includes('-custom-') ? safeId : `${safeId}-custom-${Date.now()}`,
+          imageUrl,
+          images: {
+            ...prev.images,
+            large: imageUrl,
+            small: imageUrl
+          }
+        };
+      });
+    } catch (error) {
+      console.error('Error uploading card image:', error);
+      showToast('No pudimos subir la imagen a R2', 'error');
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  const handleSaveCard = async (e) => {
+    e.preventDefault();
+    const cardStock = parseInt(stock);
+    if (!selectedCard || !price || !cardStock) return;
+    setIsSaving(true);
+    
+    try {
+      const targetTcgId = normalizeTcgProductId(selectedCard.productId || selectedCard.id || selectedCard.tcgProductId);
+      const existingCard = cards.find(c => normalizeTcgProductId(c.tcgId) === targetTcgId);
+      
+      if (existingCard) {
+        const newStock = existingCard.stock + cardStock;
+        const newPrice = parseFloat(price);
+        await api.updateCard(id, existingCard.id, { price: newPrice, stock: newStock });
+        showToast('¡Carta actualizada (se sumó el stock)!', 'success');
+      } else {
+        const cardData = {
+          tcgId: targetTcgId,
+          name: selectedCard.name,
+          price: parseFloat(price),
+          stock: cardStock,
+          imageUrl: selectedCard.imageUrl || '',
+          data: {
+            pseudoName: isBatchAdding ? '' : pseudoName.trim(),
+            set: getCardSetName(selectedCard) || 'Unknown',
+            rarity: getExtDataValue(selectedCard.extData, 'Rarity') || getExtDataValue(selectedCard.extData, 'Card Number / Rarity') || getExtDataValue(selectedCard.extData, 'Frequency') || 'Unknown',
+            supertype: getExtDataValue(selectedCard.extData, 'Card Type / HP / Stage')?.split(' / ')[0] || getExtDataValue(selectedCard.extData, 'Type') || 'Unknown',
+            type: getExtDataValue(selectedCard.extData, 'Type'),
+            race: getExtDataValue(selectedCard.extData, 'Race'),
+            cost: getExtDataValue(selectedCard.extData, 'Cost'),
+            effect: getExtDataValue(selectedCard.extData, 'Effect'),
+            number: getExtDataValue(selectedCard.extData, 'Number') || '',
+            total: '',
+            language: isMylFolder ? 'Spanish' : language,
+            catalogOrder: cards.length
+          }
+        };
+        await api.addCard(id, cardData);
+        showToast('¡Carta guardada en el catálogo exitosamente!', 'success');
+      }
+      
+      if (isBatchAdding) {
+        setSelectedQueue(prev => {
+          const remaining = prev.filter(item => item.queueId !== activeQueueItemId);
+          const nextItem = remaining[0];
+          if (nextItem) {
+            setActiveQueueItemId(nextItem.queueId);
+            setSelectedCard(nextItem.card);
+            setStock((nextItem.quantity || 1).toString());
+          } else {
+            setActiveQueueItemId(null);
+            setSelectedCard(null);
+            setStock('1');
+            setMultiSelectMode(false);
+          }
+          return remaining;
+        });
+        setPrice('');
+        setPseudoName('');
+      } else {
+        setSelectedCard(null);
+      }
+      fetchCards();
+      
+      if (!isBatchAdding || selectedQueue.length <= 1) {
+        setTimeout(() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 100);
+      }
+    } catch (error) {
+      console.error(error);
+      showToast('Error de conexión al guardar la carta', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const selectedCardTcgId = selectedCard
+    ? normalizeTcgProductId(selectedCard.productId || selectedCard.id || selectedCard.tcgProductId)
+    : null;
+  const selectedExistingCard = selectedCardTcgId
+    ? cards.find(c => normalizeTcgProductId(c.tcgId) === selectedCardTcgId)
+    : null;
+
+  const renderAddTab = () => (
+    <div className="flex flex-col-reverse lg:flex-row gap-6">
+      {/* Lado Izquierdo: Buscador de API */}
+      <div className="flex-1 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+        <div className="bg-white pb-4 mb-4 border-b border-gray-200">
+            <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 mb-4">
+          <span translate="no" className="material-symbols-outlined text-[#1e40af]">search</span>
+            Buscar en {folderData?.tcg || "Carpeta"}
+        </h2>
+        
+        <form onSubmit={handleSearchAPI} className="flex flex-col gap-2 mb-3">
+          <FolderAddSearchFilters
+            tcg={folderData?.tcg}
+            searchCategory={searchCategory}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            searchSet={searchSet}
+            setSearchSet={setSearchSet}
+            searchLang={searchLang}
+            setSearchLang={setSearchLang}
+            availableSets={availableSets}
+            filteredSearchSets={filteredSearchSets}
+            isSetDropdownOpen={isSetDropdownOpen}
+            setIsSetDropdownOpen={setIsSetDropdownOpen}
+            selectedType={selectedType} setSelectedType={setSelectedType} selectedSupertype={selectedSupertype} setSelectedSupertype={setSelectedSupertype} filterCounts={filterCounts} filterType={filterType}
+            setFilterType={setFilterType}
+            availableRarities={availableRarities}
+            filterRarity={filterRarity}
+            setFilterRarity={setFilterRarity}
+            searchBlock={searchBlock}
+            setSearchBlock={setSearchBlock}
+            availableBlocks={availableBlocks}
+            searchPhysicalProduct={searchPhysicalProduct}
+            setSearchPhysicalProduct={setSearchPhysicalProduct}
+            availablePhysicalProducts={availablePhysicalProducts}
+            mylType={mylType}
+            setMylType={setMylType}
+            mylRace={mylRace}
+            setMylRace={setMylRace}
+            mylCost={mylCost}
+            setMylCost={setMylCost}
+            scrollToTopIfNeeded={scrollToTopIfNeeded}
+          />
+
+          <div className="fixed bottom-[88px] right-6 flex flex-col gap-3 z-[90] lg:hidden">
+            <button
+              type="button"
+              onClick={() => setShowCardDetails(prev => !prev)}
+              className={`${showCardDetails ? 'bg-[#1e40af] text-white border-[#1e40af]' : 'bg-white text-[#1e40af] border-gray-200 hover:bg-gray-100'} w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95 border`}
+              title={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
+              aria-label={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
+              aria-pressed={showCardDetails}
+            >
+              <span translate="no" className="material-symbols-outlined text-[22px]">{showCardDetails ? 'visibility' : 'visibility_off'}</span>
+            </button>
+            <button 
+              type="button" 
+              onClick={toggleMultiSelectMode}
+              className={`${multiSelectMode ? 'bg-[#1e40af] text-white border-[#1e40af]' : 'bg-white text-[#1e40af] border-gray-200 hover:bg-gray-100'} w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95 border`}
+              title={multiSelectMode ? 'Desactivar selección múltiple' : 'Activar selección múltiple'}
+              aria-label={multiSelectMode ? 'Desactivar selección múltiple' : 'Activar selección múltiple'}
+            >
+              <span translate="no" className="material-symbols-outlined text-[22px]">library_add</span>
+              {selectedQueue.length > 0 && (
+                <span className={`absolute -top-1 -right-1 min-w-6 h-6 px-1 rounded-full text-xs flex items-center justify-center border-2 border-white ${multiSelectMode ? 'bg-white text-[#1e40af]' : 'bg-[#1e40af] text-white'}`}>
+                  {selectedQueue.length}
+                </span>
+              )}
+            </button>
+            <button 
+              type="button" 
+              onClick={() => { const isMobile = window.innerWidth <= 768; const maxCols = isMobile ? 3 : 5; const minCols = isMobile ? 1 : 2; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }}
+              className="bg-white hover:bg-gray-100 text-[#1e40af] border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
+              title="Cambiar vista"
+              aria-label="Cambiar vista"
+            >
+              <span translate="no" className="material-symbols-outlined text-[20px]">grid_view</span>
+              <span className="ml-1">{gridCols}</span>
+            </button>
+            <button type="submit" className="hidden" />
+            <button 
+              type="button" 
+              onClick={() => { setSearchQuery(''); setSearchPhysicalProduct(''); setSearchSet(''); setMylType(''); setMylRace(''); setMylCost(''); scrollToTopIfNeeded(); }} 
+              className="bg-white hover:bg-red-50 text-gray-500 hover:text-red-500 border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
+              title="Limpiar filtros"
+              aria-label="Limpiar filtros"
+            >
+              <span translate="no" className="material-symbols-outlined text-[22px]">filter_alt_off</span>
+            </button>
+          </div>
+        </form>
+      </div>
+      {(multiSelectMode || selectedQueue.length > 0) && (
+        <div className="lg:hidden mb-4 rounded-2xl border border-blue-100 bg-blue-50/80 p-3 shadow-sm">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <p className="text-sm font-bold text-[#1a2b4b]">Selección múltiple</p>
+              <p className="text-xs text-gray-500">{totalQueuedCards} carta{totalQueuedCards === 1 ? '' : 's'} en la lista</p>
+            </div>
+            <div className="flex gap-2">
+              {selectedQueue.length > 0 && (
+                <button type="button" onClick={() => { setSelectedQueue([]); setActiveQueueItemId(null); setSelectedCard(null); resetCardForm(); }} className="px-3 py-2 rounded-lg text-xs font-bold border border-gray-200 bg-white text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
+                  Limpiar
+                </button>
+              )}
+              <button type="button" disabled={selectedQueue.length === 0} onClick={startQueuedAdd} className="px-4 py-2 rounded-lg text-xs font-bold bg-[#1e40af] text-white disabled:bg-gray-300 disabled:cursor-not-allowed shadow-sm hover:bg-blue-800 transition-colors">
+                Agregar selección
+              </button>
+            </div>
+          </div>
+          {selectedQueue.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+              {selectedQueue.map((item, index) => (
+                <button key={item.queueId} type="button" onClick={(e) => decreaseQueueItemQuantity(e, item.queueId)} onContextMenu={(e) => e.preventDefault()} className={`relative flex-shrink-0 w-16 rounded-lg border-2 bg-white p-1 shadow-sm transition-all ${activeQueueItemId === item.queueId ? 'border-[#1e40af]' : 'border-blue-200 hover:border-red-300'}`} title="Quitar de la selección">
+                  <div className="relative w-full aspect-[63/88]"><SafeImage src={item.card.imageUrl} alt={item.card.name} className="w-full h-full object-contain rounded" fallbackType="queue" /></div>
+                  <span className="absolute -top-2 -left-2 bg-[#1e40af] text-white text-[10px] font-bold rounded-full min-w-5 px-1 h-5 flex items-center justify-center border border-white">x{item.quantity || 1}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      <div className={`grid gap-4 pr-2 ${gridCols === 1 ? 'grid-cols-1' : gridCols === 2 ? 'grid-cols-2' : gridCols === 3 ? 'grid-cols-3' : gridCols === 4 ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-5'}`}>
+          {isSearching ? (
+            <div className="col-span-full flex flex-col items-center justify-center py-16">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#1e40af] mb-4"></div>
+              <p className="text-gray-500 font-bold animate-pulse">Consultando la Pokédex mundial...</p>
+            </div>
+          ) : searchResults.length > 0 ? (
+            <>
+            {searchResults.slice(0, visibleCount).map((card, index) => {
+              const queuedCount = selectedQueueCountByCard[getCardSelectionKey(card)] || 0;
+              const isCardSelected = selectedCard?.id === card.id || queuedCount > 0;
+              return (
+            <div key={card.id || `search-${index}`} className={`relative cursor-pointer flex flex-col justify-between rounded-xl overflow-hidden border-2 transition-all duration-200 bg-blue-50 shadow-sm ${gridCols === 1 ? 'max-w-[255px] mx-auto w-full' : gridCols === 2 ? 'max-w-[350px] mx-auto w-full' : 'w-full'} ${isCardSelected ? 'border-[#1e40af] shadow-md scale-[1.02] ring-2 ring-[#1e40af]/20' : 'border-gray-200 hover:border-[#1e40af]/50'}`} onClick={() => handleResultCardClick(card)} onContextMenu={(e) => handleRightClickResultCard(e, card)} title={multiSelectMode ? "Clic izquierdo: Añadir 1 copia | Clic derecho: Quitar 1 copia" : ""}>
+              {queuedCount > 0 && (
+                <div className="absolute top-2 right-2 z-20 bg-[#1e40af] text-white text-xs font-bold rounded-full min-w-7 h-7 px-2 flex items-center justify-center border-2 border-white shadow-md">
+                  x{queuedCount}
+                </div>
+              )}
+              <div className={`relative w-full ${isMylFolder ? 'aspect-[709/1016]' : 'aspect-[63/88]'} flex items-center justify-center bg-gray-50 overflow-hidden`}>
+                <SafeImage src={card.imageUrl} alt={card.name} className="w-full h-full object-cover relative z-10 transition-opacity duration-300" fallbackType="grid" />
+              </div>
+              {showCardDetails && (
+                <div className={`text-center border-t border-gray-100 w-full ${gridCols <= 2 ? 'p-2' : gridCols === 3 ? 'p-3' : gridCols === 4 ? 'p-2' : 'p-1'}`}>
+                  <p className={`font-bold text-gray-900 truncate ${gridCols === 1 ? 'text-base' : gridCols === 2 ? 'text-xl' : gridCols === 3 ? 'text-base' : gridCols === 4 ? 'text-sm' : 'text-xs'}`}>{cardLabel(card)}</p>
+                  <p className={`text-gray-500 truncate mt-1 ${gridCols === 1 ? 'text-xs' : gridCols === 2 ? 'text-lg' : gridCols === 3 ? 'text-sm' : gridCols === 4 ? 'text-xs' : 'text-[10px]'}`}>{getCardSetName(card)}</p>
+                </div>
+              )}
+            </div>
+          );})}
+          {(visibleCount < searchResults.length || hasMoreGroups) && (
+            <div ref={observerTarget} className="col-span-full h-10 w-full flex items-center justify-center mt-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e40af]"></div>
+            </div>
+          )}
+          </>
+          ) : hasSearchedAPI && hasMoreGroups ? (
+              <div className="col-span-full flex flex-col items-center justify-center py-16">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-[#1e40af] mb-3"></div>
+                <p className="text-gray-500 font-bold animate-pulse">Buscando en más ediciones...</p>
+              </div>
+          ) : hasSearchedAPI ? (
+              <div className="col-span-full py-12 text-center text-gray-500 flex flex-col items-center">
+                  <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-50">search_off</span>
+                  <p className="font-bold">No se encontraron cartas que coincidan con tu búsqueda.</p>
+              </div>
+          ) : (
+              <div className="col-span-full py-12 text-center text-gray-500 flex flex-col items-center">
+                  <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-50">travel_explore</span>
+                  <p className="font-bold">Realiza una búsqueda para empezar.</p>
+              </div>
+          )}
+        </div>
+      </div>
+
+      {/* Lado Derecho: Añadir a Carpeta */}
+
+        {/* Columna de Botones FAB (Solo PC) */}
+        <div className="hidden lg:flex flex-col gap-3 sticky top-[360px] h-fit z-[60] self-start -mx-2">
+            <button
+                type="button"
+                onClick={() => setShowCardDetails(prev => !prev)}
+                className={`${showCardDetails ? 'bg-[#1e40af] text-white border-[#1e40af]' : 'bg-white text-[#1e40af] border-gray-200 hover:bg-gray-100'} relative w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95 border`}
+                title={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
+                aria-label={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
+                aria-pressed={showCardDetails}
+            >
+                <span translate="no" className="material-symbols-outlined text-[22px]">{showCardDetails ? 'visibility' : 'visibility_off'}</span>
+            </button>
+            <button 
+                type="button" 
+                onClick={toggleMultiSelectMode}
+                className={`${multiSelectMode ? 'bg-[#1e40af] text-white border-[#1e40af]' : 'bg-white text-[#1e40af] border-gray-200 hover:bg-gray-100'} relative w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95 border`}
+                title={multiSelectMode ? 'Desactivar selección múltiple' : 'Activar selección múltiple'}
+                aria-label={multiSelectMode ? 'Desactivar selección múltiple' : 'Activar selección múltiple'}
+              aria-label={multiSelectMode ? 'Desactivar selección múltiple' : 'Activar selección múltiple'}
+            >
+                <span translate="no" className="material-symbols-outlined text-[22px]">library_add</span>
+                {selectedQueue.length > 0 && (
+                    <span className={`absolute -top-1 -right-1 min-w-6 h-6 px-1 rounded-full text-xs flex items-center justify-center border-2 border-white ${multiSelectMode ? 'bg-white text-[#1e40af]' : 'bg-[#1e40af] text-white'}`}>
+                        {selectedQueue.length}
+                    </span>
+                )}
+            </button>
+            <button 
+                type="button" 
+                onClick={() => { const isMobile = window.innerWidth <= 768; const maxCols = isMobile ? 3 : 5; const minCols = isMobile ? 1 : 2; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }}
+                className="bg-white hover:bg-gray-100 text-[#1e40af] border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
+                title="Cambiar vista"
+                aria-label="Cambiar vista"
+              aria-label="Cambiar vista"
+            >
+                <span translate="no" className="material-symbols-outlined text-[20px]">grid_view</span>
+                <span className="ml-1">{gridCols}</span>
+            </button>
+            <button 
+                type="button" 
+                onClick={() => { setSearchQuery(''); setSearchPhysicalProduct(''); setSearchSet(''); setMylType(''); setMylRace(''); setMylCost(''); scrollToTopIfNeeded(); }} 
+                className="bg-white hover:bg-red-50 text-gray-500 hover:text-red-500 border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
+                title="Limpiar filtros"
+              aria-label="Limpiar filtros"
+            >
+                <span translate="no" className="material-symbols-outlined text-[22px]">filter_alt_off</span>
+            </button>
+            <button
+                type="button"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className={`bg-[#1e40af] text-white w-14 h-14 rounded-full shadow-lg hover:bg-blue-800 transition-all flex items-center justify-center transform hover:scale-110 active:scale-95 border-2 border-white/20 ${showScrollTop ? 'opacity-100 scale-100' : 'opacity-0 scale-0 pointer-events-none'}`}
+                aria-label="Volver arriba"
+                title="Volver arriba"
+            >
+                <span translate="no" className="material-symbols-outlined text-2xl">arrow_upward</span>
+            </button>
+        </div>
+
+      <div id="add-catalog-panel" className={`w-full max-w-[400px] lg:w-[400px] bg-white p-6 lg:p-6 rounded-2xl shadow-sm border border-gray-200 lg:sticky lg:top-[140px] flex-shrink-0 z-10 hover:z-[60] mx-auto lg:mx-0 self-center lg:self-start scroll-mt-[130px] lg:scroll-mt-[150px] ${selectedCard ? 'block' : 'hidden lg:block'} lg:h-[calc(100vh-160px)] overflow-visible`}>
+        <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 border-b border-gray-200 pb-4">
+          <span translate="no" className="material-symbols-outlined text-[#1e40af]">add_circle</span>
+          {isBatchAdding ? 'Agregar Selección' : 'Añadir a Carpeta'}
+        </h2>
+        {selectedCard ? (
+          <form onSubmit={handleSaveCard} className="flex min-h-[610px] lg:min-h-0 lg:h-[calc(100%-58px)] flex-col justify-between gap-4 mt-2">
+            <div className="flex justify-center relative z-50 mt-4 lg:flex-1 lg:min-h-0 w-full">
+              <div className="relative inline-block lg:h-full flex justify-center items-center">
+                <div className="relative h-72 sm:h-80 lg:h-full lg:max-h-full lg:w-full aspect-[63/88]"><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} className="w-full h-full object-contain rounded-lg shadow-md hover:scale-[1.2] transition-transform duration-300 cursor-zoom-in relative z-50 hover:z-[70] origin-center" fallbackType="zoom-main" /></div>
+                <button 
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute -bottom-3 -right-3 z-[60] bg-[#1e40af] text-white rounded-full w-10 h-10 flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.5)] hover:bg-blue-800 hover:scale-110 transition-all border-2 border-white"
+                  title="Subir foto real de la carta"
+                  aria-label="Subir foto real de la carta"
+                >
+                  <span translate="no" className="material-symbols-outlined text-[20px]">photo_camera</span>
+                </button>
+              </div>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*" 
+                capture="environment" 
+                onChange={handleImageUpload} 
+              />
+            </div>
+            <div className="flex flex-col gap-3">
+              <div className="text-center px-2">
+                <p className="font-bold text-gray-900 leading-tight">{cardLabel(selectedCard)}</p>
+                <p className="text-sm text-gray-500 mt-1">{getCardSetName(selectedCard)} • {selectedCard.rarity || getExtDataValue(selectedCard.extData, 'Rarity')}</p>
+                {isBatchAdding && (
+                  <p className="text-xs font-bold text-[#1e40af] mt-2">
+                    Carta {selectedQueue.findIndex(item => item.queueId === activeQueueItemId) + 1} de {selectedQueue.length}
+                  </p>
+                )}
+              </div>
+
+              <DuplicateCardNotice existingCard={selectedExistingCard} selectedCard={selectedCard} />
+              
+              {!isBatchAdding && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Alias / Apodo (Opcional)</label>
+                  <input type="text" value={pseudoName} onChange={(e) => setPseudoName(e.target.value)} placeholder="Ej: Charizard de Ash..." maxLength={30} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-sm text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" />
+                </div>
+              )}
+
+              <div className="flex gap-4">
+                <div className={isBatchAdding ? 'w-full' : 'flex-1'}>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Precio (CLP)*</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                    <input type="number" required min="1" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" placeholder="1000" />
+                  </div>
+                </div>
+                {!isBatchAdding && (
+                  <div className="w-1/3">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Stock*</label>
+                    <div className="flex items-stretch overflow-hidden rounded-lg border border-gray-300 bg-gray-50 focus-within:border-[#1e40af] focus-within:ring-1 focus-within:ring-[#1e40af]">
+                      <button type="button" aria-label="Restar stock" disabled={(parseInt(stock, 10) || 1) <= 1} onClick={() => setStock(prev => String(Math.max(1, (parseInt(prev, 10) || 1) - 1)))} className="flex w-8 shrink-0 items-center justify-center text-lg font-bold text-gray-600 transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-40">−</button>
+                      <input type="number" required min="1" step="1" inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} onBlur={() => { if (!(parseInt(stock, 10) >= 1)) setStock('1'); }} className="min-w-0 flex-1 bg-transparent px-1 py-1.5 text-center text-sm font-bold text-gray-900 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" placeholder="1" />
+                      <button type="button" aria-label="Sumar stock" onClick={() => setStock(prev => String((parseInt(prev, 10) || 0) + 1))} className="flex w-8 shrink-0 items-center justify-center text-lg font-bold text-gray-600 transition-colors hover:bg-gray-200">+</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {!isMylFolder && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Idioma</label>
+                  <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-sm">
+                    <option value="English">English</option>
+                    <option value="Spanish">Spanish</option>
+                    <option value="Japanese">Japanese</option>
+                  </select>
+                </div>
+              )}
+
+              <button type="submit" disabled={isSaving} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-[15px]">
+                {isSaving ? <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span> : <span translate="no" className="material-symbols-outlined">add_circle</span>}
+                {isSaving ? 'Guardando...' : isBatchAdding ? 'Guardar y continuar' : selectedExistingCard ? 'Sumar stock' : 'Guardar Carta'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <>
+            {(multiSelectMode || selectedQueue.length > 0) ? (
+              <div className="hidden lg:flex min-h-[610px] lg:min-h-0 lg:h-[calc(100%-58px)] flex-col justify-between gap-4 mt-2">
+                  <div className="flex items-center justify-between gap-3 px-2 mt-4">
+                    <div>
+                      <p className="text-sm font-bold text-[#1a2b4b]">Selección múltiple</p>
+                      <p className="text-xs text-gray-500">{totalQueuedCards} carta{totalQueuedCards === 1 ? '' : 's'} en la lista</p>
+                    </div>
+                    {selectedQueue.length > 0 && (
+                      <button type="button" onClick={() => { setSelectedQueue([]); setActiveQueueItemId(null); setSelectedCard(null); resetCardForm(); }} className="px-3 py-2 rounded-lg text-xs font-bold border border-gray-200 bg-white text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
+                        Limpiar
+                      </button>
+                    )}
+                  </div>
+
+                  <div ref={queueScrollRef} className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden custom-scrollbar mt-2 px-2 pb-4">
+                    {selectedQueue.length > 0 ? (
+                      <div className="grid grid-cols-3 gap-4">
+                        {selectedQueue.map((item, index) => (
+                          <div key={item.queueId} onContextMenu={(e) => decreaseQueueItemQuantity(e, item.queueId)} title="Clic derecho para quitar 1 copia" className="relative w-full aspect-[63/88] rounded-xl shadow-sm border-2 border-blue-200 bg-white p-1.5 hover:border-red-300 transition-colors flex items-center justify-center cursor-context-menu">
+                            <div className="relative w-full h-full"><SafeImage src={getProxyImageUrl(item.card.tcgProductId || item.card.id, item.card.imageUrl)} alt={item.card.name} className="w-full h-full object-contain rounded-md" fallbackType="queue" /></div>
+                            <button 
+                              type="button" 
+                              onClick={() => removeQueueItem(item.queueId)} 
+                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center shadow-md border-2 border-white hover:scale-110 transition-transform z-[60]"
+                              title="Quitar de la selección"
+                            >
+                              <span translate="no" className="material-symbols-outlined text-[14px]">close</span>
+                            </button>
+                            <span className="absolute -bottom-2 -left-2 bg-[#1e40af] text-white text-[11px] font-bold rounded-full min-w-7 px-1 h-7 flex items-center justify-center shadow-md border-2 border-white z-[60]">
+                              x{item.quantity || 1}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="w-full h-full min-h-[300px] flex flex-col items-center justify-center text-gray-400 opacity-80 border-2 border-dashed border-gray-200 rounded-xl">
+                        <span translate="no" className="material-symbols-outlined text-6xl mb-4 text-gray-300">library_add</span>
+                        <div className="text-center px-4">
+                          <p className="text-sm font-bold">Usa clic izquierdo para sumar copias.</p>
+                          <p className="text-sm font-bold mt-1 opacity-80">Usa clic derecho para restarlas.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <button type="button" disabled={selectedQueue.length === 0} onClick={startQueuedAdd} className="w-full py-3.5 rounded-xl text-[15px] font-bold bg-[#1e40af] text-white disabled:bg-gray-300 disabled:cursor-not-allowed shadow-sm hover:bg-blue-800 transition-colors flex items-center justify-center gap-2">
+                    <span translate="no" className="material-symbols-outlined text-[20px]">playlist_add_check</span>
+                    Agregar selección
+                  </button>
+                </div>
+            ) : (
+              <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-gray-400 opacity-80 border-2 border-dashed border-gray-200 rounded-xl mt-6 p-6">
+                <span translate="no" className="material-symbols-outlined text-6xl mb-4 text-gray-300">style</span>
+                <p className="text-sm font-bold text-center">Selecciona una carta de los resultados.</p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderSalesTab = () => {
+    const pendingCount = folderOrders.filter(o => o.status === 'pending').length;
+    return (
+      <div className="flex flex-col gap-6">
+        <LiquidTabs
+          ariaLabel="Ventas de esta carpeta"
+          value={salesView}
+          onChange={setSalesView}
+          className="w-full sm:w-max rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-slate-200"
+          buttonClassName="h-11 whitespace-nowrap rounded-xl px-3 text-sm font-bold sm:px-6 sm:text-base"
+          indicatorClassName="rounded-xl bg-[#1e40af]"
+          indicatorStyle={{ top: 6, bottom: 6 }}
+          activeTextClassName="text-white"
+          inactiveTextClassName="text-slate-600 hover:text-[#1a2b4b]"
+          options={[
+            {
+              value: 'solicitudes',
+              label: (
+                <span className="flex items-center justify-center gap-2">
+                  Solicitudes
+                  {pendingCount > 0 && (
+                    <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-[#ffcb05] px-1.5 font-['Space_Grotesk'] text-xs font-extrabold tabular-nums text-[#1a2b4b]">{pendingCount}</span>
+                  )}
+                </span>
+              )
+            },
+            { value: 'historial', label: 'Historial' }
+          ]}
+        />
+        <OrdersTab
+          showToast={(message) => showToast(message, 'success')}
+          filter={salesView}
+          orders={folderOrders}
+          loading={ordersLoading}
+          onOrderUpdated={handleOrderUpdated}
+          onGoToFolders={copyBuyerLink}
+          emptyActionLabel="Copiar enlace de esta carpeta"
+        />
+      </div>
+    );
+  };
+
+  if (loadingFolder) {
+    return (
+      <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
+        <div className="w-full rounded-none shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] border-x border-gray-300 flex flex-col items-center justify-center relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
+  if (!folderData) return (
+    <div className="min-h-[calc(100vh-80px)] w-full flex flex-col items-center justify-center bg-[#DBEAFE] p-6 relative z-10">
+      <span translate="no" className="material-symbols-outlined text-6xl text-error mb-4">error</span>
+      <h2 className="text-2xl font-bold mb-6 text-[#1a2b4b] text-center max-w-md leading-snug">Carpeta no encontrada o error al cargar los datos.</h2>
+      <button onClick={() => navigate('/dashboard')} className="bg-[#1e40af] hover:bg-blue-800 text-white px-6 py-2.5 rounded-xl font-bold shadow-md transition-colors">Volver al Dashboard</button>
+    </div>
+  );
+
+  return (
+    <>
+      <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
+        <div className="w-full rounded-none shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] border-x border-gray-300 flex flex-col relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
+          <main className="relative z-20 flex flex-1 flex-col px-3 py-4 text-gray-900 sm:px-8 sm:py-5">
+      <div className="mb-3 flex items-center gap-2 border-b border-gray-300 pb-3 sm:gap-4">
+        <button 
+          onClick={() => navigate('/dashboard')}
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-100 hover:text-[#1e40af] sm:h-10 sm:w-10"
+          title="Volver a mis carpetas"
+        >
+          <span translate="no" className="material-symbols-outlined text-xl">arrow_back</span>
+        </button>
+        <h1 className="m-0 truncate text-2xl font-black leading-tight text-[#1a2b4b] sm:text-4xl">Carpeta: {folderData.name}</h1>
+      </div>
+
+      {/* Tabs */}
+      <div className="mb-3 border-b border-gray-300 sm:mb-4">
+        <LiquidTabs
+          ariaLabel="Secciones de la carpeta"
+          className="gap-1"
+          buttonClassName="flex items-center justify-center gap-1 rounded-t-xl bg-gray-50/50 px-2 py-3 font-bold hover:bg-gray-100 sm:gap-2 sm:px-6"
+          indicatorClassName="rounded-t-xl border-b-4 border-[#1e40af] bg-white shadow-sm"
+          activeTextClassName="!bg-transparent text-[#1e40af] hover:!bg-transparent"
+          inactiveTextClassName="text-gray-500"
+          value={activeTab}
+          onChange={setActiveTab}
+          options={[
+            { value: 'add', icon: 'add_circle', label: 'Agregar Cartas' },
+            { value: 'catalog', icon: 'auto_stories', label: 'Carpeta' },
+            { value: 'sales', icon: 'receipt_long', label: 'Ventas' },
+          ].map(t => ({
+            value: t.value,
+            label: (
+              <>
+                <span translate="no" className="material-symbols-outlined text-[18px] sm:text-[24px]">{t.icon}</span>
+                <span className="text-xs sm:text-sm">{t.label}</span>
+              </>
+            ),
+          }))}
+        />
+      </div>
+
+      {/* Tab Content */}
+      <div>
+        {activeTab === 'catalog' && renderCatalogTab()}
+        {activeTab === 'add' && renderAddTab()}
+        {activeTab === 'sales' && renderSalesTab()}
+        
+      </div>
+
+      <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: 'info' })} />
+      
+      <ConfirmModal 
+        isOpen={confirmDialog.show} 
+        title="Confirmar Acción" 
+        message={confirmDialog.message} 
+        onConfirm={executeDeleteCard} 
+        onCancel={() => setConfirmDialog({ show: false, message: '', targetId: null })}
+      />
+          </main>
+        </div>
+      </div>
+    
+      {/* Scroll to top button */}
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-6 right-6 bg-[#1e40af] text-white w-14 h-14 rounded-full shadow-lg hover:bg-blue-800 transition-all z-50 flex items-center justify-center transform hover:scale-110 active:scale-95 border-2 border-white/20 lg:hidden"
+          aria-label="Volver arriba"
+        >
+          <span translate="no" className="material-symbols-outlined text-2xl">arrow_upward</span>
+        </button>
+      )}
+    </>
+  );
+}
+
+const FolderPage = (props) => (
+  <ErrorBoundary>
+    <FolderPageInner {...props} />
+  </ErrorBoundary>
+);
+export default FolderPage;
+

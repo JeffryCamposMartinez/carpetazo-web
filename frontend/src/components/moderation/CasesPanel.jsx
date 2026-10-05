@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api } from '../../utils/api';
+import { api } from '../../services/api';
 import { Badge, DetailHeader, DetailPane, EmptyState, ErrorBox, Pills, Spinner, dateTime, relativeTime } from './shared';
 
 const STATUS = {

@@ -1,0 +1,1180 @@
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { api } from '../../services/api';
+
+const DRAG_SCROLL_EDGE_PX = 120;
+const DRAG_SCROLL_MAX_SPEED = 28;
+const DRAG_PAGE_TURN_EDGE_RATIO = 0.18;
+const DRAG_PAGE_TURN_HOLD_MS = 1000;
+
+const stripHtml = (value = '') => String(value || '').replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+
+const getExtDataValue = (extData, fieldName) => {
+  if (Array.isArray(extData)) {
+    return extData.find(item => String(item?.name || '').toLowerCase() === fieldName.toLowerCase())?.value || '';
+  }
+  if (extData && typeof extData === 'object') {
+    return extData[fieldName] || extData[fieldName.toLowerCase()] || '';
+  }
+  return '';
+};
+
+const getCardAbilityText = (card) => {
+  if (!card) return '';
+  return stripHtml(
+    card.effect ||
+    card.ability ||
+    card.text ||
+    getExtDataValue(card.extData, 'Effect') ||
+    getExtDataValue(card.extData, 'Ability') ||
+    getExtDataValue(card.extData, 'Text') ||
+    getExtDataValue(card.extData, 'Habilidad')
+  );
+};
+
+export default function AlbumView({ cards = [], renderCardActions, renderCardOverlays, binderColor = '#2f7336', emptyMessage, topRightControls, tcg, reorderEnabled = false, onReorderCard }) {
+  const [currentPage, setCurrentPage] = useState(0);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+  // En móvil la página gira 180° hacia la izquierda (fuera de pantalla); con una curva simétrica,
+  // avanzar y retroceder tardan lo mismo y se ven a la misma velocidad
+  const pageTurnDurationMs = isDesktop ? 450 : 700;
+  const pageTurnEasing = isDesktop ? 'cubic-bezier(0.4, 0.0, 0.2, 1)' : 'cubic-bezier(0.65, 0, 0.35, 1)';
+  const [activeCardId, setActiveCardId] = useState(null);
+    const [previewCard, setPreviewCard] = useState(null);
+  const [fetchedAbility, setFetchedAbility] = useState(null);
+  const [fetchingAbility, setFetchingAbility] = useState(false);
+  const [targetPage, setTargetPage] = useState(null);
+  const [turnDirection, setTurnDirection] = useState(null);
+  // Todas las páginas se montan una sola vez; mientras se preparan se muestra "Cargando álbum…"
+  const [albumReady, setAlbumReady] = useState(false);
+  // Solo las páginas cercanas cargan imágenes (ahorra memoria en móviles); se recalcula al terminar cada giro
+  const [warmAnchors, setWarmAnchors] = useState([0]);
+  const [dropPreviewIndex, setDropPreviewIndex] = useState(null);
+  const [draggingReorderCardId, setDraggingReorderCardId] = useState(null);
+  const [dragFloatingCard, setDragFloatingCard] = useState(null);
+  const albumDragNavRef = useRef(null);
+  const dragFloatingPreviewRef = useRef(null);
+  const dragScrollFrameRef = useRef(null);
+  const dragScrollSpeedRef = useRef(0);
+  const dragPageTurnDirectionRef = useRef(0);
+  const dragPageTurnEnteredAtRef = useRef(0);
+  const lastDragPageTurnAtRef = useRef(0);
+  const touchAlbumCardIdRef = useRef(null);
+  const touchAlbumDropIndexRef = useRef(null);
+  const isTouchAlbumDragRef = useRef(false);
+  const longPressTimeoutRef = useRef(null);
+  const touchStartPosRef = useRef({ x: 0, y: 0 });
+
+  const moveDragFloatingPreview = (clientX, clientY) => {
+    if (!dragFloatingPreviewRef.current || !Number.isFinite(clientX) || !Number.isFinite(clientY)) return;
+    dragFloatingPreviewRef.current.style.transform = `translate3d(${clientX}px, ${clientY}px, 0) translate(-50%, -50%)`;
+  };
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const cardsPerPage = 9;
+  
+  const totalPages = useMemo(() => {
+    if (!isDesktop) {
+      return Math.max(1, Math.ceil(cards.length / cardsPerPage));
+    }
+    const totalGrids = Math.max(1, Math.ceil(cards.length / cardsPerPage));
+    return 1 + Math.ceil((totalGrids - 1) / 2);
+  }, [cards.length, isDesktop, cardsPerPage]);
+
+  // Bound currentPage when resizing crosses breakpoints and totalPages changes
+  useEffect(() => {
+    if (currentPage >= totalPages) {
+      setCurrentPage(Math.max(0, totalPages - 1));
+    }
+    setActiveCardId(null);
+  }, [totalPages, currentPage]);
+
+  const turnToPage = (target) => {
+    if (target === currentPage || targetPage !== null || (!albumReady && cards.length > 0)) return;
+    const safeTarget = Math.max(0, Math.min(totalPages - 1, target));
+    const direction = safeTarget > currentPage ? 1 : -1;
+    if (Math.abs(safeTarget - currentPage) > 1) setWarmAnchors([currentPage, safeTarget]);
+
+    setTargetPage(safeTarget);
+    setTurnDirection(direction > 0 ? 'forward' : 'backward');
+    setActiveCardId(null);
+    setPreviewCard(null);
+    setCurrentPage(page => page + direction);
+  };
+
+  useEffect(() => {
+    if (!draggingReorderCardId) return undefined;
+
+    const updateDragNavigation = (clientX, clientY) => {
+      if (!Number.isFinite(clientY) || clientY <= 0) {
+        dragScrollSpeedRef.current = 0;
+        dragPageTurnDirectionRef.current = 0;
+        return;
+      }
+
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+      if (clientY < DRAG_SCROLL_EDGE_PX) {
+        const intensity = (DRAG_SCROLL_EDGE_PX - clientY) / DRAG_SCROLL_EDGE_PX;
+        dragScrollSpeedRef.current = -Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED);
+      } else if (clientY > viewportHeight - DRAG_SCROLL_EDGE_PX) {
+        const intensity = (clientY - (viewportHeight - DRAG_SCROLL_EDGE_PX)) / DRAG_SCROLL_EDGE_PX;
+        dragScrollSpeedRef.current = Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED);
+      } else {
+        dragScrollSpeedRef.current = 0;
+      }
+
+      const rect = albumDragNavRef.current?.getBoundingClientRect();
+      const navWidth = rect?.width || window.innerWidth || document.documentElement.clientWidth;
+      const navLeft = rect?.left || 0;
+      const navRight = rect?.right || navWidth;
+      const edgeWidth = Math.max(90, navWidth * DRAG_PAGE_TURN_EDGE_RATIO);
+
+      let nextDirection = 0;
+      if (Number.isFinite(clientX) && clientX <= navLeft + edgeWidth) {
+        nextDirection = -1;
+      } else if (Number.isFinite(clientX) && clientX >= navRight - edgeWidth) {
+        nextDirection = 1;
+      }
+
+      if (dragPageTurnDirectionRef.current !== nextDirection) {
+        dragPageTurnDirectionRef.current = nextDirection;
+        dragPageTurnEnteredAtRef.current = nextDirection === 0 ? 0 : Date.now();
+      }
+    };
+
+    const handleWindowDragOver = (event) => {
+      updateDragNavigation(event.clientX, event.clientY);
+      moveDragFloatingPreview(event.clientX, event.clientY);
+    };
+
+    const tick = () => {
+      const speed = dragScrollSpeedRef.current;
+      if (speed !== 0) {
+        window.scrollBy({ top: speed, left: 0, behavior: 'auto' });
+      }
+
+      const direction = dragPageTurnDirectionRef.current;
+      const now = Date.now();
+      if (
+        direction !== 0 &&
+        targetPage === null &&
+        dragPageTurnEnteredAtRef.current > 0 &&
+        now - dragPageTurnEnteredAtRef.current >= DRAG_PAGE_TURN_HOLD_MS &&
+        now - lastDragPageTurnAtRef.current >= DRAG_PAGE_TURN_HOLD_MS
+      ) {
+        if (direction > 0 && currentPage < totalPages - 1) {
+          lastDragPageTurnAtRef.current = now;
+          dragPageTurnEnteredAtRef.current = now;
+          turnToPage(currentPage + 1);
+        } else if (direction < 0 && currentPage > 0) {
+          lastDragPageTurnAtRef.current = now;
+          dragPageTurnEnteredAtRef.current = now;
+          turnToPage(currentPage - 1);
+        }
+      }
+
+      dragScrollFrameRef.current = window.requestAnimationFrame(tick);
+    };
+
+    window.addEventListener('dragover', handleWindowDragOver);
+    dragScrollFrameRef.current = window.requestAnimationFrame(tick);
+
+    return () => {
+      window.removeEventListener('dragover', handleWindowDragOver);
+      dragScrollSpeedRef.current = 0;
+      dragPageTurnDirectionRef.current = 0;
+      dragPageTurnEnteredAtRef.current = 0;
+      if (dragScrollFrameRef.current) {
+        window.cancelAnimationFrame(dragScrollFrameRef.current);
+        dragScrollFrameRef.current = null;
+      }
+    };
+  }, [currentPage, draggingReorderCardId, targetPage, totalPages]);
+
+  useEffect(() => {
+    if (targetPage === null) return;
+
+    if (targetPage !== currentPage) {
+      const timer = setTimeout(() => {
+        setCurrentPage(page => page + (targetPage > page ? 1 : -1));
+      }, pageTurnDurationMs);
+      return () => clearTimeout(timer);
+    }
+
+    const timer = setTimeout(() => {
+      setTargetPage(null);
+      setTurnDirection(null);
+    }, pageTurnDurationMs);
+    return () => clearTimeout(timer);
+  }, [currentPage, targetPage]);
+
+  const jumpToPage = (target) => {
+    turnToPage(target);
+  };
+
+  // Gesto de deslizar (móvil): la página cambia en cuanto el dedo avanza un poco en horizontal, sin esperar a soltar.
+  // Se usa una referencia (no estado) para no volver a renderizar todo el álbum en cada movimiento del dedo.
+  const swipeRef = useRef({ x: 0, y: 0, time: 0, done: true });
+  const SWIPE_TRIGGER_PX = 16;   // distancia horizontal que dispara el giro mientras se arrastra
+  const SWIPE_FLICK_PX = 8;      // distancia mínima de un toque rápido (flick)
+  const SWIPE_FLICK_SPEED = 0.35; // px por ms
+
+  const onTouchStart = (e) => {
+    if (draggingReorderCardId) return;
+    const t = e.targetTouches[0];
+    swipeRef.current = { x: t.clientX, y: t.clientY, time: performance.now(), done: false };
+  };
+
+  const fireSwipe = (dx) => {
+    swipeRef.current.done = true;
+    if (dx < 0) handleNext();
+    else handlePrev();
+  };
+
+  const onTouchMove = (e) => {
+    const sw = swipeRef.current;
+    if (draggingReorderCardId || sw.done) return;
+    const t = e.targetTouches[0];
+    const dx = t.clientX - sw.x;
+    const dy = t.clientY - sw.y;
+    // Un movimiento claramente vertical es scroll de la página, no un giro
+    if (Math.abs(dy) > Math.abs(dx) * 1.2 && Math.abs(dy) > 10) { sw.done = true; return; }
+    if (Math.abs(dx) >= SWIPE_TRIGGER_PX && Math.abs(dx) > Math.abs(dy) * 1.2) fireSwipe(dx);
+  };
+
+  const onTouchEnd = (e) => {
+    const sw = swipeRef.current;
+    if (draggingReorderCardId || sw.done) return;
+    const t = e.changedTouches?.[0];
+    if (!t) return;
+    const dx = t.clientX - sw.x;
+    const dy = t.clientY - sw.y;
+    const speed = Math.abs(dx) / Math.max(1, performance.now() - sw.time);
+    if (Math.abs(dx) >= SWIPE_FLICK_PX && Math.abs(dx) > Math.abs(dy) * 1.2 && speed >= SWIPE_FLICK_SPEED) fireSwipe(dx);
+    else sw.done = true;
+  };
+
+  const handleNext = () => {
+    if (currentPage < totalPages - 1 && targetPage === null) {
+      turnToPage(currentPage + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentPage > 0 && targetPage === null) {
+      turnToPage(currentPage - 1);
+    }
+  };
+
+  useEffect(() => {
+    if (previewCard && tcg === 'Mitos y Leyendas') {
+      const embeddedAbility = getCardAbilityText(previewCard);
+      if (embeddedAbility) {
+        setFetchedAbility(embeddedAbility);
+        setFetchingAbility(false);
+        return;
+      }
+
+      const fetchAbility = async () => {
+        setFetchingAbility(true);
+        setFetchedAbility(null);
+        try {
+          const json = await api.searchTcgProducts(previewCard.name);
+          if (json.success && json.data) {
+            const previewTcgId = String(previewCard.tcgId || previewCard.apiId || '');
+            let match = json.data.find(c => String(c.productId || '') === previewTcgId);
+            if (!match) match = json.data.find(c => c.name.toLowerCase() === previewCard.name.toLowerCase());
+            const ability = getCardAbilityText({ ...match, extData: match?.extData });
+            if (ability) {
+              setFetchedAbility(ability);
+            } else {
+              setFetchedAbility('Sin habilidad (Carta Vainilla)');
+            }
+          }
+        } catch (err) {
+          setFetchedAbility('Error al cargar habilidad');
+        } finally {
+          setFetchingAbility(false);
+        }
+      };
+      fetchAbility();
+    }
+  }, [previewCard, tcg]);
+
+  useEffect(() => {
+
+    const handleKeyDown = (e) => {
+      // Ignore if typing in an input to prevent interfering with search
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      
+      if (e.key === 'ArrowRight') {
+        handleNext();
+      } else if (e.key === 'ArrowLeft') {
+        handlePrev();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentPage, totalPages, targetPage]);
+
+  // Pre-load next page images for smoothness (Cost efficient lazy-loading)
+  useEffect(() => {
+    if (currentPage < totalPages - 1) {
+      const nextCards = cards.slice((currentPage + 1) * cardsPerPage, (currentPage + 2) * cardsPerPage);
+      nextCards.forEach(card => {
+        if (card?.imageUrl) {
+          const img = new Image();
+          img.src = card.imageUrl;
+        }
+      });
+    }
+  }, [currentPage, cards, totalPages, cardsPerPage]);
+
+  // Todas las páginas quedan montadas: montar o desmontar páginas durante un giro congelaba la animación en móviles
+  const visiblePages = useMemo(() => Array.from({ length: totalPages }, (_, i) => i), [totalPages]);
+  const warmRadius = isDesktop ? 3 : 2;
+
+  // Al terminar el giro se recalculan las páginas con imágenes (sin trabajo pesado durante la animación)
+  useEffect(() => {
+    if (targetPage !== null) return undefined;
+    const id = setTimeout(() => {
+      setWarmAnchors(prev => (prev.length === 1 && prev[0] === currentPage ? prev : [currentPage]));
+    }, 120);
+    return () => clearTimeout(id);
+  }, [currentPage, targetPage]);
+
+  // El álbum queda listo cuando sus primeras imágenes están descargadas (máximo 2,5 s de espera)
+  const hasCards = cards.length > 0;
+  useEffect(() => {
+    if (albumReady || !hasCards) return undefined;
+    let cancelled = false;
+    const finish = () => { if (!cancelled) setTimeout(() => { if (!cancelled) setAlbumReady(true); }, 60); };
+    const timeout = setTimeout(finish, 2500);
+    const urls = cards.slice(0, cardsPerPage * (isDesktop ? 3 : 2)).map(c => c.imageUrl).filter(Boolean);
+    Promise.all(urls.map(url => new Promise(resolve => {
+      const img = new Image();
+      img.onload = img.onerror = resolve;
+      img.src = url;
+    }))).then(() => { clearTimeout(timeout); finish(); });
+    return () => { cancelled = true; clearTimeout(timeout); };
+  }, [albumReady, hasCards]);
+
+  const displayStart = useMemo(() => {
+    if (cards.length === 0) return 0;
+    if (!isDesktop) return currentPage * cardsPerPage + 1;
+    return currentPage === 0 ? 1 : ((currentPage * 2 - 1) * cardsPerPage + 1);
+  }, [currentPage, isDesktop, cardsPerPage, cards.length]);
+
+  const displayEnd = useMemo(() => {
+    if (cards.length === 0) return 0;
+    if (!isDesktop) return Math.min(cards.length, (currentPage + 1) * cardsPerPage);
+    const maxEnd = currentPage === 0 ? cardsPerPage : ((currentPage * 2 + 1) * cardsPerPage);
+    return Math.min(cards.length, maxEnd);
+  }, [currentPage, isDesktop, cardsPerPage, cards.length]);
+
+  const getPaginationItems = () => {
+    const items = [];
+    const active = targetPage !== null ? targetPage : currentPage;
+    
+    if (totalPages <= 7) {
+      for (let i = 0; i < totalPages; i++) items.push(i);
+    } else {
+      if (active <= 3) {
+        for (let i = 0; i < 5; i++) items.push(i);
+        items.push('...');
+        items.push(totalPages - 1);
+      } else if (active >= totalPages - 4) {
+        items.push(0);
+        items.push('...');
+        for (let i = totalPages - 5; i < totalPages; i++) items.push(i);
+      } else {
+        items.push(0);
+        items.push('...');
+        items.push(active - 1);
+        items.push(active);
+        items.push(active + 1);
+        items.push('...');
+        items.push(totalPages - 1);
+      }
+    }
+    return items;
+  };
+
+  const renderPaginationControls = (inverted = false) => (
+    <div className={`relative z-10 flex flex-col items-center w-full max-w-7xl px-5 md:px-4 ${inverted ? 'mt-6 md:mt-10' : 'mb-2 md:mb-4'}`} onClick={(e) => e.stopPropagation()}>
+      {!inverted && (
+        <div className="md:hidden flex items-center gap-1.5 text-slate-600 dark:text-slate-400 text-xs mb-3 font-medium bg-slate-200/50 dark:bg-slate-800/50 px-3 py-1 rounded-full">
+          <span translate="no" className="material-symbols-outlined text-[16px]">swipe</span>
+          Desliza para cambiar de página
+        </div>
+      )}
+
+      <div className="w-full flex flex-col md:flex-row items-center justify-between relative min-h-[40px]">
+        <div className="hidden md:block md:w-[220px]"></div>
+
+        <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-6 flex-1">
+          {!inverted && (
+            <div className="hidden md:block"></div>
+          )}
+
+      <div className="flex items-center gap-1 md:gap-2">
+        <button
+          onClick={handlePrev}
+          disabled={currentPage === 0 || targetPage !== null}
+          className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+        >
+          <span translate="no" className="material-symbols-outlined text-sm md:text-base">arrow_back_ios_new</span>
+        </button>
+        
+        <div className="flex items-center gap-1 md:gap-2 font-medium text-slate-700 dark:text-slate-300">
+          {getPaginationItems().map((item, index) => {
+            if (item === '...') {
+              return <span key={`ellipsis-${index}`} className="px-1 md:px-2">...</span>;
+            }
+            const isSelected = item === (targetPage !== null ? targetPage : currentPage);
+            return (
+              <button
+                key={`page-${item}`}
+                onClick={() => jumpToPage(item)}
+                disabled={targetPage !== null}
+                className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-lg transition-all ${
+                  isSelected 
+                    ? 'bg-slate-100 dark:bg-slate-700 font-bold text-slate-900 dark:text-white' 
+                    : 'hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer'
+                }`}
+              >
+                {item + 1}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          onClick={handleNext}
+          disabled={currentPage >= totalPages - 1 || targetPage !== null}
+          className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+        >
+          <span translate="no" className="material-symbols-outlined text-sm md:text-base">arrow_forward_ios</span>
+        </button>
+      </div>
+
+        {inverted && (
+          <div className="hidden md:block"></div>
+        )}
+        </div>
+
+        {!inverted ? (
+          <div className="mt-3 md:mt-0 md:w-[220px] flex justify-center md:justify-end">
+            {topRightControls}
+          </div>
+        ) : (
+          <div className="hidden md:block md:w-[220px]"></div>
+        )}
+      </div>
+    </div>
+  );
+
+  const previewSubtitle = previewCard
+    ? (tcg === 'Mitos y Leyendas'
+      ? ''
+      : `${previewCard.set} • ${(previewCard.supertype === 'Unknown' || !previewCard.supertype) ? 'Pokémon' : previewCard.supertype} • #${(() => {
+          let numStr = (previewCard.number || previewCard.apiId?.split('-')[1] || previewCard.id?.split('-')[1] || '').toString();
+          return numStr.padStart(3, '0');
+        })()}`)
+    : '';
+
+  return (
+    <div ref={albumDragNavRef} className="w-full flex flex-col items-center py-2 md:pt-4 md:pb-10 md:overflow-visible relative" onClick={() => { setActiveCardId(null); setPreviewCard(null); }}>
+      
+      {/* Desktop Side Navigation Arrows */}
+      {isDesktop && (
+        <>
+          <button 
+            onClick={(e) => { e.stopPropagation(); handlePrev(); }}
+            disabled={currentPage === 0 || targetPage !== null}
+            className="hidden md:flex absolute left-2 xl:left-6 2xl:left-12 top-1/2 -translate-y-1/2 w-16 h-16 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 items-center justify-center rounded-full shadow-lg text-slate-700 dark:text-slate-300 disabled:opacity-30 disabled:hover:bg-white/80 transition-all z-50 cursor-pointer border border-slate-200 dark:border-slate-700 hover:scale-110"
+          >
+            <span translate="no" className="material-symbols-outlined text-4xl">chevron_left</span>
+          </button>
+          
+          <button 
+            onClick={(e) => { e.stopPropagation(); handleNext(); }}
+            disabled={currentPage >= totalPages - 1 || targetPage !== null}
+            className="hidden md:flex absolute right-2 xl:right-6 2xl:right-12 top-1/2 -translate-y-1/2 w-16 h-16 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 items-center justify-center rounded-full shadow-lg text-slate-700 dark:text-slate-300 disabled:opacity-30 disabled:hover:bg-white/80 transition-all z-50 cursor-pointer border border-slate-200 dark:border-slate-700 hover:scale-110"
+          >
+            <span translate="no" className="material-symbols-outlined text-4xl">chevron_right</span>
+          </button>
+        </>
+      )}
+
+      {/* Binder Header Controls */}
+      {renderPaginationControls(false)}
+
+      {/* 3D Binder Wrapper for Spine Centering on Desktop */}
+      <div className={`w-full flex justify-center md:justify-start md:ml-[50%] md:w-[50%] perspective-[3500px] relative ${targetPage !== null ? 'pointer-events-none' : ''} ${activeCardId !== null ? 'z-[70]' : 'z-10'}`}>
+        <div
+          className="relative w-[95%] max-w-[360px] xl:max-w-[400px] 2xl:max-w-[460px] mt-2 md:mt-4 touch-pan-y"
+          style={{ perspective: '3500px', aspectRatio: '7.5/10.5' }}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
+          {/* Continuous Physical Binder Cover (Spans both Left and Right) */}
+          <div 
+            className="absolute top-[-10px] bottom-[-10px] right-[-10px] md:top-[-20px] md:bottom-[-20px] md:right-[-28px] rounded-2xl md:rounded-3xl shadow-[0_10px_20px_rgba(0,0,0,0.34)] md:shadow-[0_30px_60px_rgba(0,0,0,0.8)] z-[-2] overflow-hidden transition-all duration-300"
+            style={{ 
+              backgroundColor: binderColor,
+              left: isDesktop ? 'calc(-100% - 28px)' : 'calc(-100% - 10px)'
+            }}
+          >
+            {/* Interior Darkening (Slightly darker than exterior) */}
+            <div className="absolute inset-0 bg-black/30 z-0" />
+            
+            {/* Leather Texture for the binder wrap */}
+            <div className="absolute inset-0 opacity-40 mix-blend-multiply bg-[url('/images/leather.png')] z-10" />
+            <div className="absolute inset-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.6)] md:shadow-[inset_0_0_50px_rgba(0,0,0,0.6)] z-10" />
+            
+            {/* Stitched Edge (Costura) */}
+            <div className="absolute inset-[4px] md:inset-[8px] rounded-[14px] md:rounded-[20px] border-[2px] border-dashed border-black/60 z-10 pointer-events-none" />
+            <div className="absolute inset-[4px] md:inset-[8px] rounded-[14px] md:rounded-[20px] border-[2px] border-dashed border-white/20 z-10 pointer-events-none translate-y-[1px]" />
+
+            {/* Inner Lining LEFT (Tapa Interior) - Darker paper glued to the inside */}
+            <div className="absolute top-2 bottom-2 left-2 md:top-5 md:bottom-5 md:left-5 rounded-l-md md:rounded-l-lg shadow-[inset_0_2px_20px_rgba(0,0,0,0.6)] border border-r-0 border-black/40 z-[15] overflow-hidden transition-all duration-300 flex items-center justify-center"
+                 style={{ 
+                   backgroundColor: 'rgba(0, 0, 0, 0.45)',
+                   right: '50%'
+                 }}
+            >
+               <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[url('/images/paper.png')] max-sm:hidden" />
+               
+               {/* Stamped Logo Watermark */}
+               <img 
+                 src="/images/logos/logo_completo.webp" 
+                 alt="Carpetazo" 
+                 className="w-1/2 max-w-[200px] opacity-40 grayscale pointer-events-none drop-shadow-[0_1px_1px_rgba(255,255,255,0.15)] transition-opacity" 
+                 style={{ mixBlendMode: 'overlay' }}
+               />
+            </div>
+            
+            {/* Inner Lining RIGHT (Tapa Posterior) */}
+            <div className="absolute top-2 bottom-2 right-2 md:top-5 md:bottom-5 md:right-5 rounded-r-md md:rounded-r-lg shadow-[inset_0_2px_20px_rgba(0,0,0,0.6)] border border-l-0 border-black/40 z-[15] overflow-hidden transition-all duration-300"
+                 style={{ 
+                   backgroundColor: 'rgba(0, 0, 0, 0.45)',
+                   left: '50%'
+                 }}
+            >
+               <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[url('/images/paper.png')] max-sm:hidden" />
+            </div>
+            
+            {/* Center Spine Crease (Exactly at the page hinge) */}
+            <div className="absolute left-1/2 top-0 bottom-0 w-[24%] md:w-[15%] -translate-x-1/2 bg-gradient-to-r from-transparent via-black/80 to-transparent pointer-events-none z-20 blur-[6px] md:blur-[10px] opacity-90" />
+            
+            {/* Subtle Binder Rings Shadow */}
+            <div className="absolute left-1/2 top-[10%] bottom-[10%] w-4 md:w-6 -translate-x-1/2 bg-gradient-to-r from-black/60 via-black/10 to-black/60 pointer-events-none z-20 blur-[2px] opacity-70" />
+          </div>
+
+          
+            {/* IN-ALBUM SPREAD PREVIEW */}
+            {previewCard && (
+              <div 
+                className="absolute rounded-2xl md:rounded-3xl shadow-[0_24px_48px_rgba(0,0,0,0.85)] md:shadow-[0_30px_60px_rgba(0,0,0,0.95)] z-[1000] flex flex-col md:flex-row overflow-hidden border border-white/10 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.10),transparent_34%),linear-gradient(135deg,rgba(12,12,12,0.96),rgba(3,3,3,0.92))] backdrop-blur-md"
+                style={{
+                  top: isDesktop ? '7%' : '8px',
+                  bottom: isDesktop ? '7%' : '18px',
+                  right: isDesktop ? '8%' : '12px',
+                  left: isDesktop ? 'calc(-82% - 18px)' : '12px',
+                  height: isDesktop ? undefined : 'auto',
+                  transform: 'translateZ(100px)'
+                }}
+                onClick={(e) => { e.stopPropagation(); setPreviewCard(null); setActiveCardId(null); }}
+              >
+                <style>{`
+                  .album-preview-actions > div > button.w-full {
+                    padding-top: 8px !important;
+                    padding-bottom: 8px !important;
+                    font-size: 13px !important;
+                  }
+                  @media (min-width: 768px) {
+                    .album-preview-actions > div > button.w-full {
+                      padding-top: 12px !important;
+                      padding-bottom: 12px !important;
+                      font-size: 16px !important;
+                    }
+                  }
+                  .album-preview-actions .bg-slate-100 {
+                    padding: 6px !important;
+                  }
+                  .album-preview-actions .bg-slate-100 span.font-bold {
+                    font-size: 16px !important;
+                    padding-left: 12px !important;
+                    padding-right: 12px !important;
+                  }
+                  .album-preview-actions .bg-slate-100 button {
+                    width: 28px !important;
+                    height: 28px !important;
+                  }
+                `}</style>
+
+                <button 
+                  className="absolute top-2 right-2 md:top-4 md:right-4 w-8 h-8 md:w-10 md:h-10 bg-white/10 hover:bg-white/20 flex items-center justify-center rounded-full text-white transition-colors z-[1010] border border-white/10 shadow-lg"
+                  onClick={(e) => { e.stopPropagation(); setPreviewCard(null); setActiveCardId(null); }}
+                >
+                  <span translate="no" className="material-symbols-outlined text-xl md:text-2xl">close</span>
+                </button>
+
+                {/* Left Side (Image) */}
+                <div className="w-full md:w-[52%] h-[46%] md:h-full bg-black/20 flex items-center justify-center p-2 md:p-8 relative" onClick={(e) => e.stopPropagation()}>
+                  {isDesktop && <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-black/80 to-transparent pointer-events-none z-10" />}
+                  <div className="absolute inset-3 md:inset-6 rounded-2xl border border-white/10 bg-white/[0.03] shadow-[inset_0_0_28px_rgba(255,255,255,0.04)]" />
+                  <div className="absolute right-1 top-[62%] z-30 flex w-[44%] -translate-y-1/2 flex-col items-start gap-2 md:hidden">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="rounded-full border border-yellow-300/30 bg-yellow-300/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-yellow-200">
+                        {tcg || 'Carta'}
+                      </span>
+                      {(tcg === 'Mitos y Leyendas' ? previewCard.set : previewCard.number) && (
+                        <span className="max-w-[92px] truncate rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9px] font-bold text-slate-300">
+                          {tcg === 'Mitos y Leyendas' ? previewCard.set : `#${previewCard.number}`}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="rounded-xl bg-yellow-400 px-2.5 py-1 text-[15px] font-black leading-none text-black shadow-lg">
+                        {previewCard.price ? '$' + Number(previewCard.price).toLocaleString('es-CL') : 'Sin precio'}
+                      </span>
+                      <span className="flex items-center gap-1 rounded-xl border border-slate-700 bg-slate-800/90 px-2.5 py-1.5 text-[10.5px] font-bold leading-none text-white shadow-md">
+                        <span translate="no" className="material-symbols-outlined text-[14px]">inventory_2</span>
+                        {Number(previewCard.stock || 0) <= 0 ? 'Sin stock' : `x${Number(previewCard.stock || 0) > 999 ? '999+' : (previewCard.stock || 0)}`}
+                      </span>
+                    </div>
+                  </div>
+                  <img 
+                    src={previewCard.imageUrl} 
+                    alt={previewCard.name} 
+                    className={`max-h-full md:max-h-[92%] max-w-[69%] md:max-w-full object-contain rounded-xl md:rounded-2xl shadow-[0_14px_32px_rgba(0,0,0,0.7)] md:shadow-[0_18px_45px_rgba(0,0,0,0.78)] relative z-20 -translate-x-[52%] md:translate-x-0 ${Number(previewCard.stock || 0) <= 0 ? 'grayscale opacity-60' : ''}`}
+                  />
+                </div>
+
+                {/* Right Side (Info) */}
+                <div className="w-full md:w-[48%] h-[54%] md:h-full flex flex-col justify-between p-2.5 md:p-6 pt-5 md:pt-6 text-white relative bg-transparent" onClick={(e) => e.stopPropagation()}>
+                  {isDesktop && <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-black/80 to-transparent pointer-events-none z-10" />}
+                  
+                  <div className="flex flex-col gap-1.5 md:gap-4 h-full md:pl-6 relative z-20 pr-1">
+                    <div className="flex flex-col gap-1 md:gap-2">
+                      <div className="hidden md:flex flex-wrap items-center gap-1.5 md:gap-2">
+                        <span className="rounded-full border border-yellow-300/30 bg-yellow-300/10 px-2 py-0.5 md:px-2.5 md:py-1 text-[9px] md:text-xs font-black uppercase tracking-[0.12em] md:tracking-[0.14em] text-yellow-200">
+                          {tcg || 'Carta'}
+                        </span>
+                        {(tcg === 'Mitos y Leyendas' ? previewCard.set : previewCard.number) && (
+                          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 md:px-2.5 md:py-1 text-[9px] md:text-xs font-bold text-slate-300 truncate max-w-[150px] md:max-w-[220px]">
+                            {tcg === 'Mitos y Leyendas' ? previewCard.set : `#${previewCard.number}`}
+                          </span>
+                        )}
+                      </div>
+                      <h2 className="text-[18px] md:text-3xl font-black leading-[1] text-white drop-shadow-md line-clamp-1">{previewCard.name}</h2>
+                      {previewSubtitle && (
+                        <p className="text-slate-400 text-[11px] md:text-sm italic leading-tight line-clamp-1">
+                          {previewSubtitle}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="hidden md:flex flex-wrap items-center gap-1.5 md:gap-3">
+                      <span className="bg-yellow-400 text-black px-2.5 py-1 md:px-4 md:py-2.5 rounded-xl font-black text-base md:text-2xl shadow-lg leading-none">
+                        {previewCard.price ? '$' + Number(previewCard.price).toLocaleString('es-CL') : 'Sin precio'}
+                      </span>
+                      <span className="bg-slate-800/90 border border-slate-700 px-2.5 py-1.5 md:px-3.5 md:py-2.5 rounded-xl text-white font-bold text-[11px] md:text-sm flex items-center gap-1.5 leading-none shadow-md">
+                          <span translate="no" className="material-symbols-outlined text-[14px] md:text-xl">inventory_2</span>
+                          {Number(previewCard.stock || 0) <= 0 ? 'Sin stock' : `x${Number(previewCard.stock || 0) > 999 ? '999+' : (previewCard.stock || 0)} Disponibles`}
+                      </span>
+                    </div>
+
+                    {tcg === 'Mitos y Leyendas' ? (
+                      <>
+                                                  <div className="flex gap-1.5 md:gap-2">
+                            <p className="flex-1 rounded-xl border border-white/10 bg-white/[0.05] px-2.5 py-1.5 md:px-3 md:py-2">
+                              <strong className="block text-white/45 text-[9px] md:text-[10px] uppercase tracking-wider">Tipo</strong>
+                              <span className="block text-[11px] md:text-sm font-extrabold text-white leading-tight">{previewCard.type || previewCard.supertype || 'Carta'}</span>
+                            </p>
+                            {previewCard.race && previewCard.race !== 'SIN_RAZA' && previewCard.race !== '—' && previewCard.race !== '-' && (
+                              <p className="flex-1 rounded-xl border border-white/10 bg-white/[0.05] px-2.5 py-1.5 md:px-3 md:py-2">
+                                <strong className="block text-white/45 text-[9px] md:text-[10px] uppercase tracking-wider">Raza</strong>
+                                <span className="block text-[11px] md:text-sm font-extrabold text-white leading-tight">{previewCard.race}</span>
+                              </p>
+                            )}
+                            {previewCard.cost !== null && previewCard.cost !== undefined && previewCard.cost !== '' && (
+                              <p className="flex-1 rounded-xl border border-white/10 bg-white/[0.05] px-2.5 py-1.5 md:px-3 md:py-2">
+                                <strong className="block text-white/45 text-[9px] md:text-[10px] uppercase tracking-wider">Coste</strong>
+                                <span className="block text-[11px] md:text-sm font-extrabold text-white leading-tight">{previewCard.cost}</span>
+                              </p>
+                            )}
+                          </div><div className="w-full bg-black/45 p-2 md:p-4 rounded-2xl border border-white/10 shadow-inner overflow-y-auto custom-scrollbar flex-shrink">
+                          <p className="flex flex-col">
+                            <strong className="flex items-center gap-1.5 text-yellow-100/80 text-[9px] md:text-sm uppercase tracking-wider mb-1 md:mb-2">
+                              <span translate="no" className="material-symbols-outlined text-[14px] md:text-[16px]">auto_fix_high</span>
+                              Habilidad
+                            </strong> 
+                            <span className="font-medium text-white text-[10px] md:text-sm leading-snug md:leading-relaxed whitespace-pre-wrap">
+                            {fetchingAbility ? 'Buscando habilidad ancestral...' : (fetchedAbility || 'Sin habilidad registrada')}
+                            </span>
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-2 md:gap-y-3 text-xs md:text-base bg-black/40 p-3 md:p-5 rounded-xl border border-white/5 shadow-inner">
+                        <p className="flex flex-col"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Rareza</strong> <span className="font-medium text-white truncate">{previewCard.rarity || 'Desconocida'}</span></p>
+                        <p className="flex flex-col"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Idioma</strong> <span className="font-medium text-white truncate">{previewCard.language || 'Desconocido'}</span></p>
+                        <p className="flex flex-col col-span-2 mt-1 md:mt-2 pt-2 md:pt-3 border-t border-white/10"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Estado</strong> <span className="font-medium text-white truncate">{previewCard.condition || 'Near Mint'}</span></p>
+                      </div>
+                    )}
+
+                    <div className="flex mt-auto pt-1 md:pt-6 pb-0 w-full justify-center">
+                      <div className="w-full max-w-[280px] md:max-w-[320px] album-preview-actions bg-white/5 p-1 md:p-3 rounded-xl border border-white/10">
+                        {renderCardActions && renderCardActions(previewCard)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {visiblePages.map((pageIndex) => {
+            const frontGridIndex = isDesktop ? (pageIndex * 2) : pageIndex;
+            const backGridIndex = isDesktop ? (pageIndex * 2 + 1) : null;
+
+            const frontCards = cards.slice(
+              frontGridIndex * cardsPerPage,
+              (frontGridIndex + 1) * cardsPerPage
+            );
+            const frontPockets = Array.from({ length: cardsPerPage }).map(
+              (_, i) => frontCards[i] || null
+            );
+
+            let backPockets = [];
+            if (isDesktop) {
+              const backCards = cards.slice(
+                backGridIndex * cardsPerPage,
+                (backGridIndex + 1) * cardsPerPage
+              );
+              backPockets = Array.from({ length: cardsPerPage }).map(
+                (_, i) => backCards[i] || null
+              );
+            }
+
+            const isPast = pageIndex < currentPage;
+            const isActive = pageIndex === currentPage;
+            const isFuture = pageIndex > currentPage;
+            const isForwardTurningPage = targetPage !== null && turnDirection === 'forward' && pageIndex === currentPage - 1;
+            const isBackwardTurningPage = targetPage !== null && turnDirection === 'backward' && isActive;
+
+            let transform = 'rotateY(0deg)';
+            let zIndex = 0;
+
+            if (isPast) {
+              transform = 'rotateY(-180deg)';
+              zIndex = 30 - (currentPage - pageIndex); 
+            } else if (isActive) {
+              transform = 'rotateY(0deg)';
+              zIndex = 60;
+            } else if (isFuture) {
+              transform = 'rotateY(0deg)';
+              zIndex = 20 - (pageIndex - currentPage);
+            }
+
+            const isTurningPage = isForwardTurningPage || isBackwardTurningPage;
+            if (isTurningPage) {
+              zIndex = 70;
+            }
+            // Solo se pinta lo que se ve o está girando: la página anterior, la actual y la siguiente
+            const isNear = Math.abs(pageIndex - currentPage) <= 1;
+            const isHiddenPage = !isTurningPage && (!isNear || (!isDesktop && isPast));
+            const isWarmPage = warmAnchors.some(anchor => Math.abs(pageIndex - anchor) <= warmRadius);
+
+            const renderPocket = (card, i, isBackFace = false) => {
+              const uniqueId = card ? (isBackFace ? `${card.id}-back` : card.id) : null;
+              const cardIsActive = card && activeCardId === uniqueId;
+              const gridIndex = isBackFace ? backGridIndex : frontGridIndex;
+              const targetIndex = gridIndex * cardsPerPage + i;
+              const isDropPreview = reorderEnabled && dropPreviewIndex === targetIndex;
+              
+              const colIndex = i % 3;
+              let tooltipPosClass = 'left-1/2 -translate-x-1/2';
+              if (colIndex === 0) {
+                tooltipPosClass = 'left-[5%] md:left-1/2 md:-translate-x-1/2';
+              } else if (colIndex === 2) {
+                tooltipPosClass = 'right-[5%] md:right-auto md:left-1/2 md:-translate-x-1/2';
+              }
+
+              return (
+                <div
+                  key={card ? uniqueId : `empty-${isBackFace ? 'back-' : ''}${i}`}
+                  data-album-drop-index={targetIndex}
+                  draggable={reorderEnabled && !!card}
+                  onDragStart={(e) => {
+                    if (!reorderEnabled || !card) return;
+                    if (isTouchAlbumDragRef.current) {
+                      e.preventDefault();
+                      return;
+                    }
+                    e.stopPropagation();
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', card.id);
+                    const emptyImg = new Image(); emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                    e.dataTransfer.setDragImage(emptyImg, 0, 0);
+                    setDraggingReorderCardId(card.id);
+                    setDragFloatingCard(card);
+                    requestAnimationFrame(() => moveDragFloatingPreview(e.clientX, e.clientY));
+                    setDropPreviewIndex(targetIndex);
+                    dragPageTurnDirectionRef.current = 0;
+                    dragPageTurnEnteredAtRef.current = 0;
+                    setActiveCardId(null);
+                    setPreviewCard(null);
+                  }}
+                  onDragEnd={() => {
+                    if (!reorderEnabled) return;
+                    setDraggingReorderCardId(null);
+                    setDragFloatingCard(null);
+                    setDropPreviewIndex(null);
+                  }}
+                  onTouchStart={(e) => {
+                    if (!reorderEnabled || !card) return;
+                    const touch = e.touches?.[0];
+                    if (!touch) return;
+                    
+                    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+                    if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
+                    
+                    longPressTimeoutRef.current = setTimeout(() => {
+                      if (navigator.vibrate) navigator.vibrate(50);
+                      isTouchAlbumDragRef.current = true;
+                      touchAlbumCardIdRef.current = card.id;
+                      setDraggingReorderCardId(card.id);
+                      setDragFloatingCard(card);
+                      requestAnimationFrame(() => moveDragFloatingPreview(touchStartPosRef.current.x, touchStartPosRef.current.y));
+                      setDropPreviewIndex(targetIndex);
+                      touchAlbumDropIndexRef.current = targetIndex;
+                      dragPageTurnDirectionRef.current = 0;
+                      dragPageTurnEnteredAtRef.current = 0;
+                      setActiveCardId(null);
+                      setPreviewCard(null);
+
+                      const handleTouchMove = (ev) => {
+                        const t = ev.touches?.[0];
+                        if (!t) return;
+                        if (ev.cancelable) ev.preventDefault(); // Stop native scroll
+                        moveDragFloatingPreview(t.clientX, t.clientY);
+
+                        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+                        if (t.clientY < DRAG_SCROLL_EDGE_PX) {
+                          const intensity = (DRAG_SCROLL_EDGE_PX - t.clientY) / DRAG_SCROLL_EDGE_PX;
+                          dragScrollSpeedRef.current = -Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED);
+                        } else if (t.clientY > viewportHeight - DRAG_SCROLL_EDGE_PX) {
+                          const intensity = (t.clientY - (viewportHeight - DRAG_SCROLL_EDGE_PX)) / DRAG_SCROLL_EDGE_PX;
+                          dragScrollSpeedRef.current = Math.ceil(intensity * DRAG_SCROLL_MAX_SPEED);
+                        } else {
+                          dragScrollSpeedRef.current = 0;
+                        }
+
+                        const rect = albumDragNavRef.current?.getBoundingClientRect();
+                        const navWidth = rect?.width || window.innerWidth || document.documentElement.clientWidth;
+                        const navLeft = rect?.left || 0;
+                        const navRight = rect?.right || navWidth;
+                        const edgeWidth = Math.max(90, navWidth * DRAG_PAGE_TURN_EDGE_RATIO);
+                        const now = Date.now();
+
+                        let nextDirection = 0;
+                        if (t.clientX <= navLeft + edgeWidth && currentPage > 0) {
+                          nextDirection = -1;
+                        } else if (t.clientX >= navRight - edgeWidth && currentPage < totalPages - 1) {
+                          nextDirection = 1;
+                        }
+
+                        if (dragPageTurnDirectionRef.current !== nextDirection) {
+                          dragPageTurnDirectionRef.current = nextDirection;
+                          dragPageTurnEnteredAtRef.current = nextDirection === 0 ? 0 : now;
+                        }
+
+                        const dropEl = document.elementFromPoint(t.clientX, t.clientY)?.closest?.('[data-album-drop-index]');
+                        if (dropEl?.dataset?.albumDropIndex !== undefined) {
+                          const nextIndex = Number(dropEl.dataset.albumDropIndex);
+                          if (Number.isFinite(nextIndex)) {
+                            if (touchAlbumDropIndexRef.current !== nextIndex) {
+                              touchAlbumDropIndexRef.current = nextIndex;
+                              setDropPreviewIndex(nextIndex);
+                            }
+                          }
+                        }
+                      };
+
+                      const handleTouchEnd = () => {
+                        const targetIdx = touchAlbumDropIndexRef.current;
+                        const dragId = touchAlbumCardIdRef.current;
+                        if (dragId && Number.isFinite(targetIdx) && onReorderCard) {
+                          onReorderCard(dragId, targetIdx);
+                        }
+                        cleanup();
+                      };
+
+                      const cleanup = () => {
+                        isTouchAlbumDragRef.current = false;
+                        dragScrollSpeedRef.current = 0;
+                        touchAlbumCardIdRef.current = null;
+                        touchAlbumDropIndexRef.current = null;
+                        dragPageTurnDirectionRef.current = 0;
+                        dragPageTurnEnteredAtRef.current = 0;
+                        setDraggingReorderCardId(null);
+                        setDragFloatingCard(null);
+                        setDropPreviewIndex(null);
+                        window.removeEventListener('touchmove', handleTouchMove);
+                        window.removeEventListener('touchend', handleTouchEnd);
+                        window.removeEventListener('touchcancel', cleanup);
+                      };
+
+                      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+                      window.addEventListener('touchend', handleTouchEnd);
+                      window.addEventListener('touchcancel', cleanup);
+                    }, 1000);
+                  }}
+                  onTouchMove={(e) => {
+                    if (isTouchAlbumDragRef.current) return;
+                    const touch = e.touches?.[0];
+                    if (!touch) return;
+                    const dx = touch.clientX - touchStartPosRef.current.x;
+                    const dy = touch.clientY - touchStartPosRef.current.y;
+                    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                      if (longPressTimeoutRef.current) {
+                        clearTimeout(longPressTimeoutRef.current);
+                        longPressTimeoutRef.current = null;
+                      }
+                    }
+                  }}
+                  onTouchEnd={() => {
+                    if (longPressTimeoutRef.current) {
+                      clearTimeout(longPressTimeoutRef.current);
+                      longPressTimeoutRef.current = null;
+                    }
+                  }}
+                  onTouchCancel={() => {
+                    if (longPressTimeoutRef.current) {
+                      clearTimeout(longPressTimeoutRef.current);
+                      longPressTimeoutRef.current = null;
+                    }
+                  }}
+                  onDragOver={(e) => {
+                    if (!reorderEnabled) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    setDropPreviewIndex(targetIndex);
+                  }}
+                  onDragEnter={(e) => {
+                    if (!reorderEnabled) return;
+                    e.preventDefault();
+                    setDropPreviewIndex(targetIndex);
+                  }}
+                  onDragLeave={(e) => {
+                    if (!reorderEnabled) return;
+                    if (!e.currentTarget.contains(e.relatedTarget)) {
+                      setDropPreviewIndex(null);
+                    }
+                  }}
+                  onDrop={(e) => {
+                    if (!reorderEnabled || !onReorderCard) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const dragId = e.dataTransfer.getData('text/plain');
+                    setDraggingReorderCardId(null);
+                    setDragFloatingCard(null);
+                    setDropPreviewIndex(null);
+                    if (dragId) onReorderCard(dragId, targetIndex);
+                  }}
+                  className={`bg-[#222] rounded-xl border border-white/10 shadow-[inset_0_4px_15px_rgba(0,0,0,0.6)] flex flex-col items-center justify-center relative transition-all duration-300 min-h-0 min-w-0 ${reorderEnabled ? 'cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-blue-300/70' : ''} ${isDropPreview ? 'ring-4 ring-emerald-400 border-emerald-300 bg-emerald-950/40 scale-[1.04]' : ''} ${cardIsActive ? 'z-50' : 'z-auto hover:z-50'}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (reorderEnabled && e.detail > 1) return;
+                    if (card) {
+                      setActiveCardId(null);
+                        setPreviewCard(card);
+                    }
+                  }}
+                  onMouseEnter={() => {
+                    if (isDesktop && card) setActiveCardId(uniqueId);
+                  }}
+                  onMouseLeave={() => {
+                    if (isDesktop && card) setActiveCardId(null);
+                  }}
+                >
+                  {isDropPreview && (
+                    <div className="absolute inset-0 z-[130] flex items-center justify-center rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-400/15 pointer-events-none">
+                      <div className="rounded-full bg-emerald-500 px-3 py-1 text-[10px] md:text-xs font-black uppercase tracking-wide text-white shadow-lg">
+                        Soltar aquí
+                      </div>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 pointer-events-none z-10 rounded-xl" />
+
+                  {card ? (
+                    <div 
+                      className="w-full h-full relative z-30 flex items-center justify-center cursor-pointer"
+                      style={{ transform: cardIsActive ? 'translateZ(80px)' : 'translateZ(0px)', transition: 'transform 300ms ease-out', transformStyle: 'preserve-3d' }}
+                    >
+                      <div className={`relative w-full h-full flex flex-col items-center justify-center transition-all duration-300 ease-out min-h-0 min-w-0 ${cardIsActive && !previewCard ? 'scale-[1.25] md:scale-[1.4] -translate-y-4 md:-translate-y-6 z-[100]' : ''}`}>
+                        <div className="relative w-[95%] h-[95%] flex items-center justify-center">
+                          {isWarmPage ? (
+                            <img
+                              src={card.imageUrl}
+                              alt={card.name}
+                              decoding="async"
+                              className={`max-w-full max-h-full object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] rounded-[4%] ${Number(card.stock || 0) <= 0 ? 'grayscale opacity-60' : ''}`}
+                            />
+                          ) : (
+                            <div className="h-full max-h-full w-[72%] rounded-[4%] bg-white/5 ring-1 ring-white/10" aria-label={card.name} />
+                          )}
+                          
+                          <div className="absolute top-1 right-1 md:top-1.5 md:right-1.5 z-[120] flex min-w-8 items-center justify-center rounded-full border border-white/20 bg-slate-950/85 px-2 py-0.5 text-[10px] md:text-xs font-black leading-none text-white shadow-lg backdrop-blur-sm pointer-events-none">
+                            x{Number(card.stock || 0) > 999 ? '999+' : (card.stock || 0)}
+                          </div>
+                          <div className={`absolute -bottom-1 left-1/2 z-[120] flex -translate-x-1/2 items-center justify-center rounded-full border border-yellow-300/40 bg-yellow-400 px-3 py-0.5 text-[10px] md:text-xs font-black leading-none text-slate-950 shadow-md whitespace-nowrap pointer-events-none transition-opacity duration-300 ${cardIsActive || previewCard ? 'opacity-0' : 'opacity-100'}`}>
+                            {card.price ? '$' + Number(card.price).toLocaleString('es-CL') : 'Sin precio'}
+                          </div>
+
+                          {renderCardOverlays && (
+                            <div className="absolute inset-0 pointer-events-none z-[110]">
+                              {renderCardOverlays(card)}
+                            </div>
+                          )}
+                        </div>
+                        
+                                                  
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center opacity-20 select-none relative z-0">
+                      <span translate="no" className="material-symbols-outlined text-white text-4xl mb-1">style</span>
+                    </div>
+                  )}
+                </div>
+              );
+            };
+
+            return (
+              <div
+                key={pageIndex}
+                className="absolute top-0 left-0 right-0 bottom-0"
+                style={{
+                  transformOrigin: 'left center',
+                  transform,
+                  zIndex,
+                  // En móvil, una página ya pasada se oculta al terminar el giro para que no asome su reverso en el borde
+                  visibility: isHiddenPage ? 'hidden' : 'visible',
+                  willChange: isActive || isTurningPage ? 'transform' : 'auto',
+                  transition: `${pageTurnDurationMs}ms transform ${pageTurnEasing}`,
+                  transformStyle: 'preserve-3d',
+                }}
+              >
+                {/* FRONT FACE (Cards) */}
+                <div 
+                  className="absolute inset-0 bg-[#151515] rounded-r-xl md:rounded-r-2xl shadow-[inset_0_0_6px_rgba(0,0,0,0.42),2px_2px_5px_rgba(0,0,0,0.28)] md:shadow-[inset_0_0_10px_rgba(0,0,0,0.5),5px_5px_15px_rgba(0,0,0,0.5)] flex flex-col"
+                  style={{ transform: 'translateZ(1px)' }}
+                >
+                  {/* Binder inner spine shading */}
+                  <div className="absolute left-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-r from-black/80 to-transparent pointer-events-none z-20" />
+
+                  {/* Card Pockets Grid */}
+                  <div className="flex-1 grid gap-1.5 md:gap-3 h-full p-2 md:p-5 pl-6 md:pl-12 grid-cols-3 grid-rows-3">
+                    {frontPockets.map((card, i) => renderPocket(card, i, false))}
+                  </div>
+                  
+                  {/* Empty Message Overlay */}
+                  {cards.length === 0 && emptyMessage && pageIndex === 0 && (
+                    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-5 md:p-8">
+                       <div className="max-w-[82%] rounded-[1.6rem] border border-yellow-300/30 bg-slate-950/80 p-5 text-center text-white shadow-2xl backdrop-blur-md md:p-7">
+                         <div className="mx-auto mb-3 flex h-16 w-20 items-center justify-center rounded-2xl border border-white/10 bg-white/10">
+                           <span translate="no" className="material-symbols-outlined text-4xl text-yellow-200/70 md:text-5xl">inventory_2</span>
+                         </div>
+                         <p className="text-base font-black leading-tight text-white md:text-xl">Carpeta vacía</p>
+                         <p className="mt-2 text-xs font-semibold leading-relaxed text-slate-300 md:text-sm">{emptyMessage}</p>
+                       </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* BACK FACE (Textured Black Page OR Left Page Cards) */}
+                <div 
+                  className="absolute inset-0 bg-[#111] rounded-l-xl md:rounded-l-2xl shadow-[inset_0_0_6px_rgba(0,0,0,0.42),-2px_2px_5px_rgba(0,0,0,0.28)] md:shadow-[inset_0_0_10px_rgba(0,0,0,0.5),-5px_5px_15px_rgba(0,0,0,0.5)] flex flex-col"
+                  style={{ transform: 'rotateY(180deg) translateZ(1px)' }}
+                >
+                  {isDesktop ? (
+                    <div className="absolute inset-0 bg-[#151515] flex flex-col">
+                      {/* Spine shading on the right side since this is the left page */}
+                      <div className="absolute right-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-l from-black/80 to-transparent pointer-events-none z-20" />
+                      
+                      {/* Notice pr-12 instead of pl-12 for the spine margin! */}
+                      <div className="flex-1 grid gap-3 h-full p-5 pr-12 grid-cols-3 grid-rows-3">
+                        {backPockets.map((card, i) => renderPocket(card, i, true))}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Back page texture and subtle logo for mobile */}
+                      <div className="absolute inset-0 opacity-40 mix-blend-overlay bg-[url('/images/cubes.png')]" />
+                      <div className="absolute right-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-l from-black/90 to-transparent pointer-events-none z-20" />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                        <span translate="no" className="material-symbols-outlined text-[10rem] md:text-[15rem]">style</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {!albumReady && hasCards && (
+            <div role="status" className="absolute inset-0 z-[3000] flex flex-col items-center justify-center gap-3 rounded-2xl bg-slate-950/85 text-white backdrop-blur-sm">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/25 border-t-yellow-300 motion-reduce:animate-none" />
+              <p className="text-base font-bold">Cargando álbum…</p>
+              <p className="px-6 text-center text-xs text-slate-300">Preparando las páginas para que giren sin tirones</p>
+            </div>
+          )}
+          {cards.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-medium">
+              No hay cartas en esta carpeta.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {dragFloatingCard && (
+        <div
+          ref={dragFloatingPreviewRef}
+          className="fixed top-0 left-0 z-[5000] pointer-events-none -translate-x-1/2 -translate-y-1/2 will-change-transform"
+        >
+          <div className="relative w-24 md:w-32 rotate-3 scale-105 rounded-xl bg-black/80 p-1 shadow-xl ring-2 ring-white/30">
+            <img
+              src={dragFloatingCard.imageUrl}
+              alt={dragFloatingCard.name}
+              className="block w-full rounded-[5%] object-contain opacity-90"
+            />
+            <div className="absolute -top-2 -right-2 rounded-full bg-black px-2.5 py-1 text-xs font-black text-white shadow ring-2 ring-white/30">
+              x{Number(dragFloatingCard.stock || 0) > 999 ? '999+' : (dragFloatingCard.stock || 0)}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Binder Footer Controls */}
+      {renderPaginationControls(true)}
+    </div>
+  );
+}
+
+
+
+
+
+

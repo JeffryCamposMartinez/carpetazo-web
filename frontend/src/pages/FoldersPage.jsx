@@ -1,7 +1,7 @@
 import React, { startTransition, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { api } from '../utils/api';
-import LazyFolderCard from '../components/LazyFolderCard';
+import { api } from '../services/api';
+import LazyFolderCard from '../components/folder/LazyFolderCard';
 
 const TCG_CATEGORIES = [
   { name: 'Pokémon', logo: '/images/logos/pokemon.webp' },

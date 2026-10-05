@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { api } from '../utils/api';
-import HeroCarousel from '../components/HeroCarousel';
+import { api } from '../services/api';
+import HeroCarousel from '../components/home/HeroCarousel';
 import FeaturedZone from '../components/home/FeaturedZone';
 
 export default function ExplorePage() {

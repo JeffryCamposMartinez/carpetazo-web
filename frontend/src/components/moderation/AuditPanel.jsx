@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { api } from '../../utils/api';
+import { api } from '../../services/api';
 import { EmptyState, ErrorBox, Spinner, relativeTime } from './shared';
 
 // Cada acción tiene un nombre claro y un color de franja según qué tipo de decisión fue

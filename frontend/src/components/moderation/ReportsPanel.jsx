@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../../utils/api';
+import { api } from '../../services/api';
 import { useRef } from 'react';
 import { DetailHeader, DetailPane, EmptyState, FilterSheet, Pills, SEVERITY_STYLE, Spinner, relativeTime } from './shared';
 

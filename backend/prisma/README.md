@@ -35,7 +35,7 @@ si el juego los usa, a un bloque. Una carta puede venir en varios productos: el 
 
 Importar un bloque desde carpetas con `data.json` (el nombre de cada subcarpeta es el nombre del producto):
 
-    node import_tcg_block.cjs --game myl --block "Primer Bloque" --dir "<...>/Primer_Bloque_DB"           # simula
-    node import_tcg_block.cjs --game myl --block "Primer Bloque" --dir "<...>/Primer_Bloque_DB" --apply   # escribe
+    node scripts/catalog/import_tcg_block.cjs --game myl --block "Primer Bloque" --dir "<...>/Primer_Bloque_DB"           # simula
+    node scripts/catalog/import_tcg_block.cjs --game myl --block "Primer Bloque" --dir "<...>/Primer_Bloque_DB" --apply   # escribe
 
-Otro juego: agregar un adaptador en `ADAPTERS` de `import_tcg_block.cjs`.
+Otro juego: agregar un adaptador en `ADAPTERS` de `scripts/catalog/import_tcg_block.cjs`.

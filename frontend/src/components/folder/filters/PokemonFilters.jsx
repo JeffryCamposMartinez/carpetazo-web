@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import LiquidTabs from '../../LiquidTabs';
+import LiquidTabs from '../../ui/LiquidTabs';
 
 const typesList = ["Colorless", "Fire", "Water", "Grass", "Lightning", "Fighting", "Fairy", "Metal", "Darkness", "Dragon", "Psychic"];
 

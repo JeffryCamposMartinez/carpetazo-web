@@ -45,7 +45,7 @@ jobs:
         working-directory: backend
 
       - name: Validate backend syntax
-        run: node --check server.js
+        run: for f in server.js core/*.js routes/*.js moderation/*.js; do node --check "$f"; done
         working-directory: backend
 
       - name: Validate Prisma schema
@@ -117,4 +117,4 @@ jobs:
         run: sleep 420
 
       - name: Check public responses have no private fields
-        run: node backend/check_public_contract.cjs https://api.carpetazo.cl/api
+        run: node backend/scripts/checks/check_public_contract.cjs https://api.carpetazo.cl/api

@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { auth, googleProvider, warmUpGoogleSignIn } from '../firebase';
-import { api } from '../utils/api';
+import { auth, googleProvider, warmUpGoogleSignIn } from '../services/firebase';
+import { api } from '../services/api';
 import { takePendingAcceptance } from '../legal/pending';
-import AppSplash from '../components/AppSplash';
+import AppSplash from '../components/layout/AppSplash';
 import {
   onAuthStateChanged,
   signInWithPopup,
