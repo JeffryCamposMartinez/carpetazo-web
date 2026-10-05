@@ -1,5 +1,6 @@
 // Tema del perfil público: opciones del editor y estilos que se calculan a partir del tema.
 import { PALETTES } from '../../config/profileThemes';
+import { ALL_FONTS, FONT_NOTES, TITLE_FONTS } from './profileFonts';
 
 export const defaultPublicTheme = {
   id: 'classic-blue',
@@ -11,6 +12,8 @@ export const defaultPublicTheme = {
   card: '#ffffff',
   text: '#1a2b4b',
   font: 'Inter',
+  bodyFont: 'Inter',
+  dataFont: 'Inter',
   cardStyle: 'soft',
   backgroundStyle: 'banner',
   sideBackgroundStyle: 'solid-surface',
@@ -28,29 +31,9 @@ export const defaultPublicTheme = {
 
 export const profileThemes = [defaultPublicTheme, ...PALETTES.slice(1)];
 
-export const fontOptions = ['Inter', 'Montserrat', 'Nunito', 'Poppins', 'Rubik', 'Quicksand', 'Merriweather', 'Oswald', 'Space Grotesk', 'Cinzel', 'Orbitron', 'Bebas Neue', 'Bungee', 'Audiowide', 'Permanent Marker', 'Press Start 2P', 'Rubik Glitch', 'Unbounded', 'DM Serif Display'];
+export const fontOptions = TITLE_FONTS;
 
-export const fontExamples = {
-  Inter: 'Perfil limpio y moderno',
-  Montserrat: 'Vendedor destacado',
-  Nunito: 'Amigable y cercano',
-  Poppins: 'Colección premium',
-  Rubik: 'Cartas con carácter',
-  Quicksand: 'Suave y juvenil',
-  Merriweather: 'Elegante y clásico',
-  Oswald: 'Fuerte y directo',
-  'Space Grotesk': 'Futurista y único',
-  Cinzel: 'Mítico y legendario',
-  Orbitron: 'Tecnología orbital',
-  'Bebas Neue': 'Impacto de vitrina',
-  Bungee: 'Estilo arcade urbano',
-  Audiowide: 'Ciencia ficción premium',
-  'Permanent Marker': 'Firma de coleccionista',
-  'Press Start 2P': 'Retro videojuego',
-  'Rubik Glitch': 'Error dimensional',
-  Unbounded: 'Perfil experimental',
-  'DM Serif Display': 'Editorial sofisticado'
-};
+export const fontExamples = FONT_NOTES;
 
 export const cardStyleOptions = [
   { id: 'soft', name: 'Suave', description: 'Bordes grandes y efecto vidrio.' },
@@ -158,7 +141,7 @@ export const profileDistributionOptions = [
 ];
 
 export const getFontStack = (font = defaultPublicTheme.font) => {
-  const safeFont = fontOptions.includes(font) ? font : defaultPublicTheme.font;
+  const safeFont = ALL_FONTS.includes(font) ? font : defaultPublicTheme.font;
   return `'${safeFont}', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
 };
 

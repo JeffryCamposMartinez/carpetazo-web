@@ -6,7 +6,7 @@ import { prisma } from '../core/db.js';
 import { acceptedCache, getLegalStatus } from '../core/legal.js';
 import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/publicSeller.js';
 import { deleteR2ObjectByPublicUrl } from '../core/r2.js';
-import { SOCIAL_DOMAINS, badRequest, checkImageField, checkSocialField, hasControlChars, isAllowedStoredImageUrl, isOptionalText, isShortText, normalizeUsername, validUsername } from '../core/validation.js';
+import { SOCIAL_DOMAINS, badRequest, checkImageField, checkSocialField, hasControlChars, isAllowedStoredImageUrl, isOptionalText, isShortText, normalizeUsername, sanitizePublicTheme, validUsername } from '../core/validation.js';
 import { moderationHooks, restrictions } from '../moderation/services.js';
 
 const router = express.Router();
@@ -213,37 +213,7 @@ router.put('/api/users/me', authenticateToken, async (req, res) => {
         return res.status(400).json({ success: false, error: 'Invalid public theme' });
       }
 
-      const allowedThemeFields = [
-        'id',
-        'name',
-        'primary',
-        'secondary',
-        'accent',
-        'surface',
-        'card',
-        'text',
-        'font',
-        'cardStyle',
-        'backgroundStyle',
-        'sideBackgroundStyle',
-        'avatarFrame',
-        'profileLayout',
-        'profileEffect',
-        'showcaseStyle',
-        'profileDistribution',
-        'showWhatsApp',
-        'showInstagram',
-        'showFacebook',
-        'showMessageButton',
-        'showYoutube',
-        'showWishlist',
-        'shareBankInOrders'
-      ];
-      updateData.publicTheme = Object.fromEntries(
-        Object.entries(updateData.publicTheme)
-          .filter(([key, value]) => allowedThemeFields.includes(key) && typeof value === 'string')
-          .map(([key, value]) => [key, value.slice(0, 40)])
-      );
+      updateData.publicTheme = sanitizePublicTheme(updateData.publicTheme);
     }
 
     if (updateData.addresses !== undefined) {

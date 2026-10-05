@@ -1,13 +1,12 @@
 import { ReportMenu } from '../moderation/ReportButton';
 import { SocialLogo } from './SocialLogo';
-import { Stars } from '../reviews/Reviews';
 import { bannerForScreen } from '../../utils/responsiveImage';
 import { getCardStyle } from './profileStyles';
 import { readableOn } from '../../utils/color';
 
 // Presentación del perfil: portada, avatar, nombre, datos y contacto; la forma cambia según el diseño elegido.
 export default function ProfileHero({
-  avatarBlock, cardCountLabel, contactSeller, displayName, displayNameSize, folderCountLabel,
+  avatarBlock, contactSeller, displayName, displayNameSize,
   handleImageUpload, handleSaveBio, heroActions, heroBanner, heroContainerClass, heroMuted, heroPadding,
   heroTheme, isCenteredLayout, isEditingBio, isGamerLayout, isOwner, isPosterLayout, layoutId,
   ownerButtonClass, primaryAddress, publicTheme, savingBio, savingImage, seller, setIsEditingBio, setTempBio,
@@ -60,8 +59,6 @@ export default function ProfileHero({
               <div className="min-w-0">
                 <h1 className={`break-words font-black leading-[1.05] ${isPosterLayout ? 'drop-shadow-[0_3px_14px_rgba(0,0,0,0.55)]' : ''}`} style={{ color: heroTheme.text, fontSize: displayNameSize }}>
                   {displayName}
-                  {/* Pegado a la última palabra del nombre, aunque ocupe varias líneas */}
-                  <span translate="no" className="material-symbols-outlined ml-1.5 align-[-0.12em] text-[22px] leading-none" style={{ color: heroTheme.primary, fontVariationSettings: "'FILL' 1" }} title="Vendedor verificado" aria-label="Vendedor verificado">verified</span>
                 </h1>
                 <p className="mt-1.5 text-[15px] font-bold leading-snug" style={{ color: heroTheme.primary }}>@{seller?.username}</p>
                 {seller?.fullName && <p className="text-sm font-medium leading-snug" style={heroMuted}>{seller.fullName}</p>}
@@ -98,30 +95,15 @@ export default function ProfileHero({
             )}
           </div>
 
-          {/* Datos del vendedor en fichas cortas: se leen de un vistazo y se acomodan en varias líneas en móvil */}
-          <ul className={`mt-3 flex flex-wrap gap-1.5 ${isCenteredLayout ? 'justify-center' : ''}`} aria-label="Datos del vendedor">
-            {[
-              { icon: 'folder_open', label: folderCountLabel },
-              { icon: 'style', label: cardCountLabel },
-              ...(primaryAddress ? [{ icon: 'location_on', label: [primaryAddress.comuna, primaryAddress.region].filter(Boolean).join(', ') || primaryAddress.name }] : [])
-            ].map((chip) => (
-              <li key={chip.icon} className={`inline-flex h-8 max-w-full items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold tabular-nums ${isPosterLayout ? 'backdrop-blur-sm' : ''}`} style={{ backgroundColor: isPosterLayout ? 'rgba(255,255,255,0.14)' : `${heroTheme.primary}14`, color: heroTheme.text, boxShadow: `inset 0 0 0 1px ${isPosterLayout ? 'rgba(255,255,255,0.28)' : `${heroTheme.primary}2e`}` }}>
-                <span translate="no" className="material-symbols-outlined shrink-0 text-[17px]" style={{ color: heroTheme.primary }} aria-hidden="true">{chip.icon}</span>
-                <span className="truncate">{chip.label}</span>
-              </li>
-            ))}
-            {seller?.reviewSummary && (
-              <li>
-                <a href="#resenas" className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold tabular-nums transition hover:brightness-95 focus:outline-none focus-visible:ring-2" style={{ backgroundColor: seller.reviewSummary.count > 0 ? '#fef3c7' : isPosterLayout ? 'rgba(255,255,255,0.14)' : `${heroTheme.primary}14`, color: seller.reviewSummary.count > 0 ? '#713f12' : heroTheme.text, boxShadow: `inset 0 0 0 1px ${seller.reviewSummary.count > 0 ? '#f59e0b55' : isPosterLayout ? 'rgba(255,255,255,0.28)' : `${heroTheme.primary}2e`}` }}>
-                  {seller.reviewSummary.showAverage
-                    ? <><Stars value={seller.reviewSummary.average} size={14} />{seller.reviewSummary.average.toFixed(1)}<span className="font-semibold opacity-75">({seller.reviewSummary.count})</span></>
-                    : seller.reviewSummary.count > 0
-                      ? <><span translate="no" className="material-symbols-outlined text-[17px]" style={{ fontVariationSettings: "'FILL' 1", color: '#d97706' }} aria-hidden="true">star</span>{seller.reviewSummary.count} {seller.reviewSummary.count === 1 ? 'reseña' : 'reseñas'}</>
-                      : <><span translate="no" className="material-symbols-outlined text-[17px]" style={{ color: heroTheme.primary }} aria-hidden="true">star</span>Sin reseñas todavía</>}
-                </a>
-              </li>
-            )}
-          </ul>
+          {/* Ubicación (ciudad y región). Carpetas, cartas y reseñas van en la franja de confianza bajo la presentación */}
+          {primaryAddress && (
+            <p className={`mt-3 flex ${isCenteredLayout ? 'justify-center' : ''}`}>
+              <span className={`inline-flex h-8 max-w-full items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold ${isPosterLayout ? 'backdrop-blur-sm' : ''}`} style={{ backgroundColor: isPosterLayout ? 'rgba(255,255,255,0.14)' : `${heroTheme.primary}14`, color: heroTheme.text, boxShadow: `inset 0 0 0 1px ${isPosterLayout ? 'rgba(255,255,255,0.28)' : `${heroTheme.primary}2e`}` }}>
+                <span translate="no" className="material-symbols-outlined shrink-0 text-[17px]" style={{ color: heroTheme.primary }} aria-hidden="true">location_on</span>
+                <span className="truncate">{[primaryAddress.comuna, primaryAddress.region].filter(Boolean).join(', ') || primaryAddress.name}</span>
+              </span>
+            </p>
+          )}
 
           <div className="mt-4">
             {isEditingBio ? (

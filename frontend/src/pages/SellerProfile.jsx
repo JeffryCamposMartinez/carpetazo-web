@@ -1,4 +1,3 @@
-import NotFound from './NotFound';
 import { ensureExternalUrl, formatWhatsAppNumber, getInstagramHref } from '../utils/contact';
 import { loadThemeFonts } from '../utils/themeFonts';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -7,8 +6,10 @@ import { updateProfile as updateFirebaseProfile } from 'firebase/auth';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { getAverageRGB, getComplementaryHex, readableOn } from '../utils/color';
-import { BODY_FONT_STACK, defaultPublicTheme, fontOptions, getAvatarFrameStyle, getDisplayScale, getEffectClassName, getFontStack, getProfileBackgroundStyle, getSideBackgroundStyle, profileDistributionOptions, resolveSurfaceTheme, themeKey } from '../components/profile/profileStyles';
-import ProfileThemePanel from '../components/profile/ProfileThemePanel';
+import { defaultPublicTheme, getAvatarFrameStyle, getDisplayScale, getEffectClassName, getFontStack, getProfileBackgroundStyle, getSideBackgroundStyle, profileDistributionOptions, resolveSurfaceTheme, themeKey } from '../components/profile/profileStyles';
+import ProfileStudio from '../components/profile/studio/ProfileStudio';
+import ProfileTrustStrip from '../components/profile/ProfileTrustStrip';
+import { ProfileContactBar, ProfileLoading, ProfileUnavailable } from '../components/profile/ProfileStates';
 import ProfileModules from '../components/profile/ProfileModules';
 import ProfileHero from '../components/profile/ProfileHero';
 import { useToast } from '../components/ui/ToastProvider';
@@ -56,10 +57,10 @@ export default function SellerProfile() {
   const themeDirty = savedThemeJson !== '' && themeKey(savedTheme) !== savedThemeJson;
   const isPosterLayout = publicTheme.profileLayout === 'poster';
   const displayScale = getDisplayScale(publicTheme.font);
-  // Fuentes del perfil: solo la del texto (Inter) y la elegida; al abrir el selector, todas para la vista previa
+  // Fuentes del perfil: solo las tres elegidas (títulos, contenido y cifras); el editor carga el resto al abrir la pestaña de letra
   useEffect(() => {
-    loadThemeFonts(themePanelTab === 'font' ? ['Inter', ...fontOptions] : ['Inter', publicTheme.font]);
-  }, [publicTheme.font, themePanelTab]);
+    loadThemeFonts(['Inter', publicTheme.font, publicTheme.bodyFont, publicTheme.dataFont]);
+  }, [publicTheme.font, publicTheme.bodyFont, publicTheme.dataFont]);
   // Nombre: crece con la pantalla, acotado entre móvil y escritorio (más grande en el diseño póster)
   const displayNameSize = `clamp(${(1.7 * displayScale).toFixed(2)}rem, ${(1.05 * displayScale).toFixed(2)}rem + ${(2.4 * displayScale).toFixed(2)}vw, ${((isPosterLayout ? 3.2 : 2.9) * displayScale).toFixed(2)}rem)`;
   const selectedDistribution = profileDistributionOptions.find(option => option.id === publicTheme.profileDistribution) || profileDistributionOptions[0];
@@ -76,13 +77,6 @@ export default function SellerProfile() {
       window.dispatchEvent(new CustomEvent('carpetazo:public-profile-theme', { detail: { theme: null } }));
     };
   }, [publicTheme]);
-
-  useEffect(() => {
-    if (!themePanelOpen) return undefined;
-    const onKeyDown = (event) => { if (event.key === 'Escape') setThemePanelOpen(false); };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [themePanelOpen]);
 
   const loadSeller = async () => {
     setLoading(true);
@@ -276,6 +270,11 @@ export default function SellerProfile() {
     }));
   };
 
+  // Varios campos a la vez (una combinación de fuentes)
+  const handleThemeFieldsChange = (fields) => {
+    setSeller(prev => ({ ...prev, publicTheme: { ...savedTheme, id: 'custom', name: 'Tema personalizado', ...fields } }));
+  };
+
   const applyThemePalette = (theme) => {
     setSeller(prev => ({
       ...prev,
@@ -353,25 +352,14 @@ export default function SellerProfile() {
     }
   ];
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-[#DBEAFE]">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-4 border-[#1e40af]" />
-      </div>
-    );
-  }
-
-  if (errorMsg) {
-    return <NotFound />;
-  }
+  if (loading) return <ProfileLoading />;
+  if (errorMsg) return <ProfileUnavailable />;
 
   const heroActions = [
     ...(showMessageButton ? [{ id: 'message', label: 'Enviar mensaje' }] : []),
     ...socialLinks.filter((social) => social.available && getSocialEnabled(social.field)),
   ];
   const ownerButtonClass = 'inline-flex h-10 items-center gap-2 rounded-full bg-white/95 px-4 text-sm font-bold text-[#12315f] shadow-md ring-1 ring-black/5 transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]';
-  const folderCountLabel = `${folders.length} ${folders.length === 1 ? 'carpeta' : 'carpetas'}`;
-  const cardCountLabel = `${totalCards.toLocaleString('es-CL')} ${totalCards === 1 ? 'carta' : 'cartas'}`;
   const textMuted = { color: publicTheme.text, opacity: 0.7 };
 
   // Presentación: cada opción cambia de verdad la forma de la cabecera, también en móvil
@@ -422,7 +410,7 @@ export default function SellerProfile() {
         role="img"
       >
         <span className={`font-bold leading-none opacity-80 ${isSmallAvatar ? 'text-[8px]' : 'text-[9px]'}`} aria-hidden="true">nivel</span>
-        <span className="font-black leading-none tabular-nums" style={{ fontFamily: 'var(--seller-font)', fontSize: `${((isSmallAvatar ? 0.95 : 1.15) * Math.max(displayScale, 0.75)).toFixed(2)}rem` }} aria-hidden="true">{profileLevel}</span>
+        <span className="font-black leading-none tabular-nums" style={{ fontFamily: 'var(--seller-data)', fontSize: `${((isSmallAvatar ? 0.95 : 1.15) * Math.max(displayScale, 0.75)).toFixed(2)}rem` }} aria-hidden="true">{profileLevel}</span>
       </div>
       <div className={`h-full w-full p-[4px] shadow-[0_18px_44px_rgba(0,0,0,0.4)] ${isSmallAvatar ? 'rounded-[1.4rem]' : 'rounded-[2.2rem] sm:p-[5px]'}`} style={{ background: getAvatarFrameStyle(publicTheme) }}>
         <div className={`h-full w-full overflow-hidden bg-white ring-2 ring-white/90 ${isSmallAvatar ? 'rounded-[1.15rem]' : 'rounded-[1.9rem]'}`}>
@@ -452,24 +440,24 @@ export default function SellerProfile() {
     </div>
   );
 
-  const profileThemePanelProps = { applyThemePalette, avatarUrl, displayName, getSocialEnabled,
-    handleThemeFieldChange, messageButtonEnabled, publicTheme, resetPublicTheme, saveCurrentTheme, savedTheme,
-    savingTheme, setThemePanelOpen, setThemePanelTab, socialLinks, themeDirty, themePanelTab };
+  const profileStudioProps = { applyThemePalette, avatarUrl, displayName, getSocialEnabled, handleThemeFieldChange,
+    handleThemeFieldsChange, messageButtonEnabled, resetPublicTheme, saveCurrentTheme, savedTheme, savingTheme,
+    setThemePanelOpen, setThemePanelTab, socialLinks, themeDirty, themePanelTab, totalCards };
 
   const profileModulesProps = { avatarUrl, displayName, folders, getDistributionOrder, getDistributionSpan,
     getSocialEnabled, isOwner, profileLevel, publicTheme, seller, showProfileShowcase, spotlightFolders, textMuted,
     totalCards };
 
-  const profileHeroProps = { avatarBlock, cardCountLabel, contactSeller, displayName, displayNameSize,
-    folderCountLabel, handleImageUpload, handleSaveBio, heroActions, heroBanner, heroContainerClass, heroMuted,
+  const profileHeroProps = { avatarBlock, contactSeller, displayName, displayNameSize,
+    handleImageUpload, handleSaveBio, heroActions, heroBanner, heroContainerClass, heroMuted,
     heroPadding, heroTheme, isCenteredLayout, isEditingBio, isGamerLayout, isOwner, isPosterLayout, layoutId,
     ownerButtonClass, primaryAddress, publicTheme, savingBio, savingImage, seller, setIsEditingBio, setTempBio,
     setThemePanelOpen, tempBio, themePanelOpen };
 
   return (
     <div
-      className="min-h-screen [&_h1]:[font-family:var(--seller-font)] [&_section_h2]:[font-family:var(--seller-font)] [&_section_h2]:[font-size:var(--seller-h2)]"
-      style={{ fontFamily: BODY_FONT_STACK, '--seller-font': getFontStack(publicTheme.font), '--seller-h2': `${(1.45 * displayScale).toFixed(2)}rem` }}
+      className={`min-h-screen [&_h1]:[font-family:var(--seller-font)] [&_section_h2]:[font-family:var(--seller-font)] [&_section_h2]:[font-size:var(--seller-h2)] ${showMessageButton ? 'pb-24 sm:pb-0' : ''}`}
+      style={{ fontFamily: getFontStack(publicTheme.bodyFont), '--seller-font': getFontStack(publicTheme.font), '--seller-data': getFontStack(publicTheme.dataFont), '--seller-h2': `${(1.45 * displayScale).toFixed(2)}rem` }}
     >
       <div className="mx-auto w-full max-w-[1470px] xl:px-4 2xl:px-6" style={getSideBackgroundStyle(publicTheme)}>
       <div className={`relative min-h-screen w-full overflow-hidden shadow-[0_0_90px_rgba(0,0,0,0.22)] ${getEffectClassName(publicTheme)}`} style={getProfileBackgroundStyle(publicTheme)}>
@@ -477,13 +465,17 @@ export default function SellerProfile() {
       {/* Presentación: la forma cambia según la opción elegida (Clásico, Compacto, Showcase, Póster o Gamer) */}
       <ProfileHero {...profileHeroProps} />
 
+      {/* Confianza: reseñas, carpetas, cartas y nivel de un vistazo */}
+      <ProfileTrustStrip folders={folders.length} profileLevel={profileLevel} publicTheme={publicTheme} reviewSummary={seller?.reviewSummary} totalCards={totalCards} />
+
       {/* Módulos: el orden y el ancho salen de la distribución elegida */}
       <ProfileModules {...profileModulesProps} />
       </div>
       </div>
 
-      {isOwner && themePanelOpen && (
-        <ProfileThemePanel {...profileThemePanelProps} />
+      {isOwner && themePanelOpen && <ProfileStudio {...profileStudioProps} />}
+      {showMessageButton && (
+        <ProfileContactBar displayName={displayName} folders={folders.length} onContact={contactSeller} publicTheme={publicTheme} readableOn={readableOn} totalCards={totalCards} />
       )}
     </div>
   );

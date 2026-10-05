@@ -19,7 +19,15 @@ const FONT_QUERIES = {
   'Press Start 2P': 'Press+Start+2P',
   'Rubik Glitch': 'Rubik+Glitch',
   Unbounded: 'Unbounded:wght@400;700;900',
-  'DM Serif Display': 'DM+Serif+Display'
+  'DM Serif Display': 'DM+Serif+Display',
+  Fraunces: 'Fraunces:wght@400;700;900',
+  Sora: 'Sora:wght@400;700;800',
+  'DM Sans': 'DM+Sans:wght@400;500;700',
+  Manrope: 'Manrope:wght@400;600;700;800',
+  Figtree: 'Figtree:wght@400;700;900',
+  'Work Sans': 'Work+Sans:wght@400;700',
+  Lora: 'Lora:wght@400;700',
+  'DM Mono': 'DM+Mono:wght@400;500'
 };
 
 const requested = new Set();

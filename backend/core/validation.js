@@ -121,3 +121,24 @@ export const cleanCardData = (data) => {
 };
 export const isUuid = (value = '') => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 export const hasControlChars = (text) => /[\u0000-\u001f]/.test(text);
+
+// Tema del perfil público. Cada valor termina en estilos en línea del perfil: los colores solo pueden ser hexadecimales
+// (un «url(...)» cargaría imágenes de otros sitios a cada visitante) y las fuentes, de la lista curada del editor.
+export const PROFILE_FONTS = ['Inter', 'Montserrat', 'Nunito', 'Poppins', 'Rubik', 'Quicksand', 'Merriweather', 'Oswald', 'Space Grotesk', 'Cinzel', 'Orbitron', 'Bebas Neue', 'Bungee', 'Audiowide', 'Permanent Marker', 'Press Start 2P', 'Rubik Glitch', 'Unbounded', 'DM Serif Display', 'Fraunces', 'Sora', 'DM Sans', 'Manrope', 'Figtree', 'Work Sans', 'Lora', 'DM Mono'];
+const THEME_COLOR_FIELDS = ['primary', 'secondary', 'accent', 'surface', 'card', 'text'];
+const THEME_FONT_FIELDS = ['font', 'bodyFont', 'dataFont'];
+const THEME_OPTION_FIELDS = ['cardStyle', 'backgroundStyle', 'sideBackgroundStyle', 'avatarFrame', 'profileLayout', 'profileEffect', 'showcaseStyle', 'profileDistribution'];
+const THEME_SWITCH_FIELDS = ['showWhatsApp', 'showInstagram', 'showFacebook', 'showMessageButton', 'showYoutube', 'showWishlist', 'shareBankInOrders'];
+export const sanitizePublicTheme = (theme) => {
+  const out = {};
+  for (const [key, value] of Object.entries(theme)) {
+    if (typeof value !== 'string') continue;
+    if (THEME_COLOR_FIELDS.includes(key)) { if (/^#[0-9a-f]{3,8}$/i.test(value) || value === 'transparent') out[key] = value; continue; }
+    if (THEME_FONT_FIELDS.includes(key)) { if (PROFILE_FONTS.includes(value)) out[key] = value; continue; }
+    if (THEME_OPTION_FIELDS.includes(key)) { if (/^[a-z0-9-]{1,40}$/.test(value)) out[key] = value; continue; }
+    if (THEME_SWITCH_FIELDS.includes(key)) { if (value === 'on' || value === 'off') out[key] = value; continue; }
+    if ((key === 'id' || key === 'name') && !hasControlChars(value)) out[key] = value.slice(0, 40);
+  }
+  return out;
+};
+

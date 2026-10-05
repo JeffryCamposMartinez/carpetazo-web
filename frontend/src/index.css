@@ -339,3 +339,17 @@ body.public-profile-active::after {
   .card-enter { animation: menu-fade 120ms linear both; animation-delay: 0ms; }
   .heart-pop { animation: none; }
 }
+
+/* Editor del perfil («Profile Studio»): sube desde abajo en el celular y entra desde la derecha en pantallas anchas */
+@keyframes studio-in-right {
+  from { transform: translateX(100%); }
+  to { transform: none; }
+}
+.studio-panel { animation: sheet-up 300ms cubic-bezier(0.32, 0.72, 0, 1) both; }
+@media (min-width: 640px) {
+  .studio-panel { animation-name: studio-in-right; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-panel { animation: menu-fade 120ms linear both; }
+}
+

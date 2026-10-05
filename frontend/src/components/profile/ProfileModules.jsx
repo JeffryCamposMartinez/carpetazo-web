@@ -5,6 +5,13 @@ import { getCardStyle } from './profileStyles';
 import { getFolderFilter } from '../../config/folderOptions';
 import { readableOn } from '../../utils/color';
 
+// Frase de la vitrina según su estilo
+const SHOWCASE_LINES = {
+  folders: 'Pequeñas cartas. Grandes historias.',
+  collector: 'Una colección con historia.',
+  seller: 'Tu próxima carta está aquí.',
+};
+
 // Módulos del perfil público: vitrina, carpetas, cartas deseadas y reseñas, en el orden y ancho de la distribución elegida.
 export default function ProfileModules({
   avatarUrl, displayName, folders, getDistributionOrder, getDistributionSpan, getSocialEnabled, isOwner,
@@ -15,11 +22,24 @@ export default function ProfileModules({
       <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-12">
         {showProfileShowcase && (
           <section className={`min-w-0 border p-5 ring-1 ${getDistributionSpan('showcase')}`} style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}33`, order: getDistributionOrder('showcase') }}>
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-xl font-black leading-tight md:text-2xl" style={{ color: publicTheme.text }}>
-                {publicTheme.showcaseStyle === 'seller' ? 'Catálogo destacado' : publicTheme.showcaseStyle === 'collector' ? 'Colección destacada' : 'Carpetas favoritas'}
+            {/* Vitrina: una frase con el carácter elegido, las cifras reales y el nivel como sello */}
+            <div className="mb-5 border-b pb-5" style={{ borderColor: `${publicTheme.primary}22` }}>
+              <h2 className="max-w-[22ch] text-2xl font-black leading-[1.1] tracking-tight [text-wrap:balance] md:text-3xl" style={{ color: publicTheme.text }}>
+                {SHOWCASE_LINES[publicTheme.showcaseStyle] || SHOWCASE_LINES.folders}
               </h2>
-              <span className="text-sm font-bold tabular-nums" style={textMuted}>{spotlightFolders.length} de {folders.length}</span>
+              <p className="mt-2 text-sm font-semibold tabular-nums" style={{ ...textMuted, fontFamily: 'var(--seller-data)' }}>
+                {totalCards.toLocaleString('es-CL')} {totalCards === 1 ? 'carta' : 'cartas'} en {folders.length} {folders.length === 1 ? 'carpeta' : 'carpetas'}
+              </p>
+              <span className="mt-3 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-extrabold" style={{ backgroundColor: `${publicTheme.accent}40`, color: publicTheme.text }}>
+                <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]" style={{ color: publicTheme.primary }}>military_tech</span>
+                Coleccionista nivel <span style={{ fontFamily: 'var(--seller-data)' }}>{profileLevel}</span>
+              </span>
+            </div>
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <h3 className="text-base font-extrabold" style={{ color: publicTheme.text }}>
+                {publicTheme.showcaseStyle === 'seller' ? 'Catálogo destacado' : publicTheme.showcaseStyle === 'collector' ? 'Colección destacada' : 'Carpetas favoritas'}
+              </h3>
+              <span className="text-sm font-bold tabular-nums" style={{ ...textMuted, fontFamily: 'var(--seller-data)' }}>{spotlightFolders.length} de {folders.length}</span>
             </div>
             <ul className="divide-y" style={{ borderColor: `${publicTheme.primary}22` }}>
               {spotlightFolders.map((folder) => (
@@ -52,7 +72,7 @@ export default function ProfileModules({
                     <span translate="no" aria-hidden="true" className="material-symbols-outlined shrink-0 text-[24px]" style={{ color: publicTheme.primary }}>{icon}</span>
                     <span style={textMuted}>{label}</span>
                   </dt>
-                  <dd className="text-xl font-black tabular-nums" style={{ color: publicTheme.text }}>{value}</dd>
+                  <dd className="text-xl font-black tabular-nums" style={{ color: publicTheme.text, fontFamily: 'var(--seller-data)' }}>{value}</dd>
                 </div>
               ))}
             </dl>
@@ -73,14 +93,14 @@ export default function ProfileModules({
               <h2 className="text-2xl font-black leading-tight" style={{ color: publicTheme.text }}>Carpetas públicas</h2>
               <p className="text-sm font-medium" style={textMuted}>Catálogos publicados por este vendedor.</p>
             </div>
-            <span className="shrink-0 rounded-full px-3 py-1 text-sm font-extrabold tabular-nums" style={{ backgroundColor: publicTheme.primary, color: readableOn(publicTheme.primary) }}>{folders.length}</span>
+            <span className="shrink-0 rounded-full px-3 py-1 text-sm font-extrabold tabular-nums" style={{ backgroundColor: publicTheme.primary, color: readableOn(publicTheme.primary), fontFamily: 'var(--seller-data)' }}>{folders.length}</span>
           </div>
 
           {folders.length === 0 ? (
             <div className="border border-dashed p-10 text-center" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}55` }}>
               <span translate="no" className="material-symbols-outlined text-5xl" style={{ color: `${publicTheme.primary}99` }}>inventory_2</span>
-              <p className="mt-3 text-lg font-extrabold" style={{ color: publicTheme.text }}>Aún no hay carpetas públicas</p>
-              <p className="mt-1 text-sm font-medium" style={textMuted}>{isOwner ? 'Crea una carpeta en tu panel y márcala como pública para que aparezca aquí.' : 'Cuando publique una carpeta, la verás aquí.'}</p>
+              <p className="mt-3 text-lg font-extrabold" style={{ color: publicTheme.text }}>{isOwner ? 'Aún no tienes carpetas públicas' : 'Este vendedor está ordenando sus cartas'}</p>
+              <p className="mt-1 text-sm font-medium" style={textMuted}>{isOwner ? 'Crea una carpeta en tu panel y márcala como pública para que aparezca aquí.' : 'Cuando publique una carpeta, aparecerá aquí.'}</p>
               {isOwner && <Link to="/dashboard" className="mt-4 inline-flex h-11 items-center rounded-full px-6 text-sm font-extrabold" style={{ backgroundColor: publicTheme.primary, color: readableOn(publicTheme.primary) }}>Ir a mis carpetas</Link>}
             </div>
           ) : (

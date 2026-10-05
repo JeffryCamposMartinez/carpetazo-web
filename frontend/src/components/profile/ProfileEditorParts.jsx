@@ -1,65 +1,5 @@
-// Piezas del editor de apariencia del perfil: opciones, secciones y miniaturas de diseño.
+// Miniaturas del editor de apariencia del perfil: llenan el alto de la caja donde se muestran.
 import { getAvatarFrameStyle, getCardStyle, getProfileBackgroundStyle, resolveSurfaceTheme } from './profileStyles';
-
-// Opción de personalización: vista previa grande + nombre + descripción, con el mismo aviso de "seleccionada" en todo el panel
-export const OptionTile = ({ selected, onClick, name, description, disabled = false, children }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={disabled}
-    aria-pressed={selected}
-    className={`group relative flex flex-col overflow-hidden rounded-2xl border-2 bg-white p-1.5 text-left transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 ${selected ? 'border-[#12315f] shadow-[0_8px_22px_-10px_rgba(18,49,95,0.6)]' : 'border-slate-200 hover:-translate-y-0.5 hover:border-slate-400 hover:shadow-md'}`}
-  >
-    <span className="relative block">
-      {children}
-      {selected && (
-        <span className="absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-[#12315f] text-white shadow-md ring-2 ring-white">
-          <span translate="no" className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1, 'wght' 700" }}>check</span>
-        </span>
-      )}
-    </span>
-    <span className="mt-2 block px-1.5 text-sm font-extrabold leading-tight text-[#12315f]">{name}</span>
-    {description && <span className="mb-1 mt-0.5 block px-1.5 text-xs leading-snug text-slate-500">{description}</span>}
-  </button>
-);
-
-// Bloque del panel: título, una línea que explica qué cambia y la cuadrícula de opciones
-export const PanelSection = ({ icon, title, hint, children }) => (
-  <section className="border-t border-slate-200 pt-5 first:border-t-0 first:pt-0">
-    <div className="mb-3 flex items-start gap-3">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#12315f] text-[#facc15]">
-        <span translate="no" className="material-symbols-outlined text-[20px]">{icon}</span>
-      </span>
-      <div className="min-w-0">
-        <h3 className="text-base font-extrabold leading-tight text-[#12315f]">{title}</h3>
-        {hint && <p className="mt-0.5 text-xs leading-snug text-slate-500">{hint}</p>}
-      </div>
-    </div>
-    {children}
-  </section>
-);
-
-// Interruptor con nombre y estado escrito (no depende solo del color)
-export const ToggleRow = ({ enabled, onClick, label, status, children }) => (
-  <button
-    type="button"
-    role="switch"
-    aria-checked={enabled}
-    onClick={onClick}
-    className={`flex w-full items-center justify-between gap-3 rounded-2xl border-2 p-3 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${enabled ? 'border-[#12315f] bg-white shadow-sm' : 'border-slate-200 bg-slate-50'}`}
-  >
-    <span className="flex min-w-0 items-center gap-3">
-      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${enabled ? 'bg-slate-100' : 'bg-white opacity-60'}`}>{children}</span>
-      <span className="min-w-0">
-        <span className="block truncate text-sm font-extrabold text-[#12315f]">{label}</span>
-        <span className="block text-xs text-slate-500">{status}</span>
-      </span>
-    </span>
-    <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${enabled ? 'bg-[#12315f]' : 'bg-slate-300'}`}>
-      <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${enabled ? 'left-6' : 'left-1'}`} />
-    </span>
-  </button>
-);
 
 // Perfil en miniatura: tarjeta con foto enmarcada, nombre y botón, con los estilos reales del tema
 export const MiniProfile = ({ theme, avatarUrl, initial = 'V' }) => (
@@ -83,7 +23,7 @@ export const MiniProfile = ({ theme, avatarUrl, initial = 'V' }) => (
 
 // Escena en miniatura: el fondo elegido con un perfil encima
 export const MiniScene = ({ theme, avatarUrl, initial, background }) => (
-  <span className="relative block h-[104px] overflow-hidden rounded-xl" style={background || getProfileBackgroundStyle(theme)}>
+  <span className="relative block h-full overflow-hidden rounded-[inherit]" style={background || getProfileBackgroundStyle(theme)}>
     <MiniProfile theme={resolveSurfaceTheme(theme)} avatarUrl={avatarUrl} initial={initial} />
   </span>
 );
@@ -98,7 +38,7 @@ export const LayoutWire = ({ id }) => {
   const name = 'bg-[#12315f]';
   const photo = 'bg-[#facc15] ring-2 ring-white';
   return (
-    <span className="relative block h-[104px] overflow-hidden rounded-xl bg-slate-100" aria-hidden="true">
+    <span className="relative block h-full overflow-hidden rounded-[inherit] bg-slate-100" aria-hidden="true">
       {id === 'classic' && (
         <>
           <span className={`absolute inset-x-0 top-0 h-12 ${banner}`} />
@@ -154,7 +94,7 @@ export const LayoutWire = ({ id }) => {
 export const ShowcaseWire = ({ id }) => {
   const soft = 'bg-slate-300';
   return (
-    <span className="relative block h-[104px] overflow-hidden rounded-xl bg-slate-100 p-2.5" aria-hidden="true">
+    <span className="relative block h-full overflow-hidden rounded-[inherit] bg-slate-100 p-2.5" aria-hidden="true">
       {id === 'folders' && (
         <span className="flex h-full flex-col justify-center gap-2">
           {[0, 1, 2].map((i) => (

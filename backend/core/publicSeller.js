@@ -1,5 +1,6 @@
 // Datos públicos de un vendedor: solo campos permitidos (nunca correo, RUT, banco, rol ni firebaseUid).
 import { prisma } from './db.js';
+import { sanitizePublicTheme } from './validation.js';
 
 export const PUBLIC_SELLER_SELECT = {
   id: true,
@@ -45,7 +46,8 @@ export const toPublicSeller = (user, viewerUid = null, reviewSummary = null) => 
     wallpaperBase64: user.wallpaperBase64,
     bannerDominantColor: user.bannerDominantColor,
     bannerComplementaryColor: user.bannerComplementaryColor,
-    publicTheme: user.publicTheme,
+    // Temas guardados antes de la lista permitida: se limpian también al mostrarlos
+    publicTheme: user.publicTheme && typeof user.publicTheme === 'object' ? sanitizePublicTheme(user.publicTheme) : user.publicTheme,
     facebookUrl: user.facebookUrl,
     instagramUrl: user.instagramUrl,
     youtubeUrl: user.youtubeUrl,
