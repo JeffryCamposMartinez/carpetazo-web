@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
-import { createPortal } from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -7,14 +6,10 @@ import OrdersTab from '../components/orders/OrdersTab';
 import WishlistTab from '../components/wishlist/WishlistTab';
 import LiquidTabs from '../components/ui/LiquidTabs';
 import FlipCounter from '../components/ui/FlipCounter';
-import FolderBinder from '../components/folder/FolderBinder';
-import FolderStatusChip from '../components/folder/FolderStatusChip';
-import { COLOR_NAMES, FOLDER_COLORS, TCG_OPTIONS } from '../config/folderOptions';
+import FolderFormModal from '../components/folder/FolderFormModal';
+import FolderGrid from '../components/folder/FolderGrid';
 // html2canvas + jsPDF pesan mucho: se descargan solo al generar un PDF
 const HiddenPDFGenerator = lazy(() => import('../components/folder/HiddenPDFGenerator'));
-
-// Botón redondo de icono: 36 px visibles y 44 px de zona táctil
-const ICON_BUTTON = "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[background-color,transform] duration-150 hover:bg-white active:scale-[0.94] active:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] after:absolute after:-inset-1 after:content-['']";
 
 export default function Dashboard() {
   const { currentUser } = useAuth();
@@ -426,6 +421,14 @@ export default function Dashboard() {
   const MENU_ITEM = 'flex w-full items-center gap-3 rounded-lg px-4 text-left text-sm font-semibold transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1e40af]';
 
 
+  const folderFormModalProps = { editFolderColor, editFolderName, editingFolder, handleCreateFolder, isCreating,
+    newFolderColor, newFolderName, newFolderTcg, setEditFolderColor, setEditFolderName, setEditingFolder,
+    setIsCreateModalOpen, setNewFolderColor, setNewFolderName, setNewFolderTcg, submitEditFolder };
+
+  const folderGridProps = { MENU_ITEM, activeMenuFolderId, closeFolderMenu, copiedFolderId, folders,
+    handleShareFolder, handleTogglePublic, navigate, onFolderMenuKeyDown, renderFolderMenuItems,
+    setActiveMenuFolderId, setIsCreateModalOpen };
+
   return (
     <>
       <div className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col xl:px-12 2xl:px-16">
@@ -514,97 +517,7 @@ export default function Dashboard() {
             <p className="rounded-2xl border-2 border-dashed border-[#1e40af]/30 bg-white/50 px-4 py-8 text-center text-sm font-medium text-slate-600 sm:hidden">Crea la primera para empezar a subir cartas.</p>
           )}
 
-        <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-[repeat(auto-fill,minmax(11.75rem,1fr))] sm:gap-x-6 sm:gap-y-10">
-          {/* Pantallas anchas: el hueco de la próxima carpeta, con el mismo tamaño que las demás */}
-          <button
-            type="button"
-            onClick={() => setIsCreateModalOpen(true)}
-            className="group mx-auto hidden aspect-[32/37] w-full max-w-[260px] flex-col items-center justify-center gap-3 self-start rounded-[22px] border-[3px] border-dashed border-[#1e40af]/35 bg-white/40 text-[#1e40af] transition-[border-color,background-color,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 hover:border-[#1e40af] hover:bg-white/80 active:scale-[0.98] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#1e40af]/40 motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:flex"
-          >
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1e40af] text-white shadow-md transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-105 group-active:scale-95 motion-reduce:transition-none">
-              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-3xl">add</span>
-            </span>
-            <span className="text-lg font-extrabold">Nueva carpeta</span>
-            {folders.length === 0 && <span className="max-w-[80%] text-center text-sm text-slate-600">Crea la primera para empezar a subir cartas</span>}
-          </button>
-
-          {folders.map(folder => (
-            <div key={folder.id} className={`@container relative mx-auto flex w-full max-w-[260px] flex-col ${activeMenuFolderId === folder.id ? 'z-50' : 'z-10'}`}>
-              <button
-                type="button"
-                onClick={() => navigate(`/carpeta/${folder.id}`)}
-                className="group block w-full rounded-2xl text-left focus:outline-none focus-visible:ring-4 focus-visible:ring-[#1e40af]/40"
-                aria-label={`Abrir carpeta ${folder.name}`}
-              >
-                <FolderBinder folder={folder} />
-              </button>
-
-              {folder.moderationState && folder.moderationState !== 'visible' && (
-                <p role="status" className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 ring-1 ring-amber-200">Moderación ocultó esta carpeta. Si crees que fue un error, escríbenos a carpetazo.soporte@gmail.com.</p>
-              )}
-
-              {/* Acciones bajo la carpeta: visibilidad, compartir y más opciones */}
-              <div className="folder-menu-container relative mt-3 flex items-center justify-between gap-0.5">
-                <FolderStatusChip folder={folder} onToggle={handleTogglePublic} />
-                <div className="flex items-center">
-                  <button
-                    type="button"
-                    onClick={(e) => handleShareFolder(e, folder)}
-                    title="Compartir enlace"
-                    aria-label={`Compartir ${folder.name}`}
-                    className={`${ICON_BUTTON} text-[#1e40af]`}
-                  >
-                    <span translate="no" aria-hidden="true" className="material-symbols-outlined text-xl">{copiedFolderId === folder.id ? 'check' : 'share'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    id={`folder-more-${folder.id}`}
-                    onClick={(e) => { e.stopPropagation(); setActiveMenuFolderId(activeMenuFolderId === folder.id ? null : folder.id); }}
-                    aria-haspopup="menu"
-                    aria-expanded={activeMenuFolderId === folder.id}
-                    aria-label={`Más opciones de ${folder.name}`}
-                    className={`${ICON_BUTTON} text-slate-600`}
-                  >
-                    <span translate="no" aria-hidden="true" className="material-symbols-outlined text-xl">more_horiz</span>
-                  </button>
-                </div>
-
-                {activeMenuFolderId === folder.id && (
-                  <>
-                    {/* Pantallas anchas: menú anclado al botón, abre hacia arriba */}
-                    <div
-                      id={`folder-popover-${folder.id}`}
-                      role="menu"
-                      aria-label={`Opciones de ${folder.name}`}
-                      onKeyDown={onFolderMenuKeyDown}
-                      className="folder-popover absolute bottom-full right-0 z-[100] mb-2 hidden w-56 rounded-2xl bg-white p-1.5 shadow-[0_20px_40px_-12px_rgba(26,43,75,0.35)] ring-1 ring-slate-200 sm:block"
-                    >
-                      {renderFolderMenuItems(folder, `${MENU_ITEM} min-h-10 py-2`)}
-                    </div>
-                    {/* Móvil: hoja inferior a pantalla completa, con zonas táctiles de 48 px; va al <body> para quedar sobre el encabezado */}
-                    {createPortal(
-                      <div className="folder-menu-container sm:hidden">
-                        <div className="sheet-backdrop fixed inset-0 z-[90] bg-[#0b1d3d]/50" onClick={() => closeFolderMenu(true)} aria-hidden="true" />
-                        <div
-                          id={`folder-sheet-${folder.id}`}
-                          role="menu"
-                          aria-label={`Opciones de ${folder.name}`}
-                          onKeyDown={onFolderMenuKeyDown}
-                          className="folder-sheet fixed inset-x-0 bottom-0 z-[100] rounded-t-3xl bg-white px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_40px_-12px_rgba(8,18,42,0.5)]"
-                        >
-                          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300" aria-hidden="true" />
-                          <p className="truncate px-4 pb-2 text-sm font-extrabold text-[#1a2b4b]">{folder.name}</p>
-                          {renderFolderMenuItems(folder, `${MENU_ITEM} min-h-12 py-3 text-[15px]`)}
-                        </div>
-                      </div>,
-                      document.body
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+        <FolderGrid {...folderGridProps} />
         </>
       ) : activeTab === 'deseadas' ? (
           <WishlistTab showToast={showToast} />
@@ -639,109 +552,7 @@ export default function Dashboard() {
       )}
 
       {/* Crear / editar carpeta: formulario con vista previa en vivo */}
-      {(isCreateModalOpen || editingFolder) && (() => {
-        const isEdit = Boolean(editingFolder);
-        const name = isEdit ? editFolderName : newFolderName;
-        const color = isEdit ? editFolderColor : newFolderColor;
-        const close = () => (isEdit ? setEditingFolder(null) : setIsCreateModalOpen(false));
-        return (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1a2b4b]/60 p-4 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]" onClick={close}>
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="folder-dialog-title"
-              className="grid w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl md:grid-cols-[1fr_1.15fr]"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="hidden items-center justify-center bg-[#DBEAFE] p-8 md:flex">
-                <div className="w-full max-w-[230px]">
-                  <FolderBinder folder={{
-                    name: name.trim() || 'Nombre de tu carpeta',
-                    color,
-                    tcg: isEdit ? editingFolder.tcg : newFolderTcg,
-                    cardsCount: isEdit ? editingFolder.cardsCount : 0,
-                    validWeeklyVisits: isEdit ? editingFolder.validWeeklyVisits : 0,
-                    isPublic: isEdit ? editingFolder.isPublic : false
-                  }} />
-                </div>
-              </div>
-
-              <form onSubmit={isEdit ? submitEditFolder : handleCreateFolder} className="flex flex-col gap-5 p-6 sm:p-8">
-                <div className="flex items-start justify-between gap-4">
-                  <h3 id="folder-dialog-title" className="text-2xl font-extrabold text-[#1a2b4b]">{isEdit ? 'Editar carpeta' : 'Nueva carpeta'}</h3>
-                  <button type="button" onClick={close} aria-label="Cerrar" className="-mr-2 -mt-1 flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100">
-                    <span translate="no" className="material-symbols-outlined text-xl">close</span>
-                  </button>
-                </div>
-
-                <label className="flex flex-col gap-2">
-                  <span className="flex justify-between text-sm font-bold text-[#1a2b4b]">
-                    Nombre <span className="font-normal text-slate-400 tabular-nums">{name.length}/22</span>
-                  </span>
-                  <input
-                    type="text"
-                    maxLength={22}
-                    placeholder="Ej: Ventas de la semana"
-                    value={name}
-                    onChange={(e) => (isEdit ? setEditFolderName(e.target.value) : setNewFolderName(e.target.value))}
-                    className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 font-semibold text-[#1a2b4b] focus:border-[#1e40af] focus:outline-none focus:ring-2 focus:ring-[#1e40af]/30"
-                    autoFocus
-                    required
-                  />
-                </label>
-
-                {!isEdit && (
-                  <fieldset className="flex flex-col gap-2">
-                    <legend className="mb-2 text-sm font-bold text-[#1a2b4b]">Juego</legend>
-                    <div className="grid grid-cols-2 gap-2">
-                      {TCG_OPTIONS.map(([value, label]) => (
-                        <button
-                          key={value}
-                          type="button"
-                          aria-pressed={newFolderTcg === value}
-                          onClick={() => setNewFolderTcg(value)}
-                          className={`h-11 rounded-xl px-3 text-sm font-bold ring-1 transition-colors ${newFolderTcg === value ? 'bg-[#1e40af] text-white ring-[#1e40af]' : 'bg-white text-slate-700 ring-slate-300 hover:bg-slate-50'}`}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="text-xs text-slate-500">El juego no se puede cambiar después.</p>
-                  </fieldset>
-                )}
-
-                <fieldset>
-                  <legend className="mb-3 text-sm font-bold text-[#1a2b4b]">Color</legend>
-                  <div className="flex flex-wrap gap-3">
-                    {FOLDER_COLORS.map(c => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => (isEdit ? setEditFolderColor(c.id) : setNewFolderColor(c.id))}
-                        aria-pressed={color === c.id}
-                        aria-label={`Color ${COLOR_NAMES[c.id] || c.id}`}
-                        className={`h-10 w-10 rounded-full ring-offset-2 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${color === c.id ? 'scale-110 ring-2 ring-[#1a2b4b]' : 'hover:scale-110'}`}
-                        style={{ backgroundColor: c.hex }}
-                      />
-                    ))}
-                  </div>
-                </fieldset>
-
-                <div className="mt-auto flex justify-end gap-3 pt-2">
-                  <button type="button" onClick={close} className="h-11 rounded-xl px-5 font-bold text-slate-600 hover:bg-slate-100">Cancelar</button>
-                  <button
-                    type="submit"
-                    disabled={isCreating}
-                    className="flex h-11 items-center gap-2 rounded-xl bg-[#1e40af] px-6 font-bold text-white shadow-md hover:bg-[#1e3a8a] disabled:opacity-60"
-                  >
-                    {isEdit ? 'Guardar cambios' : isCreating ? 'Creando…' : 'Crear carpeta'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        );
-      })()}
+      {(isCreateModalOpen || editingFolder) && <FolderFormModal {...folderFormModalProps} />}
 
       {/* Confirmación de borrado */}
       {folderToDelete && (

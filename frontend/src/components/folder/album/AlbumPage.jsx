@@ -1,4 +1,5 @@
-import { DRAG_PAGE_TURN_EDGE_RATIO, DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from './albumDrag';
+import { DRAG_PAGE_TURN_EDGE_RATIO } from './albumDrag';
+import { DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from '../dragScroll';
 // Una hoja del álbum: sus bolsillos de cartas por delante y por detrás, y su giro.
 export default function AlbumPage({
   pageIndex, activeCardId, albumDragNavRef, cards, cardsPerPage, currentPage, dragPageTurnDirectionRef,

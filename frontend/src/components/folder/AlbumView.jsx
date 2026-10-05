@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { api } from '../../services/api';
 import AlbumPage from './album/AlbumPage';
-import { DRAG_PAGE_TURN_EDGE_RATIO, DRAG_PAGE_TURN_HOLD_MS, DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from './album/albumDrag';
+import { DRAG_PAGE_TURN_EDGE_RATIO, DRAG_PAGE_TURN_HOLD_MS } from './album/albumDrag';
+import { DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from './dragScroll';
 import AlbumCardPreview from './album/AlbumCardPreview';
 import AlbumPagination from './album/AlbumPagination';
 
