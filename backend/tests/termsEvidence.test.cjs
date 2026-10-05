@@ -67,6 +67,13 @@ const accept = async (ip) => {
     ok('cuenta borrada: el correo aún encuentra su evidencia', r.status === 200 && r.j.acceptances.length === 2 && r.j.acceptances.every((row) => row.accountDeleted), String(r.j?.acceptances?.length));
     const audit = await prisma.moderationAudit.count({ where: { action: 'terms.evidence_viewed' } });
     ok('cada consulta queda en la auditoría', audit >= 3, String(audit));
+
+    // Retención (Política, sección 6): a los 5 años de borrada la cuenta, su registro de aceptación se elimina
+    r = await call('POST', '/admin/retention/run', 'admin');
+    ok('retención con la cuenta recién borrada → no borra la evidencia', r.status === 200 && (await prisma.termsAcceptance.count({ where: { userId } })) === 2, String(r.status));
+    await prisma.$executeRaw`UPDATE "User" SET "updatedAt" = NOW() - INTERVAL '1830 days' WHERE "id" = ${userId}`;
+    r = await call('POST', '/admin/retention/run', 'admin');
+    ok('...y pasados 5 años de borrada → se elimina', r.status === 200 && (await prisma.termsAcceptance.count({ where: { userId } })) === 0, JSON.stringify(r.j?.counts || r.j));
   } finally {
     await prisma.$disconnect();
   }

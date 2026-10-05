@@ -403,6 +403,11 @@ export const privacyBlocks = [
     "Generado por el sistema"
    ],
    [
+    "**Aceptación de los Términos y la Política**",
+    "Fecha y hora, versión aceptada, declaración de ser mayor de 18 años, método de ingreso (Google o correo y contraseña), navegador y dispositivo informados por tu navegador, y huellas (hash) de tu conexión y de tu correo. **En este registro no guardamos tu dirección IP ni tu correo**",
+    "Generado al aceptar"
+   ],
+   [
     "**Moderación**",
     "Reportes que hagas o recibas y su resolución",
     "De usuarios y del equipo"
@@ -472,6 +477,11 @@ export const privacyBlocks = [
     "**Interés legítimo** y defensa de derechos"
    ],
    [
+    "Acreditar que aceptaste los Términos y la Política y defendernos ante reclamos",
+    "Aceptación",
+    "**Interés legítimo** y defensa de derechos"
+   ],
+   [
     "Cumplir obligaciones legales y responder a autoridades",
     "Lo que la ley exija",
     "Obligación legal"
@@ -534,7 +544,11 @@ export const privacyBlocks = [
    ],
    [
     "Tras eliminar tu cuenta",
-    "Se **anonimizan** tus datos personales y se desactivan tus carpetas. Pedidos y reseñas ya realizados se conservan **sin datos que te identifiquen**"
+    "Se **anonimizan** tus datos personales y se desactivan tus carpetas, **salvo el registro de aceptación** de los Términos y la Política (fila siguiente). Pedidos y reseñas ya realizados se conservan **sin datos que te identifiquen**"
+   ],
+   [
+    "Registro de aceptación de los Términos y la Política",
+    "Mientras tengas cuenta y hasta **5 años** después de eliminarla, solo para acreditar qué aceptaste ante un reclamo. Luego se elimina automáticamente"
    ],
    [
     "Pedidos",
