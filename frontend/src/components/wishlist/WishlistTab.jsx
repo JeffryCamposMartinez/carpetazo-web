@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import WishlistCardFinder from './WishlistCardFinder';
+import WishlistFinderSheet from './WishlistFinderSheet';
 
 const LIMIT_FALLBACK = 200;
 
@@ -14,7 +15,7 @@ export default function WishlistTab({ showToast = () => {} }) {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [visible, setVisible] = useState(true);
-  const [finderOpen, setFinderOpen] = useState(false); // el buscador se abre al pedirlo; con la lista vacía ya viene abierto
+  const [finderOpen, setFinderOpen] = useState(false); // móvil y tablet: el buscador es una hoja a pantalla completa que se abre al pedirla
   // Botones flotantes: limpiar los filtros del buscador y volver arriba (este aparece tras bajar un poco)
   const resetFinderRef = useRef(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -35,25 +36,22 @@ export default function WishlistTab({ showToast = () => {} }) {
     return () => query.removeEventListener('change', onChange);
   }, []);
 
-  // PC: la columna de la lista acompaña al bajar y se queda centrada en la altura libre bajo el header (si es más alta, ocupa todo ese alto: se desplazan las cartas y el ajuste de visibilidad queda siempre a la vista)
+  // PC: la lista es una tarjeta de alto completo (todo el alto libre bajo el header) que acompaña al bajar; si hay muchas cartas, se desplazan por dentro
   const listColumnRef = useRef(null);
-  const [listColumn, setListColumn] = useState({ top: 128, maxHeight: 600 });
+  const listRef = useRef(null);
+  const [listColumn, setListColumn] = useState({ top: 128, height: 600 });
   useEffect(() => {
-    const el = listColumnRef.current;
-    if (!isWide || !el) return undefined;
+    if (!isWide || !listColumnRef.current) return undefined;
     const place = () => {
       const header = [...document.querySelectorAll('header')].find((node) => node.offsetHeight > 0);
       const headerHeight = header ? header.offsetHeight : 0;
-      const free = window.innerHeight - headerHeight;
-      const top = Math.round(headerHeight + Math.max(16, (free - el.offsetHeight) / 2));
-      const maxHeight = Math.round(free - 32);
-      setListColumn((prev) => (prev.top === top && prev.maxHeight === maxHeight ? prev : { top, maxHeight }));
+      const top = headerHeight + 16;
+      const height = Math.max(360, Math.round(window.innerHeight - top - 16));
+      setListColumn((prev) => (prev.top === top && prev.height === height ? prev : { top, height }));
     };
     place();
-    const observer = new ResizeObserver(place);
-    observer.observe(el);
     window.addEventListener('resize', place);
-    return () => { observer.disconnect(); window.removeEventListener('resize', place); };
+    return () => window.removeEventListener('resize', place);
   }, [isWide, loading]);
   const [savingVisibility, setSavingVisibility] = useState(false);
   const [busyId, setBusyId] = useState('');
@@ -67,7 +65,6 @@ export default function WishlistTab({ showToast = () => {} }) {
       .then(([list, me]) => {
         if (cancelled) return;
         setItems(list.items || []);
-        setFinderOpen((list.items || []).length === 0);
         setLimit(list.limit || LIMIT_FALLBACK);
         const theme = (me.user || me)?.publicTheme;
         setVisible(!(theme && typeof theme === 'object' && theme.showWishlist === 'off'));
@@ -79,13 +76,21 @@ export default function WishlistTab({ showToast = () => {} }) {
     return () => { cancelled = true; };
   }, []);
 
-  const upsertLocal = (item) => setItems((previous) => (previous.some((row) => row.id === item.id) ? previous.map((row) => (row.id === item.id ? item : row)) : [item, ...previous]));
+  const upsertLocal = (item) => setItems((previous) => (previous.some((row) => row.id === item.id) ? previous.map((row) => (row.id === item.id ? item : row)) : [...previous, item]));
 
   const addItem = async (payload, label, key) => {
     setBusyId(key || payload.productId || 'manual');
     try {
       const res = await api.addWishlistItem(payload);
+      const isNew = !items.some((row) => row.id === res.item.id);
       upsertLocal(res.item);
+      // En PC la lista se desplaza por dentro: la carta recién agregada (al final) queda a la vista
+      if (isNew) {
+        window.requestAnimationFrame(() => {
+          const list = listRef.current;
+          if (list && list.scrollHeight > list.clientHeight) list.scrollTo({ top: list.scrollHeight, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+        });
+      }
       showToast(`${label} agregada a tu lista`, 'success');
     } catch (error) {
       showToast(error.message || 'No se pudo agregar la carta', 'error');
@@ -178,46 +183,66 @@ export default function WishlistTab({ showToast = () => {} }) {
     );
   }
 
-  const iconButton = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-[background-color,color,transform] duration-150 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:opacity-40 disabled:active:scale-100';
+  const nearLimit = items.length >= limit * 0.8;
+  const iconButton = 'flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full transition-[background-color,color,transform] duration-150 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:opacity-40 disabled:active:scale-100';
 
   return (
     <div className="flex w-full flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8">
       {/* Columna de la lista: en PC acompaña al bajar (si es larga, se desplaza por dentro); en móvil sus partes se intercalan con el buscador (display: contents + order) */}
-      <div ref={listColumnRef} style={isWide ? { top: listColumn.top, maxHeight: listColumn.maxHeight } : undefined} className="contents lg:sticky lg:-m-1 lg:flex lg:flex-col lg:gap-4 lg:overflow-hidden lg:p-1">
+      <div ref={listColumnRef} style={isWide ? { top: listColumn.top, height: listColumn.height } : undefined} className="contents lg:sticky lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:overflow-hidden lg:rounded-2xl lg:bg-white lg:shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.35)] lg:ring-1 lg:ring-slate-900/5">
       {/* Barra principal: cuántas cartas llevas y la acción de agregar (en móvil el buscador aparece solo al pedirlo) */}
-      <div className="order-1 flex min-h-11 items-center justify-between gap-3 lg:shrink-0">
-        <p className="min-w-0 text-sm font-semibold text-slate-600">
-          <span className="font-extrabold tabular-nums text-[#12315f]">{items.length}</span> de {limit} cartas
-        </p>
+      <div className="order-1 space-y-3 lg:flex lg:min-h-12 lg:shrink-0 lg:items-center lg:justify-between lg:gap-3 lg:space-y-0 lg:border-b lg:border-slate-100 lg:px-5 lg:py-4">
+        <div className="min-w-0">
+          <h2 className="text-lg font-extrabold leading-tight text-[#12315f]">Mi lista de deseos</h2>
+          <p className="text-sm font-semibold text-slate-600">
+            <span className="font-extrabold tabular-nums text-[#12315f]">{items.length}</span> de {limit} cartas
+          </p>
+        </div>
+        {/* Móvil: aviso de cupo cuando falta poco para el límite y entrada al buscador con forma de campo de búsqueda */}
+        {nearLimit && (
+          <div className="lg:hidden" role="status">
+            <div className="h-1.5 overflow-hidden rounded-full bg-white ring-1 ring-slate-900/5">
+              <div className={`h-full rounded-full ${items.length >= limit ? 'bg-red-500' : 'bg-amber-400'}`} style={{ width: `${Math.min(100, (items.length / limit) * 100)}%` }} />
+            </div>
+            <p className="mt-1 text-xs font-semibold text-slate-600">{items.length >= limit ? 'Llegaste al máximo de cartas. Quita alguna para agregar otra.' : `Te quedan ${limit - items.length} lugares en tu lista.`}</p>
+          </div>
+        )}
         <button
           type="button"
-          onClick={() => setFinderOpen((open) => !open)}
-          aria-expanded={finderOpen}
-          aria-controls="wishlist-finder"
-          className={`group inline-flex h-11 lg:hidden shrink-0 items-center gap-2 rounded-full pl-1.5 pr-4 text-sm font-extrabold transition-[transform,filter,background-color] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 focus-visible:ring-offset-[#DBEAFE] ${finderOpen ? 'bg-white text-[#1e40af] ring-1 ring-slate-300 hover:bg-slate-50' : 'bg-[#1e40af] text-white shadow-[0_1px_2px_rgba(8,18,42,0.35),0_6px_14px_-6px_rgba(30,64,175,0.7)] hover:brightness-110'}`}
+          onClick={() => setFinderOpen(true)}
+          aria-haspopup="dialog"
+          className="flex h-12 w-full items-center gap-3 rounded-full bg-white pl-4 pr-1.5 text-left shadow-[0_1px_2px_rgba(26,43,75,0.08),0_8px_18px_-12px_rgba(26,43,75,0.45)] ring-1 ring-slate-900/10 transition-transform duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] lg:hidden"
         >
-          <span className={`flex h-8 w-8 items-center justify-center rounded-full ${finderOpen ? 'bg-[#1e40af] text-white' : 'bg-[#facc15] text-[#12315f]'}`}>
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px] font-bold">{finderOpen ? 'close' : 'add'}</span>
+          <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px] text-slate-400">search</span>
+          <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-slate-500">Buscar una carta para agregar</span>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#facc15] text-[#12315f]">
+            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px] font-bold">add</span>
           </span>
-          {finderOpen ? 'Cerrar buscador' : 'Agregar carta'}
         </button>
       </div>
 
       {/* Lista */}
       {items.length === 0 ? (
-        <div className="order-3 rounded-2xl bg-white p-8 text-center ring-1 ring-slate-200">
+        <div className="order-3 rounded-2xl bg-white p-8 text-center ring-1 ring-slate-200 lg:flex lg:flex-1 lg:flex-col lg:items-center lg:justify-center lg:rounded-none lg:bg-transparent lg:shadow-none lg:ring-0">
+          <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-[#1e40af] lg:hidden">
+            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[30px]">favorite</span>
+          </span>
           <p className="text-lg font-extrabold text-[#12315f]">Tu lista está vacía</p>
           <p className="mt-1 text-sm text-slate-600">Busca una carta y agrégala. También puedes tocar el corazón en cualquier carta de la sección Cartas.</p>
+          <button type="button" onClick={() => setFinderOpen(true)} aria-haspopup="dialog" className="mt-5 inline-flex h-12 items-center gap-2 rounded-full bg-[#1e40af] px-6 text-[15px] font-extrabold text-white shadow-[0_1px_2px_rgba(8,18,42,0.35),0_6px_14px_-6px_rgba(30,64,175,0.7)] transition-[transform,filter] duration-150 hover:brightness-110 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 lg:hidden">
+            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px]">search</span>
+            Buscar mi primera carta
+          </button>
         </div>
       ) : (
-        <ul className="order-3 space-y-3 lg:-mx-1 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:py-1">
+        <ul ref={listRef} className="order-3 space-y-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:p-4">
           {items.map((item) => (
-            <li key={item.id} className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200">
-              <div className="flex flex-wrap items-start gap-x-3 sm:flex-nowrap sm:items-center">
-                <span className="h-[84px] w-[60px] shrink-0 overflow-hidden rounded-lg bg-slate-100 ring-1 ring-black/5">
+            <li key={item.id} className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200 lg:bg-slate-50 lg:shadow-none">
+              <div className="grid grid-cols-[60px_minmax(0,1fr)] items-start gap-x-3 sm:flex sm:items-center">
+                <span className="row-span-2 h-[84px] w-[60px] shrink-0 overflow-hidden rounded-lg bg-slate-100 ring-1 ring-black/5">
                   {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" /> : <span className="flex h-full items-center justify-center px-1 text-center text-[10px] font-semibold text-slate-400">Sin imagen</span>}
                 </span>
-                <div className="min-w-0 flex-1">
+                <div className="col-start-2 min-w-0 flex-1">
                   <p className="line-clamp-2 text-[15px] font-extrabold leading-tight text-[#12315f]">{item.name}</p>
                   <p className="mt-0.5 text-xs text-slate-500">
                     {[item.game, item.detail].filter(Boolean).join(' · ') || (item.productId ? 'Del catálogo' : 'Escrita a mano')}
@@ -230,13 +255,13 @@ export default function WishlistTab({ showToast = () => {} }) {
                   )}
                   {item.note && <p className="mt-1 line-clamp-2 text-xs italic text-slate-500">{item.note}</p>}
                 </div>
-              <div className="mt-2 flex w-full items-center gap-1 border-t border-slate-100 pt-2 sm:mt-0 sm:w-auto sm:shrink-0 sm:border-0 sm:pt-0">
+              <div className="col-start-2 mt-2 flex flex-wrap items-center gap-1 sm:mt-0 sm:w-auto sm:shrink-0 sm:flex-nowrap">
                 <div className="flex items-center rounded-full bg-slate-100">
                   <button type="button" aria-label="Quitar una copia" disabled={busyId === item.id || item.quantity <= 1} onClick={() => changeQuantity(item, -1)} className={`${iconButton} text-[#12315f] hover:bg-slate-200`}><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">remove</span></button>
                   <span className="w-8 text-center text-sm font-extrabold tabular-nums text-[#12315f]" aria-label={`${item.quantity} copias`}>{item.quantity}</span>
                   <button type="button" aria-label="Agregar una copia" disabled={busyId === item.id || item.quantity >= 99} onClick={() => changeQuantity(item, 1)} className={`${iconButton} text-[#12315f] hover:bg-slate-200`}><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">add</span></button>
                 </div>
-                <button type="button" onClick={() => (editingId === item.id ? setEditingId('') : openDetails(item))} aria-expanded={editingId === item.id} className="h-11 rounded-full px-4 text-sm font-bold text-[#1e40af] transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">Detalles</button>
+                <button type="button" onClick={() => (editingId === item.id ? setEditingId('') : openDetails(item))} aria-expanded={editingId === item.id} className="h-10 rounded-full px-3 text-sm font-bold text-[#1e40af] sm:h-11 sm:px-4 transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">Detalles</button>
                 <button type="button" aria-label={`Quitar ${item.name}`} disabled={busyId === item.id} onClick={() => removeItem(item)} className={`${iconButton} ml-auto sm:ml-2 text-[#475569] hover:bg-red-50 hover:text-[#b91c1c]`}><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px]">delete</span></button>
               </div>
               </div>
@@ -289,7 +314,7 @@ export default function WishlistTab({ showToast = () => {} }) {
         aria-checked={visible}
         onClick={toggleVisibility}
         disabled={savingVisibility}
-        className="order-4 flex w-full items-center justify-between lg:shrink-0 gap-3 rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-slate-200 transition-transform duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:opacity-60"
+        className="order-4 flex w-full items-center justify-between gap-3 rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-slate-200 transition-transform duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1e40af] disabled:opacity-60 lg:shrink-0 lg:rounded-none lg:border-t lg:border-slate-100 lg:bg-slate-50 lg:px-5 lg:shadow-none lg:ring-0 lg:active:scale-100"
       >
         <span className="min-w-0">
           <span className="block text-[15px] font-extrabold text-[#12315f]">Mostrar mi lista en mi perfil</span>
@@ -301,8 +326,12 @@ export default function WishlistTab({ showToast = () => {} }) {
       </button>
       </div>
 
-      {(finderOpen || isWide) && (
-        <section id="wishlist-finder" className="tab-panel order-2 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 lg:order-none lg:p-5" aria-label="Agregar una carta">
+      {finderOpen && !isWide && (
+        <WishlistFinderSheet onClose={() => setFinderOpen(false)} onAdd={addItem} addedKeys={addedKeys} busyKey={busyId} count={items.length} limit={limit} />
+      )}
+
+      {isWide && (
+        <section id="wishlist-finder" className="tab-panel order-2 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 lg:order-none lg:col-start-1 lg:row-start-1 lg:p-5" aria-label="Agregar una carta">
           <h2 className="mb-3 text-lg font-extrabold text-[#12315f]">Agregar una carta</h2>
           <WishlistCardFinder onAdd={addItem} addedKeys={addedKeys} busyKey={busyId} resetRef={resetFinderRef} />
         </section>
@@ -311,8 +340,8 @@ export default function WishlistTab({ showToast = () => {} }) {
       {/* Botones que siguen al bajar y quedan dentro del panel celeste, sobre el contenido: «sticky» de alto cero pegado al borde inferior de la pantalla
           (con «fixed» quedarían sobre el fondo oscuro o, dentro del panel animado, no seguirían) */}
       <div className="pointer-events-none sticky bottom-5 z-30 h-0 w-full lg:col-span-2 md:bottom-8">
-      <div className="pointer-events-auto absolute bottom-0 right-[-0.5rem] flex flex-col items-center gap-2.5 sm:right-[-1.25rem]">
-        {(finderOpen || isWide) && (
+      <div className="pointer-events-auto absolute bottom-0 right-[-0.5rem] flex flex-col items-center gap-2.5 sm:right-[-1.25rem] lg:left-[-1.25rem] lg:right-auto">
+        {isWide && (
           <button
             type="button"
             onClick={() => resetFinderRef.current?.()}

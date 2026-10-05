@@ -11,6 +11,7 @@ import { BODY_FONT_STACK, defaultPublicTheme, fontOptions, getAvatarFrameStyle, 
 import ProfileThemePanel from '../components/profile/ProfileThemePanel';
 import ProfileModules from '../components/profile/ProfileModules';
 import ProfileHero from '../components/profile/ProfileHero';
+import { useToast } from '../components/ui/ToastProvider';
 
 const normalizeFolder = (folder) => ({
   ...folder,
@@ -19,6 +20,7 @@ const normalizeFolder = (folder) => ({
 });
 
 export default function SellerProfile() {
+  const { showToast } = useToast();
   const { sellerUsername } = useParams();
   const { currentUser, refreshAppUser } = useAuth();
   const navigate = useNavigate();
@@ -181,8 +183,8 @@ export default function SellerProfile() {
   const handleImageUpload = async (event, type) => {
     const file = event.target.files?.[0];
     if (!file || !isOwner) return;
-    if (!file.type.startsWith('image/')) return alert('Sube una imagen válida.');
-    if (file.size > 10 * 1024 * 1024) return alert('La imagen es demasiado grande. Máximo 10MB.');
+    if (!file.type.startsWith('image/')) return showToast('Sube una imagen válida.', 'error');
+    if (file.size > 10 * 1024 * 1024) return showToast('La imagen es demasiado grande. Máximo 10 MB.', 'error');
 
     setSavingImage(true);
     try {
@@ -198,7 +200,7 @@ export default function SellerProfile() {
         const cleared = type === 'banner' ? { bannerBase64: null } : type === 'wallpaper' ? { wallpaperBase64: null } : { photoURL: null };
         setSeller(prev => ({ ...prev, ...cleared }));
         await refreshAppUser?.();
-        alert('Recibimos tu imagen. Queda pendiente de revisión y se mostrará cuando el equipo la apruebe.');
+        showToast('Recibimos tu imagen. Queda pendiente de revisión y se mostrará cuando el equipo la apruebe.', { type: 'info', duration: 8000 });
       } else if (response.success) {
         const payload = type === 'banner'
           ? {
@@ -220,11 +222,11 @@ export default function SellerProfile() {
           await refreshAppUser?.();
         }
       } else {
-        alert(response.message || 'Error al subir la imagen');
+        showToast(response.message || 'No se pudo subir la imagen.', 'error');
       }
     } catch (error) {
       console.error('Error saving image:', error);
-      alert(error?.message || 'No se pudo guardar la imagen.');
+      showToast(error?.message || 'No se pudo guardar la imagen.', 'error');
     } finally {
       event.target.value = '';
       setSavingImage(false);
@@ -240,7 +242,7 @@ export default function SellerProfile() {
       setIsEditingBio(false);
     } catch (error) {
       console.error('Error saving bio:', error);
-      alert('No se pudo guardar la biografía.');
+      showToast('No se pudo guardar la biografía.', 'error');
     } finally {
       setSavingBio(false);
     }
@@ -256,7 +258,7 @@ export default function SellerProfile() {
       setSavedThemeJson(themeKey({ ...defaultPublicTheme, ...theme }));
     } catch (error) {
       console.error('Error saving public theme:', error);
-      alert('No se pudo guardar el tema.');
+      showToast('No se pudo guardar el tema.', 'error');
     } finally {
       setSavingTheme(false);
     }

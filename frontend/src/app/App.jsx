@@ -8,6 +8,7 @@ import ErrorBoundary from '../components/ui/ErrorBoundary';
 import AcceptTermsGate from '../components/auth/AcceptTermsGate';
 import AppSplash from '../components/layout/AppSplash';
 import { pageLoaders, preloadMainSections } from './routePreload';
+import { ToastProvider } from '../components/ui/ToastProvider';
 
 // Cada pantalla se descarga solo cuando se visita: el primer arranque en móvil pesa mucho menos
 const LandingPage = lazy(pageLoaders.landing);
@@ -56,42 +57,44 @@ function App() {
 
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <ScrollToTop />
-        <div className="flex flex-col min-h-[100dvh] w-full relative">
-          <Header />
+      <ToastProvider>
+        <BrowserRouter>
+          <ScrollToTop />
+          <div className="flex flex-col min-h-[100dvh] w-full relative">
+            <Header />
           
-          <div className="flex min-h-[100dvh] flex-1 flex-col">
-            <RouteBoundary>
-            <Suspense fallback={<RouteLoading />}>
-            <FirstPageShown />
-            <Routes>
-              <Route path="/bienvenida" element={<LandingPage />} />
-              <Route path="/" element={<ExplorePage />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/perfil" element={<ProfilePage />} />
-              <Route path="/carpeta/:id" element={<FolderPage />} />
-              <Route path="/c/:folderId" element={<PublicCatalog />} />
-              <Route path="/mensajes" element={<Messages />} />
-              <Route path="/moderacion" element={<Moderation />} />
-              <Route path="/carpetas" element={<FoldersPage />} />
-              <Route path="/cartas" element={<CardsPage />} />
-              <Route path="/vendedores" element={<SellersPage />} />
-              <Route path="/terminos" element={<LegalPage kind="terminos" />} />
-              <Route path="/privacidad" element={<LegalPage kind="privacidad" />} />
-              {/* Dynamic Username Route (Must be last to not override other paths) */}
-              <Route path="/:sellerUsername" element={<SellerProfile />} />
-              {/* Global 404 Catch-All Route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            </Suspense>
-            </RouteBoundary>
+            <div className="flex min-h-[100dvh] flex-1 flex-col">
+              <RouteBoundary>
+              <Suspense fallback={<RouteLoading />}>
+              <FirstPageShown />
+              <Routes>
+                <Route path="/bienvenida" element={<LandingPage />} />
+                <Route path="/" element={<ExplorePage />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/perfil" element={<ProfilePage />} />
+                <Route path="/carpeta/:id" element={<FolderPage />} />
+                <Route path="/c/:folderId" element={<PublicCatalog />} />
+                <Route path="/mensajes" element={<Messages />} />
+                <Route path="/moderacion" element={<Moderation />} />
+                <Route path="/carpetas" element={<FoldersPage />} />
+                <Route path="/cartas" element={<CardsPage />} />
+                <Route path="/vendedores" element={<SellersPage />} />
+                <Route path="/terminos" element={<LegalPage kind="terminos" />} />
+                <Route path="/privacidad" element={<LegalPage kind="privacidad" />} />
+                {/* Dynamic Username Route (Must be last to not override other paths) */}
+                <Route path="/:sellerUsername" element={<SellerProfile />} />
+                {/* Global 404 Catch-All Route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              </Suspense>
+              </RouteBoundary>
+            </div>
+          
+            <Footer />
           </div>
-          
-          <Footer />
-        </div>
-        <AcceptTermsGate />
-      </BrowserRouter>
+          <AcceptTermsGate />
+        </BrowserRouter>
+      </ToastProvider>
     </AuthProvider>
   );
 }

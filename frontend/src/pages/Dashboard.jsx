@@ -5,9 +5,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import OrdersTab from '../components/orders/OrdersTab';
 import WishlistTab from '../components/wishlist/WishlistTab';
 import LiquidTabs from '../components/ui/LiquidTabs';
-import FlipCounter from '../components/ui/FlipCounter';
+import FolderSummary from '../components/folder/FolderSummary';
 import FolderFormModal from '../components/folder/FolderFormModal';
 import FolderGrid from '../components/folder/FolderGrid';
+import { useToast } from '../components/ui/ToastProvider';
 // html2canvas + jsPDF pesan mucho: se descargan solo al generar un PDF
 const HiddenPDFGenerator = lazy(() => import('../components/folder/HiddenPDFGenerator'));
 
@@ -21,7 +22,6 @@ export default function Dashboard() {
   const [newFolderName, setNewFolderName] = useState('');
   const [newFolderTcg, setNewFolderTcg] = useState('Pokemon');
   const [newFolderColor, setNewFolderColor] = useState('red');
-  const [toastMessage, setToastMessage] = useState(null);
   const [folderToDelete, setFolderToDelete] = useState(null);
   const [editingFolder, setEditingFolder] = useState(null);
   const [editFolderName, setEditFolderName] = useState('');
@@ -104,15 +104,7 @@ export default function Dashboard() {
     setTimeout(() => setCopiedFolderId(current => (current === folderId ? null : current)), 1600);
   };
 
-  const toastTimer = useRef(null);
-  const [toastAction, setToastAction] = useState(null);
-  // `action` ({ label, run }) agrega un botón al aviso (p. ej. Deshacer) y lo mantiene un poco más
-  const showToast = (msg, action = null) => {
-    window.clearTimeout(toastTimer.current);
-    setToastMessage(msg);
-    setToastAction(action);
-    toastTimer.current = window.setTimeout(() => { setToastMessage(null); setToastAction(null); }, action ? 6000 : 3000);
-  };
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (!currentUser) {
@@ -258,7 +250,7 @@ export default function Dashboard() {
     try {
       await api.deleteFolder(folderToDelete.id);
       setFolders(folders.filter(f => f.id !== folderToDelete.id));
-      showToast("¡Carpeta eliminada con éxito!");
+      showToast("Carpeta eliminada", "success");
       setIsCreateModalOpen(false);
     } catch (error) {
       console.error("Error al eliminar la carpeta:", error);
@@ -282,10 +274,10 @@ export default function Dashboard() {
       await api.updateFolder(editingFolder.id, { name: finalName, color: editFolderColor });
       setFolders(folders.map(f => f.id === editingFolder.id ? { ...f, name: finalName, color: editFolderColor } : f));
       setEditingFolder(null);
-      showToast("Nombre de carpeta actualizado");
+      showToast("Carpeta actualizada", "success");
     } catch (err) {
       console.error("Error al editar carpeta:", err);
-      showToast("Error al editar la carpeta");
+      showToast("No se pudo editar la carpeta", "error");
     }
   };
 
@@ -299,20 +291,23 @@ export default function Dashboard() {
     try {
       await applyStatus(newStatus);
       showToast(newStatus ? 'Carpeta publicada' : 'Carpeta hecha privada', {
-        label: 'Deshacer',
-        run: async () => {
-          try {
-            await applyStatus(!newStatus);
-            showToast('Cambio deshecho');
-          } catch (undoError) {
-            console.error("Error al deshacer el cambio de visibilidad:", undoError);
-            showToast(undoError.message || 'No se pudo deshacer');
+        type: 'success',
+        action: {
+          label: 'Deshacer',
+          run: async () => {
+            try {
+              await applyStatus(!newStatus);
+              showToast('Cambio deshecho', 'success');
+            } catch (undoError) {
+              console.error("Error al deshacer el cambio de visibilidad:", undoError);
+              showToast(undoError.message || 'No se pudo deshacer', 'error');
+            }
           }
         }
       });
     } catch (error) {
       console.error("Error al cambiar estado público:", error);
-      showToast(error.message || 'Error al cambiar privacidad');
+      showToast(error.message || 'No se pudo cambiar la privacidad', 'error');
     }
   };
 
@@ -328,14 +323,14 @@ export default function Dashboard() {
       }).catch(err => {
         if (err.name !== 'AbortError') {
           navigator.clipboard.writeText(url).then(() => {
-            showToast("¡Enlace copiado al portapapeles!"); flashCopied(folder.id);
-          });
+            showToast("Enlace copiado", "success"); flashCopied(folder.id);
+          }).catch(() => showToast('No se pudo copiar el enlace.', 'error'));
         }
       });
     } else {
       navigator.clipboard.writeText(url).then(() => {
-        showToast("¡Enlace copiado al portapapeles!"); flashCopied(folder.id);
-      }).catch(err => console.error("Error al copiar", err));
+        showToast("Enlace copiado", "success"); flashCopied(folder.id);
+      }).catch((err) => { console.error("Error al copiar", err); showToast('No se pudo copiar el enlace.', 'error'); });
     }
   };
 
@@ -436,46 +431,18 @@ export default function Dashboard() {
         <div className="relative z-20 flex flex-1 flex-col px-4 pb-10 pt-5 text-gray-900 sm:px-8 md:pb-14 md:pt-10">
 
           {/* Encabezado: la sección se llama «Mis carpetas»; «Carpetas» es solo su primera pestaña */}
-          <header className="mb-4 flex flex-col gap-6 md:mb-8 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <h1 className="text-[1.75rem] font-extrabold leading-tight tracking-tight text-[#1a2b4b] md:mb-3 md:text-5xl lg:text-6xl">Mis carpetas</h1>
-              <p className="hidden text-lg leading-relaxed text-slate-600 md:block md:min-h-[3.7rem]">
-                {activeTab === 'carpetas' && 'Arma catálogos con tus cartas, publícalos y comparte el enlace con quien quiera comprarte.'}
-                {activeTab === 'solicitudes' && 'Pedidos que llegaron desde tus carpetas públicas. Al confirmar una venta, el stock se descuenta solo.'}
-                {activeTab === 'historial' && 'Tus ventas confirmadas y pedidos rechazados, con cada carta, monto y fecha.'}
-                {activeTab === 'deseadas' && 'Las cartas que buscas. Quien vea tus carpetas las verá y podrá ofrecértelas.'}
-              </p>
-            </div>
-            {activeTab === 'carpetas' && folders.length > 0 && (
-              <dl className="hidden gap-8 md:flex lg:gap-10">
-                {[
-                  ['Carpetas', folders.length, `${publicCount} ${publicCount === 1 ? 'pública' : 'públicas'}`, false],
-                  ['Cartas', totalCards, 'en total', false],
-                  ['Visitas', weeklyVisits, 'esta semana', true]
-                ].map(([label, value, hint, live]) => (
-                  <div key={label} className="flex flex-col items-start gap-1.5">
-                    <dt className="flex items-center gap-2 text-sm text-slate-500">
-                      {label}
-                      {live && (
-                        <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700" title="Se actualiza sola, sin recargar la página">
-                          <span aria-hidden="true" className="relative flex h-2 w-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60 motion-reduce:animate-none" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                          </span>
-                          en vivo
-                        </span>
-                      )}
-                    </dt>
-                    <dd><FlipCounter value={value} label={label} /></dd>
-                    <dd className="text-xs text-slate-500">{hint}</dd>
-                  </div>
-                ))}
-              </dl>
-            )}
+          <header className="mb-5 md:mb-6">
+            <h1 className="text-[1.75rem] font-extrabold leading-tight tracking-tight text-[#1a2b4b] md:text-4xl lg:text-[2.75rem]">Mis carpetas</h1>
+            <p className="mt-1 hidden max-w-2xl text-base leading-relaxed text-slate-600 md:block md:min-h-[1.5rem]">
+              {activeTab === 'carpetas' && 'Arma catálogos con tus cartas, publícalos y comparte el enlace para vender.'}
+              {activeTab === 'solicitudes' && 'Pedidos de tus carpetas públicas. Al confirmar una venta, el stock se descuenta solo.'}
+              {activeTab === 'historial' && 'Ventas confirmadas y pedidos rechazados, con carta, monto y fecha.'}
+              {activeTab === 'deseadas' && 'Las cartas que buscas, visibles para quienes pueden vendértelas.'}
+            </p>
           </header>
 
           {/* Pestañas: cada una con su ancho natural; si no caben, se desplazan sin comprimir el texto */}
-          <div ref={tabsScrollRef} style={{ maskImage: tabsMask, WebkitMaskImage: tabsMask }} className="hide-scrollbar -mx-4 mb-5 overflow-x-auto px-4 py-1 sm:mx-0 sm:mb-8 sm:flex sm:justify-start sm:overflow-visible sm:px-0 md:mb-10">
+          <div ref={tabsScrollRef} style={{ maskImage: tabsMask, WebkitMaskImage: tabsMask }} className="hide-scrollbar -mx-4 mb-5 overflow-x-auto px-4 py-1 sm:mx-0 sm:mb-6 sm:flex sm:justify-start sm:overflow-visible sm:px-0 md:mb-8">
             <LiquidTabs
               ariaLabel="Secciones de Mis carpetas"
               tabs
@@ -495,9 +462,11 @@ export default function Dashboard() {
 
       <div key={activeTab} role="tabpanel" aria-labelledby={`mis-carpetas-tab-${activeTab}`} className="tab-panel flex-1">
       {activeTab === 'carpetas' ? (
-        <>
+        <div className={folders.length > 0 ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-8 xl:gap-10' : undefined}>
+          <div className="min-w-0">
+            {folders.length > 0 && <FolderSummary variant="strip" folderCount={folders.length} publicCount={publicCount} cardCount={totalCards} weeklyVisits={weeklyVisits} pendingCount={pendingCount} onOpenRequests={() => setActiveTab('solicitudes')} />}
           {/* Móvil: la acción primaria es un botón, no un banner; junto al resumen de lo que ya hay */}
-          <div className="mb-5 flex items-center justify-between gap-3 sm:hidden">
+            <div className="mb-5 flex items-center justify-between gap-3 sm:hidden">
             <p className="min-w-0 truncate text-sm font-semibold text-slate-600">
               {folders.length === 0 ? 'Aún no tienes carpetas' : `${folders.length} ${folders.length === 1 ? 'carpeta' : 'carpetas'}`}
               {folders.length > 0 && <span className="max-[359px]:hidden"> · {publicCount} {publicCount === 1 ? 'pública' : 'públicas'}</span>}
@@ -512,13 +481,15 @@ export default function Dashboard() {
               </span>
               Nueva carpeta
             </button>
-          </div>
-          {folders.length === 0 && (
+            </div>
+            {folders.length === 0 && (
             <p className="rounded-2xl border-2 border-dashed border-[#1e40af]/30 bg-white/50 px-4 py-8 text-center text-sm font-medium text-slate-600 sm:hidden">Crea la primera para empezar a subir cartas.</p>
-          )}
+            )}
 
-        <FolderGrid {...folderGridProps} />
-        </>
+            <FolderGrid {...folderGridProps} />
+          </div>
+          {folders.length > 0 && <FolderSummary variant="aside" folderCount={folders.length} publicCount={publicCount} cardCount={totalCards} weeklyVisits={weeklyVisits} pendingCount={pendingCount} onOpenRequests={() => setActiveTab('solicitudes')} />}
+        </div>
       ) : activeTab === 'deseadas' ? (
           <WishlistTab showToast={showToast} />
       ) : (
@@ -535,21 +506,6 @@ export default function Dashboard() {
       </div>
     </div>
   </div>
-
-      {toastMessage && (
-        <div role="status" aria-live="polite" className={`toast-in fixed inset-x-0 top-4 z-[9999] mx-auto flex w-max max-w-[calc(100vw-2rem)] items-center gap-2 rounded-full bg-[#1a2b4b] py-3 text-white shadow-2xl ${toastAction ? 'pl-6 pr-2' : 'px-6'}`}>
-          <span>{toastMessage}</span>
-          {toastAction && (
-            <button
-              type="button"
-              onClick={() => { const { run } = toastAction; setToastMessage(null); setToastAction(null); run(); }}
-              className="flex h-9 shrink-0 items-center rounded-full px-3 text-sm font-extrabold text-[#facc15] transition-[background-color,transform] duration-150 hover:bg-white/10 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"
-            >
-              {toastAction.label}
-            </button>
-          )}
-        </div>
-      )}
 
       {/* Crear / editar carpeta: formulario con vista previa en vivo */}
       {(isCreateModalOpen || editingFolder) && <FolderFormModal {...folderFormModalProps} />}

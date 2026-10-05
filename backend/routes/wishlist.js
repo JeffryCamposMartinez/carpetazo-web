@@ -50,7 +50,7 @@ router.get('/api/wishlist/me', authenticateToken, async (req, res) => {
   try {
     const userId = await currentUserId(req);
     if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-    const items = await prisma.wishlistItem.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: WISHLIST_MAX_ITEMS, select: WISHLIST_OWN_SELECT });
+    const items = await prisma.wishlistItem.findMany({ where: { userId }, orderBy: { createdAt: 'asc' }, take: WISHLIST_MAX_ITEMS, select: WISHLIST_OWN_SELECT });
     res.json({ success: true, items, limit: WISHLIST_MAX_ITEMS });
   } catch (error) {
     console.error('Error loading wishlist:', error);

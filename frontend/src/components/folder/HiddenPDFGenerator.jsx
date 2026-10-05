@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import api, { apiUrl } from '../../services/api';
+import { useToast } from '../ui/ToastProvider';
 
 // Mismo orden que ve el usuario en su carpeta: primero catalogOrder, luego fecha de creación
 const sortCatalogCards = (cardArray = []) => {
@@ -45,6 +46,7 @@ const imageUrlToDataUrl = async (imageUrl) => {
 };
 
 export default function HiddenPDFGenerator({ folderId, onComplete, onProgress }) {
+  const { showToast } = useToast();
   const [cards, setCards] = useState([]);
   const [folder, setFolder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -166,7 +168,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
       pdf.save(`Carpeta_${folder?.name || 'Pokemon'}.pdf`);
     } catch (err) {
       console.error("Error generating PDF:", err);
-      alert("Hubo un error al generar el PDF. Revisa la consola.");
+      showToast('No se pudo generar el PDF. Intenta de nuevo.', 'error');
     } finally {
       setGenerating(false);
       onCompleteRef.current?.();

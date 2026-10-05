@@ -8,7 +8,7 @@ import { api, apiUrl } from '../services/api';
 import { getTcgConfig } from '../config/tcgConfig';
 import { useAuth } from '../contexts/AuthContext';
 
-import Toast from '../components/ui/Toast';
+import { useToast } from '../components/ui/ToastProvider';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import { chunkCardsByPage, getExtDataValue, normalizeTcgProductId, sortCatalogCards } from '../components/folder/folderCards';
 import FolderSalesTab from '../components/folder/tabs/FolderSalesTab';
@@ -289,8 +289,7 @@ const [isSearching, setIsSearching] = useState(false);
   const queueScrollRef = useRef(null);
 
   // --- UI STATE ---
-  const [toast, setToast] = useState({ message: '', type: 'info' });
-  const showToast = (message, type = 'info') => setToast({ message, type });
+  const { showToast } = useToast();
   
   const [confirmDialog, setConfirmDialog] = useState({ show: false, message: '', targetId: null });
 
@@ -948,7 +947,6 @@ const [isSearching, setIsSearching] = useState(false);
         
       </div>
 
-      <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: 'info' })} />
       
       <ConfirmModal 
         isOpen={confirmDialog.show} 

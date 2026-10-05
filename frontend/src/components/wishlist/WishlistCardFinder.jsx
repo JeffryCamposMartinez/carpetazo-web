@@ -245,12 +245,13 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
 
       {selectedGame?.available && (
         <div aria-live="polite">
+          {hint && results.length === 0 && <p className="px-1 text-sm text-slate-500 lg:hidden">{hint}</p>}
           {searching && results.length === 0 && <p className="px-1 text-sm text-slate-500">Buscando…</p>}
           {!hint && !searching && results.length === 0 && <p className="px-1 text-sm text-slate-500">No encontramos cartas con esos filtros.</p>}
           {results.length > 0 && (
             <>
               <p className="mb-1.5 px-1 text-xs font-semibold text-slate-500">{results.length.toLocaleString('es-CL')} {results.length === 1 ? 'resultado' : 'resultados'}</p>
-              <ul className="grid grid-cols-3 gap-2 sm:gap-3">
+              <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
                 {results.slice(0, visible).map((row) => (
                   <li key={row.key} className="flex min-w-0 flex-col gap-1.5 rounded-xl bg-white p-1.5 ring-1 ring-slate-200 sm:p-2">
                     <span className="block aspect-[5/7] w-full overflow-hidden rounded-lg bg-slate-100">

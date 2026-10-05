@@ -33,12 +33,12 @@ function FlipDigit({ value }) {
   );
 }
 
-export default function FlipCounter({ value, label, className = '' }) {
+export default function FlipCounter({ value, label, className = '', style }) {
   const number = Math.max(0, Math.round(Number(value) || 0));
   const chars = number.toLocaleString('es-CL').split('');
 
   return (
-    <span className={`flip-counter ${className}`} role="img" aria-label={label ? `${label}: ${number.toLocaleString('es-CL')}` : number.toLocaleString('es-CL')}>
+    <span className={`flip-counter ${className}`} style={style} role="img" aria-label={label ? `${label}: ${number.toLocaleString('es-CL')}` : number.toLocaleString('es-CL')}>
       {chars.map((char, index) => {
         // La clave cuenta desde la derecha: si el número crece, los dígitos existentes no se reinician
         const key = chars.length - index;

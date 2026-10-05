@@ -33,7 +33,7 @@ export default function FolderSalesTab({
           ]}
         />
         <OrdersTab
-          showToast={(message) => showToast(message, 'success')}
+          showToast={showToast}
           filter={salesView}
           orders={folderOrders}
           loading={ordersLoading}

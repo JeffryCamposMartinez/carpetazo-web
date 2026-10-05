@@ -7,6 +7,7 @@ import { chileData } from '../config/chileData';
 import PasswordCard from '../components/auth/PasswordCard';
 import MyModeration from '../components/moderation/MyModeration';
 import { PALETTES } from '../config/profileThemes';
+import { useToast } from '../components/ui/ToastProvider';
 
 const chileBanks = [
   'Banco de Chile - Edwards',
@@ -174,6 +175,7 @@ const ActionButton = ({ children, variant = 'primary', className = '', ...props 
 };
 
 const ProfilePage = () => {
+  const { showToast } = useToast();
   const { currentUser, appUser, refreshAppUser, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('general');
@@ -413,7 +415,7 @@ const ProfilePage = () => {
       }
       if (!accessDeleted) {
         await logout().catch(() => {});
-        alert('Tus datos personales fueron eliminados. Tu acceso (Google o correo) sigue existiendo: si vuelves a entrar, empezarás con una cuenta vacía.');
+        showToast('Tus datos personales fueron eliminados. Tu acceso (Google o correo) sigue existiendo: si vuelves a entrar, empezarás con una cuenta vacía.', { type: 'info', duration: 10000 });
       }
       navigate('/');
     } catch (error) {

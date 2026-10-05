@@ -6,6 +6,8 @@ import LiquidTabs from '../ui/LiquidTabs';
 // Los datos vienen de GET /api/orders/mine; las acciones de POST /api/orders/mine/:id/status.
 
 const NUM = "font-['Space_Grotesk'] tabular-nums";
+// Superficie común de las tarjetas del panel (misma en Carpetas, Deseadas, Solicitudes e Historial)
+const SURFACE = 'rounded-2xl bg-white ring-1 ring-slate-900/5 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.35)]';
 const clp = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 const fullDate = (iso) => (iso ? new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)) : '');
 const shortDate = (iso) => (iso ? new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short' }).format(new Date(iso)) : '');
@@ -90,7 +92,7 @@ function OrderSlip({ order, busy, onDecide, showToast }) {
   const lowStock = (order.items || []).filter((item) => item.stockNow !== null && item.stockNow < item.quantity);
 
   const copyCode = () => {
-    navigator.clipboard?.writeText(order.code).then(() => showToast(`Código ${order.code} copiado`)).catch(() => {});
+    navigator.clipboard?.writeText(order.code).then(() => showToast(`Código ${order.code} copiado`, 'success')).catch(() => {});
   };
 
   return (
@@ -216,17 +218,34 @@ function Requests({ orders, onDecide, busyId, showToast, onGoToFolders, emptyAct
   }, [pending, folder, query, sort]);
 
   if (!pending.length) {
+    const steps = [
+      ['Comparte una carpeta pública', 'Solo las carpetas públicas reciben pedidos.'],
+      ['El comprador arma su carrito', 'Y te lo envía por WhatsApp o por mensaje.'],
+      ['Confirma la venta aquí', 'El stock se descuenta solo.']
+    ];
     return (
-      <EmptyState
-        icon="inbox"
-        title="No tienes pedidos por atender"
-        text="Cuando alguien arme un carrito en una de tus carpetas públicas y lo envíe por WhatsApp, el pedido aparecerá aquí para que confirmes la venta."
-        action={(
-          <button type="button" onClick={onGoToFolders} className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-[#1e40af] px-6 font-bold text-white transition-[background-color,transform] duration-150 hover:bg-[#1e3a8a] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 focus-visible:ring-offset-[#DBEAFE]">
-            <Icon name="share" className="text-lg" /> {emptyActionLabel}
-          </button>
-        )}
-      />
+      <section className={`${SURFACE} w-full max-w-3xl p-5 sm:p-8`} aria-labelledby="requests-empty-title">
+        <div className="flex items-start gap-4">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#DBEAFE] text-[#1e40af]">
+            <Icon name="inbox" className="text-3xl" />
+          </span>
+          <div className="min-w-0">
+            <h3 id="requests-empty-title" className="text-xl font-extrabold text-[#1a2b4b]">No tienes pedidos por atender</h3>
+            <p className="mt-1 text-slate-600">Cuando alguien te escriba desde una de tus carpetas públicas, su pedido aparecerá aquí.</p>
+          </div>
+        </div>
+        <ol className="mt-6 divide-y divide-slate-100 border-y border-slate-100">
+          {steps.map(([title, text], index) => (
+            <li key={title} className="flex items-center gap-4 py-4">
+              <span className={`${NUM} flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1a2b4b] text-sm font-bold text-[#ffcb05]`}>{index + 1}</span>
+              <p className="min-w-0 text-sm text-slate-600 sm:text-base"><span className="font-bold text-[#1a2b4b]">{title}.</span> {text}</p>
+            </li>
+          ))}
+        </ol>
+        <button type="button" onClick={onGoToFolders} className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#1e40af] px-6 font-bold text-white shadow-[0_1px_2px_rgba(8,18,42,0.35),0_6px_14px_-6px_rgba(30,64,175,0.7)] transition-[filter,transform] duration-150 hover:brightness-110 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 focus-visible:ring-offset-white sm:w-auto">
+          <Icon name="share" className="text-lg" /> {emptyActionLabel}
+        </button>
+      </section>
     );
   }
 
@@ -331,7 +350,7 @@ function RevenueChart({ sales, rangeDays }) {
   const unit = rangeDays === 30 ? 'por día' : rangeDays === 90 ? 'por semana' : 'por mes';
 
   return (
-    <div className="flex flex-col rounded-2xl bg-white p-5 ring-1 ring-slate-200 sm:p-6">
+    <div className={`flex flex-col ${SURFACE} p-5 sm:p-6`}>
       <div className="mb-6 flex items-baseline justify-between gap-4">
         <h3 className="text-lg font-extrabold text-[#1a2b4b]">Ingresos {unit}</h3>
         <span className="text-sm text-slate-500">Mejor periodo: <span className={`${NUM} font-bold text-[#1a2b4b]`}>{clp(max === 1 ? 0 : max)}</span></span>
@@ -535,7 +554,7 @@ function History({ orders }) {
       </div>
 
       {/* Cifras del periodo */}
-      <dl className="grid grid-cols-2 gap-y-5 rounded-2xl bg-white p-5 ring-1 ring-slate-200 sm:p-6 lg:grid-cols-5 lg:divide-x lg:divide-slate-200">
+      <dl className={`grid grid-cols-2 gap-y-5 ${SURFACE} p-5 sm:p-6 lg:grid-cols-5 lg:divide-x lg:divide-slate-100`}>
         {figures.map((f, i) => (
           <div key={f.label} className={`${i === 0 ? 'col-span-2 lg:col-span-1' : ''} lg:px-6 lg:first:pl-0`}>
             <dt className="text-sm text-slate-500">{f.label}</dt>
@@ -547,7 +566,7 @@ function History({ orders }) {
       <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
         <RevenueChart sales={sales} rangeDays={rangeDays === 30 ? 30 : rangeDays === 90 ? 90 : 365} />
 
-        <div className="rounded-2xl bg-white p-5 ring-1 ring-slate-200 sm:p-6">
+        <div className={`${SURFACE} p-5 sm:p-6`}>
           <h3 className="mb-4 text-lg font-extrabold text-[#1a2b4b]">Cartas más vendidas</h3>
           {topCards.length ? (
             <ol className="flex flex-col gap-3">
@@ -592,7 +611,7 @@ function History({ orders }) {
       </div>
 
       {/* Libro de ventas */}
-      <div className="overflow-hidden rounded-2xl ring-1 ring-slate-200">
+      <div className={`overflow-hidden ${SURFACE.replace("bg-white ","")}`}>
         <div className="flex flex-col gap-3 bg-white p-4 sm:flex-row sm:items-center sm:p-5">
           <h3 className="shrink-0 text-lg font-extrabold text-[#1a2b4b]">Registro de pedidos</h3>
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:justify-end">
@@ -637,10 +656,10 @@ export default function OrdersTab({ showToast, filter = 'solicitudes', orders = 
       const response = await api.setMyOrderStatus(order.id, status);
       if (!response.success) throw new Error(response.message);
       onOrderUpdated?.(response.order);
-      showToast(status === 'completed' ? `Venta ${order.code} confirmada. Stock actualizado.` : `Pedido ${order.code} rechazado.`);
+      showToast(status === 'completed' ? `Venta ${order.code} confirmada. Stock actualizado.` : `Pedido ${order.code} rechazado.`, status === 'completed' ? 'success' : 'info');
     } catch (error) {
       console.error('Error actualizando pedido:', error);
-      showToast(error?.message?.includes('409') ? 'Este pedido ya fue gestionado.' : 'No se pudo guardar. Intenta de nuevo.');
+      showToast(error?.message?.includes('409') ? 'Este pedido ya fue gestionado.' : 'No se pudo guardar. Intenta de nuevo.', 'error');
     } finally {
       setBusyId(null);
     }

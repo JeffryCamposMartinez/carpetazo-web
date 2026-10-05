@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api, { API_BASE_URL, apiFetch } from '../services/api';
-import Toast from '../components/ui/Toast';
+import { useToast } from '../components/ui/ToastProvider';
 import { useAuth } from '../contexts/AuthContext';
 import WishlistSection from '../components/wishlist/WishlistSection';
 import { ensureExternalUrl, formatWhatsAppNumber, getInstagramHref } from '../utils/contact';
@@ -31,8 +31,7 @@ function PublicCatalog() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   
-  const [toast, setToast] = useState({ message: '', type: 'info' });
-  const showToast = (message, type = 'info') => setToast({ message, type });
+  const { showToast } = useToast();
   
   const [selectedSupertype, setSelectedSupertype] = useState('');
   const [selectedType, setSelectedType] = useState('');
@@ -655,7 +654,6 @@ function PublicCatalog() {
       {isCartOpen && (
         <CatalogCartDrawer {...catalogCartDrawerProps} />
       )}
-      <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: 'info' })} />
     </>
   );
 }

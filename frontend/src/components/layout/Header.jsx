@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import MobileMenu from './header/MobileMenu';
 import NotificationBellPanel from './header/NotificationBellPanel';
+import { useToast } from '../ui/ToastProvider';
 
 // Ventanas que solo se abren a pedido: su código se descarga al abrirlas, no en la primera carga de cada página
 const AuthModal = lazy(() => import('../auth/AuthModal'));
@@ -86,7 +87,7 @@ export default function Header() {
   const [wishMatches, setWishMatches] = useState({ items: 0, offers: 0, fresh: 0, ids: [] }); // cartas de la lista de deseos que otros venden
   const [reviewPrompts, setReviewPrompts] = useState({ items: [], fresh: 0 }); // compras completadas que aún no se califican
   const [reviewTarget, setReviewTarget] = useState(null);
-  const [reviewThanks, setReviewThanks] = useState('');
+  const { showToast } = useToast();
   seenRef.current = seen;
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
@@ -383,8 +384,7 @@ export default function Header() {
   const handleReviewDone = (done) => {
     setReviewPrompts((previous) => ({ items: previous.items.filter((item) => item.orderId !== done.orderId), fresh: Math.max(0, previous.fresh - 1) }));
     setReviewTarget(null);
-    setReviewThanks('¡Gracias! Tu reseña ya es pública.');
-    window.setTimeout(() => setReviewThanks(''), 3500);
+    showToast('¡Gracias! Tu reseña ya es pública.', 'success');
   };
   const formatOrderTotal = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
   const orderAge = (iso) => {
@@ -728,9 +728,6 @@ export default function Header() {
         <Suspense fallback={null}>
           <ReviewModal pending={reviewTarget} onClose={() => setReviewTarget(null)} onDone={handleReviewDone} />
         </Suspense>
-      )}
-      {reviewThanks && (
-        <div role="status" className="fixed bottom-6 left-1/2 z-[210] -translate-x-1/2 rounded-full bg-[#12315f] px-5 py-3 text-sm font-bold text-white shadow-2xl">{reviewThanks}</div>
       )}
     </>
   );
