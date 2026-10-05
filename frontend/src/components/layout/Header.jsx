@@ -457,26 +457,6 @@ export default function Header() {
       console.error('Error al cerrar Sesión:', error);
     }
   };
-  // En móvil la franja del logo se recoge al bajar y vuelve al subir; con un menú abierto o cerca del inicio no se mueve
-  const [isScrolledDown, setIsScrolledDown] = useState(false);
-  useEffect(() => {
-    const mobile = window.matchMedia('(max-width: 767px)');
-    let lastY = window.scrollY;
-    let frame = 0;
-    const update = () => {
-      frame = 0;
-      const y = Math.max(0, window.scrollY);
-      const delta = y - lastY;
-      if (!mobile.matches || y < 96) setIsScrolledDown(false);
-      else if (delta > 6) setIsScrolledDown(true);
-      else if (delta < -6) setIsScrolledDown(false);
-      if (Math.abs(delta) > 6 || y < 96) lastY = y;
-    };
-    const onScroll = () => { if (!frame) frame = window.requestAnimationFrame(update); };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => { window.removeEventListener('scroll', onScroll); if (frame) window.cancelAnimationFrame(frame); };
-  }, []);
-  const isHeaderCondensed = isScrolledDown && !categoryDropdownOpen && !isNotificationOpen && !isMobileMenuOpen;
 
   // Buscador compartido por escritorio y móvil. Es una función (no un componente) para que el campo no se remonte al escribir
   const renderSearch = (variant) => {
@@ -650,8 +630,9 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Mobile Header: la franja del logo se recoge al bajar y vuelve al subir; buscador y secciones quedan siempre a mano */}
-      <header className="header-condensable w-full top-0 sticky z-40 bg-surface dark:bg-surface-dim md:hidden block" data-condensed={isHeaderCondensed} style={themedTopBarStyle}>
+      {/* Mobile Header: sigue al usuario, pero la franja del logo (52 px) se va con el scroll y solo quedan buscador y secciones.
+          Es solo CSS (top negativo): sin estado ni eventos de scroll que se descuadren con la barra del navegador del celular */}
+      <header className="sticky top-[-52px] z-40 w-full bg-surface dark:bg-surface-dim md:hidden block" style={themedTopBarStyle}>
         <div className="flex flex-col w-full">
           <div className="relative flex h-[52px] w-full items-center justify-between gap-2 px-3">
             {/* Izquierda: cuenta y menú */}

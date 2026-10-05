@@ -112,6 +112,7 @@ router.get('/api/cards/search', async (req, res) => {
           imageUrl: true,
           price: true,
           stock: true,
+          createdAt: true,
           data: true,
           folder: { select: { id: true, name: true, tcg: true, user: { select: { name: true, username: true, photoURL: true } } } },
         },

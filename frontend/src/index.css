@@ -22,7 +22,7 @@
   body {
     background-color: #1a2b4b;
     color: theme('colors.on-background');
-    min-height: 100dvh;
+    min-height: 100svh;
     position: relative;
   }
 
@@ -203,8 +203,6 @@ body.public-profile-active::after {
   to { opacity: 1; }
 }
 .menu-pop { animation: menu-pop 140ms cubic-bezier(0.23, 1, 0.32, 1) both; transform-origin: var(--menu-origin, top left); }
-.header-condensable { transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1); }
-.header-condensable[data-condensed='true']:not(:focus-within) { transform: translateY(-52px); }
 @keyframes sheet-up {
   from { transform: translateY(100%); }
   to { transform: none; }
@@ -231,7 +229,6 @@ body.public-profile-active::after {
   .menu-pop, .folder-popover, .folder-sheet, .auth-sheet { animation: menu-fade 120ms linear both; }
   .sheet-backdrop { animation: none; }
   .tab-panel, .toast-in { animation: menu-fade 120ms linear both; }
-  .header-condensable { transition: none; }
 }
 
 /* Inicio: las cartas del héroe se acomodan una sola vez al cargar */
@@ -324,4 +321,21 @@ body.public-profile-active::after {
   .toast-card { animation: menu-fade 120ms linear both; }
   .toast-card[data-leaving='true'] { animation: none; opacity: 0; }
   .toast-timer { display: none; }
+}
+
+/* Cartas en venta: las fichas entran una vez al cargar (escalonadas) y el corazón «rebota» al marcarse */
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes heart-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.28); }
+  100% { transform: scale(1); }
+}
+.card-enter { animation: card-in 260ms cubic-bezier(0.23, 1, 0.32, 1) both; animation-delay: calc(min(var(--i, 0), 11) * 28ms); }
+.heart-pop { animation: heart-pop 280ms cubic-bezier(0.23, 1, 0.32, 1); }
+@media (prefers-reduced-motion: reduce) {
+  .card-enter { animation: menu-fade 120ms linear both; animation-delay: 0ms; }
+  .heart-pop { animation: none; }
 }
