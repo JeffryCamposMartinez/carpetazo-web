@@ -2,11 +2,13 @@ import { ensureExternalUrl, formatWhatsAppNumber, getInstagramHref } from '../ut
 import { loadThemeFonts } from '../utils/themeFonts';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { updateProfile as updateFirebaseProfile } from 'firebase/auth';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { getAverageRGB, getComplementaryHex, readableOn } from '../utils/color';
-import { defaultPublicTheme, getAvatarFrameStyle, getDisplayScale, getEffectClassName, getFontStack, getProfileBackgroundStyle, getSideBackgroundStyle, profileDistributionOptions, resolveSurfaceTheme, themeKey } from '../components/profile/profileStyles';
+import { readableOn } from '../utils/color';
+import { getDisplayScale, getEffectClassName, getFontStack, getProfileBackgroundStyle, getSideBackgroundStyle, profileDistributionOptions } from '../components/profile/profileStyles';
+import ProfileAvatar from '../components/profile/ProfileAvatar';
+import useProfileImages from '../hooks/useProfileImages';
+import useProfileTheme from '../hooks/useProfileTheme';
 import ProfileStudio from '../components/profile/studio/ProfileStudio';
 import ProfileTrustStrip from '../components/profile/ProfileTrustStrip';
 import { ProfileContactBar, ProfileLoading, ProfileUnavailable } from '../components/profile/ProfileStates';
@@ -32,21 +34,16 @@ export default function SellerProfile() {
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [tempBio, setTempBio] = useState('');
   const [savingBio, setSavingBio] = useState(false);
-  const [savingImage, setSavingImage] = useState(false);
-  const [themePanelOpen, setThemePanelOpen] = useState(false);
-  const [themePanelTab, setThemePanelTab] = useState('theme');
-  const [savingTheme, setSavingTheme] = useState(false);
-  const [savedThemeJson, setSavedThemeJson] = useState('');
 
   // El servidor indica si quien mira es el dueño (ya no se publica el identificador interno)
   const isOwner = Boolean(seller?.isOwner ?? (currentUser?.uid && seller?.firebaseUid === currentUser.uid));
   const displayName = seller?.name || seller?.fullName || seller?.username || 'Vendedor Anónimo';
   const avatarUrl = seller?.photoURL;
-  const savedTheme = useMemo(() => ({
-    ...defaultPublicTheme,
-    ...(seller?.publicTheme && typeof seller.publicTheme === 'object' ? seller.publicTheme : {})
-  }), [seller?.publicTheme]);
-  const publicTheme = useMemo(() => resolveSurfaceTheme(savedTheme), [savedTheme]);
+  const {
+    applyThemePalette, handleThemeFieldChange, handleThemeFieldsChange, markThemeSaved, publicTheme, resetPublicTheme,
+    saveCurrentTheme, savedTheme, savingTheme, setThemePanelOpen, setThemePanelTab, themeDirty, themePanelOpen, themePanelTab
+  } = useProfileTheme({ isOwner, seller, setSeller, showToast });
+  const { handleImageUpload, savingImage } = useProfileImages({ currentUser, isOwner, refreshAppUser, setSeller, showToast });
   const primaryAddress = useMemo(() => (
     seller?.addresses?.find(address => address.isDefault) || seller?.addresses?.[0] || null
   ), [seller?.addresses]);
@@ -54,7 +51,6 @@ export default function SellerProfile() {
   const profileLevel = Math.max(1, Math.round((folders.length * 2) + (totalCards / 12) + 1));
   const spotlightFolders = folders.slice(0, 3);
   const showProfileShowcase = folders.length > 0 && publicTheme.showcaseStyle !== 'minimal';
-  const themeDirty = savedThemeJson !== '' && themeKey(savedTheme) !== savedThemeJson;
   const isPosterLayout = publicTheme.profileLayout === 'poster';
   const displayScale = getDisplayScale(publicTheme.font);
   // Fuentes del perfil: solo las tres elegidas (títulos, contenido y cifras); el editor carga el resto al abrir la pestaña de letra
@@ -69,7 +65,6 @@ export default function SellerProfile() {
     return index === -1 ? 99 : index + 1;
   };
   const getDistributionSpan = (moduleName) => selectedDistribution.spans?.[moduleName] || 'lg:col-span-12';
-  const isNarrowStatsPanel = ['compact-shop', 'premium-gallery', 'trading-desk', 'sidebar-left', 'sidebar-right'].includes(selectedDistribution.id);
 
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('carpetazo:public-profile-theme', { detail: { theme: savedTheme } }));
@@ -85,7 +80,7 @@ export default function SellerProfile() {
       const result = await api.getUserProfile(sellerUsername);
       const user = result.user;
       setSeller(user);
-      setSavedThemeJson(themeKey({ ...defaultPublicTheme, ...(user.publicTheme && typeof user.publicTheme === 'object' ? user.publicTheme : {}) }));
+      markThemeSaved(user.publicTheme);
       setFolders((user.folders || []).map(normalizeFolder));
     } catch (error) {
       console.error('Error loading public seller profile:', error);
@@ -142,91 +137,6 @@ export default function SellerProfile() {
     };
   }, [seller?.wallpaperBase64, publicTheme.surface, publicTheme.primary]);
 
-  const compressImage = (file, type) => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const width = img.naturalWidth || img.width;
-        const height = img.naturalHeight || img.height;
-        canvas.width = width;
-        canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        const rgb = type === 'banner' ? getAverageRGB(img, width, height) : null;
-        canvas.toBlob((blob) => {
-          if (!blob) {
-            reject(new Error('No se pudo preparar la imagen.'));
-            return;
-          }
-
-          resolve({
-            file: new File([blob], `${type}-${Date.now()}.webp`, { type: blob.type || 'image/webp' }),
-            dominantColor: rgb ? `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})` : null,
-            complementaryColor: rgb ? getComplementaryHex(rgb.r, rgb.g, rgb.b) : null
-          });
-        }, 'image/webp', 1);
-      };
-      img.onerror = reject;
-      img.src = event.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-
-  const handleImageUpload = async (event, type) => {
-    const file = event.target.files?.[0];
-    if (!file || !isOwner) return;
-    if (!file.type.startsWith('image/')) return showToast('Sube una imagen válida.', 'error');
-    if (file.size > 10 * 1024 * 1024) return showToast('La imagen es demasiado grande. Máximo 10 MB.', 'error');
-
-    setSavingImage(true);
-    try {
-      const processedImage = await compressImage(file, type);
-
-      const formData = new FormData();
-      formData.append('image', processedImage.file);
-      formData.append('type', type);
-
-      const response = await api.uploadImage(formData);
-      if (response.success && response.pending) {
-        // Sin escaneo disponible y cuenta nueva: la imagen queda pendiente de revisión y no se muestra todavía
-        const cleared = type === 'banner' ? { bannerBase64: null } : type === 'wallpaper' ? { wallpaperBase64: null } : { photoURL: null };
-        setSeller(prev => ({ ...prev, ...cleared }));
-        await refreshAppUser?.();
-        showToast('Recibimos tu imagen. Queda pendiente de revisión y se mostrará cuando el equipo la apruebe.', { type: 'info', duration: 8000 });
-      } else if (response.success) {
-        const payload = type === 'banner'
-          ? {
-            bannerBase64: response.url,
-            bannerDominantColor: response.dominantColor || processedImage.dominantColor,
-            bannerComplementaryColor: response.complementaryColor || processedImage.complementaryColor
-          }
-          : type === 'wallpaper'
-            ? { wallpaperBase64: response.url }
-            : { photoURL: response.url };
-
-        setSeller(prev => ({ ...prev, ...payload }));
-        if (type === 'avatar') {
-          try {
-            await updateFirebaseProfile(currentUser, { photoURL: response.url });
-          } catch (error) {
-            console.warn('Firebase photo update skipped:', error);
-          }
-          await refreshAppUser?.();
-        }
-      } else {
-        showToast(response.message || 'No se pudo subir la imagen.', 'error');
-      }
-    } catch (error) {
-      console.error('Error saving image:', error);
-      showToast(error?.message || 'No se pudo guardar la imagen.', 'error');
-    } finally {
-      event.target.value = '';
-      setSavingImage(false);
-    }
-  };
-
   const handleSaveBio = async () => {
     if (!isOwner) return;
     setSavingBio(true);
@@ -241,69 +151,6 @@ export default function SellerProfile() {
       setSavingBio(false);
     }
   };
-
-  const handleThemeChange = async (theme) => {
-    if (!isOwner) return;
-    setSeller(prev => ({ ...prev, publicTheme: theme }));
-    setSavingTheme(true);
-    try {
-      const response = await api.updateProfile({ publicTheme: theme });
-      setSeller(prev => ({ ...prev, ...(response.user || {}), publicTheme: theme }));
-      setSavedThemeJson(themeKey({ ...defaultPublicTheme, ...theme }));
-    } catch (error) {
-      console.error('Error saving public theme:', error);
-      showToast('No se pudo guardar el tema.', 'error');
-    } finally {
-      setSavingTheme(false);
-    }
-  };
-
-  const handleThemeFieldChange = (field, value) => {
-    setSeller(prev => ({
-      ...prev,
-      publicTheme: {
-        ...savedTheme,
-        id: 'custom',
-        name: 'Tema personalizado',
-        [field]: value
-      }
-    }));
-  };
-
-  // Varios campos a la vez (una combinación de fuentes)
-  const handleThemeFieldsChange = (fields) => {
-    setSeller(prev => ({ ...prev, publicTheme: { ...savedTheme, id: 'custom', name: 'Tema personalizado', ...fields } }));
-  };
-
-  const applyThemePalette = (theme) => {
-    setSeller(prev => ({
-      ...prev,
-      publicTheme: {
-        ...savedTheme,
-        id: theme.id,
-        name: theme.name,
-        primary: theme.primary,
-        secondary: theme.secondary,
-        accent: theme.accent,
-        surface: theme.surface,
-        card: theme.card,
-        text: theme.text
-      }
-    }));
-  };
-
-  const resetPublicTheme = () => {
-    setSeller(prev => ({
-      ...prev,
-      publicTheme: defaultPublicTheme
-    }));
-  };
-
-  const saveCurrentTheme = () => handleThemeChange({
-    ...savedTheme,
-    id: publicTheme.id === 'custom' ? 'custom' : publicTheme.id,
-    name: publicTheme.id === 'custom' ? 'Tema personalizado' : publicTheme.name
-  });
 
   const contactSeller = () => {
     if (!currentUser) return navigate('/bienvenida');
@@ -400,44 +247,7 @@ export default function SellerProfile() {
   const isSmallAvatar = layoutId === 'compact' || isGamerLayout;
 
   const avatarBlock = (
-    <div className={`relative z-20 shrink-0 ${avatarSizeClass}`}>
-      {/* Nivel como la gema de coste de una carta */}
-      <div
-        className={`absolute z-20 flex flex-col items-center justify-center rounded-full shadow-[0_6px_16px_rgba(0,0,0,0.35)] ring-4 ${isSmallAvatar ? '-right-2.5 -top-2.5 h-10 w-10' : '-right-3 -top-3 h-12 w-12 md:h-14 md:w-14'}`}
-        style={{ backgroundColor: publicTheme.accent, color: readableOn(publicTheme.accent), '--tw-ring-color': isPosterLayout ? '#05070d' : publicTheme.card }}
-        title={`Nivel ${profileLevel} del perfil`}
-        aria-label={`Nivel ${profileLevel}`}
-        role="img"
-      >
-        <span className={`font-bold leading-none opacity-80 ${isSmallAvatar ? 'text-[8px]' : 'text-[9px]'}`} aria-hidden="true">nivel</span>
-        <span className="font-black leading-none tabular-nums" style={{ fontFamily: 'var(--seller-data)', fontSize: `${((isSmallAvatar ? 0.95 : 1.15) * Math.max(displayScale, 0.75)).toFixed(2)}rem` }} aria-hidden="true">{profileLevel}</span>
-      </div>
-      <div className={`h-full w-full p-[4px] shadow-[0_18px_44px_rgba(0,0,0,0.4)] ${isSmallAvatar ? 'rounded-[1.4rem]' : 'rounded-[2.2rem] sm:p-[5px]'}`} style={{ background: getAvatarFrameStyle(publicTheme) }}>
-        <div className={`h-full w-full overflow-hidden bg-white ring-2 ring-white/90 ${isSmallAvatar ? 'rounded-[1.15rem]' : 'rounded-[1.9rem]'}`}>
-          {avatarUrl ? (
-            <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
-          ) : (
-            <div className={`flex h-full w-full items-center justify-center font-black text-white ${isSmallAvatar ? 'text-3xl' : 'text-5xl'}`} style={{ backgroundImage: `linear-gradient(135deg, ${publicTheme.text}, ${publicTheme.primary})` }}>
-              {displayName[0]?.toUpperCase() || 'V'}
-            </div>
-          )}
-        </div>
-      </div>
-      {isOwner && (
-        isSmallAvatar ? (
-          <label className="absolute -bottom-1 -left-1 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-black/75 text-white shadow-lg ring-2 ring-white transition hover:bg-black/90" title="Cambiar foto">
-            <span translate="no" className="material-symbols-outlined text-[16px]">photo_camera</span>
-            <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleImageUpload(event, 'avatar')} aria-label="Cambiar foto de perfil" />
-          </label>
-        ) : (
-          <label className="absolute inset-x-4 bottom-2 z-10 flex h-8 cursor-pointer items-center justify-center gap-1 rounded-full bg-black/70 text-xs font-bold text-white shadow-lg ring-1 ring-white/30 transition hover:bg-black/85">
-            <span translate="no" className="material-symbols-outlined text-[15px]">photo_camera</span>
-            Cambiar foto
-            <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleImageUpload(event, 'avatar')} aria-label="Cambiar foto de perfil" />
-          </label>
-        )
-      )}
-    </div>
+    <ProfileAvatar avatarSizeClass={avatarSizeClass} avatarUrl={avatarUrl} displayName={displayName} displayScale={displayScale} handleImageUpload={handleImageUpload} isOwner={isOwner} isPosterLayout={isPosterLayout} isSmallAvatar={isSmallAvatar} profileLevel={profileLevel} publicTheme={publicTheme} />
   );
 
   const profileStudioProps = { applyThemePalette, avatarUrl, displayName, getSocialEnabled, handleThemeFieldChange,
