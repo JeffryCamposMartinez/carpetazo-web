@@ -73,6 +73,9 @@ export const fetchPokemonGroupCards = async (lang, group, signal) => {
       language: catId === 85 ? 'Japonés' : 'Inglés',
       ...classifyTcgcsvCard(product.name, ext),
     }));
+  // Mismo orden que al agregar cartas a una carpeta: por número dentro de la edición (001, 002…)
+  const leadingNumber = (text) => { const match = String(text || '').match(/\d+/); return match ? parseInt(match[0], 10) : 0; };
+  list.sort((a, b) => leadingNumber(a.number) - leadingNumber(b.number) || String(a.number).localeCompare(String(b.number)));
   productsCache.set(key, list);
   return list;
 };
