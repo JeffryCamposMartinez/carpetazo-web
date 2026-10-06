@@ -30,6 +30,14 @@ function Seller({ card }) {
   );
 }
 
+const LANGUAGES = { English: 'Inglés', Spanish: 'Español', Japanese: 'Japonés' };
+
+// El idioma va en su propia etiqueta: así nunca queda cortado por el nombre largo de la edición
+function LanguageChip({ language }) {
+  if (!language) return null;
+  return <span className="shrink-0 rounded-full bg-[#dbeafe] px-2 py-0.5 text-[11px] font-extrabold text-[#1e40af]">{LANGUAGES[language] || language}</span>;
+}
+
 function Availability({ stock }) {
   if (stock === 1) return <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-extrabold text-amber-800">Última unidad</span>;
   return <span className="text-xs font-bold tabular-nums text-slate-500">{stock > 999 ? '999+' : stock} disponibles</span>;
@@ -63,7 +71,7 @@ export function CardTileSkeleton({ view }) {
 
 export default function CardTile({ card, index, view, wanted, onWish }) {
   const isNew = card.createdAt && Date.now() - new Date(card.createdAt).getTime() < NEW_WINDOW_MS;
-  const meta = [card.set, card.language].filter(Boolean).join(' · ');
+  const meta = card.set || '';
 
   if (view === 'list') {
     return (
@@ -79,7 +87,7 @@ export default function CardTile({ card, index, view, wanted, onWish }) {
             <span className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 pt-1">
               <PriceTag price={card.price} />
               {isNew && <span className="rounded-full bg-[#12315f] px-2 py-0.5 text-[11px] font-extrabold text-white">Nueva</span>}
-              <Availability stock={card.stock} />
+              <span className="flex flex-wrap items-center gap-1.5"><Availability stock={card.stock} /><LanguageChip language={card.language} /></span>
             </span>
           </span>
         </Link>
@@ -100,7 +108,7 @@ export default function CardTile({ card, index, view, wanted, onWish }) {
           <span className="line-clamp-2 text-sm font-extrabold leading-tight text-[#12315f] sm:text-[15px]">{card.name}</span>
           {meta && <span className="truncate text-xs text-slate-500">{meta}</span>}
           <span className="mt-auto flex flex-col gap-1.5 pt-1.5">
-            <Availability stock={card.stock} />
+            <span className="flex flex-wrap items-center gap-1.5"><Availability stock={card.stock} /><LanguageChip language={card.language} /></span>
             <Seller card={card} />
           </span>
         </span>
