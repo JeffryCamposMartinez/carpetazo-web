@@ -28,7 +28,7 @@ function ThemedSelect({ value, options, onChange, className = '', searchable = f
   }, [open, searchable]);
 
   const select = (v) => { onChange(v); setOpen(false); };
-  const optionClass = (active) => `cursor-pointer px-4 py-2.5 text-sm font-bold transition-colors ${active ? 'bg-blue-900 text-yellow-400' : 'text-blue-900 hover:bg-yellow-400/20'}`;
+  const optionClass = (active) => `cursor-pointer px-3.5 py-2 text-sm font-bold transition-colors ${active ? 'bg-blue-900 text-yellow-400' : 'text-blue-900 hover:bg-yellow-400/20'}`;
   const renderOption = (o) => {
     const active = String(o.value) === String(value);
     return (
@@ -49,7 +49,7 @@ function ThemedSelect({ value, options, onChange, className = '', searchable = f
         onClick={() => setOpen(o => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className={`w-full flex items-center justify-between gap-2 bg-white border-2 rounded-xl px-3 py-3 sm:px-4 sm:py-4 text-sm sm:text-base text-left text-blue-900 font-bold shadow-sm transition-all outline-none hover:bg-slate-50 ${open ? 'border-yellow-400 ring-4 ring-yellow-400/20' : 'border-blue-900'}`}
+        className={`w-full flex items-center justify-between gap-2 bg-white border-2 rounded-xl px-3 py-2.5 text-sm text-left text-blue-900 font-bold shadow-sm transition-all outline-none hover:bg-slate-50 ${open ? 'border-yellow-400 ring-4 ring-yellow-400/20' : 'border-blue-900'}`}
       >
         <span className="truncate">{current?.label ?? ''}</span>
         <svg className={`w-5 h-5 shrink-0 transition-transform ${open ? 'rotate-180 text-yellow-500' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -119,13 +119,13 @@ export default function PokemonFilters({
   ];
 
   return (
-    <div className="w-full bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border-2 border-blue-900/10 p-1.5 sm:p-4 relative">
-      <div className="flex flex-col gap-3 sm:gap-4 relative z-[80] p-1 sm:p-2">
+    <div className="w-full bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border-2 border-blue-900/10 p-1 sm:p-3 relative">
+      <div className="flex flex-col gap-2.5 sm:gap-3 relative z-[80] p-1 sm:p-1.5">
         
         {/* Search Bar */}
         <div className="relative w-full group">
-          <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
-            <svg className="w-5 h-5 sm:w-6 sm:h-6 text-blue-900 group-focus-within:text-yellow-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="w-5 h-5 text-blue-900 group-focus-within:text-yellow-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
             </svg>
           </div>
@@ -134,7 +134,7 @@ export default function PokemonFilters({
             placeholder="Nombre o código de carta..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-50 border-2 border-blue-900/20 text-blue-900 rounded-xl pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 text-sm sm:text-base font-semibold placeholder-blue-900/50 outline-none focus:border-yellow-400 focus:ring-4 focus:ring-yellow-400/20 focus:bg-white transition-all shadow-sm"
+            className="w-full bg-slate-50 border-2 border-blue-900/20 text-blue-900 rounded-xl pl-10 pr-3 py-2.5 text-sm font-semibold placeholder-blue-900/50 outline-none focus:border-yellow-400 focus:ring-4 focus:ring-yellow-400/20 focus:bg-white transition-all shadow-sm"
           />
         </div>
 
@@ -142,7 +142,7 @@ export default function PokemonFilters({
         <LiquidTabs
           ariaLabel="Categoría"
           className="w-full overflow-hidden rounded-xl border-2 border-blue-900/10 bg-slate-50 shadow-sm"
-          buttonClassName="flex cursor-pointer items-center justify-center px-0.5 py-3 sm:py-4"
+          buttonClassName="flex cursor-pointer items-center justify-center px-0.5 py-2.5"
           value={selectedSupertype}
           onChange={(id) => {
             onSupertypeChange(id);
@@ -161,11 +161,11 @@ export default function PokemonFilters({
 
         {/* Type Icons Container (Centered horizontally) */}
         {(selectedSupertype === 'Pokémon' || selectedSupertype === 'Energy') && (
-          <div className="flex flex-wrap justify-center gap-1.5 sm:gap-3 px-0 sm:px-1 py-1 sm:py-2 animate-fadeInOverlay">
+          <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2.5 px-0 sm:px-1 py-0.5 sm:py-1 animate-fadeInOverlay">
             {selectedType !== '' && (
               <button type="button"
                 onClick={() => onTypeChange('')}
-                className="w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-red-50 text-red-500 hover:bg-red-100 hover:scale-110 hover:shadow-md transition-all outline-none flex items-center justify-center border-2 border-red-200 shrink-0"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-red-50 text-red-500 hover:bg-red-100 hover:scale-110 hover:shadow-md transition-all outline-none flex items-center justify-center border-2 border-red-200 shrink-0"
                 title="Limpiar filtro de tipo"
               >
                 <span translate="no" className="material-symbols-outlined text-xl sm:text-2xl font-bold">close</span>
@@ -175,7 +175,7 @@ export default function PokemonFilters({
               <button type="button"
                 key={type}
                 onClick={() => onTypeChange(selectedType === type ? '' : type)}
-                className={`w-9 h-9 sm:w-12 sm:h-12 rounded-full hover:scale-110 hover:shadow-md transition-all outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-900 ${selectedType === type ? 'ring-2 ring-offset-2 ring-blue-900 scale-110 shadow-md' : 'bg-white'}`}
+                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:scale-110 hover:shadow-md transition-all outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-900 ${selectedType === type ? 'ring-2 ring-offset-2 ring-blue-900 scale-110 shadow-md' : 'bg-white'}`}
               >
                 <img src={`/types/${type}.png`} alt={type} className="w-full h-full object-contain" />
               </button>
@@ -191,7 +191,7 @@ export default function PokemonFilters({
               <LiquidTabs
                 ariaLabel="Idioma"
                 className="overflow-hidden rounded-xl border-2 border-blue-900 bg-white sm:hidden"
-                buttonClassName="py-2.5 text-sm font-bold"
+                buttonClassName="py-2 text-sm font-bold"
                 value={searchLang}
                 onChange={onLangChange}
                 options={[{ value: 'en', label: 'Inglés' }, { value: 'ja', label: 'Japonés' }]}
