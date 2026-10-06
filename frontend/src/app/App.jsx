@@ -22,6 +22,7 @@ const Messages = lazy(pageLoaders.messages);
 const Moderation = lazy(pageLoaders.moderation);
 const FoldersPage = lazy(pageLoaders.folders);
 const CardsPage = lazy(pageLoaders.cards);
+const CardDetailPage = lazy(pageLoaders.cardDetail);
 const SellersPage = lazy(pageLoaders.sellers);
 const LegalPage = lazy(pageLoaders.legal);
 const NotFound = lazy(pageLoaders.notFound);
@@ -78,6 +79,7 @@ function App() {
                 <Route path="/moderacion" element={<Moderation />} />
                 <Route path="/carpetas" element={<FoldersPage />} />
                 <Route path="/cartas" element={<CardsPage />} />
+                <Route path="/carta/:cardId" element={<CardDetailPage />} />
                 <Route path="/vendedores" element={<SellersPage />} />
                 <Route path="/terminos" element={<LegalPage kind="terminos" />} />
                 <Route path="/privacidad" element={<LegalPage kind="privacidad" />} />

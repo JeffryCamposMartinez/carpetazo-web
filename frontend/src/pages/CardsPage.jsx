@@ -6,6 +6,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/ToastProvider';
 import CardTile, { CardTileSkeleton } from '../components/cards/CardTile';
 import CardsFilters from '../components/cards/CardsFilters';
+import { scrollToTopThen } from '../utils/scrollToTopThen';
+import FloatingTools from '../components/ui/FloatingTools';
 import CardsPagination from '../components/cards/CardsPagination';
 import CardsResultsBar, { SORT_VALUES } from '../components/cards/CardsResultsBar';
 
@@ -81,10 +83,13 @@ export default function CardsPage() {
     return () => { cancelled = true; };
   }, [urlQuery, tcg, sort, page]);
 
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   const goToPage = (next) => {
     updateParams({ page: next > 1 ? String(next) : '' }, { resetPage: false });
-    window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    scrollToTop();
   };
+  // Al cambiar de juego primero se sube a la primera carta y después cambia la lista
+  const changeTcg = (value) => scrollToTopThen(() => updateParams({ tcg: value }));
 
   const clearAll = () => { setQueryInput(''); setSearchParams(new URLSearchParams(sort !== 'recent' ? { sort } : {}), { replace: true }); };
 
@@ -111,11 +116,11 @@ export default function CardsPage() {
       <div className="rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 p-3 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] sm:p-6 md:rounded-[2rem] lg:p-8">
         <header className="mb-4 sm:mb-6">
           <h1 className="text-3xl font-extrabold tracking-tight text-[#12315f] [text-wrap:balance] md:text-4xl">Cartas en venta</h1>
-          <p className="mt-1 max-w-xl text-sm text-slate-600 md:text-base">Cartas con stock de las carpetas públicas. Toca una para ver la carpeta del vendedor.</p>
+          <p className="mt-1 max-w-xl text-sm text-slate-600 md:text-base">Cartas con stock de las carpetas públicas. Toca una para ver quién más la vende y comparar precios.</p>
         </header>
 
         <div className="lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:items-start lg:gap-8">
-          <CardsFilters query={queryInput} tcg={tcg} onQuery={setQueryInput} onTcg={(value) => updateParams({ tcg: value })} />
+          <CardsFilters query={queryInput} tcg={tcg} onQuery={setQueryInput} onTcg={changeTcg} />
 
           <section className="mt-5 min-w-0 lg:mt-0" aria-label="Resultados">
             <CardsResultsBar
@@ -124,7 +129,7 @@ export default function CardsPage() {
               onClearAll={clearAll}
               onQuery={(value) => { setQueryInput(value); updateParams({ q: value }); }}
               onSort={(value) => updateParams({ sort: value === 'recent' ? '' : value })}
-              onTcg={(value) => updateParams({ tcg: value })}
+              onTcg={changeTcg}
               onView={chooseView}
               query={urlQuery}
               sort={sort}
@@ -159,6 +164,7 @@ export default function CardsPage() {
             {!loading && !failed && <CardsPagination page={page} pages={result.pages} onPage={goToPage} />}
           </section>
         </div>
+        <FloatingTools onClear={hasFilters ? clearAll : undefined} />
       </div>
     </div>
   );

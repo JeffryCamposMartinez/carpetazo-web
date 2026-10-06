@@ -37,7 +37,7 @@ export const isAllowedProxyImageUrl = (rawUrl) => {
 // --- Validación de nombres de usuario y URLs guardadas por los usuarios ---
 const RESERVED_USERNAMES = new Set([
   'admin', 'api', 'bienvenida', 'dashboard', 'perfil', 'carpeta', 'carpetas', 'c', 'mensajes',
-  'cartas', 'vendedores', 'moderacion', 'terminos', 'privacidad', 'legal', 'login', 'logout', 'registro', 'soporte', 'ayuda', 'carpetazo', 'root', 'null', 'undefined'
+  'carta', 'cartas', 'vendedores', 'moderacion', 'terminos', 'privacidad', 'legal', 'login', 'logout', 'registro', 'soporte', 'ayuda', 'carpetazo', 'root', 'null', 'undefined'
 ]);
 export const normalizeUsername = (value) => String(value || '')
   .toLowerCase()

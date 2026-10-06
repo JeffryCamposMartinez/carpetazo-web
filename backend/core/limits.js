@@ -56,6 +56,8 @@ export const applyRouteLimits = (app) => {
   app.get('/api/tcg/search', routeLimiter(15 * 60 * 1000, 300));
   app.post('/api/tcg/products/metadata', routeLimiter(15 * 60 * 1000, 300));
   app.get('/api/cards/search', routeLimiter(15 * 60 * 1000, 300));
+  app.get('/api/cards/:id/offers', routeLimiter(15 * 60 * 1000, 300));
+  app.get('/api/cards/reference-prices', routeLimiter(15 * 60 * 1000, 300));
   app.get('/api/wishlist/me', routeLimiter(15 * 60 * 1000, 300));
   app.get('/api/wishlist/matches', routeLimiter(15 * 60 * 1000, 120));
   app.post('/api/wishlist', routeLimiter(15 * 60 * 1000, 120));
