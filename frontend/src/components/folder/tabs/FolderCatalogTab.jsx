@@ -86,6 +86,7 @@ export default function FolderCatalogTab({
           draftCount={inventory.draftCount}
           onQuickFilter={inventory.setQuickFilter}
           onSaveDrafts={inventory.saveDrafts}
+          onSaveOrder={inventory.saveSortAsFolderOrder}
           onSort={inventory.setSortKey}
           onStartSelecting={inventory.startSelecting}
           quickFilter={inventory.quickFilter}

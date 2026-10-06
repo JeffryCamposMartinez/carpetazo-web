@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { api } from '../services/api';
+import { rarityRank } from '../utils/rarityRank';
 
 export const SORT_OPTIONS = [
   { value: 'manual', label: 'Mi orden' },
@@ -9,6 +10,10 @@ export const SORT_OPTIONS = [
   { value: 'priceAsc', label: 'Precio: menor a mayor' },
   { value: 'stockAsc', label: 'Stock: menos primero' },
   { value: 'stockDesc', label: 'Stock: más primero' },
+  { value: 'rarityDesc', label: 'Rareza: la más alta primero' },
+  { value: 'rarityAsc', label: 'Rareza: la más baja primero' },
+  { value: 'set', label: 'Edición (A-Z)' },
+  { value: 'number', label: 'Número de carta' },
 ];
 
 const byText = (a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'es', { sensitivity: 'base' });
@@ -19,6 +24,10 @@ const SORTERS = {
   priceAsc: (a, b) => Number(a.price || 0) - Number(b.price || 0) || byText(a, b),
   stockAsc: (a, b) => Number(a.stock || 0) - Number(b.stock || 0) || byText(a, b),
   stockDesc: (a, b) => Number(b.stock || 0) - Number(a.stock || 0) || byText(a, b),
+  rarityDesc: (a, b) => rarityRank(b.rarity) - rarityRank(a.rarity) || byText(a, b),
+  rarityAsc: (a, b) => rarityRank(a.rarity) - rarityRank(b.rarity) || byText(a, b),
+  set: (a, b) => String(a.set || '').localeCompare(String(b.set || ''), 'es', { sensitivity: 'base' }) || byText(a, b),
+  number: (a, b) => String(a.number || '').localeCompare(String(b.number || ''), 'es', { numeric: true }) || byText(a, b),
 };
 const QUICK = {
   noStock: (card) => Number(card.stock || 0) <= 0,
@@ -85,6 +94,23 @@ export default function useInventoryTools({ folderId, cards, setCards, filteredC
     }
   };
 
+  // Deja el orden elegido (con TODAS las cartas de la carpeta, sin filtros) como el orden de la carpeta:
+  // es el que ve el público ("Orden del vendedor") y el del álbum. Después se puede seguir ajustando arrastrando.
+  const saveSortAsFolderOrder = async () => {
+    if (sortKey === 'manual' || !SORTERS[sortKey]) return false;
+    const ordered = [...cards].sort(SORTERS[sortKey]);
+    const ok = await run(async () => {
+      await api.saveFolderOrder(folderId, ordered.map((card) => card.id));
+      const position = new Map(ordered.map((card, index) => [card.id, index]));
+      setCards((previous) => previous.map((card) => ({ ...card, catalogOrder: position.get(card.id) ?? card.catalogOrder, data: { ...(card.data || {}), catalogOrder: position.get(card.id) ?? card.data?.catalogOrder } })));
+    }, 'No se pudo guardar el orden de la carpeta.');
+    if (ok) {
+      setSortKey('manual');
+      showToast('Orden guardado: así verán tu carpeta los compradores', 'success');
+    }
+    return ok;
+  };
+
   const saveDrafts = async () => {
     const updates = Object.entries(draftsRef.current).map(([id, draft]) => ({
       id,
@@ -148,7 +174,7 @@ export default function useInventoryTools({ folderId, cards, setCards, filteredC
   }, 'No se pudieron mover las cartas');
 
   return {
-    busy, counts, dragEnabled, draftCount, gridCards, onDraftChange, previewId, quickFilter, saveDrafts, selectedIds, selecting,
+    busy, counts, dragEnabled, draftCount, gridCards, onDraftChange, previewId, quickFilter, saveDrafts, saveSortAsFolderOrder, selectedIds, selecting,
     setPreviewId, setQuickFilter, setSortKey, sortKey, startSelecting, stopSelecting, toggleSelected, selectAllVisible, clearSelected,
     setValues, adjustPrices, removeSelected, moveSelected,
   };

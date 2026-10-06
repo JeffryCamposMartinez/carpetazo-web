@@ -3,6 +3,7 @@ import CatalogCard from '../CatalogCard';
 import LiquidTabs from '../../ui/LiquidTabs';
 import PublicCatalogFilters from '../filters/PublicCatalogFilters';
 import { ReportMenu } from '../../moderation/ReportButton';
+import Select from '../../ui/Select';
 
 // Catálogo público: búsqueda, filtros y vista de álbum o cuadrícula de las cartas.
 export default function CatalogBrowser({
@@ -93,23 +94,28 @@ export default function CatalogBrowser({
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     <label className="flex flex-col gap-1 text-[11px] font-black text-slate-500">
                       Ordenar
-                      <select
+                      <Select
                         value={sortBy}
                         onChange={(event) => setSortBy(event.target.value)}
                         className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-[#1a2b4b] outline-none transition focus:border-[#1e40af] focus:ring-2 focus:ring-blue-100"
                       >
-                        <option value="featured">Orden carpeta</option>
-                        <option value="price_asc">Precio ↑</option>
-                        <option value="price_desc">Precio ↓</option>
+                        <option value="featured">Orden del vendedor</option>
+                        <option value="price_asc">Precio: menor a mayor</option>
+                        <option value="price_desc">Precio: mayor a menor</option>
+                        <option value="name_asc">Nombre A-Z</option>
+                        <option value="name_desc">Nombre Z-A</option>
+                        <option value="newest">Más nuevas primero</option>
+                        <option value="rarity_desc">Rareza: la más alta primero</option>
+                        <option value="rarity_asc">Rareza: la más baja primero</option>
+                        <option value="set_asc">Edición A-Z</option>
+                        <option value="number_asc">Número de carta</option>
                         <option value="stock_desc">Más stock</option>
                         <option value="stock_asc">Menos stock</option>
-                        <option value="rarity_desc">Rareza</option>
-                        <option value="set_asc">Edición A-Z</option>
-                      </select>
+                      </Select>
                     </label>
                     <label className="flex flex-col gap-1 text-[11px] font-black text-slate-500">
                       Rareza
-                      <select
+                      <Select
                         value={quickRarity}
                         onChange={(event) => setQuickRarity(event.target.value)}
                         className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-[#1a2b4b] outline-none transition focus:border-[#1e40af] focus:ring-2 focus:ring-blue-100"
@@ -118,7 +124,7 @@ export default function CatalogBrowser({
                         {availableRarities.map(rarity => (
                           <option key={rarity} value={rarity}>{rarity}</option>
                         ))}
-                      </select>
+                      </Select>
                     </label>
                     <button
                       type="button"

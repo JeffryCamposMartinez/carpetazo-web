@@ -9,6 +9,7 @@ import { wishlistPayloadFromCard } from '../utils/wishlistPayload';
 import CatalogCartDrawer from '../components/folder/catalog/CatalogCartDrawer';
 import CatalogBrowser from '../components/folder/catalog/CatalogBrowser';
 import CatalogCover from '../components/folder/catalog/CatalogCover';
+import { rarityRank } from '../utils/rarityRank';
 
 const isLocalhostWithProductionApi = () => {
   if (typeof window === 'undefined') return false;
@@ -440,19 +441,6 @@ function PublicCatalog() {
     }), [cards, appliedFilters, folderData?.tcg, quickRarity, onlyAvailable]);
 
   const sortedCards = useMemo(() => {
-    const rarityWeight = {
-      'Common': 1,
-      'Uncommon': 2,
-      'Rare': 3,
-      'Rare Holo': 4,
-      'Rare Holo EX': 5,
-      'Rare Holo GX': 6,
-      'Rare Holo V': 7,
-      'Rare Holo VMAX': 8,
-      'Rare Ultra': 9,
-      'Rare Secret': 10,
-      'Promo': 11,
-    };
     const normalizeText = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     const getCatalogOrder = (card, fallbackIndex = 0) => {
       const value = Number(card?.catalogOrder);
@@ -466,9 +454,12 @@ function PublicCatalog() {
       if (sortBy === 'price_desc') return Number(b.price || 0) - Number(a.price || 0);
       if (sortBy === 'stock_desc') return Number(b.stock || 0) - Number(a.stock || 0);
       if (sortBy === 'stock_asc') return Number(a.stock || 0) - Number(b.stock || 0);
-      if (sortBy === 'rarity_desc') {
-        return (rarityWeight[b.rarity] || 0) - (rarityWeight[a.rarity] || 0) || orderFallback;
-      }
+      if (sortBy === 'rarity_desc') return rarityRank(b.rarity) - rarityRank(a.rarity) || orderFallback;
+      if (sortBy === 'rarity_asc') return rarityRank(a.rarity) - rarityRank(b.rarity) || orderFallback;
+      if (sortBy === 'name_asc') return normalizeText(a.name).localeCompare(normalizeText(b.name)) || orderFallback;
+      if (sortBy === 'name_desc') return normalizeText(b.name).localeCompare(normalizeText(a.name)) || orderFallback;
+      if (sortBy === 'newest') return (new Date(b.createdAt).getTime() || 0) - (new Date(a.createdAt).getTime() || 0) || orderFallback;
+      if (sortBy === 'number_asc') return String(a.number || '').localeCompare(String(b.number || ''), 'es', { numeric: true }) || orderFallback;
       if (sortBy === 'set_asc') {
         return normalizeText(a.set).localeCompare(normalizeText(b.set)) || orderFallback;
       }
