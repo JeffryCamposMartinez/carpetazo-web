@@ -443,16 +443,19 @@ const [isSearching, setIsSearching] = useState(false);
   useEffect(() => {
     window.scrollTo(0, 0);
     const init = async () => {
+      let redirected = false;
       try {
         const res = await api.getFolder(id);
         if (res.success && res.folder) {
+          // Esta pantalla es para editar: quien no es el dueño (o no tiene sesión) va a la vista pública de la carpeta
+          if (!res.folder.isOwner) { redirected = true; navigate(`/c/${id}`, { replace: true }); return; }
           setFolderData(res.folder);
           setSearchCategory(getTcgConfig(res.folder.tcg).categoryId);
           const mappedCards = sortCatalogCards((res.folder.cards || []).map(c => ({ ...c, ...(c.data || {}), data: c.data || {} })));
           setCards(mappedCards);
           setHasUnsavedCatalogOrder(false);
         }
-      } catch (e) { console.error(e); } finally { setLoadingFolder(false); }
+      } catch (e) { console.error(e); } finally { if (!redirected) setLoadingFolder(false); }
     };
     init();
   }, [id]);

@@ -363,7 +363,8 @@ router.get('/api/folders/:id', optionalAuth, async (req, res) => {
     const { moderationState: _folderState, ...publicFolder } = folder;
     const cards = (isFolderOwner ? folder.cards : folder.cards.map(({ moderationState: _cardState, ...card }) => card))
       .map((card) => ({ ...card, data: cleanCardData(card.data) }));
-    res.json({ success: true, folder: { ...(isFolderOwner ? folder : publicFolder), cards, user: toPublicSeller(folder.user, req.user?.sub, await getReviewSummary(folder.user.id)) } });
+    // `isOwner` deja que la pantalla de edición no se muestre a quien no es el dueño (la API ya rechaza sus cambios)
+    res.json({ success: true, folder: { ...(isFolderOwner ? folder : publicFolder), isOwner: isFolderOwner, cards, user: toPublicSeller(folder.user, req.user?.sub, await getReviewSummary(folder.user.id)) } });
   } catch (error) {
     console.error('Error fetching folder:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
