@@ -1,5 +1,6 @@
 import PokemonFilters from './PokemonFilters';
 import React from 'react';
+import Select from '../../ui/Select';
 
 const typeTabsByTcg = {
   Pokemon: [
@@ -25,14 +26,14 @@ const typeTabsByTcg = {
 };
 
 const SelectField = ({ value, onChange, disabled, children, className = '' }) => (
-  <select
+  <Select
     value={value}
     onChange={onChange}
     disabled={disabled}
     className={`h-9 w-full rounded-lg border border-gray-300 bg-white px-2 text-xs text-gray-900 transition-colors focus:border-[#1e40af] focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 sm:text-sm lg:text-xs ${className}`}
   >
     {children}
-  </select>
+  </Select>
 );
 
 const EditionDropdown = ({

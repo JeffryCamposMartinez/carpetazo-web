@@ -9,7 +9,7 @@ const MAX_LIST = 288; // alto máximo de la lista (18rem)
 // options: [{ value, label, group? }]. La lista sale en un portal: no la recorta ningún panel ni ventana con scroll.
 export default function ThemedSelect({
   value, onChange, options, placeholder = 'Selecciona', searchable = false, searchPlaceholder = 'Buscar…', emptyLabel = 'Sin resultados',
-  icon, disabled = false, ariaLabel, className = '', buttonClassName = ''
+  icon, disabled = false, ariaLabel, className = '', buttonClassName = '', listMinWidth = 0, innerRef
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -33,7 +33,10 @@ export default function ThemedSelect({
     const above = rect.top - GAP - 8;
     const goUp = below < 200 && above > below;
     const room = Math.max(120, goUp ? above : below);
-    setBox({ left: rect.left, width: rect.width, maxHeight: Math.min(MAX_LIST + (searchable ? 56 : 0), room), ...(goUp ? { bottom: window.innerHeight - rect.top + GAP } : { top: rect.bottom + GAP }) });
+    // La lista puede ser más ancha que el botón, sin salirse de la pantalla
+    const width = Math.min(Math.max(rect.width, listMinWidth), window.innerWidth - 16);
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+    setBox({ left, width, maxHeight: Math.min(MAX_LIST + (searchable ? 56 : 0), room), ...(goUp ? { bottom: window.innerHeight - rect.top + GAP } : { top: rect.bottom + GAP }) });
   };
 
   const close = () => { setOpen(false); setQuery(''); setActive(-1); };
@@ -86,7 +89,7 @@ export default function ThemedSelect({
   return (
     <div className={`relative ${className}`}>
       <button
-        ref={buttonRef}
+        ref={(element) => { buttonRef.current = element; if (innerRef) innerRef.current = element; }}
         type="button"
         disabled={disabled}
         aria-haspopup="listbox"

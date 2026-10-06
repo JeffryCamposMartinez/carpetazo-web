@@ -1,3 +1,4 @@
+import Select from '../ui/Select';
 const SORT_OPTIONS = [
   { value: 'recent', label: 'Más recientes' },
   { value: 'price_asc', label: 'Precio: menor a mayor' },
@@ -21,9 +22,9 @@ export default function CardsResultsBar({ failed, loading, comuna, onClearAll, o
         <div className="flex w-full items-center gap-2 sm:w-auto sm:shrink-0">
           <label className="relative flex min-w-0 flex-1 items-center sm:flex-none">
             <span className="sr-only">Ordenar</span>
-            <select value={sort} onChange={(event) => onSort(event.target.value)} className="h-10 w-full appearance-none rounded-full border-0 bg-white pl-3.5 pr-9 text-[13px] font-bold text-[#12315f] ring-1 ring-slate-900/10 focus:outline-none focus:ring-2 focus:ring-[#1e40af]">
+            <Select value={sort} onChange={(event) => onSort(event.target.value)} className="h-10 w-full appearance-none rounded-full border-0 bg-white pl-3.5 pr-9 text-[13px] font-bold text-[#12315f] ring-1 ring-slate-900/10 focus:outline-none focus:ring-2 focus:ring-[#1e40af]">
               {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
+            </Select>
             <span translate="no" aria-hidden="true" className="material-symbols-outlined pointer-events-none absolute right-2 text-[20px] text-slate-500">expand_more</span>
           </label>
           <div role="group" aria-label="Vista" className="flex h-10 items-center rounded-full bg-white p-1 ring-1 ring-slate-900/10 lg:hidden">

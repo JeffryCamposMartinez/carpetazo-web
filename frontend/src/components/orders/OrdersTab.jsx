@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import LiquidTabs from '../ui/LiquidTabs';
 import LoadableImage from '../ui/LoadableImage';
+import Select from '../ui/Select';
 
 // Solicitudes (pedidos pendientes) e historial de ventas del vendedor.
 // Los datos vienen de GET /api/orders/mine; las acciones de POST /api/orders/mine/:id/status.
@@ -46,18 +47,11 @@ const Thumb = ({ item, className = 'h-14 w-10' }) => (
   </div>
 );
 
-const Select = ({ value, onChange, children, label }) => (
-  <label className="relative flex items-center">
-    <span className="sr-only">{label}</span>
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white pl-3 pr-9 text-sm font-semibold text-[#1a2b4b] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"
-    >
-      {children}
-    </select>
-    <Icon name="expand_more" className="pointer-events-none absolute right-2 text-lg text-slate-500" />
-  </label>
+// Lista desplegable de los filtros de pedidos (estilo de Carpetazo); onChange recibe el valor elegido
+const FilterSelect = ({ value, onChange, children, label }) => (
+  <Select aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} className="w-full">
+    {children}
+  </Select>
 );
 
 const SearchBox = ({ value, onChange, placeholder }) => (
@@ -282,16 +276,16 @@ function Requests({ orders, onDecide, busyId, showToast, onGoToFolders, emptyAct
         <SearchBox value={query} onChange={setQuery} placeholder="Buscar por código o carta" />
         <div className="flex gap-3">
           {folders.length > 1 && (
-            <Select label="Carpeta" value={folder} onChange={setFolder}>
+            <FilterSelect label="Carpeta" value={folder} onChange={setFolder}>
               <option value="all">Todas las carpetas</option>
               {folders.map((name) => <option key={name} value={name}>{name}</option>)}
-            </Select>
+            </FilterSelect>
           )}
-          <Select label="Orden" value={sort} onChange={setSort}>
+          <FilterSelect label="Orden" value={sort} onChange={setSort}>
             <option value="recent">Más recientes</option>
             <option value="oldest">Más antiguos</option>
             <option value="amount">Mayor monto</option>
-          </Select>
+          </FilterSelect>
         </div>
       </div>
 
@@ -544,10 +538,10 @@ function History({ orders }) {
         />
         <div className="flex gap-3">
           {folders.length > 1 && (
-            <Select label="Carpeta" value={folder} onChange={setFolder}>
+            <FilterSelect label="Carpeta" value={folder} onChange={setFolder}>
               <option value="all">Todas las carpetas</option>
               {folders.map((name) => <option key={name} value={name}>{name}</option>)}
-            </Select>
+            </FilterSelect>
           )}
           <button
             type="button"
@@ -623,11 +617,11 @@ function History({ orders }) {
           <h3 className="shrink-0 text-lg font-extrabold text-[#1a2b4b]">Registro de pedidos</h3>
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:justify-end">
             <div className="sm:max-w-xs sm:flex-1"><SearchBox value={query} onChange={setQuery} placeholder="Buscar por código o carta" /></div>
-            <Select label="Estado" value={status} onChange={setStatus}>
+            <FilterSelect label="Estado" value={status} onChange={setStatus}>
               <option value="completed">Vendidos</option>
               <option value="rejected">Rechazados{stats.rejected ? ` (${stats.rejected})` : ''}</option>
               <option value="all">Todos</option>
-            </Select>
+            </FilterSelect>
           </div>
         </div>
         <div className="hidden grid-cols-[110px_90px_1fr_90px_130px_120px_24px] gap-x-4 border-y border-slate-200 bg-[#F8FAFC] px-6 py-2.5 text-xs font-semibold text-slate-500 md:grid">

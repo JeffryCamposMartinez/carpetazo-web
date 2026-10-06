@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../services/api';
+import Select from '../ui/Select';
 
 const ACTION_BUTTON = 'inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-bold transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]';
 const FIELD = 'h-12 w-full rounded-xl border border-gray-300 bg-white px-3 text-base text-gray-900 focus:border-[#1e40af] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70';
@@ -66,10 +67,10 @@ function BulkDialog({ action, count, busy, currentFolderId, tcg, onClose, onSetV
         {folders && folders.length > 0 && (
           <label className="mt-4 block text-sm font-bold text-slate-600">
             Carpeta de destino
-            <select ref={inputRef} value={target} onChange={(event) => setTarget(event.target.value)} className={`${FIELD} mt-1`}>
+            <Select ref={inputRef} value={target} onChange={(event) => setTarget(event.target.value)} className={`${FIELD} mt-1`}>
               <option value="">Elige una carpeta</option>
               {folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
-            </select>
+            </Select>
           </label>
         )}
         <div className="mt-5 flex gap-2">

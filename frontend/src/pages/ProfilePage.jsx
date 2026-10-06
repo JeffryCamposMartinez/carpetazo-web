@@ -9,6 +9,7 @@ import MyModeration from '../components/moderation/MyModeration';
 import { PALETTES } from '../config/profileThemes';
 import { useToast } from '../components/ui/ToastProvider';
 import ThemedSelect from '../components/ui/ThemedSelect';
+import Select from '../components/ui/Select';
 
 const chileBanks = [
   'Banco de Chile - Edwards',
@@ -151,12 +152,12 @@ const TextInput = ({ className = '', ...props }) => (
 );
 
 const SelectInput = ({ children, className = '', ...props }) => (
-  <select
+  <Select
     {...props}
     className={`w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 shadow-sm outline-none transition focus:border-[#1e40af] focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 ${className}`}
   >
     {children}
-  </select>
+  </Select>
 );
 
 const ActionButton = ({ children, variant = 'primary', className = '', ...props }) => {

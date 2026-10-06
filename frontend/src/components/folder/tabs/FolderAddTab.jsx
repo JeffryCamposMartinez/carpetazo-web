@@ -6,6 +6,7 @@ import { SafeImage } from '../SafeImage';
 import { cardLabel, getExtDataValue } from '../folderCards';
 import { ReferencePriceBox, ReferencePriceLine } from '../ReferencePrice';
 import useReferencePrices from '../../../hooks/useReferencePrices';
+import Select from '../../ui/Select';
 
 export default function FolderAddTab({
   activeQueueItemId, availableBlocks, availablePhysicalProducts, availableRarities, availableSets,
@@ -343,11 +344,11 @@ export default function FolderAddTab({
               {!isMylFolder && (
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Idioma</label>
-                  <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-sm">
+                  <Select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-sm">
                     <option value="English">English</option>
                     <option value="Spanish">Spanish</option>
                     <option value="Japanese">Japanese</option>
-                  </select>
+                  </Select>
                 </div>
               )}
 

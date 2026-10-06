@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import LoadableImage from '../ui/LoadableImage';
 import { Link } from 'react-router-dom';
+import Select from '../ui/Select';
 
 const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, compact = false, detailLevel = 'none', dense = false, showLanguage = false, selectable = false, selected = false, onToggleSelect, onPreview, onDraftChange }) => {
   // 'full': nombre, edición, stock, precio e idioma · 'basic': solo stock y precio · 'none': solo la carta
@@ -148,7 +149,7 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
             <div className={`w-full bg-gray-50 ${dense ? 'px-1.5 py-1' : 'px-2 py-1.5'} rounded-lg border border-gray-200 shadow-sm ${compact ? 'flex flex-col gap-1' : 'flex justify-between items-center'}`}>
               <label className={`${dense ? 'text-[9px]' : 'text-[10px]'} text-gray-500 uppercase tracking-wider font-bold`}>Idioma</label>
               <div className={`relative ${compact ? 'w-full' : 'w-24'}`}>
-                <select
+                <Select
                   value={language}
                   onChange={e => setLanguage(e.target.value)}
                   style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none', backgroundImage: 'none', padding: 0, paddingLeft: dense ? '0.375rem' : '0.5rem', paddingRight: '1.25rem', lineHeight: '1.625rem' }}
@@ -157,7 +158,7 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
                   <option value="English">{shortLang ? 'EN' : 'Inglés'}</option>
                   <option value="Spanish">{shortLang ? 'ES' : 'Español'}</option>
                   <option value="Japanese">{shortLang ? 'JP' : 'Japonés'}</option>
-                </select>
+                </Select>
                 <svg className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path>
                 </svg>

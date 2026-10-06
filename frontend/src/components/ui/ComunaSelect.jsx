@@ -18,7 +18,7 @@ export default function ComunaSelect({ value, onChange, className = '' }) {
       icon="location_on"
       ariaLabel="Comuna"
       className={className}
-      buttonClassName="min-h-11 rounded-full"
+      buttonClassName="!min-h-11 !rounded-full"
     />
   );
 }

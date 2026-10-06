@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../services/api';
 import { Badge, DetailHeader, DetailPane, EmptyState, ErrorBox, Pills, Spinner, dateTime, relativeTime } from './shared';
+import Select from '../ui/Select';
 
 const STATUS = {
   open: { label: 'Nuevo', className: 'bg-blue-100 text-blue-800' },
@@ -138,10 +139,10 @@ function CaseDetail({ id, level, onClose, onChanged, onOpenPerson, onOpenReport 
                 <h3 className="mb-2 text-sm font-bold text-slate-500">Resolver</h3>
                 <label className="block text-sm font-extrabold text-slate-700">
                   Decisión
-                  <select value={resolution} onChange={(event) => setResolution(event.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-base sm:text-sm font-semibold">
+                  <Select value={resolution} onChange={(event) => setResolution(event.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-base sm:text-sm font-semibold">
                     <option value="">Elige…</option>
                     {RESOLUTIONS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-                  </select>
+                  </Select>
                 </label>
                 {needsDays && (
                   <label className="mt-2 block text-sm font-extrabold text-slate-700">Duración (días){level < 3 ? ' · máximo 30' : ''}

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import ComunaSelect from '../components/ui/ComunaSelect';
 import LocationLine from '../components/ui/LocationLine';
+import Select from '../components/ui/Select';
 
 const SORTS = [
   { value: 'visits', label: 'Más visitados' },
@@ -75,9 +76,9 @@ export default function SellersPage() {
             />
           </div>
           <ComunaSelect value={comuna} onChange={(value) => { setComuna(value); setPage(1); }} className="md:w-56" />
-          <select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} aria-label="Ordenar" className="h-11 rounded-full border border-slate-200 bg-white px-4 text-sm font-bold text-[#12315f] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70">
+          <Select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} aria-label="Ordenar" className="h-11 rounded-full border border-slate-200 bg-white px-4 text-sm font-bold text-[#12315f] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70">
             {SORTS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
+          </Select>
         </div>
 
         {loading ? (

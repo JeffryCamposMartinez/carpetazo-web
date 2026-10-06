@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useRef } from 'react';
 import { DetailHeader, DetailPane, EmptyState, FilterSheet, Pills, SEVERITY_STYLE, Spinner, relativeTime } from './shared';
+import Select from '../ui/Select';
 
 const SEVERITY = {
   S1: { label: 'Crítica', className: 'bg-red-600 text-white' },
@@ -293,14 +294,14 @@ export default function ReportsPanel({ level = 1, onOpenPerson = () => {}, initi
   const selectClass = 'h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-base sm:text-sm font-semibold text-[#12315f] outline-none focus:border-[#1e40af] lg:h-10';
   const fields = (
     <>
-      <select aria-label="Gravedad" value={filters.severity} onChange={(event) => setFilter({ severity: event.target.value })} className={selectClass}>
+      <Select aria-label="Gravedad" value={filters.severity} onChange={(event) => setFilter({ severity: event.target.value })} className={selectClass}>
         <option value="">Cualquier gravedad</option>
         {Object.entries(SEVERITY).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
-      </select>
-      <select aria-label="Tipo de contenido" value={filters.targetType} onChange={(event) => setFilter({ targetType: event.target.value })} className={selectClass}>
+      </Select>
+      <Select aria-label="Tipo de contenido" value={filters.targetType} onChange={(event) => setFilter({ targetType: event.target.value })} className={selectClass}>
         <option value="">Cualquier contenido</option>
         {Object.entries(TYPE_LABELS).map(([key, value]) => <option key={key} value={key}>{value}</option>)}
-      </select>
+      </Select>
     </>
   );
 

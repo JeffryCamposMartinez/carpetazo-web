@@ -1,5 +1,6 @@
 import React from 'react';
 import Filters from './Filters';
+import Select from '../../ui/Select';
 
 const normalize = (value) => (value || '').toString().trim();
 
@@ -23,7 +24,7 @@ const prettyMylLabel = (value) => {
 };
 
 const SelectField = ({ value, onChange, children, variant = 'bar' }) => (
-  <select
+  <Select
     value={value}
     onChange={onChange}
     className={variant === 'sidebar'
@@ -32,7 +33,7 @@ const SelectField = ({ value, onChange, children, variant = 'bar' }) => (
     }
   >
     {children}
-  </select>
+  </Select>
 );
 
 const EditionDropdown = ({

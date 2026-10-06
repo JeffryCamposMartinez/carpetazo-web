@@ -7,6 +7,7 @@ import {
   fetchPokemonGroups,
   filterPokemonCards,
 } from '../../services/tcgcsvPokemon';
+import Select from '../ui/Select';
 
 // Juegos del sitio. Solo los marcados tienen buscador con filtros; el resto llegará pronto.
 export const WISHLIST_GAMES = [
@@ -194,14 +195,14 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
     <div className="space-y-3">
       <label className="block text-sm font-bold text-slate-600">
         Juego
-        <select
+        <Select
           value={game}
           onChange={(event) => { setGame(event.target.value); resetFilters(); }}
           aria-label="Juego de la carta"
           className={`${inputClass} mt-1 h-12 font-extrabold text-[#12315f]`}
         >
           {WISHLIST_GAMES.map((item) => <option key={item.name} value={item.name}>{item.name}{item.available ? '' : ' (buscador próximamente)'}</option>)}
-        </select>
+        </Select>
       </label>
 
       {selectedGame?.available && (

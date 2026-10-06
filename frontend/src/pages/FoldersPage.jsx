@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import LazyFolderCard from '../components/folder/LazyFolderCard';
 import ComunaSelect from '../components/ui/ComunaSelect';
+import Select from '../components/ui/Select';
 
 const TCG_CATEGORIES = [
   { name: 'Pokémon', logo: '/images/logos/pokemon.webp' },
@@ -121,14 +122,14 @@ export default function FoldersPage() {
             />
           </div>
           <ComunaSelect value={comuna} onChange={(value) => updateParams({ comuna: value })} className="md:w-56" />
-          <select
+          <Select
             value={sortBy}
             onChange={(event) => updateParams({ sort: event.target.value === 'weekly' ? '' : event.target.value })}
             aria-label="Ordenar carpetas"
             className="h-11 rounded-full border border-slate-200 bg-white px-4 text-sm font-bold text-[#12315f] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70"
           >
             {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
+          </Select>
         </div>
 
         {/* Juego: una fila de opciones que se desliza en móvil */}

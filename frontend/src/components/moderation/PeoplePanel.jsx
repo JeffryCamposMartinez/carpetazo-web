@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import { EmptyState, ErrorBox, Pills, QUICK_REASONS, SANCTION_TYPES, Spinner, dateOnly } from './shared';
 import TermsEvidence from './TermsEvidence';
+import Select from '../ui/Select';
 
 const STATUS = {
   active: { label: 'Vigente', bar: 'bg-red-600', text: 'text-red-700' },
@@ -81,9 +82,9 @@ function SanctionForm({ username, level, reportId, onDone, onCancel, setError })
     <form onSubmit={submit} className="space-y-3 rounded-2xl bg-white p-4 ring-1 ring-slate-900/10">
       <h3 className="text-base font-extrabold text-[#12315f]">Aplicar una medida a @{username}</h3>
       <label className="block text-sm font-bold text-slate-700">Tipo de medida
-        <select value={type} onChange={(event) => { setType(event.target.value); setReason(QUICK_REASONS[event.target.value]); }} className={`${field} h-12`}>
+        <Select value={type} onChange={(event) => { setType(event.target.value); setReason(QUICK_REASONS[event.target.value]); }} className={`${field} h-12`}>
           {types.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-        </select>
+        </Select>
       </label>
       {needsDays && (
         <label className="block text-sm font-bold text-slate-700">Cuántos días{level < 3 ? ' (máximo 30)' : ' (vacío: hasta nuevo aviso)'}
