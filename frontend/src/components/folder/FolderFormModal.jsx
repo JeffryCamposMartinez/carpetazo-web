@@ -4,8 +4,8 @@ import FolderBinder from './FolderBinder';
 // Crear o editar una carpeta: nombre, juego, color y visibilidad, con vista previa en vivo.
 export default function FolderFormModal({
   editFolderColor, editFolderName, editingFolder, handleCreateFolder, isCreating, newFolderColor,
-  newFolderName, newFolderTcg, setEditFolderColor, setEditFolderName, setEditingFolder, setIsCreateModalOpen,
-  setNewFolderColor, setNewFolderName, setNewFolderTcg, submitEditFolder
+  newFolderName, newFolderPublic, newFolderTcg, setEditFolderColor, setEditFolderName, setEditingFolder, setIsCreateModalOpen,
+  setNewFolderColor, setNewFolderName, setNewFolderPublic, setNewFolderTcg, submitEditFolder
 }) {
   const isEdit = Boolean(editingFolder);
   const name = isEdit ? editFolderName : newFolderName;
@@ -28,7 +28,7 @@ export default function FolderFormModal({
               tcg: isEdit ? editingFolder.tcg : newFolderTcg,
               cardsCount: isEdit ? editingFolder.cardsCount : 0,
               validWeeklyVisits: isEdit ? editingFolder.validWeeklyVisits : 0,
-              isPublic: isEdit ? editingFolder.isPublic : false
+              isPublic: isEdit ? editingFolder.isPublic : newFolderPublic
             }} />
           </div>
         </div>
@@ -93,6 +93,27 @@ export default function FolderFormModal({
               ))}
             </div>
           </fieldset>
+
+          {!isEdit && (
+            <fieldset>
+              <legend className="mb-2 text-sm font-bold text-[#1a2b4b]">Visibilidad</legend>
+              <div className="grid grid-cols-2 gap-2">
+                {[[false, 'lock', 'Privada', 'Solo tú la ves'], [true, 'public', 'Pública', 'La pueden ver los compradores']].map(([value, icon, label, hint]) => (
+                  <button
+                    key={label}
+                    type="button"
+                    aria-pressed={newFolderPublic === value}
+                    onClick={() => setNewFolderPublic(value)}
+                    className={`flex min-h-[4.25rem] flex-col items-start gap-0.5 rounded-xl px-3 py-2 text-left ring-1 transition-colors ${newFolderPublic === value ? 'bg-[#1e40af] text-white ring-[#1e40af]' : 'bg-white text-slate-700 ring-slate-300 hover:bg-slate-50'}`}
+                  >
+                    <span className="flex items-center gap-1.5 text-sm font-bold"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">{icon}</span>{label}</span>
+                    <span className={`text-xs ${newFolderPublic === value ? 'text-white/85' : 'text-slate-500'}`}>{hint}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-xs text-slate-500">Puedes cambiarla cuando quieras desde el menú de la carpeta.</p>
+            </fieldset>
+          )}
 
           <div className="mt-auto flex justify-end gap-3 pt-2">
             <button type="button" onClick={close} className="h-11 rounded-xl px-5 font-bold text-slate-600 hover:bg-slate-100">Cancelar</button>

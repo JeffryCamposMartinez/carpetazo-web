@@ -14,6 +14,7 @@ import { DETAIL_MODES, getExtDataValue, normalizeTcgProductId, sortCatalogCards 
 import FolderSalesTab from '../components/folder/tabs/FolderSalesTab';
 import FolderCatalogTab from '../components/folder/tabs/FolderCatalogTab';
 import FolderAddTab from '../components/folder/tabs/FolderAddTab';
+import FolderShareNotice from '../components/folder/FolderShareNotice';
 import useCardSearch from '../hooks/useCardSearch';
 import { DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from '../components/folder/dragScroll';
 import useCatalogOrder from '../hooks/useCatalogOrder';
@@ -40,6 +41,7 @@ export default function FolderPage() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const [folderData, setFolderData] = useState(null);
+  const [shareNoticeOpen, setShareNoticeOpen] = useState(false); // aviso para publicar y compartir tras la primera carta
   const [loadingFolder, setLoadingFolder] = useState(true);
   
   const [activeTab, setActiveTab] = useState('add'); // 'add', 'catalog', 'sales'
@@ -830,6 +832,15 @@ const [isSearching, setIsSearching] = useState(false);
         };
         await api.addCard(id, cardData);
         showToast('¡Carta guardada en el catálogo exitosamente!', 'success');
+        // Primera carta de la carpeta: se invita a publicarla y compartirla (una sola vez por carpeta)
+        if (cards.length === 0) {
+          let seen = false;
+          try {
+            seen = Boolean(localStorage.getItem(`carpetazo:share-notice:${id}`));
+            localStorage.setItem(`carpetazo:share-notice:${id}`, '1');
+          } catch (_error) { /* sin almacenamiento: se avisa igual */ }
+          if (!seen) setShareNoticeOpen(true);
+        }
       }
       
       if (isBatchAdding) {
@@ -990,6 +1001,14 @@ const [isSearching, setIsSearching] = useState(false);
         >
           <span translate="no" className="material-symbols-outlined text-2xl">arrow_upward</span>
         </button>
+      )}
+      {shareNoticeOpen && !isBatchAdding && (
+        <FolderShareNotice
+          folder={{ id, name: folderData.name, isPublic: folderData.isPublic }}
+          onPublished={() => setFolderData((prev) => ({ ...prev, isPublic: true }))}
+          onClose={() => setShareNoticeOpen(false)}
+          showToast={showToast}
+        />
       )}
     </>
   );

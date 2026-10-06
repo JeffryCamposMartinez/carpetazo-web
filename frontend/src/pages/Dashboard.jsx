@@ -7,6 +7,7 @@ import WishlistTab from '../components/wishlist/WishlistTab';
 import LiquidTabs from '../components/ui/LiquidTabs';
 import FolderSummary from '../components/folder/FolderSummary';
 import FolderFormModal from '../components/folder/FolderFormModal';
+import FolderEmptySteps from '../components/folder/FolderEmptySteps';
 import FolderGrid from '../components/folder/FolderGrid';
 import { useToast } from '../components/ui/ToastProvider';
 // html2canvas + jsPDF pesan mucho: se descargan solo al generar un PDF
@@ -22,6 +23,7 @@ export default function Dashboard() {
   const [newFolderName, setNewFolderName] = useState('');
   const [newFolderTcg, setNewFolderTcg] = useState('Pokemon');
   const [newFolderColor, setNewFolderColor] = useState('red');
+  const [newFolderPublic, setNewFolderPublic] = useState(false); // las carpetas nuevas nacen privadas hasta que su dueño las publica
   const [folderToDelete, setFolderToDelete] = useState(null);
   const [editingFolder, setEditingFolder] = useState(null);
   const [editFolderName, setEditFolderName] = useState('');
@@ -226,13 +228,16 @@ export default function Dashboard() {
       const response = await api.createFolder({
         name: newFolderName.trim(),
         tcg: newFolderTcg,
-        color: newFolderColor
+        color: newFolderColor,
+        isPublic: newFolderPublic
       });
       
       setFolders([...folders, response.folder]);
       setNewFolderName('');
+      setNewFolderPublic(false);
       setIsCreateModalOpen(false);
-      showToast("Carpeta creada exitosamente", "success");
+      showToast("Carpeta creada. Ahora agrega tus primeras cartas", "success");
+      navigate(`/carpeta/${response.folder.id}`); // abre directo en «Agregar Cartas»
     } catch (error) {
       console.error("Error al crear la carpeta:", error);
     } finally {
@@ -417,8 +422,8 @@ export default function Dashboard() {
 
 
   const folderFormModalProps = { editFolderColor, editFolderName, editingFolder, handleCreateFolder, isCreating,
-    newFolderColor, newFolderName, newFolderTcg, setEditFolderColor, setEditFolderName, setEditingFolder,
-    setIsCreateModalOpen, setNewFolderColor, setNewFolderName, setNewFolderTcg, submitEditFolder };
+    newFolderColor, newFolderName, newFolderPublic, newFolderTcg, setEditFolderColor, setEditFolderName, setEditingFolder,
+    setIsCreateModalOpen, setNewFolderColor, setNewFolderName, setNewFolderPublic, setNewFolderTcg, submitEditFolder };
 
   const folderGridProps = { MENU_ITEM, activeMenuFolderId, closeFolderMenu, copiedFolderId, folders,
     handleShareFolder, handleTogglePublic, navigate, onFolderMenuKeyDown, renderFolderMenuItems,
@@ -482,9 +487,7 @@ export default function Dashboard() {
               Nueva carpeta
             </button>
             </div>
-            {folders.length === 0 && (
-            <p className="rounded-2xl border-2 border-dashed border-[#1e40af]/30 bg-white/50 px-4 py-8 text-center text-sm font-medium text-slate-600 sm:hidden">Crea la primera para empezar a subir cartas.</p>
-            )}
+            {folders.length === 0 && <FolderEmptySteps />}
 
             <FolderGrid {...folderGridProps} />
           </div>
