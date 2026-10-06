@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
+import { LoadingMark } from './LoadableImage';
 
 const formatCLP = (value) => `$${Number(value || 0).toLocaleString('es-CL')}`;
 const LANGUAGES = { English: 'Inglés', Spanish: 'Español', Japanese: 'Japonés' };
@@ -22,6 +23,8 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, describ
   const index = cards.findIndex((card) => card.id === cardId);
   const card = cards[index];
   const closeRef = useRef(null);
+  const [loadedId, setLoadedId] = useState(null); // carta cuya imagen ya cargó: mientras tanto se muestra el logo con el espiral
+  const [failedId, setFailedId] = useState(null);
   const state = useRef({});
   state.current = { index, cards, onChange, onClose };
   useBodyScrollLock();
@@ -90,7 +93,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, describ
   return createPortal(
     <div role="dialog" aria-modal="true" aria-label={card.name} className="fixed inset-0 z-[1300] flex flex-col bg-[#08122a]/90 backdrop-blur-sm" onClick={onClose}>
       <div className="flex shrink-0 items-center justify-between gap-3 px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] text-white" onClick={(event) => event.stopPropagation()}>
-        <p className="min-w-0 truncate text-sm font-bold tabular-nums text-white/80">{index + 1} de {cards.length}</p>
+        <p className="min-w-0 truncate text-sm font-bold tabular-nums text-white/80">{cards.length > 1 ? `${index + 1} de ${cards.length}` : ''}</p>
         <button ref={closeRef} type="button" onClick={onClose} aria-label="Cerrar" className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 transition-[background-color,transform] duration-150 hover:bg-white/20 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
           <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[24px]">close</span>
         </button>
@@ -105,19 +108,20 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, describ
         onPointerCancel={onPointerEnd}
       >
         {/* Botones a los lados: solo donde hay mouse; en pantallas táctiles se arrastra */}
-        <button type="button" aria-label="Carta anterior" disabled={index <= 0} onClick={() => go(-1)} onPointerDown={(event) => event.stopPropagation()} className={`${nav} left-2 hidden sm:left-6 [@media(hover:hover)]:flex`}>
+        {card.imageUrl && loadedId !== card.id && <LoadingMark still={failedId === card.id} className="absolute inset-0 scale-125" />}
+        <button type="button" aria-label="Carta anterior" disabled={index <= 0} onClick={() => go(-1)} onPointerDown={(event) => event.stopPropagation()} className={`${nav} left-2 hidden sm:left-6 [@media(hover:hover)]:flex ${cards.length < 2 ? "!hidden" : ""}`}>
           <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[28px]">chevron_left</span>
         </button>
         <div
           key={card.id}
-          className={`flex max-h-full max-w-full items-center justify-center ${direction === 0 ? '' : direction > 0 ? 'lightbox-in-next' : 'lightbox-in-prev'}`}
+          className={`flex h-full max-w-full items-center justify-center ${direction === 0 ? '' : direction > 0 ? 'lightbox-in-next' : 'lightbox-in-prev'}`}
           style={{ transform: `translate(${drag.x}px, ${drag.y}px) scale(${1 - Math.min(Math.abs(drag.y), 300) / 1500})`, opacity: 1 - Math.min(Math.abs(drag.y), 300) / 500, transition: drag.active ? 'none' : 'transform 220ms cubic-bezier(0.23, 1, 0.32, 1), opacity 220ms ease-out' }}
         >
           {card.imageUrl
-            ? <img src={card.imageUrl} referrerPolicy="no-referrer" alt={card.name} draggable={false} className="max-h-full max-w-full rounded-2xl object-contain shadow-2xl" />
+            ? <img src={card.imageUrl} referrerPolicy="no-referrer" alt={card.name} draggable={false} onLoad={() => setLoadedId(card.id)} onError={() => setFailedId(card.id)} ref={(img) => { if (img?.complete && img.naturalWidth > 0 && loadedId !== card.id) setLoadedId(card.id); }} className={`h-full w-auto max-w-full rounded-2xl object-contain shadow-2xl ${loadedId === card.id ? '' : 'opacity-0'}`} />
             : <span className="rounded-2xl bg-white/10 px-6 py-10 text-sm font-bold text-white/70">Sin imagen</span>}
         </div>
-        <button type="button" aria-label="Carta siguiente" disabled={index >= cards.length - 1} onClick={() => go(1)} onPointerDown={(event) => event.stopPropagation()} className={`${nav} right-2 hidden sm:right-6 [@media(hover:hover)]:flex`}>
+        <button type="button" aria-label="Carta siguiente" disabled={index >= cards.length - 1} onClick={() => go(1)} onPointerDown={(event) => event.stopPropagation()} className={`${nav} right-2 hidden sm:right-6 [@media(hover:hover)]:flex ${cards.length < 2 ? "!hidden" : ""}`}>
           <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[28px]">chevron_right</span>
         </button>
       </div>

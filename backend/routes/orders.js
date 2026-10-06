@@ -145,7 +145,8 @@ router.post('/api/orders/create', async (req, res) => {
       }
       const price = Number.isFinite(card.price) && card.price > 0 ? card.price : 0;
       total += price * quantity;
-      items.push({ id: card.id, name: card.name, quantity, q: quantity, price });
+      // `tcgId` queda en el pedido para poder calcular el precio referencial de ventas aunque la carta se borre después
+      items.push({ id: card.id, tcgId: card.tcgId, name: card.name, quantity, q: quantity, price });
       const set = card.data && typeof card.data === 'object' && typeof card.data.set === 'string' && card.data.set !== 'Unknown' ? ` (${card.data.set.slice(0, 60)})` : '';
       lines.push(`• ${quantity}x ${card.name}${set} - ${clp(price * quantity)}`);
     }

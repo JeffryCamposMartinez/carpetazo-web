@@ -6,7 +6,7 @@ import { badRequest, isAllowedProxyImageUrl } from '../core/validation.js';
 const router = express.Router();
 
 // Proxy con caché hacia TCGCSV (Pokémon inglés y japonés): el navegador no puede llamarlo directo por CORS
-const TCGCSV_ALLOWED_PATH = /^\/tcgplayer\/(3|85)\/(groups|\d+\/products)$/;
+const TCGCSV_ALLOWED_PATH = /^\/tcgplayer\/(3|85)\/(groups|\d+\/(products|prices))$/;
 const TCGCSV_TTL_MS = 30 * 60 * 1000;
 const TCGCSV_MAX_ENTRIES = 80;
 const tcgcsvCache = new Map();
@@ -38,6 +38,26 @@ router.get(/^\/api\/tcgcsv(\/.*)$/, async (req, res) => {
   } catch (error) {
     console.error('Error consultando TCGCSV:', error.message);
     return res.status(502).json({ success: false, message: 'No se pudo obtener el catálogo' });
+  }
+});
+
+// Dólar en pesos chilenos para convertir los precios de mercado (TCGplayer vende en USD). Es solo referencial.
+const USD_CLP_TTL_MS = 6 * 60 * 60 * 1000;
+let usdClpCache = null;
+router.get('/api/usd-clp', async (_req, res) => {
+  if (usdClpCache && Date.now() - usdClpCache.at < USD_CLP_TTL_MS) return res.json({ success: true, rate: usdClpCache.rate });
+  try {
+    const response = await fetch('https://open.er-api.com/v6/latest/USD', { signal: AbortSignal.timeout(6000), headers: { Accept: 'application/json' } });
+    const rate = response.ok ? Number((await response.json())?.rates?.CLP) : NaN;
+    if (!Number.isFinite(rate) || rate < 100 || rate > 5000) throw new Error('Respuesta de cambio inválida');
+    usdClpCache = { at: Date.now(), rate };
+    res.set('Cache-Control', 'public, max-age=3600');
+    return res.json({ success: true, rate });
+  } catch (error) {
+    console.error('Error consultando el dólar:', error.message);
+    // Con el último valor conocido es mejor que dejar la carta sin referencia
+    if (usdClpCache) return res.json({ success: true, rate: usdClpCache.rate });
+    return res.status(502).json({ success: false, message: 'No se pudo obtener el tipo de cambio' });
   }
 });
 

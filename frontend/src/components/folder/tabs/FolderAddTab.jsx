@@ -1,7 +1,11 @@
+import { useMemo, useState } from 'react';
+import CardLightbox from '../../ui/CardLightbox';
 import { DuplicateCardNotice } from '../FolderInventoryComponents';
 import FolderAddSearchFilters from '../filters/FolderAddSearchFilters';
 import { SafeImage } from '../SafeImage';
 import { cardLabel, getExtDataValue } from '../folderCards';
+import { ReferencePriceBox, ReferencePriceLine } from '../ReferencePrice';
+import useReferencePrices from '../../../hooks/useReferencePrices';
 
 export default function FolderAddTab({
   activeQueueItemId, availableBlocks, availablePhysicalProducts, availableRarities, availableSets,
@@ -19,8 +23,18 @@ export default function FolderAddTab({
   setShowCardDetails, setStock, showCardDetails, showScrollTop, startQueuedAdd, stock, toggleMultiSelectMode,
   totalQueuedCards, visibleCount
 }) {
+  // Precio referencial (Pokémon: TCGplayer; Mitos y Leyendas: vendedores de Carpetazo) de las cartas a la vista y de la que se agrega
+  const referenceGame = searchCategory === '1' ? 'pokemon' : searchCategory === '99' ? 'myl' : null;
+  const { variantsFor, source } = useReferencePrices(selectedCard ? [selectedCard, ...searchResults.slice(0, visibleCount)] : searchResults.slice(0, visibleCount), referenceGame);
+  const selectedVariants = referenceGame && selectedCard ? variantsFor(selectedCard) : undefined;
+  // Carta de la ficha en pantalla grande (al tocar su imagen)
+  const [zoomedCard, setZoomedCard] = useState(null);
+  const zoomList = useMemo(() => (zoomedCard ? [{ id: 'zoom', name: zoomedCard.name, imageUrl: getProxyImageUrl(zoomedCard.tcgProductId || zoomedCard.id, zoomedCard.imageUrl), set: getCardSetName(zoomedCard), rarity: zoomedCard.rarity || getExtDataValue(zoomedCard.extData, 'Rarity') }] : []), [zoomedCard]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="flex flex-col-reverse lg:flex-row gap-6">
+      {zoomedCard && zoomList.length > 0 && (
+        <CardLightbox cards={zoomList} cardId="zoom" onChange={() => {}} onClose={() => setZoomedCard(null)} describe={(card) => ({ subtitle: [card.set, card.rarity].filter(Boolean).join(' • '), chips: [] })} />
+      )}
       {/* Lado Izquierdo: Buscador de API */}
       <div className="flex-1 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
         <div className="bg-white pb-4 mb-4 border-b border-gray-200">
@@ -166,6 +180,7 @@ export default function FolderAddTab({
                 <div className={`text-center border-t border-gray-100 w-full ${gridCols <= 2 ? 'p-2' : gridCols === 3 ? 'p-3' : gridCols === 4 ? 'p-2' : 'p-1'}`}>
                   <p className={`font-bold text-gray-900 truncate ${gridCols === 1 ? 'text-base' : gridCols === 2 ? 'text-xl' : gridCols === 3 ? 'text-base' : gridCols === 4 ? 'text-sm' : 'text-xs'}`}>{cardLabel(card)}</p>
                   <p className={`text-gray-500 truncate mt-1 ${gridCols === 1 ? 'text-xs' : gridCols === 2 ? 'text-lg' : gridCols === 3 ? 'text-sm' : gridCols === 4 ? 'text-xs' : 'text-[10px]'}`}>{getCardSetName(card)}</p>
+                  {referenceGame && <ReferencePriceLine variants={variantsFor(card)}className={`mt-0.5 ${gridCols === 1 ? 'text-sm' : gridCols === 2 ? 'text-lg' : gridCols === 3 ? 'text-sm' : 'text-xs'}`} />}
                 </div>
               )}
             </div>
@@ -264,7 +279,7 @@ export default function FolderAddTab({
           <form onSubmit={handleSaveCard} className="flex min-h-[610px] lg:min-h-0 lg:h-[calc(100%-58px)] flex-col justify-between gap-4 mt-2">
             <div className="flex justify-center relative z-50 mt-4 lg:flex-1 lg:min-h-0 w-full">
               <div className="relative inline-block lg:h-full flex justify-center items-center">
-                <div className="relative h-72 sm:h-80 lg:h-full lg:max-h-full lg:w-full aspect-[63/88]"><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} className="w-full h-full object-contain rounded-lg shadow-md hover:scale-[1.2] transition-transform duration-300 cursor-zoom-in relative z-50 hover:z-[70] origin-center" fallbackType="zoom-main" /></div>
+                <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} className="relative block h-72 sm:h-80 lg:h-full lg:max-h-full lg:w-full aspect-[63/88] cursor-zoom-in rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2"><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} className="w-full h-full object-contain rounded-lg shadow-md relative z-50 transition-transform duration-150 active:scale-[0.98]" fallbackType="zoom-main" /></button>
                 <button 
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -296,7 +311,8 @@ export default function FolderAddTab({
               </div>
 
               <DuplicateCardNotice existingCard={selectedExistingCard} selectedCard={selectedCard} />
-              
+              {referenceGame && <ReferencePriceBox variants={selectedVariants ?? null} source={source}currentPrice={price} onUse={(clp) => setPrice(String(clp))} />}
+
               {!isBatchAdding && (
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Alias / Apodo (Opcional)</label>
