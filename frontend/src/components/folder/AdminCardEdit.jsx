@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import LoadableImage from '../ui/LoadableImage';
+import { Link } from 'react-router-dom';
 
 const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, compact = false, detailLevel = 'none', dense = false, showLanguage = false, selectable = false, selected = false, onToggleSelect, onPreview, onDraftChange }) => {
   // 'full': nombre, edición, stock, precio e idioma · 'basic': solo stock y precio · 'none': solo la carta
@@ -89,6 +90,11 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
                 onError={() => setImgError(true)} 
               />
             )}
+          {!selectable && Number(card.stock || 0) > 0 && (
+            <Link to={`/carta/${card.id}`} aria-label={`Ver ficha pública de ${card.name}`} title="Ver ficha pública" className="absolute left-1 top-1 z-[2] flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[#1e40af] shadow ring-1 ring-black/10 transition active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
+              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">open_in_new</span>
+            </Link>
+          )}
           {onPreview && !selectable && (
             <button type="button" onClick={() => onPreview(card.id)} aria-label={`Ver ${card.name} en grande`} className="absolute inset-0 z-[1] cursor-zoom-in rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]" />
           )}

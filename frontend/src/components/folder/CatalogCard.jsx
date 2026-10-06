@@ -1,4 +1,5 @@
 import LoadableImage from '../ui/LoadableImage';
+import { Link } from 'react-router-dom';
 // En celular las fotos de cartas se descargan al acercarse a la pantalla; en PC se mantienen como siempre
 const MOBILE_IMAGE_LOADING = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 'lazy' : undefined;
 
@@ -72,7 +73,7 @@ export default function CatalogCard({ card, availableStock, cartQuantity, onAddT
         {/* Name and Type */}
         <div className={`flex justify-between items-start gap-2 ${isMyl ? 'mb-0.5' : 'mb-1'}`}>
           <h3 className={`${isMyl ? 'text-[15px]' : ''} font-bold text-gray-900 line-clamp-1`}>
-            {card.name}
+            <Link to={`/carta/${card.id}`} title="Ver ficha: compara precios y vendedores" className="hover:underline focus:outline-none focus-visible:underline">{card.name}</Link>
             {card.pseudoName && <span className="text-gray-500 font-normal text-[11px] ml-1.5 align-middle">({card.pseudoName})</span>}
           </h3>
           <div className="flex items-center gap-1 shrink-0">

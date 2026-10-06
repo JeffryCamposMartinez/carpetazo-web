@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { ReportMenu } from '../components/moderation/ReportButton';
@@ -33,6 +33,7 @@ const getOtherUser = (chat, currentUser) => {
     id: other.id || chat?.otherId || '',
     firebaseUid: other.firebaseUid,
     name: other.name || other.username || 'Usuario',
+    username: other.username || '',
     avatar: other.photoURL || null
   };
 };
@@ -380,7 +381,12 @@ export default function Messages() {
   };
 
   if (!currentUser) {
-    return <div className="p-8 text-center flex-1 mt-20">Debes iniciar sesión para ver tus mensajes.</div>;
+    return (
+      <div className="flex-1 px-4 py-20 text-center">
+        <p className="text-base font-semibold text-[#12315f]">Debes iniciar sesión para ver tus mensajes.</p>
+        <Link to="/bienvenida" className="mt-5 inline-flex h-12 items-center rounded-full bg-[#facc15] px-7 text-[15px] font-extrabold text-[#12315f] shadow-sm transition-transform duration-150 active:scale-[0.97]">Iniciar sesión</Link>
+      </div>
+    );
   }
 
   return (
@@ -453,7 +459,11 @@ export default function Messages() {
                     {activeOther.avatar ? <img src={activeOther.avatar} alt="" className="w-full h-full object-cover" /> : activeOther.name.charAt(0)}
                   </div>
                   <div className="min-w-0">
-                    <h2 className="truncate font-black">{activeOther.name}</h2>
+                    <h2 className="truncate font-black">
+                      {activeOther.username
+                        ? <Link to={`/${activeOther.username}`} title="Ver perfil público" className="hover:underline focus:outline-none focus-visible:underline">{activeOther.name}</Link>
+                        : activeOther.name}
+                    </h2>
                     <p className="text-xs font-semibold text-blue-100">{remoteTyping ? 'escribiendo…' : 'Conversación privada'}</p>
                   </div>
                   {activeOther?.id && (

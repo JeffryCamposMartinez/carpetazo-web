@@ -193,7 +193,7 @@ function RecentCards({ cards, loading }) {
             return (
               <Link
                 key={card.id}
-                to={`/c/${card.folder.id}`}
+                to={`/carta/${card.id}`}
                 title={`${card.name} · ${card.folder.name}`}
                 className={`group relative block overflow-hidden rounded-xl bg-[#1a2b4b]/10 ring-1 ring-[#1a2b4b]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e40af] ${big ? 'lg:col-span-2 lg:row-span-2 lg:h-full' : ''} ${index === 8 ? 'sm:max-lg:hidden' : ''}`}
                 style={{ aspectRatio: myl ? '709 / 1016' : '63 / 88' }}

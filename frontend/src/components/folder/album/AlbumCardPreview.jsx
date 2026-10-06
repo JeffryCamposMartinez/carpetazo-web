@@ -1,4 +1,5 @@
 import LoadableImage from '../../ui/LoadableImage';
+import { Link } from 'react-router-dom';
 // Vista ampliada de una carta dentro del álbum: imagen a un lado y datos al otro.
 export default function AlbumCardPreview({
   fetchedAbility, fetchingAbility, isDesktop, previewCard, previewSubtitle, renderCardActions,
@@ -13,7 +14,8 @@ export default function AlbumCardPreview({
         right: isDesktop ? '8%' : '12px',
         left: isDesktop ? 'calc(-82% - 18px)' : '12px',
         height: isDesktop ? undefined : 'auto',
-        transform: 'translateZ(100px)'
+        // Apenas delante de las páginas: con más profundidad la perspectiva lo agranda y el texto y la carta se ven borrosos
+        transform: 'translateZ(2px)'
       }}
       onClick={(e) => { e.stopPropagation(); setPreviewCard(null); setActiveCardId(null); }}
     >
@@ -101,6 +103,7 @@ export default function AlbumCardPreview({
               )}
             </div>
             <h2 className="text-[18px] md:text-3xl font-black leading-[1] text-white drop-shadow-md line-clamp-1">{previewCard.name}</h2>
+            <Link to={`/carta/${previewCard.id}`} className="mt-1 inline-flex min-h-8 items-center gap-1 self-start rounded-full bg-white/15 px-3 text-[11px] font-bold text-white ring-1 ring-white/25 transition-colors hover:bg-white/25 md:text-sm"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[16px] md:text-[18px]">open_in_new</span>Ver ficha y comparar precios</Link>
             {previewSubtitle && (
               <p className="text-slate-400 text-[11px] md:text-sm italic leading-tight line-clamp-1">
                 {previewSubtitle}

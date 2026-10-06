@@ -35,6 +35,9 @@ export function ProfileUnavailable() {
             <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">arrow_back</span>Volver al inicio
           </Link>
         </div>
+        <p className="mt-4 text-sm text-slate-600">
+          O explora <Link to="/cartas" className="font-bold text-[#1e40af] underline underline-offset-2">las cartas en venta</Link> y <Link to="/carpetas" className="font-bold text-[#1e40af] underline underline-offset-2">las carpetas</Link>.
+        </p>
         <p className="mt-6 text-sm text-slate-600">¿Crees que es un error? Escríbenos a <a href="mailto:carpetazo.soporte@gmail.com" className="font-bold text-[#1e40af] underline underline-offset-2">carpetazo.soporte@gmail.com</a>.</p>
       </div>
     </main>

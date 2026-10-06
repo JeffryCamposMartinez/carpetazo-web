@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import LiquidTabs from '../ui/LiquidTabs';
 import LoadableImage from '../ui/LoadableImage';
@@ -29,6 +30,11 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const Icon = ({ name, className = '' }) => (
   <span translate="no" aria-hidden="true" className={`material-symbols-outlined ${className}`}>{name}</span>
 );
+
+// Nombre de la carta del pedido: si sigue a la venta, abre su ficha pública
+const CardName = ({ item }) => (item.id && item.stockNow > 0
+  ? <Link to={`/carta/${item.id}`} title="Ver ficha de la carta" className="hover:underline focus:outline-none focus-visible:underline">{item.name}</Link>
+  : item.name);
 
 const Thumb = ({ item, className = 'h-14 w-10' }) => (
   <div className={`${className} relative shrink-0 overflow-hidden rounded-[5px] bg-slate-200 ring-1 ring-black/10`}>
@@ -115,7 +121,7 @@ function OrderSlip({ order, busy, onDecide, showToast }) {
               <li key={`${item.id}-${index}`} className="flex items-center gap-3 py-2.5">
                 <Thumb item={item} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-bold text-[#1a2b4b]">{item.name}</p>
+                  <p className="truncate font-bold text-[#1a2b4b]"><CardName item={item} /></p>
                   <p className="truncate text-xs text-slate-500">
                     {[item.set, item.number, langCode(item.language)].filter(Boolean).join(' / ')}
                   </p>
@@ -413,7 +419,7 @@ function HistoryRow({ order, open, onToggle }) {
               <li key={`${item.id}-${index}`} className="flex items-center gap-3 rounded-xl bg-white p-2 ring-1 ring-slate-200">
                 <Thumb item={item} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-[#1a2b4b]">{item.name}</p>
+                  <p className="truncate text-sm font-bold text-[#1a2b4b]"><CardName item={item} /></p>
                   <p className="truncate text-xs text-slate-500">{[item.set, item.number, langCode(item.language)].filter(Boolean).join(' / ')}</p>
                 </div>
                 <p className={`${NUM} shrink-0 text-right text-sm font-bold text-[#1a2b4b]`}>

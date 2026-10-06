@@ -94,6 +94,9 @@ export default function LandingPage() {
                 Buscar cartas
               </Link>
             </div>
+            <p className="mt-4 text-sm font-semibold text-[#12315f]">
+              ¿Buscas a alguien en particular? <Link to="/vendedores" className="font-extrabold underline underline-offset-2">Mira los vendedores</Link>.
+            </p>
           </div>
 
             <div className="w-full overflow-hidden pt-4 pb-12 md:pb-16 relative mt-4 ">

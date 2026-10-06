@@ -576,6 +576,13 @@ export default function Header() {
                       <Link role="menuitem" to="/dashboard?tab=deseadas" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
                         <span translate="no" className="material-symbols-outlined text-[20px]">favorite</span> Mi lista de deseos
                       </Link>
+                      <Link role="menuitem" to="/dashboard?tab=solicitudes" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
+                        <span translate="no" className="material-symbols-outlined text-[20px]">inbox</span> Solicitudes
+                        {pendingOrders.count > 0 && <span className="ml-auto rounded-full bg-[#facc15] px-2 py-0.5 text-[11px] font-black tabular-nums text-[#12315f]">{pendingOrders.count}</span>}
+                      </Link>
+                      <Link role="menuitem" to="/dashboard?tab=historial" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
+                        <span translate="no" className="material-symbols-outlined text-[20px]">receipt_long</span> Historial de ventas
+                      </Link>
                       <Link role="menuitem" to="/mensajes" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
                         <span translate="no" className="material-symbols-outlined text-[20px]">chat</span> Mensajes
                       </Link>

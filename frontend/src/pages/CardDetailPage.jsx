@@ -7,8 +7,15 @@ import { wishlistPayloadFromCard } from '../utils/wishlistPayload';
 import LoadableImage from '../components/ui/LoadableImage';
 import CardLightbox from '../components/ui/CardLightbox';
 import CardOffers from '../components/cards/CardOffers';
+import CardShare from '../components/cards/CardShare';
+import { CardAvailability, RecentSales, TcgplayerRange } from '../components/cards/CardMarketInfo';
+import ReportButton from '../components/moderation/ReportButton';
+import useCardPriceRanges from '../hooks/useCardPriceRanges';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
+
+// Nombre con el que /cartas filtra cada juego (el servidor guarda otra forma)
+const GAME_FILTER = { Pokemon: 'Pokémon', YuGiOh: 'Yu-Gi-Oh!', OnePiece: 'One Piece' };
 
 const DETAILS = [
   ['Juego', 'tcg'], ['Edición', 'set'], ['Rareza', 'rarity'], ['Número', 'number'],
@@ -63,6 +70,7 @@ export default function CardDetailPage() {
   const offers = useMemo(() => data?.offers || [], [data]);
   const chosen = offers.find((offer) => offer.id === cardId);
   const best = offers.find((offer) => Number(offer.price) > 0);
+  const priceRanges = useCardPriceRanges(card, chosen?.language || best?.language);
   const lightboxCards = useMemo(() => (card ? [{ id: card.id, name: card.name, imageUrl: card.imageUrl }] : []), [card]);
 
   const addToWishlist = async () => {
@@ -100,20 +108,35 @@ export default function CardDetailPage() {
           <span className="min-w-0 truncate">{card.name}</span>
         </nav>
 
-        <div className="grid gap-6 md:grid-cols-[minmax(0,21rem)_1fr] md:items-start lg:gap-10">
-          <div className="mx-auto w-full max-w-[12.5rem] sm:max-w-[16rem] md:sticky md:top-24 md:max-w-none">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[minmax(0,21rem)_minmax(0,1fr)] md:items-start lg:gap-10">
+          <div className="mx-auto w-full min-w-0 max-w-[12.5rem] sm:max-w-[16rem] md:col-start-1 md:row-start-1 md:max-w-none">
             <button type="button" onClick={() => setZoom(true)} aria-label={`Ver ${card.name} en pantalla grande`} className="relative block w-full cursor-zoom-in overflow-hidden rounded-2xl bg-white p-2 shadow-[0_18px_40px_-24px_rgba(26,43,75,0.6)] ring-1 ring-slate-900/5 transition-transform duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]" style={{ aspectRatio: '63 / 88' }}>
               {card.imageUrl ? <LoadableImage src={card.imageUrl} alt={card.name} className="h-full w-full rounded-lg object-contain" /> : <span className="flex h-full items-center justify-center text-sm font-semibold text-slate-400">Sin imagen</span>}
             </button>
           </div>
 
-          <div className="min-w-0 space-y-4">
+          <div className="min-w-0 space-y-4 md:col-start-2 md:row-span-2 md:row-start-1">
             <h1 className="text-2xl font-extrabold leading-tight text-[#12315f] [text-wrap:balance] md:text-3xl">{card.name}</h1>
 
             <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-900/5">
               <p className="text-xs font-bold text-slate-500">{offers.length > 1 ? 'Desde' : 'Precio'}</p>
               <p className="mt-0.5 text-3xl font-black tabular-nums text-[#12315f]">{best ? formatCLP(best.price) : 'Consultar'}</p>
-              <p className="mt-0.5 text-xs text-slate-500">{offers.length === 1 ? '1 vendedor' : `${offers.length} vendedores`}</p>
+              {best && (
+                <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-slate-600">
+                  Vendido por
+                  {best.folder.user?.username
+                    ? <Link to={`/${best.folder.user.username}`} className="font-extrabold text-[#1e40af] hover:underline">{best.folder.user.name || best.folder.user.username}</Link>
+                    : <span className="font-extrabold text-[#12315f]">{best.folder.user?.name || 'un vendedor'}</span>}
+                  <span className="text-slate-400">·</span>
+                  <span>{offers.length === 1 ? 'único vendedor' : `y ${offers.length - 1} ${offers.length - 1 === 1 ? 'vendedor más' : 'vendedores más'}`}</span>
+                </p>
+              )}
+              {best?.folder.user?.username && (
+                <Link to={`/cartas?seller=${encodeURIComponent(best.folder.user.username)}`} className="mt-1 inline-flex min-h-8 items-center gap-1 text-xs font-bold text-[#1e40af] hover:underline focus:outline-none focus-visible:underline">
+                  <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[16px]">style</span>
+                  Ver más cartas de este vendedor
+                </Link>
+              )}
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                 {best && (
                   <Link to={`/c/${best.folder.id}`} className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#facc15] sm:flex-1 px-4 text-[15px] font-extrabold text-[#12315f] transition-[background-color,transform] duration-150 hover:bg-[#eab308] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2">
@@ -128,6 +151,8 @@ export default function CardDetailPage() {
               </div>
             </div>
 
+            <CardAvailability stats={data.stats || { copies: offers.reduce((sum, offer) => sum + (offer.stock || 0), 0), sellers: offers.length }} />
+            <TcgplayerRange status={priceRanges.status} ranges={priceRanges.ranges} />
             <Reference reference={data.reference} />
 
             {details.length > 0 && (
@@ -135,7 +160,11 @@ export default function CardDetailPage() {
                 {details.map(([label, value]) => (
                   <div key={label} className="min-w-0">
                     <dt className="text-xs font-bold text-slate-500">{label}</dt>
-                    <dd className="truncate font-semibold text-[#12315f]">{value}</dd>
+                    <dd className="truncate font-semibold text-[#12315f]">
+                      {label === 'Juego'
+                        ? <Link to={`/cartas?tcg=${encodeURIComponent(GAME_FILTER[value] || value)}`} className="text-[#1e40af] hover:underline">{value}</Link>
+                        : value}
+                    </dd>
                   </div>
                 ))}
               </dl>
@@ -146,6 +175,12 @@ export default function CardDetailPage() {
                 <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-slate-700">{card.effect}</p>
               </div>
             )}
+            <RecentSales sales={data.sales || []} />
+          </div>
+          <div className="min-w-0 md:col-start-1 md:row-start-2">
+            <CardShare cardId={chosen?.id || card.id} name={card.name} message={`¡Mira esta carta en Carpetazo! ${card.name}${best ? ` desde ${formatCLP(best.price)}` : ''}`} showToast={showToast}>
+              <ReportButton targetType="card" targetId={chosen?.id || best?.id || card.id} label="Reportar esta publicación" className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl text-sm font-bold text-slate-500 transition-colors hover:bg-slate-50 hover:text-red-600" />
+            </CardShare>
           </div>
         </div>
 

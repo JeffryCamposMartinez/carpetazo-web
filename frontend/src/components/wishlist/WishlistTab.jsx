@@ -262,6 +262,10 @@ export default function WishlistTab({ showToast = () => {} }) {
                     </p>
                   )}
                   {item.note && <p className="mt-1 line-clamp-2 text-xs italic text-slate-500">{item.note}</p>}
+                  <Link to={`/cartas?q=${encodeURIComponent(item.name)}`} className="mt-1.5 inline-flex min-h-8 items-center gap-1 text-xs font-bold text-[#1e40af] hover:underline focus:outline-none focus-visible:underline">
+                    <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[16px]">search</span>
+                    Ver quién la vende
+                  </Link>
                 </div>
               <div className="col-start-2 mt-2 flex flex-wrap items-center gap-1 sm:mt-0 sm:w-auto sm:shrink-0 sm:flex-nowrap">
                 <div className="flex items-center rounded-full bg-slate-100">
@@ -281,7 +285,7 @@ export default function WishlistTab({ showToast = () => {} }) {
                   <ul className="mt-1.5 space-y-1">
                     {matches[item.id].offers.map((offer) => (
                       <li key={offer.cardId}>
-                        <Link to={`/c/${offer.folder.id}`} className="flex min-h-11 items-center gap-2 rounded-lg bg-white px-2.5 py-1.5 text-sm shadow-sm transition-transform duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600">
+                        <Link to={`/carta/${offer.cardId}`} className="flex min-h-11 items-center gap-2 rounded-lg bg-white px-2.5 py-1.5 text-sm shadow-sm transition-transform duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600">
                           <span className="min-w-0 flex-1 truncate font-bold text-[#12315f]">{offer.seller.name || offer.seller.username || 'Vendedor'}<span className="font-medium text-slate-500"> · {offer.folder.name}</span></span>
                           <span className="shrink-0 font-extrabold tabular-nums text-emerald-700">{formatCLP(offer.price)}</span>
                         </Link>

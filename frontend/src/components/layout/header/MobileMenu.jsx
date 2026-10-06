@@ -45,9 +45,10 @@ export default function MobileMenu({
         {(() => {
           const rowBase = 'relative flex min-h-12 items-center gap-3.5 rounded-xl px-3 text-[15px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]/50';
           const accountItems = [
-            { to: '/dashboard', label: 'Mis carpetas', icon: 'folder', active: location.pathname === '/dashboard' && !/tab=(solicitudes|deseadas)/.test(location.search) },
+            { to: '/dashboard', label: 'Mis carpetas', icon: 'folder', active: location.pathname === '/dashboard' && !/tab=(solicitudes|historial|deseadas)/.test(location.search) },
             { to: '/dashboard?tab=deseadas', label: 'Mi lista de deseos', icon: 'favorite', active: location.pathname === '/dashboard' && location.search.includes('tab=deseadas') },
-            ...(pendingOrders.count > 0 ? [{ to: '/dashboard?tab=solicitudes', label: 'Solicitudes de compra', icon: 'inbox', badge: pendingOrders.count }] : []),
+            { to: '/dashboard?tab=solicitudes', label: 'Solicitudes de compra', icon: 'inbox', active: location.pathname === '/dashboard' && location.search.includes('tab=solicitudes'), badge: pendingOrders.count > 0 ? pendingOrders.count : undefined },
+            { to: '/dashboard?tab=historial', label: 'Historial de ventas', icon: 'receipt_long', active: location.pathname === '/dashboard' && location.search.includes('tab=historial') },
             { to: '/mensajes', label: 'Mensajes', icon: 'chat', active: location.pathname === '/mensajes', badge: unreadMessages },
             { to: '/perfil', label: 'Mi perfil', icon: 'person', active: location.pathname === '/perfil' },
             { to: `/${userUsername || currentUser?.uid || ''}`, label: 'Mi perfil público', icon: 'badge', active: false },

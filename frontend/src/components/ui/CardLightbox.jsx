@@ -25,6 +25,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, describ
   const closeRef = useRef(null);
   const [loadedId, setLoadedId] = useState(null); // carta cuya imagen ya cargó: mientras tanto se muestra el logo con el espiral
   const [failedId, setFailedId] = useState(null);
+  const [ratios, setRatios] = useState({}); // proporción (ancho/alto) de la imagen de cada carta, para que sus esquinas redondeadas sean las de la carta y no las de una caja más ancha
   const state = useRef({});
   state.current = { index, cards, onChange, onClose };
   useBodyScrollLock();
@@ -100,7 +101,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, describ
       </div>
 
       <div
-        className="relative flex min-h-0 flex-1 touch-none select-none items-center justify-center overflow-hidden px-3"
+        className="relative flex min-h-0 flex-1 touch-none select-none items-center justify-center overflow-hidden px-3 [container-type:size]"
         onClick={(event) => event.stopPropagation()}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -118,7 +119,18 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, describ
           style={{ transform: `translate(${drag.x}px, ${drag.y}px) scale(${1 - Math.min(Math.abs(drag.y), 300) / 1500})`, opacity: 1 - Math.min(Math.abs(drag.y), 300) / 500, transition: drag.active ? 'none' : 'transform 220ms cubic-bezier(0.23, 1, 0.32, 1), opacity 220ms ease-out' }}
         >
           {card.imageUrl
-            ? <img src={card.imageUrl} referrerPolicy="no-referrer" alt={card.name} draggable={false} onLoad={() => setLoadedId(card.id)} onError={() => setFailedId(card.id)} ref={(img) => { if (img?.complete && img.naturalWidth > 0 && loadedId !== card.id) setLoadedId(card.id); }} className={`h-full w-auto max-w-full rounded-2xl object-contain shadow-2xl ${loadedId === card.id ? '' : 'opacity-0'}`} />
+            ? <img
+              src={card.imageUrl}
+              referrerPolicy="no-referrer"
+              alt={card.name}
+              draggable={false}
+              onLoad={(event) => { setLoadedId(card.id); const { naturalWidth, naturalHeight } = event.currentTarget; if (naturalWidth && naturalHeight) setRatios((prev) => ({ ...prev, [card.id]: naturalWidth / naturalHeight })); }}
+              onError={() => setFailedId(card.id)}
+              ref={(img) => { if (img?.complete && img.naturalWidth > 0 && loadedId !== card.id) { setLoadedId(card.id); setRatios((prev) => (prev[card.id] ? prev : { ...prev, [card.id]: img.naturalWidth / img.naturalHeight })); } }}
+              // Misma altura para todas las cartas; si no cabe a lo ancho, se reduce sin dejar bordes vacíos (el redondeo queda en la carta)
+              style={{ aspectRatio: ratios[card.id] || 63 / 88, height: `min(100cqh, calc((100cqw - 1.5rem) / ${ratios[card.id] || 63 / 88}))`, width: 'auto' }}
+              className={`rounded-2xl object-contain shadow-2xl transition-opacity duration-200 ${loadedId === card.id ? 'opacity-100' : 'opacity-0'}`}
+            />
             : <span className="rounded-2xl bg-white/10 px-6 py-10 text-sm font-bold text-white/70">Sin imagen</span>}
         </div>
         <button type="button" aria-label="Carta siguiente" disabled={index >= cards.length - 1} onClick={() => go(1)} onPointerDown={(event) => event.stopPropagation()} className={`${nav} right-2 hidden sm:right-6 [@media(hover:hover)]:flex ${cards.length < 2 ? "!hidden" : ""}`}>

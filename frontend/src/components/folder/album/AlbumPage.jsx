@@ -285,7 +285,7 @@ export default function AlbumPage({
         {card ? (
           <div 
             className="w-full h-full relative z-30 flex items-center justify-center cursor-pointer"
-            style={{ transform: cardIsActive ? 'translateZ(80px)' : 'translateZ(0px)', transition: 'transform 300ms ease-out', transformStyle: 'preserve-3d' }}
+            style={{ transform: cardIsActive && !previewCard ? 'translateZ(80px)' : 'translateZ(0px)', transition: 'transform 300ms ease-out', transformStyle: 'preserve-3d' }}
           >
             <div className={`relative w-full h-full flex flex-col items-center justify-center transition-all duration-300 ease-out min-h-0 min-w-0 ${cardIsActive && !previewCard ? 'scale-[1.25] md:scale-[1.4] -translate-y-4 md:-translate-y-6 z-[100]' : ''}`}>
               <div className="relative w-[95%] h-[95%] flex items-center justify-center">
