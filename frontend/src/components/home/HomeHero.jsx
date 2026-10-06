@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import LoadableImage from '../ui/LoadableImage';
 
 // Contenido del primer banner del carrusel de inicio.
 // Usa las mismas cartas promocionales de los banners anteriores.
@@ -23,8 +24,8 @@ function Fan({ compact }) {
             className={`hero-card shrink-0 ${width} ${index > 0 ? (compact ? '-ml-[7vw]' : '-ml-[1.4vw]') : ''}`}
             style={{ zIndex: card.z, '--r': `${card.rotate}deg`, '--s': card.scale, '--y': `${card.lift}px`, animationDelay: `${card.delay}ms` }}
           >
-            <div className="overflow-hidden rounded-xl bg-[#13306b] shadow-[0_18px_36px_-14px_rgba(0,0,0,0.75)] ring-1 ring-white/25" style={{ aspectRatio: '63 / 88' }}>
-              <img src={card.src} alt={card.name} decoding="async" className="h-full w-full object-cover" />
+            <div className="relative overflow-hidden rounded-xl bg-[#13306b] shadow-[0_18px_36px_-14px_rgba(0,0,0,0.75)] ring-1 ring-white/25" style={{ aspectRatio: '63 / 88' }}>
+              <LoadableImage src={card.src} alt={card.name} decoding="async" compact className="h-full w-full object-cover" />
             </div>
           </div>
         ))}

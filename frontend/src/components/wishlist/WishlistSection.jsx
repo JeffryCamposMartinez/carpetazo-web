@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import ReportButton from '../moderation/ReportButton';
 import CardLightbox from '../ui/CardLightbox';
 import { describeWishlistItem } from './wishlistLightbox';
+import LoadableImage from '../ui/LoadableImage';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 
@@ -96,7 +97,7 @@ export default function WishlistSection({ username, seller, isOwner = false, var
           <div className="relative w-full bg-slate-100" style={{ aspectRatio: '63 / 88' }}>
             {item.imageUrl ? (
               <button type="button" onClick={() => setPreviewId(item.id)} aria-label={`Ver ${item.name} en grande`} className="absolute inset-0 cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#12315f]">
-                <img src={item.imageUrl} alt="" loading="lazy" decoding="async" className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-md object-contain" />
+                <LoadableImage src={item.imageUrl} alt="" loading="lazy" decoding="async" className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-md object-contain" />
               </button>
             ) : (
               <span className="absolute inset-0 flex items-center justify-center px-2 text-center text-xs font-semibold text-slate-400">Sin imagen</span>

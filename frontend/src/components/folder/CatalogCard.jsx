@@ -1,3 +1,4 @@
+import LoadableImage from '../ui/LoadableImage';
 // En celular las fotos de cartas se descargan al acercarse a la pantalla; en PC se mantienen como siempre
 const MOBILE_IMAGE_LOADING = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 'lazy' : undefined;
 
@@ -41,7 +42,7 @@ export default function CatalogCard({ card, availableStock, cartQuantity, onAddT
     <article className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden border border-gray-200 ${isMyl ? 'min-h-0' : ''}`}>
       {/* Top Image Section */}
       <div className={`relative w-full ${isMyl ? 'aspect-[63/86] p-1.5' : 'aspect-[63/88] p-2'} bg-gray-50 flex items-center justify-center`}>
-        <img 
+        <LoadableImage 
           loading={MOBILE_IMAGE_LOADING}
           decoding="async"
           className={`w-full h-full object-fill ${isOutOfStock && cartQuantity === 0 ? 'grayscale opacity-60' : ''}`} 

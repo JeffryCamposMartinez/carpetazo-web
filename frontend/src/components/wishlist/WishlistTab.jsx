@@ -5,6 +5,7 @@ import WishlistCardFinder from './WishlistCardFinder';
 import WishlistFinderSheet from './WishlistFinderSheet';
 import CardLightbox from '../ui/CardLightbox';
 import { describeWishlistItem } from './wishlistLightbox';
+import LoadableImage from '../ui/LoadableImage';
 
 const LIMIT_FALLBACK = 200;
 
@@ -243,8 +244,8 @@ export default function WishlistTab({ showToast = () => {} }) {
             <li key={item.id} className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200 lg:bg-slate-50 lg:shadow-none">
               <div className="grid grid-cols-[60px_minmax(0,1fr)] items-start gap-x-3 sm:flex sm:items-center">
                 {item.imageUrl ? (
-                  <button type="button" onClick={() => setPreviewId(item.id)} aria-label={`Ver ${item.name} en grande`} className="row-span-2 block h-[84px] w-[60px] shrink-0 cursor-zoom-in overflow-hidden rounded-lg bg-slate-100 ring-1 ring-black/5 transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-                    <img src={item.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
+                  <button type="button" onClick={() => setPreviewId(item.id)} aria-label={`Ver ${item.name} en grande`} className="relative row-span-2 block h-[84px] w-[60px] shrink-0 cursor-zoom-in overflow-hidden rounded-lg bg-slate-100 ring-1 ring-black/5 transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
+                    <LoadableImage src={item.imageUrl} alt="" loading="lazy" compact className="h-full w-full object-contain" />
                   </button>
                 ) : (
                   <span className="row-span-2 block h-[84px] w-[60px] shrink-0 overflow-hidden rounded-lg bg-slate-100 ring-1 ring-black/5"><span className="flex h-full items-center justify-center px-1 text-center text-[10px] font-semibold text-slate-400">Sin imagen</span></span>

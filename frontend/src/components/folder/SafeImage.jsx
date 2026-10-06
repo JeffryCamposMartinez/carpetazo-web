@@ -1,9 +1,9 @@
 // Imagen de carta con respaldo si no carga.
 import React from 'react';
+import LoadableImage from '../ui/LoadableImage';
 
 export const SafeImage = React.memo(({ src, alt, className, fallbackType = 'grid' }) => {
   const [error, setError] = React.useState(false);
-  const [loaded, setLoaded] = React.useState(false);
 
   if (!src || error) {
     if (fallbackType === 'queue') {
@@ -30,22 +30,5 @@ export const SafeImage = React.memo(({ src, alt, className, fallbackType = 'grid
     );
   }
   
-  return (
-    <>
-      {!loaded && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <img src="/images/logos/logo_completo.webp" className="w-10 h-10 opacity-40 animate-pulse object-contain filter grayscale" alt="Cargando..." />
-        </div>
-      )}
-      <img 
-        src={src} 
-        alt={alt} 
-        referrerPolicy="no-referrer" 
-        loading="lazy" 
-        className={`${className} ${loaded ? '' : 'opacity-0'}`} 
-        onLoad={() => setLoaded(true)} 
-        onError={() => setError(true)} 
-      />
-    </>
-  );
+  return <LoadableImage src={src} alt={alt} loading="lazy" className={className} onError={() => setError(true)} />;
 });

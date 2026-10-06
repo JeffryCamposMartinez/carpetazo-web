@@ -1,3 +1,4 @@
+import LoadableImage from '../../ui/LoadableImage';
 // Carrito del catálogo público: cartas elegidas, total y envío del pedido.
 export default function CatalogCartDrawer({
   cart, cartTotal, currentUser, formatCLP, handleMessageCheckout, handleWhatsAppCheckout,
@@ -24,7 +25,7 @@ export default function CatalogCartDrawer({
           ) : (
             cart.map(item => (
               <div key={item.id} className="flex gap-4 bg-gray-50 p-3 rounded-xl border border-gray-200 shadow-sm relative group">
-                <img src={item.imageUrl} referrerPolicy="no-referrer" alt={item.name} className="w-14 h-20 object-cover rounded-md shadow-sm" />
+                <span className="relative block h-20 w-14 shrink-0 overflow-hidden rounded-md bg-gray-200 shadow-sm"><LoadableImage src={item.imageUrl} alt={item.name} compact className="h-full w-full object-cover" /></span>
                 <div className="flex-1 flex flex-col justify-center">
                   <p className="font-bold text-sm text-gray-900 leading-tight mb-1 line-clamp-2">{item.name}</p>
                   <p className="text-gray-500 text-xs mb-1">{item.set}</p>

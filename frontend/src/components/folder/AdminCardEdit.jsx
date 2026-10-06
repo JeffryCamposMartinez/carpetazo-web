@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import LoadableImage from '../ui/LoadableImage';
 
 const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, compact = false, detailLevel = 'none', dense = false, showLanguage = false, selectable = false, selected = false, onToggleSelect, onPreview, onDraftChange }) => {
   // 'full': nombre, edición, stock, precio e idioma · 'basic': solo stock y precio · 'none': solo la carta
@@ -81,9 +82,8 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
                 <span className="text-[11px] sm:text-xs font-bold text-gray-400 leading-tight">SIN<br/>IMAGEN</span>
               </div>
             ) : (
-              <img 
+              <LoadableImage 
                 src={card.imageUrl} 
-                referrerPolicy="no-referrer" 
                 alt={card.name} 
                 className="absolute inset-0 w-full h-full object-fill filter drop-shadow-md transition-transform duration-300" 
                 onError={() => setImgError(true)} 

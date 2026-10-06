@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { api } from '../../services/api';
 import LiquidTabs from '../ui/LiquidTabs';
+import LoadableImage from '../ui/LoadableImage';
 
 // Solicitudes (pedidos pendientes) e historial de ventas del vendedor.
 // Los datos vienen de GET /api/orders/mine; las acciones de POST /api/orders/mine/:id/status.
@@ -30,9 +31,9 @@ const Icon = ({ name, className = '' }) => (
 );
 
 const Thumb = ({ item, className = 'h-14 w-10' }) => (
-  <div className={`${className} shrink-0 overflow-hidden rounded-[5px] bg-slate-200 ring-1 ring-black/10`}>
+  <div className={`${className} relative shrink-0 overflow-hidden rounded-[5px] bg-slate-200 ring-1 ring-black/10`}>
     {item.imageUrl ? (
-      <img src={item.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+      <LoadableImage src={item.imageUrl} alt="" loading="lazy" compact className="h-full w-full object-cover" />
     ) : (
       <div className="flex h-full w-full items-center justify-center text-slate-400"><Icon name="style" className="text-base" /></div>
     )}
