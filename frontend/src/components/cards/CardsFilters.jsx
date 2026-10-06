@@ -1,3 +1,5 @@
+import ComunaSelect from '../ui/ComunaSelect';
+
 // Juegos del sitio con su logo. Solo Pokémon y Mitos y Leyendas tienen catálogo cargado; el resto se verá vacío hasta que haya cartas.
 export const GAMES = [
   { name: 'Pokémon', logo: '/images/logos/pokemon.webp' },
@@ -11,7 +13,7 @@ export const GAMES = [
 const CHIP = 'flex h-11 shrink-0 items-center justify-center gap-2.5 rounded-full px-4 text-sm font-extrabold transition-[background-color,box-shadow,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 focus-visible:ring-offset-[#DBEAFE] lg:h-12 lg:w-full lg:justify-start lg:rounded-2xl lg:px-3.5';
 
 // Búsqueda y juego: arriba en el celular (los juegos se deslizan de lado) y en una columna fija a la izquierda en pantallas anchas
-export default function CardsFilters({ onQuery, onTcg, query, tcg }) {
+export default function CardsFilters({ comuna, onComuna, onQuery, onTcg, query, tcg }) {
   const active = 'bg-[#12315f] text-white shadow-[0_1px_2px_rgba(8,18,42,0.35),0_8px_16px_-8px_rgba(18,49,95,0.7)]';
   const idle = 'bg-white text-[#12315f] ring-1 ring-slate-900/10 [@media(hover:hover)]:hover:bg-blue-50';
 
@@ -44,6 +46,8 @@ export default function CardsFilters({ onQuery, onTcg, query, tcg }) {
           </button>
         ))}
       </div>
+
+      <ComunaSelect value={comuna} onChange={onComuna} className="mt-3" />
     </div>
   );
 }

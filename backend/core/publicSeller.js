@@ -4,6 +4,8 @@ import { sanitizePublicTheme } from './validation.js';
 
 export const PUBLIC_SELLER_SELECT = {
   id: true,
+  publicRegion: true,
+  publicComuna: true,
   username: true,
   name: true,
   fullName: true,
@@ -18,7 +20,6 @@ export const PUBLIC_SELLER_SELECT = {
   instagramUrl: true,
   youtubeUrl: true,
   phone: true,
-  addresses: true,
   createdAt: true,
   firebaseUid: true // solo para calcular isOwner; el serializador lo elimina
 };
@@ -53,10 +54,8 @@ export const toPublicSeller = (user, viewerUid = null, reviewSummary = null) => 
     youtubeUrl: user.youtubeUrl,
     // El teléfono solo sale si el vendedor dejó activo el botón de WhatsApp
     phone: theme.showWhatsApp !== 'off' ? user.phone : null,
-    // Solo ciudad/región: calle, número y referencias son privados
-    addresses: Array.isArray(user.addresses)
-      ? user.addresses.map((a) => ({ name: a?.name || '', comuna: a?.comuna || '', region: a?.region || '', isDefault: Boolean(a?.isDefault) }))
-      : [],
+    // Solo comuna y región (siempre públicas): las direcciones guardadas nunca salen de la base
+    addresses: user.publicComuna ? [{ name: 'Mi ubicación', comuna: user.publicComuna, region: user.publicRegion || '', isDefault: true }] : [],
     createdAt: user.createdAt,
     isOwner: Boolean(viewerUid && user.firebaseUid && user.firebaseUid === viewerUid),
     reviewSummary: reviewSummary || { average: null, count: 0, showAverage: false }

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { ReportMenu } from '../moderation/ReportButton';
 import { SocialLogo } from './SocialLogo';
 import { bannerForScreen } from '../../utils/responsiveImage';
@@ -62,6 +63,12 @@ export default function ProfileHero({
                 </h1>
                 <p className="mt-1.5 text-[15px] font-bold leading-snug" style={{ color: heroTheme.primary }}>@{seller?.username}</p>
                 {seller?.fullName && <p className="text-sm font-medium leading-snug" style={heroMuted}>{seller.fullName}</p>}
+                {seller?.username && (
+                  <Link to={`/cartas?seller=${encodeURIComponent(seller.username)}`} className="mt-1 inline-flex min-h-8 items-center gap-1 text-sm font-bold underline-offset-2 hover:underline focus:outline-none focus-visible:underline" style={{ color: heroTheme.primary }}>
+                    <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">style</span>
+                    Ver sus cartas en venta
+                  </Link>
+                )}
               </div>
             </div>
 

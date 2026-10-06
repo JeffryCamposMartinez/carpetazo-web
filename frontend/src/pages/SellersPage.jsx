@@ -1,6 +1,8 @@
 import React, { startTransition, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
+import ComunaSelect from '../components/ui/ComunaSelect';
+import LocationLine from '../components/ui/LocationLine';
 
 const SORTS = [
   { value: 'visits', label: 'Más visitados' },
@@ -26,6 +28,7 @@ export default function SellersPage() {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [sort, setSort] = useState('visits');
+  const [comuna, setComuna] = useState('');
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -40,13 +43,14 @@ export default function SellersPage() {
     const params = new URLSearchParams();
     if (debouncedQuery) params.set('q', debouncedQuery);
     if (sort !== 'visits') params.set('sort', sort);
+    if (comuna) params.set('comuna', comuna);
     if (page > 1) params.set('page', String(page));
     api.getSellers(params.toString())
       .then((res) => { if (!cancelled) startTransition(() => setResult(res.success ? res : { sellers: [], total: 0, pages: 1 })); })
       .catch(() => { if (!cancelled) setFailed(true); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [debouncedQuery, sort, page]);
+  }, [debouncedQuery, sort, comuna, page]);
 
   const sellers = useMemo(() => result.sellers.map((seller) => ({ ...seller, key: seller.username || seller.name, photoURL: seller.photoURL || '', tcgs: seller.tcgs || [] })), [result.sellers]);
 
@@ -70,6 +74,7 @@ export default function SellersPage() {
               className="h-11 w-full rounded-full border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-medium text-slate-900 transition focus:border-[#1e40af] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#facc15]/70"
             />
           </div>
+          <ComunaSelect value={comuna} onChange={(value) => { setComuna(value); setPage(1); }} className="md:w-56" />
           <select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} aria-label="Ordenar" className="h-11 rounded-full border border-slate-200 bg-white px-4 text-sm font-bold text-[#12315f] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70">
             {SORTS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
@@ -87,7 +92,7 @@ export default function SellersPage() {
         ) : sellers.length === 0 ? (
           <div className="rounded-2xl bg-white p-8 text-center ring-1 ring-slate-900/5">
             <p className="text-lg font-extrabold text-[#12315f]">No hay vendedores con esa búsqueda</p>
-            <p className="mt-1 text-sm text-slate-600">Prueba con otro nombre.</p>
+            <p className="mt-1 text-sm text-slate-600">{comuna ? 'Solo aparecen vendedores que indicaron su comuna. Prueba con otra comuna o quita el filtro.' : 'Prueba con otro nombre.'}</p>
           </div>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -98,6 +103,7 @@ export default function SellersPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-base font-extrabold text-[#12315f]">{seller.name}</p>
                     <p className="truncate text-xs font-semibold text-slate-500">{seller.username ? `@${seller.username}` : 'Vendedor'}</p>
+                    <LocationLine comuna={seller.publicComuna} region={seller.publicRegion} className="mt-0.5 text-xs font-semibold text-[#1e40af]" />
                     <p className="mt-1.5 text-xs font-semibold tabular-nums text-slate-600">
                       {formatNumber(seller.folders)} {seller.folders === 1 ? 'carpeta' : 'carpetas'} · {formatNumber(seller.cards)} {seller.cards === 1 ? 'carta' : 'cartas'} · {formatNumber(seller.visits)} {seller.visits === 1 ? 'visita' : 'visitas'}
                     </p>

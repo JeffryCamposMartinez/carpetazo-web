@@ -3,7 +3,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { prisma } from './db.js';
 
 // Si cambia el texto de alguno, se sube su versión aquí y en frontend/src/legal/versions.js (una prueba las compara).
-export const LEGAL_CURRENT = { termsVersion: '2026-10-06', privacyVersion: '2026-10-06' };
+export const LEGAL_CURRENT = { termsVersion: '2026-10-06.2', privacyVersion: '2026-10-06.2' };
 export const NEW_ACCOUNT_WINDOW_MS = 24 * 60 * 60 * 1000; // solo una cuenta recién creada puede elegir su usuario al aceptar
 export const ACCEPTED_CACHE_MS = 5 * 60 * 1000;
 export const acceptedCache = new Map(); // firebaseUid -> hasta cuándo se da por vigente (solo aceptaciones vigentes)

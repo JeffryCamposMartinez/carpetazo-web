@@ -3,6 +3,7 @@ import express from 'express';
 import { authenticateToken } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { CARD_SEARCH_TCG_ALIASES } from '../core/listing.js';
+import { isValidComuna } from '../core/chileData.js';
 import { badRequest } from '../core/validation.js';
 
 const router = express.Router();
@@ -130,6 +131,27 @@ router.get('/api/cards/reference-prices', async (req, res) => {
   }
 });
 
+// Últimas ventas completadas de una carta en este juego: solo fecha, precio y cantidad (sin comprador ni vendedor)
+const SALES_SHOWN = 10;
+const recentSales = async (tcgId, tcg) => {
+  const rows = await prisma.$queryRaw`
+    SELECT s."at", s."unit", s."quantity"
+    FROM (
+      SELECT o."updatedAt" AS "at", (line->>'price')::float AS "unit",
+             CASE WHEN line->>'quantity' ~ '^[0-9]{1,4}$' THEN (line->>'quantity')::int ELSE 1 END AS "quantity",
+             COALESCE(line->>'tcgId', c."tcgId") AS "tcgId"
+      FROM "Order" o
+      JOIN "Folder" f ON f."id" = o."folderId"
+      CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(o."items"::jsonb) = 'array' THEN o."items"::jsonb ELSE '[]'::jsonb END) AS line
+      LEFT JOIN "Card" c ON c."id" = line->>'id'
+      WHERE o."status" = 'completed' AND f."tcg" = ${tcg} AND line->>'price' ~ '^[0-9]+(\\.[0-9]+)?$'
+    ) s
+    WHERE s."tcgId" = ${tcgId} AND s."unit" > 0
+    ORDER BY s."at" DESC
+    LIMIT ${SALES_SHOWN}`;
+  return rows.map((row) => ({ at: row.at, price: Math.round(Number(row.unit)), quantity: row.quantity }));
+};
+
 // Ficha pública de una carta a la venta: sus datos y todas las ofertas de esa misma carta (de menor a mayor precio)
 const OFFERS_MAX = 50;
 const publicText = (value) => (typeof value === 'string' ? value.slice(0, 400) : null);
@@ -147,8 +169,9 @@ router.get('/api/cards/:id/offers', async (req, res) => {
       where: { ...visibleCardWhere, tcgId: card.tcgId, folder: { ...visibleCardWhere.folder, tcg: card.folder.tcg } },
       orderBy: [{ price: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
       take: OFFERS_MAX,
-      select: { id: true, price: true, stock: true, data: true, folder: { select: { id: true, name: true, user: { select: { name: true, username: true, photoURL: true } } } } },
+      select: { id: true, price: true, stock: true, data: true, folder: { select: { id: true, name: true, user: { select: { name: true, username: true, photoURL: true, publicComuna: true } } } } },
     });
+    const sales = await recentSales(card.tcgId, card.folder.tcg);
     const reference = card.folder.tcg === 'Mitos y Leyendas' ? (await mylReferencePrices([card.tcgId]))[card.tcgId] || null : null;
     const field = (data, key) => (data && typeof data === 'object' ? publicText(data[key]) : null);
 
@@ -162,6 +185,8 @@ router.get('/api/cards/:id/offers', async (req, res) => {
         race: field(card.data, 'race'), cost: field(card.data, 'cost'), effect: field(card.data, 'effect'),
       },
       reference,
+      sales,
+      stats: { copies: offers.reduce((sum, offer) => sum + (offer.stock || 0), 0), sellers: new Set(offers.map((offer) => offer.folder.user?.username || offer.folder.id)).size },
       offers: offers.map(({ data, ...offer }) => ({ ...offer, language: field(data, 'language') })),
     });
   } catch (error) {
@@ -184,7 +209,11 @@ router.get('/api/cards/search', async (req, res) => {
     const tcgRaw = typeof req.query.tcg === 'string' ? req.query.tcg.trim() : '';
     const tcg = CARD_SEARCH_TCG_ALIASES[tcgRaw] || tcgRaw;
     const sort = typeof req.query.sort === 'string' ? req.query.sort : 'recent';
+    const seller = typeof req.query.seller === 'string' ? req.query.seller.trim().toLowerCase() : '';
     const page = Number.parseInt(req.query.page, 10) || 1;
+    const comuna = typeof req.query.comuna === 'string' ? req.query.comuna.trim() : '';
+    if (comuna && !isValidComuna(comuna)) return badRequest(res, 'Búsqueda inválida');
+    if (seller && !/^[a-z0-9_]{3,40}$/.test(seller)) return badRequest(res, 'Búsqueda inválida');
     if (q.length > 80 || tcg.length > 60 || /[\u0000-\u001f]/.test(q + tcg) || !Object.hasOwn(CARD_SEARCH_SORTS, sort) || page < 1 || page > 1000) {
       return badRequest(res, 'Búsqueda inválida');
     }
@@ -192,7 +221,7 @@ router.get('/api/cards/search', async (req, res) => {
     const where = {
       stock: { gt: 0 },
       moderationState: 'visible',
-      folder: { isPublic: true, ...(tcg ? { tcg } : {}) },
+      folder: { isPublic: true, ...(tcg ? { tcg } : {}), ...(seller || comuna ? { user: { ...(seller ? { username: seller } : {}), ...(comuna ? { publicComuna: comuna } : {}) } } : {}) },
       ...(q ? { name: { contains: q, mode: 'insensitive' } } : {}),
     };
     const [total, cards] = await prisma.$transaction([
@@ -211,7 +240,7 @@ router.get('/api/cards/search', async (req, res) => {
           stock: true,
           createdAt: true,
           data: true,
-          folder: { select: { id: true, name: true, tcg: true, user: { select: { name: true, username: true, photoURL: true } } } },
+          folder: { select: { id: true, name: true, tcg: true, user: { select: { name: true, username: true, photoURL: true, publicComuna: true } } } },
         },
       }),
     ]);

@@ -78,6 +78,10 @@ export const termsBlocks = [
   "x": "4.3. Puedes eliminar tu cuenta cuando quieras desde tu perfil. Al hacerlo, anonimizamos tus datos según la Política de Privacidad."
  },
  {
+  "t": "p",
+  "x": "4.4. Para usar Carpetazo debes indicar tu **región y comuna**. Esa ubicación general (**no tu dirección exacta**, que no te pedimos) se muestra **siempre** en tu perfil público, en tus carpetas y en los listados de vendedores, y permite que otros usuarios te encuentren filtrando por comuna. Puedes cambiarla cuando quieras desde tu perfil. Si no tienes una ubicación indicada, te la pediremos al ingresar para que puedas continuar."
+ },
+ {
   "t": "h2",
   "id": "5-reglas-de-uso-y-contenido-permitido",
   "x": "5. Reglas de uso y contenido permitido"
@@ -126,7 +130,7 @@ export const termsBlocks = [
  },
  {
   "t": "p",
-  "x": "6.4. Puedes elegir qué datos de contacto se muestran en tu perfil (por ejemplo WhatsApp). Los datos bancarios **solo** se comparten con compradores si tú lo activas."
+  "x": "6.4. Puedes elegir qué datos de contacto se muestran en tu perfil (por ejemplo WhatsApp). Los datos bancarios **solo** se comparten con compradores si tú lo activas. Tu región y comuna, en cambio, son parte de tu perfil público y no se pueden ocultar (ver 4.4)."
  },
  {
   "t": "p",
@@ -369,7 +373,7 @@ export const privacyBlocks = [
    ],
    [
     "**Ubicación**",
-    "Región y comuna; dirección completa (opcional, no se muestra públicamente)",
+    "Región y comuna (obligatorias). **No pedimos ni guardamos tu dirección exacta**",
     "De ti"
    ],
    [
@@ -443,7 +447,12 @@ export const privacyBlocks = [
    ],
    [
     "Mostrar tu perfil, carpetas y cartas a otros usuarios",
-    "Perfil, contenido",
+    "Perfil, contenido, región y comuna",
+    "Ejecución del contrato"
+   ],
+   [
+    "Permitir que otros usuarios encuentren vendedores por comuna",
+    "Región y comuna",
     "Ejecución del contrato"
    ],
    [
@@ -505,7 +514,7 @@ export const privacyBlocks = [
  {
   "t": "ul",
   "items": [
-   "**Otros usuarios**, según lo que tú publiques y actives (perfil, carpetas, reseñas; contacto y datos bancarios solo si lo permites; en un pedido, el vendedor y el comprador ven los datos necesarios para concretarlo).",
+   "**Otros usuarios**, según lo que tú publiques y actives (perfil, carpetas, reseñas; contacto y datos bancarios solo si lo permites; **tu región y comuna son siempre públicas**; en un pedido, el vendedor y el comprador ven los datos necesarios para concretarlo).",
    "**Proveedores que nos ayudan a operar** (actúan por encargo nuestro):",
    "**Google (Firebase Authentication):** inicio de sesión.",
    "**Cloudflare (R2):** almacenamiento de imágenes.",

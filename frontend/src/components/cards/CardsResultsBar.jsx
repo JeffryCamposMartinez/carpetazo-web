@@ -8,8 +8,8 @@ export const SORT_VALUES = SORT_OPTIONS.map((option) => option.value);
 const REMOVABLE = 'inline-flex h-9 items-center gap-1 rounded-full bg-white pl-3 pr-1.5 text-xs font-bold text-[#12315f] ring-1 ring-slate-900/10 transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] [@media(hover:hover)]:hover:bg-blue-50';
 
 // Cantidad de cartas, filtros activos (cada uno se quita con un toque), orden y vista (cuadrícula o lista en el celular)
-export default function CardsResultsBar({ failed, loading, onClearAll, onQuery, onSort, onTcg, onView, query, sort, tcg, total, view }) {
-  const hasFilters = Boolean(query || tcg);
+export default function CardsResultsBar({ failed, loading, comuna, onClearAll, onComuna, onQuery, onSeller, onSort, onTcg, onView, query, seller, sort, tcg, total, view }) {
+  const hasFilters = Boolean(query || tcg || seller || comuna);
   return (
     <div className="mb-4 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5">
@@ -39,8 +39,10 @@ export default function CardsResultsBar({ failed, loading, onClearAll, onQuery, 
       {hasFilters && (
         <div className="flex flex-wrap items-center gap-2">
           {tcg && <button type="button" onClick={() => onTcg('')} className={REMOVABLE}>{tcg}<span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px] text-slate-500">close</span><span className="sr-only">Quitar filtro</span></button>}
+          {comuna && <button type="button" onClick={onComuna} className={REMOVABLE}>Comuna: {comuna}<span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px] text-slate-500">close</span><span className="sr-only">Quitar filtro de comuna</span></button>}
+          {seller && <button type="button" onClick={onSeller} className={REMOVABLE}>Vendedor: @{seller}<span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px] text-slate-500">close</span><span className="sr-only">Quitar filtro de vendedor</span></button>}
           {query && <button type="button" onClick={() => onQuery('')} className={REMOVABLE}>“{query}”<span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px] text-slate-500">close</span><span className="sr-only">Quitar búsqueda</span></button>}
-          {tcg && query && <button type="button" onClick={onClearAll} className="h-9 rounded-full px-3 text-xs font-bold text-[#1e40af] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">Quitar todo</button>}
+          {[tcg, query, seller, comuna].filter(Boolean).length > 1 && <button type="button" onClick={onClearAll} className="h-9 rounded-full px-3 text-xs font-bold text-[#1e40af] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">Quitar todo</button>}
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { deleteUser, updateProfile as updateFirebaseProfile } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
 import { chileData } from '../config/chileData';
@@ -8,6 +8,7 @@ import PasswordCard from '../components/auth/PasswordCard';
 import MyModeration from '../components/moderation/MyModeration';
 import { PALETTES } from '../config/profileThemes';
 import { useToast } from '../components/ui/ToastProvider';
+import ThemedSelect from '../components/ui/ThemedSelect';
 
 const chileBanks = [
   'Banco de Chile - Edwards',
@@ -60,7 +61,7 @@ const emptyProfile = {
 const tabs = [
   { id: 'general', label: 'Perfil', icon: 'person', description: 'Tu identidad pública y cómo te ven otros usuarios.' },
   { id: 'personal', label: 'Privado', icon: 'badge', description: 'Datos privados para contacto, compras y validaciones.' },
-  { id: 'addresses', label: 'Direcciones', icon: 'location_on', description: 'Lugares donde puedes recibir pedidos.' },
+  { id: 'addresses', label: 'Ubicación', icon: 'location_on', description: 'Tu región y comuna: se muestran en tu perfil público para que te encuentren.' },
   { id: 'payments', label: 'Pagos', icon: 'account_balance', description: 'Datos bancarios para recibir ventas.' },
   { id: 'social', label: 'Redes', icon: 'share', description: 'Enlaces visibles en tu perfil público.' },
   { id: 'security', label: 'Cuenta', icon: 'shield', description: 'Estado de sesión y acciones sensibles.' },
@@ -186,18 +187,19 @@ const ProfilePage = () => {
   const [savingKey, setSavingKey] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [usernameState, setUsernameState] = useState({ checking: false, available: null, message: '' });
-  const [addressModal, setAddressModal] = useState({ open: false, index: null });
-  const [addressForm, setAddressForm] = useState({ id: '', name: '', region: '', comuna: '', street: '', number: '', floor: '', depto: '', reference: '', isDefault: false });
-  const [deleteAddressIndex, setDeleteAddressIndex] = useState(null);
-  const [defaultAddressIndex, setDefaultAddressIndex] = useState(null);
+  const [locationForm, setLocationForm] = useState(() => ({ region: profileData.addresses?.[0]?.region || '', comuna: profileData.addresses?.[0]?.comuna || '' }));
+  // La ubicación guardada llega junto con el perfil (y cambia si se recarga)
+  useEffect(() => {
+    setLocationForm({ region: profileData.addresses?.[0]?.region || '', comuna: profileData.addresses?.[0]?.comuna || '' });
+  }, [profileData.addresses]);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
 
   const rutIsValid = validateRut(profileData.rut);
   const publicUrl = profileData.username ? `${window.location.origin}/${profileData.username}` : '';
   const selectedTab = tabs.find(tab => tab.id === activeTab) || tabs[0];
   const availableComunas = useMemo(() => (
-    chileData.find(region => region.region === addressForm.region)?.comunas || []
-  ), [addressForm.region]);
+    chileData.find(region => region.region === locationForm.region)?.comunas || []
+  ), [locationForm.region]);
 
   const showFeedback = (type, message) => {
     setFeedback({ type, message });
@@ -340,64 +342,19 @@ const ProfilePage = () => {
     }
   };
 
-  const openAddressModal = (index = null) => {
-    const address = index === null ? {} : profileData.addresses[index] || {};
-    setAddressForm({
-      id: address.id || '',
-      name: address.name || '',
-      region: address.region || '',
-      comuna: address.comuna || '',
-      street: address.street || '',
-      number: address.number || '',
-      floor: address.floor || '',
-      depto: address.depto || '',
-      reference: address.reference || '',
-      isDefault: index === null ? (profileData.addresses || []).length === 0 : Boolean(address.isDefault)
-    });
-    setAddressModal({ open: true, index });
-  };
-
-  const saveAddress = async (event) => {
+  // Solo región y comuna: nunca se pide la dirección exacta
+  const saveLocation = async (event) => {
     event.preventDefault();
-    if (!addressForm.region || !addressForm.comuna || !addressForm.street || !addressForm.number) {
-      return showFeedback('error', 'Completa región, comuna, calle y número.');
+    if (!locationForm.region || !locationForm.comuna) {
+      showFeedback('error', 'Elige tu región y tu comuna.');
+      return;
     }
-    const nextAddresses = [...(profileData.addresses || [])];
-    const nextAddress = {
-      ...addressForm,
-      id: addressForm.id || `address-${Date.now()}`,
-      name: addressForm.name.trim(),
-      region: addressForm.region.trim(),
-      comuna: addressForm.comuna.trim(),
-      street: addressForm.street.trim(),
-      number: addressForm.number.trim(),
-      floor: addressForm.floor.trim(),
-      depto: addressForm.depto.trim(),
-      reference: addressForm.reference.trim(),
-      isDefault: Boolean(addressForm.isDefault) || (addressModal.index === null && nextAddresses.length === 0)
-    };
-    if (addressModal.index === null) nextAddresses.push(nextAddress);
-    else nextAddresses[addressModal.index] = nextAddress;
-    const normalizedAddresses = nextAddress.isDefault
-      ? nextAddresses.map(address => ({ ...address, isDefault: address.id === nextAddress.id }))
-      : nextAddresses;
-    const ok = await persistProfile({ addresses: normalizedAddresses }, 'Dirección guardada.', 'addresses');
-    if (ok) setAddressModal({ open: false, index: null });
+    await persistProfile({ addresses: [{ id: 'ubicacion', name: 'Mi ubicación', region: locationForm.region, comuna: locationForm.comuna, isDefault: true }] }, 'Ubicación guardada.', 'addresses');
   };
 
-  const confirmDeleteAddress = async () => {
-    const nextAddresses = [...(profileData.addresses || [])];
-    const removed = nextAddresses[deleteAddressIndex];
-    nextAddresses.splice(deleteAddressIndex, 1);
-    if (removed?.isDefault && nextAddresses.length > 0) nextAddresses[0].isDefault = true;
-    const ok = await persistProfile({ addresses: nextAddresses }, 'Dirección eliminada.', 'addresses');
-    if (ok) setDeleteAddressIndex(null);
-  };
-
-  const confirmDefaultAddress = async () => {
-    const nextAddresses = (profileData.addresses || []).map((address, index) => ({ ...address, isDefault: index === defaultAddressIndex }));
-    const ok = await persistProfile({ addresses: nextAddresses }, 'Dirección principal actualizada.', 'addresses');
-    if (ok) setDefaultAddressIndex(null);
+  const clearLocation = async () => {
+    const ok = await persistProfile({ addresses: [] }, 'Ubicación eliminada.', 'addresses');
+    if (ok) setLocationForm({ region: '', comuna: '' });
   };
 
   const handleDeleteAccount = async () => {
@@ -433,6 +390,7 @@ const ProfilePage = () => {
           <span translate="no" className="material-symbols-outlined text-5xl text-[#1e40af]">lock</span>
           <h1 className="mt-4 text-2xl font-black text-[#1a2b4b]">Inicia sesión para ver tu perfil</h1>
           <p className="mt-2 text-sm font-medium text-slate-500">Esta sección usa tu sesión para cargar y guardar datos de forma segura.</p>
+          <Link to="/bienvenida" className="mt-5 inline-flex h-12 items-center rounded-full bg-[#facc15] px-7 text-[15px] font-extrabold text-[#12315f] shadow-sm transition-transform duration-150 active:scale-[0.97]">Iniciar sesión</Link>
         </div>
       </div>
     );
@@ -535,25 +493,20 @@ const ProfilePage = () => {
               )}
 
               {activeTab === 'addresses' && (
-                <section className="space-y-5">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div><h3 className="text-lg font-black text-[#1a2b4b]">Direcciones guardadas</h3><p className="text-sm font-semibold text-slate-500">{profileData.addresses.length} dirección{profileData.addresses.length === 1 ? '' : 'es'} registrada{profileData.addresses.length === 1 ? '' : 's'}.</p></div>
-                    <ActionButton onClick={() => openAddressModal()}><span translate="no" className="material-symbols-outlined text-[18px]">add_location</span>Agregar dirección</ActionButton>
+                <form onSubmit={saveLocation} className="space-y-5">
+                  <div>
+                    <h3 className="text-lg font-black text-[#1a2b4b]">Tu ubicación</h3>
+                    <p className="text-sm font-semibold text-slate-500">Solo pedimos región y comuna, no tu dirección exacta. Se muestran en tu perfil público, en tus carpetas y en la lista de vendedores, y permiten que los compradores te encuentren por comuna.</p>
                   </div>
-                  {profileData.addresses.length === 0 ? (
-                    <div className="rounded-3xl border border-dashed border-blue-200 bg-blue-50/60 p-8 text-center"><span translate="no" className="material-symbols-outlined text-5xl text-[#1e40af]/50">location_off</span><h3 className="mt-3 text-lg font-black text-[#1a2b4b]">No tienes direcciones todavía</h3><p className="mt-1 text-sm font-semibold text-slate-500">Agrega una para acelerar compras y coordinación de envíos.</p></div>
-                  ) : (
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {profileData.addresses.map((address, index) => (
-                        <article key={`${address.street}-${index}`} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                          <div className="mb-3 flex items-start justify-between gap-3"><div><p className="font-black text-[#1a2b4b]">{address.name || `Dirección ${index + 1}`}</p>{address.isDefault && <span className="mt-1 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-black text-emerald-700">Principal</span>}</div><span translate="no" className="material-symbols-outlined text-[#1e40af]">home_pin</span></div>
-                          <p className="text-sm font-bold text-slate-700">{address.street} {address.number}{address.depto ? `, Depto ${address.depto}` : ''}</p><p className="mt-1 text-sm font-semibold text-slate-500">{address.comuna}, {address.region}</p>{address.reference && <p className="mt-2 text-xs font-semibold text-slate-400">{address.reference}</p>}
-                          <div className="mt-4 flex flex-wrap gap-2"><ActionButton variant="secondary" className="px-3 py-2 text-xs" onClick={() => openAddressModal(index)}>Editar</ActionButton>{!address.isDefault && <ActionButton variant="secondary" className="px-3 py-2 text-xs" onClick={() => setDefaultAddressIndex(index)}>Principal</ActionButton>}<ActionButton variant="secondary" className="px-3 py-2 text-xs text-red-600 hover:bg-red-50" onClick={() => setDeleteAddressIndex(index)}>Eliminar</ActionButton></div>
-                        </article>
-                      ))}
-                    </div>
-                  )}
-                </section>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Región"><ThemedSelect value={locationForm.region} onChange={value => setLocationForm({ region: value, comuna: '' })} options={chileData.map(item => ({ value: item.region, label: item.region }))} placeholder="Selecciona región" icon="map" ariaLabel="Región" /></Field>
+                    <Field label="Comuna"><ThemedSelect value={locationForm.comuna} onChange={value => setLocationForm(prev => ({ ...prev, comuna: value }))} options={availableComunas.map(comuna => ({ value: comuna, label: comuna }))} placeholder={locationForm.region ? 'Selecciona comuna' : 'Primero elige la región'} searchable searchPlaceholder="Escribe tu comuna…" icon="location_on" ariaLabel="Comuna" disabled={!locationForm.region} /></Field>
+                  </div>
+                  <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                    {profileData.addresses.length > 0 && <ActionButton type="button" variant="secondary" onClick={clearLocation} disabled={savingKey === 'addresses'}>Quitar mi ubicación</ActionButton>}
+                    <ActionButton type="submit" disabled={savingKey === 'addresses'}>{savingKey === 'addresses' ? 'Guardando…' : 'Guardar ubicación'}</ActionButton>
+                  </div>
+                </form>
               )}
 
               {activeTab === 'payments' && (
@@ -602,41 +555,6 @@ const ProfilePage = () => {
         </main>
       </div>
 
-      {addressModal.open && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-          <form onSubmit={saveAddress} className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
-            <div className="mb-5 flex items-start justify-between gap-4"><div><h3 className="text-xl font-black text-[#1a2b4b]">{addressModal.index === null ? 'Agregar dirección' : 'Editar dirección'}</h3><p className="mt-1 text-sm font-semibold text-slate-500">Estos datos se guardan en tu perfil.</p></div><button type="button" onClick={() => setAddressModal({ open: false, index: null })} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200"><span translate="no" className="material-symbols-outlined">close</span></button></div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Nombre de referencia"><TextInput value={addressForm.name} onChange={e => setAddressForm(prev => ({ ...prev, name: e.target.value }))} placeholder="Casa, oficina..." /></Field>
-              <Field label="Región"><SelectInput value={addressForm.region} onChange={e => setAddressForm(prev => ({ ...prev, region: e.target.value, comuna: '' }))}><option value="">Selecciona región</option>{chileData.map(region => <option key={region.region} value={region.region}>{region.region}</option>)}</SelectInput></Field>
-              <Field label="Comuna"><SelectInput value={addressForm.comuna} onChange={e => setAddressForm(prev => ({ ...prev, comuna: e.target.value }))} disabled={!addressForm.region}><option value="">Selecciona comuna</option>{availableComunas.map(comuna => <option key={comuna} value={comuna}>{comuna}</option>)}</SelectInput></Field>
-              <Field label="Calle"><TextInput value={addressForm.street} onChange={e => setAddressForm(prev => ({ ...prev, street: e.target.value }))} placeholder="Av. Principal" /></Field>
-              <Field label="Número"><TextInput value={addressForm.number} onChange={e => setAddressForm(prev => ({ ...prev, number: e.target.value }))} placeholder="1234" /></Field>
-              <Field label="Piso"><TextInput value={addressForm.floor} onChange={e => setAddressForm(prev => ({ ...prev, floor: e.target.value }))} placeholder="Opcional" /></Field>
-              <Field label="Depto / Casa"><TextInput value={addressForm.depto} onChange={e => setAddressForm(prev => ({ ...prev, depto: e.target.value }))} placeholder="Opcional" /></Field>
-              <Field label="Referencia"><TextInput value={addressForm.reference} onChange={e => setAddressForm(prev => ({ ...prev, reference: e.target.value }))} placeholder="Portón azul, conserjería..." /></Field>
-              <label className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm font-black text-[#1a2b4b] sm:col-span-2">
-                <input
-                  type="checkbox"
-                  checked={Boolean(addressForm.isDefault)}
-                  onChange={e => setAddressForm(prev => ({ ...prev, isDefault: e.target.checked }))}
-                  className="h-5 w-5 rounded border-blue-200 text-[#1e40af] focus:ring-blue-200"
-                />
-                Usar como dirección principal
-              </label>
-            </div>
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><ActionButton type="button" variant="secondary" onClick={() => setAddressModal({ open: false, index: null })}>Cancelar</ActionButton><ActionButton type="submit" disabled={savingKey === 'addresses'}>{savingKey === 'addresses' ? 'Guardando...' : 'Guardar dirección'}</ActionButton></div>
-          </form>
-        </div>
-      )}
-
-      {deleteAddressIndex !== null && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"><div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"><h3 className="text-xl font-black text-[#1a2b4b]">Eliminar dirección</h3><p className="mt-2 text-sm font-semibold text-slate-500">Esta acción eliminará la dirección de tu perfil.</p><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><ActionButton variant="secondary" onClick={() => setDeleteAddressIndex(null)}>Cancelar</ActionButton><ActionButton variant="danger" onClick={confirmDeleteAddress} disabled={savingKey === 'addresses'}>Eliminar</ActionButton></div></div></div>
-      )}
-
-      {defaultAddressIndex !== null && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"><div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"><h3 className="text-xl font-black text-[#1a2b4b]">Cambiar dirección principal</h3><p className="mt-2 text-sm font-semibold text-slate-500">La dirección seleccionada quedará como predeterminada.</p><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><ActionButton variant="secondary" onClick={() => setDefaultAddressIndex(null)}>Cancelar</ActionButton><ActionButton onClick={confirmDefaultAddress} disabled={savingKey === 'addresses'}>Confirmar</ActionButton></div></div></div>
-      )}
     </div>
   );
 };

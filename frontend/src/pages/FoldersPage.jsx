@@ -2,6 +2,7 @@ import React, { startTransition, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import LazyFolderCard from '../components/folder/LazyFolderCard';
+import ComunaSelect from '../components/ui/ComunaSelect';
 
 const TCG_CATEGORIES = [
   { name: 'Pokémon', logo: '/images/logos/pokemon.webp' },
@@ -27,6 +28,7 @@ export default function FoldersPage() {
   const urlQuery = searchParams.get('q') || '';
   const selectedTcg = searchParams.get('tcg') || 'Todos';
   const sortBy = SORT_OPTIONS.some((option) => option.value === searchParams.get('sort')) ? searchParams.get('sort') : 'weekly';
+  const comuna = searchParams.get('comuna') || '';
   const page = Math.max(1, Number.parseInt(searchParams.get('page'), 10) || 1);
 
   const [searchQuery, setSearchQuery] = useState(urlQuery);
@@ -56,13 +58,14 @@ export default function FoldersPage() {
     if (urlQuery) params.set('q', urlQuery);
     if (selectedTcg !== 'Todos') params.set('tcg', selectedTcg);
     if (sortBy !== 'weekly') params.set('sort', sortBy);
+    if (comuna) params.set('comuna', comuna);
     if (page > 1) params.set('page', String(page));
     api.searchFolders(params.toString())
       .then((res) => { if (!cancelled) startTransition(() => setResult(res.success ? res : { folders: [], total: 0, pages: 1, counts: [] })); })
       .catch((error) => { console.error('Error fetching folders:', error); if (!cancelled) setFailed(true); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [urlQuery, selectedTcg, sortBy, page]);
+  }, [urlQuery, selectedTcg, sortBy, comuna, page]);
 
   // LazyFolderCard espera el nombre del vendedor como texto
   const foldersToRender = useMemo(() => result.folders.map((folder) => ({
@@ -70,7 +73,7 @@ export default function FoldersPage() {
     cardsCount: folder._count?.cards ?? 0,
     avatarUrl: folder.user?.photoURL || null,
     user: folder.user?.name || folder.user?.username || 'Vendedor anónimo',
-    location: '',
+    location: folder.user?.publicComuna ? [folder.user.publicComuna, folder.user.publicRegion].filter(Boolean).join(', ') : '',
   })), [result.folders]);
 
   const countsByTcg = useMemo(() => {
@@ -80,7 +83,7 @@ export default function FoldersPage() {
   }, [result.counts]);
   const totalFolders = useMemo(() => result.counts.reduce((sum, item) => sum + item.count, 0), [result.counts]);
 
-  const hasFilters = selectedTcg !== 'Todos' || Boolean(urlQuery) || sortBy !== 'weekly';
+  const hasFilters = selectedTcg !== 'Todos' || Boolean(urlQuery) || sortBy !== 'weekly' || Boolean(comuna);
   const totalPages = result.pages;
 
   const clearFilters = () => {
@@ -117,6 +120,7 @@ export default function FoldersPage() {
               className="h-11 w-full rounded-full border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-medium text-slate-900 transition focus:border-[#1e40af] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#facc15]/70"
             />
           </div>
+          <ComunaSelect value={comuna} onChange={(value) => updateParams({ comuna: value })} className="md:w-56" />
           <select
             value={sortBy}
             onChange={(event) => updateParams({ sort: event.target.value === 'weekly' ? '' : event.target.value })}

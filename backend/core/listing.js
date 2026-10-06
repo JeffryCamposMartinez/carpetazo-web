@@ -21,7 +21,7 @@ export const loadPublicFolders = async (ids) => {
     where: { id: { in: ids }, isPublic: true },
     select: {
       id: true, name: true, tcg: true, color: true, createdAt: true, totalVisits: true, weeklyVisits: true, lastVisitWeek: true,
-      user: { select: { name: true, username: true, photoURL: true } },
+      user: { select: { name: true, username: true, photoURL: true, publicComuna: true, publicRegion: true } },
       _count: { select: { cards: true } }
     }
   });
@@ -32,7 +32,8 @@ export const loadPublicFolders = async (ids) => {
   });
 };
 
-export const folderFilterSql = ({ like, tcgs }) => Prisma.sql`f."isPublic" = true
+export const folderFilterSql = ({ like, tcgs, comuna }) => Prisma.sql`f."isPublic" = true
+  ${comuna ? Prisma.sql`AND u."publicComuna" = ${comuna}` : Prisma.empty}
   ${like ? Prisma.sql`AND (f."name" ILIKE ${like} OR u."name" ILIKE ${like} OR u."username" ILIKE ${like})` : Prisma.empty}
   ${tcgs ? Prisma.sql`AND f."tcg" = ANY(${tcgs})` : Prisma.empty}`;
 export const folderOrderSql = (sort) => {

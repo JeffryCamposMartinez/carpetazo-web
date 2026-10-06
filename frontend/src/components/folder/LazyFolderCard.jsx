@@ -42,7 +42,7 @@ export default function LazyFolderCard({ folder }) {
       const cardsCount = folder.cards?.length || folder._count?.cards || 0;
       
       let userName = 'Usuario';
-      let location = '';
+      let location = folder.location || '';
       let avatarUrl = null;
 
             if (typeof folder.user === 'string') {
@@ -51,6 +51,7 @@ export default function LazyFolderCard({ folder }) {
       } else if (folder.user) {
         userName = folder.user.name || folder.user.username || (folder.userId ? folder.userId.substring(0, 6) : 'Usuario');
         avatarUrl = folder.user.photoURL || folder.avatarUrl || null;
+        if (!location && folder.user.publicComuna) location = [folder.user.publicComuna, folder.user.publicRegion].filter(Boolean).join(', ');
       }
 
       setDetails({

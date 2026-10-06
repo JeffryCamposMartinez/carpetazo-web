@@ -2,6 +2,7 @@
 import { Prisma } from '@prisma/client';
 import express from 'express';
 import { authenticateToken, isAdminEmail, optionalAuth } from '../core/auth.js';
+import { isValidComuna, regionOfComuna } from '../core/chileData.js';
 import { prisma } from '../core/db.js';
 import { acceptedCache, getLegalStatus } from '../core/legal.js';
 import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/publicSeller.js';
@@ -98,32 +99,14 @@ router.get('/api/users/me', authenticateToken, async (req, res) => {
   }
 });
 
+// Solo se guarda la ubicación general (región y comuna oficiales); nunca calle, número ni referencias.
+// La región se deduce de la comuna: lo que mande el cliente no se usa.
 const sanitizeProfileAddresses = (addresses = []) => {
   if (!Array.isArray(addresses)) return [];
-
-  const cleaned = addresses
-    .slice(0, 10)
-    .map((address = {}, index) => ({
-      id: String(address.id || `address-${Date.now()}-${index}`).slice(0, 80),
-      name: String(address.name || '').trim().slice(0, 80),
-      region: String(address.region || '').trim().slice(0, 80),
-      comuna: String(address.comuna || '').trim().slice(0, 80),
-      street: String(address.street || '').trim().slice(0, 120),
-      number: String(address.number || '').trim().slice(0, 30),
-      floor: String(address.floor || '').trim().slice(0, 30),
-      depto: String(address.depto || '').trim().slice(0, 30),
-      reference: String(address.reference || '').trim().slice(0, 180),
-      isDefault: Boolean(address.isDefault)
-    }))
-    .filter(address => address.region && address.comuna && address.street && address.number);
-
-  const defaultIndex = cleaned.findIndex(address => address.isDefault);
-  const effectiveDefaultIndex = defaultIndex >= 0 ? defaultIndex : 0;
-
-  return cleaned.map((address, index) => ({
-    ...address,
-    isDefault: index === effectiveDefaultIndex
-  }));
+  const first = addresses.map((address) => ({ comuna: String(address?.comuna || '').trim(), isDefault: Boolean(address?.isDefault) }))
+    .filter((address) => isValidComuna(address.comuna))
+    .sort((a, b) => Number(b.isDefault) - Number(a.isDefault))[0];
+  return first ? [{ id: 'ubicacion', name: 'Mi ubicación', region: regionOfComuna(first.comuna), comuna: first.comuna, isDefault: true }] : [];
 };
 
 router.put('/api/users/me', authenticateToken, async (req, res) => {
@@ -218,6 +201,9 @@ router.put('/api/users/me', authenticateToken, async (req, res) => {
 
     if (updateData.addresses !== undefined) {
       updateData.addresses = sanitizeProfileAddresses(updateData.addresses);
+      // La ubicación se muestra siempre en el perfil y sirve para buscar vendedores
+      updateData.publicRegion = updateData.addresses[0]?.region || null;
+      updateData.publicComuna = updateData.addresses[0]?.comuna || null;
     }
 
     if (updateData.bankDetails !== undefined) {

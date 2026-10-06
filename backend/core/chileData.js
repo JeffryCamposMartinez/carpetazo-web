@@ -1,3 +1,4 @@
+// Regiones y comunas de Chile (copia de frontend/src/config/chileData.js: el servidor valida la ubicación contra esta lista).
 export const chileData = [
   {
     region: "Arica y Parinacota",
@@ -64,3 +65,9 @@ export const chileData = [
     comunas: ["Punta Arenas", "Laguna Blanca", "Río Verde", "San Gregorio", "Cabo de Hornos (Ex Navarino)", "Antártica", "Porvenir", "Primavera", "Timaukel", "Natales", "Torres del Paine"]
   }
 ];
+
+const COMUNA_REGION = new Map(chileData.flatMap(({ region, comunas }) => comunas.map((comuna) => [comuna, region])));
+
+// Región de una comuna oficial, o null si no existe
+export const regionOfComuna = (comuna) => (typeof comuna === 'string' ? COMUNA_REGION.get(comuna) || null : null);
+export const isValidComuna = (comuna) => regionOfComuna(comuna) !== null;

@@ -2,6 +2,7 @@
 import express from 'express';
 import { authenticateToken, optionalAuth } from '../core/auth.js';
 import { prisma } from '../core/db.js';
+import { isValidComuna } from '../core/chileData.js';
 import { folderFilterSql, folderOrderSql, likePattern, loadPublicFolders, tcgVariants, validListText } from '../core/listing.js';
 import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/publicSeller.js';
 import { badRequest, cleanCardData, isAllowedStoredImageUrl, isOptionalText, isShortText, isSmallObject, isUuid, isValidPrice, isValidStock } from '../core/validation.js';
@@ -321,9 +322,10 @@ router.get('/api/folders/search', async (req, res) => {
     const tcgRaw = typeof req.query.tcg === 'string' ? req.query.tcg.trim() : '';
     const sort = typeof req.query.sort === 'string' ? req.query.sort : 'weekly';
     const page = Number.parseInt(req.query.page, 10) || 1;
-    if (!validListText(q, tcgRaw) || !['weekly', 'total', 'name'].includes(sort) || page < 1 || page > 1000) return badRequest(res, 'Búsqueda inválida');
+    const comuna = typeof req.query.comuna === 'string' ? req.query.comuna.trim() : '';
+    if (!validListText(q, tcgRaw) || !['weekly', 'total', 'name'].includes(sort) || page < 1 || page > 1000 || (comuna && !isValidComuna(comuna))) return badRequest(res, 'Búsqueda inválida');
 
-    const filter = folderFilterSql({ like: q ? likePattern(q) : null, tcgs: tcgRaw ? tcgVariants(tcgRaw) : null });
+    const filter = folderFilterSql({ like: q ? likePattern(q) : null, tcgs: tcgRaw ? tcgVariants(tcgRaw) : null, comuna: comuna || null });
     const [idRows, totalRows, tcgRows] = await Promise.all([
       prisma.$queryRaw`SELECT f."id" FROM "Folder" f JOIN "User" u ON u."id" = f."userId" WHERE ${filter} ORDER BY ${folderOrderSql(sort)} LIMIT ${FOLDERS_PAGE_SIZE} OFFSET ${(page - 1) * FOLDERS_PAGE_SIZE}`,
       prisma.$queryRaw`SELECT COUNT(*)::int AS n FROM "Folder" f JOIN "User" u ON u."id" = f."userId" WHERE ${filter}`,

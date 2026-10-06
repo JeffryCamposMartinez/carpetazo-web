@@ -2,6 +2,7 @@
 import { Prisma } from '@prisma/client';
 import express from 'express';
 import { prisma } from '../core/db.js';
+import { isValidComuna } from '../core/chileData.js';
 import { folderFilterSql, folderOrderSql, likePattern, loadPublicFolders, validListText } from '../core/listing.js';
 import { badRequest } from '../core/validation.js';
 
@@ -10,12 +11,12 @@ const router = express.Router();
 const SELLERS_PAGE_SIZE = 24;
 
 // Vendedores = dueños de carpetas públicas, con sus cifras sumadas
-const querySellers = ({ like, sort, limit, offset }) => {
-  const filter = Prisma.sql`1 = 1 ${like ? Prisma.sql`AND (u."name" ILIKE ${like} OR u."username" ILIKE ${like})` : Prisma.empty}`;
+const querySellers = ({ like, comuna = null, sort, limit, offset }) => {
+  const filter = Prisma.sql`1 = 1 ${like ? Prisma.sql`AND (u."name" ILIKE ${like} OR u."username" ILIKE ${like})` : Prisma.empty} ${comuna ? Prisma.sql`AND u."publicComuna" = ${comuna}` : Prisma.empty}`;
   const order = sort === 'name' ? Prisma.sql`LOWER(u."name") ASC` : sort === 'cards' ? Prisma.sql`cards DESC, visits DESC` : Prisma.sql`visits DESC, cards DESC`;
   return Promise.all([
     prisma.$queryRaw`
-      SELECT u."name", u."username", u."photoURL",
+      SELECT u."name", u."username", u."photoURL", u."publicComuna", u."publicRegion",
              COUNT(f."id")::int AS folders,
              COALESCE(SUM(c.cnt), 0)::int AS cards,
              COALESCE(SUM(f."totalVisits"), 0)::int AS visits,
@@ -36,8 +37,9 @@ router.get('/api/sellers', async (req, res) => {
     const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
     const sort = typeof req.query.sort === 'string' ? req.query.sort : 'visits';
     const page = Number.parseInt(req.query.page, 10) || 1;
-    if (!validListText(q) || !['visits', 'cards', 'name'].includes(sort) || page < 1 || page > 1000) return badRequest(res, 'Búsqueda inválida');
-    const [rows, totalRows] = await querySellers({ like: q ? likePattern(q) : null, sort, limit: SELLERS_PAGE_SIZE, offset: (page - 1) * SELLERS_PAGE_SIZE });
+    const comuna = typeof req.query.comuna === 'string' ? req.query.comuna.trim() : '';
+    if (!validListText(q) || !['visits', 'cards', 'name'].includes(sort) || page < 1 || page > 1000 || (comuna && !isValidComuna(comuna))) return badRequest(res, 'Búsqueda inválida');
+    const [rows, totalRows] = await querySellers({ like: q ? likePattern(q) : null, comuna: comuna || null, sort, limit: SELLERS_PAGE_SIZE, offset: (page - 1) * SELLERS_PAGE_SIZE });
     const total = totalRows[0]?.n || 0;
     res.json({ success: true, sellers: rows, total, page, pages: Math.max(1, Math.ceil(total / SELLERS_PAGE_SIZE)) });
   } catch (error) {

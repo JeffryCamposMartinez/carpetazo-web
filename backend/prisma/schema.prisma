@@ -11,75 +11,79 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  firebaseUid   String   @unique
-  email         String   @unique
-  role          String   @default("user")
-  name          String?
-  fullName      String?
-  username      String?  @unique
-  photoURL      String?
-  bannerBase64  String?
-  wallpaperBase64 String?
-  bannerDominantColor String?
+  id                       String            @id @default(uuid())
+  firebaseUid              String            @unique
+  email                    String            @unique
+  role                     String            @default("user")
+  name                     String?
+  fullName                 String?
+  username                 String?           @unique
+  photoURL                 String?
+  bannerBase64             String?
+  wallpaperBase64          String?
+  bannerDominantColor      String?
   bannerComplementaryColor String?
-  bio           String?
-  phone         String?
-  rut           String?
-  facebookUrl   String?
-  instagramUrl  String?
-  youtubeUrl    String?
-  publicTheme   Json?
-  addresses     Json?
-  bankDetails   Json?
-  folders       Folder[]
-  wishlist      WishlistItem[]
-  reviewsReceived SellerReview[] @relation("ReviewsReceived")
-  reviewsWritten  SellerReview[] @relation("ReviewsWritten")
-  reviewReports   ReviewReport[]
-  reportsMade     Report[]
-  sanctions       Sanction[] @relation("SanctionsReceived")
-  appeals         Appeal[]
-  moderationHidden String[] @default([]) // partes del perfil ocultas por moderación: photo | banner | wallpaper | text
-  termsAcceptances TermsAcceptance[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  bio                      String?
+  phone                    String?
+  rut                      String?
+  facebookUrl              String?
+  instagramUrl             String?
+  youtubeUrl               String?
+  publicTheme              Json?
+  addresses                Json?
+  bankDetails              Json?
+  folders                  Folder[]
+  wishlist                 WishlistItem[]
+  reviewsReceived          SellerReview[]    @relation("ReviewsReceived")
+  reviewsWritten           SellerReview[]    @relation("ReviewsWritten")
+  reviewReports            ReviewReport[]
+  reportsMade              Report[]
+  sanctions                Sanction[]        @relation("SanctionsReceived")
+  appeals                  Appeal[]
+  moderationHidden         String[]          @default([]) // partes del perfil ocultas por moderación: photo | banner | wallpaper | text
+  termsAcceptances         TermsAcceptance[]
+  publicRegion             String? // región y comuna que se muestran en el perfil y permiten buscar vendedores (solo ubicación general, nunca dirección exacta)
+  publicComuna             String?
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+
+  @@index([publicComuna])
 }
 
 model Folder {
-  totalVisits   Int      @default(0)
-  weeklyVisits  Int      @default(0)
-  lastVisitWeek Int      @default(0)
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  tcg         String   @default("Pokemon")
-  color       String   @default("red")
-  isPublic    Boolean  @default(true)
-  moderationState String @default("visible") // visible | hidden | removed (lo decide moderación, no el dueño)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cards       Card[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  totalVisits     Int      @default(0)
+  weeklyVisits    Int      @default(0)
+  lastVisitWeek   Int      @default(0)
+  id              String   @id @default(uuid())
+  name            String
+  description     String?
+  tcg             String   @default("Pokemon")
+  color           String   @default("red")
+  isPublic        Boolean  @default(true)
+  moderationState String   @default("visible") // visible | hidden | removed (lo decide moderación, no el dueño)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cards           Card[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([userId])
   @@index([isPublic, createdAt])
 }
 
 model Card {
-  id        String   @id @default(uuid())
-  tcgId     String   // The ID from the TCG API
-  name      String
-  imageUrl  String?
-  price     Float?
-  stock     Int      @default(1)
-  data      Json?
-  moderationState String @default("visible") // visible | image_hidden | hidden | removed
-  folderId  String
-  folder    Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(uuid())
+  tcgId           String // The ID from the TCG API
+  name            String
+  imageUrl        String?
+  price           Float?
+  stock           Int      @default(1)
+  data            Json?
+  moderationState String   @default("visible") // visible | image_hidden | hidden | removed
+  folderId        String
+  folder          Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([folderId])
   @@index([createdAt])
@@ -87,33 +91,33 @@ model Card {
 }
 
 model Message {
-  id        String   @id @default(uuid())
-  senderId  String
-  receiverId String
-  content   String
-  moderationState String @default("visible") // visible | hidden (no se muestra al receptor)
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id              String   @id @default(uuid())
+  senderId        String
+  receiverId      String
+  content         String
+  moderationState String   @default("visible") // visible | hidden (no se muestra al receptor)
+  isRead          Boolean  @default(false)
+  createdAt       DateTime @default(now())
 
   @@index([senderId, receiverId, createdAt])
   @@index([receiverId, isRead])
 }
 
 model Order {
-  id          String   @id @default(uuid())
-  code        String?  @unique
-  sellerId    String
-  buyerName   String
-  buyerId     String?  // comprador con cuenta (pedidos por mensaje o con sesión iniciada): es quien puede calificar
+  id              String   @id @default(uuid())
+  code            String?  @unique
+  sellerId        String
+  buyerName       String
+  buyerId         String? // comprador con cuenta (pedidos por mensaje o con sesión iniciada): es quien puede calificar
   createdIpHash   String? // identificador anónimo (hash) de la conexión que creó el pedido
   completedIpHash String? // ídem, de la conexión que lo confirmó
-  folderId    String
-  folderName  String
-  items       Json
-  total       Float
-  status      String   @default("pending")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  folderId        String
+  folderName      String
+  items           Json
+  total           Float
+  status          String   @default("pending")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([sellerId, status])
   @@index([folderId])
@@ -121,23 +125,23 @@ model Order {
 }
 
 model TcgCategory {
-  blocks      TcgBlock[]
-  categoryId  Int       @id
-  name        String
-  modifiedOn  DateTime
-  groups      TcgGroup[]
+  blocks           TcgBlock[]
+  categoryId       Int                  @id
+  name             String
+  modifiedOn       DateTime
+  groups           TcgGroup[]
   physicalProducts TcgPhysicalProduct[]
 }
 
 model TcgGroup {
   blockId     Int?
-  block       TcgBlock?   @relation(fields: [blockId], references: [id])
-  groupId     Int       @id
+  block       TcgBlock?    @relation(fields: [blockId], references: [id])
+  groupId     Int          @id
   categoryId  Int
   name        String
   publishedOn DateTime
   modifiedOn  DateTime
-  category    TcgCategory @relation(fields: [categoryId], references: [categoryId])
+  category    TcgCategory  @relation(fields: [categoryId], references: [categoryId])
   products    TcgProduct[]
 
   @@index([categoryId])
@@ -146,16 +150,16 @@ model TcgGroup {
 
 model TcgProduct {
   physicalProductId Int?
-  physicalProduct   TcgPhysicalProduct? @relation(fields: [physicalProductId], references: [id])
-  productId   String    @id
-  groupId     Int
-  categoryId  Int
-  name        String
-  cleanName   String
-  imageUrl    String
-  extData     Json?
-  group       TcgGroup  @relation(fields: [groupId], references: [groupId])
-  physicalLinks TcgProductPhysicalProduct[]
+  physicalProduct   TcgPhysicalProduct?         @relation(fields: [physicalProductId], references: [id])
+  productId         String                      @id
+  groupId           Int
+  categoryId        Int
+  name              String
+  cleanName         String
+  imageUrl          String
+  extData           Json?
+  group             TcgGroup                    @relation(fields: [groupId], references: [groupId])
+  physicalLinks     TcgProductPhysicalProduct[]
 
   @@index([groupId])
   @@index([categoryId, groupId])
@@ -163,24 +167,24 @@ model TcgProduct {
 }
 
 model TcgBlock {
-  id          Int       @id @default(autoincrement())
-  categoryId  Int
-  name        String
-  category    TcgCategory @relation(fields: [categoryId], references: [categoryId])
-  groups      TcgGroup[]
+  id               Int                  @id @default(autoincrement())
+  categoryId       Int
+  name             String
+  category         TcgCategory          @relation(fields: [categoryId], references: [categoryId])
+  groups           TcgGroup[]
   physicalProducts TcgPhysicalProduct[]
 }
 
 // Producto físico (kit, display, colección…) de cualquier juego: pertenece a un juego y, si el juego los usa, a un bloque
 model TcgPhysicalProduct {
-  id          Int       @id @default(autoincrement())
-  name        String
-  releaseDate DateTime?
-  categoryId  Int
-  category    TcgCategory @relation(fields: [categoryId], references: [categoryId])
-  blockId     Int?
-  block       TcgBlock?   @relation(fields: [blockId], references: [id], onDelete: SetNull)
-  products    TcgProduct[]
+  id           Int                         @id @default(autoincrement())
+  name         String
+  releaseDate  DateTime?
+  categoryId   Int
+  category     TcgCategory                 @relation(fields: [categoryId], references: [categoryId])
+  blockId      Int?
+  block        TcgBlock?                   @relation(fields: [blockId], references: [id], onDelete: SetNull)
+  products     TcgProduct[]
   productLinks TcgProductPhysicalProduct[]
 
   @@unique([categoryId, blockId, name])
@@ -201,22 +205,22 @@ model TcgProductPhysicalProduct {
 
 // Cartas que un jugador busca. Se enlazan con el catálogo cuando existen allí; si no, se guardan con su nombre.
 model WishlistItem {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  categoryId   Int?
-  productId    String?
-  name         String
-  game         String?
-  detail       String?
-  imageUrl     String?
-  quantity     Int      @default(1)
-  maxPrice     Float?
-  priceVisible Boolean  @default(false)
-  note         String?
-  moderationState String @default("visible") // visible | hidden
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId      Int?
+  productId       String?
+  name            String
+  game            String?
+  detail          String?
+  imageUrl        String?
+  quantity        Int      @default(1)
+  maxPrice        Float?
+  priceVisible    Boolean  @default(false)
+  note            String?
+  moderationState String   @default("visible") // visible | hidden
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@unique([userId, productId])
   @@index([userId, createdAt])
@@ -224,18 +228,18 @@ model WishlistItem {
 
 // Reseña de un comprador a un vendedor por un pedido completado. Una por pedido y no se edita.
 model SellerReview {
-  id         String   @id @default(uuid())
+  id         String         @id @default(uuid())
   sellerId   String
-  seller     User     @relation("ReviewsReceived", fields: [sellerId], references: [id], onDelete: Cascade)
+  seller     User           @relation("ReviewsReceived", fields: [sellerId], references: [id], onDelete: Cascade)
   reviewerId String
-  reviewer   User     @relation("ReviewsWritten", fields: [reviewerId], references: [id], onDelete: Cascade)
-  orderId    String   @unique
+  reviewer   User           @relation("ReviewsWritten", fields: [reviewerId], references: [id], onDelete: Cascade)
+  orderId    String         @unique
   rating     Int
   comment    String?
-  counts     Boolean  @default(true) // false: no se muestra ni promedia (sospechosa o reportada)
-  flag       String?  // same_connection | reported
+  counts     Boolean        @default(true) // false: no se muestra ni promedia (sospechosa o reportada)
+  flag       String? // same_connection | reported
   reports    ReviewReport[]
-  createdAt  DateTime @default(now())
+  createdAt  DateTime       @default(now())
 
   @@unique([sellerId, reviewerId]) // una reseña por pareja comprador-vendedor
   @@index([sellerId, createdAt])
@@ -258,19 +262,19 @@ model ReviewReport {
 
 // Aceptación de los Términos y Condiciones y de la Política de Privacidad (una fila por versión aceptada)
 model TermsAcceptance {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   termsVersion   String
   privacyVersion String
-  isAdult        Boolean  @default(true)   // declaró tener 18 años o más
-  connectionHash String?                   // hash de la conexión (con sal), no la IP
-  acceptedAt     DateTime @default(now())
+  isAdult        Boolean   @default(true) // declaró tener 18 años o más
+  connectionHash String? // hash de la conexión (con sal), no la IP
+  acceptedAt     DateTime  @default(now())
   // Evidencia para una eventual defensa legal (nunca se borra al reactivar una cuenta: se anula)
-  voidedAt       DateTime?                 // aceptación anterior a que la cuenta se borrara y reactivara: ya no rige
-  method         String?                   // cómo inició sesión: google.com | password
-  userAgent      String?                   // navegador/dispositivo informado por el navegador (máx. 300)
-  emailHash      String?                   // HMAC del correo con la sal del servidor: comprueba un correo sin guardarlo
+  voidedAt       DateTime? // aceptación anterior a que la cuenta se borrara y reactivara: ya no rige
+  method         String? // cómo inició sesión: google.com | password
+  userAgent      String? // navegador/dispositivo informado por el navegador (máx. 300)
+  emailHash      String? // HMAC del correo con la sal del servidor: comprueba un correo sin guardarlo
 
   @@index([userId, acceptedAt])
   @@index([emailHash])
@@ -278,30 +282,30 @@ model TermsAcceptance {
 
 // Reporte genérico de contenido (usuarios, perfil, carpetas, cartas, fotos, reseñas, mensajes, lista de deseos)
 model Report {
-  id            String   @id @default(uuid())
-  shortCode     String   @unique            // "RP-4F9K2": seguimiento
+  id            String     @id @default(uuid())
+  shortCode     String     @unique // "RP-4F9K2": seguimiento
   targetType    String
   targetId      String
-  targetOwnerId String?                     // dueño del contenido, lo decide el servidor
-  reasonCode    String                      // ej. "card_image.sexual_explicit"
-  severity      String                      // S1 | S2 | S3 | S4, copiado del catálogo
+  targetOwnerId String? // dueño del contenido, lo decide el servidor
+  reasonCode    String // ej. "card_image.sexual_explicit"
+  severity      String // S1 | S2 | S3 | S4, copiado del catálogo
   comment       String?
   extra         Json?
-  reporterId    String?                     // null: lo detectó el sistema (filtros de texto)
-  reporter      User?    @relation(fields: [reporterId], references: [id], onDelete: Cascade)
-  weight        Float    @default(1)        // reputación de quien reportó al momento de hacerlo
-  snapshot      Json                        // instantánea al reportar: borrar o editar no destruye la prueba
-  status        String   @default("open")   // open | dismissed | actioned
-  decision      String?                     // dismiss | hide | remove | restore
-  decisionNote  String?                     // nota interna
+  reporterId    String? // null: lo detectó el sistema (filtros de texto)
+  reporter      User?      @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  weight        Float      @default(1) // reputación de quien reportó al momento de hacerlo
+  snapshot      Json // instantánea al reportar: borrar o editar no destruye la prueba
+  status        String     @default("open") // open | dismissed | actioned
+  decision      String? // dismiss | hide | remove | restore
+  decisionNote  String? // nota interna
   decidedById   String?
   decidedAt     DateTime?
-  autoActioned  Boolean  @default(false)    // true si el sistema ocultó el contenido antes de revisión
-  reporterRole  String?                     // buyer | seller | visitor (en reportes de pedido)
-  caseId        String?                     // caso de estafa al que se unió
+  autoActioned  Boolean    @default(false) // true si el sistema ocultó el contenido antes de revisión
+  reporterRole  String? // buyer | seller | visitor (en reportes de pedido)
+  caseId        String? // caso de estafa al que se unió
   evidence      Evidence[]
   createdIpHash String?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime   @default(now())
 
   @@unique([reporterId, targetType, targetId, reasonCode])
   @@index([targetType, targetId])
@@ -313,7 +317,7 @@ model Report {
 model ModerationAudit {
   id         String   @id @default(uuid())
   actorId    String?
-  action     String                         // decision.dismiss | decision.hide | decision.remove | decision.restore | note | auto.hide
+  action     String // decision.dismiss | decision.hide | decision.remove | decision.restore | note | auto.hide
   targetType String?
   targetId   String?
   reportId   String?
@@ -328,23 +332,23 @@ model ModerationAudit {
 
 // Medida contra una cuenta. El estado vigente de la cuenta sale de las sanciones activas.
 model Sanction {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   userId       String
-  user         User     @relation("SanctionsReceived", fields: [userId], references: [id], onDelete: Cascade)
-  type         String                      // warning | restrict_messages | suspend_selling | suspend | ban
-  reason       String                      // texto que ve la persona
-  note         String?                     // nota interna
+  user         User      @relation("SanctionsReceived", fields: [userId], references: [id], onDelete: Cascade)
+  type         String // warning | restrict_messages | suspend_selling | suspend | ban
+  reason       String // texto que ve la persona
+  note         String? // nota interna
   reportId     String?
   caseId       String?
-  status       String   @default("active") // pending_approval | active | revoked | expired | rejected
-  automatic    Boolean  @default(false)    // la aplicó el sistema (reversible)
+  status       String    @default("active") // pending_approval | active | revoked | expired | rejected
+  automatic    Boolean   @default(false) // la aplicó el sistema (reversible)
   expiresAt    DateTime?
   createdById  String?
-  approvedById String?                     // segunda aprobación (baneo permanente)
+  approvedById String? // segunda aprobación (baneo permanente)
   revokedById  String?
   revokedAt    DateTime?
   revokeNote   String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
   appeals      Appeal[]
 
   @@index([userId, status])
@@ -353,18 +357,18 @@ model Sanction {
 
 // Apelación de quien recibió una sanción o una medida sobre su contenido
 model Appeal {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   sanctionId   String?
   sanction     Sanction? @relation(fields: [sanctionId], references: [id], onDelete: Cascade)
   reportId     String?
   userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   text         String
-  status       String   @default("open")   // open | accepted | rejected
+  status       String    @default("open") // open | accepted | rejected
   decidedById  String?
   decisionNote String?
   decidedAt    DateTime?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
   @@unique([sanctionId])
   @@unique([reportId, userId])
@@ -373,20 +377,20 @@ model Appeal {
 
 // Caso de estafa: agrupa los reportes contra un mismo vendedor y lleva el descargo
 model FraudCase {
-  id              String   @id @default(uuid())
-  shortCode       String   @unique          // "CS-81KD2"
-  subjectUserId   String
-  status          String   @default("open") // open | awaiting_response | in_review | resolved
-  priority        String   @default("normal") // normal | high
-  responseDueAt   DateTime?
-  sellerResponse  String?
+  id                String    @id @default(uuid())
+  shortCode         String    @unique // "CS-81KD2"
+  subjectUserId     String
+  status            String    @default("open") // open | awaiting_response | in_review | resolved
+  priority          String    @default("normal") // normal | high
+  responseDueAt     DateTime?
+  sellerResponse    String?
   sellerRespondedAt DateTime?
-  resolution      String?                   // dismissed | warned | restricted | suspended | escalated
-  resolutionNote  String?
-  resolvedById    String?
-  resolvedAt      DateTime?
-  openedAt        DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  resolution        String? // dismissed | warned | restricted | suspended | escalated
+  resolutionNote    String?
+  resolvedById      String?
+  resolvedAt        DateTime?
+  openedAt          DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@index([subjectUserId, status])
   @@index([status, priority, openedAt])
@@ -420,10 +424,10 @@ model UserBlock {
 model ImageHash {
   id        String    @id @default(uuid())
   url       String    @unique
-  hash      String                          // 16 caracteres hexadecimales (64 bits)
-  sha256    String?                         // huella exacta del archivo original (caché de veredictos)
-  verdict   String?                         // clear | review | block | unscanned | pending (resultado del escaneo)
-  provider  String?                         // sightengine | google | null
+  hash      String // 16 caracteres hexadecimales (64 bits)
+  sha256    String? // huella exacta del archivo original (caché de veredictos)
+  verdict   String? // clear | review | block | unscanned | pending (resultado del escaneo)
+  provider  String? // sightengine | google | null
   userId    String?
   banned    Boolean   @default(false)
   bannedAt  DateTime?
@@ -436,9 +440,9 @@ model ImageHash {
 
 // Uso mensual de cada servicio de escaneo de imágenes (para no pasarse de la cuota gratuita)
 model ScanUsage {
-  provider String
-  month    String                           // "2026-10" (UTC)
-  used     Int      @default(0)
+  provider  String
+  month     String // "2026-10" (UTC)
+  used      Int      @default(0)
   updatedAt DateTime @updatedAt
 
   @@id([provider, month])
@@ -447,12 +451,12 @@ model ScanUsage {
 // Un registro por escaneo (o por acierto de caché): alimenta las métricas
 model ScanEvent {
   id        String   @id @default(uuid())
-  provider  String                          // sightengine | google | cache | none
-  kind      String                          // profile | card
-  verdict   String                          // clear | review | block | unavailable
-  fallback  Boolean  @default(false)        // se usó un proveedor de respaldo porque el principal no estaba disponible
+  provider  String // sightengine | google | cache | none
+  kind      String // profile | card
+  verdict   String // clear | review | block | unavailable
+  fallback  Boolean  @default(false) // se usó un proveedor de respaldo porque el principal no estaba disponible
   ms        Int      @default(0)
-  detail    String?                         // qué pasó con cada proveedor, p. ej. "sightengine:timeout,google:auth"
+  detail    String? // qué pasó con cada proveedor, p. ej. "sightengine:timeout,google:auth"
   createdAt DateTime @default(now())
 
   @@index([createdAt])
