@@ -3,7 +3,9 @@ import React from 'react';
 import LoadableImage from '../ui/LoadableImage';
 
 export const SafeImage = React.memo(({ src, alt, className, fallbackType = 'grid' }) => {
-  const [error, setError] = React.useState(false);
+  // Se guarda cuál imagen falló: al cambiar de carta se intenta cargar la nueva
+  const [failedSrc, setFailedSrc] = React.useState(null);
+  const error = failedSrc === src;
 
   if (!src || error) {
     if (fallbackType === 'queue') {
@@ -30,5 +32,5 @@ export const SafeImage = React.memo(({ src, alt, className, fallbackType = 'grid
     );
   }
   
-  return <LoadableImage src={src} alt={alt} loading="lazy" className={className} onError={() => setError(true)} />;
+  return <LoadableImage src={src} alt={alt} loading="lazy" className={className} onError={() => setFailedSrc(src)} />;
 });
