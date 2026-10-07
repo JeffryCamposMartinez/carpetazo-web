@@ -81,7 +81,7 @@ export const MAGIC_STATS = [...Array.from({ length: 10 }, (_, i) => String(i)), 
 
 export const EMPTY_MAGIC_FILTERS = {
   colors: [], colorMode: 'include', identity: false, type: '', supertype: '', subtype: '', keyword: '', rarity: '',
-  mv: '', power: '', toughness: '', format: '', version: '', collection: '', text: '',
+  mv: '', power: '', toughness: '', format: '', version: '', collection: '', text: '', commander: false,
 };
 
 // Nombre sin mayúsculas, tildes ni signos: igual que en el script que genera magic-meta.json
@@ -140,7 +140,7 @@ const collectionOf = (group) => {
   if (/secret lair/i.test(name)) return 'lair';
   if (/commander|brawl|planechase|archenemy|conspiracy|duel decks|from the vault|spellbook|signature/i.test(name)) return 'commander';
   if (/promo|prerelease|pre-release|judge|gift|arena|league|fnm|friday night|game day|championship|convention|launch|release|buy.?a.?box|player rewards|magicfest|celebration|world championship|open house|summer of magic|ugin/i.test(name)) return 'promo';
-  if (/masters|remaster|anthology|chronicles|reprint|collector.?s edition|cube|jumpstart|mystery booster|eternal|vintage|modern horizons|core set|foundations|battlebond|commander legends|time spiral|double masters|tempest remastered/i.test(name)) return 'masters';
+  if (/masters|remaster|anthology|chronicles|collector.?s edition|jumpstart|mystery booster|modern horizons|battlebond|commander legends|eternal.?legal/i.test(name)) return 'masters';
   if (group?.isSupplemental) return 'other';
   return 'expansion';
 };
@@ -193,6 +193,13 @@ const statMatches = (filter, text, num) => {
   return num === Number(filter);
 };
 
+// Puede ser comandante: criatura legendaria, carta que lo dice en su texto, trasfondo (Background) o vehículo/nave legendaria con fuerza y resistencia
+const canBeCommander = (m) => {
+  if (!m.supertypes.includes('Legendary')) return /can be your commander/i.test(m.text);
+  return m.types.includes('Creature') || m.subtypes.includes('Background') || /can be your commander/i.test(m.text)
+    || ((m.subtypes.includes('Vehicle') || m.subtypes.includes('Spacecraft')) && m.power !== null);
+};
+
 export const filterMagicCards = (cards, f) => {
   const wanted = f.colors.filter((color) => color !== 'C');
   const wantsColorless = f.colors.includes('C');
@@ -210,6 +217,7 @@ export const filterMagicCards = (cards, f) => {
     }
     if (f.type && !m.types.includes(f.type)) return false;
     if (f.supertype && !m.supertypes.includes(f.supertype)) return false;
+    if (f.commander && !canBeCommander(m)) return false;
     if (f.subtype && !m.subtypes.includes(f.subtype)) return false;
     if (f.keyword && !(m.keywords || []).includes(f.keyword)) return false;
     if (f.rarity && String(card.extData?.Rarity || '') !== f.rarity) return false;
@@ -230,9 +238,13 @@ export const filterMagicCards = (cards, f) => {
 // Cuántos filtros hay activos (sin contar el buscador de texto principal)
 export const countMagicFilters = (f) => Object.entries(f).reduce((total, [key, value]) => {
   if (key === 'colorMode' || key === 'identity') return total;
+  if (key === 'commander') return total + (value ? 1 : 0);
   if (key === 'colors') return total + value.length;
   return total + (String(value).trim() !== '' ? 1 : 0);
 }, 0);
+
+// Art Series, fichas, promos y Secret Lair van al final de la lista de ediciones (0 = principal, 1 = al final)
+export const magicGroupRank = (group) => (['expansion', 'commander', 'masters'].includes(collectionOf(group)) && !group.isSupplemental ? 0 : 1);
 
 export const magicGroupLabel = (group) => {
   const abbr = String(group.abbreviation || '').trim();

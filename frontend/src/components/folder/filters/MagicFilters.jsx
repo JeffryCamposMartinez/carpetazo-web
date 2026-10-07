@@ -16,7 +16,7 @@ export default function MagicFilters({ searchQuery, setSearchQuery, filters, set
   const set = (patch) => setFilters((prev) => ({ ...prev, ...patch }));
   const active = countMagicFilters(filters);
   const moreKeys = ['subtype', 'keyword', 'format', 'power', 'toughness', 'supertype', 'version', 'collection', 'text'];
-  const moreActive = moreKeys.filter((key) => filters[key] !== '').length + (filters.identity ? 1 : 0);
+  const moreActive = moreKeys.filter((key) => filters[key] !== '').length + (filters.identity ? 1 : 0) + (filters.commander ? 1 : 0);
 
   // Subtipos y habilidades: la lista completa viene de Scryfall; los subtipos que aparezcan en las cartas cargadas se suman
   const subtypeOptions = useMemo(() => {
@@ -120,6 +120,14 @@ export default function MagicFilters({ searchQuery, setSearchQuery, filters, set
             <ThemedSelect value={filters.supertype} onChange={(value) => set({ supertype: value })} ariaLabel="Supertipo" buttonClassName={compact} options={[any('Supertipo'), ...MAGIC_SUPERTYPES]} />
             <ThemedSelect value={filters.version} onChange={(value) => set({ version: value })} ariaLabel="Versión de la carta" buttonClassName={compact} listMinWidth={220} options={[any('Versión'), ...MAGIC_VERSIONS]} />
             <ThemedSelect value={filters.collection} onChange={(value) => set({ collection: value })} ariaLabel="Línea de producto" buttonClassName={compact} listMinWidth={230} options={[any('Producto'), ...MAGIC_COLLECTIONS]} />
+            <button
+              type="button"
+              aria-pressed={filters.commander}
+              onClick={() => set({ commander: !filters.commander })}
+              className={`col-span-2 h-10 rounded-xl border-2 px-3 text-[13px] font-extrabold transition-colors sm:col-span-3 ${filters.commander ? 'border-blue-900 bg-blue-900 text-yellow-400' : 'border-blue-900/25 bg-white text-blue-900 hover:border-blue-900/50'}`}
+            >
+              Puede ser comandante
+            </button>
             <button
               type="button"
               aria-pressed={filters.identity}

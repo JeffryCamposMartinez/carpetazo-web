@@ -20,7 +20,7 @@ import { DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from '../components/folder
 import useCatalogOrder from '../hooks/useCatalogOrder';
 import useInventoryTools from '../hooks/useInventoryTools';
 import { EMPTY_OP_FILTERS, ONE_PIECE_CATEGORY, onePieceGroupLabel } from '../services/tcgcsvOnePiece';
-import { EMPTY_MAGIC_FILTERS, MAGIC_CATEGORY, magicGroupLabel } from '../services/tcgcsvMagic';
+import { EMPTY_MAGIC_FILTERS, MAGIC_CATEGORY, magicGroupLabel, magicGroupRank } from '../services/tcgcsvMagic';
 import { EMPTY_RB_FILTERS, RIFTBOUND_CATEGORY, riftboundGroupLabel } from '../services/tcgcsvRiftbound';
 import { tcgcsvCategoryId } from '../services/tcgcsvGames';
 
@@ -514,6 +514,7 @@ const [isSearching, setIsSearching] = useState(false);
           (json.results || []).forEach(g => { const d = g.publishedOn.slice(0, 10); perDay[d] = (perDay[d] || 0) + 1; });
           const undated = g => perDay[g.publishedOn.slice(0, 10)] >= 8;
           groups.sort((a, b) => (undated(a) - undated(b)) || (undated(a) ? a.name.localeCompare(b.name) : new Date(b.publishedOn) - new Date(a.publishedOn)));
+          if (catId === MAGIC_CATEGORY) groups.sort((a, b) => magicGroupRank(a) - magicGroupRank(b)); // Art Series, fichas y promos al final
           setAvailableSets(groups.map(g => ({ groupId: g.groupId, id: g.groupId, name: catId === ONE_PIECE_CATEGORY ? onePieceGroupLabel(g) : catId === MAGIC_CATEGORY ? magicGroupLabel(g) : catId === RIFTBOUND_CATEGORY ? riftboundGroupLabel(g) : g.name, isSupplemental: g.isSupplemental, abbreviation: g.abbreviation, publishedOn: g.publishedOn })));
         })
         .catch(console.error);
