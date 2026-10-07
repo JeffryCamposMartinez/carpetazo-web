@@ -11,7 +11,7 @@ const CARDS = [
   { name: 'The One Ring', src: '/images/promos/onering.webp', rotate: 9, lift: 10, scale: 0.94, z: 10, delay: 320 },
 ];
 
-const STEPS = ['Elige una carpeta', 'Arma tu pedido', 'Cierra el trato por WhatsApp'];
+const STEPS = ['Elige una carpeta', 'Arma tu pedido', 'Cierra el trato con el vendedor'];
 
 function Fan({ compact }) {
   const width = compact ? 'w-[25vw] max-w-[108px]' : 'w-[clamp(140px,12.5vw,190px)]';
@@ -44,6 +44,9 @@ export default function HomeHero({ compact = false }) {
   return (
     <div className="relative isolate h-full w-full select-none overflow-hidden text-white">
       {/* Cuero de carpeta y costura, como el álbum */}
+      <div aria-hidden="true" className="absolute inset-0 -z-20 bg-gradient-to-br from-[#0B1E45] via-[#1e3a8a] to-[#1d4ed8]" />
+      <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-16 -z-10 h-72 w-72 rounded-full bg-[#facc15]/30 blur-3xl" />
+      <div aria-hidden="true" className="pointer-events-none absolute -bottom-20 left-1/4 -z-10 h-64 w-64 rounded-full bg-sky-400/30 blur-3xl" />
       <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[url('/images/leather.png')] opacity-25 mix-blend-overlay max-sm:hidden" />
       <div aria-hidden="true" className={`pointer-events-none absolute z-40 border-2 border-dashed border-white/15 ${compact ? 'inset-2 rounded-[18px]' : 'inset-3.5 rounded-[24px]'}`} />
 
@@ -67,7 +70,7 @@ export default function HomeHero({ compact = false }) {
               Compra cartas TCG directo a jugadores de Chile
             </h1>
             <p className="mt-4 max-w-[46ch] text-[clamp(0.95rem,1.25vw,1.125rem)] leading-relaxed text-blue-100/85">
-              Cada vendedor arma su carpeta con stock y precios al día. Tú eliges, armas el pedido y cierras el trato por WhatsApp.
+              Cada vendedor arma su carpeta con stock y precios al día. Tú eliges, armas el pedido y cierras el trato por el medio que el vendedor tenga disponible.
             </p>
             <div className="mt-6 flex gap-3">
               <Link to="/carpetas" className="inline-flex h-12 items-center rounded-full bg-[#ffcb05] px-8 text-[15px] font-extrabold text-[#0B1E45] transition-transform hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white motion-reduce:transition-none">

@@ -4,12 +4,21 @@ import { useAuth } from '../../contexts/AuthContext';
 import HomeHero from './HomeHero';
 
 // Cada banner dice qué se puede hacer en el sitio, con lo que existe hoy.
-function InfoSlide({ title, text, points, cta, to }) {
+const THEMES = {
+  sell: { bg: 'from-[#064e3b] via-[#0f766e] to-[#0e7490]', glow: 'bg-emerald-300/30', glow2: 'bg-[#facc15]/25', chip: 'bg-emerald-300/20 text-emerald-200', text: 'text-emerald-50/90' },
+  filters: { bg: 'from-[#3b0764] via-[#5b21b6] to-[#1d4ed8]', glow: 'bg-fuchsia-400/30', glow2: 'bg-sky-300/25', chip: 'bg-fuchsia-300/20 text-fuchsia-100', text: 'text-violet-100/90' },
+  orders: { bg: 'from-[#7c2d12] via-[#c2410c] to-[#be185d]', glow: 'bg-[#facc15]/35', glow2: 'bg-rose-300/30', chip: 'bg-[#facc15]/25 text-[#fde68a]', text: 'text-orange-50/90' },
+};
+
+function InfoSlide({ theme, title, text, points, cta, to }) {
+  const t = THEMES[theme];
   return (
-    <div className="flex h-full w-full select-none flex-col justify-center gap-5 px-6 py-7 text-left text-white md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] md:items-center md:gap-10 md:px-14">
+    <div className={`relative isolate flex h-full w-full select-none flex-col justify-center gap-5 overflow-hidden bg-gradient-to-br ${t.bg} px-6 py-7 text-left text-white md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] md:items-center md:gap-10 md:px-14`}>
+      <div aria-hidden="true" className={`pointer-events-none absolute -right-16 -top-20 -z-10 h-72 w-72 rounded-full blur-3xl ${t.glow}`} />
+      <div aria-hidden="true" className={`pointer-events-none absolute -bottom-24 left-1/3 -z-10 h-64 w-64 rounded-full blur-3xl ${t.glow2}`} />
       <div>
         <h2 className="max-w-[22ch] text-balance text-[clamp(1.5rem,5.6vw,1.9rem)] font-extrabold leading-[1.1] tracking-tight md:text-[clamp(1.95rem,3.1vw,3rem)]">{title}</h2>
-        <p className="mt-3 max-w-[48ch] text-[13px] leading-relaxed text-blue-100/85 md:mt-4 md:text-[clamp(0.95rem,1.25vw,1.125rem)]">{text}</p>
+        <p className={`mt-3 max-w-[48ch] text-[13px] leading-relaxed ${t.text} md:mt-4 md:text-[clamp(0.95rem,1.25vw,1.125rem)]`}>{text}</p>
         <Link
           to={to}
           className="mt-5 inline-flex h-11 items-center rounded-full bg-[#facc15] px-7 text-sm font-extrabold text-[#0B1E45] transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 md:mt-6 md:h-12 md:px-8 md:text-[15px]"
@@ -17,10 +26,10 @@ function InfoSlide({ title, text, points, cta, to }) {
           {cta}
         </Link>
       </div>
-      <ul className="hidden divide-y divide-white/15 rounded-lg border border-white/20 bg-[#12315f] md:block">
+      <ul className="hidden gap-2.5 md:grid">
         {points.map(({ icon, label }) => (
-          <li key={label} className="flex items-center gap-4 px-5 py-4 text-[15px] font-semibold">
-            <span translate="no" className="material-symbols-outlined text-[24px] text-[#facc15]">{icon}</span>
+          <li key={label} className="flex items-center gap-4 rounded-2xl border border-white/15 bg-white/10 px-4 py-3.5 text-[15px] font-semibold backdrop-blur-sm">
+            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${t.chip}`}><span translate="no" className="material-symbols-outlined text-[24px]">{icon}</span></span>
             {label}
           </li>
         ))}
@@ -65,6 +74,7 @@ export default function HeroCarousel() {
       id: 'sell',
       content: (
         <InfoSlide
+          theme="sell"
           title="Vende tus cartas con una carpeta pública"
           text="Carga tus cartas con precio y stock, comparte el enlace de tu carpeta y recibe los pedidos en tu panel."
           points={[
@@ -81,6 +91,7 @@ export default function HeroCarousel() {
       id: 'filters',
       content: (
         <InfoSlide
+          theme="filters"
           title="Encuentra la carta exacta en Mitos y Leyendas"
           text="Dentro de cada carpeta puedes buscar por nombre y filtrar por bloque, edición, producto, tipo, raza y coste."
           points={[
@@ -97,12 +108,13 @@ export default function HeroCarousel() {
       id: 'orders',
       content: (
         <InfoSlide
-          title="Arma tu pedido y ciérralo por WhatsApp"
-          text="Agrega cartas al carrito y genera el pedido. El vendedor recibe el detalle con el total y un código para coordinar pago y envío."
+          theme="orders"
+          title="Arma tu pedido y ciérralo con el vendedor"
+          text="Agrega cartas al carrito y genera el pedido. El vendedor recibe el detalle con el total y un código, y coordinan pago y envío por el medio que él tenga disponible."
           points={[
             { icon: 'shopping_cart', label: 'Carrito con las cartas que elijas' },
             { icon: 'receipt_long', label: 'Pedido con total y código' },
-            { icon: 'chat', label: 'Conversación directa con el vendedor' },
+            { icon: 'forum', label: 'Contacto directo por los medios del vendedor' },
           ]}
           cta="Ver carpetas"
           to="/carpetas"
