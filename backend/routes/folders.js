@@ -281,8 +281,9 @@ router.get('/api/folders/me/stats', authenticateToken, async (req, res) => {
   }
 });
 
-// Juegos válidos de una carpeta (así se guardan en Folder.tcg)
-const FOLDER_TCGS = ['Pokemon', 'Mitos y Leyendas', 'Magic', 'YuGiOh', 'OnePiece'];
+// Juegos válidos de una carpeta nueva (así se guardan en Folder.tcg)
+// Juegos con los que se pueden crear carpetas nuevas (las carpetas que ya existen de otros juegos siguen funcionando)
+const CREATABLE_TCGS = ['Pokemon', 'Mitos y Leyendas', 'OnePiece'];
 
 // Crear carpeta
 router.post('/api/folders', authenticateToken, async (req, res) => {
@@ -291,7 +292,7 @@ router.post('/api/folders', authenticateToken, async (req, res) => {
     const { name, description, isPublic, tcg, color } = req.body;
     if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     if (!isShortText(name, 100) || !isOptionalText(description, 1000) || !isOptionalText(tcg, 60) || !isOptionalText(color, 40)
-      || (tcg !== undefined && tcg !== null && !FOLDER_TCGS.includes(tcg))
+      || (tcg !== undefined && tcg !== null && !CREATABLE_TCGS.includes(tcg))
       || (isPublic !== undefined && typeof isPublic !== 'boolean')) {
       return badRequest(res, 'Datos de carpeta inválidos');
     }

@@ -1,4 +1,4 @@
-import { COLOR_NAMES, FOLDER_COLORS, TCG_OPTIONS } from '../../config/folderOptions';
+import { AVAILABLE_TCGS, COLOR_NAMES, FOLDER_COLORS, TCG_OPTIONS } from '../../config/folderOptions';
 import FolderBinder from './FolderBinder';
 
 // Crear o editar una carpeta: nombre, juego, color y visibilidad, con vista previa en vivo.
@@ -61,17 +61,22 @@ export default function FolderFormModal({
             <fieldset className="flex flex-col gap-2">
               <legend className="mb-2 text-sm font-bold text-[#1a2b4b]">Juego</legend>
               <div className="grid grid-cols-2 gap-2">
-                {TCG_OPTIONS.map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    aria-pressed={newFolderTcg === value}
-                    onClick={() => setNewFolderTcg(value)}
-                    className={`h-11 rounded-xl px-3 text-sm font-bold ring-1 transition-colors ${newFolderTcg === value ? 'bg-[#1e40af] text-white ring-[#1e40af]' : 'bg-white text-slate-700 ring-slate-300 hover:bg-slate-50'}`}
-                  >
-                    {label}
-                  </button>
-                ))}
+                {TCG_OPTIONS.map(([value, label]) => {
+                  const locked = !AVAILABLE_TCGS.includes(value);
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      disabled={locked}
+                      aria-pressed={newFolderTcg === value}
+                      onClick={() => setNewFolderTcg(value)}
+                      className={`flex h-11 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-bold ring-1 transition-colors ${locked ? 'cursor-not-allowed bg-slate-100 text-slate-400 ring-slate-200' : newFolderTcg === value ? 'bg-[#1e40af] text-white ring-[#1e40af]' : 'bg-white text-slate-700 ring-slate-300 hover:bg-slate-50'}`}
+                    >
+                      {label}
+                      {locked && <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-extrabold text-slate-500">Pronto</span>}
+                    </button>
+                  );
+                })}
               </div>
               <p className="text-xs text-slate-500">El juego no se puede cambiar después.</p>
             </fieldset>
