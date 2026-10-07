@@ -24,7 +24,7 @@ export const TCG_CONFIG = {
     addFilters: ['block', 'product', 'edition', 'type', 'race', 'cost'],
   },
   OnePiece: {
-    categoryId: '62',
+    categoryId: '68', // categoría de TCGCSV: One Piece se busca directo en TCGCSV, como Pokémon
     defaultLanguage: 'English',
     inventoryFilters: ['edition'],
     addFilters: ['edition', 'rarity', 'sealed'],

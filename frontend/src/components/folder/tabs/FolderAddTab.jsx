@@ -7,6 +7,7 @@ import { cardLabel, getExtDataValue } from '../folderCards';
 import { ReferencePriceBox, ReferencePriceLine } from '../ReferencePrice';
 import useReferencePrices from '../../../hooks/useReferencePrices';
 import Select from '../../ui/Select';
+import { TCG_LABELS } from '../../../config/folderOptions';
 
 export default function FolderAddTab({
   activeQueueItemId, availableBlocks, availablePhysicalProducts, availableRarities, availableSets,
@@ -14,10 +15,10 @@ export default function FolderAddTab({
   folderData, getCardSelectionKey, getCardSetName, getProxyImageUrl, gridCols, handleImageUpload,
   handleResultCardClick, handleRightClickResultCard, handleSaveCard, handleSearchAPI, hasMoreGroups,
   hasSearchedAPI, isBatchAdding, isMylFolder, isSaving, isSearching, isSetDropdownOpen, language,
-  multiSelectMode, mylCost, mylRace, mylType, observerTarget, price, pseudoName, queueScrollRef,
+  multiSelectMode, mylCost, mylRace, mylType, observerTarget, opFilters, price, pseudoName, queueScrollRef,
   removeQueueItem, resetCardForm, scrollToTopIfNeeded, searchBlock, searchCategory, searchLang,
   searchPhysicalProduct, searchQuery, searchResults, searchSet, selectedCard, selectedExistingCard,
-  selectedQueue, selectedQueueCountByCard, selectedSupertype, selectedType, setActiveQueueItemId,
+  selectedQueue, selectedQueueCountByCard, selectedSupertype, selectedType, setActiveQueueItemId, setOpFilters,
   setFilterRarity, setFilterType, setGridCols, setIsSetDropdownOpen, setLanguage, setMylCost, setMylRace,
   setMylType, setPrice, setPseudoName, setSearchBlock, setSearchLang, setSearchPhysicalProduct,
   setSearchQuery, setSearchSet, setSelectedCard, setSelectedQueue, setSelectedSupertype, setSelectedType,
@@ -25,7 +26,7 @@ export default function FolderAddTab({
   totalQueuedCards, visibleCount
 }) {
   // Precio referencial (Pokémon: TCGplayer; Mitos y Leyendas: vendedores de Carpetazo) de las cartas a la vista y de la que se agrega
-  const referenceGame = searchCategory === '1' ? 'pokemon' : searchCategory === '99' ? 'myl' : null;
+  const referenceGame = searchCategory === '1' ? 'pokemon' : searchCategory === '68' ? 'onepiece' : searchCategory === '99' ? 'myl' : null;
   const { variantsFor, source } = useReferencePrices(selectedCard ? [selectedCard, ...searchResults.slice(0, visibleCount)] : searchResults.slice(0, visibleCount), referenceGame);
   const selectedVariants = referenceGame && selectedCard ? variantsFor(selectedCard) : undefined;
   // Carta de la ficha en pantalla grande (al tocar su imagen)
@@ -41,7 +42,7 @@ export default function FolderAddTab({
         <div className="bg-white pb-4 mb-4 border-b border-gray-200">
             <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 mb-4">
           <span translate="no" className="material-symbols-outlined text-[#1e40af]">search</span>
-            Buscar en {folderData?.tcg || "Carpeta"}
+            Buscar en {TCG_LABELS[folderData?.tcg] || folderData?.tcg || "Carpeta"}
         </h2>
         
         <form onSubmit={handleSearchAPI} className="flex flex-col gap-2 mb-3">
@@ -58,6 +59,7 @@ export default function FolderAddTab({
             filteredSearchSets={filteredSearchSets}
             isSetDropdownOpen={isSetDropdownOpen}
             setIsSetDropdownOpen={setIsSetDropdownOpen}
+            opFilters={opFilters} setOpFilters={setOpFilters} loadedCards={searchResults}
             selectedType={selectedType} setSelectedType={setSelectedType} selectedSupertype={selectedSupertype} setSelectedSupertype={setSelectedSupertype} filterCounts={filterCounts} filterType={filterType}
             setFilterType={setFilterType}
             availableRarities={availableRarities}

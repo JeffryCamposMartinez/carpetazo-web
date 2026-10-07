@@ -1,4 +1,5 @@
 import PokemonFilters from './PokemonFilters';
+import OnePieceFilters from './OnePieceFilters';
 import React from 'react';
 import ThemedSelect from '../../ui/ThemedSelect';
 import Select from '../../ui/Select';
@@ -241,6 +242,9 @@ export default function FolderAddSearchFilters({
   mylCost,
   setMylCost,
   scrollToTopIfNeeded,
+  opFilters,
+  setOpFilters,
+  loadedCards,
 }) {
   const isMyl = searchCategory === '99' || tcg === 'Mitos y Leyendas';
 
@@ -283,6 +287,17 @@ export default function FolderAddSearchFilters({
             scrollToTopIfNeeded={scrollToTopIfNeeded}
           />
         </>
+      ) : searchCategory === '68' ? (
+        <OnePieceFilters
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          filters={opFilters}
+          setFilters={setOpFilters}
+          searchSet={searchSet}
+          availableSets={availableSets}
+          onSelectSet={onSelectSet}
+          loadedCards={loadedCards}
+        />
       ) : (
         <PokemonFilters
           searchQuery={searchQuery}

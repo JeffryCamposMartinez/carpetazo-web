@@ -19,6 +19,7 @@ import useCardSearch from '../hooks/useCardSearch';
 import { DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from '../components/folder/dragScroll';
 import useCatalogOrder from '../hooks/useCatalogOrder';
 import useInventoryTools from '../hooks/useInventoryTools';
+import { EMPTY_OP_FILTERS, ONE_PIECE_CATEGORY, onePieceGroupLabel } from '../services/tcgcsvOnePiece';
 
 
 const PAGE_SIZE = 20;
@@ -82,6 +83,7 @@ export default function FolderPage() {
   const [filterType, setFilterType] = useState('all');
   const [selectedType, setSelectedType] = useState('');
   const [selectedSupertype, setSelectedSupertype] = useState('');
+  const [opFilters, setOpFilters] = useState(EMPTY_OP_FILTERS); // filtros de One Piece
 
 const [filterRarity, setFilterRarity] = useState('');
   const [availableRarities, setAvailableRarities] = useState([]);
@@ -109,6 +111,7 @@ const [isSearching, setIsSearching] = useState(false);
   const [hasMoreGroups, setHasMoreGroups] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const folderTcgConfig = getTcgConfig(folderData?.tcg);
+  const isTcgcsvSearch = searchCategory === '1' || searchCategory === String(ONE_PIECE_CATEGORY); // Pokémon y One Piece se buscan directo en TCGCSV
   const isMylFolder = folderTcgConfig.categoryId === '99' || searchCategory === '99';
 
   const scrollToTopIfNeeded = () => {
@@ -478,7 +481,7 @@ const [isSearching, setIsSearching] = useState(false);
       }
     }).catch(console.error);
     api.getTcgPhysicalProducts().then(res => { if(!stale && res.success) setAvailablePhysicalProducts(res.data); }).catch(console.error);
-    if (searchCategory === '1') {
+    if (searchCategory === '1' || searchCategory === String(ONE_PIECE_CATEGORY)) {
       setAvailableSets([]);
       // Cancelar cualquier carga en curso del idioma anterior y limpiar sus resultados
       pokeGenRef.current++;
@@ -489,7 +492,7 @@ const [isSearching, setIsSearching] = useState(false);
       setRawSearchResults([]);
       setSearchResults([]);
       setIsSearching(false);
-      const catId = searchLang === 'ja' ? 85 : 3;
+      const catId = searchCategory === '1' ? (searchLang === 'ja' ? 85 : 3) : ONE_PIECE_CATEGORY;
       // Ediciones sin cartas (solo sellado), generado con scripts/find_empty_tcgcsv_groups.cjs
       Promise.all([
         fetch(apiUrl(`/tcgcsv/tcgplayer/${catId}/groups`)).then(r => r.json()),
@@ -505,7 +508,7 @@ const [isSearching, setIsSearching] = useState(false);
           (json.results || []).forEach(g => { const d = g.publishedOn.slice(0, 10); perDay[d] = (perDay[d] || 0) + 1; });
           const undated = g => perDay[g.publishedOn.slice(0, 10)] >= 8;
           groups.sort((a, b) => (undated(a) - undated(b)) || (undated(a) ? a.name.localeCompare(b.name) : new Date(b.publishedOn) - new Date(a.publishedOn)));
-          setAvailableSets(groups.map(g => ({ groupId: g.groupId, id: g.groupId, name: g.name, publishedOn: g.publishedOn })));
+          setAvailableSets(groups.map(g => ({ groupId: g.groupId, id: g.groupId, name: catId === ONE_PIECE_CATEGORY ? onePieceGroupLabel(g) : g.name, abbreviation: g.abbreviation, publishedOn: g.publishedOn })));
         })
         .catch(console.error);
       return () => { stale = true; };
@@ -726,18 +729,18 @@ const [isSearching, setIsSearching] = useState(false);
     }
 
     setSearchResults(filtered);
-  }, [rawSearchResults, filterType, filterRarity, searchQuery, mylType, mylRace, mylCost, searchPhysicalProduct, selectedSupertype, selectedType]);
+  }, [rawSearchResults, filterType, filterRarity, searchQuery, mylType, mylRace, mylCost, searchPhysicalProduct, selectedSupertype, selectedType, opFilters]);
 
   // Si con los filtros actuales no alcanzan resultados para llenar la primera página, seguir cargando ediciones
   useEffect(() => {
-    if (searchCategory === '1' && hasMoreGroups && !isSearching && searchResults.length < PAGE_SIZE) {
+    if (isTcgcsvSearch && hasMoreGroups && !isSearching && searchResults.length < PAGE_SIZE) {
       loadMorePokemonRef.current?.();
     }
-  }, [searchResults, hasMoreGroups, isSearching, selectedSupertype, selectedType, filterRarity]);
+  }, [searchResults, hasMoreGroups, isSearching, selectedSupertype, selectedType, filterRarity, opFilters]);
 
   // Al cargar las ediciones de Pokémon con "Todas las ediciones", buscar solo para no dejar la lista en blanco
   useEffect(() => {
-    if (searchCategory === '1' && availableSets.length > 0 && !searchSet && activeTab === 'add' && !loadingFolder) {
+    if (isTcgcsvSearch && availableSets.length > 0 && !searchSet && activeTab === 'add' && !loadingFolder) {
       handleSearchAPI({ preventDefault: () => {} });
     }
   }, [availableSets]);
@@ -751,7 +754,7 @@ const [isSearching, setIsSearching] = useState(false);
   }, [loadingFolder, searchCategory, initialSearchTriggered, activeTab]);
 
   const { applyCardFilters, handleSearchAPI, loadMorePokemonRef, pokeGenRef, pokeLoadingRef, pokeQueueRef } = useCardSearch({
-    abortControllerRef, activeTab, availableSets, filterRarity, loadingFolder, mylCost, mylRace, mylType,
+    abortControllerRef, activeTab, availableSets, filterRarity, loadingFolder, mylCost, mylRace, mylType, opFilters,
     searchBlock, searchCategory, searchLang, searchPhysicalProduct, searchQuery, searchSet, selectedSupertype,
     selectedType, setAvailableRarities, setFilterRarity, setFilterType, setHasMoreGroups, setHasSearchedAPI,
     setIsSearching, setRawSearchResults, showToast
@@ -822,8 +825,8 @@ const [isSearching, setIsSearching] = useState(false);
             pseudoName: isBatchAdding ? '' : pseudoName.trim(),
             set: getCardSetName(selectedCard) || 'Unknown',
             rarity: getExtDataValue(selectedCard.extData, 'Rarity') || getExtDataValue(selectedCard.extData, 'Card Number / Rarity') || getExtDataValue(selectedCard.extData, 'Frequency') || 'Unknown',
-            supertype: getExtDataValue(selectedCard.extData, 'Card Type / HP / Stage')?.split(' / ')[0] || getExtDataValue(selectedCard.extData, 'Type') || 'Unknown',
-            type: getExtDataValue(selectedCard.extData, 'Type'),
+            supertype: getExtDataValue(selectedCard.extData, 'Card Type / HP / Stage')?.split(' / ')[0] || getExtDataValue(selectedCard.extData, 'Type') || getExtDataValue(selectedCard.extData, 'CardType') || 'Unknown',
+            type: getExtDataValue(selectedCard.extData, 'Type') || getExtDataValue(selectedCard.extData, 'Color'),
             race: getExtDataValue(selectedCard.extData, 'Race'),
             cost: getExtDataValue(selectedCard.extData, 'Cost'),
             effect: getExtDataValue(selectedCard.extData, 'Effect'),
@@ -923,11 +926,11 @@ const [isSearching, setIsSearching] = useState(false);
     filteredSearchSets, folderData, getCardSelectionKey, getCardSetName, getProxyImageUrl, gridCols,
     handleImageUpload, handleResultCardClick, handleRightClickResultCard, handleSaveCard, handleSearchAPI,
     hasMoreGroups, hasSearchedAPI, isBatchAdding, isMylFolder, isSaving, isSearching, isSetDropdownOpen, language,
-    multiSelectMode, mylCost, mylRace, mylType, observerTarget, price, pseudoName, queueScrollRef, removeQueueItem,
+    multiSelectMode, mylCost, mylRace, mylType, observerTarget, opFilters, price, pseudoName, queueScrollRef, removeQueueItem,
     resetCardForm, scrollToTopIfNeeded, searchBlock, searchCategory, searchLang, searchPhysicalProduct, searchQuery,
     searchResults, searchSet, selectedCard, selectedExistingCard, selectedQueue, selectedQueueCountByCard,
     selectedSupertype, selectedType, setActiveQueueItemId, setFilterRarity, setFilterType, setGridCols,
-    setIsSetDropdownOpen, setLanguage, setMylCost, setMylRace, setMylType, setPrice, setPseudoName, setSearchBlock,
+    setIsSetDropdownOpen, setLanguage, setMylCost, setMylRace, setMylType, setOpFilters, setPrice, setPseudoName, setSearchBlock,
     setSearchLang, setSearchPhysicalProduct, setSearchQuery, setSearchSet, setSelectedCard, setSelectedQueue,
     setSelectedSupertype, setSelectedType, setShowCardDetails, setStock, showCardDetails, showScrollTop,
     startQueuedAdd, stock, toggleMultiSelectMode, totalQueuedCards, visibleCount };
