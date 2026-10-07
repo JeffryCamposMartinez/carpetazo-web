@@ -62,10 +62,9 @@ export default function OnePieceFilters({ searchQuery, setSearchQuery, filters, 
                   aria-label={color.label}
                   title={color.label}
                   onClick={() => toggleColor(color.value)}
-                  style={{ backgroundColor: color.hex }}
-                  className={`flex h-9 w-9 items-center justify-center rounded-full shadow-sm outline-none transition-transform focus-visible:ring-2 focus-visible:ring-blue-900 active:scale-90 sm:h-10 sm:w-10 ${on ? 'scale-110 ring-2 ring-blue-900 ring-offset-2' : 'opacity-85 hover:scale-105 hover:opacity-100'}`}
+                  className={`relative h-12 w-9 rounded-lg shadow-sm outline-none transition-[transform,opacity,filter] focus-visible:ring-2 focus-visible:ring-blue-900 active:scale-90 sm:h-14 sm:w-[42px] ${on ? '-translate-y-0.5 scale-110 ring-2 ring-blue-900 ring-offset-2' : 'opacity-60 saturate-75 hover:-translate-y-0.5 hover:opacity-100'}`}
                 >
-                  {on && <span translate="no" aria-hidden="true" className={`material-symbols-outlined text-[20px] font-bold ${color.value === 'Yellow' ? 'text-blue-900' : 'text-white'}`}>check</span>}
+                  <img src={`/images/onepiece/don-${color.value}.webp`} alt="" width="42" height="56" draggable="false" className="h-full w-full select-none rounded-lg" />
                 </button>
               );
             })}
