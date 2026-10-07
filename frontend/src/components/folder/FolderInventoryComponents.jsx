@@ -16,10 +16,10 @@ export const FolderInventorySummary = ({ cards = [], filteredCards = [], tcg, ha
   const withoutPrice = cards.filter(card => Number(card.price || 0) <= 0).length;
 
   const stats = [
-    { label: 'Cartas únicas', value: cards.length, icon: 'style' },
-    { label: 'Copias totales', value: totalCopies, icon: 'inventory_2' },
-    { label: 'Páginas', value: pages, icon: 'auto_stories' },
-    { label: 'Valor estimado', value: formatCLP(totalValue), icon: 'paid' },
+    { label: 'Cartas únicas', value: cards.length, icon: 'diamond', chip: 'bg-sky-100 text-sky-700', bar: 'bg-sky-500' },
+    { label: 'Copias totales', value: totalCopies, icon: 'layers', chip: 'bg-violet-100 text-violet-700', bar: 'bg-violet-500' },
+    { label: 'Páginas', value: pages, icon: 'auto_stories', chip: 'bg-amber-100 text-amber-700', bar: 'bg-amber-400' },
+    { label: 'Valor estimado', value: formatCLP(totalValue), icon: 'payments', chip: 'bg-emerald-100 text-emerald-700', bar: 'bg-emerald-500' },
   ];
 
   return (
@@ -51,12 +51,15 @@ export const FolderInventorySummary = ({ cards = [], filteredCards = [], tcg, ha
 
       <div className="hidden grid-cols-4 gap-2 sm:grid">
         {stats.map(stat => (
-          <div key={stat.label} className="rounded-xl border border-white/70 bg-white/80 p-2.5 shadow-sm">
-            <div className="mb-1 flex h-7 w-7 items-center justify-center rounded-lg bg-[#1e40af]/10 text-[#1e40af]">
-              <span translate="no" className="material-symbols-outlined text-[16px]">{stat.icon}</span>
+          <div key={stat.label} className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-white/70 bg-white/85 p-3 shadow-sm">
+            <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1 ${stat.bar}`} />
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${stat.chip}`}>
+              <span translate="no" data-weight="fill" className="material-symbols-outlined text-[22px]">{stat.icon}</span>
             </div>
-            <p className="text-base font-black leading-none text-[#1a2b4b]">{stat.value}</p>
-            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-500">{stat.label}</p>
+            <div className="min-w-0">
+              <p className="truncate text-lg font-black leading-none tabular-nums text-[#1a2b4b]">{stat.value}</p>
+              <p className="mt-1 truncate text-[10px] font-bold uppercase tracking-wide text-gray-500">{stat.label}</p>
+            </div>
           </div>
         ))}
       </div>

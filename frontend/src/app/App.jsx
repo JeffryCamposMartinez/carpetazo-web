@@ -65,7 +65,7 @@ function App() {
           <div className="flex flex-col min-h-[100svh] w-full relative">
             <Header />
           
-            <div className="flex min-h-[100svh] flex-1 flex-col">
+            <div className="flex flex-1 flex-col">
               <RouteBoundary>
               <Suspense fallback={<RouteLoading />}>
               <FirstPageShown />
