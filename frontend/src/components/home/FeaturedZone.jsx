@@ -143,6 +143,38 @@ function TopSellers({ sellers }) {
   );
 }
 
+// Ranking de vendedores según los pedidos que confirmaron como vendidos
+function TopSelling({ sellers }) {
+  if (sellers.length === 0) return null;
+  const leader = Math.max(1, sellers[0].sales);
+  const medals = ['bg-[#facc15] text-[#0B1E45]', 'bg-slate-200 text-slate-700', 'bg-orange-300 text-orange-900'];
+  return (
+    <section aria-labelledby="destacados-ventas">
+      <SectionHeader id="destacados-ventas" title="Top vendedores" note="Los que más ventas han concretado en Carpetazo." to="/vendedores" linkLabel="Ver vendedores" />
+      <ol className="divide-y divide-[#1a2b4b]/10 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-[#1a2b4b]/10">
+        {sellers.map((seller, index) => (
+          <li key={seller.username}>
+            <Link to={`/${seller.username}`} className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-[#dbeafe]/60 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#1e40af] sm:gap-4">
+              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-black tabular-nums ${medals[index] || 'bg-[#1e40af]/10 text-[#1e40af]'}`}>{index + 1}</span>
+              <Avatar src={seller.photoURL} name={seller.name} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-bold text-[#1a2b4b]">{seller.name}</p>
+                <p className="truncate text-xs text-[#1a2b4b]/75">@{seller.username}{seller.publicComuna ? ` · ${seller.publicComuna}` : ''}</p>
+                <div className="mt-2 flex items-center gap-3">
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-emerald-600/10" role="presentation">
+                    <div className="h-full rounded-full bg-emerald-600" style={{ width: `${Math.max(6, Math.round((seller.sales / leader) * 100))}%` }} />
+                  </div>
+                  <span className="shrink-0 text-xs font-bold tabular-nums text-[#1a2b4b]">{formatNumber(seller.sales)} {seller.sales === 1 ? 'venta' : 'ventas'}</span>
+                </div>
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 // Carpetas recién publicadas
 function NewFolders({ folders }) {
   if (folders.length === 0) return null;
@@ -269,6 +301,7 @@ export default function FeaturedZone({ recentCards = [], loadingCards = false })
   const visitedFolders = data?.visited || [];
   const newFolders = data?.newest || [];
   const sellers = useMemo(() => (data?.topSellers || []).map((seller) => ({ key: seller.username || seller.name, name: seller.name || seller.username || 'Vendedor', username: seller.username, photoURL: seller.photoURL, visits: seller.visits, folders: seller.folders, cards: seller.cards })), [data]);
+  const topSelling = data?.topSelling || [];
   const stats = data?.stats || { folders: 0, sellers: 0, cards: 0 };
   const gameCounts = useMemo(() => {
     const counts = {};
@@ -300,6 +333,7 @@ export default function FeaturedZone({ recentCards = [], loadingCards = false })
         </div>
       ) : (
         <div className="space-y-14 sm:space-y-16">
+          <TopSelling sellers={topSelling} />
           <VisitedFolders folders={visitedFolders} />
           <RecentCards cards={recentCards} loading={loadingCards} />
           <div className="grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">

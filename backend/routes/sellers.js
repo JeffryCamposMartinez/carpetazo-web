@@ -52,12 +52,23 @@ router.get('/api/sellers', async (req, res) => {
 router.get('/api/home/featured', async (_req, res) => {
   try {
     const filter = folderFilterSql({ like: null, tcgs: null });
-    const [visitedIds, newestIds, tcgRows, statRows, sellerResult] = await Promise.all([
+    const [visitedIds, newestIds, tcgRows, statRows, sellerResult, salesRows] = await Promise.all([
       prisma.$queryRaw`SELECT f."id" FROM "Folder" f JOIN "User" u ON u."id" = f."userId" WHERE ${filter} ORDER BY ${folderOrderSql('weekly')} LIMIT 5`,
       prisma.$queryRaw`SELECT f."id" FROM "Folder" f JOIN "User" u ON u."id" = f."userId" WHERE ${filter} ORDER BY f."createdAt" DESC LIMIT 5`,
       prisma.$queryRaw`SELECT f."tcg", COUNT(*)::int AS n FROM "Folder" f WHERE f."isPublic" = true GROUP BY f."tcg"`,
       prisma.$queryRaw`SELECT COUNT(DISTINCT f."id")::int AS folders, COUNT(DISTINCT f."userId")::int AS sellers, (SELECT COUNT(*) FROM "Card" c JOIN "Folder" f2 ON f2."id" = c."folderId" AND f2."isPublic" = true)::int AS cards FROM "Folder" f WHERE f."isPublic" = true`,
-      querySellers({ like: null, sort: 'visits', limit: 5, offset: 0 })
+      querySellers({ like: null, sort: 'visits', limit: 5, offset: 0 }),
+      // Más ventas concretadas: solo pedidos confirmados por el vendedor
+      prisma.$queryRaw`
+        SELECT u."name", u."username", u."photoURL", u."publicComuna", COUNT(o."id")::int AS sales
+        FROM "Order" o
+        JOIN "User" u ON u."id" = o."sellerId"
+        WHERE o."status" = 'completed'
+          AND u."username" IS NOT NULL
+          AND EXISTS (SELECT 1 FROM "Folder" f WHERE f."userId" = u."id" AND f."isPublic" = true)
+        GROUP BY u."id"
+        ORDER BY sales DESC, MAX(o."updatedAt") DESC
+        LIMIT 5`
     ]);
     const stats = statRows[0] || { folders: 0, sellers: 0, cards: 0 };
     res.json({
@@ -66,7 +77,8 @@ router.get('/api/home/featured', async (_req, res) => {
       counts: tcgRows.map((row) => ({ tcg: row.tcg, count: row.n })),
       visited: await loadPublicFolders(visitedIds.map((row) => row.id)),
       newest: await loadPublicFolders(newestIds.map((row) => row.id)),
-      topSellers: sellerResult[0]
+      topSellers: sellerResult[0],
+      topSelling: salesRows
     });
   } catch (error) {
     console.error('Error loading featured:', error);
