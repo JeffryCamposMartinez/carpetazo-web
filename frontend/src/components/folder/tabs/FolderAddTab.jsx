@@ -15,10 +15,10 @@ export default function FolderAddTab({
   folderData, getCardSelectionKey, getCardSetName, getProxyImageUrl, gridCols, handleImageUpload,
   handleResultCardClick, handleRightClickResultCard, handleSaveCard, handleSearchAPI, hasMoreGroups,
   hasSearchedAPI, isBatchAdding, isMylFolder, isSaving, isSearching, isSetDropdownOpen, language,
-  multiSelectMode, mylCost, mylRace, mylType, observerTarget, opFilters, price, pseudoName, queueScrollRef,
+  multiSelectMode, mylCost, mylRace, mylType, magicFilters, observerTarget, opFilters, price, pseudoName, rbFilters, queueScrollRef,
   removeQueueItem, resetCardForm, scrollToTopIfNeeded, searchBlock, searchCategory, searchLang,
   searchPhysicalProduct, searchQuery, searchResults, searchSet, selectedCard, selectedExistingCard,
-  selectedQueue, selectedQueueCountByCard, selectedSupertype, selectedType, setActiveQueueItemId, setOpFilters,
+  selectedQueue, selectedQueueCountByCard, selectedSupertype, selectedType, setActiveQueueItemId, setMagicFilters, setOpFilters, setRbFilters,
   setFilterRarity, setFilterType, setGridCols, setIsSetDropdownOpen, setLanguage, setMylCost, setMylRace,
   setMylType, setPrice, setPseudoName, setSearchBlock, setSearchLang, setSearchPhysicalProduct,
   setSearchQuery, setSearchSet, setSelectedCard, setSelectedQueue, setSelectedSupertype, setSelectedType,
@@ -26,7 +26,7 @@ export default function FolderAddTab({
   totalQueuedCards, visibleCount
 }) {
   // Precio referencial (Pokémon: TCGplayer; Mitos y Leyendas: vendedores de Carpetazo) de las cartas a la vista y de la que se agrega
-  const referenceGame = searchCategory === '1' ? 'pokemon' : searchCategory === '68' ? 'onepiece' : searchCategory === '99' ? 'myl' : null;
+  const referenceGame = searchCategory === '1' ? 'pokemon' : searchCategory === '68' ? 'onepiece' : searchCategory === 'magic' ? 'magic' : searchCategory === 'riftbound' ? 'riftbound' : searchCategory === '99' ? 'myl' : null;
   const { variantsFor, source } = useReferencePrices(selectedCard ? [selectedCard, ...searchResults.slice(0, visibleCount)] : searchResults.slice(0, visibleCount), referenceGame);
   const selectedVariants = referenceGame && selectedCard ? variantsFor(selectedCard) : undefined;
   // Carta de la ficha en pantalla grande (al tocar su imagen)
@@ -59,7 +59,7 @@ export default function FolderAddTab({
             filteredSearchSets={filteredSearchSets}
             isSetDropdownOpen={isSetDropdownOpen}
             setIsSetDropdownOpen={setIsSetDropdownOpen}
-            opFilters={opFilters} setOpFilters={setOpFilters} loadedCards={searchResults}
+            opFilters={opFilters} setOpFilters={setOpFilters} magicFilters={magicFilters} setMagicFilters={setMagicFilters} rbFilters={rbFilters} setRbFilters={setRbFilters} loadedCards={searchResults}
             selectedType={selectedType} setSelectedType={setSelectedType} selectedSupertype={selectedSupertype} setSelectedSupertype={setSelectedSupertype} filterCounts={filterCounts} filterType={filterType}
             setFilterType={setFilterType}
             availableRarities={availableRarities}

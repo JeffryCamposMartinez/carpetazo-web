@@ -1,5 +1,7 @@
 import PokemonFilters from './PokemonFilters';
 import OnePieceFilters from './OnePieceFilters';
+import MagicFilters from './MagicFilters';
+import RiftboundFilters from './RiftboundFilters';
 import React from 'react';
 import ThemedSelect from '../../ui/ThemedSelect';
 import Select from '../../ui/Select';
@@ -244,6 +246,10 @@ export default function FolderAddSearchFilters({
   scrollToTopIfNeeded,
   opFilters,
   setOpFilters,
+  magicFilters,
+  setMagicFilters,
+  rbFilters,
+  setRbFilters,
   loadedCards,
 }) {
   const isMyl = searchCategory === '99' || tcg === 'Mitos y Leyendas';
@@ -287,6 +293,28 @@ export default function FolderAddSearchFilters({
             scrollToTopIfNeeded={scrollToTopIfNeeded}
           />
         </>
+      ) : searchCategory === 'riftbound' ? (
+        <RiftboundFilters
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          filters={rbFilters}
+          setFilters={setRbFilters}
+          searchSet={searchSet}
+          availableSets={availableSets}
+          onSelectSet={onSelectSet}
+          loadedCards={loadedCards}
+        />
+      ) : searchCategory === 'magic' ? (
+        <MagicFilters
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          filters={magicFilters}
+          setFilters={setMagicFilters}
+          searchSet={searchSet}
+          availableSets={availableSets}
+          onSelectSet={onSelectSet}
+          loadedCards={loadedCards}
+        />
       ) : searchCategory === '68' ? (
         <OnePieceFilters
           searchQuery={searchQuery}

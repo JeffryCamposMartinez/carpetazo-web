@@ -283,7 +283,7 @@ router.get('/api/folders/me/stats', authenticateToken, async (req, res) => {
 
 // Juegos válidos de una carpeta nueva (así se guardan en Folder.tcg)
 // Juegos con los que se pueden crear carpetas nuevas (las carpetas que ya existen de otros juegos siguen funcionando)
-const CREATABLE_TCGS = ['Pokemon', 'Mitos y Leyendas', 'OnePiece'];
+const CREATABLE_TCGS = ['Pokemon', 'Mitos y Leyendas', 'OnePiece', 'Magic', 'Riftbound'];
 
 // Crear carpeta
 router.post('/api/folders', authenticateToken, async (req, res) => {

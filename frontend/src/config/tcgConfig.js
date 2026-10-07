@@ -12,7 +12,7 @@ export const TCG_CONFIG = {
     addFilters: ['edition', 'rarity', 'sealed'],
   },
   Magic: {
-    categoryId: '3',
+    categoryId: 'magic', // se busca directo en TCGCSV (categoría 1), con datos de Scryfall
     defaultLanguage: 'English',
     inventoryFilters: ['edition'],
     addFilters: ['edition', 'rarity', 'sealed'],
@@ -28,6 +28,12 @@ export const TCG_CONFIG = {
     defaultLanguage: 'English',
     inventoryFilters: ['edition'],
     addFilters: ['edition', 'rarity', 'sealed'],
+  },
+  Riftbound: {
+    categoryId: 'riftbound', // se busca directo en TCGCSV (categoría 89)
+    defaultLanguage: 'English',
+    inventoryFilters: ['edition'],
+    addFilters: ['edition', 'rarity'],
   },
 };
 

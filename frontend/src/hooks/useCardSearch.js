@@ -1,12 +1,15 @@
 import { api, apiUrl } from '../services/api';
 import { classifyTcgcsvCard } from '../services/tcgcsvPokemon';
 import { ONE_PIECE_CATEGORY, filterOnePieceCards, onePieceExt, onePieceMatchesQuery } from '../services/tcgcsvOnePiece';
+import { MAGIC_CATEGORY, MAGIC_MARKER, filterMagicCards, loadMagicMeta, magicExt, magicMatchesQuery } from '../services/tcgcsvMagic';
+import { RIFTBOUND_CATEGORY, RIFTBOUND_MARKER, filterRiftboundCards, riftboundExt, riftboundMatchesQuery } from '../services/tcgcsvRiftbound';
+import { tcgcsvCategoryId } from '../services/tcgcsvGames';
 import { getExtDataValue } from '../components/folder/folderCards';
 import { useEffect, useRef } from 'react';
 
 // Búsqueda de cartas para agregar a una carpeta: Pokémon por ediciones (TCGCSV, de la más nueva a la más vieja), Mitos y Leyendas y el resto desde la base, con filtros.
 export default function useCardSearch({ abortControllerRef, activeTab, availableSets, filterRarity,
-  loadingFolder, mylCost, mylRace, mylType, opFilters, searchBlock, searchCategory, searchLang, searchPhysicalProduct,
+  loadingFolder, mylCost, mylRace, mylType, magicFilters, opFilters, rbFilters, searchBlock, searchCategory, searchLang, searchPhysicalProduct,
   searchQuery, searchSet, selectedSupertype, selectedType, setAvailableRarities, setFilterRarity,
   setFilterType, setHasMoreGroups, setHasSearchedAPI, setIsSearching, setRawSearchResults, showToast }) {
   // --- Pokémon (TCGCSV): en "Todas las ediciones" se cargan ediciones de a poco, de la más nueva a la más vieja ---
@@ -20,7 +23,10 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
   const fetchPokemonGroup = async (group, catId, signal) => {
     const key = `${catId}-${group.groupId}`;
     if (pokeGroupCacheRef.current.has(key)) return pokeGroupCacheRef.current.get(key);
-    const json = await (await fetch(apiUrl(`/tcgcsv/tcgplayer/${catId}/${group.groupId}/products`), { signal })).json();
+    const [json, magicMeta] = await Promise.all([
+      fetch(apiUrl(`/tcgcsv/tcgplayer/${catId}/${group.groupId}/products`), { signal }).then(r => r.json()),
+      catId === MAGIC_CATEGORY ? loadMagicMeta() : null,
+    ]);
     const list = (json.results || [])
       .map(p => {
         const ext = {};
@@ -38,7 +44,7 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
         cardLanguage: catId === 85 ? 'Japanese' : 'English',
         groupId: p.groupId,
         group: { id: p.groupId, name: group?.name || '', publishedOn: group?.publishedOn },
-        extData: { ...ext, localId: ext.Number, ...(catId === ONE_PIECE_CATEGORY ? onePieceExt(ext, group, p.name) : classifyTcgcsvCard(p.name, ext)) },
+        extData: { ...ext, localId: ext.Number, ...(catId === ONE_PIECE_CATEGORY ? onePieceExt(ext, group, p.name) : catId === MAGIC_CATEGORY ? magicExt(ext, group, p.name, magicMeta) : catId === RIFTBOUND_CATEGORY ? riftboundExt(ext, group, p.name) : classifyTcgcsvCard(p.name, ext)) },
       }));
     const extractNum = (str) => { const m = (str || '').match(/\d+/); return m ? parseInt(m[0], 10) : 0; };
     list.sort((a, b) => {
@@ -52,6 +58,8 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
   // Filtros de categoría, tipo y rareza (también los usa la carga por ediciones para saber cuándo hay suficientes resultados)
   const applyCardFilters = (list) => {
     if (searchCategory === String(ONE_PIECE_CATEGORY)) return filterOnePieceCards(list, opFilters);
+    if (searchCategory === MAGIC_MARKER) return filterMagicCards(list, magicFilters);
+    if (searchCategory === RIFTBOUND_MARKER) return filterRiftboundCards(list, rbFilters);
     if (selectedSupertype) {
         const catMap = { "Pokémon": "Pokémon", "Trainer": "Entrenador", "Energy": "Energía" };
         list = list.filter(c => c.extData?.category === catMap[selectedSupertype]);
@@ -92,7 +100,7 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
   };
 
   // Carga ediciones de la cola hasta juntar `target` cartas que coincidan con el texto buscado
-  const matchesText = (c, q) => (c.catId === ONE_PIECE_CATEGORY ? onePieceMatchesQuery(c, q) : !q || c.name.toLowerCase().includes(q) || String(c.extData.Number).toLowerCase().includes(q));
+  const matchesText = (c, q) => (c.catId === ONE_PIECE_CATEGORY ? onePieceMatchesQuery(c, q) : c.catId === MAGIC_CATEGORY ? magicMatchesQuery(c, q) : c.catId === RIFTBOUND_CATEGORY ? riftboundMatchesQuery(c, q) : !q || c.name.toLowerCase().includes(q) || String(c.extData.Number).toLowerCase().includes(q));
 
   const loadPokemonGroups = async (target, gen, signal, q) => {
     const catId = pokeCatRef.current;
@@ -144,9 +152,9 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
     setIsSearching(true);
     try {
       let cards = [];
-      if (searchCategory === '1' || searchCategory === String(ONE_PIECE_CATEGORY)) {
+      if (tcgcsvCategoryId(searchCategory, searchLang)) {
           const q = searchQuery.trim().toLowerCase();
-          const catId = searchCategory === '1' ? (searchLang === 'ja' ? 85 : 3) : ONE_PIECE_CATEGORY;
+          const catId = tcgcsvCategoryId(searchCategory, searchLang);
           const gen = ++pokeGenRef.current;
           pokeLoadingRef.current = false;
           setHasMoreGroups(false);

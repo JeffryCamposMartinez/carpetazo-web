@@ -25,9 +25,10 @@ export const TCG_OPTIONS = [
   ['Mitos y Leyendas', 'Mitos y Leyendas'],
   ['Magic', 'Magic'],
   ['YuGiOh', 'Yu-Gi-Oh!'],
-  ['OnePiece', 'One Piece']
+  ['OnePiece', 'One Piece'],
+  ['Riftbound', 'Riftbound']
 ];
 // Juegos con los que ya se pueden crear carpetas nuevas (los demás aparecen bloqueados)
-export const AVAILABLE_TCGS = ['Pokemon', 'Mitos y Leyendas', 'OnePiece'];
+export const AVAILABLE_TCGS = ['Pokemon', 'Mitos y Leyendas', 'OnePiece', 'Magic', 'Riftbound'];
 export const TCG_LABELS = Object.fromEntries(TCG_OPTIONS);
 export const COLOR_NAMES = { red: 'rojo', blue: 'azul', pink: 'rosado', green: 'verde', yellow: 'amarillo', black: 'negro' };

@@ -14,7 +14,7 @@ export default function useReferencePrices(cards, game) {
   const [byGroup, setByGroup] = useState({});
   const [rate, setRate] = useState(null);
   const [myl, setMyl] = useState({});
-  const pokemon = game === 'pokemon' || game === 'onepiece'; // precio de mercado de TCGplayer
+  const pokemon = game === 'pokemon' || game === 'onepiece' || game === 'magic' || game === 'riftbound'; // precio de mercado de TCGplayer
   const isMyl = game === 'myl';
 
   useEffect(() => {
