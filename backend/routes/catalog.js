@@ -5,8 +5,8 @@ import { badRequest, isAllowedProxyImageUrl } from '../core/validation.js';
 
 const router = express.Router();
 
-// Proxy con caché hacia TCGCSV (Pokémon inglés y japonés, One Piece, Magic, Riftbound): el navegador no puede llamarlo directo por CORS
-const TCGCSV_ALLOWED_PATH = /^\/tcgplayer\/(1|3|68|85|89)\/(groups|\d+\/(products|prices))$/;
+// Proxy con caché hacia TCGCSV (Pokémon inglés y japonés, One Piece, Magic, Riftbound, Yu-Gi-Oh!): el navegador no puede llamarlo directo por CORS
+const TCGCSV_ALLOWED_PATH = /^\/tcgplayer\/(1|2|3|68|85|89)\/(groups|\d+\/(products|prices))$/;
 const TCGCSV_TTL_MS = 30 * 60 * 1000;
 const TCGCSV_MAX_ENTRIES = 160;
 const tcgcsvCache = new Map();

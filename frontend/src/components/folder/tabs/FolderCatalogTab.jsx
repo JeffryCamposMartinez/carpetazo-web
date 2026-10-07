@@ -273,7 +273,7 @@ export default function FolderCatalogTab({
       )}
 
       {isGrid && inventory.previewId && (
-        <CardLightbox cards={inventory.gridCards} cardId={inventory.previewId} onChange={inventory.setPreviewId} onClose={() => inventory.setPreviewId(null)} />
+        <CardLightbox tcg={folderData?.tcg} cards={inventory.gridCards} cardId={inventory.previewId} onChange={inventory.setPreviewId} onClose={() => inventory.setPreviewId(null)} />
       )}
     </div>
   );

@@ -6,7 +6,7 @@ export const TCG_CONFIG = {
     addFilters: ['edition', 'rarity', 'sealed'],
   },
   YuGiOh: {
-    categoryId: '2',
+    categoryId: 'yugioh', // se busca directo en TCGCSV (categoría 2), con datos de YGOPRODeck
     defaultLanguage: 'English',
     inventoryFilters: ['edition'],
     addFilters: ['edition', 'rarity', 'sealed'],

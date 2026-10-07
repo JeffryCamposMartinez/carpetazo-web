@@ -11,6 +11,7 @@ import CardShare from '../components/cards/CardShare';
 import { CardAvailability, RecentSales, TcgplayerRange } from '../components/cards/CardMarketInfo';
 import ReportButton from '../components/moderation/ReportButton';
 import useCardPriceRanges from '../hooks/useCardPriceRanges';
+import { cardFill, cardRatio, isYugioh } from '../utils/cardShape';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 
@@ -110,8 +111,8 @@ export default function CardDetailPage() {
 
         <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[minmax(0,21rem)_minmax(0,1fr)] md:items-start lg:gap-10">
           <div className="mx-auto w-full min-w-0 max-w-[12.5rem] sm:max-w-[16rem] md:col-start-1 md:row-start-1 md:max-w-none">
-            <button type="button" onClick={() => setZoom(true)} aria-label={`Ver ${card.name} en pantalla grande`} className="relative block w-full cursor-zoom-in overflow-hidden rounded-2xl bg-white p-2 shadow-[0_18px_40px_-24px_rgba(26,43,75,0.6)] ring-1 ring-slate-900/5 transition-transform duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]" style={{ aspectRatio: '63 / 88' }}>
-              {card.imageUrl ? <LoadableImage src={card.imageUrl} alt={card.name} className="h-full w-full rounded-lg object-contain" /> : <span className="flex h-full items-center justify-center text-sm font-semibold text-slate-400">Sin imagen</span>}
+            <button type="button" onClick={() => setZoom(true)} aria-label={`Ver ${card.name} en pantalla grande`} className="relative block w-full cursor-zoom-in overflow-hidden rounded-2xl bg-white p-2 shadow-[0_18px_40px_-24px_rgba(26,43,75,0.6)] ring-1 ring-slate-900/5 transition-transform duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]" style={{ aspectRatio: cardRatio(card.tcg), ...(isYugioh(card.tcg) ? { padding: 0, borderRadius: '3px' } : {}) }}>
+              {card.imageUrl ? <LoadableImage src={card.imageUrl} alt={card.name} className="h-full w-full rounded-lg object-contain" style={cardFill(card.tcg)} /> : <span className="flex h-full items-center justify-center text-sm font-semibold text-slate-400">Sin imagen</span>}
             </button>
           </div>
 

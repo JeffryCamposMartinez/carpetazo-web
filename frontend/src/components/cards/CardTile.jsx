@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import LoadableImage from '../ui/LoadableImage';
+import { cardFill, cardRatio } from '../../utils/cardShape';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 const NEW_WINDOW_MS = 72 * 60 * 60 * 1000;
@@ -45,7 +46,7 @@ function Availability({ stock }) {
 
 function CardImage({ card, className }) {
   return card.imageUrl
-    ? <LoadableImage src={card.imageUrl} alt={card.name} loading="lazy" decoding="async" className={className} />
+    ? <LoadableImage src={card.imageUrl} alt={card.name} loading="lazy" decoding="async" className={className} style={cardFill(card.folder?.tcg)} />
     : <span className="absolute inset-0 flex items-center justify-center px-2 text-center text-xs font-semibold text-slate-400">Sin imagen</span>;
 }
 
@@ -77,7 +78,7 @@ export default function CardTile({ card, index, view, wanted, onWish }) {
     return (
       <li className="card-enter relative min-w-0" style={{ '--i': index }}>
         <Link to={`/carta/${card.id}`} className={`group flex gap-3 rounded-2xl p-2.5 pr-14 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${SURFACE} ${LIFT}`}>
-          <span className="relative block w-[5.5rem] shrink-0 overflow-hidden rounded-xl bg-slate-100" style={{ aspectRatio: '63 / 88' }}>
+          <span className="relative block w-[5.5rem] shrink-0 overflow-hidden rounded-xl bg-slate-100" style={{ aspectRatio: cardRatio(card.folder?.tcg) }}>
             <CardImage card={card} className="absolute inset-1.5 h-[calc(100%-0.75rem)] w-[calc(100%-0.75rem)] rounded-md object-contain" />
           </span>
           <span className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">
@@ -99,7 +100,7 @@ export default function CardTile({ card, index, view, wanted, onWish }) {
   return (
     <li className="card-enter relative min-w-0" style={{ '--i': index }}>
       <Link to={`/carta/${card.id}`} className={`group flex h-full flex-col overflow-hidden rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${SURFACE} ${LIFT}`}>
-        <span className="relative block w-full overflow-hidden bg-slate-100" style={{ aspectRatio: '63 / 88' }}>
+        <span className="relative block w-full overflow-hidden bg-slate-100" style={{ aspectRatio: cardRatio(card.folder?.tcg) }}>
           <CardImage card={card} className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-md object-contain" />
           {isNew && <span className="absolute left-2 top-2 rounded-full bg-[#12315f] px-2 py-0.5 text-[11px] font-extrabold text-white shadow">Nueva</span>}
           <span className="absolute bottom-2 left-2 -rotate-1"><PriceTag price={card.price} /></span>

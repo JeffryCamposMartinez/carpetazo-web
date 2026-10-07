@@ -216,6 +216,7 @@ export default function CatalogBrowser({
                 const availableStock = Number(card.stock || 0) - (cartItem ? cartItem.quantity : 0);
                 return (
                   <CatalogCard 
+                    tcg={folderData?.tcg}
                     key={card.id} 
                     card={card} 
                     availableStock={availableStock}

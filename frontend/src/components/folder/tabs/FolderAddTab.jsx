@@ -8,6 +8,11 @@ import { ReferencePriceBox, ReferencePriceLine } from '../ReferencePrice';
 import useReferencePrices from '../../../hooks/useReferencePrices';
 import Select from '../../ui/Select';
 import { TCG_LABELS } from '../../../config/folderOptions';
+import { cardCorners, cardFit, cardRatio, isYugioh } from '../../../utils/cardShape';
+import { EMPTY_OP_FILTERS } from '../../../services/tcgcsvOnePiece';
+import { EMPTY_MAGIC_FILTERS } from '../../../services/tcgcsvMagic';
+import { EMPTY_RB_FILTERS } from '../../../services/tcgcsvRiftbound';
+import { EMPTY_YGO_FILTERS } from '../../../services/tcgcsvYugioh';
 
 export default function FolderAddTab({
   activeQueueItemId, availableBlocks, availablePhysicalProducts, availableRarities, availableSets,
@@ -15,10 +20,10 @@ export default function FolderAddTab({
   folderData, getCardSelectionKey, getCardSetName, getProxyImageUrl, gridCols, handleImageUpload,
   handleResultCardClick, handleRightClickResultCard, handleSaveCard, handleSearchAPI, hasMoreGroups,
   hasSearchedAPI, isBatchAdding, isMylFolder, isSaving, isSearching, isSetDropdownOpen, language,
-  multiSelectMode, mylCost, mylRace, mylType, magicFilters, observerTarget, opFilters, price, pseudoName, rbFilters, queueScrollRef,
+  multiSelectMode, mylCost, mylRace, mylType, magicFilters, observerTarget, opFilters, price, pseudoName, rbFilters, ygFilters, queueScrollRef,
   removeQueueItem, resetCardForm, scrollToTopIfNeeded, searchBlock, searchCategory, searchLang,
   searchPhysicalProduct, searchQuery, searchResults, searchSet, selectedCard, selectedExistingCard,
-  selectedQueue, selectedQueueCountByCard, selectedSupertype, selectedType, setActiveQueueItemId, setMagicFilters, setOpFilters, setRbFilters,
+  selectedQueue, selectedQueueCountByCard, selectedSupertype, selectedType, setActiveQueueItemId, setMagicFilters, setOpFilters, setRbFilters, setYgFilters,
   setFilterRarity, setFilterType, setGridCols, setIsSetDropdownOpen, setLanguage, setMylCost, setMylRace,
   setMylType, setPrice, setPseudoName, setSearchBlock, setSearchLang, setSearchPhysicalProduct,
   setSearchQuery, setSearchSet, setSelectedCard, setSelectedQueue, setSelectedSupertype, setSelectedType,
@@ -26,12 +31,20 @@ export default function FolderAddTab({
   totalQueuedCards, visibleCount
 }) {
   // Precio referencial (Pokémon: TCGplayer; Mitos y Leyendas: vendedores de Carpetazo) de las cartas a la vista y de la que se agrega
-  const referenceGame = searchCategory === '1' ? 'pokemon' : searchCategory === '68' ? 'onepiece' : searchCategory === 'magic' ? 'magic' : searchCategory === 'riftbound' ? 'riftbound' : searchCategory === '99' ? 'myl' : null;
+  const referenceGame = searchCategory === '1' ? 'pokemon' : searchCategory === '68' ? 'onepiece' : searchCategory === 'magic' ? 'magic' : searchCategory === 'riftbound' ? 'riftbound' : searchCategory === 'yugioh' ? 'yugioh' : searchCategory === '99' ? 'myl' : null;
   const { variantsFor, source } = useReferencePrices(selectedCard ? [selectedCard, ...searchResults.slice(0, visibleCount)] : searchResults.slice(0, visibleCount), referenceGame);
   const selectedVariants = referenceGame && selectedCard ? variantsFor(selectedCard) : undefined;
+  // Botón flotante de limpiar filtros: deja todos los filtros del juego en su estado inicial
+  const clearAllFilters = () => {
+    setSearchQuery(''); setSearchSet('');
+    setSearchBlock(''); setSearchPhysicalProduct(''); setMylType(''); setMylRace(''); setMylCost('');
+    setSelectedSupertype(''); setSelectedType(''); setFilterRarity(''); setFilterType('all');
+    setOpFilters(EMPTY_OP_FILTERS); setMagicFilters(EMPTY_MAGIC_FILTERS); setRbFilters(EMPTY_RB_FILTERS); setYgFilters(EMPTY_YGO_FILTERS);
+    scrollToTopIfNeeded();
+  };
   // Carta de la ficha en pantalla grande (al tocar su imagen)
   const [zoomedCard, setZoomedCard] = useState(null);
-  const zoomList = useMemo(() => (zoomedCard ? [{ id: 'zoom', name: zoomedCard.name, imageUrl: getProxyImageUrl(zoomedCard.tcgProductId || zoomedCard.id, zoomedCard.imageUrl), set: getCardSetName(zoomedCard), rarity: zoomedCard.rarity || getExtDataValue(zoomedCard.extData, 'Rarity') }] : []), [zoomedCard]); // eslint-disable-line react-hooks/exhaustive-deps
+  const zoomList = useMemo(() => (zoomedCard ? [{ id: 'zoom', tcg: folderData?.tcg, name: zoomedCard.name, imageUrl: getProxyImageUrl(zoomedCard.tcgProductId || zoomedCard.id, zoomedCard.imageUrl), set: getCardSetName(zoomedCard), rarity: zoomedCard.rarity || getExtDataValue(zoomedCard.extData, 'Rarity') }] : []), [zoomedCard]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="flex flex-col-reverse lg:flex-row gap-6">
       {zoomedCard && zoomList.length > 0 && (
@@ -59,7 +72,7 @@ export default function FolderAddTab({
             filteredSearchSets={filteredSearchSets}
             isSetDropdownOpen={isSetDropdownOpen}
             setIsSetDropdownOpen={setIsSetDropdownOpen}
-            opFilters={opFilters} setOpFilters={setOpFilters} magicFilters={magicFilters} setMagicFilters={setMagicFilters} rbFilters={rbFilters} setRbFilters={setRbFilters} loadedCards={searchResults}
+            opFilters={opFilters} setOpFilters={setOpFilters} magicFilters={magicFilters} setMagicFilters={setMagicFilters} rbFilters={rbFilters} setRbFilters={setRbFilters} ygFilters={ygFilters} setYgFilters={setYgFilters} loadedCards={searchResults}
             selectedType={selectedType} setSelectedType={setSelectedType} selectedSupertype={selectedSupertype} setSelectedSupertype={setSelectedSupertype} filterCounts={filterCounts} filterType={filterType}
             setFilterType={setFilterType}
             availableRarities={availableRarities}
@@ -118,7 +131,7 @@ export default function FolderAddTab({
             <button type="submit" className="hidden" />
             <button 
               type="button" 
-              onClick={() => { setSearchQuery(''); setSearchPhysicalProduct(''); setSearchSet(''); setMylType(''); setMylRace(''); setMylCost(''); scrollToTopIfNeeded(); }} 
+              onClick={clearAllFilters} 
               className="bg-white hover:bg-red-50 text-gray-500 hover:text-red-500 border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
               title="Limpiar filtros"
               aria-label="Limpiar filtros"
@@ -149,8 +162,8 @@ export default function FolderAddTab({
           {selectedQueue.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
               {selectedQueue.map((item, index) => (
-                <button key={item.queueId} type="button" onClick={(e) => decreaseQueueItemQuantity(e, item.queueId)} onContextMenu={(e) => e.preventDefault()} className={`relative flex-shrink-0 w-16 rounded-lg border-2 bg-white p-1 shadow-sm transition-all ${activeQueueItemId === item.queueId ? 'border-[#1e40af]' : 'border-blue-200 hover:border-red-300'}`} title="Quitar de la selección">
-                  <div className="relative w-full aspect-[63/88]"><SafeImage src={item.card.imageUrl} alt={item.card.name} className="w-full h-full object-contain rounded" fallbackType="queue" /></div>
+                <button key={item.queueId} type="button" onClick={(e) => decreaseQueueItemQuantity(e, item.queueId)} onContextMenu={(e) => e.preventDefault()} className={`relative flex-shrink-0 w-16 ${isYugioh(folderData?.tcg) ? 'rounded-[3px] p-0' : 'rounded-lg p-1'} border-2 bg-white shadow-sm transition-all ${activeQueueItemId === item.queueId ? 'border-[#1e40af]' : 'border-blue-200 hover:border-red-300'}`} title="Quitar de la selección">
+                  <div className="relative w-full" style={{ aspectRatio: cardRatio(folderData?.tcg) }}><SafeImage src={item.card.imageUrl} alt={item.card.name} style={cardFit(folderData?.tcg)} className="w-full h-full object-contain rounded" fallbackType="queue" /></div>
                   <span className="absolute -top-2 -left-2 bg-[#1e40af] text-white text-[10px] font-bold rounded-full min-w-5 px-1 h-5 flex items-center justify-center border border-white">x{item.quantity || 1}</span>
                 </button>
               ))}
@@ -170,14 +183,15 @@ export default function FolderAddTab({
               const queuedCount = selectedQueueCountByCard[getCardSelectionKey(card)] || 0;
               const isCardSelected = selectedCard?.id === card.id || queuedCount > 0;
               return (
-            <div key={card.id || `search-${index}`} className={`relative cursor-pointer flex flex-col justify-between rounded-xl overflow-hidden border-2 transition-all duration-200 bg-blue-50 shadow-sm ${gridCols === 1 ? 'max-w-[255px] mx-auto w-full' : gridCols === 2 ? 'max-w-[350px] mx-auto w-full' : 'w-full'} ${isCardSelected ? 'border-[#1e40af] shadow-md scale-[1.02] ring-2 ring-[#1e40af]/20' : 'border-gray-200 hover:border-[#1e40af]/50'}`} onClick={() => handleResultCardClick(card)} onContextMenu={(e) => handleRightClickResultCard(e, card)} title={multiSelectMode ? "Clic izquierdo: Añadir 1 copia | Clic derecho: Quitar 1 copia" : ""}>
+            <div key={card.id || `search-${index}`} className={`relative cursor-pointer flex flex-col justify-between ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-xl'} overflow-hidden border-2 transition-all duration-200 bg-blue-50 shadow-sm ${gridCols === 1 ? 'max-w-[255px] mx-auto w-full' : gridCols === 2 ? 'max-w-[350px] mx-auto w-full' : 'w-full'} ${isCardSelected ? 'border-[#1e40af] shadow-md scale-[1.02] ring-2 ring-[#1e40af]/20' : 'border-gray-200 hover:border-[#1e40af]/50'}`} onClick={() => handleResultCardClick(card)} onContextMenu={(e) => handleRightClickResultCard(e, card)} title={multiSelectMode ? "Clic izquierdo: Añadir 1 copia | Clic derecho: Quitar 1 copia" : ""}>
               {queuedCount > 0 && (
                 <div className="absolute top-2 right-2 z-20 bg-[#1e40af] text-white text-xs font-bold rounded-full min-w-7 h-7 px-2 flex items-center justify-center border-2 border-white shadow-md">
                   x{queuedCount}
                 </div>
               )}
-              <div className={`relative w-full ${isMylFolder ? 'aspect-[709/1016]' : 'aspect-[63/88]'} flex items-center justify-center bg-gray-50 overflow-hidden`}>
-                <SafeImage src={card.imageUrl} alt={card.name} className="w-full h-full object-cover relative z-10 transition-opacity duration-300" fallbackType="grid" />
+              {/* Cada juego tiene su proporción (Yu-Gi-Oh! es más angosta); la imagen entra entera, sin recortes */}
+              <div className="relative w-full flex items-center justify-center bg-gray-50 overflow-hidden" style={{ aspectRatio: isMylFolder ? '709 / 1016' : cardRatio(folderData?.tcg) }}>
+                <SafeImage src={card.imageUrl} alt={card.name} style={cardFit(folderData?.tcg)} className="w-full h-full object-contain relative z-10 transition-opacity duration-300" fallbackType="grid" />
               </div>
               {showCardDetails && (
                 <div className={`text-center border-t border-gray-100 w-full ${gridCols <= 2 ? 'p-2' : gridCols === 3 ? 'p-3' : gridCols === 4 ? 'p-2' : 'p-1'}`}>
@@ -255,7 +269,7 @@ export default function FolderAddTab({
             </button>
             <button 
                 type="button" 
-                onClick={() => { setSearchQuery(''); setSearchPhysicalProduct(''); setSearchSet(''); setMylType(''); setMylRace(''); setMylCost(''); scrollToTopIfNeeded(); }} 
+                onClick={clearAllFilters} 
                 className="bg-white hover:bg-red-50 text-gray-500 hover:text-red-500 border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center font-bold hover:scale-110 active:scale-95" 
                 title="Limpiar filtros"
               aria-label="Limpiar filtros"
@@ -282,7 +296,7 @@ export default function FolderAddTab({
           <form onSubmit={handleSaveCard} className="flex min-h-[610px] lg:min-h-0 lg:h-[calc(100%-58px)] flex-col justify-between gap-4 mt-2">
             <div className="flex justify-center relative z-50 mt-4 lg:flex-1 lg:min-h-0 w-full">
               <div className="relative inline-block lg:h-full flex justify-center items-center">
-                <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} className="relative block h-72 sm:h-80 lg:h-full lg:max-h-full lg:w-full aspect-[63/88] cursor-zoom-in rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2"><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} className="w-full h-full object-contain rounded-lg shadow-md relative z-50 transition-transform duration-150 active:scale-[0.98]" fallbackType="zoom-main" /></button>
+                <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} style={{ aspectRatio: cardRatio(folderData?.tcg) }} className={`relative block h-72 sm:h-80 lg:h-full lg:max-h-full lg:w-full aspect-[63/88] cursor-zoom-in ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-lg'} focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2`}><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} style={cardCorners(folderData?.tcg)} className="w-full h-full object-contain rounded-lg shadow-md relative z-50 transition-transform duration-150 active:scale-[0.98]" fallbackType="zoom-main" /></button>
                 <button 
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -380,8 +394,8 @@ export default function FolderAddTab({
                     {selectedQueue.length > 0 ? (
                       <div className="grid grid-cols-3 gap-4">
                         {selectedQueue.map((item, index) => (
-                          <div key={item.queueId} onContextMenu={(e) => decreaseQueueItemQuantity(e, item.queueId)} title="Clic derecho para quitar 1 copia" className="relative w-full aspect-[63/88] rounded-xl shadow-sm border-2 border-blue-200 bg-white p-1.5 hover:border-red-300 transition-colors flex items-center justify-center cursor-context-menu">
-                            <div className="relative w-full h-full"><SafeImage src={getProxyImageUrl(item.card.tcgProductId || item.card.id, item.card.imageUrl)} alt={item.card.name} className="w-full h-full object-contain rounded-md" fallbackType="queue" /></div>
+                          <div key={item.queueId} onContextMenu={(e) => decreaseQueueItemQuantity(e, item.queueId)} title="Clic derecho para quitar 1 copia" style={{ aspectRatio: cardRatio(folderData?.tcg) }} className={`relative w-full aspect-[63/88] ${isYugioh(folderData?.tcg) ? 'rounded-[3px] p-0' : 'rounded-xl p-1.5'} shadow-sm border-2 border-blue-200 bg-white hover:border-red-300 transition-colors flex items-center justify-center cursor-context-menu`}>
+                            <div className="relative w-full h-full"><SafeImage src={getProxyImageUrl(item.card.tcgProductId || item.card.id, item.card.imageUrl)} alt={item.card.name} style={cardFit(folderData?.tcg)} className="w-full h-full object-contain rounded-md" fallbackType="queue" /></div>
                             <button 
                               type="button" 
                               onClick={() => removeQueueItem(item.queueId)} 

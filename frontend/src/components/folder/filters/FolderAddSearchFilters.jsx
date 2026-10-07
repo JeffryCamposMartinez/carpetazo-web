@@ -2,6 +2,7 @@ import PokemonFilters from './PokemonFilters';
 import OnePieceFilters from './OnePieceFilters';
 import MagicFilters from './MagicFilters';
 import RiftboundFilters from './RiftboundFilters';
+import YugiohFilters from './YugiohFilters';
 import React from 'react';
 import ThemedSelect from '../../ui/ThemedSelect';
 import Select from '../../ui/Select';
@@ -250,6 +251,8 @@ export default function FolderAddSearchFilters({
   setMagicFilters,
   rbFilters,
   setRbFilters,
+  ygFilters,
+  setYgFilters,
   loadedCards,
 }) {
   const isMyl = searchCategory === '99' || tcg === 'Mitos y Leyendas';
@@ -293,6 +296,17 @@ export default function FolderAddSearchFilters({
             scrollToTopIfNeeded={scrollToTopIfNeeded}
           />
         </>
+      ) : searchCategory === 'yugioh' ? (
+        <YugiohFilters
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          filters={ygFilters}
+          setFilters={setYgFilters}
+          searchSet={searchSet}
+          availableSets={availableSets}
+          onSelectSet={onSelectSet}
+          loadedCards={loadedCards}
+        />
       ) : searchCategory === 'riftbound' ? (
         <RiftboundFilters
           searchQuery={searchQuery}

@@ -8,10 +8,13 @@ import {
   filterPokemonCards,
 } from '../../services/tcgcsvPokemon';
 import Select from '../ui/Select';
+import { cardFill, cardRatio } from '../../utils/cardShape';
+import CardLightbox from '../ui/CardLightbox';
 import { fetchGameGroupCards, fetchGameGroups, filterGameCards, tcgcsvGameInfo } from '../../services/tcgcsvGames';
 import { EMPTY_OP_FILTERS, countOnePieceFilters } from '../../services/tcgcsvOnePiece';
 import { EMPTY_MAGIC_FILTERS, countMagicFilters } from '../../services/tcgcsvMagic';
 import { EMPTY_RB_FILTERS, countRiftboundFilters } from '../../services/tcgcsvRiftbound';
+import { EMPTY_YGO_FILTERS, countYugiohFilters } from '../../services/tcgcsvYugioh';
 
 // Juegos del sitio. Solo los marcados tienen buscador con filtros; el resto llegará pronto.
 export const WISHLIST_GAMES = [
@@ -19,7 +22,7 @@ export const WISHLIST_GAMES = [
   { name: 'Mitos y Leyendas', available: true },
   { name: 'One Piece', available: true },
   { name: 'Magic', available: true },
-  { name: 'Yu-Gi-Oh!', available: false },
+  { name: 'Yu-Gi-Oh!', available: true },
   { name: 'Riftbound', available: true },
 ];
 
@@ -75,19 +78,21 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
   const [opFilters, setOpFilters] = useState(EMPTY_OP_FILTERS);
   const [magicFilters, setMagicFilters] = useState(EMPTY_MAGIC_FILTERS);
   const [rbFilters, setRbFilters] = useState(EMPTY_RB_FILTERS);
+  const [ygFilters, setYgFilters] = useState(EMPTY_YGO_FILTERS);
 
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [moreEditions, setMoreEditions] = useState(false);
   const [hint, setHint] = useState('');
+  const [previewKey, setPreviewKey] = useState(null); // carta abierta en pantalla completa
   const seq = useRef(0);
 
   const isPokemon = game === 'Pokémon';
   const isMyl = game === 'Mitos y Leyendas';
   const selectedGame = WISHLIST_GAMES.find((item) => item.name === game);
   const gameInfo = tcgcsvGameInfo(game); // One Piece, Magic o Riftbound
-  const gameFilters = game === 'One Piece' ? opFilters : game === 'Magic' ? magicFilters : rbFilters;
-  const gameFilterCount = game === 'One Piece' ? countOnePieceFilters(opFilters) : game === 'Magic' ? countMagicFilters(magicFilters) : countRiftboundFilters(rbFilters);
+  const gameFilters = game === 'One Piece' ? opFilters : game === 'Magic' ? magicFilters : game === 'Yu-Gi-Oh!' ? ygFilters : rbFilters;
+  const gameFilterCount = game === 'One Piece' ? countOnePieceFilters(opFilters) : game === 'Magic' ? countMagicFilters(magicFilters) : game === 'Yu-Gi-Oh!' ? countYugiohFilters(ygFilters) : countRiftboundFilters(rbFilters);
   const loadCards = (group, signal) => (gameInfo ? fetchGameGroupCards(game, group, signal) : fetchPokemonGroupCards(searchLang, group, signal));
   const rowOf = (card) => (gameInfo ? gameRow(card, game) : pokemonRow(card));
   // Texto de búsqueda y filtros del juego sobre las cartas de una edición
@@ -98,7 +103,7 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
   const resetFilters = () => {
     setSearchQuery(''); setSearchSet(''); setSelectedSupertype(''); setSelectedType('');
     setSearchBlock(''); setSearchPhysicalProduct(''); setMylType(''); setMylRace(''); setMylCost('');
-    setOpFilters(EMPTY_OP_FILTERS); setMagicFilters(EMPTY_MAGIC_FILTERS); setRbFilters(EMPTY_RB_FILTERS);
+    setOpFilters(EMPTY_OP_FILTERS); setMagicFilters(EMPTY_MAGIC_FILTERS); setRbFilters(EMPTY_RB_FILTERS); setYgFilters(EMPTY_YGO_FILTERS);
     setResults([]); setHint(''); setVisible(PAGE);
   };
   if (resetRef) resetRef.current = resetFilters;
@@ -189,7 +194,7 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
 
     const timer = setTimeout(run, 400);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [game, searchQuery, searchSet, searchLang, selectedSupertype, selectedType, editionGroups, mylFilters, opFilters, magicFilters, rbFilters]);
+  }, [game, searchQuery, searchSet, searchLang, selectedSupertype, selectedType, editionGroups, mylFilters, opFilters, magicFilters, rbFilters, ygFilters]);
 
   // Descarga ediciones de a 3, de la más nueva a la más vieja, hasta juntar una página de coincidencias (o llegar a la última)
   const scanEditions = async (from, term, signal) => {
@@ -273,6 +278,8 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
             setMagicFilters={setMagicFilters}
             rbFilters={rbFilters}
             setRbFilters={setRbFilters}
+            ygFilters={ygFilters}
+            setYgFilters={setYgFilters}
             loadedCards={results}
             scrollToTopIfNeeded={() => {}}
           />
@@ -296,9 +303,9 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
               <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
                 {results.slice(0, visible).map((row) => (
                   <li key={row.key} className="flex min-w-0 flex-col gap-1.5 rounded-xl bg-white p-1.5 ring-1 ring-slate-200 sm:p-2">
-                    <span className="relative block aspect-[5/7] w-full overflow-hidden rounded-lg bg-slate-100">
-                      {row.imageUrl ? <LoadableImage src={row.imageUrl} alt={row.label} loading="lazy" className="h-full w-full object-contain" /> : <span className="flex h-full items-center justify-center px-1 text-center text-[11px] font-semibold text-slate-500">Sin imagen</span>}
-                    </span>
+                    <button type="button" onClick={() => setPreviewKey(row.key)} aria-label={`Ver ${row.label} en pantalla completa`} className="relative block aspect-[5/7] w-full cursor-zoom-in overflow-hidden rounded-lg bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]" style={{ aspectRatio: cardRatio(game, '5 / 7') }}>
+                      {row.imageUrl ? <LoadableImage src={row.imageUrl} alt={row.label} loading="lazy" className="h-full w-full object-contain" style={cardFill(game)} /> : <span className="flex h-full items-center justify-center px-1 text-center text-[11px] font-semibold text-slate-500">Sin imagen</span>}
+                    </button>
                     <span className="min-w-0 px-0.5">
                       <span className="line-clamp-2 block text-[12px] font-bold leading-tight text-[#12315f] sm:text-[13px]" title={row.label}>{row.label}</span>
                       <span className="mt-0.5 line-clamp-1 block text-[11px] text-slate-500" title={row.sub}>{row.sub}</span>
@@ -325,6 +332,25 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
             </>
           )}
         </div>
+      )}
+      {previewKey && (
+        <CardLightbox
+          cards={results.map((row) => ({ id: row.key, name: row.label, imageUrl: row.imageUrl, game, row }))}
+          cardId={previewKey}
+          onChange={setPreviewKey}
+          onClose={() => setPreviewKey(null)}
+          describe={(card) => ({ subtitle: card.row.sub, chips: [] })}
+          renderActions={(card) => (
+            <button
+              type="button"
+              disabled={busyKey === card.row.key}
+              onClick={() => onAdd({ ...card.row.payload }, card.row.label, card.row.key)}
+              className={`h-12 w-full rounded-full text-sm font-extrabold transition-[transform,filter] duration-150 hover:brightness-95 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] disabled:opacity-60 ${addedKeys.has(card.row.key) ? 'bg-emerald-100 text-emerald-800' : 'bg-[#facc15] text-[#12315f]'}`}
+            >
+              {addedKeys.has(card.row.key) ? 'Sumar otra copia' : 'Agregar a mis deseadas'}
+            </button>
+          )}
+        />
       )}
     </div>
   );

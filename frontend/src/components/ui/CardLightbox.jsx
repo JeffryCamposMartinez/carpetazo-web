@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import { LoadingMark } from './LoadableImage';
+import { cardCorners } from '../../utils/cardShape';
 
 const formatCLP = (value) => `$${Number(value || 0).toLocaleString('es-CL')}`;
 const LANGUAGES = { English: 'Inglés', Spanish: 'Español', Japanese: 'Japonés' };
@@ -19,7 +20,8 @@ const CLOSE_DISTANCE = 110; // arrastrar hacia abajo o arriba esta distancia cie
 // Carta en grande con sus datos. En el celular se pasa arrastrando hacia los lados (y se cierra arrastrando hacia abajo);
 // en PC, con las flechas del teclado o los botones a los lados.
 // `describe(card)` devuelve { subtitle, chips, note } para mostrar otros datos (por defecto, los del inventario).
-export default function CardLightbox({ cards, cardId, onChange, onClose, describe = describeInventoryCard }) {
+// `renderActions(card)` pone botones (por ejemplo "Agregar") bajo la carta, para actuar sin salir del visor.
+export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, describe = describeInventoryCard, renderActions }) {
   const index = cards.findIndex((card) => card.id === cardId);
   const card = cards[index];
   const closeRef = useRef(null);
@@ -128,7 +130,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, describ
               onError={() => setFailedId(card.id)}
               ref={(img) => { if (img?.complete && img.naturalWidth > 0 && loadedId !== card.id) { setLoadedId(card.id); setRatios((prev) => (prev[card.id] ? prev : { ...prev, [card.id]: img.naturalWidth / img.naturalHeight })); } }}
               // Misma altura para todas las cartas; si no cabe a lo ancho, se reduce sin dejar bordes vacíos (el redondeo queda en la carta)
-              style={{ aspectRatio: ratios[card.id] || 63 / 88, height: `min(100cqh, calc((100cqw - 1.5rem) / ${ratios[card.id] || 63 / 88}))`, width: 'auto' }}
+              style={{ aspectRatio: ratios[card.id] || 63 / 88, height: `min(100cqh, calc((100cqw - 1.5rem) / ${ratios[card.id] || 63 / 88}))`, width: 'auto', ...cardCorners(card.tcg || card.game || tcg) }}
               className={`rounded-2xl object-contain shadow-2xl transition-opacity duration-200 ${loadedId === card.id ? 'opacity-100' : 'opacity-0'}`}
             />
             : <span className="rounded-2xl bg-white/10 px-6 py-10 text-sm font-bold text-white/70">Sin imagen</span>}
@@ -150,6 +152,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, describ
           </p>
         )}
         {info.note && <p className="mx-auto mt-2 max-w-sm text-xs italic text-white/70">{info.note}</p>}
+        {renderActions && <div className="mx-auto mt-3 flex w-full max-w-xs justify-center">{renderActions(card)}</div>}
       </div>
     </div>,
     document.body
