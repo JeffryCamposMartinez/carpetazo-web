@@ -40,6 +40,7 @@ export default function Select({ value, onChange, children, className = '', disa
       disabled={disabled}
       ariaLabel={ariaLabel}
       innerRef={innerRef || ref}
+      listMinWidth={Math.min(420, Math.max(0, ...options.map((option) => option.label.length)) * 9 + 64)}
       className={layout || 'w-full'}
       buttonClassName={compact ? '!h-9 !min-h-9 !gap-1.5 !rounded-full !px-3 !text-xs' : '!min-h-11'}
     />

@@ -1,5 +1,6 @@
 import PokemonFilters from './PokemonFilters';
 import React from 'react';
+import ThemedSelect from '../../ui/ThemedSelect';
 import Select from '../../ui/Select';
 
 const typeTabsByTcg = {
@@ -39,48 +40,22 @@ const SelectField = ({ value, onChange, disabled, children, className = '' }) =>
 const EditionDropdown = ({
   wrapperClassName = '',
   searchSet,
-  availableSets,
   filteredSearchSets,
-  isSetDropdownOpen,
-  setIsSetDropdownOpen,
   onSelectSet,
   label = 'Edición',
 }) => (
   <div className={`relative w-full ${wrapperClassName}`}>
-    <button
-      type="button"
-      className="flex h-9 w-full cursor-pointer items-center justify-between rounded-lg border border-gray-300 bg-white px-2 text-xs text-gray-900 transition-colors hover:border-[#1e40af] sm:text-sm lg:text-xs"
-      onClick={() => setIsSetDropdownOpen(!isSetDropdownOpen)}
-    >
-      <span className={`truncate ${searchSet === '' ? 'font-normal' : 'font-bold text-[#1e40af]'}`}>{searchSet === '' ? label : availableSets.find(s => s.groupId == searchSet)?.name || 'Seleccionado'}</span>
-      <span translate="no" className="material-symbols-outlined ml-2 text-[18px] leading-none text-gray-500">expand_more</span>
-    </button>
-    {isSetDropdownOpen && (
-      <>
-        <div className="fixed inset-0 z-10" onClick={() => setIsSetDropdownOpen(false)} />
-        <div className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg custom-scrollbar">
-          <button
-            type="button"
-            className={`flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors hover:bg-gray-50 lg:text-xs ${searchSet === '' ? 'font-bold text-[#1e40af]' : 'text-gray-700'}`}
-            onClick={() => onSelectSet('')}
-          >
-            {searchSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
-            <span className={searchSet !== '' ? 'ml-6' : ''}>{label}</span>
-          </button>
-          {filteredSearchSets.map(set => (
-            <button
-              type="button"
-              key={set.groupId}
-              className={`flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-50 lg:text-xs ${searchSet == set.groupId ? 'font-bold text-[#1e40af]' : 'text-gray-700'}`}
-              onClick={() => onSelectSet(set.groupId)}
-            >
-              {searchSet == set.groupId && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
-              <span className={searchSet != set.groupId ? 'ml-6' : ''}>{set.name}</span>
-            </button>
-          ))}
-        </div>
-      </>
-    )}
+    <ThemedSelect
+      value={searchSet === '' || searchSet == null ? '' : String(searchSet)}
+      onChange={(next) => onSelectSet(filteredSearchSets.find((set) => String(set.groupId) === next)?.groupId ?? '')}
+      options={[{ value: '', label }, ...filteredSearchSets.map((set) => ({ value: String(set.groupId), label: set.name }))]}
+      placeholder={label}
+      ariaLabel={label}
+      searchable
+      searchPlaceholder="Buscar edición…"
+      listMinWidth={260}
+      buttonClassName="!h-9 !min-h-9 !rounded-lg !px-2.5 !text-xs"
+    />
   </div>
 );
 

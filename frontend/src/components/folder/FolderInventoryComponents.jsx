@@ -1,4 +1,5 @@
 import React from 'react';
+import ThemedSelect from '../ui/ThemedSelect';
 import LiquidTabs from '../ui/LiquidTabs';
 import { DETAIL_MODES } from './folderCards';
 
@@ -125,42 +126,17 @@ export const InventoryFilters = ({
       {/* Celular: la edición y el botón de limpiar comparten fila (en pantallas anchas cada uno va en la fila principal) */}
       <div className="flex gap-2 md:contents">
       <div className="relative min-w-0 flex-1 md:w-72 md:flex-none">
-        <button
-          type="button"
-          className="flex h-10 w-full items-center justify-between rounded-xl border border-gray-300 bg-white px-3 text-left text-sm text-gray-900 shadow-sm transition-colors hover:border-[#1e40af]"
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          <span className="truncate font-bold">
-            {selectedSet === '' ? 'Todas las ediciones' : availableSets.find(s => s.groupId === selectedSet)?.name || 'Seleccionado'}
-          </span>
-          <span translate="no" className="material-symbols-outlined ml-2 text-gray-500">expand_more</span>
-        </button>
-        {isOpen && (
-          <>
-            <div className="fixed inset-0 z-[100]" onClick={() => setIsOpen(false)} />
-            <div className="absolute z-[110] mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white py-1 shadow-xl custom-scrollbar">
-              <button
-                type="button"
-                className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-gray-50 ${selectedSet === '' ? 'font-bold text-[#1e40af]' : 'text-gray-700'}`}
-                onClick={() => onSelectSet('')}
-              >
-                {selectedSet === '' && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
-                <span className={selectedSet !== '' ? 'ml-6' : ''}>Todas las ediciones</span>
-              </button>
-              {filteredSets.map(set => (
-                <button
-                  type="button"
-                  key={set.groupId}
-                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-gray-50 ${selectedSet === set.groupId ? 'font-bold text-[#1e40af]' : 'text-gray-700'}`}
-                  onClick={() => onSelectSet(set.groupId)}
-                >
-                  {selectedSet === set.groupId && <span translate="no" className="material-symbols-outlined text-sm">check</span>}
-                  <span className={selectedSet !== set.groupId ? 'ml-6' : ''}>{set.name}</span>
-                </button>
-              ))}
-            </div>
-          </>
-        )}
+        <ThemedSelect
+          value={selectedSet === '' || selectedSet == null ? '' : String(selectedSet)}
+          onChange={(next) => onSelectSet(filteredSets.find((set) => String(set.groupId) === next)?.groupId ?? '')}
+          options={[{ value: '', label: 'Todas las ediciones' }, ...filteredSets.map((set) => ({ value: String(set.groupId), label: set.name }))]}
+          placeholder="Todas las ediciones"
+          ariaLabel="Edición"
+          searchable
+          searchPlaceholder="Buscar edición…"
+          listMinWidth={260}
+          buttonClassName="!h-10 !min-h-10 !rounded-xl !text-sm"
+        />
       </div>
 
       <button

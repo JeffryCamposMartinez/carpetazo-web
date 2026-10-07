@@ -147,7 +147,7 @@ export default function ThemedSelect({
                     onClick={() => choose(option)}
                     className={`flex min-h-11 cursor-pointer items-center gap-2 px-3.5 text-[15px] font-bold transition-colors ${selected ? 'bg-[#12315f] text-[#facc15]' : index === active ? 'bg-[#facc15]/25 text-[#12315f]' : 'text-[#12315f] hover:bg-[#facc15]/20'}`}
                   >
-                    <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                    <span className="min-w-0 flex-1 break-words py-2 leading-snug">{option.label}</span>
                     {selected && <span translate="no" aria-hidden="true" className="material-symbols-outlined shrink-0 text-[20px]">check</span>}
                   </div>
                 </li>
