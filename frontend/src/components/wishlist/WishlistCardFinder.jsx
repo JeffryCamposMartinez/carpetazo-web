@@ -8,15 +8,19 @@ import {
   filterPokemonCards,
 } from '../../services/tcgcsvPokemon';
 import Select from '../ui/Select';
+import { fetchGameGroupCards, fetchGameGroups, filterGameCards, tcgcsvGameInfo } from '../../services/tcgcsvGames';
+import { EMPTY_OP_FILTERS, countOnePieceFilters } from '../../services/tcgcsvOnePiece';
+import { EMPTY_MAGIC_FILTERS, countMagicFilters } from '../../services/tcgcsvMagic';
+import { EMPTY_RB_FILTERS, countRiftboundFilters } from '../../services/tcgcsvRiftbound';
 
 // Juegos del sitio. Solo los marcados tienen buscador con filtros; el resto llegará pronto.
 export const WISHLIST_GAMES = [
   { name: 'Pokémon', available: true },
   { name: 'Mitos y Leyendas', available: true },
-  { name: 'One Piece', available: false },
-  { name: 'Magic', available: false },
+  { name: 'One Piece', available: true },
+  { name: 'Magic', available: true },
   { name: 'Yu-Gi-Oh!', available: false },
-  { name: 'Riftbound', available: false },
+  { name: 'Riftbound', available: true },
 ];
 
 const MYL_CATEGORY = '99';
@@ -33,6 +37,16 @@ const pokemonRow = (card) => ({
   imageUrl: card.imageUrl,
 });
 
+// Carta de One Piece, Magic o Riftbound (TCGCSV)
+const gameRow = (card, game) => ({
+  key: `tcgcsv:${card.catId}:${card.productId}`,
+  payload: { external: { categoryId: card.catId, productId: card.productId }, name: cardLabel(card.name, card.number), imageUrl: card.imageUrl, detail: `${card.setName} · ${card.language}`, game },
+  label: cardLabel(card.name, card.number),
+  sub: `${card.setName} · ${card.language}`,
+  imageUrl: card.imageUrl,
+  extData: card.extData,
+});
+
 export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyKey = '', resetRef = null }) {
   const [game, setGame] = useState('Pokémon');
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,7 +58,7 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
   const [searchLang, setSearchLang] = useState('en');
   const [selectedSupertype, setSelectedSupertype] = useState('');
   const [selectedType, setSelectedType] = useState('');
-  const [pokemonGroups, setPokemonGroups] = useState([]);
+  const [editionGroups, setEditionGroups] = useState([]); // ediciones de Pokémon, One Piece, Magic o Riftbound (TCGCSV)
   const scanned = useRef(0);
 
   // Mitos y Leyendas
@@ -57,6 +71,11 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
   const [mylRace, setMylRace] = useState('');
   const [mylCost, setMylCost] = useState('');
 
+  // One Piece, Magic y Riftbound
+  const [opFilters, setOpFilters] = useState(EMPTY_OP_FILTERS);
+  const [magicFilters, setMagicFilters] = useState(EMPTY_MAGIC_FILTERS);
+  const [rbFilters, setRbFilters] = useState(EMPTY_RB_FILTERS);
+
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [moreEditions, setMoreEditions] = useState(false);
@@ -66,10 +85,20 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
   const isPokemon = game === 'Pokémon';
   const isMyl = game === 'Mitos y Leyendas';
   const selectedGame = WISHLIST_GAMES.find((item) => item.name === game);
+  const gameInfo = tcgcsvGameInfo(game); // One Piece, Magic o Riftbound
+  const gameFilters = game === 'One Piece' ? opFilters : game === 'Magic' ? magicFilters : rbFilters;
+  const gameFilterCount = game === 'One Piece' ? countOnePieceFilters(opFilters) : game === 'Magic' ? countMagicFilters(magicFilters) : countRiftboundFilters(rbFilters);
+  const loadCards = (group, signal) => (gameInfo ? fetchGameGroupCards(game, group, signal) : fetchPokemonGroupCards(searchLang, group, signal));
+  const rowOf = (card) => (gameInfo ? gameRow(card, game) : pokemonRow(card));
+  // Texto de búsqueda y filtros del juego sobre las cartas de una edición
+  const filterCards = (list, term) => (gameInfo
+    ? filterGameCards(game, list, term, gameFilters)
+    : filterPokemonCards(list, { query: term, supertype: selectedSupertype, type: selectedType }));
 
   const resetFilters = () => {
     setSearchQuery(''); setSearchSet(''); setSelectedSupertype(''); setSelectedType('');
     setSearchBlock(''); setSearchPhysicalProduct(''); setMylType(''); setMylRace(''); setMylCost('');
+    setOpFilters(EMPTY_OP_FILTERS); setMagicFilters(EMPTY_MAGIC_FILTERS); setRbFilters(EMPTY_RB_FILTERS);
     setResults([]); setHint(''); setVisible(PAGE);
   };
   if (resetRef) resetRef.current = resetFilters;
@@ -78,8 +107,12 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
   useEffect(() => {
     const controller = new AbortController();
     if (isPokemon) {
-      setPokemonGroups([]);
-      fetchPokemonGroups(searchLang, controller.signal).then(setPokemonGroups).catch(() => {});
+      setEditionGroups([]);
+      fetchPokemonGroups(searchLang, controller.signal).then(setEditionGroups).catch(() => {});
+    }
+    if (tcgcsvGameInfo(game)) {
+      setEditionGroups([]);
+      fetchGameGroups(game, controller.signal).then(setEditionGroups).catch(() => {});
     }
     if (isMyl) {
       api.getTcgBlocks(MYL_CATEGORY).then((res) => { if (res.success) setBlocks(res.data); }).catch(() => {});
@@ -87,9 +120,9 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
       api.getTcgGroups(MYL_CATEGORY).then((res) => { if (res.success) setMylGroups([...res.data].sort((a, b) => new Date(b.publishedOn || 0) - new Date(a.publishedOn || 0))); }).catch(() => {});
     }
     return () => controller.abort();
-  }, [isPokemon, isMyl, searchLang]);
+  }, [isPokemon, isMyl, searchLang, game]);
 
-  const availableSets = isPokemon ? pokemonGroups : mylGroups;
+  const availableSets = isMyl ? mylGroups : editionGroups;
   const filteredSearchSets = isMyl && searchBlock !== '' ? availableSets.filter((set) => set.blockId == searchBlock) : availableSets;
   const mylFilters = useMemo(() => ({ type: mylType, race: mylRace, cost: mylCost, blockId: searchBlock, physicalProductId: searchPhysicalProduct }), [mylType, mylRace, mylCost, searchBlock, searchPhysicalProduct]);
 
@@ -126,16 +159,15 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
         return;
       }
 
-      // Pokémon
-      const filters = { query: term, supertype: selectedSupertype, type: selectedType };
+      // Pokémon, One Piece, Magic y Riftbound (TCGCSV)
       setMoreEditions(false);
       if (searchSet) {
-        const group = pokemonGroups.find((item) => String(item.groupId) === String(searchSet));
+        const group = editionGroups.find((item) => String(item.groupId) === String(searchSet));
         if (!group) return;
         setHint(''); setSearching(true);
         try {
-          const cards = filterPokemonCards(await fetchPokemonGroupCards(searchLang, group, controller.signal), filters);
-          if (mine === seq.current) setResults(cards.map(pokemonRow));
+          const cards = filterCards(await loadCards(group, controller.signal), term);
+          if (mine === seq.current) setResults(cards.map(rowOf));
         } catch (_error) {
           if (mine === seq.current) setResults([]);
         } finally {
@@ -144,12 +176,12 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
         return;
       }
       // Todas las ediciones: mismo criterio que al agregar a una carpeta (coincide nombre o número, de la edición más nueva a la más vieja)
-      if (!term && !selectedSupertype && !selectedType) { setResults([]); setHint('Elige una edición o escribe el nombre de la carta.'); return; }
-      if (pokemonGroups.length === 0) return;
+      if (!term && !selectedSupertype && !selectedType && gameFilterCount === 0) { setResults([]); setHint('Elige una edición o escribe el nombre de la carta.'); return; }
+      if (editionGroups.length === 0) return;
       setHint(''); setSearching(true); scanned.current = 0;
       try {
-        const { found, next } = await scanEditions(0, filters, controller.signal);
-        if (mine === seq.current) { scanned.current = next; setResults(found); setMoreEditions(next < pokemonGroups.length); }
+        const { found, next } = await scanEditions(0, term, controller.signal);
+        if (mine === seq.current) { scanned.current = next; setResults(found); setMoreEditions(next < editionGroups.length); }
       } finally {
         if (mine === seq.current) setSearching(false);
       }
@@ -157,32 +189,31 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
 
     const timer = setTimeout(run, 400);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [game, searchQuery, searchSet, searchLang, selectedSupertype, selectedType, pokemonGroups, mylFilters]);
+  }, [game, searchQuery, searchSet, searchLang, selectedSupertype, selectedType, editionGroups, mylFilters, opFilters, magicFilters, rbFilters]);
 
   // Descarga ediciones de a 3, de la más nueva a la más vieja, hasta juntar una página de coincidencias (o llegar a la última)
-  const scanEditions = async (from, filters, signal) => {
+  const scanEditions = async (from, term, signal) => {
     const found = [];
     let at = from;
-    while (found.length < PAGE && at < pokemonGroups.length && !signal?.aborted) {
-      const batch = pokemonGroups.slice(at, at + SCAN_BATCH);
-      const lists = await Promise.all(batch.map((group) => fetchPokemonGroupCards(searchLang, group, signal).catch(() => [])));
-      lists.forEach((list) => found.push(...filterPokemonCards(list, filters).map(pokemonRow)));
+    while (found.length < PAGE && at < editionGroups.length && !signal?.aborted) {
+      const batch = editionGroups.slice(at, at + SCAN_BATCH);
+      const lists = await Promise.all(batch.map((group) => loadCards(group, signal).catch(() => [])));
+      lists.forEach((list) => found.push(...filterCards(list, term).map(rowOf)));
       at += batch.length;
     }
     return { found, next: at };
   };
 
   const scanMoreEditions = async () => {
-    const filters = { query: searchQuery.trim(), supertype: selectedSupertype, type: selectedType };
-    if (scanned.current >= pokemonGroups.length) return;
+    if (scanned.current >= editionGroups.length) return;
     setSearching(true);
     const mine = seq.current;
     try {
-      const { found, next } = await scanEditions(scanned.current, filters);
+      const { found, next } = await scanEditions(scanned.current, searchQuery.trim());
       if (mine !== seq.current) return;
       scanned.current = next;
       setResults((previous) => [...previous, ...found]);
-      setMoreEditions(next < pokemonGroups.length);
+      setMoreEditions(next < editionGroups.length);
       setVisible((value) => value + PAGE);
     } finally {
       setSearching(false);
@@ -210,7 +241,7 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
           <FolderAddSearchFilters
             availableBlocks={blocks}
             tcg={game}
-            searchCategory={isMyl ? MYL_CATEGORY : '1'}
+            searchCategory={isMyl ? MYL_CATEGORY : gameInfo ? gameInfo.marker : '1'}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             searchSet={searchSet}
@@ -236,6 +267,13 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
             setMylRace={setMylRace}
             mylCost={mylCost}
             setMylCost={setMylCost}
+            opFilters={opFilters}
+            setOpFilters={setOpFilters}
+            magicFilters={magicFilters}
+            setMagicFilters={setMagicFilters}
+            rbFilters={rbFilters}
+            setRbFilters={setRbFilters}
+            loadedCards={results}
             scrollToTopIfNeeded={() => {}}
           />
         </div>

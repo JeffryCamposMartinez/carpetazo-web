@@ -10,7 +10,16 @@ const router = express.Router();
 const WISHLIST_MAX_ITEMS = 200;
 const WISHLIST_PAGE_SIZE = 24;
 const WISHLIST_GAMES = ['Pokémon', 'Mitos y Leyendas', 'One Piece', 'Magic', 'Yu-Gi-Oh!', 'Riftbound'];
-const WISHLIST_GAME_BY_CATEGORY = { 1: 'Pokémon', 99: 'Mitos y Leyendas' };
+const WISHLIST_GAME_BY_CATEGORY = { 1: 'Pokémon', 99: 'Mitos y Leyendas', 68: 'One Piece', 89: 'Riftbound', 1001: 'Magic' };
+// Juegos que se buscan directo en TCGCSV: categoría de TCGCSV -> categoría guardada, juego y nombre con que se guardan las carpetas.
+// (La categoría de Magic en TCGCSV es 1, igual que la que se guarda para Pokémon: por eso Magic se guarda como 1001.)
+const WISHLIST_TCGCSV = {
+  3: { stored: 1, game: 'Pokémon' },
+  85: { stored: 1, game: 'Pokémon' },
+  68: { stored: 68, game: 'One Piece' },
+  1: { stored: 1001, game: 'Magic' },
+  89: { stored: 89, game: 'Riftbound' },
+};
 const WISHLIST_OWN_SELECT = { id: true, categoryId: true, productId: true, name: true, game: true, detail: true, imageUrl: true, quantity: true, maxPrice: true, priceVisible: true, note: true, createdAt: true };
 
 // Juego: solo los de la lista del sitio ("Pokemon" sin tilde se acepta). null = sin juego; undefined = inválido
@@ -59,7 +68,7 @@ router.get('/api/wishlist/me', authenticateToken, async (req, res) => {
 });
 
 // Cartas de la lista que hoy tienen otros vendedores (catálogos públicos, con stock y dentro del precio máximo)
-const WISHLIST_MATCH_TCG = { 1: 'Pokemon', 99: 'Mitos y Leyendas' };
+const WISHLIST_MATCH_TCG = { 1: 'Pokemon', 99: 'Mitos y Leyendas', 68: 'OnePiece', 89: 'Riftbound', 1001: 'Magic' };
 const WISHLIST_MATCHES_PER_ITEM = 5;
 router.get('/api/wishlist/matches', authenticateToken, async (req, res) => {
   try {
@@ -119,12 +128,13 @@ router.post('/api/wishlist', authenticateToken, async (req, res) => {
     if (catalog) {
       identity = { productId: catalog.productId, categoryId: catalog.categoryId, name: catalog.name, game: WISHLIST_GAME_BY_CATEGORY[catalog.categoryId] || game, detail: catalog.group?.name || detail, imageUrl: catalog.imageUrl || null };
     } else if (external !== undefined) {
-      // Pokémon de TCGCSV (inglés 3, japonés 85): el catálogo no está en la base, el identificador se valida por forma
+      // Cartas de TCGCSV (Pokémon 3 y 85, One Piece 68, Magic 1, Riftbound 89): el catálogo no está en la base, el identificador se valida por forma
       const externalCategory = Number(external?.categoryId);
+      const externalGame = WISHLIST_TCGCSV[externalCategory];
       const externalId = typeof external?.productId === 'string' || typeof external?.productId === 'number' ? String(external.productId) : '';
-      if (![3, 85].includes(externalCategory) || !/^\d{1,12}$/.test(externalId)) return badRequest(res, 'Carta inválida');
+      if (!externalGame || !/^\d{1,12}$/.test(externalId)) return badRequest(res, 'Carta inválida');
       if (!isShortText(name, 100) || hasControlChars(name)) return badRequest(res, 'Carta inválida');
-      identity = { productId: `tcgcsv:${externalCategory}:${externalId}`, categoryId: 1, name: name.trim(), game: 'Pokémon', detail, imageUrl: imageUrl && isAllowedStoredImageUrl(imageUrl) ? imageUrl : null };
+      identity = { productId: `tcgcsv:${externalCategory}:${externalId}`, categoryId: externalGame.stored, name: name.trim(), game: externalGame.game, detail, imageUrl: imageUrl && isAllowedStoredImageUrl(imageUrl) ? imageUrl : null };
     } else {
       if (!isShortText(name, 100) || hasControlChars(name)) return badRequest(res, 'Escribe el nombre de la carta');
       identity = { productId: null, categoryId: null, name: name.trim(), game, detail, imageUrl: imageUrl && isAllowedStoredImageUrl(imageUrl) ? imageUrl : null };
