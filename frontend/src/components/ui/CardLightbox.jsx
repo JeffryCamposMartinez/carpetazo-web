@@ -76,6 +76,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
     const onKey = (event) => {
       const { index: at, cards: list, onChange: change, onClose: close } = state.current;
       if (event.key === 'Escape') close();
+      if (event.target?.closest?.('input, textarea, select')) return; // las flechas mueven el cursor del campo, no la carta
       if (event.key === 'ArrowRight' && at < list.length - 1) change(list[at + 1].id);
       if (event.key === 'ArrowLeft' && at > 0) change(list[at - 1].id);
     };
@@ -152,7 +153,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
           </p>
         )}
         {info.note && <p className="mx-auto mt-2 max-w-sm text-xs italic text-white/70">{info.note}</p>}
-        {renderActions && <div className="mx-auto mt-3 flex w-full max-w-xs justify-center">{renderActions(card)}</div>}
+        {renderActions && <div className="mx-auto mt-3 flex w-full max-w-sm justify-center">{renderActions(card)}</div>}
       </div>
     </div>,
     document.body

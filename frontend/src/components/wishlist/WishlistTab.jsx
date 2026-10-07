@@ -6,6 +6,7 @@ import WishlistFinderSheet from './WishlistFinderSheet';
 import CardLightbox from '../ui/CardLightbox';
 import { describeWishlistItem } from './wishlistLightbox';
 import LoadableImage from '../ui/LoadableImage';
+import WishlistLightboxActions from './WishlistLightboxActions';
 
 const LIMIT_FALLBACK = 200;
 
@@ -121,6 +122,44 @@ export default function WishlistTab({ showToast = () => {} }) {
     setBusyId(item.id);
     try {
       await api.deleteWishlistItem(item.id);
+      setItems((previous) => previous.filter((row) => row.id !== item.id));
+      showToast('Carta quitada de tu lista', 'success');
+    } catch (error) {
+      showToast(error.message || 'No se pudo quitar la carta', 'error');
+    } finally {
+      setBusyId('');
+    }
+  };
+
+  // Lo mismo que los botones de la lista, pero desde la carta en pantalla completa
+  const saveItemDetails = async (item, values) => {
+    setBusyId(item.id);
+    try {
+      const price = values.maxPrice.trim();
+      const res = await api.updateWishlistItem(item.id, {
+        maxPrice: price === '' ? null : Number(price),
+        priceVisible: price === '' ? false : values.priceVisible,
+        note: values.note.trim() || null,
+      });
+      upsertLocal(res.item);
+      showToast('Detalles guardados', 'success');
+      return true;
+    } catch (error) {
+      showToast(error.message || 'No se pudieron guardar los detalles', 'error');
+      return false;
+    } finally {
+      setBusyId('');
+    }
+  };
+
+  // Al quitar la carta abierta, el visor pasa a la siguiente (o a la anterior si era la última)
+  const removeFromViewer = async (item) => {
+    const at = items.findIndex((row) => row.id === item.id);
+    const neighbor = items[at + 1] || items[at - 1];
+    setBusyId(item.id);
+    try {
+      await api.deleteWishlistItem(item.id);
+      setPreviewId(neighbor ? neighbor.id : null);
       setItems((previous) => previous.filter((row) => row.id !== item.id));
       showToast('Carta quitada de tu lista', 'success');
     } catch (error) {
@@ -339,7 +378,16 @@ export default function WishlistTab({ showToast = () => {} }) {
       </div>
 
       {previewId && (
-        <CardLightbox cards={items} cardId={previewId} onChange={setPreviewId} onClose={() => setPreviewId(null)} describe={describeWishlistItem} />
+        <CardLightbox
+          cards={items}
+          cardId={previewId}
+          onChange={setPreviewId}
+          onClose={() => setPreviewId(null)}
+          describe={describeWishlistItem}
+          renderActions={(item) => (
+            <WishlistLightboxActions item={item} busy={busyId === item.id} onQuantity={changeQuantity} onSaveDetails={saveItemDetails} onRemove={removeFromViewer} />
+          )}
+        />
       )}
 
       {finderOpen && !isWide && (
