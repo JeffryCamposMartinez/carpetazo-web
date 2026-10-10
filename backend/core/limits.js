@@ -96,6 +96,6 @@ export const applyRouteLimits = (app) => {
   app.get('/api/admin/metrics', routeLimiter(15 * 60 * 1000, 60));
   app.get('/api/admin/summary', routeLimiter(15 * 60 * 1000, 300));
   app.use('/api/admin/retention', routeLimiter(15 * 60 * 1000, 30));
-  app.use('/api/admin/catalog-import', routeLimiter(15 * 60 * 1000, 30));
+  app.use('/api/admin/catalog-import', routeLimiter(15 * 60 * 1000, 100));
   app.post('/api/admin/cases/:id/export', routeLimiter(15 * 60 * 1000, 20));
 };

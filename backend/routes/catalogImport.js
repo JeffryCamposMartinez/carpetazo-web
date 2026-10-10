@@ -13,7 +13,7 @@ let applying = false; // una carga a la vez: un doble clic o dos pestañas no la
 const field = (card, name) => card.extData.find((entry) => entry.name === name)?.value || '';
 const publicCard = (card) => ({
   productId: card.productId, name: card.name, edition: card.editionName, block: card.blockName, product: card.physicalName, imageUrl: card.imageUrl,
-  previousName: card.previousName || undefined, type: field(card, 'Type'), cost: field(card, 'Cost'), force: field(card, 'Fuerza'), race: field(card, 'Race'), frequency: field(card, 'Frequency'), number: field(card, 'Number'),
+  previousName: card.previousName || undefined, previousEdition: card.previousEdition || undefined, type: field(card, 'Type'), cost: field(card, 'Cost'), force: field(card, 'Fuerza'), race: field(card, 'Race'), frequency: field(card, 'Frequency'), number: field(card, 'Number'),
   status: card.status
 });
 
@@ -83,10 +83,10 @@ router.post('/api/admin/catalog-import/apply', authenticateToken, requireStaff(3
         data: fresh.map((card) => ({ productId: card.productId, name: card.name, cleanName: card.cleanName, imageUrl: card.imageUrl, extData: card.extData, groupId: card.groupId ?? groupIds.get(card.groupKey), categoryId: IMPORT_CATEGORY_ID, physicalProductId: physicalOf(card.physicalKey) })),
         skipDuplicates: true
       });
-      // Cartas que ya existían con otro nombre o imagen: se corrigen (solo nombre, imagen y datos; la edición y los enlaces no se tocan)
+      // Cartas que ya existían con otro nombre, imagen o edición (del mismo bloque): se corrigen; los enlaces a productos solo se agregan
       let updated = 0;
       for (const card of plan.cards.filter((item) => item.status === 'update')) {
-        await tx.tcgProduct.update({ where: { productId: card.productId }, data: { name: card.name, cleanName: card.cleanName, imageUrl: card.imageUrl, extData: card.extData } });
+        await tx.tcgProduct.update({ where: { productId: card.productId }, data: { name: card.name, cleanName: card.cleanName, imageUrl: card.imageUrl, extData: card.extData, groupId: card.groupId ?? groupIds.get(card.groupKey) } });
         updated++;
       }
       const linkRows = plan.links.map((link) => ({ productId: link.productId, physicalProductId: physicalOf(link.physicalKey) })).filter((link) => link.physicalProductId !== null);

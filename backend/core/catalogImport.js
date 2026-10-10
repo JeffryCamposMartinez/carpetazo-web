@@ -244,18 +244,24 @@ export const buildImportPlan = async (db, raw) => {
     const existing = existingById.get(card.productId);
     let status = 'new';
     let previousName = '';
+    let previousEdition = '';
     if (existing) {
-      if (existing.categoryId !== IMPORT_CATEGORY_ID || existing.groupId !== group.groupId) { problem(`Ese ID ya lo usa "${existing.name}" en otra edición o juego; no se mezcla.`); continue; }
+      // La misma carta puede venir corregida de nombre y hasta en otra edición del mismo bloque; en otro juego o bloque no se mezcla
+      const existingGroup = groupById.get(existing.groupId);
+      if (existing.categoryId !== IMPORT_CATEGORY_ID) { problem(`Ese ID ya lo usa "${existing.name}" en otro juego; no se mezcla.`); continue; }
+      if (!existingGroup || existingGroup.blockId !== group.blockId) { problem(`Ese ID ya lo usa "${existing.name}" en otro bloque; no se mezcla.`); continue; }
       if (existing.cleanName !== card.cleanName && similarity(existing.cleanName, card.cleanName) < MIN_SAME_CARD_SIMILARITY) { problem(`Ese ID ya lo usa otra carta ("${existing.name}"); no se mezcla.`); continue; }
-      const changed = existing.name !== card.name || existing.cleanName !== card.cleanName || existing.imageUrl !== card.imageUrl;
+      const moved = existing.groupId !== group.groupId;
+      const changed = moved || existing.name !== card.name || existing.cleanName !== card.cleanName || existing.imageUrl !== card.imageUrl;
       status = changed ? 'update' : 'exists';
       previousName = existing.name;
+      if (moved) previousEdition = existingGroup.name;
     }
     const blockName = blockById.get(group.blockId)?.name || '';
     // Las cartas existentes quedan intactas; las nuevas llevan el formato del bloque como las demás
     const extData = card.extData.some((entry) => entry.name === 'Format') || !blockName ? card.extData : [...card.extData, { name: 'Format', value: blockName }];
     groupOfCard.set(card.productId, group);
-    ready.push({ ...card, extData, groupKey: group.key, groupId: group.groupId, physicalKey: physical?.key ?? null, physicalProductId: physical?.id ?? null, blockName, editionName: group.name, editionIsNew: group.isNew, physicalName: physical?.name || '', physicalIsNew: Boolean(physical?.isNew), status, previousName, existingExt: existing?.extData ?? null });
+    ready.push({ ...card, extData, groupKey: group.key, groupId: group.groupId, physicalKey: physical?.key ?? null, physicalProductId: physical?.id ?? null, blockName, editionName: group.name, editionIsNew: group.isNew, physicalName: physical?.name || '', physicalIsNew: Boolean(physical?.isNew), status, previousName, previousEdition });
   }
 
   // Enlaces carta-producto: los de cada carta y los extra del archivo (resueltos igual que el producto de la carta)

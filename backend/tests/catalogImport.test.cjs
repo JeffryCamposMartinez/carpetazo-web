@@ -115,6 +115,17 @@ const file = (products, links) => ({ format: 'carpetazo-card-catalog-incremental
     r = await call('POST', PATH + '/preview', 'admin', { fileName: FILE, data: file([fixedCard]) });
     ok('repetir la corrección → sin cambios', r.j.counts.updated === 0 && r.j.counts.exists === 1 && r.j.canApply === false, JSON.stringify(r.j?.counts));
 
+    // La misma carta puede venir en otra edición del mismo bloque (se mueve) pero nunca en otro bloque
+    await prisma.tcgGroup.create({ data: { groupId: 98000002, name: 'CZTEST Edición Dos', blockId: block.id, categoryId: 99, publishedOn: new Date(), modifiedOn: new Date() } });
+    const movedCard = { ...card(0, { physicalProductId: physical.id, name: 'CZTEST Carta Cero', extData: [{ name: 'Type', value: 'ALIADO' }, { name: 'Edition', value: 'CZTEST Edición Dos' }, { name: 'Number', value: 'M-1' }] }), groupId: 98000002 };
+    r = await call('POST', PATH + '/preview', 'admin', { fileName: FILE, data: file([movedCard]) });
+    ok('misma carta en otra edición del mismo bloque → se corrige y se muestra la edición anterior', r.status === 200 && r.j.errors.length === 0 && r.j.counts.updated === 1 && r.j.cards[0].previousEdition === 'CZTEST Edición Carga', JSON.stringify(r.j?.counts) + JSON.stringify(r.j?.errors) + JSON.stringify(r.j?.cards?.[0]));
+    r = await call('POST', PATH + '/apply', 'admin', { fileName: FILE, data: file([movedCard]), digest: r.j.digest });
+    const movedRow = await prisma.tcgProduct.findUnique({ where: { productId: IDS[0] } });
+    ok('apply mueve la carta a la otra edición', r.status === 200 && r.j.updated === 1 && movedRow.groupId === 98000002, JSON.stringify(r.j) + movedRow.groupId);
+    r = await call('POST', PATH + '/preview', 'admin', { fileName: FILE, data: { ...file([{ ...card(0, { name: 'CZTEST Carta Cero', extData: [{ name: 'Edition', value: 'CZTEST Edición B' }] }), groupId: 1 }]), groups: [{ groupId: 1, name: 'CZTEST Edición B', blockName: BLOCK_NAME + ' B' }] } });
+    ok('misma carta en otro bloque → error (no se mezcla)', r.j.errors.length === 1 && /otro bloque/.test(r.j.errors[0].message), JSON.stringify(r.j?.errors));
+
     // Edición y producto que no existen en la base: el archivo trae sus nombres y se crean al cargar
     const withDefs = (products, extra = {}) => ({ ...file(products), ...extra });
     const newCard = card(2, { physicalProductId: 98000098, extData: [{ name: 'Type', value: 'ALIADO' }, { name: 'Edition', value: 'CZTEST Edición Nueva' }, { name: 'Number', value: 'X-1' }] });
