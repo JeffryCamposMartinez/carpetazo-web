@@ -3,7 +3,7 @@
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
-const B = 'http://localhost:8000/api';
+const B = process.env.CZ_API_BASE || 'http://localhost:8000/api'; // CZ_TEST_PORT cambia el puerto si el 8000 está ocupado
 const UID_PREFIX = 'cztest-';
 const PEOPLE = ['seller', 'jerry', 'ignacio', 'ale', 'jeffry', 'nobuyer', 'admin'];
 const U = Object.fromEntries([...PEOPLE, 'temp', 'ghost', 'newbie', 'oldie', 'leaver', 'mailnew', 'modrev', 'buy1', 'buy2', 'buy3', 'relink', 'dupname', 'syncb', 'syncc', 'syncd'].map((name) => [name, UID_PREFIX + name]));

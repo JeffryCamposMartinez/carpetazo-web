@@ -165,6 +165,9 @@ export const api = {
   setStaffRole: (username, role) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/role', { method: 'POST', body: JSON.stringify({ role }) }),
   getAdminAppeals: (status) => apiFetch('/admin/appeals?status=' + (status || 'open')),
   decideAppeal: (id, action, note) => apiFetch('/admin/appeals/' + encodeURIComponent(id) + '/decision', { method: 'POST', body: JSON.stringify({ action, note }) }),
+  // Carga de cartas nuevas desde cartas_incrementales.json (solo administradores): primero se revisa, después se carga lo revisado
+  previewCatalogImport: (data) => apiFetch('/admin/catalog-import/preview', { method: 'POST', body: JSON.stringify({ fileName: 'cartas_incrementales.json', data }) }),
+  applyCatalogImport: (data, digest) => apiFetch('/admin/catalog-import/apply', { method: 'POST', body: JSON.stringify({ fileName: 'cartas_incrementales.json', data, digest }) }),
   sendTestEmail: () => apiFetch('/admin/test-email', { method: 'POST', body: JSON.stringify({}) }),
   approveReview: (id) => apiFetch('/admin/reviews/' + encodeURIComponent(id) + '/approve', { method: 'POST' }),
   deleteReview: (id) => apiFetch('/admin/reviews/' + encodeURIComponent(id), { method: 'DELETE' }),

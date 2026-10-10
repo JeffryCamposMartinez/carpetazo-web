@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../services/api';
-import { Badge, DetailHeader, DetailPane, EmptyState, ErrorBox, Pills, Spinner, dateTime, relativeTime } from './shared';
+import { Badge, DetailHeader, DetailPane, Dot, ErrorBox, ListSkeleton, Pills, ROW, ROW_ACTIVE, ROW_HOVER, Spinner, dateTime, relativeTime } from './shared';
 import Select from '../ui/Select';
 
 const STATUS = {
@@ -197,7 +197,7 @@ export default function CasesPanel({ level, onOpenPerson, onOpenReport }) {
       <section aria-label="Casos de estafa" className={selected ? 'hidden xl:block' : ''}>
         <Pills label="Estado del caso" value={status} onChange={(value) => { setPage(1); setStatus(value); }} options={[['active', 'Abiertos'], ['awaiting_response', 'Esperando descargo'], ['in_review', 'En revisión'], ['resolved', 'Resueltos']]} />
         <ErrorBox>{error}</ErrorBox>
-        {list === null ? <Spinner /> : list.cases.length === 0 ? (
+        {list === null ? <ListSkeleton /> : list.cases.length === 0 ? (
           <div className="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-900/5">
             <span translate="no" className="material-symbols-outlined text-5xl text-[#1e40af]/40">verified_user</span>
             <h2 className="mt-2 text-lg font-extrabold text-[#12315f]">No hay casos aquí</h2>
@@ -205,10 +205,10 @@ export default function CasesPanel({ level, onOpenPerson, onOpenReport }) {
           </div>
         ) : (
           <ul className="space-y-2">
-            {list.cases.map((item) => (
+            {list.cases.map((item, index) => (
               <li key={item.id}>
-                <button type="button" onClick={() => setSelected(item.id)} aria-current={selected === item.id} className={`relative flex w-full items-start gap-3 overflow-hidden rounded-xl bg-white py-3 pl-5 pr-3 text-left transition-shadow hover:shadow-md ${selected === item.id ? 'ring-2 ring-[#1e40af]' : 'ring-1 ring-slate-900/5'}`}>
-                  <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1.5 ${item.priority === 'high' ? 'bg-red-600' : 'bg-[#1e40af]'}`} />
+                <button type="button" onClick={() => setSelected(item.id)} aria-current={selected === item.id} style={{ '--i': index }} className={`${ROW} ${ROW_HOVER} mod-row-in flex w-full items-start gap-3 p-3.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${selected === item.id ? ROW_ACTIVE : ''}`}>
+                  <Dot tone={item.priority === 'high' ? 'bg-red-600' : 'bg-[#1e40af]'} />
                   <div className="min-w-0 flex-1">
                     <p className="text-[15px] font-extrabold leading-snug text-[#12315f]">@{item.subject?.username || 'cuenta eliminada'}</p>
                     <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">

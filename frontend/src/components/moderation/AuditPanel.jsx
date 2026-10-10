@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../services/api';
-import { EmptyState, ErrorBox, Spinner, relativeTime } from './shared';
+import { Dot, EmptyState, ErrorBox, ROW, Spinner, relativeTime } from './shared';
 
 // Cada acción tiene un nombre claro y un color de franja según qué tipo de decisión fue
 const ACTIONS = {
@@ -82,10 +82,9 @@ export default function AuditPanel() {
                 {entries.map((entry) => {
                   const action = ACTIONS[entry.action] || { label: entry.action, tone: 'bg-slate-300' };
                   return (
-                    <li key={entry.id} className="relative overflow-hidden rounded-xl bg-white py-3 pl-5 pr-3 ring-1 ring-slate-900/5">
-                      <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1.5 ${action.tone}`} />
+                    <li key={entry.id} className={`${ROW} p-3.5`}>
                       <div className="flex items-start justify-between gap-3">
-                        <p className="min-w-0 text-[15px] font-extrabold leading-snug text-[#12315f]">{action.label}</p>
+                        <p className="flex min-w-0 items-start gap-2.5 text-[15px] font-extrabold leading-snug text-[#12315f]"><Dot tone={action.tone} className="!mt-[6px]" />{action.label}</p>
                         <time dateTime={entry.createdAt} title={new Date(entry.createdAt).toLocaleString('es-CL')} className="shrink-0 pt-0.5 text-xs text-slate-500">{clock(entry.createdAt)}</time>
                       </div>
                       {entry.note && <p className="mt-1 whitespace-pre-line break-words text-sm leading-snug text-slate-600">{entry.note}</p>}

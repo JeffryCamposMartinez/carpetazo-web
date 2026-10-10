@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useRef } from 'react';
-import { DetailHeader, DetailPane, EmptyState, FilterSheet, Pills, SEVERITY_STYLE, Spinner, relativeTime } from './shared';
+import { DetailHeader, DetailPane, Dot, EmptyState, FilterSheet, ListSkeleton, Pills, ROW, ROW_ACTIVE, ROW_HOVER, SEVERITY_STYLE, relativeTime } from './shared';
 import Select from '../ui/Select';
 
 const SEVERITY = {
@@ -330,18 +330,18 @@ export default function ReportsPanel({ level = 1, onOpenPerson = () => {}, initi
         </FilterSheet>
 
         {error && <p role="alert" className="mb-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-200">{error}</p>}
-        {list === null ? <Spinner label="Cargando reportes" /> : list.reports.length === 0 ? (
+        {list === null ? <ListSkeleton label="Cargando reportes" /> : list.reports.length === 0 ? (
           <EmptyState title={filters.status === 'open' ? 'La cola está al día' : 'No hay reportes aquí'}>
             {filters.status === 'open' ? 'Cuando alguien reporte contenido aparecerá aquí, con lo más grave primero.' : 'Prueba con otro estado o quita los filtros.'}
           </EmptyState>
         ) : (
           <ul className="space-y-2">
-            {list.reports.map((item) => {
+            {list.reports.map((item, index) => {
               const severity = SEVERITY_STYLE[item.severity] || SEVERITY_STYLE.S4;
               return (
                 <li key={item.id}>
-                  <button type="button" onClick={() => setSelected(item.id)} aria-current={selected === item.id} className={`relative flex w-full items-start gap-3 overflow-hidden rounded-xl bg-white py-3 pl-5 pr-3 text-left transition-shadow hover:shadow-md ${selected === item.id ? 'ring-2 ring-[#1e40af]' : 'ring-1 ring-slate-900/5'}`}>
-                    <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1.5 ${severity.bar}`} />
+                  <button type="button" onClick={() => setSelected(item.id)} aria-current={selected === item.id} style={{ '--i': index }} className={`${ROW} ${ROW_HOVER} mod-row-in flex w-full items-start gap-3 p-3.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${selected === item.id ? ROW_ACTIVE : ''}`}>
+                    <Dot tone={severity.dot} />
                     <div className="min-w-0 flex-1">
                       <p className="text-[15px] font-extrabold leading-snug text-[#12315f]">{TYPE_LABELS[item.targetType] || item.targetType}: {String(item.reasonLabel).replace(/^Detección automática:s*/, '')}</p>
                       {item.comment && <p className="mt-1 line-clamp-2 text-sm leading-snug text-slate-600">{item.comment}</p>}
@@ -376,7 +376,7 @@ export default function ReportsPanel({ level = 1, onOpenPerson = () => {}, initi
           <ReportDetail id={selected} level={level} onClose={() => setSelected(null)} onChanged={load} onOpenPerson={onOpenPerson} />
         </DetailPane>
       ) : (
-        <section className="hidden items-center justify-center rounded-2xl bg-white/60 p-10 text-center text-sm font-semibold text-slate-500 xl:flex">Elige un reporte de la lista para ver el contenido y decidir.</section>
+        <section className="sticky top-4 hidden min-h-[18rem] flex-col items-center justify-center rounded-2xl border border-dashed border-[#c5d2ea] bg-white/60 p-10 text-center xl:flex"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[36px] text-[#1e40af]/40">fact_check</span><p className="mt-3 max-w-[16rem] text-sm font-semibold leading-relaxed text-slate-500">Elige un reporte de la lista para ver el contenido y decidir.</p></section>
       )}
     </div>
   );

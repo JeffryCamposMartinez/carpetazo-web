@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
-import { EmptyState, ErrorBox, Pills, QUICK_REASONS, SANCTION_TYPES, Spinner, dateOnly } from './shared';
+import { EmptyState, ErrorBox, Pills, QUICK_REASONS, ROW, SANCTION_TYPES, Spinner, dateOnly } from './shared';
 import TermsEvidence from './TermsEvidence';
 import Select from '../ui/Select';
 
@@ -30,8 +30,7 @@ function SanctionRow({ sanction, level, onChanged, setError, showUser }) {
   };
   const until = sanction.expiresAt ? `hasta el ${dateOnly(sanction.expiresAt)}` : sanction.type === 'warning' ? '' : 'sin fecha de término';
   return (
-    <li className="relative overflow-hidden rounded-xl bg-white py-3 pl-5 pr-3 ring-1 ring-slate-900/5">
-      <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1.5 ${status.bar}`} />
+    <li className={`${ROW} mod-row-in p-4`}>
       <div className="flex items-start justify-between gap-3">
         <p className="min-w-0 text-[15px] font-extrabold leading-snug text-[#12315f]">{sanction.typeLabel}{showUser && sanction.user ? ` a @${sanction.user.username}` : ''}</p>
         <time dateTime={sanction.createdAt} className="shrink-0 pt-0.5 text-xs text-slate-500">{dateOnly(sanction.createdAt)}</time>
@@ -39,7 +38,7 @@ function SanctionRow({ sanction, level, onChanged, setError, showUser }) {
       <p className="mt-1 text-sm leading-snug text-slate-700">{sanction.reason}</p>
       {sanction.note && <p className="mt-1 text-sm italic text-slate-500">Nota interna: {sanction.note}</p>}
       <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-        <span className={`font-bold ${status.text}`}>{status.label}</span>
+        <span className={`flex items-center gap-1.5 font-bold ${status.text}`}><span aria-hidden="true" className={`h-2 w-2 rounded-full ${status.bar}`} />{status.label}</span>
         {until && <span>{until}</span>}
         {sanction.automatic && <span className="font-bold text-purple-700">La aplicó el sistema</span>}
         <span>Por {sanction.createdBy || 'el equipo'}{sanction.approvedBy ? `, aprobada por ${sanction.approvedBy}` : ''}</span>

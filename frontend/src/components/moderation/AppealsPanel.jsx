@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../services/api';
-import { EmptyState, ErrorBox, Pills, Spinner, relativeTime } from './shared';
+import { EmptyState, ErrorBox, ListSkeleton, Pills, ROW, relativeTime } from './shared';
 
 const STATUS = {
   open: { label: 'Abierta', bar: 'bg-[#1e40af]', text: 'text-[#1e40af]' },
@@ -28,12 +28,11 @@ function AppealCard({ appeal, level, onChanged, setError }) {
       : '';
 
   return (
-    <li className="relative overflow-hidden rounded-xl bg-white py-3.5 pl-5 pr-4 ring-1 ring-slate-900/5">
-      <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1.5 ${status.bar}`} />
+    <li className={`${ROW} mod-row-in p-4`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[15px] font-extrabold leading-snug text-[#12315f]">@{appeal.user?.username || 'cuenta eliminada'}</p>
-          <p className={`text-xs font-bold ${status.text}`}>{status.label}</p>
+          <p className={`mt-0.5 flex items-center gap-1.5 text-xs font-bold ${status.text}`}><span aria-hidden="true" className={`h-2 w-2 rounded-full ${status.bar}`} />{status.label}</p>
         </div>
         <time dateTime={appeal.createdAt} className="shrink-0 pt-0.5 text-xs text-slate-500">{relativeTime(appeal.createdAt)}</time>
       </div>
@@ -77,7 +76,7 @@ export default function AppealsPanel({ level }) {
     <section aria-label="Apelaciones" className="mx-auto max-w-3xl">
       <Pills label="Estado de la apelación" value={status} onChange={setStatus} options={[['open', 'Abiertas'], ['accepted', 'Aceptadas'], ['rejected', 'Rechazadas']]} />
       <ErrorBox>{error}</ErrorBox>
-      {list === null ? <Spinner /> : list.length === 0 ? (
+      {list === null ? <ListSkeleton rows={3} label="Cargando apelaciones" /> : list.length === 0 ? (
         <EmptyState icon="gavel" title={status === 'open' ? 'No hay apelaciones abiertas' : 'No hay apelaciones en esta lista'}>
           {status === 'open' ? 'Cuando alguien apele una medida desde su perfil, aparecerá aquí para que otra persona la revise.' : 'Las apelaciones ya decididas se guardan aquí.'}
         </EmptyState>
