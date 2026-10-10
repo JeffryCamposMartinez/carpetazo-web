@@ -74,10 +74,11 @@ export const buildAlertMessage = (userId, events) => {
 
 // Envío real: correo (si la persona no lo apagó) y notificación a sus dispositivos. Las cuentas sin términos vigentes no reciben nada.
 const deliverToUser = async (user, message) => {
-  if (!isCurrentAcceptance(await latestAcceptance(user.id))) return { email: false, push: 0 };
-  const email = user.notifyWishlistEmail ? (await sendUserEmail(user.id, { subject: message.subject, text: message.text, html: message.html, headers: message.headers })).sent : false;
+  if (!isCurrentAcceptance(await latestAcceptance(user.id))) { console.log(`Aviso de deseadas sin enviar (${user.id}): términos no vigentes`); return { email: false, push: 0 }; }
+  const emailResult = user.notifyWishlistEmail ? await sendUserEmail(user.id, { subject: message.subject, text: message.text, html: message.html, headers: message.headers }) : { sent: false, reason: 'turned_off' };
   const push = await sendPushToUser(user.id, message.push);
-  return { email, push };
+  console.log(`Aviso de deseadas (${user.id}): correo ${emailResult.sent ? 'enviado' : `no (${emailResult.reason})`}, notificaciones a ${push} dispositivo(s)`);
+  return { email: emailResult.sent, push };
 };
 
 // Una pasada completa. `deliver` y `now` se pueden cambiar en las pruebas.
@@ -145,7 +146,7 @@ export const startWishlistAlerts = () => {
   const tick = async () => {
     if (running) return;
     running = true;
-    try { await runWishlistAlerts(); } catch (error) { console.error('Error en los avisos de la lista de deseos:', error.message); } finally { running = false; }
+    try { const result = await runWishlistAlerts(); if (result.events) console.log(`Avisos de deseadas: ${result.events} novedad(es), ${result.notified} persona(s) avisada(s)`); } catch (error) { console.error('Error en los avisos de la lista de deseos:', error.message); } finally { running = false; }
   };
   setTimeout(tick, 60 * 1000).unref();
   setInterval(tick, RUN_EVERY_MS).unref();
