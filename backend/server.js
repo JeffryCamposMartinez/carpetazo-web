@@ -33,6 +33,8 @@ import legalRoutes from './routes/legal.js';
 import catalogImportRoutes from './routes/catalogImport.js';
 import linkPreviewRoutes from './routes/linkPreview.js';
 import seoRoutes from './routes/seo.js';
+import notificationRoutes from './routes/notifications.js';
+import { startWishlistAlerts } from './core/wishlistAlerts.js';
 import { startPreviewWarmer } from './core/folderPreview.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -87,6 +89,7 @@ app.use(wishlistRoutes);
 app.use(catalogImportRoutes);
 app.use(linkPreviewRoutes);
 app.use(seoRoutes);
+app.use(notificationRoutes);
 app.use(messageRoutes);
 
 const moderation = registerReports(app, { prisma, authenticateToken, requireStaff, hooks: moderationHooks, badRequest, isUuid, currentUserId, hashConnection, sendUserEmail, escapeHtml, reviewHideReports: REVIEW_HIDE_REPORTS });
@@ -111,4 +114,5 @@ app.use((err, _req, res, _next) => {
 app.listen(port, () => {
     console.log(`🚀 Servidor backend corriendo en http://localhost:${port}`);
     startPreviewWarmer();
+    startWishlistAlerts();
 });

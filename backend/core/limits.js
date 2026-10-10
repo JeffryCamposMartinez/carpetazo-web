@@ -97,6 +97,7 @@ export const applyRouteLimits = (app) => {
   app.get('/api/admin/summary', routeLimiter(15 * 60 * 1000, 300));
   app.use('/api/admin/retention', routeLimiter(15 * 60 * 1000, 30));
   app.use('/api/og', routeLimiter(15 * 60 * 1000, 600)); // vista previa de enlaces: los programas de mensajería la piden seguido, la imagen queda en memoria
+  app.use('/api/notifications', routeLimiter(15 * 60 * 1000, 60)); // preferencias, dispositivos y baja desde el correo
   app.use('/api/seo', routeLimiter(15 * 60 * 1000, 600)); // páginas para buscadores y sitemap: los rastreadores piden muchas seguidas
   app.use('/api/admin/catalog-import', routeLimiter(15 * 60 * 1000, 100));
   app.post('/api/admin/cases/:id/export', routeLimiter(15 * 60 * 1000, 20));

@@ -34,6 +34,8 @@ model User {
   bankDetails              Json?
   folders                  Folder[]
   wishlist                 WishlistItem[]
+  notifyWishlistEmail      Boolean           @default(true) // avisos por correo de su lista de deseos (se puede apagar desde el correo o desde la lista)
+  pushSubscriptions        PushSubscription[]
   reviewsReceived          SellerReview[]    @relation("ReviewsReceived")
   reviewsWritten           SellerReview[]    @relation("ReviewsWritten")
   reviewReports            ReviewReport[]
@@ -222,8 +224,36 @@ model WishlistItem {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  alertState      WishlistAlertState?
+
   @@unique([userId, productId])
   @@index([userId, createdAt])
+}
+
+// Último estado visto de cada carta deseada (precio más bajo publicado dentro de su precio máximo): para avisar solo cuando aparece o baja
+model WishlistAlertState {
+  itemId     String       @id
+  item       WishlistItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  userId     String
+  lastPrice  Float?
+  notifiedAt DateTime?
+  updatedAt  DateTime     @updatedAt
+
+  @@index([userId, notifiedAt])
+}
+
+// Dispositivo de una persona que aceptó notificaciones del navegador (Web Push)
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // Reseña de un comprador a un vendedor por un pedido completado. Una por pedido y no se edita.

@@ -7,6 +7,7 @@ import CardLightbox from '../ui/CardLightbox';
 import { describeWishlistItem } from './wishlistLightbox';
 import LoadableImage from '../ui/LoadableImage';
 import WishlistLightboxActions from './WishlistLightboxActions';
+import WishlistAlerts from './WishlistAlerts';
 
 const LIMIT_FALLBACK = 200;
 
@@ -305,6 +306,9 @@ export default function WishlistTab({ showToast = () => {} }) {
           </span>
         </button>
       </div>
+
+      {/* Avisos por correo y notificaciones */}
+      <div className="order-2 lg:shrink-0 lg:px-5 lg:pt-3"><WishlistAlerts /></div>
 
       {/* Filtro por juego */}
       {gameNames.length > 1 && (

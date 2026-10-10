@@ -20,13 +20,13 @@ const MAIL_FROM = `"Carpetazo" <${process.env.SMTP_USER || 'pruebas@carpetazo.te
 export const escapeHtml = (text) => String(text ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // Devuelve { sent, reason }. Nunca lanza: un correo que no sale no debe romper la acción del usuario.
-export const sendUserEmail = async (userId, { subject, text, html }) => {
+export const sendUserEmail = async (userId, { subject, text, html, headers }) => {
   try {
     if (!mailTransport) return { sent: false, reason: 'not_configured' };
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true, role: true } });
     if (!user || user.role === 'deleted' || !user.email || user.email.endsWith('@deleted.invalid')) return { sent: false, reason: 'no_recipient' };
     if (!isCurrentAcceptance(await latestAcceptance(user.id))) return { sent: false, reason: 'terms_not_accepted' };
-    await mailTransport.sendMail({ from: MAIL_FROM, to: user.email, subject, text, html });
+    await mailTransport.sendMail({ from: MAIL_FROM, to: user.email, subject, text, html, ...(headers ? { headers } : {}) });
     return { sent: true };
   } catch (error) {
     console.error('Error sending email:', error.message);
