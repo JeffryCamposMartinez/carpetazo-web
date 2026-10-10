@@ -61,6 +61,11 @@ export default function WishlistTab({ showToast = () => {} }) {
   const [savingVisibility, setSavingVisibility] = useState(false);
   const [busyId, setBusyId] = useState('');
   const [matches, setMatches] = useState({});
+  const [prices, setPrices] = useState({}); // precio más bajo publicado de cada carta
+  const [pricesReady, setPricesReady] = useState(false);
+  const [gameFilter, setGameFilter] = useState(''); // '' = todos los juegos
+  const [exporting, setExporting] = useState(false);
+  const [phone, setPhone] = useState(''); // WhatsApp de quien busca: va en los enlaces del PDF
   const [editingId, setEditingId] = useState('');
   const [draft, setDraft] = useState({ maxPrice: '', note: '', priceVisible: false });
 
@@ -72,12 +77,13 @@ export default function WishlistTab({ showToast = () => {} }) {
         setItems(list.items || []);
         setLimit(list.limit || LIMIT_FALLBACK);
         const theme = (me.user || me)?.publicTheme;
+        setPhone((me.user || me)?.phone || '');
         setVisible(!(theme && typeof theme === 'object' && theme.showWishlist === 'off'));
       })
       .catch(() => { if (!cancelled) setFailed(true); })
       .finally(() => { if (!cancelled) setLoading(false); });
     // Coincidencias con lo que venden otros: no bloquea la lista si falla
-    api.getWishlistMatches().then((res) => { if (!cancelled && res.success) setMatches(res.matches || {}); }).catch(() => {});
+    api.getWishlistMatches().then((res) => { if (!cancelled && res.success) { setMatches(res.matches || {}); setPrices(res.prices || {}); setPricesReady(true); } }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
 
@@ -227,6 +233,27 @@ export default function WishlistTab({ showToast = () => {} }) {
   }
 
   const nearLimit = items.length >= limit * 0.8;
+  // Filtro por juego: solo aparece si la lista mezcla juegos; si el juego elegido ya no tiene cartas, se vuelve a todos
+  const gameCounts = items.reduce((acc, item) => { const name = item.game || 'Sin juego'; acc[name] = (acc[name] || 0) + 1; return acc; }, {});
+  const gameNames = Object.keys(gameCounts);
+  const activeGame = gameCounts[gameFilter] ? gameFilter : '';
+  const shownItems = activeGame ? items.filter((item) => (item.game || 'Sin juego') === activeGame) : items;
+
+  // PDF con lo que se está viendo (respeta el filtro de juego)
+  const exportPdf = async () => {
+    if (exporting || shownItems.length === 0) return;
+    setExporting(true);
+    try {
+      const { exportWishlistPdf } = await import('../../utils/wishlistPdf');
+      await exportWishlistPdf({ items: shownItems, filterLabel: activeGame || 'Todos los juegos', phone });
+      const hasPhone = String(phone).replace(/\D/g, '').length >= 8;
+      showToast(hasPhone ? 'PDF descargado: al tocar una carta se abre tu WhatsApp' : 'PDF descargado. Agrega tu teléfono en tu perfil para que cada carta abra tu WhatsApp', 'success');
+    } catch (error) {
+      showToast(error.message || 'No se pudo crear el PDF', 'error');
+    } finally {
+      setExporting(false);
+    }
+  };
   const iconButton = 'flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full transition-[background-color,color,transform] duration-150 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:opacity-40 disabled:active:scale-100';
 
   return (
@@ -235,11 +262,26 @@ export default function WishlistTab({ showToast = () => {} }) {
       <div ref={listColumnRef} style={isWide ? { top: listColumn.top, height: listColumn.height } : undefined} className="contents lg:sticky lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:overflow-hidden lg:rounded-2xl lg:bg-white lg:shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.35)] lg:ring-1 lg:ring-slate-900/5">
       {/* Barra principal: cuántas cartas llevas y la acción de agregar (en móvil el buscador aparece solo al pedirlo) */}
       <div className="order-1 space-y-3 lg:flex lg:min-h-12 lg:shrink-0 lg:items-center lg:justify-between lg:gap-3 lg:space-y-0 lg:border-b lg:border-slate-100 lg:px-5 lg:py-4">
-        <div className="min-w-0">
-          <h2 className="text-lg font-extrabold leading-tight text-[#12315f]">Mi lista de deseos</h2>
-          <p className="text-sm font-semibold text-slate-600">
-            <span className="font-extrabold tabular-nums text-[#12315f]">{items.length}</span> de {limit} cartas
-          </p>
+        <div className="flex items-start justify-between gap-3 lg:flex-1">
+          <div className="min-w-0">
+            <h2 className="text-lg font-extrabold leading-tight text-[#12315f]">Mi lista de deseos</h2>
+            <p className="text-sm font-semibold text-slate-600">
+              <span className="font-extrabold tabular-nums text-[#12315f]">{items.length}</span> de {limit} cartas
+              {activeGame && <span className="font-medium text-slate-500"> · viendo {shownItems.length} de {activeGame}</span>}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={exportPdf}
+            disabled={exporting || shownItems.length === 0}
+            title={activeGame ? `Descargar en PDF las cartas de ${activeGame}` : 'Descargar tu lista en PDF'}
+            className="flex h-11 shrink-0 items-center gap-2 rounded-full bg-[#12315f] pl-3.5 pr-4 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-[#1e40af] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 disabled:opacity-50 disabled:active:scale-100"
+          >
+            {exporting
+              ? <span aria-hidden="true" className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              : <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">picture_as_pdf</span>}
+            {exporting ? 'Creando…' : 'Exportar PDF'}
+          </button>
         </div>
         {/* Móvil: aviso de cupo cuando falta poco para el límite y entrada al buscador con forma de campo de búsqueda */}
         {nearLimit && (
@@ -264,6 +306,24 @@ export default function WishlistTab({ showToast = () => {} }) {
         </button>
       </div>
 
+      {/* Filtro por juego */}
+      {gameNames.length > 1 && (
+        <div role="group" aria-label="Filtrar la lista por juego" className="order-2 -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] lg:mx-0 lg:shrink-0 lg:px-5 lg:pb-0 lg:pt-3">
+          {[['', 'Todos', items.length], ...gameNames.map((name) => [name, name, gameCounts[name]])].map(([value, label, count]) => (
+            <button
+              key={value || 'all'}
+              type="button"
+              aria-pressed={activeGame === value}
+              onClick={() => setGameFilter(value)}
+              className={`flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-bold transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${activeGame === value ? 'bg-[#12315f] text-white' : 'bg-white text-[#12315f] ring-1 ring-slate-200 [@media(hover:hover)]:hover:bg-slate-50 lg:bg-slate-50'}`}
+            >
+              {label}
+              <span className={`text-xs tabular-nums ${activeGame === value ? 'text-[#facc15]' : 'text-slate-500'}`}>{count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Lista */}
       {items.length === 0 ? (
         <div className="order-3 rounded-2xl bg-white p-8 text-center ring-1 ring-slate-200 lg:flex lg:flex-1 lg:flex-col lg:items-center lg:justify-center lg:rounded-none lg:bg-transparent lg:shadow-none lg:ring-0">
@@ -279,7 +339,7 @@ export default function WishlistTab({ showToast = () => {} }) {
         </div>
       ) : (
         <ul ref={listRef} className="order-3 space-y-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:p-4">
-          {items.map((item) => (
+          {shownItems.map((item) => (
             <li key={item.id} className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200 lg:bg-slate-50 lg:shadow-none">
               <div className="grid grid-cols-[60px_minmax(0,1fr)] items-start gap-x-3 sm:flex sm:items-center">
                 {item.imageUrl ? (
@@ -301,10 +361,20 @@ export default function WishlistTab({ showToast = () => {} }) {
                     </p>
                   )}
                   {item.note && <p className="mt-1 line-clamp-2 text-xs italic text-slate-500">{item.note}</p>}
-                  <Link to={`/cartas?q=${encodeURIComponent(item.name)}`} className="mt-1.5 inline-flex min-h-8 items-center gap-1 text-xs font-bold text-[#1e40af] hover:underline focus:outline-none focus-visible:underline">
-                    <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[16px]">search</span>
-                    Ver quién la vende
-                  </Link>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
+                    <Link to={`/cartas?q=${encodeURIComponent(item.name)}`} className="inline-flex min-h-8 items-center gap-1 text-xs font-bold text-[#1e40af] hover:underline focus:outline-none focus-visible:underline">
+                      <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[16px]">search</span>
+                      Ver quién la vende
+                    </Link>
+                    {prices[item.id] ? (
+                      <Link to={`/carta/${prices[item.id].cardId}`} title="Ver la publicación más barata" className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-xs font-bold text-emerald-800 ring-1 ring-emerald-200 transition-colors hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600">
+                        Desde <span className="tabular-nums">{formatCLP(prices[item.id].lowest)}</span>
+                        {prices[item.id].total > 1 && <span className="font-medium text-emerald-700">· {prices[item.id].total} publicadas</span>}
+                      </Link>
+                    ) : pricesReady && item.productId ? (
+                      <span className="text-xs font-medium text-slate-500">Nadie la publica por ahora</span>
+                    ) : null}
+                  </div>
                 </div>
               <div className="col-start-2 mt-2 flex flex-wrap items-center gap-1 sm:mt-0 sm:w-auto sm:shrink-0 sm:flex-nowrap">
                 <div className="flex items-center rounded-full bg-slate-100">
@@ -379,7 +449,7 @@ export default function WishlistTab({ showToast = () => {} }) {
 
       {previewId && (
         <CardLightbox
-          cards={items}
+          cards={shownItems}
           cardId={previewId}
           onChange={setPreviewId}
           onClose={() => setPreviewId(null)}

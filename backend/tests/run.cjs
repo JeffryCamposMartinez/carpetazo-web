@@ -21,7 +21,7 @@ server.on('exit', (code) => { if (code) { console.error('El servidor de pruebas 
   try {
     if (!ready) throw new Error('La API de pruebas no respondió');
     const data = await setup();
-    for (const file of ['marketFlows', 'chats', 'fraud', 'orders', 'audit', 'terms', 'reports', 'sanctions', 'automation', 'imageScan', 'sync', 'security', 'termsEvidence', 'bulkCards', 'profileTheme', 'catalogImport'].filter((name) => !process.env.CZ_ONLY || process.env.CZ_ONLY.split(',').includes(name))) { // CZ_ONLY=catalogImport corre solo esa área
+    for (const file of ['marketFlows', 'chats', 'fraud', 'orders', 'audit', 'terms', 'reports', 'sanctions', 'automation', 'imageScan', 'sync', 'security', 'termsEvidence', 'bulkCards', 'profileTheme', 'catalogImport', 'wishlistPrices'].filter((name) => !process.env.CZ_ONLY || process.env.CZ_ONLY.split(',').includes(name))) { // CZ_ONLY=catalogImport corre solo esa área
       console.log('\n== ' + file);
       const r = spawnSync(process.execPath, [path.join(__dirname, file + '.test.cjs')], { cwd: root, stdio: 'inherit', env: { ...process.env, CZ_FIXTURES: JSON.stringify(data) } });
       if (r.status) failed = true;

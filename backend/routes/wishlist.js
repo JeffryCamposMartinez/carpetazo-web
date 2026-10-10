@@ -78,7 +78,7 @@ router.get('/api/wishlist/matches', authenticateToken, async (req, res) => {
     const items = await prisma.wishlistItem.findMany({ where: { userId, productId: { not: null } }, take: WISHLIST_MAX_ITEMS, select: { id: true, categoryId: true, productId: true, maxPrice: true } });
     // tcgId de la carta = id del producto (las del catálogo de Pokémon se guardan como `tcgcsv:<cat>:<id>`)
     const wanted = items.map((item) => ({ ...item, tcgId: String(item.productId).replace(/^tcgcsv:\d+:/, ''), tcg: WISHLIST_MATCH_TCG[item.categoryId] })).filter((item) => item.tcg && /^\d{1,12}$/.test(item.tcgId));
-    if (wanted.length === 0) return res.json({ success: true, matches: {} });
+    if (wanted.length === 0) return res.json({ success: true, matches: {}, prices: {} });
 
     const cards = await prisma.card.findMany({
       where: { stock: { gt: 0 }, price: { not: null }, moderationState: 'visible', tcgId: { in: [...new Set(wanted.map((item) => item.tcgId))] }, folder: { isPublic: true, userId: { not: userId } } },
@@ -87,8 +87,11 @@ router.get('/api/wishlist/matches', authenticateToken, async (req, res) => {
       select: { id: true, tcgId: true, price: true, stock: true, folder: { select: { id: true, name: true, tcg: true, user: { select: { name: true, username: true, photoURL: true } } } } },
     });
     const matches = {};
+    const prices = {}; // precio más bajo publicado de cada carta, sin mirar el precio máximo de la lista
     wanted.forEach((item) => {
-      const found = cards.filter((card) => card.tcgId === item.tcgId && card.folder.tcg === item.tcg && (item.maxPrice == null || card.price <= item.maxPrice));
+      const published = cards.filter((card) => card.tcgId === item.tcgId && card.folder.tcg === item.tcg);
+      if (published.length > 0) prices[item.id] = { lowest: published[0].price, cardId: published[0].id, total: published.length };
+      const found = item.maxPrice == null ? published : published.filter((card) => card.price <= item.maxPrice);
       if (found.length === 0) return;
       matches[item.id] = {
         count: found.length,
@@ -99,7 +102,7 @@ router.get('/api/wishlist/matches', authenticateToken, async (req, res) => {
         })),
       };
     });
-    res.json({ success: true, matches });
+    res.json({ success: true, matches, prices });
   } catch (error) {
     console.error('Error loading wishlist matches:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
