@@ -44,7 +44,18 @@ export default function CardPriceHistory({ cardId, reference }) {
     <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-900/5" aria-labelledby="price-history-title">
       <h2 id="price-history-title" className="text-base font-extrabold text-[#12315f]">Historial de precio</h2>
       {!chart ? (
-        <p className="mt-1 text-sm text-slate-500">Estamos juntando el historial de esta carta. Aquí verás cómo cambia el precio más bajo publicado en Carpetazo día a día.</p>
+        <div className="mt-1">
+          {points.length === 1 && (
+            <div className="mb-2 flex items-end justify-between gap-3 rounded-xl bg-slate-50 p-3">
+              <div>
+                <p className="text-[11px] font-bold text-slate-500">Precio más bajo hoy · {dateLabel(points[0].day)}</p>
+                <p className="text-xl font-black tabular-nums text-[#12315f]">{formatCLP(points[0].lowest)}</p>
+              </div>
+              <p className="text-xs font-semibold text-slate-500">{points[0].offers} {points[0].offers === 1 ? 'oferta' : 'ofertas'}</p>
+            </div>
+          )}
+          <p className="text-sm text-slate-500">Carpetazo registra el precio de esta carta todos los días. {points.length === 1 ? 'Desde mañana verás aquí cómo cambia.' : 'En cuanto haya al menos dos días registrados, verás aquí cómo cambia.'}</p>
+        </div>
       ) : (
         <>
           <p className="mt-0.5 text-xs text-slate-500">Precio más bajo publicado en Carpetazo, últimos {Math.max(2, Math.round((new Date(points[points.length - 1].day) - new Date(points[0].day)) / 86400000))} días.</p>
