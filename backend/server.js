@@ -31,6 +31,7 @@ import wishlistRoutes from './routes/wishlist.js';
 import messageRoutes from './routes/messages.js';
 import legalRoutes from './routes/legal.js';
 import catalogImportRoutes from './routes/catalogImport.js';
+import linkPreviewRoutes from './routes/linkPreview.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIREBASE_PROJECT_ID = 'carpetazo-db9d7';
@@ -82,6 +83,7 @@ app.use(sellerRoutes);
 app.use(cardRoutes);
 app.use(wishlistRoutes);
 app.use(catalogImportRoutes);
+app.use(linkPreviewRoutes);
 app.use(messageRoutes);
 
 const moderation = registerReports(app, { prisma, authenticateToken, requireStaff, hooks: moderationHooks, badRequest, isUuid, currentUserId, hashConnection, sendUserEmail, escapeHtml, reviewHideReports: REVIEW_HIDE_REPORTS });
