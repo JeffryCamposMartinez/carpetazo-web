@@ -24,17 +24,19 @@ export default function Header() {
   const [isMobileMenuClosing, setIsMobileMenuClosing] = useState(false);
   const drawerRef = useRef(null);
   const desktopHeaderRef = useRef(null);
-  const mobileHeaderRef = useRef(null);
+  const mobileStripRef = useRef(null); // franja con el menú, el logo y la campana: siempre visible en el celular
+  const mobileNavRef = useRef(null); // secciones: quedan pegadas justo debajo de la franja
 
-  // Alto del encabezado que queda pegado arriba (en el celular, sin la franja del logo que se va con el scroll): las barras que se pegan
-  // debajo de él, como la de secciones de Moderación, lo usan como su «top» (--header-stuck) para no quedar tapadas
+  // Alto del encabezado que queda pegado arriba (en el celular: la franja y las secciones; el buscador se va con el scroll): las barras que
+  // se pegan debajo de él, como la de secciones de Moderación, lo usan como su «top» (--header-stuck) para no quedar tapadas
   useEffect(() => {
-    const nodes = [desktopHeaderRef.current, mobileHeaderRef.current].filter(Boolean);
+    const nodes = [desktopHeaderRef.current, mobileStripRef.current, mobileNavRef.current].filter(Boolean);
     if (nodes.length === 0 || typeof ResizeObserver === 'undefined') return undefined;
     const publish = () => {
-      const mobile = mobileHeaderRef.current;
+      const strip = mobileStripRef.current;
+      const nav = mobileNavRef.current;
       const desktop = desktopHeaderRef.current;
-      const stuck = mobile && mobile.offsetHeight > 0 ? mobile.offsetHeight - 52 : desktop?.offsetHeight || 0;
+      const stuck = strip && strip.offsetHeight > 0 ? strip.offsetHeight + (nav?.offsetHeight || 0) : desktop?.offsetHeight || 0;
       document.documentElement.style.setProperty('--header-stuck', `${Math.max(0, stuck)}px`);
     };
     publish();
@@ -656,11 +658,11 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Mobile Header: sigue al usuario, pero la franja del logo (52 px) se va con el scroll y solo quedan buscador y secciones.
-          Es solo CSS (top negativo): sin estado ni eventos de scroll que se descuadren con la barra del navegador del celular */}
-      <header ref={mobileHeaderRef} className="sticky top-[-52px] z-40 w-full bg-surface dark:bg-surface-dim md:hidden block" style={themedTopBarStyle}>
-        <div className="flex flex-col w-full">
-          <div className="relative flex h-[52px] w-full items-center justify-between gap-2 px-3">
+      {/* Mobile Header: la franja (menú, logo y campana) y las secciones quedan siempre a la vista; el buscador sube con el scroll.
+          «contents» deja sus partes sueltas en la página para que cada una se pegue por su cuenta (es solo CSS, sin eventos de scroll) */}
+      <header className="contents md:hidden">
+        <div className="contents">
+          <div ref={mobileStripRef} className="sticky top-0 z-40 flex h-[52px] w-full items-center justify-between gap-2 bg-surface px-3 dark:bg-surface-dim" style={themedTopBarStyle}>
             {/* Izquierda: cuenta y menú */}
             <div className="z-10 flex items-center">
               {currentUser ? (
@@ -698,10 +700,10 @@ export default function Header() {
             </div>
           </div>
 
-          <div className="px-3 pb-2.5 pt-0.5">{renderSearch('mobile')}</div>
+          <div className="w-full bg-surface px-3 pb-2.5 pt-0.5 dark:bg-surface-dim" style={themedTopBarStyle}>{renderSearch('mobile')}</div>
 
           {/* Secciones: 4 columnas iguales, sin scroll horizontal */}
-          <nav aria-label="Principal" onPointerDown={preloadMainNow} onTouchStart={preloadMainNow} className="border-t border-[#facc15]/40 bg-[#1e40af] px-2 py-1" style={themedNavStyle}>
+          <nav ref={mobileNavRef} aria-label="Principal" onPointerDown={preloadMainNow} onTouchStart={preloadMainNow} className="sticky top-[52px] z-40 border-t border-[#facc15]/40 bg-[#1e40af] px-2 py-1" style={themedNavStyle}>
             <LiquidTabs
               ariaLabel="Navegación principal"
               navigation
