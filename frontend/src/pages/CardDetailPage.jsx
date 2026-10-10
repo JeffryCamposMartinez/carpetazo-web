@@ -12,6 +12,9 @@ import { CardAvailability, RecentSales, TcgplayerRange } from '../components/car
 import ReportButton from '../components/moderation/ReportButton';
 import useCardPriceRanges from '../hooks/useCardPriceRanges';
 import usePageMeta from '../hooks/usePageMeta';
+import PriceVerdict from '../components/cards/PriceVerdict';
+import CardPriceHistory from '../components/cards/CardPriceHistory';
+import { referencePrice } from '../utils/priceVerdict';
 import { cardFill, cardRatio, isYugioh } from '../utils/cardShape';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
@@ -73,6 +76,7 @@ export default function CardDetailPage() {
   const chosen = offers.find((offer) => offer.id === cardId);
   const best = offers.find((offer) => Number(offer.price) > 0);
   const priceRanges = useCardPriceRanges(card, chosen?.language || best?.language);
+  const referenceClp = referencePrice(data?.reference, priceRanges.ranges);
   usePageMeta(card ? {
     title: `${card.name}${card.set ? ` (${card.set})` : ''} - ${card.tcg}${best ? ` desde ${formatCLP(best.price)}` : ''} | Carpetazo`,
     description: `Compra ${card.name} de ${card.tcg}${card.set ? `, edición ${card.set}` : ''} en Chile. ${offers.length} ${offers.length === 1 ? 'oferta' : 'ofertas'}${best ? ` desde ${formatCLP(best.price)}` : ''}.`,
@@ -128,6 +132,7 @@ export default function CardDetailPage() {
             <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-900/5">
               <p className="text-xs font-bold text-slate-500">{offers.length > 1 ? 'Desde' : 'Precio'}</p>
               <p className="mt-0.5 text-3xl font-black tabular-nums text-[#12315f]">{best ? formatCLP(best.price) : 'Consultar'}</p>
+              {best && referenceClp && <div className="mt-1.5"><PriceVerdict price={best.price} reference={referenceClp} /></div>}
               {best && (
                 <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-slate-600">
                   Vendido por
@@ -161,6 +166,7 @@ export default function CardDetailPage() {
             <CardAvailability stats={data.stats || { copies: offers.reduce((sum, offer) => sum + (offer.stock || 0), 0), sellers: offers.length }} />
             <TcgplayerRange status={priceRanges.status} ranges={priceRanges.ranges} />
             <Reference reference={data.reference} />
+            <CardPriceHistory cardId={chosen?.id || card.id} reference={referenceClp} />
 
             {details.length > 0 && (
               <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 rounded-2xl bg-white p-4 text-sm ring-1 ring-slate-900/5">
@@ -191,7 +197,7 @@ export default function CardDetailPage() {
           </div>
         </div>
 
-        <CardOffers offers={offers} chosenId={cardId} />
+        <CardOffers offers={offers} chosenId={cardId} reference={referenceClp} />
       </div>
 
       {zoom && <CardLightbox cards={lightboxCards} cardId={card.id} onChange={() => {}} onClose={() => setZoom(false)} describe={() => ({ subtitle: [card.set, card.rarity].filter(Boolean).join(' • '), chips: [] })} />}

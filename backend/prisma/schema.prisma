@@ -491,3 +491,16 @@ model ScanEvent {
 
   @@index([createdAt])
 }
+
+// Precio más bajo publicado de cada carta, una vez al día: es el historial que se muestra en la página de la carta
+model CardPriceSnapshot {
+  id     String   @id @default(uuid())
+  tcg    String
+  tcgId  String
+  day    DateTime @db.Date
+  lowest Float
+  offers Int
+
+  @@unique([tcg, tcgId, day])
+  @@index([day])
+}

@@ -195,6 +195,22 @@ router.get('/api/cards/:id/offers', async (req, res) => {
   }
 });
 
+// Historial del precio más bajo publicado de una carta (un punto por día, últimos 180 días)
+router.get('/api/cards/:id/price-history', async (req, res) => {
+  try {
+    if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) return badRequest(res, 'Carta inválida');
+    const card = await prisma.card.findFirst({ where: { id: req.params.id, ...visibleCardWhere }, select: { tcgId: true, folder: { select: { tcg: true } } } });
+    if (!card) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
+    const since = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
+    const rows = await prisma.cardPriceSnapshot.findMany({ where: { tcg: card.folder.tcg, tcgId: card.tcgId, day: { gte: since } }, orderBy: { day: 'asc' }, select: { day: true, lowest: true, offers: true } });
+    res.set('Cache-Control', 'public, max-age=300');
+    res.json({ success: true, points: rows.map((row) => ({ day: row.day.toISOString().slice(0, 10), lowest: row.lowest, offers: row.offers })) });
+  } catch (error) {
+    console.error('Error loading price history:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
 // Búsqueda pública de cartas a la venta (solo carpetas públicas y con stock)
 // 60 se reparte exacto en 2, 3, 4, 5 y 6 columnas: la última fila nunca queda con huecos
 const CARD_SEARCH_PAGE_SIZE = 60;

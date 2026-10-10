@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import ReportButton from '../moderation/ReportButton';
 import LocationLine from '../ui/LocationLine';
+import PriceVerdict from './PriceVerdict';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 
@@ -14,7 +15,7 @@ function SellerAvatar({ user }) {
 }
 
 // Un vendedor de esta carta: quién es, cuánto pide y cuántas tiene. Lleva a su carpeta.
-function OfferRow({ offer, isBest, isChosen }) {
+function OfferRow({ offer, isBest, isChosen, reference }) {
   const user = offer.folder.user || {};
   const name = user.name || user.username || 'Vendedor';
   const hasPrice = Number(offer.price) > 0;
@@ -35,6 +36,7 @@ function OfferRow({ offer, isBest, isChosen }) {
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2">
+        {hasPrice && reference && <PriceVerdict price={offer.price} reference={reference} showDetail={false} />}
         {isBest && <span className="rounded-full bg-[#facc15] px-2.5 py-0.5 text-[11px] font-extrabold text-[#12315f]">Mejor precio</span>}
         {isChosen && <span className="rounded-full bg-[#dbeafe] px-2.5 py-0.5 text-[11px] font-extrabold text-[#1e40af]">La que tocaste</span>}
         {offer.language && <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-600">{LANGUAGES[offer.language] || offer.language}</span>}
@@ -48,14 +50,14 @@ function OfferRow({ offer, isBest, isChosen }) {
   );
 }
 
-export default function CardOffers({ offers, chosenId }) {
+export default function CardOffers({ offers, chosenId, reference }) {
   const best = offers.find((offer) => Number(offer.price) > 0);
   return (
     <section aria-labelledby="card-offers-title" className="mt-8">
       <h2 id="card-offers-title" className="text-xl font-extrabold text-[#12315f] md:text-2xl">Vendedores</h2>
       <p className="mt-0.5 text-sm text-slate-600">{offers.length === 1 ? '1 vendedor la tiene' : `${offers.length} vendedores la tienen`}, del precio más bajo al más alto.</p>
       <ul className="mt-4 space-y-2.5">
-        {offers.map((offer) => <OfferRow key={offer.id} offer={offer} isBest={offer === best && offers.length > 1} isChosen={offer.id === chosenId} />)}
+        {offers.map((offer) => <OfferRow key={offer.id} offer={offer} isBest={offer === best && offers.length > 1} isChosen={offer.id === chosenId} reference={reference} />)}
       </ul>
     </section>
   );

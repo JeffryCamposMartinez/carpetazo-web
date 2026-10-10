@@ -35,6 +35,7 @@ import linkPreviewRoutes from './routes/linkPreview.js';
 import seoRoutes from './routes/seo.js';
 import notificationRoutes from './routes/notifications.js';
 import { startWishlistAlerts } from './core/wishlistAlerts.js';
+import { startPriceHistory } from './core/priceHistory.js';
 import { startPreviewWarmer } from './core/folderPreview.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -115,4 +116,5 @@ app.listen(port, () => {
     console.log(`🚀 Servidor backend corriendo en http://localhost:${port}`);
     startPreviewWarmer();
     startWishlistAlerts();
+    startPriceHistory();
 });
