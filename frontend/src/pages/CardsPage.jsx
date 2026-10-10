@@ -9,6 +9,7 @@ import CardsFilters from '../components/cards/CardsFilters';
 import { scrollToTopThen } from '../utils/scrollToTopThen';
 import FloatingTools from '../components/ui/FloatingTools';
 import CardsPagination from '../components/cards/CardsPagination';
+import CardInfoResults from '../components/cards/CardInfoResults';
 import CardsResultsBar, { SORT_VALUES } from '../components/cards/CardsResultsBar';
 import usePageMeta from '../hooks/usePageMeta';
 
@@ -170,6 +171,8 @@ export default function CardsPage() {
                   : result.cards.map((card, index) => <CardTile key={card.id} card={card} index={index} view={effectiveView} wanted={Boolean(wanted[card.id])} onWish={addToWishlist} />)}
               </ul>
             )}
+
+            <CardInfoResults query={urlQuery} game={tcg} enabled={!loading && !failed && result.cards.length === 0 && urlQuery.trim().length >= 2 && !seller && !comuna} />
 
             {!loading && !failed && <CardsPagination page={page} pages={result.pages} onPage={goToPage} />}
           </section>

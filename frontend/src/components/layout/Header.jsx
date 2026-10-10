@@ -91,8 +91,6 @@ export default function Header() {
     }
   };
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchCategory, setSearchCategory] = useState('Carpetas');
-  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [publicHeaderTheme, setPublicHeaderTheme] = useState(null);
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -109,21 +107,11 @@ export default function Header() {
   seenRef.current = seen;
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
-  const searchCategories = [
-    { label: 'Carpetas', route: '/carpetas' },
-    { label: 'Cartas', route: '/cartas' },
-    { label: 'Vendedores', route: '/vendedores' },
-  ];
-
+  // El buscador del encabezado solo busca cartas: las que están a la venta y, si no hay, las del catálogo (solo información)
   const handleSearch = (e) => {
     e.preventDefault();
-    const cat = searchCategories.find(c => c.label === searchCategory);
-    const route = cat ? cat.route : '/carpetas';
-    if (searchQuery.trim()) {
-      navigate(`${route}?q=${encodeURIComponent(searchQuery.trim())}`);
-    } else {
-      navigate(route);
-    }
+    const term = searchQuery.trim();
+    navigate(term ? `/cartas?q=${encodeURIComponent(term)}` : '/cartas');
   };
 
   const NAV_ROUTES = [
@@ -149,9 +137,6 @@ export default function Header() {
       if (!event.target.closest('.profile-dropdown')) {
         setIsDropdownOpen(false);
       }
-      if (!event.target.closest('.search-category-dropdown')) {
-        setCategoryDropdownOpen(false);
-      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -163,7 +148,6 @@ export default function Header() {
       if (event.key !== 'Escape') return;
       setIsDropdownOpen(false);
       setIsNotificationOpen(false);
-      setCategoryDropdownOpen(false);
     };
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
@@ -479,54 +463,10 @@ export default function Header() {
   // Buscador compartido por escritorio y móvil. Es una función (no un componente) para que el campo no se remonte al escribir
   const renderSearch = (variant) => {
     const isMobile = variant === 'mobile';
-    const menuId = `search-category-menu-${variant}`;
-    const category = searchCategory.toLowerCase();
+    const category = 'cartas';
     return (
       <form role="search" onSubmit={handleSearch} className="w-full">
         <div className={`relative flex items-center rounded-full bg-white pl-1 pr-1 shadow-[0_1px_2px_rgba(8,18,42,0.4),0_8px_18px_-8px_rgba(8,18,42,0.55)] transition-shadow duration-150 focus-within:ring-2 focus-within:ring-[#facc15] ${isMobile ? 'h-12' : 'h-11'}`}>
-          <div
-            className="relative search-category-dropdown self-stretch"
-            onKeyDown={(e) => {
-              if (e.key === 'Escape' && categoryDropdownOpen) {
-                setCategoryDropdownOpen(false);
-                e.currentTarget.querySelector('button')?.focus();
-              }
-            }}
-          >
-            <button
-              type="button"
-              aria-haspopup="menu"
-              aria-expanded={categoryDropdownOpen}
-              aria-controls={categoryDropdownOpen ? menuId : undefined}
-              aria-label={`Buscar en ${searchCategory}. Cambiar categoría`}
-              onClick={() => setCategoryDropdownOpen(p => !p)}
-              className="flex h-full items-center gap-0.5 whitespace-nowrap rounded-l-full pl-3.5 pr-1.5 text-sm font-bold text-[#12315f] transition-colors duration-150 hover:bg-slate-100 active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1e40af]"
-            >
-              {searchCategory}
-              <span translate="no" aria-hidden="true" className={`material-symbols-outlined text-[18px] text-slate-500 transition-transform duration-150 ${categoryDropdownOpen ? 'rotate-180' : ''}`}>keyboard_arrow_down</span>
-            </button>
-            {categoryDropdownOpen && (
-              <div id={menuId} role="menu" aria-label="Buscar en" className="menu-pop absolute left-0 top-full z-50 mt-2 min-w-[10.5rem] overflow-hidden rounded-xl bg-white p-1 shadow-[0_12px_32px_-8px_rgba(8,18,42,0.45)] ring-1 ring-slate-900/10">
-                {searchCategories.map(cat => {
-                  const selected = searchCategory === cat.label;
-                  return (
-                    <button
-                      key={cat.label}
-                      type="button"
-                      role="menuitemradio"
-                      aria-checked={selected}
-                      onClick={() => { setSearchCategory(cat.label); setCategoryDropdownOpen(false); }}
-                      className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-3 text-left text-sm font-semibold transition-colors duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1e40af] ${selected ? 'bg-[#1e40af] text-white' : 'text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af]'}`}
-                    >
-                      {cat.label}
-                      {selected && <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">check</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-          <span aria-hidden="true" className="h-6 w-px shrink-0 bg-slate-200" />
           <input
             type="search"
             enterKeyHint="search"
@@ -535,7 +475,7 @@ export default function Header() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={`Busca ${category}...`}
-            className={`h-full min-w-0 flex-1 px-3 font-medium text-[#12315f] caret-[#1e40af] selection:bg-[#facc15]/60 text-ellipsis placeholder:font-normal placeholder:text-slate-500 !bg-transparent !border-0 !shadow-none !ring-0 !rounded-none focus:outline-none ${isMobile ? 'text-base' : 'text-[15px]'}`}
+            className={`h-full min-w-0 flex-1 pl-4 pr-3 font-medium text-[#12315f] caret-[#1e40af] selection:bg-[#facc15]/60 text-ellipsis placeholder:font-normal placeholder:text-slate-500 !bg-transparent !border-0 !shadow-none !ring-0 !rounded-none focus:outline-none ${isMobile ? 'text-base' : 'text-[15px]'}`}
           />
           <button
             type="submit"
