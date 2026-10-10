@@ -203,8 +203,16 @@ router.get('/api/cards/:id/price-history', async (req, res) => {
     if (!card) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
     const since = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
     const rows = await prisma.cardPriceSnapshot.findMany({ where: { tcg: card.folder.tcg, tcgId: card.tcgId, day: { gte: since } }, orderBy: { day: 'asc' }, select: { day: true, lowest: true, offers: true } });
+    // Precio de mercado de TCGplayer (solo Pokémon) y ventas reales completadas de la carta, en el mismo período
+    const market = card.folder.tcg === 'Pokemon' ? await prisma.cardMarketSnapshot.findMany({ where: { tcgId: card.tcgId, day: { gte: since } }, orderBy: { day: 'asc' }, select: { day: true, clp: true } }) : [];
+    const sales = (await recentSales(card.tcgId, card.folder.tcg)).filter((sale) => new Date(sale.at) >= since);
     res.set('Cache-Control', 'public, max-age=300');
-    res.json({ success: true, points: rows.map((row) => ({ day: row.day.toISOString().slice(0, 10), lowest: row.lowest, offers: row.offers })) });
+    res.json({
+      success: true,
+      points: rows.map((row) => ({ day: row.day.toISOString().slice(0, 10), lowest: row.lowest, offers: row.offers })),
+      market: market.map((row) => ({ day: row.day.toISOString().slice(0, 10), clp: row.clp })),
+      sales: sales.map((sale) => ({ day: new Date(sale.at).toISOString().slice(0, 10), price: sale.price, quantity: sale.quantity })),
+    });
   } catch (error) {
     console.error('Error loading price history:', error);
     res.status(500).json({ success: false, message: 'Error interno' });

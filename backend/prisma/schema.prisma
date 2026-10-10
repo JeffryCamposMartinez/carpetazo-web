@@ -504,3 +504,15 @@ model CardPriceSnapshot {
   @@unique([tcg, tcgId, day])
   @@index([day])
 }
+
+// Precio de mercado de TCGplayer (en pesos) de las cartas de Pokémon a la venta, una vez al día
+model CardMarketSnapshot {
+  id    String   @id @default(uuid())
+  tcgId String
+  day   DateTime @db.Date
+  clp   Float
+  usd   Float
+
+  @@unique([tcgId, day])
+  @@index([day])
+}
