@@ -12,9 +12,8 @@ import { CardAvailability, RecentSales, TcgplayerRange } from '../components/car
 import ReportButton from '../components/moderation/ReportButton';
 import useCardPriceRanges from '../hooks/useCardPriceRanges';
 import usePageMeta from '../hooks/usePageMeta';
-import PriceVerdict from '../components/cards/PriceVerdict';
 import CardPriceHistory from '../components/cards/CardPriceHistory';
-import { referencePrice } from '../utils/priceVerdict';
+import { referencePrice } from '../utils/referencePrice';
 import { cardFill, cardRatio, isYugioh } from '../utils/cardShape';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
@@ -132,7 +131,6 @@ export default function CardDetailPage() {
             <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-900/5">
               <p className="text-xs font-bold text-slate-500">{offers.length > 1 ? 'Desde' : 'Precio'}</p>
               <p className="mt-0.5 text-3xl font-black tabular-nums text-[#12315f]">{best ? formatCLP(best.price) : 'Consultar'}</p>
-              {best && referenceClp && <div className="mt-1.5"><PriceVerdict price={best.price} reference={referenceClp} /></div>}
               {best && (
                 <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-slate-600">
                   Vendido por
@@ -197,7 +195,7 @@ export default function CardDetailPage() {
           </div>
         </div>
 
-        <CardOffers offers={offers} chosenId={cardId} reference={referenceClp} />
+        <CardOffers offers={offers} chosenId={cardId} />
       </div>
 
       {zoom && <CardLightbox cards={lightboxCards} cardId={card.id} onChange={() => {}} onClose={() => setZoom(false)} describe={() => ({ subtitle: [card.set, card.rarity].filter(Boolean).join(' • '), chips: [] })} />}
