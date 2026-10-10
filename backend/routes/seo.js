@@ -101,7 +101,7 @@ router.get('/api/seo/seller/:username', async (req, res) => {
     const name = text(user.name || user.username, 60);
     const url = `${SITE}/${encodeURIComponent(user.username)}`;
     const games = [...new Set(user.folders.map((folder) => TCG_LABELS[folder.tcg] || folder.tcg))];
-    const title = cut(`${name} - Vendedor de cartas ${games.slice(0, 3).join(', ')}${user.publicComuna ? ` en ${text(user.publicComuna, 40)}` : ''} | Carpetazo`, 70);
+    const title = `${cut(name, 36)} - Vendedor de cartas ${games[0]} | Carpetazo`;
     const bio = text(user.bio, 200);
     const description = cut(bio || `Cartas de ${games.join(', ')} a la venta de ${name} en Carpetazo, el mercado de cartas TCG en Chile.`, 160);
     const image = user.photoURL && isAllowedProxyImageUrl(user.photoURL) ? user.photoURL : null;
