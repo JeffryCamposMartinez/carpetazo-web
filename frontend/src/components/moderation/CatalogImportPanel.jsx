@@ -32,7 +32,7 @@ function Stepper({ current }) {
 }
 
 // Aviso de confirmación antes de escribir en la base real. Interrumpe a propósito: la carga no se deshace desde aquí.
-function ConfirmDialog({ count, busy, onCancel, onConfirm }) {
+function ConfirmDialog({ count, updates = 0, busy, onCancel, onConfirm }) {
   const cancelRef = useRef(null);
   useBodyScrollLock(true);
   useEffect(() => {
@@ -45,8 +45,8 @@ function ConfirmDialog({ count, busy, onCancel, onConfirm }) {
     <div className="sheet-backdrop fixed inset-0 z-[90] flex items-end justify-center bg-slate-900/55 p-3 sm:items-center" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) onCancel(); }}>
       <div role="alertdialog" aria-modal="true" aria-labelledby="catalog-confirm-title" className="mod-confirm-in w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
         <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fef3c7] text-[#92400e]"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[28px]">library_add</span></span>
-        <h2 id="catalog-confirm-title" className="mt-4 text-xl font-extrabold text-[#12315f]">¿Cargar {count} {count === 1 ? 'carta nueva' : 'cartas nuevas'}?</h2>
-        <p className="mt-2 text-sm leading-relaxed text-slate-600">Se agregan a la base de datos de Carpetazo y quedan visibles en el catálogo. Las cartas que ya existían no se modifican. Esta carga no se deshace desde aquí.</p>
+        <h2 id="catalog-confirm-title" className="mt-4 text-xl font-extrabold text-[#12315f]">¿Cargar {[count > 0 && `${count} ${count === 1 ? 'carta nueva' : 'cartas nuevas'}`, updates > 0 && `${updates} ${updates === 1 ? 'corrección' : 'correcciones'}`].filter(Boolean).join(' y ')}?</h2>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">Las nuevas se agregan a la base de datos de Carpetazo y las correcciones cambian el nombre, la imagen y los datos de cartas que ya existen (su edición no cambia). Esta carga no se deshace desde aquí.</p>
         <div className="mt-6 grid grid-cols-2 gap-2">
           <button ref={cancelRef} type="button" disabled={busy} onClick={onCancel} className="h-12 rounded-full border-2 border-slate-300 text-sm font-extrabold text-slate-700 transition-[background-color,transform] duration-150 active:scale-[0.97] hover:bg-slate-50 disabled:opacity-50">Cancelar</button>
           <button type="button" disabled={busy} onClick={onConfirm} className="flex h-12 items-center justify-center gap-2 rounded-full bg-[#facc15] text-sm font-extrabold text-[#12315f] transition-[filter,transform] duration-150 active:scale-[0.97] hover:brightness-95 disabled:opacity-70">
@@ -186,7 +186,7 @@ export default function CatalogImportPanel() {
             <div className="mx-auto flex max-w-3xl gap-2 sm:justify-end">
               <button type="button" onClick={reset} className="h-12 flex-1 rounded-full border-2 border-slate-300 bg-white px-6 text-sm font-extrabold text-slate-700 transition-[background-color,transform] duration-150 active:scale-[0.97] hover:bg-slate-50 sm:flex-none">Cancelar</button>
               <button type="button" disabled={!loadable} onClick={() => setConfirming(true)} className="h-12 flex-[1.6] rounded-full bg-[#facc15] px-7 text-sm font-extrabold text-[#12315f] transition-[filter,transform,opacity] duration-150 active:scale-[0.97] hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-45 sm:flex-none">
-                {loadable ? `Cargar ${plan.counts.new} ${plan.counts.new === 1 ? 'carta' : 'cartas'}` : 'Nada que cargar'}
+                {loadable ? `Cargar ${plan.counts.new + plan.counts.updated} ${plan.counts.new + plan.counts.updated === 1 ? 'cambio' : 'cambios'}` : 'Nada que cargar'}
               </button>
             </div>
           </div>
@@ -196,13 +196,13 @@ export default function CatalogImportPanel() {
       {stage === 'done' && result && (
         <div className="mod-row-in rounded-3xl border border-emerald-200 bg-white p-8 text-center">
           <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[36px]">check_circle</span></span>
-          <h3 className="mt-4 text-xl font-extrabold text-[#12315f]">{result.created === 0 ? 'No había cartas nuevas' : `Se ${result.created === 1 ? 'cargó 1 carta nueva' : `cargaron ${result.created} cartas nuevas`}`}</h3>
-          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-slate-600">{result.existing > 0 ? `${result.existing} ya ${result.existing === 1 ? 'existía y no se modificó' : 'existían y no se modificaron'}. ` : ''}La carga quedó registrada en la auditoría.</p>
+          <h3 className="mt-4 text-xl font-extrabold text-[#12315f]">{result.created === 0 && !result.updated ? 'No había cambios' : [result.created > 0 && `${result.created === 1 ? '1 carta nueva' : `${result.created} cartas nuevas`}`, result.updated > 0 && `${result.updated === 1 ? '1 corrección' : `${result.updated} correcciones`}`].filter(Boolean).join(' y ') + ' cargadas'}</h3>
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-slate-600">{result.existing > 0 ? `${result.existing} ${result.existing === 1 ? 'carta no tenía cambios' : 'cartas no tenían cambios'}. ` : ''}La carga quedó registrada en la auditoría.</p>
           <button type="button" onClick={reset} className="mt-6 h-12 rounded-full bg-[#12315f] px-7 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 active:scale-[0.97] hover:bg-[#1e40af]">Cargar otro archivo</button>
         </div>
       )}
 
-      {confirming && plan && <ConfirmDialog count={plan.counts.new} busy={busy} onCancel={() => setConfirming(false)} onConfirm={apply} />}
+      {confirming && plan && <ConfirmDialog count={plan.counts.new} updates={plan.counts.updated} busy={busy} onCancel={() => setConfirming(false)} onConfirm={apply} />}
     </section>
   );
 }

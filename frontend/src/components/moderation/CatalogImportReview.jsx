@@ -27,14 +27,14 @@ export default function CatalogImportReview({ plan }) {
   const hasErrors = plan.errors.length > 0;
   const missingImages = plan.images?.missing?.length || 0;
   const names = useMemo(() => new Map(plan.cards.map((card) => [card.productId, card.name])), [plan.cards]);
-  const visible = useMemo(() => (onlyNew ? plan.cards.filter((card) => card.status === 'new') : plan.cards), [plan.cards, onlyNew]);
+  const visible = useMemo(() => (onlyNew ? plan.cards.filter((card) => card.status !== 'exists') : plan.cards), [plan.cards, onlyNew]);
   const errors = showAllErrors ? plan.errors : plan.errors.slice(0, 4);
 
   const verdict = hasErrors
     ? { tone: 'border-red-200 bg-red-50 text-red-900', icon: 'error', title: `Hay ${plan.errors.length} ${plan.errors.length === 1 ? 'carta con problemas' : 'cartas con problemas'}`, text: 'No se puede cargar hasta corregir el archivo. Nada se guardó.' }
-    : counts.new === 0 && !plan.canApply
+    : counts.new === 0 && counts.updated === 0 && !plan.canApply
       ? { tone: 'border-[#dbe3f0] bg-white text-[#12315f]', icon: 'task_alt', title: 'No hay cartas nuevas', text: 'Todas las cartas del archivo ya están en la base.' }
-      : { tone: 'border-emerald-200 bg-emerald-50 text-emerald-900', icon: 'check_circle', title: counts.new > 0 ? `Listo para cargar ${counts.new} ${counts.new === 1 ? 'carta nueva' : 'cartas nuevas'}` : 'Solo faltan enlaces a productos', text: 'Las cartas que ya existen no se modifican.' };
+      : { tone: 'border-emerald-200 bg-emerald-50 text-emerald-900', icon: 'check_circle', title: counts.new > 0 || counts.updated > 0 ? `Listo para cargar: ${[counts.new > 0 && `${counts.new} ${counts.new === 1 ? 'carta nueva' : 'cartas nuevas'}`, counts.updated > 0 && `${counts.updated} ${counts.updated === 1 ? 'corrección' : 'correcciones'}`].filter(Boolean).join(' y ')}` : 'Solo faltan enlaces a productos', text: counts.newGroups || counts.newProducts ? `Se crearán también ${[counts.newGroups && `${counts.newGroups} ${counts.newGroups === 1 ? 'edición' : 'ediciones'}`, counts.newProducts && `${counts.newProducts} ${counts.newProducts === 1 ? 'producto' : 'productos'}`].filter(Boolean).join(' y ')} que aún no están en la base. Las cartas que ya existen no se modifican.` : counts.updated > 0 ? 'Las correcciones cambian nombre, imagen y datos de cartas que ya existen; su edición no cambia.' : 'Las cartas que ya existen no se modifican.' };
 
   return (
     <div className="space-y-4">
@@ -46,9 +46,10 @@ export default function CatalogImportReview({ plan }) {
         </div>
       </div>
 
-      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[#dbe3f0] bg-[#dbe3f0] sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[#dbe3f0] bg-[#dbe3f0] sm:grid-cols-5">
         <Fact value={counts.new} label="Nuevas" tone={counts.new > 0 ? 'text-[#1e40af]' : 'text-slate-500'} />
-        <Fact value={counts.exists} label="Ya existen" tone="text-slate-600" />
+        <Fact value={counts.updated} label={counts.updated === 1 ? 'Se corrige' : 'Se corrigen'} tone={counts.updated > 0 ? 'text-[#92400e]' : 'text-slate-500'} />
+        <Fact value={counts.exists} label="Sin cambios" tone="text-slate-600" />
         <Fact value={plan.editions.length} label={plan.editions.length === 1 ? 'Edición' : 'Ediciones'} />
         <Fact value={plan.physicalProducts.length} label={plan.physicalProducts.length === 1 ? 'Producto' : 'Productos'} />
       </dl>
@@ -75,16 +76,16 @@ export default function CatalogImportReview({ plan }) {
             {plan.editions.map((edition) => (
               <li key={edition.groupId} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3">
                 <div className="min-w-0">
-                  <p className="truncate text-[15px] font-bold text-slate-800">{edition.name}</p>
+                  <p className="flex items-center gap-2 text-[15px] font-bold text-slate-800"><span className="truncate">{edition.name}</span>{edition.isNew && <span className="shrink-0 rounded-full bg-[#fef3c7] px-2 py-0.5 text-xs font-bold text-[#92400e]">Edición nueva</span>}</p>
                   <p className="text-xs text-slate-500">{edition.block}</p>
                 </div>
-                <p className="text-sm tabular-nums text-slate-600"><b className={edition.new > 0 ? 'text-[#1e40af]' : 'text-slate-500'}>{edition.new} {edition.new === 1 ? 'nueva' : 'nuevas'}</b>{edition.exists > 0 ? <span className="text-slate-500"> · {edition.exists} ya {edition.exists === 1 ? 'existe' : 'existen'}</span> : null}</p>
+                <p className="text-sm tabular-nums text-slate-600"><b className={edition.new > 0 ? 'text-[#1e40af]' : 'text-slate-500'}>{edition.new} {edition.new === 1 ? 'nueva' : 'nuevas'}</b>{edition.updated > 0 ? <span className="text-[#92400e]"> · {edition.updated} {edition.updated === 1 ? 'se corrige' : 'se corrigen'}</span> : null}{edition.exists > 0 ? <span className="text-slate-500"> · {edition.exists} sin cambios</span> : null}</p>
               </li>
             ))}
           </ul>
           {plan.physicalProducts.length > 0 && (
             <p className="border-t border-[#dbe3f0] px-4 py-3 text-sm text-slate-600">
-              Se enlazan a: {plan.physicalProducts.map((product) => `${product.name} (${product.block}, ${product.cards} ${product.cards === 1 ? 'carta' : 'cartas'})`).join(' · ')}
+              Se enlazan a: {plan.physicalProducts.map((product) => `${product.name}${product.isNew ? ' (producto nuevo)' : ''} (${product.block}, ${product.cards} ${product.cards === 1 ? 'carta' : 'cartas'})`).join(' · ')}
             </p>
           )}
         </section>
@@ -108,10 +109,10 @@ export default function CatalogImportReview({ plan }) {
         <section aria-label="Cartas del archivo" className="rounded-2xl border border-[#dbe3f0] bg-white">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#dbe3f0] px-4 py-3">
             <h3 className="text-sm font-extrabold text-[#12315f]">Cartas del archivo</h3>
-            {counts.exists > 0 && counts.new > 0 && (
+            {counts.exists > 0 && counts.new + counts.updated > 0 && (
               <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm font-semibold text-slate-700">
                 <input type="checkbox" checked={onlyNew} onChange={(event) => setOnlyNew(event.target.checked)} className="h-5 w-5 rounded border-slate-400" />
-                Solo las nuevas
+                Solo las que cambian
               </label>
             )}
           </div>
@@ -123,10 +124,11 @@ export default function CatalogImportReview({ plan }) {
                   <p className="truncate text-[15px] font-bold text-slate-800">{card.name}</p>
                   <p className="truncate text-xs text-slate-500">{[card.type, card.cost && `Coste ${card.cost}`, card.force && `Fuerza ${card.force}`, card.race, card.frequency].filter(Boolean).join(' · ')}</p>
                   <p className="truncate text-xs text-slate-500">{card.edition}{card.number ? ` · ${card.number}` : ''}</p>
+                  {card.previousName && card.previousName !== card.name && <p className="truncate text-xs font-semibold text-[#92400e]">Antes: {card.previousName}</p>}
                 </div>
-                <span className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${card.status === 'new' ? 'bg-[#e8effc] text-[#1e40af]' : 'bg-slate-100 text-slate-600'}`}>
-                  <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${card.status === 'new' ? 'bg-[#1e40af]' : 'bg-slate-400'}`} />
-                  {card.status === 'new' ? 'Nueva' : 'Ya existe'}
+                <span className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${card.status === 'new' ? 'bg-[#e8effc] text-[#1e40af]' : card.status === 'update' ? 'bg-[#fef3c7] text-[#92400e]' : 'bg-slate-100 text-slate-600'}`}>
+                  <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${card.status === 'new' ? 'bg-[#1e40af]' : card.status === 'update' ? 'bg-[#d97706]' : 'bg-slate-400'}`} />
+                  {card.status === 'new' ? 'Nueva' : card.status === 'update' ? 'Se corrige' : 'Sin cambios'}
                 </span>
               </li>
             ))}

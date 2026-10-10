@@ -13,7 +13,7 @@ let applying = false; // una carga a la vez: un doble clic o dos pestañas no la
 const field = (card, name) => card.extData.find((entry) => entry.name === name)?.value || '';
 const publicCard = (card) => ({
   productId: card.productId, name: card.name, edition: card.editionName, block: card.blockName, product: card.physicalName, imageUrl: card.imageUrl,
-  type: field(card, 'Type'), cost: field(card, 'Cost'), force: field(card, 'Fuerza'), race: field(card, 'Race'), frequency: field(card, 'Frequency'), number: field(card, 'Number'),
+  previousName: card.previousName || undefined, type: field(card, 'Type'), cost: field(card, 'Cost'), force: field(card, 'Fuerza'), race: field(card, 'Race'), frequency: field(card, 'Frequency'), number: field(card, 'Number'),
   status: card.status
 });
 
@@ -43,7 +43,7 @@ router.post('/api/admin/catalog-import/preview', authenticateToken, requireStaff
       images,
       cards: plan.cards.slice(0, PREVIEW_CARDS).map(publicCard),
       truncated: plan.cards.length > PREVIEW_CARDS,
-      canApply: plan.errors.length === 0 && plan.counts.new + plan.counts.newLinks > 0
+      canApply: plan.errors.length === 0 && plan.counts.new + plan.counts.updated + plan.counts.newLinks > 0
     });
   } catch (error) {
     console.error('Error en la vista previa de la carga de cartas:', error);
@@ -65,20 +65,41 @@ router.post('/api/admin/catalog-import/apply', authenticateToken, requireStaff(3
 
     const fresh = plan.cards.filter((card) => card.status === 'new');
     const result = await prisma.$transaction(async (tx) => {
+      // Ediciones y productos físicos que aún no existían: se crean primero, con ids propios (la secuencia de una base restaurada puede ir atrasada)
+      const groupIds = new Map();
+      let nextGroupId = Math.max(900000, ((await tx.tcgGroup.aggregate({ _max: { groupId: true } }))._max.groupId ?? 0) + 1);
+      for (const group of plan.newGroups) {
+        const row = await tx.tcgGroup.create({ data: { groupId: nextGroupId++, name: group.name, blockId: group.blockId, categoryId: IMPORT_CATEGORY_ID, publishedOn: new Date(), modifiedOn: new Date() } });
+        groupIds.set(group.key, row.groupId);
+      }
+      const physicalIds = new Map();
+      let nextPhysicalId = ((await tx.tcgPhysicalProduct.aggregate({ _max: { id: true } }))._max.id ?? 0) + 1;
+      for (const product of plan.newProducts) {
+        const row = await tx.tcgPhysicalProduct.create({ data: { id: nextPhysicalId++, name: product.name, categoryId: IMPORT_CATEGORY_ID, blockId: product.blockId } });
+        physicalIds.set(product.key, row.id);
+      }
+      const physicalOf = (key) => (key === null ? null : key.startsWith('id:') ? Number(key.slice(3)) : physicalIds.get(key) ?? null);
       const created = await tx.tcgProduct.createMany({
-        data: fresh.map((card) => ({ productId: card.productId, name: card.name, cleanName: card.cleanName, imageUrl: card.imageUrl, extData: card.extData, groupId: card.groupId, categoryId: IMPORT_CATEGORY_ID, physicalProductId: card.physicalProductId })),
+        data: fresh.map((card) => ({ productId: card.productId, name: card.name, cleanName: card.cleanName, imageUrl: card.imageUrl, extData: card.extData, groupId: card.groupId ?? groupIds.get(card.groupKey), categoryId: IMPORT_CATEGORY_ID, physicalProductId: physicalOf(card.physicalKey) })),
         skipDuplicates: true
       });
-      const linked = plan.links.length ? await tx.tcgProductPhysicalProduct.createMany({ data: plan.links, skipDuplicates: true }) : { count: 0 };
+      // Cartas que ya existían con otro nombre o imagen: se corrigen (solo nombre, imagen y datos; la edición y los enlaces no se tocan)
+      let updated = 0;
+      for (const card of plan.cards.filter((item) => item.status === 'update')) {
+        await tx.tcgProduct.update({ where: { productId: card.productId }, data: { name: card.name, cleanName: card.cleanName, imageUrl: card.imageUrl, extData: card.extData } });
+        updated++;
+      }
+      const linkRows = plan.links.map((link) => ({ productId: link.productId, physicalProductId: physicalOf(link.physicalKey) })).filter((link) => link.physicalProductId !== null);
+      const linked = linkRows.length ? await tx.tcgProductPhysicalProduct.createMany({ data: linkRows, skipDuplicates: true }) : { count: 0 };
       // Antes de confirmar se comprueba que las cartas quedaron en la base
       const stored = await tx.tcgProduct.count({ where: { productId: { in: plan.cards.map((card) => card.productId) }, categoryId: IMPORT_CATEGORY_ID } });
       if (stored !== plan.cards.length) throw new Error('La verificación previa a confirmar no coincide.');
       await tx.moderationAudit.create({
-        data: { actorId: req.dbUser?.id || null, action: 'catalog.import', targetType: 'catalog', targetId: plan.digest.slice(0, 16), note: `Carga de cartas: ${created.count} nuevas, ${plan.cards.length - created.count} ya existían`, meta: { digest: plan.digest, created: created.count, links: linked.count, total: plan.cards.length } }
+        data: { actorId: req.dbUser?.id || null, action: 'catalog.import', targetType: 'catalog', targetId: plan.digest.slice(0, 16), note: `Carga de cartas: ${created.count} nuevas, ${updated} actualizadas, ${plan.cards.length - created.count - updated} sin cambios${plan.newGroups.length ? `, ${plan.newGroups.length} edición(es) nueva(s)` : ''}${plan.newProducts.length ? `, ${plan.newProducts.length} producto(s) nuevo(s)` : ''}`, meta: { digest: plan.digest, created: created.count, updated, links: linked.count, total: plan.cards.length, newGroups: plan.newGroups.map((group) => group.name), newProducts: plan.newProducts.map((product) => product.name) } }
       });
-      return { created: created.count, linked: linked.count };
+      return { created: created.count, linked: linked.count, updated };
     }, { timeout: 60000, maxWait: 10000 });
-    return res.json({ success: true, created: result.created, linked: result.linked, existing: plan.cards.length - result.created, total: plan.cards.length });
+    return res.json({ success: true, created: result.created, linked: result.linked, updated: result.updated, existing: plan.cards.length - result.created - result.updated, total: plan.cards.length, newGroups: plan.newGroups.length, newProducts: plan.newProducts.length });
   } catch (error) {
     console.error('Error cargando cartas al catálogo:', error);
     return res.status(500).json({ success: false, message: 'No se pudo cargar el archivo. No se guardó ningún cambio.' });

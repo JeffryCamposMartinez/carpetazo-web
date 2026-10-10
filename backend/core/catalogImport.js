@@ -132,95 +132,183 @@ export const normalizeIncrementalFile = (raw) => {
       if (seen.has(productId) && physicalProductId !== null && physicalProductId > 0) extraLinks.push({ productId, physicalProductId });
     }
   }
-  return { fatal: '', cards, errors, extraLinks, generatedAt: typeof raw.generatedAt === 'string' ? raw.generatedAt.slice(0, 40) : '' };
+  // Ediciones y productos físicos que usan las cartas, con su nombre y bloque: así se pueden encontrar (o crear) en una base cuyos ids son otros
+  const readDefs = (list) => {
+    const map = new Map();
+    for (const item of Array.isArray(list) ? list.slice(0, 2000) : []) {
+      const id = asInt(item?.groupId ?? item?.id);
+      const name = cleanLine(repairText(item?.name));
+      const blockName = cleanLine(repairText(item?.blockName));
+      if (id !== null && id > 0 && name && name.length <= 120 && blockName && blockName.length <= 120) map.set(id, { name, blockName });
+    }
+    return map;
+  };
+  const groupDefs = readDefs(raw.groups);
+  const physicalDefs = readDefs(raw.physicalProducts);
+  return { fatal: '', cards, errors, extraLinks, groupDefs, physicalDefs, generatedAt: typeof raw.generatedAt === 'string' ? raw.generatedAt.slice(0, 40) : '' };
+};
+
+// Parecido entre dos nombres (0 a 1): sirve para distinguir una corrección de nombre ("Johny Ringo" -> "Johnny Ringo") de un ID usado por otra carta
+const similarity = (a, b) => {
+  if (a === b) return 1;
+  if (!a || !b) return 0;
+  let previous = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const row = [i];
+    for (let j = 1; j <= b.length; j++) row[j] = Math.min(previous[j] + 1, row[j - 1] + 1, previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    previous = row;
+  }
+  return 1 - previous[b.length] / Math.max(a.length, b.length);
+};
+const MIN_SAME_CARD_SIMILARITY = 0.55;
+const sameExtData = (a, b) => {
+  const key = (list) => JSON.stringify((Array.isArray(list) ? list : []).map((entry) => [String(entry?.name ?? ''), String(entry?.value ?? '')]).sort());
+  return key(a) === key(b);
 };
 
 // --- Plan contra la base --------------------------------------------------------------------------------------
 
-const digestOf = (cards, links) => createHash('sha256')
-  .update(JSON.stringify([[...cards].sort((a, b) => a.productId.localeCompare(b.productId)), links]))
+const digestOf = (cards, links, newGroups, newProducts) => createHash('sha256')
+  .update(JSON.stringify([[...cards].sort((a, b) => a.productId.localeCompare(b.productId)), links, newGroups, newProducts]))
   .digest('hex');
 
-// Compara el archivo con la base y dice qué se crearía. No escribe nada.
+// Compara el archivo con la base y dice qué se crearía (cartas, y también ediciones y productos físicos que aún no existan). No escribe nada.
 export const buildImportPlan = async (db, raw) => {
   const file = normalizeIncrementalFile(raw);
   if (file.fatal) return { fatal: file.fatal };
   const errors = [...file.errors];
   const cards = file.cards;
 
-  const groupIds = [...new Set(cards.map((card) => card.groupId))];
-  const physicalIds = [...new Set([...cards.map((card) => card.physicalProductId), ...file.extraLinks.map((link) => link.physicalProductId)].filter((id) => id !== null))];
-  const [groups, physicals, existingRows] = await Promise.all([
-    db.tcgGroup.findMany({ where: { groupId: { in: groupIds }, categoryId: IMPORT_CATEGORY_ID }, select: { groupId: true, name: true, blockId: true, block: { select: { name: true } } } }),
-    db.tcgPhysicalProduct.findMany({ where: { id: { in: physicalIds }, categoryId: IMPORT_CATEGORY_ID }, select: { id: true, name: true, blockId: true } }),
-    db.tcgProduct.findMany({ where: { productId: { in: cards.map((card) => card.productId) } }, select: { productId: true, cleanName: true, groupId: true, categoryId: true, physicalLinks: { select: { physicalProductId: true } } } })
+  const [blocks, groupRows, physicalRows, existingRows] = await Promise.all([
+    db.tcgBlock.findMany({ where: { categoryId: IMPORT_CATEGORY_ID }, select: { id: true, name: true } }),
+    db.tcgGroup.findMany({ where: { categoryId: IMPORT_CATEGORY_ID }, select: { groupId: true, name: true, blockId: true } }),
+    db.tcgPhysicalProduct.findMany({ where: { categoryId: IMPORT_CATEGORY_ID }, select: { id: true, name: true, blockId: true } }),
+    db.tcgProduct.findMany({ where: { productId: { in: cards.map((card) => card.productId) } }, select: { productId: true, name: true, cleanName: true, imageUrl: true, extData: true, groupId: true, categoryId: true, physicalLinks: { select: { physicalProductId: true } } } })
   ]);
-  const groupById = new Map(groups.map((group) => [group.groupId, group]));
-  const physicalById = new Map(physicals.map((product) => [product.id, product]));
+  const blockByClean = new Map(blocks.map((block) => [cleanName(block.name), block]));
+  const blockById = new Map(blocks.map((block) => [block.id, block]));
+  const groupById = new Map(groupRows.map((group) => [group.groupId, group]));
+  const groupByBlockName = new Map(groupRows.map((group) => [`${group.blockId}|${cleanName(group.name)}`, group]));
+  const physicalById = new Map(physicalRows.map((product) => [product.id, product]));
+  const physicalByBlockName = new Map(physicalRows.map((product) => [`${product.blockId}|${cleanName(product.name)}`, product]));
   const existingById = new Map(existingRows.map((row) => [row.productId, row]));
 
+  const newGroups = new Map(); // clave -> { blockId, name }
+  const newProducts = new Map();
+
+  // Edición de una carta: la que tenga ese nombre en su bloque, y si no existe se crea. Sin definición en el archivo se usa el id tal cual.
+  const resolveGroup = (groupId) => {
+    const def = file.groupDefs.get(groupId);
+    if (!def) {
+      const group = groupById.get(groupId);
+      return group ? { groupId: group.groupId, key: `id:${group.groupId}`, name: group.name, blockId: group.blockId, isNew: false } : { error: `La edición ${groupId} no existe en la base.` };
+    }
+    const block = blockByClean.get(cleanName(def.blockName));
+    if (!block) return { error: `El bloque "${def.blockName}" no existe en la base.` };
+    const found = groupByBlockName.get(`${block.id}|${cleanName(def.name)}`);
+    if (found) return { groupId: found.groupId, key: `id:${found.groupId}`, name: found.name, blockId: block.id, isNew: false };
+    const key = `new:${block.id}|${cleanName(def.name)}`;
+    newGroups.set(key, { blockId: block.id, name: def.name });
+    return { groupId: null, key, name: def.name, blockId: block.id, isNew: true };
+  };
+  const resolvePhysical = (physicalProductId, group) => {
+    const def = file.physicalDefs.get(physicalProductId);
+    if (!def) {
+      const product = physicalById.get(physicalProductId);
+      if (!product) return { error: `El producto físico ${physicalProductId} no existe en la base.` };
+      if (product.blockId !== group.blockId) return { error: 'El producto físico no pertenece al bloque de la edición.' };
+      return { id: product.id, key: `id:${product.id}`, name: product.name, isNew: false };
+    }
+    if (cleanName(def.blockName) !== cleanName(blockById.get(group.blockId)?.name)) return { error: 'El producto físico no pertenece al bloque de la edición.' };
+    const found = physicalByBlockName.get(`${group.blockId}|${cleanName(def.name)}`);
+    if (found) return { id: found.id, key: `id:${found.id}`, name: found.name, isNew: false };
+    const key = `new:${group.blockId}|${cleanName(def.name)}`;
+    newProducts.set(key, { blockId: group.blockId, name: def.name });
+    return { id: null, key, name: def.name, isNew: true };
+  };
+
   const ready = [];
+  const groupOfCard = new Map();
   for (const card of cards) {
     const problem = (message) => errors.push({ productId: card.productId, name: card.name, message });
-    const group = groupById.get(card.groupId);
-    if (!group) { problem(`La edición ${card.groupId} no existe en la base.`); continue; }
-    const physical = card.physicalProductId === null ? null : physicalById.get(card.physicalProductId);
-    if (card.physicalProductId !== null && !physical) { problem(`El producto físico ${card.physicalProductId} no existe en la base.`); continue; }
-    if (physical && physical.blockId !== group.blockId) { problem('El producto físico no pertenece al bloque de la edición.'); continue; }
+    const group = resolveGroup(card.groupId);
+    if (group.error) { problem(group.error); continue; }
+    let physical = null;
+    if (card.physicalProductId !== null) {
+      physical = resolvePhysical(card.physicalProductId, group);
+      if (physical.error) { problem(physical.error); continue; }
+    }
     const edition = card.extData.find((entry) => entry.name === 'Edition').value;
     if (cleanName(edition) !== cleanName(group.name)) { problem(`La edición del archivo ("${edition}") no coincide con la de la base ("${group.name}").`); continue; }
+    // Un ID que ya existe en la misma edición y con un nombre parecido es la misma carta (se actualiza); si no, es de otra carta y no se mezcla
     const existing = existingById.get(card.productId);
-    if (existing && (existing.categoryId !== IMPORT_CATEGORY_ID || existing.groupId !== card.groupId || existing.cleanName !== card.cleanName)) {
-      problem('Ese ID ya está usado por otra carta; no se mezcla.');
-      continue;
+    let status = 'new';
+    let previousName = '';
+    if (existing) {
+      if (existing.categoryId !== IMPORT_CATEGORY_ID || existing.groupId !== group.groupId) { problem(`Ese ID ya lo usa "${existing.name}" en otra edición o juego; no se mezcla.`); continue; }
+      if (existing.cleanName !== card.cleanName && similarity(existing.cleanName, card.cleanName) < MIN_SAME_CARD_SIMILARITY) { problem(`Ese ID ya lo usa otra carta ("${existing.name}"); no se mezcla.`); continue; }
+      const changed = existing.name !== card.name || existing.cleanName !== card.cleanName || existing.imageUrl !== card.imageUrl;
+      status = changed ? 'update' : 'exists';
+      previousName = existing.name;
     }
+    const blockName = blockById.get(group.blockId)?.name || '';
     // Las cartas existentes quedan intactas; las nuevas llevan el formato del bloque como las demás
-    const extData = card.extData.some((entry) => entry.name === 'Format') || !group.block?.name ? card.extData : [...card.extData, { name: 'Format', value: group.block.name }];
-    ready.push({ ...card, extData, blockName: group.block?.name || '', editionName: group.name, physicalName: physical?.name || '', status: existing ? 'exists' : 'new', linked: existing ? existing.physicalLinks.some((link) => link.physicalProductId === card.physicalProductId) : false });
+    const extData = card.extData.some((entry) => entry.name === 'Format') || !blockName ? card.extData : [...card.extData, { name: 'Format', value: blockName }];
+    groupOfCard.set(card.productId, group);
+    ready.push({ ...card, extData, groupKey: group.key, groupId: group.groupId, physicalKey: physical?.key ?? null, physicalProductId: physical?.id ?? null, blockName, editionName: group.name, editionIsNew: group.isNew, physicalName: physical?.name || '', physicalIsNew: Boolean(physical?.isNew), status, previousName, existingExt: existing?.extData ?? null });
   }
 
+  // Enlaces carta-producto: los de cada carta y los extra del archivo (resueltos igual que el producto de la carta)
   const okIds = new Set(ready.map((card) => card.productId));
   const links = new Map();
-  for (const card of ready) if (card.physicalProductId !== null) links.set(`${card.productId}|${card.physicalProductId}`, { productId: card.productId, physicalProductId: card.physicalProductId });
+  for (const card of ready) if (card.physicalKey) links.set(`${card.productId}|${card.physicalKey}`, { productId: card.productId, physicalKey: card.physicalKey });
   for (const link of file.extraLinks) {
-    if (okIds.has(link.productId) && physicalById.has(link.physicalProductId)) links.set(`${link.productId}|${link.physicalProductId}`, link);
+    if (!okIds.has(link.productId)) continue;
+    const physical = resolvePhysical(link.physicalProductId, groupOfCard.get(link.productId));
+    if (!physical.error) links.set(`${link.productId}|${physical.key}`, { productId: link.productId, physicalKey: physical.key });
   }
 
   const editions = new Map();
   for (const card of ready) {
-    const key = card.groupId;
-    const entry = editions.get(key) || { groupId: key, name: card.editionName, block: card.blockName, new: 0, exists: 0 };
-    entry[card.status === 'new' ? 'new' : 'exists']++;
-    editions.set(key, entry);
+    const entry = editions.get(card.groupKey) || { groupId: card.groupId, name: card.editionName, block: card.blockName, isNew: card.editionIsNew, new: 0, updated: 0, exists: 0 };
+    entry[card.status === 'new' ? 'new' : card.status === 'update' ? 'updated' : 'exists']++;
+    editions.set(card.groupKey, entry);
   }
   const products = new Map();
   for (const card of ready) {
-    if (card.physicalProductId === null) continue;
-    const entry = products.get(card.physicalProductId) || { id: card.physicalProductId, name: card.physicalName, block: card.blockName, cards: 0 };
+    if (!card.physicalKey) continue;
+    const entry = products.get(card.physicalKey) || { id: card.physicalProductId, name: card.physicalName, block: card.blockName, isNew: card.physicalIsNew, cards: 0 };
     entry.cards++;
-    products.set(card.physicalProductId, entry);
+    products.set(card.physicalKey, entry);
   }
 
   const linkList = [...links.values()];
-  const haveLink = new Set(existingRows.flatMap((row) => row.physicalLinks.map((link) => `${row.productId}|${link.physicalProductId}`)));
-  const newLinks = linkList.filter((link) => !haveLink.has(`${link.productId}|${link.physicalProductId}`)).length;
+  const haveLink = new Set(existingRows.flatMap((row) => row.physicalLinks.map((link) => `${row.productId}|id:${link.physicalProductId}`)));
+  const newLinks = linkList.filter((link) => !haveLink.has(`${link.productId}|${link.physicalKey}`)).length;
+  const groupsToCreate = [...newGroups.entries()].filter(([key]) => ready.some((card) => card.groupKey === key));
+  const productsToCreate = [...newProducts.entries()].filter(([key]) => ready.some((card) => card.physicalKey === key) || linkList.some((link) => link.physicalKey === key));
   return {
     fatal: '',
     cards: ready,
     links: linkList,
+    newGroups: groupsToCreate.map(([key, value]) => ({ key, ...value })),
+    newProducts: productsToCreate.map(([key, value]) => ({ key, ...value })),
     errors,
     generatedAt: file.generatedAt,
     counts: {
       total: cards.length + file.errors.length,
       new: ready.filter((card) => card.status === 'new').length,
       exists: ready.filter((card) => card.status === 'exists').length,
+      updated: ready.filter((card) => card.status === 'update').length,
       links: linkList.length,
       newLinks,
+      newGroups: groupsToCreate.length,
+      newProducts: productsToCreate.length,
       rejected: errors.length
     },
     editions: [...editions.values()],
     physicalProducts: [...products.values()],
-    digest: digestOf(ready.map((card) => ({ productId: card.productId, groupId: card.groupId, physicalProductId: card.physicalProductId, name: card.name, imageUrl: card.imageUrl, extData: card.extData })), linkList)
+    digest: digestOf(ready.map((card) => ({ status: card.status, productId: card.productId, groupKey: card.groupKey, physicalKey: card.physicalKey, name: card.name, imageUrl: card.imageUrl, extData: card.extData })), linkList, groupsToCreate, productsToCreate)
   };
 };
 
