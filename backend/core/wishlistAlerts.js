@@ -2,9 +2,10 @@
 // notificación del navegador. Cada cierto rato se compara el precio más bajo publicado con el último estado visto de cada carta deseada.
 import crypto from 'node:crypto';
 import { prisma } from './db.js';
-import { escapeHtml, sendUserEmail } from './mail.js';
+import { sendUserEmail } from './mail.js';
 import { isCurrentAcceptance, latestAcceptance } from './legal.js';
 import { sendPushToUser } from './push.js';
+import { alertEmailHtml } from './alertEmail.js';
 
 const SITE = 'https://carpetazo.cl';
 const API = process.env.PUBLIC_API_URL || 'https://api.carpetazo.cl';
@@ -63,8 +64,7 @@ export const buildAlertMessage = (userId, events) => {
   const listUrl = `${SITE}/dashboard?tab=deseadas`;
   const unsubscribe = unsubscribeLink(userId);
   const text = `${shown.map((event) => `- ${line(event)} (${event.best.seller}) ${cardUrl(event)}`).join('\n')}${extra > 0 ? `\n... y ${extra} más` : ''}\n\nVer mi lista: ${listUrl}\n\nRecibes este correo porque tienes estas cartas en tu lista de deseos. Dejar de recibir avisos: ${unsubscribe}`;
-  const rows = shown.map((event) => `<tr><td style="padding:10px 0;border-bottom:1px solid #e2e8f0"><a href="${escapeHtml(cardUrl(event))}" style="color:#1e40af;font-weight:700;text-decoration:none">${escapeHtml(event.item.name)}</a><br><span style="color:#475569;font-size:14px">${escapeHtml(event.kind === 'drop' ? `Bajó de ${clp(event.previous)} a ${clp(event.best.price)}` : `Disponible desde ${clp(event.best.price)}`)} · ${escapeHtml(event.best.seller)}</span></td></tr>`).join('');
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#12315f"><h2 style="margin:0 0 12px">${escapeHtml(subject)}</h2><table style="width:100%;border-collapse:collapse">${rows}</table>${extra > 0 ? `<p style="color:#475569">y ${extra} más en tu lista.</p>` : ''}<p style="margin:20px 0"><a href="${escapeHtml(listUrl)}" style="background:#facc15;color:#12315f;font-weight:800;padding:12px 22px;border-radius:999px;text-decoration:none;display:inline-block">Ver mi lista</a></p><p style="color:#64748b;font-size:12px">Recibes este correo porque tienes estas cartas en tu lista de deseos de Carpetazo. <a href="${escapeHtml(unsubscribe)}" style="color:#64748b">Dejar de recibir avisos</a></p></div>`;
+  const html = alertEmailHtml({ events, shown, extra, listUrl, unsubscribe, subject });
   return {
     subject, text, html,
     headers: { 'List-Unsubscribe': `<${unsubscribe}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
@@ -96,7 +96,7 @@ export const runWishlistAlerts = async ({ deliver = deliverToUser, now = new Dat
     cards.push(...await prisma.card.findMany({
       where: { stock: { gt: 0 }, price: { gt: 0 }, moderationState: 'visible', tcgId: { in: ids.slice(at, at + CHUNK) }, folder: { isPublic: true, moderationState: 'visible' } },
       orderBy: { price: 'asc' },
-      select: { id: true, tcgId: true, price: true, folder: { select: { tcg: true, userId: true, user: { select: { name: true, username: true } } } } }
+      select: { id: true, tcgId: true, price: true, imageUrl: true, folder: { select: { tcg: true, userId: true, user: { select: { name: true, username: true } } } } }
     }));
   }
   const byKey = new Map();
@@ -108,7 +108,7 @@ export const runWishlistAlerts = async ({ deliver = deliverToUser, now = new Dat
   const bestByItem = new Map();
   for (const { item, tcg, tcgId } of wanted) {
     const best = (byKey.get(`${tcg}|${tcgId}`) || []).find((card) => card.folder.userId !== item.userId && (item.maxPrice == null || card.price <= item.maxPrice));
-    if (best) bestByItem.set(item.id, { cardId: best.id, price: best.price, seller: best.folder.user?.name || best.folder.user?.username || 'un vendedor' });
+    if (best) bestByItem.set(item.id, { cardId: best.id, price: best.price, imageUrl: best.imageUrl, seller: best.folder.user?.name || best.folder.user?.username || 'un vendedor' });
   }
 
   const { events, saves } = planWishlistChanges(wanted.map((entry) => entry.item), bestByItem, now);
