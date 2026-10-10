@@ -32,7 +32,7 @@ export default function ModNav({ items, groups, value, onChange }) {
 
   return (
     <>
-      <nav aria-label="Secciones de moderación" className="sticky top-0 z-30 border-b border-[#dbe3f0] bg-white/95 px-3 py-2 backdrop-blur lg:hidden">
+      <nav aria-label="Secciones de moderación" className="sticky top-[var(--header-stuck,109px)] z-30 border-b border-[#dbe3f0] bg-white/95 px-3 py-2 backdrop-blur lg:hidden">
         <div ref={barRef} role="tablist" className={`flex gap-1.5 overflow-x-auto ${hideScrollbar}`}>
           {items.map((item) => (
             <button key={item.id} role="tab" type="button" aria-selected={value === item.id} onClick={() => onChange(item.id)} className={`flex h-11 shrink-0 items-center gap-2 rounded-full pl-3 pr-4 text-sm font-bold transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-1 ${value === item.id ? 'bg-[#12315f] text-white' : 'bg-[#eef2fa] text-[#12315f]'}`}>
@@ -45,7 +45,7 @@ export default function ModNav({ items, groups, value, onChange }) {
       </nav>
 
       <nav aria-label="Secciones de moderación" className="hidden w-64 shrink-0 border-r border-[#dbe3f0] bg-[#f6f8fd] px-3 pb-6 pt-2 lg:block">
-        <div ref={railRef} role="tablist" aria-orientation="vertical" onKeyDown={onRailKeys} className="sticky top-4">
+        <div ref={railRef} role="tablist" aria-orientation="vertical" onKeyDown={onRailKeys} className="sticky top-[calc(var(--header-stuck,0px)+1rem)]">
           {groups.map((group) => {
             const members = items.filter((item) => item.group === group.id);
             if (!members.length) return null;

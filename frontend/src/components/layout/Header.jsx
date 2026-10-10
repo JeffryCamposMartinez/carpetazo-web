@@ -23,6 +23,26 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileMenuClosing, setIsMobileMenuClosing] = useState(false);
   const drawerRef = useRef(null);
+  const desktopHeaderRef = useRef(null);
+  const mobileHeaderRef = useRef(null);
+
+  // Alto del encabezado que queda pegado arriba (en el celular, sin la franja del logo que se va con el scroll): las barras que se pegan
+  // debajo de él, como la de secciones de Moderación, lo usan como su «top» (--header-stuck) para no quedar tapadas
+  useEffect(() => {
+    const nodes = [desktopHeaderRef.current, mobileHeaderRef.current].filter(Boolean);
+    if (nodes.length === 0 || typeof ResizeObserver === 'undefined') return undefined;
+    const publish = () => {
+      const mobile = mobileHeaderRef.current;
+      const desktop = desktopHeaderRef.current;
+      const stuck = mobile && mobile.offsetHeight > 0 ? mobile.offsetHeight - 52 : desktop?.offsetHeight || 0;
+      document.documentElement.style.setProperty('--header-stuck', `${Math.max(0, stuck)}px`);
+    };
+    publish();
+    const observer = new ResizeObserver(publish);
+    nodes.forEach((node) => observer.observe(node));
+    window.addEventListener('resize', publish);
+    return () => { observer.disconnect(); window.removeEventListener('resize', publish); };
+  }, []);
   const drawerTouch = useRef({ startX: 0, startY: 0, dx: 0, dragging: false });
 
   // Cierra el menú lateral con animación de salida
@@ -538,7 +558,7 @@ export default function Header() {
   return (
     <>
       {/* TopAppBar - Desktop */}
-      <header className="w-full top-0 sticky z-40 bg-surface dark:bg-surface-dim hidden md:block" style={themedTopBarStyle}>
+      <header ref={desktopHeaderRef} className="w-full top-0 sticky z-40 bg-surface dark:bg-surface-dim hidden md:block" style={themedTopBarStyle}>
         <div className="flex flex-col w-full">
           <div className="flex lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_minmax(0,36rem)_minmax(0,1fr)] items-center justify-between gap-4 lg:gap-8 px-md py-2 w-full max-w-container-max mx-auto">
             <Link to="/bienvenida" aria-label="Carpetazo.cl, ir a la bienvenida" className="flex shrink-0 items-center justify-self-start rounded-xl transition-[opacity,transform] duration-150 hover:opacity-85 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
@@ -638,7 +658,7 @@ export default function Header() {
 
       {/* Mobile Header: sigue al usuario, pero la franja del logo (52 px) se va con el scroll y solo quedan buscador y secciones.
           Es solo CSS (top negativo): sin estado ni eventos de scroll que se descuadren con la barra del navegador del celular */}
-      <header className="sticky top-[-52px] z-40 w-full bg-surface dark:bg-surface-dim md:hidden block" style={themedTopBarStyle}>
+      <header ref={mobileHeaderRef} className="sticky top-[-52px] z-40 w-full bg-surface dark:bg-surface-dim md:hidden block" style={themedTopBarStyle}>
         <div className="flex flex-col w-full">
           <div className="relative flex h-[52px] w-full items-center justify-between gap-2 px-3">
             {/* Izquierda: cuenta y menú */}

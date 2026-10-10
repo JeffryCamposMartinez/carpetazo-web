@@ -104,7 +104,8 @@ const loadThumbs = async (items, onProgress) => {
   return thumbs;
 };
 
-const slug = (value) => pdfText(value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+// Nombre del archivo: palabras con mayúscula inicial, separadas por espacios (sin guiones, números ni signos)
+const fileLabel = (value) => String(value || '').replace(/[^\p{L} ]/gu, '').replace(/\s+/g, ' ').trim();
 
 // items: cartas de la lista ya filtradas. filterLabel: texto del filtro aplicado ("Mitos y Leyendas" o "Todos los juegos").
 // phone: WhatsApp de quien busca; con él, tocar una carta del PDF abre su chat con un mensaje listo diciendo que la tiene.
@@ -114,6 +115,7 @@ export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos'
   const [logo, thumbs] = await Promise.all([loadLogo(), loadThumbs(items, onProgress)]);
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  doc.setProperties({ title: 'Cartas que busco' });
   const now = new Date();
   const dateLabel = new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
   const fill = (color) => doc.setFillColor(...color);
@@ -281,9 +283,8 @@ export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos'
     if (pages > 1) doc.text(`${page} / ${pages}`, PAGE_W - MARGIN, PAGE_H - 6, { align: 'right' });
   }
 
-  const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-  const filterPart = filtered ? `-${slug(filterLabel)}` : '';
-  return { doc, fileName: `busco-estas-cartas-carpetazo${filterPart}-${stamp}.pdf` };
+  const filterPart = filtered && fileLabel(filterLabel) ? ` ${fileLabel(filterLabel)}` : '';
+  return { doc, fileName: `Cartas Que Busco${filterPart}.pdf` };
 }
 
 // Crea el PDF y lo descarga
