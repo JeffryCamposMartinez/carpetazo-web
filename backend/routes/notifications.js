@@ -4,7 +4,8 @@ import { authenticateToken, currentUserId } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { badRequest, isUuid } from '../core/validation.js';
 import { PUSH_PUBLIC_KEY, isAllowedPushEndpoint, isBase64Url, pushConfigured, sendPushToUser } from '../core/push.js';
-import { isValidUnsubscribeToken } from '../core/wishlistAlerts.js';
+import { buildAlertMessage, isValidUnsubscribeToken } from '../core/wishlistAlerts.js';
+import { sendUserEmail } from '../core/mail.js';
 
 const router = express.Router();
 const MAX_DEVICES = 10;
@@ -85,6 +86,27 @@ router.post('/api/notifications/push/test', authenticateToken, async (req, res) 
     res.json({ success: true, delivered });
   } catch (error) {
     console.error('Error sending test notification:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Correo de prueba con el mismo diseño que los avisos reales, a la cuenta de quien lo pide (máximo 3 por hora)
+const testEmailLog = new Map();
+router.post('/api/notifications/email/test', authenticateToken, async (req, res) => {
+  try {
+    const userId = await currentUserId(req);
+    if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const recent = (testEmailLog.get(userId) || []).filter((at) => Date.now() - at < 60 * 60 * 1000);
+    if (recent.length >= 3) return res.status(429).json({ success: false, message: 'Ya enviaste varias pruebas. Inténtalo más tarde.' });
+    testEmailLog.set(userId, [...recent, Date.now()]);
+    const card = await prisma.card.findFirst({ where: { stock: { gt: 0 }, price: { gt: 0 }, moderationState: 'visible', folder: { isPublic: true, moderationState: 'visible' } }, orderBy: { createdAt: 'desc' }, select: { id: true, name: true, price: true, imageUrl: true, folder: { select: { user: { select: { name: true, username: true } } } } } });
+    const price = card?.price || 1500;
+    const message = buildAlertMessage(userId, [{ kind: 'drop', previous: Math.round(price * 1.5), item: { name: card?.name || 'Carta de ejemplo' }, best: { cardId: card?.id || '00000000-0000-4000-8000-000000000000', price, imageUrl: card?.imageUrl || null, seller: card?.folder.user?.name || card?.folder.user?.username || 'un vendedor' } }]);
+    const result = await sendUserEmail(userId, { subject: `Prueba: ${message.subject}`, text: message.text, html: message.html, headers: message.headers });
+    if (!result.sent) return res.status(result.reason === 'terms_not_accepted' ? 403 : 502).json({ success: false, message: 'No se pudo enviar el correo de prueba', reason: result.reason });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error sending test email:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
   }
 });

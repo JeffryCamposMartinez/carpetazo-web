@@ -67,6 +67,16 @@ const HOUR = 60 * 60 * 1000;
     ok('sin sesión → 401', r.status === 401, String(r.status));
     await call('PUT', '/notifications/settings', 'ale', { wishlistEmail: true });
 
+    // Correo de prueba: solo a la propia cuenta y con tope por hora
+    r = await call('POST', '/notifications/email/test');
+    ok('correo de prueba sin sesión → 401', r.status === 401, String(r.status));
+    r = await call('POST', '/notifications/email/test', 'ale');
+    ok('correo de prueba a la propia cuenta', r.status === 200 && r.j.success === true, JSON.stringify(r.j));
+    await call('POST', '/notifications/email/test', 'ale');
+    await call('POST', '/notifications/email/test', 'ale');
+    r = await call('POST', '/notifications/email/test', 'ale');
+    ok('más de 3 pruebas por hora → 429', r.status === 429, String(r.status));
+
     // Dispositivos: solo servicios de notificaciones de los navegadores y claves bien formadas
     const keys = { p256dh: 'BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM', auth: 'tBHItJI5svbpez7KI4CCXg' };
     for (const [label, endpoint] of [['dirección interna', 'https://169.254.169.254/latest'], ['sitio cualquiera', 'https://evil.example.com/push'], ['sin https', 'http://fcm.googleapis.com/fcm/send/x'], ['con puerto', 'https://fcm.googleapis.com:8443/fcm/send/x'], ['no es texto', 12345]]) {

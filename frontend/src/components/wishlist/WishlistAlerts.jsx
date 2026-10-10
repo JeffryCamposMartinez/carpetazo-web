@@ -62,6 +62,16 @@ export default function WishlistAlerts() {
     } finally { setBusy(''); }
   };
 
+  const sendTestEmail = async () => {
+    setBusy('testEmail');
+    try {
+      await api.testAlertEmail();
+      showToast('Te enviamos un correo de prueba. Revisa tu bandeja (y spam).', 'success');
+    } catch (error) {
+      showToast(error.message || 'No se pudo enviar el correo de prueba', 'error');
+    } finally { setBusy(''); }
+  };
+
   const sendTest = async () => {
     setBusy('test');
     try {
@@ -83,6 +93,11 @@ export default function WishlistAlerts() {
           <span className="min-w-0 text-sm font-semibold text-slate-700">Por correo</span>
           <Switch checked={settings.wishlistEmail} busy={busy === 'email'} onChange={toggleEmail} label="Avisos por correo" />
         </li>
+        {settings.wishlistEmail && (
+          <li className="pb-2">
+            <button type="button" onClick={sendTestEmail} disabled={busy === 'testEmail'} className="min-h-9 text-xs font-bold text-[#1e40af] hover:underline focus:outline-none focus-visible:underline disabled:opacity-60">Enviarme un correo de prueba</button>
+          </li>
+        )}
         {settings.pushAvailable && (
           <li className="py-2">
             <div className="flex items-center justify-between gap-3">

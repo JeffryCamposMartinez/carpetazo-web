@@ -178,6 +178,7 @@ export const api = {
   subscribePush: (subscription) => apiFetch('/notifications/push/subscribe', { method: 'POST', body: JSON.stringify(subscription) }),
   unsubscribePush: (endpoint) => apiFetch('/notifications/push/unsubscribe', { method: 'POST', body: JSON.stringify({ endpoint }) }),
   testPush: () => apiFetch('/notifications/push/test', { method: 'POST' }),
+  testAlertEmail: () => apiFetch('/notifications/email/test', { method: 'POST' }),
   addWishlistItem: (data) => apiFetch('/wishlist', { method: 'POST', body: JSON.stringify(data) }),
   updateWishlistItem: (id, data) => apiFetch('/wishlist/' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(data) }),
   deleteWishlistItem: (id) => apiFetch('/wishlist/' + encodeURIComponent(id), { method: 'DELETE' }),
