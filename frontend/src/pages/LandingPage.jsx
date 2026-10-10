@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useRef } from 'react';
+import usePageMeta from '../hooks/usePageMeta';
 
 const BUY_STEPS = [
   'Busca una carta o una carpeta.',
@@ -23,6 +24,7 @@ const FEATURES = [
 ];
 
 export default function LandingPage() {
+  usePageMeta({ title: 'Vende tus cartas TCG en Chile | Carpetazo', description: 'Arma tu carpeta de cartas, comparte el enlace y recibe pedidos de compradores de todo Chile. Gratis, con perfil de vendedor, mensajes y panel de pedidos.', path: '/bienvenida' });
   const { loginWithGoogle, currentUser } = useAuth();
 
   // Hook para detectar hover en el carrusel cuando el mouse está quieto y las cartas se mueven debajo

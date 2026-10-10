@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import HeroCarousel from '../components/home/HeroCarousel';
 import FeaturedZone from '../components/home/FeaturedZone';
+import usePageMeta from '../hooks/usePageMeta';
 
 export default function ExplorePage() {
+  usePageMeta({ title: 'Carpetazo - Compra y vende cartas TCG en Chile', description: 'Compra y vende cartas de Pokémon, Mitos y Leyendas, Yu-Gi-Oh!, Magic, One Piece y Riftbound directo a jugadores de Chile. Explora carpetas, cartas y vendedores.', path: '/' });
   // Las cartas recientes alimentan el mosaico de destacados
   const [recentCards, setRecentCards] = useState([]);
   const [loadingCards, setLoadingCards] = useState(true);

@@ -43,3 +43,13 @@ export const folderOrderSql = (sort) => {
 };
 // Las carpetas guardan el juego como Pokemon / YuGiOh / OnePiece; el sitio lo muestra como Pokémon / Yu-Gi-Oh! / One Piece
 export const CARD_SEARCH_TCG_ALIASES = { 'Pokémon': 'Pokemon', 'Yu-Gi-Oh!': 'YuGiOh', 'One Piece': 'OnePiece' };
+
+// Filtro de "la misma carta": mismo código de catálogo o, si falta, mismo nombre, edición y número (una carta cargada con otro código no queda como carta distinta)
+export const sameCardMatch = (card) => {
+  const text = (value) => (typeof value === 'string' && value.trim() ? value.trim() : '');
+  const set = text(card.data?.set);
+  const number = text(card.data?.number);
+  const byCode = { tcgId: card.tcgId };
+  if (!set || !number || !card.name) return byCode;
+  return { OR: [byCode, { name: { equals: card.name, mode: 'insensitive' }, AND: [{ data: { path: ['set'], equals: set } }, { data: { path: ['number'], equals: number } }] }] };
+};

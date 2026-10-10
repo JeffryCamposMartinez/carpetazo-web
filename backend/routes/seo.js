@@ -2,6 +2,7 @@
 // Solo se usa información pública: cartas visibles con stock en carpetas públicas y visibles, y vendedores con alguna carpeta pública.
 import express from 'express';
 import { prisma } from '../core/db.js';
+import { sameCardMatch } from '../core/listing.js';
 import { restrictions } from '../moderation/services.js';
 import { isAllowedProxyImageUrl, isUuid } from '../core/validation.js';
 
@@ -45,7 +46,7 @@ router.get('/api/seo/card/:id', async (req, res) => {
     if (!card) return notFound(res);
     const tcg = card.folder.tcg;
     const offers = await prisma.card.findMany({
-      where: { ...visibleCard, tcgId: card.tcgId, folder: { ...visibleCard.folder, tcg } },
+      where: { ...visibleCard, ...sameCardMatch(card), folder: { ...visibleCard.folder, tcg } },
       orderBy: [{ price: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
       take: OFFERS_SHOWN,
       select: { id: true, price: true, stock: true, folder: { select: { name: true, user: { select: { name: true, username: true, publicComuna: true } } } } }
@@ -117,6 +118,46 @@ router.get('/api/seo/seller/:username', async (req, res) => {
   }
 });
 
+// Página de una carpeta pública: sus cartas con stock, con enlace a cada una
+const FOLDER_CARDS_SHOWN = 100;
+router.get('/api/seo/folder/:id', async (req, res) => {
+  try {
+    if (!isUuid(req.params.id)) return notFound(res);
+    const folder = await prisma.folder.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, name: true, description: true, tcg: true, isPublic: true, moderationState: true, user: { select: { name: true, username: true } } }
+    });
+    if (!folder || !folder.isPublic || folder.moderationState !== 'visible') return notFound(res);
+    const where = { folderId: folder.id, stock: { gt: 0 }, moderationState: 'visible' };
+    const [cards, count] = await Promise.all([
+      prisma.card.findMany({ where, orderBy: { createdAt: 'desc' }, take: FOLDER_CARDS_SHOWN, select: { id: true, name: true, price: true, imageUrl: true, data: true } }),
+      prisma.card.count({ where })
+    ]);
+    if (!count) return notFound(res); // sin cartas a la venta no hay nada que indexar
+    const game = TCG_LABELS[folder.tcg] || folder.tcg;
+    const owner = text(folder.user?.name || folder.user?.username || 'Carpetazo', 60);
+    const name = text(folder.name, 80);
+    const url = `${SITE}/c/${folder.id}`;
+    const prices = cards.map((card) => card.price).filter((price) => Number.isFinite(price) && price > 0);
+    const title = `${cut(name, 40)} - ${count} cartas de ${game} | Carpetazo`;
+    const description = cut(text(folder.description, 120) || `${count} ${count === 1 ? 'carta' : 'cartas'} de ${game} a la venta de ${owner}${prices.length ? `, desde ${clp(Math.min(...prices))}` : ''}. Compra en Chile con Carpetazo.`, 160);
+    const image = cards.map((card) => card.imageUrl).find((link) => link && isAllowedProxyImageUrl(link)) || null;
+    const jsonLd = {
+      '@context': 'https://schema.org', '@type': 'CollectionPage', name, url, ...(image ? { image } : {}),
+      mainEntity: { '@type': 'ItemList', numberOfItems: count, itemListElement: cards.slice(0, 50).map((card, index) => ({ '@type': 'ListItem', position: index + 1, url: `${SITE}/carta/${card.id}`, name: text(card.name, 120) })) }
+    };
+    const list = cards.map((card) => `<li><a href="${SITE}/carta/${card.id}">${esc(text(card.name, 120))}</a>${field(card.data, 'set') ? ` (${esc(field(card.data, 'set'))})` : ''} - ${card.price ? esc(clp(card.price)) : 'Precio a consultar'}</li>`).join('');
+    const seller = folder.user?.username ? `<a href="${SITE}/${encodeURIComponent(folder.user.username)}">${esc(owner)}</a>` : esc(owner);
+    return sendPage(res, page({
+      title, description, url, image, jsonLd,
+      body: `<header><a href="${SITE}/">Carpetazo.cl</a> - <a href="${SITE}/carpetas">Carpetas</a></header><main><h1>${esc(name)}</h1><p>${esc(game)} - ${count} ${count === 1 ? 'carta' : 'cartas'} - ${seller}</p><ul>${list}</ul></main>`
+    }));
+  } catch (error) {
+    console.error('Error armando la página SEO de una carpeta:', error);
+    return res.status(500).type('text/plain').send('Error interno');
+  }
+});
+
 // Sitemap con las páginas fijas, los vendedores, las carpetas públicas y una dirección por carta distinta a la venta
 const STATIC_PAGES = [['/', 'daily', '1.0'], ['/carpetas', 'daily', '0.9'], ['/cartas', 'daily', '0.9'], ['/vendedores', 'daily', '0.8'], ['/bienvenida', 'monthly', '0.5'], ['/terminos', 'yearly', '0.2'], ['/privacidad', 'yearly', '0.2']];
 let sitemapCache = { at: 0, xml: '' };
@@ -127,10 +168,14 @@ const buildSitemap = async () => {
     prisma.user.findMany({ where: { username: { not: null }, NOT: { role: 'deleted' }, folders: { some: { isPublic: true, moderationState: 'visible' } } }, select: { username: true }, take: 5000 }),
     prisma.folder.findMany({ where: { isPublic: true, moderationState: 'visible', cards: { some: { stock: { gt: 0 }, moderationState: 'visible' } } }, orderBy: { totalVisits: 'desc' }, take: 5000, select: { id: true, updatedAt: true } }),
     // La oferta más barata de cada carta distinta: es la misma dirección que declaran como canónica las páginas de carta
-    prisma.$queryRaw`SELECT DISTINCT ON (c."tcgId", f."tcg") c."id", c."updatedAt"
-      FROM "Card" c JOIN "Folder" f ON f."id" = c."folderId"
-      WHERE c."stock" > 0 AND c."moderationState" = 'visible' AND f."isPublic" = true AND f."moderationState" = 'visible'
-      ORDER BY c."tcgId", f."tcg", c."price" ASC NULLS LAST, c."createdAt" DESC
+    prisma.$queryRaw`SELECT DISTINCT ON (k."tcg", k."key") k."id", k."updatedAt"
+      FROM (
+        SELECT c."id", c."updatedAt", c."price", c."createdAt", f."tcg",
+          COALESCE(lower(c."name") || '|' || (c."data"->>'set') || '|' || (c."data"->>'number'), c."tcgId") AS "key"
+        FROM "Card" c JOIN "Folder" f ON f."id" = c."folderId"
+        WHERE c."stock" > 0 AND c."moderationState" = 'visible' AND f."isPublic" = true AND f."moderationState" = 'visible'
+      ) k
+      ORDER BY k."tcg", k."key", k."price" ASC NULLS LAST, k."createdAt" DESC
       LIMIT ${SITEMAP_MAX_CARDS}`
   ]);
   const entry = (loc, extra = '') => `<url><loc>${esc(loc)}</loc>${extra}</url>`;

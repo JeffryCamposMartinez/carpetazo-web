@@ -1,5 +1,6 @@
 import { Fragment, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import usePageMeta from '../hooks/usePageMeta';
 import { termsBlocks, privacyBlocks } from '../legal/content';
 import { TERMS_VERSION, PRIVACY_VERSION, LEGAL_UPDATED_LABEL } from '../legal/versions';
 
@@ -34,12 +35,12 @@ export default function LegalPage({ kind }) {
   const doc = DOCS[kind] || DOCS.terminos;
   const sections = doc.blocks.filter((block) => block.t === 'h2');
 
-  useEffect(() => {
-    const previous = document.title;
-    document.title = `${doc.title} · Carpetazo`;
-    window.scrollTo(0, 0);
-    return () => { document.title = previous; };
-  }, [doc.title]);
+  usePageMeta({
+    title: `${doc.title} | Carpetazo`,
+    description: kind === 'privacidad' ? 'Cómo Carpetazo.cl trata y protege tus datos personales.' : 'Condiciones de uso de Carpetazo.cl, el mercado de cartas TCG en Chile.',
+    path: kind === 'privacidad' ? '/privacidad' : '/terminos'
+  });
+  useEffect(() => { window.scrollTo(0, 0); }, [doc.title]);
 
   return (
     <div className="mx-auto w-full max-w-[920px] px-3 py-3 sm:px-6 sm:py-6">

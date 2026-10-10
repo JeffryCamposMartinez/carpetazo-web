@@ -40,10 +40,34 @@ const get = async (path) => {
       ok(`vendedor ${label} → 404`, r.status === 404, String(r.status));
     }
 
+    // Carpeta pública para buscadores
+    r = await get('/seo/folder/' + pub.id);
+    ok('carpeta pública → HTML con sus cartas con stock', r.status === 200 && /text\/html/.test(r.type) && r.body.includes(`/carta/${cheap.id}"`) && !r.body.includes(noStock.id), String(r.status));
+    ok('carpeta: canónica, título con cantidad y datos estructurados', r.body.includes(`rel="canonical" href="https://carpetazo.cl/c/${pub.id}"`) && /<title>TEST seo publica - \d+ cartas de Pok/.test(r.body) && r.body.includes('"@type":"ItemList"'));
+    ok('carpeta: el nombre de las cartas no inyecta etiquetas', !r.body.includes('<b>SEO</b>'));
+    for (const [label, id] of [['privada', priv.id], ['inexistente', '00000000-0000-4000-8000-000000000000'], ['id inválido', '../x']]) {
+      r = await get('/seo/folder/' + encodeURIComponent(id));
+      ok(`carpeta ${label} → 404`, r.status === 404, String(r.status));
+    }
+    const empty = (await call('POST', '/folders', 'seller', { name: 'TEST seo vacia', tcg: 'Pokemon', color: 'blue', isPublic: true })).j.folder;
+    r = await get('/seo/folder/' + empty.id);
+    ok('carpeta sin cartas a la venta → 404', r.status === 404, String(r.status));
+
+    // La misma carta cargada con otro código de catálogo cuenta como una sola carta
+    const dupA = await prisma.card.create({ data: { tcgId: 'tst-seo-dup-a', name: 'Carta Doble', price: 2000, stock: 1, folderId: pub.id, data: { set: 'Edición X', number: '007' } } });
+    const dupB = await prisma.card.create({ data: { tcgId: 'tst-seo-dup-b', name: 'carta doble', price: 3000, stock: 1, folderId: pub.id, data: { set: 'Edición X', number: '007' } } });
+    const other = await prisma.card.create({ data: { tcgId: 'tst-seo-dup-c', name: 'Carta Doble', price: 1000, stock: 1, folderId: pub.id, data: { set: 'Edición X', number: '008' } } });
+    r = await get('/seo/card/' + dupB.id);
+    ok('misma carta con otro código: se juntan sus ofertas', (r.body.match(/<li>\$/g) || []).length === 2 && r.body.includes(`/carta/${dupA.id}"`), String((r.body.match(/<li>\$/g) || []).length));
+    ok('otro número de la misma edición no se mezcla', !r.body.includes('$1.000'));
+    r = await get('/cards/' + dupB.id + '/offers');
+    ok('la página de la carta también junta las ofertas', JSON.parse(r.body).offers.length === 2, r.body.slice(0, 120));
+
     // Sitemap
     r = await get('/seo/sitemap.xml');
     ok('sitemap XML', r.status === 200 && /xml/.test(r.type) && r.body.startsWith('<?xml'), String(r.status));
     ok('sitemap incluye páginas fijas, la carta más barata y la carpeta pública', r.body.includes('<loc>https://carpetazo.cl/cartas</loc>') && r.body.includes(`/carta/${cheap.id}<`) && r.body.includes(`/c/${pub.id}<`));
+    ok('sitemap: una sola dirección para la misma carta con distinto código', [dupA.id, dupB.id].filter((id) => r.body.includes(`/carta/${id}<`)).length === 1 && r.body.includes(`/carta/${other.id}<`));
     ok('sitemap no incluye la carta cara repetida, ni privadas, ni agotadas', !r.body.includes(`/carta/${dear.id}<`) && !r.body.includes(hiddenCard.id) && !r.body.includes(noStock.id) && !r.body.includes(priv.id));
   } catch (error) {
     ok('la prueba terminó sin excepciones', false, error.message);

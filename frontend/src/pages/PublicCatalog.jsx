@@ -10,6 +10,7 @@ import CatalogCartDrawer from '../components/folder/catalog/CatalogCartDrawer';
 import CatalogBrowser from '../components/folder/catalog/CatalogBrowser';
 import CatalogCover from '../components/folder/catalog/CatalogCover';
 import { rarityRank } from '../utils/rarityRank';
+import usePageMeta from '../hooks/usePageMeta';
 
 const isLocalhostWithProductionApi = () => {
   if (typeof window === 'undefined') return false;
@@ -24,6 +25,7 @@ function PublicCatalog() {
   
   const [cards, setCards] = useState([]);
   const [folderData, setFolderData] = useState(null);
+  usePageMeta(folderData?.name ? { title: `${folderData.name} - cartas ${folderData.tcg || 'TCG'} | Carpetazo`, description: `Cartas de ${folderData.tcg || 'TCG'} a la venta en la carpeta ${folderData.name}. Compra en Chile con Carpetazo.`, path: `/c/${folderId}` } : {});
   const [sellerData, setSellerData] = useState(null);
   const [ownsFolder, setOwnsFolder] = useState(false);
   

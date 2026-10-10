@@ -2,7 +2,7 @@
 import express from 'express';
 import { authenticateToken } from '../core/auth.js';
 import { prisma } from '../core/db.js';
-import { CARD_SEARCH_TCG_ALIASES } from '../core/listing.js';
+import { CARD_SEARCH_TCG_ALIASES, sameCardMatch } from '../core/listing.js';
 import { isValidComuna } from '../core/chileData.js';
 import { badRequest } from '../core/validation.js';
 
@@ -166,7 +166,7 @@ router.get('/api/cards/:id/offers', async (req, res) => {
     if (!card) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
 
     const offers = await prisma.card.findMany({
-      where: { ...visibleCardWhere, tcgId: card.tcgId, folder: { ...visibleCardWhere.folder, tcg: card.folder.tcg } },
+      where: { ...visibleCardWhere, ...sameCardMatch(card), folder: { ...visibleCardWhere.folder, tcg: card.folder.tcg } },
       orderBy: [{ price: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
       take: OFFERS_MAX,
       select: { id: true, price: true, stock: true, data: true, folder: { select: { id: true, name: true, user: { select: { name: true, username: true, photoURL: true, publicComuna: true } } } } },
