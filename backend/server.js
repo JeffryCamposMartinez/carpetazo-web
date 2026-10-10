@@ -32,6 +32,7 @@ import messageRoutes from './routes/messages.js';
 import legalRoutes from './routes/legal.js';
 import catalogImportRoutes from './routes/catalogImport.js';
 import linkPreviewRoutes from './routes/linkPreview.js';
+import { startPreviewWarmer } from './core/folderPreview.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIREBASE_PROJECT_ID = 'carpetazo-db9d7';
@@ -107,4 +108,5 @@ app.use((err, _req, res, _next) => {
 
 app.listen(port, () => {
     console.log(`🚀 Servidor backend corriendo en http://localhost:${port}`);
+    startPreviewWarmer();
 });

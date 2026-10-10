@@ -25,6 +25,7 @@ import { EMPTY_MAGIC_FILTERS, MAGIC_CATEGORY, magicGroupLabel, magicGroupRank } 
 import { EMPTY_RB_FILTERS, RIFTBOUND_CATEGORY, riftboundGroupLabel } from '../services/tcgcsvRiftbound';
 import { EMPTY_YGO_FILTERS, YUGIOH_CATEGORY, yugiohGroupLabel } from '../services/tcgcsvYugioh';
 import { tcgcsvCategoryId } from '../services/tcgcsvGames';
+import { warmFolderPreview } from '../utils/sharePreview';
 
 
 const PAGE_SIZE = 20;
@@ -683,6 +684,7 @@ const [isSearching, setIsSearching] = useState(false);
 
   const copyBuyerLink = async () => {
     const url = `${window.location.origin}/c/${id}`;
+    warmFolderPreview(id);
     try {
       await navigator.clipboard.writeText(url);
       showToast('Enlace público copiado', 'success');

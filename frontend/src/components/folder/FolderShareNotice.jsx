@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../../services/api';
+import { warmFolderPreview } from '../../utils/sharePreview';
 
 // Tras guardar la primera carta: invita a publicar la carpeta y compartir su enlace (copiar o WhatsApp).
 // Una carpeta privada no la ve nadie, así que publicar es el paso que falta para vender.
@@ -23,6 +24,7 @@ export default function FolderShareNotice({ folder, onPublished, onClose, showTo
   const copyLink = async () => {
     setBusy(true);
     if (await ensurePublic()) {
+      warmFolderPreview(folder.id);
       try {
         await navigator.clipboard.writeText(url);
         showToast(isPublic ? 'Enlace copiado' : 'Carpeta publicada y enlace copiado', 'success');

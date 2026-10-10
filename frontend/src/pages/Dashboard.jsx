@@ -10,6 +10,7 @@ import FolderFormModal from '../components/folder/FolderFormModal';
 import FolderEmptySteps from '../components/folder/FolderEmptySteps';
 import FolderGrid from '../components/folder/FolderGrid';
 import { useToast } from '../components/ui/ToastProvider';
+import { warmFolderPreview } from '../utils/sharePreview';
 // html2canvas + jsPDF pesan mucho: se descargan solo al generar un PDF
 const HiddenPDFGenerator = lazy(() => import('../components/folder/HiddenPDFGenerator'));
 
@@ -319,6 +320,7 @@ export default function Dashboard() {
   const handleShareFolder = (e, folder) => {
     e.stopPropagation();
     const url = `${window.location.origin}/c/${folder.id}`;
+    warmFolderPreview(folder.id);
     
     if (navigator.share) {
       navigator.share({

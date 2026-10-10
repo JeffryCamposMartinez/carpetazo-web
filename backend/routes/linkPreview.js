@@ -1,10 +1,7 @@
 // Vista previa al compartir el enlace de una carpeta (WhatsApp, Telegram, Facebook…): esos programas no ejecutan el JavaScript del sitio,
 // así que el servidor web les entrega esta página con las etiquetas Open Graph y la miniatura de la carpeta.
-import { createHash } from 'node:crypto';
 import express from 'express';
-import { prisma } from '../core/db.js';
-import { firstPageCards, folderPreviewImage, PREVIEW_H, PREVIEW_W } from '../core/folderPreview.js';
-import { isUuid } from '../core/validation.js';
+import { folderPreviewImage, loadFolderPreview, PREVIEW_H, PREVIEW_W } from '../core/folderPreview.js';
 
 const router = express.Router();
 const SITE = 'https://carpetazo.cl';
@@ -31,29 +28,14 @@ ${width ? `<meta property="og:image:width" content="${width}"><meta property="og
 <meta name="twitter:description" content="${esc(description)}"><meta name="twitter:image" content="${esc(image)}">
 <meta http-equiv="refresh" content="0;url=${esc(url)}"></head><body><a href="${esc(url)}">${esc(title)}</a></body></html>`;
 
-// Carpeta pública y visible con sus cartas visibles; cualquier otra cosa no existe para quien comparte el enlace
-const loadFolder = async (id) => {
-  if (!isUuid(id)) return null;
-  const folder = await prisma.folder.findUnique({
-    where: { id },
-    select: { id: true, name: true, tcg: true, isPublic: true, moderationState: true, updatedAt: true, user: { select: { name: true, username: true } } }
-  });
-  if (!folder || !folder.isPublic || folder.moderationState !== 'visible') return null;
-  const [cards, count] = await Promise.all([
-    prisma.card.findMany({ where: { folderId: id, moderationState: 'visible' }, select: { id: true, imageUrl: true, data: true, createdAt: true }, take: 1500 }),
-    prisma.card.count({ where: { folderId: id, moderationState: 'visible' } })
-  ]);
-  const shown = firstPageCards(cards);
-  const signature = createHash('sha1').update(JSON.stringify([id, folder.updatedAt, shown.map((card) => [card.id, card.imageUrl])])).digest('hex').slice(0, 16);
-  return { folder, count, shown, signature };
-};
-
 router.get('/api/og/folder/:id', async (req, res) => {
   res.set({ 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=300', 'X-Robots-Tag': 'noindex' });
   try {
-    const data = await loadFolder(req.params.id);
+    const data = await loadFolderPreview(req.params.id);
     if (!data) return res.send(page(DEFAULT_PREVIEW));
-    const { folder, count, signature } = data;
+    const { folder, count, signature, shown } = data;
+    // Quien pide la página pedirá enseguida la imagen: se empieza a armar ya (si estaba lista, no cuesta nada)
+    folderPreviewImage(signature, shown).catch(() => {});
     const owner = folder.user?.name || folder.user?.username || 'Carpetazo';
     return res.send(page({
       title: folder.name,
@@ -71,7 +53,7 @@ router.get('/api/og/folder/:id', async (req, res) => {
 
 router.get('/api/og/folder/:id/image.jpg', async (req, res) => {
   try {
-    const data = await loadFolder(req.params.id);
+    const data = await loadFolderPreview(req.params.id);
     if (!data) return res.status(404).json({ success: false, message: 'No encontrada' });
     const image = await folderPreviewImage(data.signature, data.shown);
     res.set({ 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400', 'X-Robots-Tag': 'noindex' });

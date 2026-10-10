@@ -1,9 +1,11 @@
 // Miniatura para compartir el enlace de una carpeta (WhatsApp, Telegram, etc.): las cartas de su primera página y el logo.
 // Solo se usan carpetas públicas y visibles, y cartas visibles con imagen en los dominios permitidos.
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
-import { isAllowedProxyImageUrl } from './validation.js';
+import { prisma } from './db.js';
+import { isAllowedProxyImageUrl, isUuid } from './validation.js';
 
 const ASSETS = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'assets');
 export const PREVIEW_W = 1200;
@@ -14,7 +16,7 @@ const GAP = 14;
 const CARD_RATIO = 0.715; // ancho / alto de una carta
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 const IMAGE_TIMEOUT_MS = 6000;
-const CACHE_MAX = 120;
+const CACHE_MAX = 300;
 
 const cache = new Map(); // firma -> Buffer JPEG (la más usada va al final)
 const pending = new Map(); // firma -> generación en curso (varias visitas iguales comparten una sola)
@@ -126,4 +128,56 @@ export const folderPreviewImage = async (signature, cards) => {
     .finally(() => pending.delete(signature));
   pending.set(signature, job);
   return job;
+};
+
+// Carpeta pública y visible con sus cartas visibles; cualquier otra cosa no existe para quien comparte el enlace
+export const loadFolderPreview = async (id) => {
+  if (!isUuid(id)) return null;
+  const folder = await prisma.folder.findUnique({
+    where: { id },
+    select: { id: true, name: true, tcg: true, isPublic: true, moderationState: true, updatedAt: true, user: { select: { name: true, username: true } } }
+  });
+  if (!folder || !folder.isPublic || folder.moderationState !== 'visible') return null;
+  const [cards, count] = await Promise.all([
+    prisma.card.findMany({ where: { folderId: id, moderationState: 'visible' }, select: { id: true, imageUrl: true, data: true, createdAt: true }, take: 1500 }),
+    prisma.card.count({ where: { folderId: id, moderationState: 'visible' } })
+  ]);
+  const shown = firstPageCards(cards);
+  const signature = createHash('sha1').update(JSON.stringify([id, folder.updatedAt, shown.map((card) => [card.id, card.imageUrl])])).digest('hex').slice(0, 16);
+  return { folder, count, shown, signature };
+};
+
+// Deja lista la miniatura de una carpeta antes de que alguien la pida: armarla desde cero tarda ~2 s y los programas de mensajería no esperan tanto
+export const warmFolderPreview = async (id) => {
+  const data = await loadFolderPreview(id);
+  if (data) await folderPreviewImage(data.signature, data.shown);
+};
+
+// Precalentado en segundo plano: al arrancar, las carpetas más visitadas; y cada pocos minutos, las que cambiaron (cartas nuevas o editadas, publicación)
+const WARM_EVERY_MS = 2 * 60 * 1000;
+const WARM_WINDOW_MS = 5 * 60 * 1000;
+const warmMany = async (ids) => {
+  for (const id of ids) {
+    try { await warmFolderPreview(id); } catch (error) { console.error('Error precalentando la miniatura de una carpeta:', error.message); }
+  }
+};
+export const startPreviewWarmer = () => {
+  if (process.env.TEST_AUTH_STUB) return; // las pruebas no descargan imágenes de afuera
+  const visibleFolder = { isPublic: true, moderationState: 'visible' };
+  setTimeout(async () => {
+    try {
+      const popular = await prisma.folder.findMany({ where: visibleFolder, orderBy: [{ weeklyVisits: 'desc' }, { totalVisits: 'desc' }], take: 30, select: { id: true } });
+      await warmMany(popular.map((folder) => folder.id));
+    } catch (error) { console.error('Error en el precalentado inicial de miniaturas:', error.message); }
+  }, 20 * 1000).unref();
+  setInterval(async () => {
+    try {
+      const since = new Date(Date.now() - WARM_WINDOW_MS);
+      const [cards, folders] = await Promise.all([
+        prisma.card.findMany({ where: { OR: [{ createdAt: { gte: since } }, { updatedAt: { gte: since } }], folder: visibleFolder }, distinct: ['folderId'], take: 30, select: { folderId: true } }),
+        prisma.folder.findMany({ where: { ...visibleFolder, updatedAt: { gte: since } }, take: 30, select: { id: true } })
+      ]);
+      await warmMany([...new Set([...cards.map((card) => card.folderId), ...folders.map((folder) => folder.id)])]);
+    } catch (error) { console.error('Error precalentando miniaturas de carpetas cambiadas:', error.message); }
+  }, WARM_EVERY_MS).unref();
 };
