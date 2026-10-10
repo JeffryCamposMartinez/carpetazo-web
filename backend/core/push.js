@@ -4,7 +4,7 @@ import { prisma } from './db.js';
 
 // Las claves pueden llegar con espacios, saltos de línea o comillas al pegarlas en el panel: se limpian. Si siguen mal, las notificaciones quedan
 // apagadas (y se avisa en el registro); una clave inválida nunca debe impedir que el servidor arranque.
-const clean = (value) => String(value || '').trim().replace(/^["']|["']$/g, '').trim();
+const clean = (value) => String(value || '').trim().replace(/^["']|["']$/g, '').trim().replace(/^VAPID_[A-Z_]+\s*=\s*/, '').replace(/^["']|["']$/g, '').trim();
 let configured = false;
 let publicKey = '';
 try {
