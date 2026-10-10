@@ -2,9 +2,25 @@
 import webpush from 'web-push';
 import { prisma } from './db.js';
 
-export const PUSH_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
-export const pushConfigured = Boolean(PUSH_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
-if (pushConfigured) webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:contacto@carpetazo.cl', PUSH_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
+// Las claves pueden llegar con espacios, saltos de línea o comillas al pegarlas en el panel: se limpian. Si siguen mal, las notificaciones quedan
+// apagadas (y se avisa en el registro); una clave inválida nunca debe impedir que el servidor arranque.
+const clean = (value) => String(value || '').trim().replace(/^["']|["']$/g, '').trim();
+let configured = false;
+let publicKey = '';
+try {
+  const candidatePublic = clean(process.env.VAPID_PUBLIC_KEY);
+  const candidatePrivate = clean(process.env.VAPID_PRIVATE_KEY);
+  if (candidatePublic && candidatePrivate) {
+    const subject = clean(process.env.VAPID_SUBJECT) || 'mailto:contacto@carpetazo.cl';
+    webpush.setVapidDetails(/^(mailto:|https:)/i.test(subject) ? subject : `mailto:${subject}`, candidatePublic, candidatePrivate);
+    configured = true;
+    publicKey = candidatePublic;
+  }
+} catch (error) {
+  console.error('Notificaciones del navegador desactivadas: claves VAPID inválidas.', error.message);
+}
+export const PUSH_PUBLIC_KEY = publicKey;
+export const pushConfigured = configured;
 
 // El servidor hace la petición al "endpoint" del dispositivo: solo se aceptan los servicios de notificaciones de los navegadores (nunca direcciones internas)
 const PUSH_HOST = /(^|\.)(googleapis\.com|push\.services\.mozilla\.com|push\.apple\.com|notify\.windows\.com)$/i;
