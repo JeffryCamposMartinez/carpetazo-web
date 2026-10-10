@@ -68,6 +68,7 @@ export default function LoadableImage({ src, alt, className = '', compact = fals
         src={near ? src : undefined}
         alt={alt}
         referrerPolicy="no-referrer"
+        decoding="async"
         className={`${className} transition-opacity duration-200 motion-reduce:transition-none ${state === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
         onLoad={() => setState('loaded')}
         onError={handleError}

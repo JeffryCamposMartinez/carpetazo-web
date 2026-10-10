@@ -1,43 +1,75 @@
 // Catálogo de cartas: proxys (TCGCSV, Pokémon TCG API, imágenes) y base local de juegos, ediciones y cartas.
 import express from 'express';
+import { createHash } from 'node:crypto';
+import { promisify } from 'node:util';
+import { gzip } from 'node:zlib';
 import { prisma } from '../core/db.js';
 import { badRequest, isAllowedProxyImageUrl } from '../core/validation.js';
 
 const router = express.Router();
+const gzipAsync = promisify(gzip);
 
 // Proxy con caché hacia TCGCSV (Pokémon inglés y japonés, One Piece, Magic, Riftbound, Yu-Gi-Oh!): el navegador no puede llamarlo directo por CORS
 const TCGCSV_ALLOWED_PATH = /^\/tcgplayer\/(1|2|3|68|85|89)\/(groups|\d+\/(products|prices))$/;
 const TCGCSV_TTL_MS = 30 * 60 * 1000;
-const TCGCSV_MAX_ENTRIES = 160;
-const tcgcsvCache = new Map();
+const TCGCSV_STALE_MS = 6 * 60 * 60 * 1000; // si TCGCSV falla se sigue sirviendo la última copia por este tiempo
+const TCGCSV_MAX_ENTRIES = 200;
+const tcgcsvCache = new Map(); // ruta -> { at, body, gzip, etag }
+const tcgcsvPending = new Map(); // ruta -> descarga en curso (varios pedidos iguales comparten una sola)
+
+const loadTcgcsv = async (tcgcsvPath) => {
+  const response = await fetch('https://tcgcsv.com' + tcgcsvPath, {
+    headers: { 'User-Agent': 'Carpetazo/1.0 (+https://carpetazo.cl)', 'Accept': 'application/json' },
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!response.ok) {
+    const error = new Error(`TCGCSV respondió ${response.status}`);
+    error.notFound = response.status === 404;
+    throw error;
+  }
+  const body = await response.text();
+  const entry = {
+    at: Date.now(),
+    body,
+    gzip: await gzipAsync(body),
+    etag: `"${createHash('sha1').update(body).digest('base64url')}"`,
+  };
+  if (tcgcsvCache.size >= TCGCSV_MAX_ENTRIES) tcgcsvCache.delete(tcgcsvCache.keys().next().value);
+  tcgcsvCache.set(tcgcsvPath, entry);
+  return entry;
+};
+
 router.get(/^\/api\/tcgcsv(\/.*)$/, async (req, res) => {
   const tcgcsvPath = req.params[0];
   if (!TCGCSV_ALLOWED_PATH.test(tcgcsvPath)) {
     return res.status(400).json({ success: false, message: 'Ruta no permitida' });
   }
 
-  const sendJson = (body) => {
-    res.set('Cache-Control', 'public, max-age=1800');
-    return res.type('application/json').send(body);
+  const send = (entry) => {
+    res.set({ 'Cache-Control': 'public, max-age=1800, stale-while-revalidate=3600', ETag: entry.etag, Vary: 'Accept-Encoding' });
+    if (req.headers['if-none-match'] === entry.etag) return res.status(304).end();
+    res.type('application/json');
+    if (/gzip/.test(req.headers['accept-encoding'] || '')) {
+      res.set('Content-Encoding', 'gzip');
+      return res.send(entry.gzip);
+    }
+    return res.send(entry.body);
   };
 
   const cached = tcgcsvCache.get(tcgcsvPath);
-  if (cached && Date.now() - cached.at < TCGCSV_TTL_MS) return sendJson(cached.body);
+  if (cached && Date.now() - cached.at < TCGCSV_TTL_MS) return send(cached);
 
   try {
-    const response = await fetch('https://tcgcsv.com' + tcgcsvPath, {
-      headers: { 'User-Agent': 'Carpetazo/1.0 (+https://carpetazo.cl)', 'Accept': 'application/json' }
-    });
-    if (!response.ok) {
-      return res.status(response.status === 404 ? 404 : 502).json({ success: false, message: 'No se pudo obtener el catálogo' });
+    let pending = tcgcsvPending.get(tcgcsvPath);
+    if (!pending) {
+      pending = loadTcgcsv(tcgcsvPath).finally(() => tcgcsvPending.delete(tcgcsvPath));
+      tcgcsvPending.set(tcgcsvPath, pending);
     }
-    const body = await response.text();
-    if (tcgcsvCache.size >= TCGCSV_MAX_ENTRIES) tcgcsvCache.delete(tcgcsvCache.keys().next().value);
-    tcgcsvCache.set(tcgcsvPath, { at: Date.now(), body });
-    return sendJson(body);
+    return send(await pending);
   } catch (error) {
     console.error('Error consultando TCGCSV:', error.message);
-    return res.status(502).json({ success: false, message: 'No se pudo obtener el catálogo' });
+    if (cached && Date.now() - cached.at < TCGCSV_STALE_MS) return send(cached);
+    return res.status(error.notFound ? 404 : 502).json({ success: false, message: 'No se pudo obtener el catálogo' });
   }
 });
 

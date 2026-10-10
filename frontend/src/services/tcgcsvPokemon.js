@@ -1,4 +1,4 @@
-import { apiUrl } from './api';
+import { tcgcsvJson } from './tcgcsvFetch';
 
 // Búsqueda de cartas Pokémon en TCGCSV (inglés = categoría 3, japonés = 85), con los mismos criterios
 // que usa la búsqueda de "agregar cartas" de las carpetas.
@@ -34,7 +34,7 @@ export const fetchPokemonGroups = async (lang, signal) => {
   const catId = pokemonCategoryForLang(lang);
   if (groupsCache.has(catId)) return groupsCache.get(catId);
   const [json, emptyGroups] = await Promise.all([
-    fetch(apiUrl(`/tcgcsv/tcgplayer/${catId}/groups`), { signal }).then((r) => r.json()),
+    tcgcsvJson(`/tcgplayer/${catId}/groups`, signal),
     fetch('/empty-groups-tcgcsv.json', { signal }).then((r) => r.json()).catch(() => ({})),
   ]);
   const results = json.results || [];
@@ -55,7 +55,7 @@ export const fetchPokemonGroupCards = async (lang, group, signal) => {
   const catId = pokemonCategoryForLang(lang);
   const key = `${catId}-${group.groupId}`;
   if (productsCache.has(key)) return productsCache.get(key);
-  const json = await (await fetch(apiUrl(`/tcgcsv/tcgplayer/${catId}/${group.groupId}/products`), { signal })).json();
+  const json = await tcgcsvJson(`/tcgplayer/${catId}/${group.groupId}/products`, signal);
   const list = (json.results || [])
     .map((product) => {
       const ext = {};

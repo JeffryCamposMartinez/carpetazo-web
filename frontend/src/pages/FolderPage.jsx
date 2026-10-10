@@ -19,6 +19,7 @@ import useCardSearch from '../hooks/useCardSearch';
 import { DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from '../components/folder/dragScroll';
 import useCatalogOrder from '../hooks/useCatalogOrder';
 import useInventoryTools from '../hooks/useInventoryTools';
+import { tcgcsvJson } from '../services/tcgcsvFetch';
 import { EMPTY_OP_FILTERS, ONE_PIECE_CATEGORY, onePieceGroupLabel } from '../services/tcgcsvOnePiece';
 import { EMPTY_MAGIC_FILTERS, MAGIC_CATEGORY, magicGroupLabel, magicGroupRank } from '../services/tcgcsvMagic';
 import { EMPTY_RB_FILTERS, RIFTBOUND_CATEGORY, riftboundGroupLabel } from '../services/tcgcsvRiftbound';
@@ -503,7 +504,7 @@ const [isSearching, setIsSearching] = useState(false);
       const catId = tcgcsvCategoryId(searchCategory, searchLang);
       // Ediciones sin cartas (solo sellado), generado con scripts/find_empty_tcgcsv_groups.cjs
       Promise.all([
-        fetch(apiUrl(`/tcgcsv/tcgplayer/${catId}/groups`)).then(r => r.json()),
+        tcgcsvJson(`/tcgplayer/${catId}/groups`),
         fetch('/empty-groups-tcgcsv.json').then(r => r.json()).catch(() => ({})),
       ])
         .then(([json, emptyGroups]) => {

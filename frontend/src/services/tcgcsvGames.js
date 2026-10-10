@@ -1,4 +1,4 @@
-import { apiUrl } from './api';
+import { tcgcsvJson } from './tcgcsvFetch';
 import { ONE_PIECE_CATEGORY, filterOnePieceCards, onePieceExt, onePieceGroupLabel, onePieceMatchesQuery } from './tcgcsvOnePiece';
 import { MAGIC_CATEGORY, MAGIC_MARKER, filterMagicCards, loadMagicMeta, magicExt, magicGroupLabel, magicGroupRank, magicMatchesQuery } from './tcgcsvMagic';
 import { YUGIOH_CATEGORY, YUGIOH_MARKER, filterYugiohCards, loadYugiohMeta, yugiohExt, yugiohGroupLabel, yugiohMatchesQuery } from './tcgcsvYugioh';
@@ -32,7 +32,7 @@ const cardsCache = new Map();
 export const fetchGameGroups = async (game, signal) => {
   const info = GAMES[game];
   if (!groupsCache.has(game)) {
-    const json = await fetch(apiUrl(`/tcgcsv/tcgplayer/${info.catId}/groups`), { signal }).then((r) => r.json());
+    const json = await tcgcsvJson(`/tcgplayer/${info.catId}/groups`, signal);
     const results = json.results || [];
     const perDay = {};
     results.forEach((g) => { const day = g.publishedOn.slice(0, 10); perDay[day] = (perDay[day] || 0) + 1; });
@@ -52,7 +52,7 @@ export const fetchGameGroupCards = async (game, group, signal) => {
   const key = `${game}-${group.groupId}`;
   if (cardsCache.has(key)) return cardsCache.get(key);
   const [json, meta] = await Promise.all([
-    fetch(apiUrl(`/tcgcsv/tcgplayer/${info.catId}/${group.groupId}/products`), { signal }).then((r) => r.json()),
+    tcgcsvJson(`/tcgplayer/${info.catId}/${group.groupId}/products`, signal),
     info.meta ? info.meta() : null,
   ]);
   const toNumber = (text) => { const match = String(text || '').match(/\d+/); return match ? parseInt(match[0], 10) : 0; };
