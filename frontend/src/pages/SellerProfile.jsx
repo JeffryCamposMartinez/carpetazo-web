@@ -14,6 +14,7 @@ import ProfileTrustStrip from '../components/profile/ProfileTrustStrip';
 import { ProfileContactBar, ProfileLoading, ProfileUnavailable } from '../components/profile/ProfileStates';
 import ProfileModules from '../components/profile/ProfileModules';
 import ProfileHero from '../components/profile/ProfileHero';
+import usePageMeta from '../hooks/usePageMeta';
 import { useToast } from '../components/ui/ToastProvider';
 
 const normalizeFolder = (folder) => ({
@@ -28,6 +29,11 @@ export default function SellerProfile() {
   const { currentUser, refreshAppUser } = useAuth();
   const navigate = useNavigate();
   const [seller, setSeller] = useState(null);
+  usePageMeta(seller?.username ? {
+    title: `${seller.name || seller.username} - Vendedor de cartas TCG | Carpetazo`,
+    description: seller.bio ? seller.bio.slice(0, 160) : `Cartas a la venta de ${seller.name || seller.username} en Carpetazo, el mercado de cartas TCG en Chile.`,
+    path: `/${seller.username}`
+  } : {});
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');

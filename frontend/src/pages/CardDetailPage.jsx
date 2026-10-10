@@ -11,6 +11,7 @@ import CardShare from '../components/cards/CardShare';
 import { CardAvailability, RecentSales, TcgplayerRange } from '../components/cards/CardMarketInfo';
 import ReportButton from '../components/moderation/ReportButton';
 import useCardPriceRanges from '../hooks/useCardPriceRanges';
+import usePageMeta from '../hooks/usePageMeta';
 import { cardFill, cardRatio, isYugioh } from '../utils/cardShape';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
@@ -72,6 +73,11 @@ export default function CardDetailPage() {
   const chosen = offers.find((offer) => offer.id === cardId);
   const best = offers.find((offer) => Number(offer.price) > 0);
   const priceRanges = useCardPriceRanges(card, chosen?.language || best?.language);
+  usePageMeta(card ? {
+    title: `${card.name}${card.set ? ` (${card.set})` : ''} - ${card.tcg}${best ? ` desde ${formatCLP(best.price)}` : ''} | Carpetazo`,
+    description: `Compra ${card.name} de ${card.tcg}${card.set ? `, edición ${card.set}` : ''} en Chile. ${offers.length} ${offers.length === 1 ? 'oferta' : 'ofertas'}${best ? ` desde ${formatCLP(best.price)}` : ''}.`,
+    path: `/carta/${offers[0]?.id || card.id}`
+  } : {});
   const lightboxCards = useMemo(() => (card ? [{ id: card.id, name: card.name, imageUrl: card.imageUrl }] : []), [card]);
 
   const addToWishlist = async () => {

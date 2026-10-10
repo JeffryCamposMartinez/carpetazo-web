@@ -32,6 +32,7 @@ import messageRoutes from './routes/messages.js';
 import legalRoutes from './routes/legal.js';
 import catalogImportRoutes from './routes/catalogImport.js';
 import linkPreviewRoutes from './routes/linkPreview.js';
+import seoRoutes from './routes/seo.js';
 import { startPreviewWarmer } from './core/folderPreview.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -85,6 +86,7 @@ app.use(cardRoutes);
 app.use(wishlistRoutes);
 app.use(catalogImportRoutes);
 app.use(linkPreviewRoutes);
+app.use(seoRoutes);
 app.use(messageRoutes);
 
 const moderation = registerReports(app, { prisma, authenticateToken, requireStaff, hooks: moderationHooks, badRequest, isUuid, currentUserId, hashConnection, sendUserEmail, escapeHtml, reviewHideReports: REVIEW_HIDE_REPORTS });

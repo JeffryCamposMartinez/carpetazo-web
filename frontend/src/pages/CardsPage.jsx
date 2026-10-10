@@ -10,6 +10,7 @@ import { scrollToTopThen } from '../utils/scrollToTopThen';
 import FloatingTools from '../components/ui/FloatingTools';
 import CardsPagination from '../components/cards/CardsPagination';
 import CardsResultsBar, { SORT_VALUES } from '../components/cards/CardsResultsBar';
+import usePageMeta from '../hooks/usePageMeta';
 
 const VIEW_KEY = 'carpetazo:cards-view';
 const EMPTY = { cards: [], total: 0, pages: 1 };
@@ -20,6 +21,7 @@ const readView = () => {
 
 // Cartas a la venta de todas las carpetas públicas. Búsqueda, juego, orden y página viven en la dirección (se pueden compartir).
 export default function CardsPage() {
+  usePageMeta({ title: 'Cartas TCG en venta en Chile | Carpetazo', description: 'Busca y compra cartas de Pokémon, Yu-Gi-Oh!, Magic, One Piece y Mitos y Leyendas a vendedores de todo Chile. Compara precios y ofertas.', path: '/cartas' });
   const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser } = useAuth();
   const navigate = useNavigate();

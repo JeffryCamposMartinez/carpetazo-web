@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import ComunaSelect from '../components/ui/ComunaSelect';
 import LocationLine from '../components/ui/LocationLine';
 import Select from '../components/ui/Select';
+import usePageMeta from '../hooks/usePageMeta';
 
 const SORTS = [
   { value: 'visits', label: 'Más visitados' },
@@ -23,6 +24,7 @@ function Avatar({ seller }) {
 
 // La búsqueda, el orden y la página se resuelven en el servidor (24 vendedores por página)
 export default function SellersPage() {
+  usePageMeta({ title: 'Vendedores de cartas TCG en Chile | Carpetazo', description: 'Encuentra vendedores y tiendas de cartas TCG en Chile, por comuna y por cantidad de cartas a la venta.', path: '/vendedores' });
   const [result, setResult] = useState({ sellers: [], total: 0, pages: 1 });
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);

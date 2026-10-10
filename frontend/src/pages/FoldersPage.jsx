@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import LazyFolderCard from '../components/folder/LazyFolderCard';
 import ComunaSelect from '../components/ui/ComunaSelect';
 import Select from '../components/ui/Select';
+import usePageMeta from '../hooks/usePageMeta';
 
 const TCG_CATEGORIES = [
   { name: 'Pokémon', logo: '/images/logos/pokemon.webp' },
@@ -25,6 +26,7 @@ const normalize = (text) => (text || '').toLowerCase().normalize('NFD').replace(
 
 // La búsqueda, el juego, el orden y la página se resuelven en el servidor (40 carpetas por página)
 export default function FoldersPage() {
+  usePageMeta({ title: 'Carpetas de cartas TCG de vendedores chilenos | Carpetazo', description: 'Explora las carpetas públicas de vendedores de cartas TCG en Chile: Pokémon, Yu-Gi-Oh!, Magic, One Piece y más.', path: '/carpetas' });
   const [searchParams, setSearchParams] = useSearchParams();
   const urlQuery = searchParams.get('q') || '';
   const selectedTcg = searchParams.get('tcg') || 'Todos';

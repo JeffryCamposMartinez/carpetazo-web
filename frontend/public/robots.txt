@@ -1,4 +1,9 @@
-﻿User-agent: *
+User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /perfil
+Disallow: /mensajes
+Disallow: /moderacion
+Disallow: /carpeta/
 
 Sitemap: https://carpetazo.cl/sitemap.xml
