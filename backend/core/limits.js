@@ -53,6 +53,7 @@ export const applyRouteLimits = (app) => {
   app.put('/api/users/me', routeLimiter(15 * 60 * 1000, 60));
   app.delete('/api/users/me', routeLimiter(15 * 60 * 1000, 10));
   app.post('/api/users/upload-image', routeLimiter(15 * 60 * 1000, 30));
+  app.post('/api/users/upload-audio', routeLimiter(15 * 60 * 1000, 60)); // mensajes de voz
   app.get('/api/tcg/search', routeLimiter(15 * 60 * 1000, 300));
   app.post('/api/tcg/products/metadata', routeLimiter(15 * 60 * 1000, 300));
   app.get('/api/cards/search', routeLimiter(15 * 60 * 1000, 300));
@@ -99,6 +100,12 @@ export const applyRouteLimits = (app) => {
   app.use('/api/og', routeLimiter(15 * 60 * 1000, 600)); // vista previa de enlaces: los programas de mensajería la piden seguido, la imagen queda en memoria
   app.use('/api/admin/team', routeLimiter(15 * 60 * 1000, 120)); // buscador del equipo y cambios de rol
   app.use('/api/client-errors', routeLimiter(15 * 60 * 1000, 30)); // errores de la web: pocos por persona, nunca pueden inundar la base
+  app.use('/api/chats/stream', routeLimiter(15 * 60 * 1000, 60)); // conexión en tiempo real: se renueva cada ~9 minutos
+  app.use('/api/chats/forward', routeLimiter(15 * 60 * 1000, 60));
+  app.use('/api/chats/search', routeLimiter(15 * 60 * 1000, 240));
+  app.use('/api/chats', routeLimiter(15 * 60 * 1000, 900)); // lista, ajustes y privacidad del chat
+  app.use('/api/messages/item', routeLimiter(15 * 60 * 1000, 600)); // reacciones, destacados y correcciones
+  app.post('/api/messages/:otherId/read', routeLimiter(15 * 60 * 1000, 900));
   app.use('/api/onboarding', routeLimiter(15 * 60 * 1000, 120)); // guía de primeros pasos
   app.use('/api/notifications', routeLimiter(15 * 60 * 1000, 60)); // preferencias, dispositivos y baja desde el correo
   app.use('/api/seo', routeLimiter(15 * 60 * 1000, 600)); // páginas para buscadores y sitemap: los rastreadores piden muchas seguidas

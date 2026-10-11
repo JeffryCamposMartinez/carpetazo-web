@@ -266,12 +266,16 @@ router.delete('/api/users/me', authenticateToken, async (req, res) => {
           youtubeUrl: null,
           publicTheme: Prisma.DbNull,
           addresses: Prisma.DbNull,
-          bankDetails: Prisma.DbNull
+          bankDetails: Prisma.DbNull,
+          lastSeenAt: null
         }
       }),
       prisma.folder.updateMany({ where: { userId: current.id }, data: { isPublic: false } }),
       prisma.wishlistItem.deleteMany({ where: { userId: current.id } }),
       prisma.message.updateMany({ where: { senderId: current.id }, data: { content: deletedMessage } }),
+      prisma.chatSetting.deleteMany({ where: { OR: [{ userId: current.id }, { partnerId: current.id }] } }),
+      prisma.messageReaction.deleteMany({ where: { userId: current.id } }),
+      prisma.messageStar.deleteMany({ where: { userId: current.id } }),
       prisma.order.updateMany({ where: { buyerId: current.id }, data: { buyerId: null, buyerName: 'Comprador eliminado' } })
     ]);
 

@@ -1,68 +1,58 @@
-// Mensajes y chats.
+// Mensajes de una conversación: leer, enviar, marcar leído, "escribiendo…", responder, reaccionar, destacar y corregir.
 import express from 'express';
 import { authenticateToken } from '../core/auth.js';
 import { prisma } from '../core/db.js';
-import { badRequest, isAllowedStoredImageUrl, isShortText } from '../core/validation.js';
-import { moderationHooks } from '../moderation/services.js';
+import {
+  EDIT_WINDOW_MS, TEXT_MAX, createMessage, currentChatUser, decodeContent, encodeContent, flagMessageText,
+  isParticipant, isValidReaction, messageBlockReason, notifyChanged, presenceFor, resolveUserByAnyId, serializeMessages, touchPresence
+} from '../core/chat.js';
+import { publish } from '../core/chatEvents.js';
+import { isVerifiedSeller } from '../core/sellerTrust.js';
+import { badRequest, isUuid } from '../core/validation.js';
 
 const router = express.Router();
+const PAGE_DEFAULT = 50;
+const PAGE_MAX = 100;
+const TYPING_TTL_MS = 4500;
+const typingPresence = new Map();
+const typingKey = (senderId, receiverId) => `${senderId}:${receiverId}`;
 
-// Bloqueo entre usuarios: devuelve el motivo si no se puede escribir, o null
-const messageBlockReason = async (senderId, receiverId) => {
-  const rows = await prisma.userBlock.findMany({ where: { OR: [{ blockerId: receiverId, blockedId: senderId }, { blockerId: senderId, blockedId: receiverId }] }, select: { blockerId: true } });
-  if (rows.some((row) => row.blockerId === senderId)) return 'Bloqueaste a esta persona. Desbloquéala para escribirle.';
-  if (rows.length) return 'No puedes enviarle mensajes a esta persona.';
-  return null;
-};
+const publicPartner = (partner, viewer) => ({
+  id: partner.id, name: partner.name, username: partner.username, photoURL: partner.photoURL,
+  publicComuna: partner.publicComuna || null, verified: isVerifiedSeller(partner), presence: presenceFor(partner, viewer)
+});
 
-// Enviar un mensaje
+// Enviar un mensaje (ruta antigua con el destinatario en el cuerpo)
 router.post('/api/messages', authenticateToken, async (req, res) => {
   try {
-    const sender = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    const { receiverId, content } = req.body;
-    
+    const sender = await currentChatUser(req);
+    const { receiverId, content } = req.body || {};
     if (!receiverId || !content) return res.status(400).json({ success: false, message: 'Missing fields' });
-    if (typeof receiverId !== 'string' || !isAllowedMessageContent(content)) return badRequest(res, 'Mensaje inválido');
+    if (typeof receiverId !== 'string' || typeof content !== 'string') return badRequest(res, 'Mensaje inválido');
     if (!sender) return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
     if (receiverId === sender.id || receiverId === sender.firebaseUid || receiverId === sender.username) {
       return res.status(400).json({ success: false, message: 'No puedes enviarte mensajes a ti mismo.' });
     }
-    
     const receiver = await resolveUserByAnyId(receiverId);
     if (!receiver) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-    if (receiver.id === sender.id) return res.status(400).json({ success: false, message: 'No puedes enviarte mensajes a ti mismo.' });
-    const blockedReason = await messageBlockReason(sender.id, receiver.id);
-    if (blockedReason) return res.status(403).json({ success: false, code: 'blocked', message: blockedReason });
-
-    const message = await prisma.message.create({
-      data: {
-        senderId: sender.id,
-        receiverId: receiver.id,
-        content
-      }
-    });
-    flagMessageText(message, receiver.id);
-    res.json({ success: true, message });
+    const result = await createMessage({ sender, receiver, content });
+    if (!result.message) return res.status(result.status).json(result.body);
+    res.json({ success: true, message: result.message });
   } catch (error) {
     console.error('Error en la ruta:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 
-// Marcar mensaje como ledo
+// Marcar un mensaje como leído (ruta antigua, uno por uno)
 router.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    const message = await prisma.message.findUnique({ where: { id: req.params.id } });
-    
-    if (!user || !message || message.receiverId !== user.id) {
-      return res.status(403).json({ success: false, message: 'Not authorized' });
-    }
-    
-    await prisma.message.update({
-      where: { id: req.params.id },
-      data: { isRead: true }
-    });
+    const user = await currentChatUser(req);
+    const message = isUuid(req.params.id) ? await prisma.message.findUnique({ where: { id: req.params.id } }) : null;
+    if (!user || !message || message.receiverId !== user.id) return res.status(403).json({ success: false, message: 'Not authorized' });
+    const now = new Date();
+    await prisma.message.update({ where: { id: message.id }, data: { isRead: true, readAt: message.readAt || now, deliveredAt: message.deliveredAt || now } });
+    publish(message.senderId, 'read', { partnerId: user.id });
     res.json({ success: true });
   } catch (error) {
     console.error('Error en la ruta:', error);
@@ -70,47 +60,39 @@ router.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
   }
 });
 
-
-// Contenido de un mensaje: texto plano o {v, text, imageUrl, imageBase64}. La imagen solo de hosts permitidos
-// (una URL cualquiera dejaría a quien envía ver la IP de quien lee) o una imagen embebida en base64.
-const isAllowedMessageContent = (content) => {
-  if (!isShortText(content, 1500000)) return false;
-  let body;
-  try { body = JSON.parse(content); } catch (_error) { return true; }
-  if (!body || typeof body !== 'object' || Array.isArray(body)) return true;
-  if (body.imageUrl && !isAllowedStoredImageUrl(body.imageUrl)) return false;
-  if (body.imageBase64 && !/^data:image[/](png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(String(body.imageBase64))) return false;
-  return body.text === undefined || body.text === null || typeof body.text === 'string';
-};
-
-const resolveUserByAnyId = async (identifier) => {
-  const value = String(identifier || '').trim();
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-  const where = [{ firebaseUid: value }, { username: value }];
-  if (isUuid) where.push({ id: value });
-  return prisma.user.findFirst({ where: { OR: where } });
-};
-
-const typingPresence = new Map();
-const TYPING_TTL_MS = 4500;
-
-const typingKey = (senderId, receiverId) => `${senderId}:${receiverId}`;
+// Marcar como leída toda la conversación con una persona (una sola petición)
+router.post('/api/messages/:otherId/read', authenticateToken, async (req, res) => {
+  try {
+    const me = await currentChatUser(req);
+    if (!me) return res.status(401).json({ success: false });
+    const other = await resolveUserByAnyId(req.params.otherId);
+    if (!other) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const updated = await prisma.$executeRaw`
+      UPDATE "Message" SET "isRead" = true, "readAt" = now(), "deliveredAt" = COALESCE("deliveredAt", now())
+      WHERE "senderId" = ${other.id} AND "receiverId" = ${me.id} AND "isRead" = false`;
+    await prisma.chatSetting.updateMany({ where: { userId: me.id, partnerId: other.id, markedUnread: true }, data: { markedUnread: false } });
+    if (updated > 0) publish(other.id, 'read', { partnerId: me.id });
+    publish(me.id, 'read', { partnerId: other.id });
+    touchPresence(me.id);
+    res.json({ success: true, read: updated });
+  } catch (error) {
+    console.error('Error marking conversation as read:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
 
 router.post('/api/messages/:otherId/typing', authenticateToken, async (req, res) => {
   try {
-    const currentUser = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const currentUser = await currentChatUser(req);
     if (!currentUser) return res.status(401).json({ success: false });
-
     const otherUser = await resolveUserByAnyId(req.params.otherId);
     if (!otherUser) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     if (otherUser.id === currentUser.id) return res.json({ success: true });
-
-    const key = typingKey(currentUser.id, otherUser.id);
-    if (req.body?.isTyping) {
-      typingPresence.set(key, Date.now() + TYPING_TTL_MS);
-    } else {
-      typingPresence.delete(key);
-    }
+    const typing = Boolean(req.body?.isTyping);
+    if (typing) typingPresence.set(typingKey(currentUser.id, otherUser.id), Date.now() + TYPING_TTL_MS);
+    else typingPresence.delete(typingKey(currentUser.id, otherUser.id));
+    if (!(await messageBlockReason(currentUser.id, otherUser.id))) publish(otherUser.id, 'typing', { partnerId: currentUser.id, isTyping: typing });
+    touchPresence(currentUser.id);
     res.json({ success: true });
   } catch (error) {
     console.error('Error updating typing status:', error);
@@ -120,15 +102,12 @@ router.post('/api/messages/:otherId/typing', authenticateToken, async (req, res)
 
 router.get('/api/messages/:otherId/typing', authenticateToken, async (req, res) => {
   try {
-    const currentUser = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const currentUser = await currentChatUser(req);
     if (!currentUser) return res.status(401).json({ success: false });
-
     const otherUser = await resolveUserByAnyId(req.params.otherId);
     if (!otherUser) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-
     const key = typingKey(otherUser.id, currentUser.id);
-    const expiresAt = typingPresence.get(key) || 0;
-    const isTyping = expiresAt > Date.now();
+    const isTyping = (typingPresence.get(key) || 0) > Date.now();
     if (!isTyping) typingPresence.delete(key);
     res.json({ success: true, isTyping });
   } catch (error) {
@@ -137,136 +116,140 @@ router.get('/api/messages/:otherId/typing', authenticateToken, async (req, res) 
   }
 });
 
-// GET messages between current user and another
+// Mensajes con otra persona: los últimos (`limit`) o los anteriores a `before`. Devuelve en orden cronológico y si hay más antiguos.
 router.get('/api/messages/:otherId', authenticateToken, async (req, res) => {
   try {
-    const currentUser = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    if (!currentUser) return res.status(401).json({ success: false });
+    const me = await currentChatUser(req);
+    if (!me) return res.status(401).json({ success: false });
+    const other = await resolveUserByAnyId(req.params.otherId);
+    if (!other) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const limit = Math.min(PAGE_MAX, Math.max(1, Number.parseInt(req.query.limit, 10) || PAGE_DEFAULT));
+    const pair = { OR: [{ senderId: me.id, receiverId: other.id }, { senderId: other.id, receiverId: me.id }] };
+    let cursor = null;
+    if (req.query.before !== undefined) {
+      cursor = isUuid(req.query.before) ? await prisma.message.findFirst({ where: { id: req.query.before, ...pair }, select: { createdAt: true } }) : null;
+      if (!cursor) return badRequest(res, 'Mensaje de referencia inválido');
+    }
+    const rows = await prisma.message.findMany({ where: { ...pair, ...(cursor ? { createdAt: { lt: cursor.createdAt } } : {}) }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: limit + 1 });
+    const hasMore = rows.length > limit;
+    const page = rows.slice(0, limit).reverse();
 
-    const otherUser = await resolveUserByAnyId(req.params.otherId);
-    if (!otherUser) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-    const otherId = otherUser.id;
-    
-    const messages = await prisma.message.findMany({
-      where: {
-        OR: [
-          { senderId: currentUser.id, receiverId: otherId },
-          { senderId: otherId, receiverId: currentUser.id }
-        ]
-      },
-      orderBy: { createdAt: 'asc' }
+    // Lo que llegó a esta persona queda como entregado y el emisor lo ve al instante
+    if (!cursor) {
+      const delivered = await prisma.message.updateMany({ where: { senderId: other.id, receiverId: me.id, deliveredAt: null }, data: { deliveredAt: new Date() } });
+      if (delivered.count > 0) publish(other.id, 'delivered', { partnerId: me.id });
+      touchPresence(me.id);
+    }
+    const [messages, settings, block, firstUnread] = await Promise.all([
+      serializeMessages(page, { viewer: me, partner: other }),
+      prisma.chatSetting.findUnique({ where: { userId_partnerId: { userId: me.id, partnerId: other.id } } }),
+      prisma.userBlock.findUnique({ where: { blockerId_blockedId: { blockerId: me.id, blockedId: other.id } }, select: { blockerId: true } }),
+      cursor ? null : prisma.message.findFirst({ where: { senderId: other.id, receiverId: me.id, isRead: false }, orderBy: { createdAt: 'asc' }, select: { id: true } })
+    ]);
+    res.json({
+      success: true, messages, hasMore, firstUnreadId: firstUnread?.id || null,
+      otherUser: publicPartner(other, me),
+      settings: { pinned: Boolean(settings?.pinnedAt), archived: Boolean(settings?.archivedAt), mutedUntil: settings?.mutedUntil || null, markedUnread: Boolean(settings?.markedUnread) },
+      blockedByMe: Boolean(block)
     });
-    
-    // Un mensaje ocultado por moderación no se muestra a quien lo recibió (el autor sigue viendo el suyo)
-    const shown = messages.map(({ moderationState, ...message }) => (moderationState === 'hidden' && message.senderId !== currentUser.id
-      ? { ...message, content: HIDDEN_MESSAGE_TEXT, hidden: true }
-      : message));
-    res.json({ success: true, messages: shown });
   } catch (error) {
     console.error('Error fetching messages:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 
-// POST new message
+// Enviar un mensaje a una persona (texto, foto, carta; puede responder a otro mensaje)
 router.post('/api/messages/:otherId', authenticateToken, async (req, res) => {
   try {
-    const currentUser = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
+    const currentUser = await currentChatUser(req);
     if (!currentUser) return res.status(401).json({ success: false });
-
     const otherUser = await resolveUserByAnyId(req.params.otherId);
     if (!otherUser) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-    const otherId = otherUser.id;
-    const { content } = req.body;
-    
-    if (!content) return res.status(400).json({ success: false });
-    if (!isAllowedMessageContent(content)) return badRequest(res, 'Mensaje inválido');
-    if (otherId === currentUser.id) {
-      return res.status(400).json({ success: false, message: 'No puedes enviarte mensajes a ti mismo.' });
-    }
-    const blockedReason = await messageBlockReason(currentUser.id, otherId);
-    if (blockedReason) return res.status(403).json({ success: false, code: 'blocked', message: blockedReason });
-
-    const message = await prisma.message.create({
-      data: {
-        senderId: currentUser.id,
-        receiverId: otherId,
-        content
-      }
-    });
-    flagMessageText(message, otherId);
-    
-    res.json({
-      success: true,
-      message,
-      otherUser: {
-        id: otherUser.id,
-        name: otherUser.name,
-        username: otherUser.username,
-        photoURL: otherUser.photoURL
-      }
-    });
+    const { content, replyToId } = req.body || {};
+    if (!content || typeof content !== 'string') return res.status(400).json({ success: false });
+    if (replyToId !== undefined && replyToId !== null && typeof replyToId !== 'string') return badRequest(res, 'Mensaje inválido');
+    const result = await createMessage({ sender: currentUser, receiver: otherUser, content, replyToId });
+    if (!result.message) return res.status(result.status).json(result.body);
+    const [message] = await serializeMessages([result.message], { viewer: currentUser, partner: otherUser });
+    res.json({ success: true, message, otherUser: { id: otherUser.id, name: otherUser.name, username: otherUser.username, photoURL: otherUser.photoURL } });
   } catch (error) {
     console.error('Error sending message:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
 
-const HIDDEN_MESSAGE_TEXT = 'Mensaje oculto por moderación';
-
-// Los mensajes se guardan como JSON { v: 1, text }: se revisa solo el texto, buscando cobros por adelantado o enlaces sospechosos
-const flagMessageText = (message, receiverId) => {
-  let text = message.content;
-  try {
-    const parsed = JSON.parse(message.content);
-    if (parsed && typeof parsed === 'object' && parsed.v === 1) text = parsed.text || '';
-  } catch (_error) {
-    // texto plano
+// ---------- Acciones sobre un mensaje concreto ----------
+// Solo participa quien envió o recibió el mensaje; un mensaje ocultado por moderación no se ve ni se usa para quien lo recibió
+const loadOwnMessage = async (req, res) => {
+  const me = await currentChatUser(req);
+  if (!me) { res.status(401).json({ success: false }); return null; }
+  const message = isUuid(req.params.id) ? await prisma.message.findUnique({ where: { id: req.params.id } }) : null;
+  if (!message || !isParticipant(message, me.id) || (message.moderationState === 'hidden' && message.senderId !== me.id)) {
+    res.status(404).json({ success: false, message: 'Mensaje no encontrado' });
+    return null;
   }
-  if (typeof text === 'string' && text) moderationHooks.flagText?.('message', message.id, text, 'message', receiverId);
+  return { me, message, partnerId: message.senderId === me.id ? message.receiverId : message.senderId };
 };
 
-// GET user chats: último mensaje con cada persona y no leídos, resueltos en la base (sin traer todo el historial)
-router.get('/api/chats', authenticateToken, async (req, res) => {
+// Reaccionar con un emoji (uno por persona; null lo quita)
+router.put('/api/messages/item/:id/reaction', authenticateToken, async (req, res) => {
   try {
-    const currentUser = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    if (!currentUser) return res.status(401).json({ success: false });
-
-    const [lastMessages, unreadRows] = await Promise.all([
-      prisma.$queryRaw`
-        SELECT * FROM (
-          SELECT DISTINCT ON (m.partner) m."id", m."senderId", m."receiverId", m."content", m."moderationState", m."isRead", m."createdAt"
-          FROM (
-            SELECT *, CASE WHEN "senderId" = ${currentUser.id} THEN "receiverId" ELSE "senderId" END AS partner
-            FROM "Message"
-            WHERE "senderId" = ${currentUser.id} OR "receiverId" = ${currentUser.id}
-          ) m
-          WHERE m.partner <> ${currentUser.id}
-          ORDER BY m.partner, m."createdAt" DESC
-        ) last
-        ORDER BY "createdAt" DESC`,
-      prisma.message.groupBy({ by: ['senderId'], where: { receiverId: currentUser.id, isRead: false, senderId: { not: currentUser.id } }, _count: { _all: true } })
-    ]);
-
-    const unreadCounts = new Map(unreadRows.map((row) => [row.senderId, row._count._all]));
-    const totalUnread = [...unreadCounts.values()].reduce((total, count) => total + count, 0);
-    const partnerIds = lastMessages.map((msg) => (msg.senderId === currentUser.id ? msg.receiverId : msg.senderId));
-    const users = partnerIds.length
-      ? await prisma.user.findMany({ where: { id: { in: partnerIds } }, select: { id: true, name: true, username: true, photoURL: true } })
-      : [];
-    const usersById = new Map(users.map((user) => [user.id, user]));
-
-    const enrichedChats = lastMessages.map((msg) => {
-      const partnerId = msg.senderId === currentUser.id ? msg.receiverId : msg.senderId;
-      const partner = usersById.get(partnerId) || {};
-      const { moderationState, ...chatMessage } = msg;
-      const hiddenForMe = moderationState === 'hidden' && msg.senderId !== currentUser.id;
-      return { ...chatMessage, ...(hiddenForMe ? { content: HIDDEN_MESSAGE_TEXT, hidden: true } : {}), unreadCount: unreadCounts.get(partnerId) || 0, partner, otherUser: partner };
-    });
-
-    res.json({ success: true, chats: enrichedChats, totalUnread });
+    const found = await loadOwnMessage(req, res);
+    if (!found) return;
+    const { me, message, partnerId } = found;
+    const emoji = req.body?.emoji;
+    if (emoji !== null && !isValidReaction(emoji)) return badRequest(res, 'Reacción inválida');
+    if (emoji !== null && (await messageBlockReason(me.id, partnerId))) return res.status(403).json({ success: false, code: 'blocked', message: 'No puedes reaccionar en esta conversación.' });
+    if (emoji === null) await prisma.messageReaction.deleteMany({ where: { messageId: message.id, userId: me.id } });
+    else await prisma.messageReaction.upsert({ where: { messageId_userId: { messageId: message.id, userId: me.id } }, create: { messageId: message.id, userId: me.id, emoji }, update: { emoji } });
+    notifyChanged(me.id, partnerId);
+    res.json({ success: true });
   } catch (error) {
-    console.error('Error fetching chats:', error);
+    console.error('Error reacting to message:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Destacar o quitar el destacado (solo lo ve quien lo destaca)
+router.put('/api/messages/item/:id/star', authenticateToken, async (req, res) => {
+  try {
+    const found = await loadOwnMessage(req, res);
+    if (!found) return;
+    const { me, message } = found;
+    if (typeof req.body?.starred !== 'boolean') return badRequest(res, 'Dato inválido');
+    if (req.body.starred) await prisma.messageStar.upsert({ where: { messageId_userId: { messageId: message.id, userId: me.id } }, create: { messageId: message.id, userId: me.id }, update: {} });
+    else await prisma.messageStar.deleteMany({ where: { messageId: message.id, userId: me.id } });
+    publish(me.id, 'message', { partnerId: found.partnerId });
+    res.json({ success: true, starred: req.body.starred });
+  } catch (error) {
+    console.error('Error starring message:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Corregir el texto de un mensaje propio durante los primeros 15 minutos (la foto o la carta no cambian)
+router.put('/api/messages/item/:id', authenticateToken, async (req, res) => {
+  try {
+    const found = await loadOwnMessage(req, res);
+    if (!found) return;
+    const { me, message, partnerId } = found;
+    if (message.senderId !== me.id) return res.status(403).json({ success: false, message: 'Solo puedes corregir tus mensajes.' });
+    if (message.moderationState !== 'visible') return res.status(403).json({ success: false, message: 'Este mensaje no se puede corregir.' });
+    if (Date.now() - new Date(message.createdAt).getTime() > EDIT_WINDOW_MS) return res.status(409).json({ success: false, code: 'edit_window', message: 'Ya pasaron más de 15 minutos: no se puede corregir.' });
+    const text = req.body?.text;
+    if (typeof text !== 'string' || text.length > TEXT_MAX) return badRequest(res, 'Texto inválido');
+    const body = decodeContent(message.content);
+    if (body.audio) return badRequest(res, 'Un mensaje de voz no se puede corregir');
+    if (!text.trim() && !body.imageUrl && !body.imageBase64 && !body.cardId) return badRequest(res, 'El mensaje no puede quedar vacío');
+    if (await messageBlockReason(me.id, partnerId)) return res.status(403).json({ success: false, code: 'blocked', message: 'No puedes modificar mensajes en esta conversación.' });
+    const updated = await prisma.message.update({ where: { id: message.id }, data: { content: encodeContent({ text: text.trim(), imageUrl: body.imageUrl, imageBase64: body.imageBase64, cardId: body.cardId }), editedAt: new Date() } });
+    flagMessageText(updated, partnerId);
+    notifyChanged(me.id, partnerId);
+    const partner = await prisma.user.findUnique({ where: { id: partnerId }, select: { id: true, showReadReceipts: true } });
+    const [serialized] = await serializeMessages([updated], { viewer: me, partner });
+    res.json({ success: true, message: serialized });
+  } catch (error) {
+    console.error('Error editing message:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
   }
 });

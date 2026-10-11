@@ -13,7 +13,7 @@ const COMMENT_MIN_REQUIRED = 20;
 const BLOCK_SUGGESTED = ['user.harassment', 'user.threats', 'user.spam', 'message.harassment', 'message.threats', 'message.sexual', 'message.spam', 'order.harassment'];
 const EVIDENCE_MAX = 3;
 
-function ReportSheet({ targetType, targetId, blockUserId, onClose, onReported }) {
+export function ReportSheet({ targetType, targetId, blockUserId, onClose, onReported }) {
   const [step, setStep] = useState(1);
   const [catalog, setCatalog] = useState(null);
   const [loadError, setLoadError] = useState('');

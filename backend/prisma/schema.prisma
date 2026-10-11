@@ -35,6 +35,9 @@ model User {
   folders                  Folder[]
   wishlist                 WishlistItem[]
   isOwner                  Boolean           @default(false) // la cuenta original de Carpetazo: nadie puede cambiar su rol, suspenderla, cerrarla ni ocultar su contenido
+  lastSeenAt               DateTime? // última actividad en el chat (solo la ven quienes conversan con esta persona y si no la ocultó)
+  showLastSeen             Boolean           @default(true)
+  showReadReceipts         Boolean           @default(true) // si se apaga, ni esta persona ni las demás ven el ✓✓ amarillo entre ellas
   notifyWishlistEmail      Boolean           @default(true) // avisos por correo de su lista de deseos (se puede apagar desde el correo o desde la lista)
   emailVerified            Boolean           @default(false) // Firebase confirmó el correo (se actualiza al iniciar sesión); alimenta la insignia de vendedor verificado
   onboardingSharedAt       DateTime? // cuando compartió el enlace de su carpeta desde la guía de primeros pasos
@@ -103,10 +106,52 @@ model Message {
   content         String
   moderationState String   @default("visible") // visible | hidden (no se muestra al receptor)
   isRead          Boolean  @default(false)
+  deliveredAt     DateTime? // cuando la app de quien recibe lo descargó (✓✓ gris)
+  readAt          DateTime? // cuando quien recibe abrió la conversación (✓✓ amarillo)
+  replyToId       String? // mensaje al que responde (siempre de la misma conversación)
+  forwarded       Boolean  @default(false)
+  editedAt        DateTime?
   createdAt       DateTime @default(now())
+  reactions       MessageReaction[]
+  stars           MessageStar[]
 
   @@index([senderId, receiverId, createdAt])
   @@index([receiverId, isRead])
+}
+
+// Una reacción por persona y mensaje
+model MessageReaction {
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  @@id([messageId, userId])
+}
+
+// Mensajes destacados: cada persona guarda los suyos (la otra no se entera)
+model MessageStar {
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@id([messageId, userId])
+  @@index([userId, createdAt])
+}
+
+// Ajustes de cada conversación para cada persona: fijada, archivada, silenciada o marcada como no leída
+model ChatSetting {
+  userId       String
+  partnerId    String
+  pinnedAt     DateTime?
+  archivedAt   DateTime?
+  mutedUntil   DateTime?
+  markedUnread Boolean   @default(false)
+  updatedAt    DateTime  @updatedAt
+
+  @@id([userId, partnerId])
 }
 
 model Order {

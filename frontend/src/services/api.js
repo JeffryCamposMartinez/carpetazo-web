@@ -126,6 +126,7 @@ export const api = {
   searchCards: (queryString = '') => searchCardsShared(queryString),
   getSellerReviews: (username, page = 1) => apiFetch('/users/' + encodeURIComponent(username) + '/reviews?page=' + page),
   getPendingReviews: () => apiFetch('/reviews/pending'),
+  uploadAudio: (formData) => apiFetch('/users/upload-audio', { method: 'POST', body: formData, isMultipart: true }),
   getOnboarding: () => apiFetch('/onboarding'),
   markOnboardingShared: () => apiFetch('/onboarding/shared', { method: 'POST' }),
   createReview: (data) => apiFetch('/reviews', { method: 'POST', body: JSON.stringify(data) }),
@@ -214,12 +215,22 @@ export const api = {
   moveCardsBulk: (folderId, ids, targetFolderId) => apiFetch('/folders/' + folderId + '/cards-bulk/move', { method: 'POST', body: JSON.stringify({ ids, targetFolderId }) }),
   
   // Messages/Chats
-  getChats: () => apiFetch('/chats'),
-  getMessages: (otherId) => apiFetch('/messages/' + otherId),
-  sendMessage: (otherId, content) => apiFetch('/messages/' + otherId, { method: 'POST', body: JSON.stringify({ content }) }),
+  getChats: (archived = false) => apiFetch('/chats' + (archived ? '?archived=1' : '')),
+  getMessages: (otherId, { before, limit } = {}) => apiFetch('/messages/' + encodeURIComponent(otherId) + (before || limit ? '?' + new URLSearchParams({ ...(before ? { before } : {}), ...(limit ? { limit: String(limit) } : {}) }) : '')),
+  sendMessage: (otherId, content, replyToId = null) => apiFetch('/messages/' + encodeURIComponent(otherId), { method: 'POST', body: JSON.stringify({ content, ...(replyToId ? { replyToId } : {}) }) }),
   markMessageRead: (id) => apiFetch('/messages/' + id + '/read', { method: 'PUT' }),
-  setTyping: (otherId, isTyping) => apiFetch('/messages/' + otherId + '/typing', { method: 'POST', body: JSON.stringify({ isTyping }) }),
-  getTyping: (otherId) => apiFetch('/messages/' + otherId + '/typing'),
+  markConversationRead: (otherId) => apiFetch('/messages/' + encodeURIComponent(otherId) + '/read', { method: 'POST' }),
+  setTyping: (otherId, isTyping) => apiFetch('/messages/' + encodeURIComponent(otherId) + '/typing', { method: 'POST', body: JSON.stringify({ isTyping }) }),
+  getTyping: (otherId) => apiFetch('/messages/' + encodeURIComponent(otherId) + '/typing'),
+  reactToMessage: (id, emoji) => apiFetch('/messages/item/' + id + '/reaction', { method: 'PUT', body: JSON.stringify({ emoji }) }),
+  starMessage: (id, starred) => apiFetch('/messages/item/' + id + '/star', { method: 'PUT', body: JSON.stringify({ starred }) }),
+  editMessage: (id, text) => apiFetch('/messages/item/' + id, { method: 'PUT', body: JSON.stringify({ text }) }),
+  forwardMessage: (messageId, to) => apiFetch('/chats/forward', { method: 'POST', body: JSON.stringify({ messageId, to }) }),
+  setChatSettings: (otherId, settings) => apiFetch('/chats/' + encodeURIComponent(otherId) + '/settings', { method: 'PUT', body: JSON.stringify(settings) }),
+  setChatPrivacy: (privacy) => apiFetch('/chats/privacy', { method: 'PUT', body: JSON.stringify(privacy) }),
+  searchChats: (q, partner) => apiFetch('/chats/search?' + new URLSearchParams({ q, ...(partner ? { partner } : {}) })),
+  getStarredMessages: (partner) => apiFetch('/chats/starred' + (partner ? '?partner=' + encodeURIComponent(partner) : '')),
+  getChatMedia: (otherId) => apiFetch('/chats/' + encodeURIComponent(otherId) + '/media'),
   
   
   // TCG Proxy

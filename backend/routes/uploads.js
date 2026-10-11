@@ -212,4 +212,46 @@ router.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
   }
 });
 
+// ---------- Mensajes de voz ----------
+// Solo audio corto: se reconoce el formato por el contenido del archivo (no por lo que diga el navegador) y se guarda en la carpeta de voz del usuario.
+const AUDIO_MAX_BYTES = 3 * 1024 * 1024;
+const audioUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: AUDIO_MAX_BYTES },
+  fileFilter: (_req, file, cb) => (file.mimetype?.startsWith('audio/') ? cb(null, true) : cb(new Error('Sube un audio válido.')))
+});
+
+const sniffAudio = (buffer) => {
+  if (!buffer || buffer.length < 12) return null;
+  if (buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3) return { ext: 'webm', type: 'audio/webm' };
+  if (buffer.toString('ascii', 0, 4) === 'OggS') return { ext: 'ogg', type: 'audio/ogg' };
+  if (buffer.toString('ascii', 4, 8) === 'ftyp') return { ext: 'm4a', type: 'audio/mp4' };
+  if (buffer.toString('ascii', 0, 3) === 'ID3' || (buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0)) return { ext: 'mp3', type: 'audio/mpeg' };
+  return null;
+};
+
+router.post('/api/users/upload-audio', authenticateToken, (req, res, next) => {
+  audioUpload.single('audio')(req, res, (error) => {
+    if (!error) return next();
+    if (error.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ success: false, message: 'El audio es demasiado largo o pesado.' });
+    return res.status(400).json({ success: false, message: error.message === 'Sube un audio válido.' ? error.message : 'No se pudo leer el audio.' });
+  });
+}, async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: 'No se envió ningún audio.' });
+    if (!hasR2Config()) return res.status(503).json({ success: false, message: 'El servidor no tiene configurado el almacenamiento.', missingConfig: true });
+    const format = sniffAudio(req.file.buffer);
+    if (!format) return res.status(400).json({ success: false, message: 'Ese formato de audio no es válido.' });
+    const uploader = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true, role: true } });
+    if (!uploader || uploader.role === 'deleted') return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+
+    const filename = userR2Prefix(req.user.sub) + 'voice/' + crypto.randomBytes(16).toString('hex') + '.' + format.ext;
+    await r2Client.send(new PutObjectCommand({ Bucket: process.env.R2_BUCKET_NAME, Key: filename, Body: req.file.buffer, ContentType: format.type, CacheControl: 'public, max-age=31536000, immutable' }));
+    res.json({ success: true, url: process.env.R2_PUBLIC_URL.replace(/\/$/, '') + '/' + filename });
+  } catch (error) {
+    console.error('Audio upload error:', error);
+    res.status(500).json({ success: false, message: 'Error subiendo el audio' });
+  }
+});
+
 export default router;

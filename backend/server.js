@@ -28,6 +28,7 @@ import reviewRoutes, { REVIEW_HIDE_REPORTS } from './routes/reviews.js';
 import sellerRoutes from './routes/sellers.js';
 import cardRoutes from './routes/cards.js';
 import wishlistRoutes from './routes/wishlist.js';
+import chatRoutes from './routes/chats.js';
 import messageRoutes from './routes/messages.js';
 import legalRoutes from './routes/legal.js';
 import catalogImportRoutes from './routes/catalogImport.js';
@@ -108,6 +109,7 @@ app.use(notificationRoutes);
 app.use(opsRoutes);
 app.use(onboardingRoutes);
 app.use(teamRoutes);
+app.use(chatRoutes);
 app.use(messageRoutes);
 
 const moderation = registerReports(app, { prisma, authenticateToken, requireStaff, hooks: moderationHooks, badRequest, isUuid, currentUserId, hashConnection, sendUserEmail, escapeHtml, reviewHideReports: REVIEW_HIDE_REPORTS });

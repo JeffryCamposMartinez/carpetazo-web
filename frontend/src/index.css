@@ -468,3 +468,30 @@ body.public-profile-active::after {
 /* Esqueletos de carga con el brillo azul de la marca (los de moderación usan .mod-skeleton) */
 .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.55) 25%, rgba(255,255,255,0.92) 50%, rgba(255,255,255,0.55) 75%); background-size: 200% 100%; animation: mod-shimmer 1.6s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+
+/* ---- Mensajes (chat estilo WhatsApp) ---- */
+/* Fondo del chat: azul suave con cartas y estrellas muy tenues, para que las burbujas se lean sin ruido */
+.chat-wallpaper {
+  background-color: #dbeafe;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160' fill='none' stroke='%231e40af' stroke-opacity='.07' stroke-width='2'%3E%3Crect x='14' y='18' width='26' height='36' rx='4' transform='rotate(-12 27 36)'/%3E%3Crect x='104' y='96' width='26' height='36' rx='4' transform='rotate(14 117 114)'/%3E%3Cpath d='M92 28l3.2 6.6 7.2 1-5.2 5.1 1.2 7.2-6.4-3.4-6.4 3.4 1.2-7.2-5.2-5.1 7.2-1z'/%3E%3Cpath d='M38 112l2.6 5.4 5.9.8-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.2 5.9-.8z'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+@keyframes chat-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes chat-pop-in { from { opacity: 0; transform: scale(0.95) translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes chat-sheet-in { from { transform: translateY(24px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+@keyframes chat-slide-in { from { transform: translateX(28px); opacity: 0.4; } to { transform: none; opacity: 1; } }
+@keyframes chat-flash { 0%, 100% { background-color: transparent; } 20%, 60% { background-color: rgba(250, 204, 21, 0.38); } }
+@keyframes chat-typing { 0%, 60%, 100% { transform: translateY(0); opacity: 0.45; } 30% { transform: translateY(-4px); opacity: 1; } }
+.chat-fade { animation: chat-fade-in 150ms ease-out; }
+.chat-pop { animation: chat-pop-in 160ms cubic-bezier(0.23, 1, 0.32, 1); transform-origin: top right; }
+.chat-sheet { animation: chat-sheet-in 200ms cubic-bezier(0.23, 1, 0.32, 1); }
+.chat-slide-in { animation: chat-slide-in 200ms cubic-bezier(0.23, 1, 0.32, 1); }
+.chat-flash { animation: chat-flash 1.4s ease-out; }
+.chat-typing-dot { animation: chat-typing 1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .chat-fade, .chat-pop, .chat-sheet, .chat-slide-in, .chat-typing-dot { animation: none; }
+  .chat-flash { animation: none; background-color: rgba(250, 204, 21, 0.3); }
+}
+/* Texto seleccionado y cursor con los colores de la marca dentro del chat */
+.chat-wallpaper ::selection, textarea[aria-label='Escribe un mensaje']::selection { background: rgba(250, 204, 21, 0.55); color: #12315f; }
+textarea[aria-label='Escribe un mensaje'] { caret-color: #1e40af; }

@@ -241,9 +241,9 @@ export default function Header() {
         });
         const total = Number(result.totalUnread ?? nextChats.reduce((sum, chat) => sum + Number(chat.unreadCount || 0), 0));
         if (!cancelled) {
-          const filteredTotal = nextChats.reduce((sum, chat) => sum + Number(chat.unreadCount || 0), 0);
+          const filteredTotal = nextChats.filter(chat => !chat.muted).reduce((sum, chat) => sum + Number(chat.unreadCount || 0), 0); // los chats silenciados no suman
           setUnreadMessages(Number.isFinite(filteredTotal) ? filteredTotal : (Number.isFinite(total) ? total : 0));
-          setNotificationChats(nextChats.filter(chat => Number(chat.unreadCount || 0) > 0));
+          setNotificationChats(nextChats.filter(chat => !chat.muted && Number(chat.unreadCount || 0) > 0));
           chatSignature = `${filteredTotal}:${nextChats[0]?.id || ''}:${nextChats[0]?.createdAt || ''}`;
         }
       } catch (error) {
