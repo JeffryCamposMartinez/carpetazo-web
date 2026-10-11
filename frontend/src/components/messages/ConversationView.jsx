@@ -237,7 +237,6 @@ export default function ConversationView({
       <CardPicker open={cardsOpen} onClose={() => setCardsOpen(false)} myUsername={myUsername} onPick={(card) => { setCardsOpen(false); send({ cardId: card.id }); }} />
       <ImagePreview files={files} onClose={() => setFiles([])} onRemove={(at) => setFiles((previous) => previous.filter((_, index) => index !== at))} onSend={sendPhotos} />
       <ImageViewer src={viewer} onClose={() => setViewer(null)} />
-      <ConfirmSheet open={confirmBlock} onClose={() => setConfirmBlock(false)} title={`¿Bloquear a ${name}?`} text="No podrán escribirse hasta que la desbloquees. La otra persona no recibe ningún aviso." confirmLabel="Bloquear" danger onConfirm={toggleBlock} />
       {reporting && <ReportSheet {...reporting} onClose={() => setReporting(null)} />}
     </section>
   );
