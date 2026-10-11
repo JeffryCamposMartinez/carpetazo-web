@@ -1,0 +1,81 @@
+name: Production watch
+
+# Vigila el sitio en producción: cada 15 minutos y después de cada publicación.
+# Si algo falla (el sitio cae, la API no responde, falla CORS, una página queda en blanco), GitHub envía un correo
+# a quien administra el repositorio por cada ejecución fallida (Settings → Notifications → Actions).
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-watch-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Site, API and SEO responses
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Wait for the deploy to finish
+        if: github.event_name == 'push'
+        run: sleep 480
+
+      # Un fallo aislado de red no debe despertar a nadie: se repite una vez antes de dar la alarma
+      - name: Check production
+        run: node backend/scripts/checks/check_production.cjs || (sleep 45 && node backend/scripts/checks/check_production.cjs)
+
+  browser:
+    name: Browser smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Wait for the deploy to finish
+        if: github.event_name == 'push'
+        run: sleep 480
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+
+      - name: Run browser tests against production
+        run: npx playwright test
+        working-directory: frontend
+        env:
+          CI: 'true'
+          BASE_URL: https://carpetazo.cl
+
+      - name: Keep screenshots and traces of failures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failures
+          path: frontend/test-results
+          retention-days: 7
