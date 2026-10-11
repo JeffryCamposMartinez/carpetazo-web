@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../../services/api';
 import Sheet from './Sheet';
 import LoadingState from '../ui/LoadingState';
@@ -19,9 +19,12 @@ export default function CardPicker({ open, onClose, onPick, myUsername }) {
   const [tcgs, setTcgs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
+  const listRef = useRef(null);
 
   useEffect(() => { if (open) setTab(myUsername ? 'public' : 'all'); }, [open, myUsername]);
   useEffect(() => { setTcg(''); setTcgs([]); }, [tab]);
+  // Al cambiar de pestaña, de juego o de búsqueda, las cartas vuelven a empezar desde arriba
+  useEffect(() => { listRef.current?.scrollTo({ top: 0 }); }, [tab, tcg, query]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -73,7 +76,7 @@ export default function CardPicker({ open, onClose, onPick, myUsername }) {
         )}
         {tab === 'private' && <p className="mt-1.5 text-xs text-slate-500">Estas cartas no tienen página: quien las reciba las verá en el chat, sin enlace.</p>}
       </div>
-      <div className="min-h-[14rem] flex-1 overflow-y-auto overscroll-contain px-2 pb-4">
+      <div ref={listRef} className="min-h-[14rem] flex-1 overflow-y-auto overscroll-contain px-2 pb-4">
         {loading && cards.length === 0 ? <LoadingState variant="compact" label="Buscando cartas…" />
           : failed ? <EmptyState variant="plain" icon="cloud_off" title="No pudimos buscar cartas">Revisa tu conexión e inténtalo de nuevo.</EmptyState>
           : cards.length === 0 ? <EmptyState variant="plain" icon="search_off" title="No encontramos cartas">{emptyText}</EmptyState>
