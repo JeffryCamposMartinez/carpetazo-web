@@ -121,9 +121,9 @@ export default function Composer({
           <div className="flex min-w-0 flex-1 items-center gap-3 rounded-xl bg-white px-2 py-2 shadow-sm ring-1 ring-black/5">
             {attachedCard.imageUrl ? <img src={attachedCard.imageUrl} alt="" className="h-14 w-10 shrink-0 rounded bg-slate-200 object-cover" /> : <span className="h-14 w-10 shrink-0 rounded bg-slate-200" />}
             <span className="min-w-0 flex-1">
-              <span className="block text-xs font-extrabold text-[#1e40af]">Se enviará con esta carta</span>
+              <span className="block text-xs font-extrabold text-[#1e40af]">{attachedCard.id ? 'Se enviará con esta carta' : 'Se enviará con esta foto'}</span>
               <span className="block truncate text-[14px] font-extrabold text-[#12315f]">{attachedCard.name}</span>
-              <span className="block text-[13px] font-bold tabular-nums text-slate-600">{Number(attachedCard.price) > 0 ? `$${Math.round(Number(attachedCard.price)).toLocaleString('es-CL')}` : 'Consultar'}</span>
+              {attachedCard.id && <span className="block text-[13px] font-bold tabular-nums text-slate-600">{Number(attachedCard.price) > 0 ? `$${Math.round(Number(attachedCard.price)).toLocaleString('es-CL')}` : 'Consultar'}</span>}
             </span>
             <button type="button" onClick={onRemoveCard} aria-label="Quitar la carta" className="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
               <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">close</span>

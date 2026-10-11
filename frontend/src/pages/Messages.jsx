@@ -84,7 +84,7 @@ export default function Messages() {
     if (!key) return;
     setHint({ key, id: target.id || '', name: target.name || target.username || 'Vendedor', username: target.username || '', avatar: target.avatar || target.photoURL || null });
     if (typeof target.draft === 'string' && target.draft) setDrafts((previous) => ({ ...previous, [key]: target.draft.slice(0, 500) }));
-    if (target.card?.id) setOffer({ key, card: target.card });
+    if (target.card) setOffer({ key, card: target.card });
     pushed.current = false; // la entrada intermedia se reemplaza: atrás vuelve a la pantalla de origen y la flecha de la app, a la lista
     navigate(`/mensajes?c=${encodeURIComponent(key)}`, { replace: true, state: {} });
   }, [location.state, uid, navigate]);

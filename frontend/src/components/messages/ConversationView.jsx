@@ -147,9 +147,11 @@ export default function ConversationView({
   const send = ({ text = '', file = null, cardId = null, card = null, audio = null }) => {
     const reply = replyTo;
     setReplyTo(null);
-    const withOffer = attached && !cardId && !audio && !file && text.trim() ? attached.id : cardId;
-    if (withOffer && withOffer === attached?.id) { setAttached(null); onOfferUsed?.(); }
-    conv.send({ text, file, cardId: withOffer, card: withOffer === attached?.id ? attached : card, audio, replyTo: reply });
+    const offering = attached && !cardId && !audio && !file && text.trim() ? attached : null;
+    if (offering) { setAttached(null); onOfferUsed?.(); }
+    // Una carta propia viaja como carta; si no la tiene cargada, viaja la foto de la carta deseada
+    if (offering && !offering.id) { conv.send({ text, remoteImage: offering.imageUrl, replyTo: reply }); return; }
+    conv.send({ text, file, cardId: offering ? offering.id : cardId, card: offering || card, audio, replyTo: reply });
   };
   const sendPhotos = (items) => { setFiles([]); items.forEach(({ file, caption }, at) => conv.send({ text: caption, file, replyTo: at === 0 ? replyTo : null })); setReplyTo(null); };
   const addFiles = (incoming) => { const result = pickPhotos(incoming, files); if (result.error) showToast(result.error, 'error'); setFiles(result.files); };

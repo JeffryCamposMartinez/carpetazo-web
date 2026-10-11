@@ -91,7 +91,8 @@ export default function WishlistSection({ username, seller, isOwner = false, var
           name: displayName,
           avatar: seller?.avatar || seller?.photoURL || '',
           draft: `Hola, tengo "${item.name}" que buscas en tu lista de Carpetazo.`,
-          card: card ? { id: card.id, name: card.name, imageUrl: card.imageUrl, price: card.price } : null,
+          // Sin carta propia que coincida, viaja la foto de la carta deseada
+          card: card ? { id: card.id, name: card.name, imageUrl: card.imageUrl, price: card.price } : item.imageUrl ? { id: null, name: item.name, imageUrl: item.imageUrl, price: null } : null,
         },
       },
     });
