@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
+import useEscape from '../../hooks/useEscape';
 import { LoadingMark } from './LoadableImage';
 import { cardCorners } from '../../utils/cardShape';
 
@@ -31,6 +32,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
   const state = useRef({});
   state.current = { index, cards, onChange, onClose };
   useBodyScrollLock();
+  useEscape(true, () => state.current.onClose()); // Esc cierra solo lo que está más arriba
 
   // Arrastre con el dedo (o el mouse): la carta sigue al puntero y al soltar cambia, se cierra o vuelve a su lugar
   const [drag, setDrag] = useState({ x: 0, y: 0, active: false });
@@ -74,8 +76,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
     const trigger = document.activeElement;
     closeRef.current?.focus();
     const onKey = (event) => {
-      const { index: at, cards: list, onChange: change, onClose: close } = state.current;
-      if (event.key === 'Escape') close();
+      const { index: at, cards: list, onChange: change } = state.current;
       if (event.target?.closest?.('input, textarea, select')) return; // las flechas mueven el cursor del campo, no la carta
       if (event.key === 'ArrowRight' && at < list.length - 1) change(list[at + 1].id);
       if (event.key === 'ArrowLeft' && at > 0) change(list[at - 1].id);

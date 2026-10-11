@@ -25,10 +25,10 @@ export const mediaOf = (messages) => {
     if (message.hidden) continue;
     const body = decodeMessage(message.content);
     const photo = imageOf(body);
-    if (photo) items.push({ id: message.id, src: photo });
+    if (photo) items.push({ id: message.id, imageUrl: photo, name: body.text || 'Foto', photo: true });
     else if (body.cardId && message.attachment?.imageUrl && !message.attachment.unavailable) {
-      const { id, name, set, price, private: unlisted } = message.attachment;
-      items.push({ id: message.id, src: message.attachment.imageUrl, card: { id, name, set, price, private: Boolean(unlisted) } });
+      const { id, name, set, price, tcg, private: unlisted } = message.attachment;
+      items.push({ id: message.id, imageUrl: message.attachment.imageUrl, name, set, price, tcg, cardId: id, private: Boolean(unlisted) });
     }
   }
   return items;

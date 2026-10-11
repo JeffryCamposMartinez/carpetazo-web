@@ -12,7 +12,7 @@ import ContactInfo from './ContactInfo';
 import { ForwardSheet, MessageInfoSheet, StarredSheet } from './ChatSheets';
 import CardPicker from './CardPicker';
 import ImagePreview, { pickPhotos } from './ImagePreview';
-import ImageViewer from './ImageViewer';
+import CardLightbox from '../ui/CardLightbox';
 import MenuButton from './MenuButton';
 import MessageActionMenu from './MessageActionMenu';
 import MessageList from './MessageList';
@@ -45,11 +45,12 @@ export default function ConversationView({
   const [reporting, setReporting] = useState(null);
   const [files, setFiles] = useState([]);
   const [viewer, setViewer] = useState(null);
+  const [viewerId, setViewerId] = useState(null);
   const [attached, setAttached] = useState(offer || null);
   useEffect(() => { if (offer) setAttached(offer); }, [offer]);
   const gallery = useMemo(() => mediaOf(messages), [messages]);
   // Desde un mensaje se recorre toda la conversación; desde "Datos del contacto" se ve solo esa foto
-  const viewerItems = !viewer ? [] : viewer.id && gallery.some((item) => item.id === viewer.id) ? gallery : [{ id: 'single', src: viewer.src }];
+  const viewerItems = !viewer ? [] : viewer.id && gallery.some((item) => item.id === viewer.id) ? gallery : [{ id: 'single', imageUrl: viewer.src, name: 'Foto', photo: true }];
   const [cardsOpen, setCardsOpen] = useState(false);
   const [search, setSearch] = useState({ open: false, query: '', at: 0 });
   const [flashId, setFlashId] = useState(null);
@@ -230,7 +231,7 @@ export default function ConversationView({
       <MessageList
         ref={list} messages={messages} partner={partner || { id: partnerId }} partnerName={name} resetKey={partnerKey} loading={conv.loading} hasMore={hasMore} loadingOlder={loadingOlder}
         onLoadOlder={conv.loadOlder} firstUnreadId={conv.firstUnreadId} typing={remoteTyping} query={search.open ? search.query : ''} currentMatchId={search.open ? currentMatch : null} flashId={flashId}
-        onMenu={openMenu} onReply={startReply} onJump={jump} onImage={(src, id) => setViewer({ src, id })} onRetry={conv.retry} onDiscard={conv.discard}
+        onMenu={openMenu} onReply={startReply} onJump={jump} onImage={(src, id) => { setViewer({ src, id }); setViewerId(id || 'single'); }} onRetry={conv.retry} onDiscard={conv.discard}
       />
 
       <Composer
@@ -244,14 +245,22 @@ export default function ConversationView({
 
       <MessageActionMenu target={menu} onClose={() => setMenu(null)} actions={actions} myReaction={myReaction} />
       <ContactInfo open={info} onClose={() => setInfo(false)} partner={partner || { id: partnerId, name, photoURL: avatar, username }} settings={settings} muted={muted} blockedByMe={blockedByMe}
-        onSettings={changeSettings} onToggleBlock={() => { setInfo(false); toggleBlock(); }} onViewImage={(src) => setViewer({ src })}
+        onSettings={changeSettings} onToggleBlock={() => { setInfo(false); toggleBlock(); }} onViewImage={(src) => { setViewer({ src }); setViewerId('single'); }}
         onStarred={() => setStarredOpen(true)} onSearch={() => setSearch({ open: true, query: '', at: 0 })} onReport={() => { setInfo(false); setReporting({ targetType: 'user', targetId: partnerId }); }} />
       <StarredSheet open={starredOpen} onClose={() => setStarredOpen(false)} partnerId={partnerId} onOpenMessage={(message) => jump(message.id)} />
       <ForwardSheet open={Boolean(forwarding)} onClose={() => setForwarding(null)} chats={chats.filter((chat) => (chat.otherUser || chat.partner)?.id !== partnerId)} onSend={forward} busy={forwardBusy} />
       <MessageInfoSheet message={messageInfo} partnerName={name} onClose={() => setMessageInfo(null)} />
       <CardPicker open={cardsOpen} onClose={() => setCardsOpen(false)} myUsername={myUsername} onPick={(card) => { setCardsOpen(false); send({ cardId: card.id, card }); }} />
       <ImagePreview files={files} onClose={() => setFiles([])} onRemove={(at) => setFiles((previous) => previous.filter((_, index) => index !== at))} onSend={sendPhotos} />
-      <ImageViewer items={viewerItems} startId={viewer?.id || 'single'} onClose={() => setViewer(null)} />
+      {viewer && (
+        <CardLightbox
+          cards={viewerItems} cardId={viewerId} onChange={setViewerId} onClose={() => setViewer(null)}
+          describe={(item) => ({ subtitle: item.set || '', chips: item.photo ? [] : [Number(item.price) > 0 ? `$${Math.round(Number(item.price)).toLocaleString('es-CL')}` : 'Consultar'], note: item.private ? 'Carta no publicada: no tiene página.' : '' })}
+          renderActions={(item) => (item.cardId && !item.private
+            ? <Link to={`/carta/${item.cardId}`} onClick={() => setViewer(null)} className="flex h-11 w-full items-center justify-center rounded-full bg-[#facc15] px-6 text-[14px] font-extrabold text-[#12315f] transition-[filter,transform] active:scale-[0.97] hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-white">Ir a ver carta</Link>
+            : null)}
+        />
+      )}
       {reporting && <ReportSheet {...reporting} onClose={() => setReporting(null)} />}
     </section>
   );
