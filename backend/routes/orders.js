@@ -105,10 +105,7 @@ router.post('/api/orders/create', async (req, res) => {
 
     // Anti-spam y reserva: los pedidos pendientes recientes de la carpeta reservan su stock y limitan cuántos puede dejar una misma persona.
     // Con cuenta reservan 7 días; sin cuenta solo 24 horas y con un cupo propio, para que pedidos anónimos no bloqueen el stock ni la carpeta.
-    const reserveSince = new Date(Date.now() - ORDER_RESERVE_DAYS * 24 * 60 * 60 * 1000);
-    const anonSince = Date.now() - ORDER_ANON_RESERVE_HOURS * 60 * 60 * 1000;
-    const pendingOrders = (await prisma.order.findMany({ where: { folderId: folder.id, status: 'pending', createdAt: { gt: reserveSince } }, select: { items: true, createdIpHash: true, buyerId: true, createdAt: true } }))
-      .filter((pending) => pending.buyerId || pending.createdAt.getTime() > anonSince);
+    const pendingOrders = await loadPendingOrders(prisma, folder.id);
     const anonPending = pendingOrders.filter((pending) => !pending.buyerId).length;
     if (!buyer && anonPending >= ORDER_MAX_ANON_PENDING_PER_FOLDER) {
       return res.status(429).json({ success: false, message: 'Este vendedor tiene muchos pedidos sin cuenta pendientes. Inicia sesión para hacer tu pedido.' });
@@ -121,8 +118,7 @@ router.post('/api/orders/create', async (req, res) => {
     if (mine >= ORDER_MAX_PENDING_PER_BUYER) {
       return res.status(429).json({ success: false, message: 'Ya tienes pedidos pendientes con este vendedor. Espera a que los atienda.' });
     }
-    const reserved = new Map();
-    pendingOrders.forEach((pending) => normalizeOrderItems(pending.items).forEach((item) => reserved.set(String(item.id), (reserved.get(String(item.id)) || 0) + Number(item.quantity || 1))));
+    const reserved = reservedStock(pendingOrders);
     const asked = new Map();
 
     // Nombre, precio y vendedor salen de la base de datos; del cliente solo se acepta id y cantidad
@@ -186,16 +182,14 @@ router.post('/api/orders/create', async (req, res) => {
         payment ? '¿Tienes disponibilidad?' : '¿Tienes disponibilidad? ¿Me compartes los datos para transferir?'
       ].join('\n');
       // Pedido y mensaje se crean juntos: no puede quedar uno sin el otro
-      [order] = await prisma.$transaction([
-        prisma.order.create({ data: orderData }),
-        prisma.message.create({ data: { senderId: buyer.id, receiverId: folder.userId, content: JSON.stringify({ v: 1, text, imageUrl: null, imageBase64: null }) } })
-      ]);
+      order = await createOrderLocked(folder.id, asked, orderData, { senderId: buyer.id, receiverId: folder.userId, content: JSON.stringify({ v: 1, text, imageUrl: null, imageBase64: null }) });
     } else {
-      order = await prisma.order.create({ data: orderData });
+      order = await createOrderLocked(folder.id, asked, orderData, null);
     }
 
     res.json({ success: true, code, order: formatOrderForUi(order), payment, viaMessage });
   } catch (error) {
+    if (error.stockConflict) return res.status(409).json({ success: false, message: error.stockConflict });
     console.error('Error creating order:', error);
     res.status(500).json({ success: false, message: 'Error interno al crear el pedido' });
   }
@@ -205,6 +199,38 @@ const ORDER_ANON_RESERVE_HOURS = 24; // uno sin cuenta, solo un día
 const ORDER_MAX_PENDING_PER_FOLDER = 50;
 const ORDER_MAX_ANON_PENDING_PER_FOLDER = 15;
 const ORDER_MAX_PENDING_PER_BUYER = 3;
+
+// Pedidos pendientes que reservan stock en una carpeta: con cuenta, los de los últimos 7 días; sin cuenta, los de las últimas 24 horas
+const loadPendingOrders = async (client, folderId) => {
+  const reserveSince = new Date(Date.now() - ORDER_RESERVE_DAYS * 24 * 60 * 60 * 1000);
+  const anonSince = Date.now() - ORDER_ANON_RESERVE_HOURS * 60 * 60 * 1000;
+  return (await client.order.findMany({ where: { folderId, status: 'pending', createdAt: { gt: reserveSince } }, select: { items: true, createdIpHash: true, buyerId: true, createdAt: true } }))
+    .filter((pending) => pending.buyerId || pending.createdAt.getTime() > anonSince);
+};
+const reservedStock = (pendingOrders) => {
+  const reserved = new Map();
+  pendingOrders.forEach((pending) => normalizeOrderItems(pending.items).forEach((item) => reserved.set(String(item.id), (reserved.get(String(item.id)) || 0) + Number(item.quantity || 1))));
+  return reserved;
+};
+
+// Crea el pedido con un candado por carpeta y vuelve a revisar el stock adentro: si varias personas piden a la vez
+// la última unidad, solo una la reserva (las demás reciben 409). `asked`: id de carta → cantidad pedida
+const createOrderLocked = (folderId, asked, orderData, messageData) => prisma.$transaction(async (tx) => {
+  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${'order:' + folderId}))::text`;
+  const reserved = reservedStock(await loadPendingOrders(tx, folderId));
+  const cards = await tx.card.findMany({ where: { id: { in: [...asked.keys()] }, folderId }, select: { id: true, name: true, stock: true } });
+  const byId = new Map(cards.map((card) => [card.id, card]));
+  for (const [id, quantity] of asked) {
+    const card = byId.get(id);
+    const available = Number(card?.stock || 0) - (reserved.get(id) || 0);
+    if (quantity > available) {
+      throw Object.assign(new Error('stock'), { stockConflict: available <= 0 ? `"${card?.name || 'La carta'}" ya no está disponible` : `Solo quedan ${available} de "${card.name}"` });
+    }
+  }
+  const created = await tx.order.create({ data: orderData });
+  if (messageData) await tx.message.create({ data: messageData });
+  return created;
+}, { timeout: 15000 });
 
 // --- Pedidos del vendedor: solo ve y gestiona los pedidos de sus propias carpetas ---
 const getSellerId = async (req) => {

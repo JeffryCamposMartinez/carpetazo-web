@@ -1,4 +1,5 @@
-// Pedidos: reserva corta de los anónimos, cupo de pedidos sin cuenta y confirmación que no se procesa dos veces.
+// Pedidos: reserva corta de los anónimos, cupo de pedidos sin cuenta, confirmación que no se procesa dos veces
+// y pedidos simultáneos que no pueden reservar la misma unidad.
 const { prisma, call, ok } = require('./fixtures.cjs');
 
 (async () => {
@@ -48,6 +49,12 @@ const { prisma, call, ok } = require('./fixtures.cjs');
     ok('doble confirmación simultánea: una 200 y otra 409', [a.status, b.status].sort().join() === '200,409', a.status + ',' + b.status);
     ok('el stock se descuenta una sola vez', before - after === 1, before + '→' + after);
     ok('otro vendedor no puede gestionar el pedido → 404', (await call('POST', '/orders/mine/' + anonId + '/status', 'jerry', { status: 'rejected' })).status === 404);
+
+    // Varias personas piden a la vez la última unidad: solo una la reserva, las demás reciben 409
+    const lastOne = await mk('ultima-carrera', 1);
+    const race = await Promise.all(['jerry', 'ignacio', 'ale', 'jeffry', 'nobuyer'].map((who, i) => order(who, lastOne, '198.51.100.' + (20 + i))));
+    const raceAccepted = race.filter((r) => r.status === 200).length;
+    ok('pedidos simultáneos por la última unidad: solo 1 la reserva', raceAccepted === 1 && race.filter((r) => r.status === 409).length === 4, race.map((r) => r.status).join(','));
   } finally {
     await prisma.$disconnect();
   }
