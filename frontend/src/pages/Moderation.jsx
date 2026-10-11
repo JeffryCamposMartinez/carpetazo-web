@@ -11,6 +11,7 @@ import MetricsPanel from '../components/moderation/MetricsPanel';
 import ReviewsPanel from '../components/moderation/ReviewsPanel';
 import ToolsPanel from '../components/moderation/ToolsPanel';
 import OperationsPanel from '../components/moderation/OperationsPanel';
+import TeamPanel from '../components/moderation/TeamPanel';
 import CatalogImportPanel from '../components/moderation/CatalogImportPanel';
 import ModNav from '../components/moderation/ModNav';
 
@@ -25,6 +26,7 @@ const TABS = [
   { id: 'cases', group: 'queue', label: 'Estafas', shortLabel: 'Estafas', icon: 'security', min: 1, blurb: 'Casos abiertos contra una cuenta, con todos sus reportes reunidos.' },
   { id: 'appeals', group: 'queue', label: 'Apelaciones', icon: 'gavel', min: 1, blurb: 'Personas que piden revisar una medida o una decisión sobre su contenido.' },
   { id: 'people', group: 'people', label: 'Personas y medidas', shortLabel: 'Personas', icon: 'groups', min: 1, blurb: 'Busca una cuenta, revisa su historial y aplica o levanta medidas.' },
+  { id: 'team', group: 'people', label: 'Equipo y administradores', shortLabel: 'Equipo', icon: 'admin_panel_settings', min: 3, blurb: 'Quién es del equipo y cómo dar el rol de administrador a otra persona, con doble confirmación.' },
   { id: 'reviews', group: 'people', label: 'Reseñas marcadas', shortLabel: 'Reseñas', icon: 'reviews', min: 3, blurb: 'Reseñas reportadas o sospechosas, para aprobarlas o eliminarlas.' },
   { id: 'metrics', group: 'system', label: 'Métricas', icon: 'monitoring', min: 3, blurb: 'Cómo está funcionando la moderación: volumen, tiempos y resultados.' },
   { id: 'audit', group: 'system', label: 'Auditoría', icon: 'history', min: 3, blurb: 'Todo lo que se decide queda registrado, con quién lo hizo.' },
@@ -134,6 +136,7 @@ export default function Moderation() {
               {tab === 'cases' && <CasesPanel level={level} onOpenPerson={openPerson} onOpenReport={openReport} />}
               {tab === 'people' && <PeoplePanel level={level} focusUsername={focusUsername} focusReportId={sanctionReportId || undefined} onFocusUsed={() => setFocusUsername('')} />}
               {tab === 'appeals' && <AppealsPanel level={level} />}
+              {tab === 'team' && level >= 3 && <TeamPanel />}
               {tab === 'reviews' && level >= 3 && <ReviewsPanel />}
               {tab === 'metrics' && level >= 3 && <MetricsPanel />}
               {tab === 'audit' && level >= 3 && <AuditPanel />}

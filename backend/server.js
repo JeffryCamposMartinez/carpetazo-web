@@ -35,6 +35,7 @@ import linkPreviewRoutes from './routes/linkPreview.js';
 import seoRoutes from './routes/seo.js';
 import notificationRoutes from './routes/notifications.js';
 import opsRoutes from './routes/ops.js';
+import teamRoutes from './routes/team.js';
 import { installErrorCapture, purgeOldErrors, requestContext } from './core/errorLog.js';
 import { startWishlistAlerts } from './core/wishlistAlerts.js';
 import { startPriceHistory } from './core/priceHistory.js';
@@ -101,6 +102,7 @@ app.use(linkPreviewRoutes);
 app.use(seoRoutes);
 app.use(notificationRoutes);
 app.use(opsRoutes);
+app.use(teamRoutes);
 app.use(messageRoutes);
 
 const moderation = registerReports(app, { prisma, authenticateToken, requireStaff, hooks: moderationHooks, badRequest, isUuid, currentUserId, hashConnection, sendUserEmail, escapeHtml, reviewHideReports: REVIEW_HIDE_REPORTS });
