@@ -1,4 +1,4 @@
-import { ensureExternalUrl, formatWhatsAppNumber, getInstagramHref } from '../utils/contact';
+import { formatWhatsAppNumber, getInstagramHref, getSocialHref } from '../utils/contact';
 import { loadThemeFonts } from '../utils/themeFonts';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -194,14 +194,14 @@ export default function SellerProfile() {
       label: 'Facebook',
       field: 'showFacebook',
       available: Boolean(seller?.facebookUrl),
-      href: seller?.facebookUrl ? ensureExternalUrl(seller.facebookUrl) : ''
+      href: seller?.facebookUrl ? getSocialHref('facebook', seller.facebookUrl) : ''
     },
     {
       id: 'youtube',
       label: 'YouTube',
       field: 'showYoutube',
       available: Boolean(seller?.youtubeUrl),
-      href: seller?.youtubeUrl ? ensureExternalUrl(seller.youtubeUrl) : ''
+      href: seller?.youtubeUrl ? getSocialHref('youtube', seller.youtubeUrl) : ''
     }
   ];
 

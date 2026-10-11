@@ -4,7 +4,7 @@ import api, { API_BASE_URL, apiFetch } from '../services/api';
 import { useToast } from '../components/ui/ToastProvider';
 import { useAuth } from '../contexts/AuthContext';
 import WishlistSection from '../components/wishlist/WishlistSection';
-import { ensureExternalUrl, formatWhatsAppNumber, getInstagramHref } from '../utils/contact';
+import { formatWhatsAppNumber, getInstagramHref, getSocialHref } from '../utils/contact';
 import { wishlistPayloadFromCard } from '../utils/wishlistPayload';
 import CatalogCartDrawer from '../components/folder/catalog/CatalogCartDrawer';
 import CatalogBrowser from '../components/folder/catalog/CatalogBrowser';
@@ -525,7 +525,7 @@ function PublicCatalog() {
       options.push({
         id: 'facebook',
         label: 'Facebook',
-        href: ensureExternalUrl(sellerData.facebookUrl),
+        href: getSocialHref('facebook', sellerData.facebookUrl),
         className: 'bg-blue-50 text-blue-700 ring-blue-100 hover:bg-blue-100'
       });
     }
@@ -534,7 +534,7 @@ function PublicCatalog() {
       options.push({
         id: 'youtube',
         label: 'YouTube',
-        href: ensureExternalUrl(sellerData.youtubeUrl),
+        href: getSocialHref('youtube', sellerData.youtubeUrl),
         className: 'bg-red-50 text-red-600 ring-red-100 hover:bg-red-100'
       });
     }
