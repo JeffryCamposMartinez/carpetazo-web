@@ -65,6 +65,9 @@ const corsOptions = {
   credentials: true
 };
 
+// Cabeceras de seguridad antes de cualquier ruta (incluida /api/health), y sin anunciar "Express"
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+
 // Estado del servicio para monitores externos y para el healthcheck de Coolify: responde 503 si la base de datos no contesta
 app.get('/api/health', cors(corsOptions), async (_req, res) => {
   try {
@@ -77,7 +80,6 @@ app.get('/api/health', cors(corsOptions), async (_req, res) => {
 
 app.set('trust proxy', 1);
 
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors(corsOptions));
 app.use('/api', limiter);
 applyRouteLimits(app);
