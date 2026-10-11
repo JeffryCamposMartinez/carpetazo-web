@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../ui/ToastProvider';
 import { warmFolderPreview } from '../../utils/sharePreview';
 import FolderEmptySteps from './FolderEmptySteps';
+import { siteUrl } from '../../utils/siteUrl';
 
 const hiddenKey = (uid) => `carpetazo:onboarding-hidden:${uid}`;
 const readHidden = (uid) => { try { return localStorage.getItem(hiddenKey(uid)) === '1'; } catch (_error) { return false; } };
@@ -33,7 +34,7 @@ export default function OnboardingChecklist({ foldersCount, onCreateFolder, vers
   const share = async () => {
     const id = state?.shareFolderId;
     if (!id) return;
-    const url = `${window.location.origin}/c/${id}`;
+    const url = siteUrl(`/c/${id}`);
     warmFolderPreview(id);
     try {
       if (navigator.share) await navigator.share({ title: 'Mi catálogo de cartas en Carpetazo', text: '¡Mira mi catálogo de cartas en Carpetazo!', url });

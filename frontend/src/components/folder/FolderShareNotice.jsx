@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { api } from '../../services/api';
 import { warmFolderPreview } from '../../utils/sharePreview';
+import { siteUrl } from '../../utils/siteUrl';
 
 // Tras guardar la primera carta: invita a publicar la carpeta y compartir su enlace (copiar o WhatsApp).
 // Una carpeta privada no la ve nadie, así que publicar es el paso que falta para vender.
 export default function FolderShareNotice({ folder, onPublished, onClose, showToast }) {
   const [busy, setBusy] = useState(false);
   const isPublic = Boolean(folder.isPublic);
-  const url = `${window.location.origin}/c/${folder.id}`;
+  const url = siteUrl(`/c/${folder.id}`);
 
   const ensurePublic = async () => {
     if (isPublic) return true;

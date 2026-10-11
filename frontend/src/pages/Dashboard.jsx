@@ -13,6 +13,7 @@ import { useToast } from '../components/ui/ToastProvider';
 import { warmFolderPreview } from '../utils/sharePreview';
 import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 import { LoadingMark } from '../components/ui/LoadableImage';
+import { siteUrl } from '../utils/siteUrl';
 // html2canvas + jsPDF pesan mucho: se descargan solo al generar un PDF
 const HiddenPDFGenerator = lazy(() => import('../components/folder/HiddenPDFGenerator'));
 
@@ -321,7 +322,7 @@ export default function Dashboard() {
 
   const handleShareFolder = (e, folder) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/c/${folder.id}`;
+    const url = siteUrl(`/c/${folder.id}`);
     warmFolderPreview(folder.id);
     
     if (navigator.share) {

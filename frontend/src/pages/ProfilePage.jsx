@@ -11,6 +11,7 @@ import { useToast } from '../components/ui/ToastProvider';
 import ThemedSelect from '../components/ui/ThemedSelect';
 import Select from '../components/ui/Select';
 import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
+import { siteUrl } from '../utils/siteUrl';
 
 const chileBanks = [
   'Banco de Chile - Edwards',
@@ -197,7 +198,7 @@ const ProfilePage = () => {
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
 
   const rutIsValid = validateRut(profileData.rut);
-  const publicUrl = profileData.username ? `${window.location.origin}/${profileData.username}` : '';
+  const publicUrl = profileData.username ? siteUrl(`/${profileData.username}`) : '';
   const selectedTab = tabs.find(tab => tab.id === activeTab) || tabs[0];
   const availableComunas = useMemo(() => (
     chileData.find(region => region.region === locationForm.region)?.comunas || []

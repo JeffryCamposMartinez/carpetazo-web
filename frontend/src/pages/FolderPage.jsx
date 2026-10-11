@@ -28,6 +28,7 @@ import { tcgcsvCategoryId } from '../services/tcgcsvGames';
 import { warmFolderPreview } from '../utils/sharePreview';
 import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 import EmptyState from '../components/ui/EmptyState';
+import { siteUrl } from '../utils/siteUrl';
 
 
 const PAGE_SIZE = 20;
@@ -685,7 +686,7 @@ const [isSearching, setIsSearching] = useState(false);
   };
 
   const copyBuyerLink = async () => {
-    const url = `${window.location.origin}/c/${id}`;
+    const url = siteUrl(`/c/${id}`);
     warmFolderPreview(id);
     try {
       await navigator.clipboard.writeText(url);
