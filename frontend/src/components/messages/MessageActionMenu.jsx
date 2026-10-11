@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import EmojiPicker from './EmojiPicker';
 import { QUICK_REACTIONS } from './emojiData';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
+import useEscape from '../../hooks/useEscape';
 
 const MENU_W = 236;
 
@@ -11,17 +12,13 @@ export default function MessageActionMenu({ target, onClose, actions, myReaction
   const [picker, setPicker] = useState(false);
   const [place, setPlace] = useState(null);
   const ref = useRef(null);
+  const openedAt = useRef(0);
   const phone = typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches;
   useBodyScrollLock(Boolean(target) && phone);
 
-  useEffect(() => { setPicker(false); setPlace(null); }, [target]);
-  useEffect(() => {
-    if (!target) return undefined;
-    const onKey = (event) => { if (event.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    ref.current?.querySelector('button')?.focus({ preventScroll: true });
-    return () => window.removeEventListener('keydown', onKey);
-  }, [target, onClose]);
+  useEffect(() => { setPicker(false); openedAt.current = Date.now(); }, [target]);
+  useEscape(Boolean(target), onClose);
+  useEffect(() => { if (target) ref.current?.querySelector('button')?.focus({ preventScroll: true }); }, [target]);
 
   // En pantalla ancha el menú se acomoda junto al mensaje sin salirse de la ventana
   useLayoutEffect(() => {
@@ -79,7 +76,7 @@ export default function MessageActionMenu({ target, onClose, actions, myReaction
 
   return createPortal(
     <div className="fixed inset-0 z-[90]" role="presentation">
-      <button type="button" aria-label="Cerrar menú" tabIndex={-1} onClick={onClose} className="chat-fade absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+      <button type="button" aria-label="Cerrar menú" tabIndex={-1} onClick={() => { if (Date.now() - openedAt.current > 450) onClose(); }} className="chat-fade absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
       {phone ? <div className="absolute inset-x-0 bottom-0">{content}</div> : content}
     </div>,
     document.body

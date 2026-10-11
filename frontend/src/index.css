@@ -495,3 +495,7 @@ body.public-profile-active::after {
 /* Texto seleccionado y cursor con los colores de la marca dentro del chat */
 .chat-wallpaper ::selection, textarea[aria-label='Escribe un mensaje']::selection { background: rgba(250, 204, 21, 0.55); color: #12315f; }
 textarea[aria-label='Escribe un mensaje'] { caret-color: #1e40af; }
+
+/* En Mensajes los avisos salen arriba: abajo taparían la barra de escribir y sus botones */
+body.chat-screen [role='region'][aria-label='Avisos'] { top: 0.5rem; bottom: auto; padding-bottom: 0; }
+body.chat-screen [role='region'][aria-label='Avisos'] > * { pointer-events: none; } /* los toques pasan a los botones que quedan debajo del aviso */

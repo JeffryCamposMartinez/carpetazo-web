@@ -1,18 +1,14 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
+import useEscape from '../../hooks/useEscape';
 
 // Foto a pantalla completa: se acerca con un toque, se descarga y se cierra con Esc o tocando fuera
 export default function ImageViewer({ src, onClose }) {
   const [zoom, setZoom] = useState(false);
   useBodyScrollLock(Boolean(src));
   useEffect(() => { setZoom(false); }, [src]);
-  useEffect(() => {
-    if (!src) return undefined;
-    const onKey = (event) => { if (event.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [src, onClose]);
+  useEscape(Boolean(src), onClose);
   if (!src) return null;
 
   return createPortal(

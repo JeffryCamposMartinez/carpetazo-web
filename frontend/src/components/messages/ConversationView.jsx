@@ -5,6 +5,7 @@ import useConversation from '../../hooks/useConversation';
 import { useToast } from '../ui/ToastProvider';
 import { ReportSheet } from '../moderation/ReportButton';
 import VerifiedBadge from '../ui/VerifiedBadge';
+import EmptyState from '../ui/EmptyState';
 import Avatar from './Avatar';
 import Composer from './Composer';
 import ContactInfo from './ContactInfo';
@@ -175,6 +176,14 @@ export default function ConversationView({
     { id: 'archive', icon: 'archive', label: 'Archivar chat', onClick: () => changeSettings({ archived: true }) },
     { id: 'block', icon: 'block', label: blockedByMe ? 'Desbloquear' : 'Bloquear', danger: true, onClick: () => (blockedByMe ? toggleBlock() : setConfirmBlock(true)) }
   ];
+
+  if (conv.notFound) {
+    return (
+      <section className="chat-wallpaper flex h-full min-h-0 flex-col items-center justify-center px-6" aria-label="Conversación no encontrada">
+        <EmptyState icon="person_off" title="No encontramos esta conversación" action={{ label: 'Volver a mis chats', icon: 'arrow_back', onClick: onBack }}>La persona ya no existe o la dirección no es correcta.</EmptyState>
+      </section>
+    );
+  }
 
   return (
     <section className="relative flex h-full min-h-0 flex-col bg-[#dbeafe]" aria-label={`Conversación con ${name}`}>

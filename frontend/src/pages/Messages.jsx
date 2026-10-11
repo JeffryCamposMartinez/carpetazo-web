@@ -56,6 +56,7 @@ export default function Messages() {
   const activeKey = params.get('c') || '';
   const uid = currentUser?.uid;
   useBodyScrollLock(!isDesktop && Boolean(uid));
+  useEffect(() => { document.body.classList.add('chat-screen'); return () => document.body.classList.remove('chat-screen'); }, []);
 
   const sources = archivedView ? list.archived : list.chats;
   const activeChat = useMemo(() => [...list.chats, ...list.archived].find((chat) => { const person = personOf(chat); return person.id === activeKey || person.username === activeKey; }) || null, [list.chats, list.archived, activeKey]);
@@ -82,8 +83,8 @@ export default function Messages() {
     if (!key) return;
     setHint({ key, id: target.id || '', name: target.name || target.username || 'Vendedor', username: target.username || '', avatar: target.avatar || target.photoURL || null });
     if (typeof target.draft === 'string' && target.draft) setDrafts((previous) => ({ ...previous, [key]: target.draft.slice(0, 500) }));
-    pushed.current = true;
-    navigate(`/mensajes?c=${encodeURIComponent(key)}`, { replace: false, state: {} });
+    pushed.current = false; // la entrada intermedia se reemplaza: atrás vuelve a la pantalla de origen y la flecha de la app, a la lista
+    navigate(`/mensajes?c=${encodeURIComponent(key)}`, { replace: true, state: {} });
   }, [location.state, uid, navigate]);
 
   // ---- Borradores: cada chat guarda lo que quedó escrito

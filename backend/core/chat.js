@@ -158,6 +158,7 @@ export const serializeMessages = async (messages, { viewer, partner = null }) =>
 export const createMessage = async ({ sender, receiver, content, replyToId = null, forwarded = false }) => {
   if (!content || !isAllowedMessageContent(content)) return { status: 400, body: { success: false, message: 'Mensaje inválido' } };
   if (receiver.id === sender.id) return { status: 400, body: { success: false, message: 'No puedes enviarte mensajes a ti mismo.' } };
+  if (receiver.role === 'deleted') return { status: 403, body: { success: false, code: 'deleted', message: 'Esta cuenta ya no existe.' } };
   const blockedReason = await messageBlockReason(sender.id, receiver.id);
   if (blockedReason) return { status: 403, body: { success: false, code: 'blocked', message: blockedReason } };
 

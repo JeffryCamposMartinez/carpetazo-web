@@ -1,4 +1,4 @@
-import { memo, useRef } from 'react';
+import { memo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Ticks, { messageStatus } from './Ticks';
 import VoiceMessage from './VoiceMessage';
@@ -59,6 +59,7 @@ function ReplyQuote({ reply, own, partnerName, onJump }) {
 function MessageBubble({ message, own, partnerId, partnerName, grouped, query, current, flash, onMenu, onReply, onJump, onImage, onRetry, onDiscard }) {
   const rowRef = useRef(null);
   const touch = useRef(null);
+  const [imageBroken, setImageBroken] = useState(false);
   const body = decodeMessage(message.content);
   const image = body.imageUrl || body.imageBase64;
   const hasText = Boolean(body.text);
@@ -92,11 +93,12 @@ function MessageBubble({ message, own, partnerId, partnerName, grouped, query, c
       if (pull >= REPLY_DISTANCE && !state.fired) { state.fired = true; haptic(10); }
     }
   };
-  const onTouchEnd = () => {
+  const onTouchEnd = (event) => {
     const state = touch.current;
     touch.current = null;
     if (!state) return;
     window.clearTimeout(state.timer);
+    if (state.mode === 'press' && event.cancelable) event.preventDefault(); // al soltar tras mantener presionado no debe caer un clic sobre lo que apareció debajo
     if (rowRef.current) { rowRef.current.style.transition = 'transform 160ms cubic-bezier(0.23,1,0.32,1)'; rowRef.current.style.transform = ''; window.setTimeout(() => { if (rowRef.current) rowRef.current.style.transition = ''; }, 180); }
     const icon = rowRef.current?.parentElement?.querySelector('[data-reply-icon]');
     if (icon) icon.style.opacity = '0';
@@ -137,14 +139,21 @@ function MessageBubble({ message, own, partnerId, partnerName, grouped, query, c
           {body.cardId && <CardAttachment attachment={message.attachment} own={own} />}
           {body.audio && !message.hidden && <VoiceMessage audio={body.audio} own={own} />}
           {image && (
+            imageBroken ? (
+              <div className={`mb-1 flex h-28 w-[14rem] max-w-full flex-col items-center justify-center gap-1 rounded-xl text-xs font-semibold ${own ? 'bg-white/15 text-blue-100' : 'bg-slate-100 text-slate-500'}`}>
+                <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[28px]">broken_image</span>
+                La foto no está disponible
+              </div>
+            ) : (
             <button type="button" onClick={() => onImage(image)} aria-label="Ver foto" className="relative mb-1 block overflow-hidden rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
-              <img src={image} alt="Foto enviada" loading="lazy" draggable="false" className="max-h-80 min-h-24 w-full min-w-[9rem] max-w-[16rem] bg-black/10 object-cover sm:max-w-[20rem]" />
+              <img src={image} alt="Foto enviada" loading="lazy" draggable="false" onError={() => setImageBroken(true)} className="max-h-80 min-h-24 w-full min-w-[9rem] max-w-[16rem] bg-black/10 object-cover sm:max-w-[20rem]" />
               {!hasText && (
                 <span className="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-black/45 px-2 py-0.5 text-[11px] font-semibold text-white">
                   {clock(message.createdAt)}{own && <Ticks status={status} />}
                 </span>
               )}
             </button>
+            )
           )}
           {message.hidden && <p className="flex items-center gap-1 text-sm italic text-slate-500"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[16px]">visibility_off</span>{message.content}</p>}
           {hasText && !message.hidden && (
@@ -153,7 +162,7 @@ function MessageBubble({ message, own, partnerId, partnerName, grouped, query, c
               <span aria-hidden="true" className={`inline-block h-3 ${own ? 'w-[88px]' : 'w-[60px]'}`} />
             </p>
           )}
-          {(hasText || !image) && !message.hidden && (
+          {(hasText || !image || imageBroken) && !message.hidden && (
             <span className={`absolute bottom-1 right-2 flex items-center gap-1 text-[11px] leading-none ${own ? 'text-white/70' : 'text-slate-400'}`}>
               {message.starred && <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>}
               {message.editedAt && <span>editado</span>}

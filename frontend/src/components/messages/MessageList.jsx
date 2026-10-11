@@ -16,6 +16,7 @@ const MessageList = forwardRef(function MessageList({
 }, ref) {
   const scroller = useRef(null);
   const topSentinel = useRef(null);
+  const contentRef = useRef(null);
   const state = useRef({ initial: true, firstId: null, height: 0, lastId: null, near: true });
   const [fab, setFab] = useState(false);
   const [newBelow, setNewBelow] = useState(0);
@@ -32,12 +33,23 @@ const MessageList = forwardRef(function MessageList({
 
   const toBottom = (behavior = 'smooth') => {
     const el = scroller.current;
-    if (el) el.scrollTo({ top: el.scrollHeight, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : behavior });
+    if (!el) return;
+    const smooth = behavior === 'smooth' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+    // Las fotos terminan de cargar mientras se desliza y el final se mueve: se asegura el último tramo
+    window.clearTimeout(state.current.bottomTimer);
+    if (smooth) state.current.bottomTimer = window.setTimeout(() => { if (el.scrollHeight - el.scrollTop - el.clientHeight > 2) el.scrollTo({ top: el.scrollHeight, behavior: 'auto' }); }, 650);
   };
-  const toMessage = (id, block = 'center') => {
-    const el = scroller.current?.querySelector(`[data-mid="${id}"]`);
+  // Se desplaza solo la lista (scrollIntoView movería también toda la página en escritorio)
+  const toMessage = (id) => {
+    const box = scroller.current;
+    const el = box?.querySelector(`[data-mid="${id}"]`);
     if (!el) return false;
-    el.scrollIntoView({ block, behavior: 'smooth' });
+    window.clearTimeout(state.current.bottomTimer); // un ajuste pendiente al final no debe deshacer el salto
+    state.current.noPinUntil = Date.now() + 1500; // mientras se desliza hacia el mensaje no se vuelve al final por un cambio de tamaño
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const top = el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop;
+    box.scrollTo({ top: Math.max(0, top - (box.clientHeight - el.offsetHeight) / 2), behavior: reduce ? 'auto' : 'smooth' });
     return true;
   };
   useImperativeHandle(ref, () => ({ toBottom, toMessage, has: (id) => Boolean(scroller.current?.querySelector(`[data-mid="${id}"]`)) }));
@@ -78,16 +90,20 @@ const MessageList = forwardRef(function MessageList({
     if (distance < NEAR_BOTTOM) { setNewBelow(0); onAtBottom?.(); }
   };
 
-  // Si el espacio de la lista cambia (se abre el teclado, aparece la barra de respuesta), lo último sigue a la vista
+  // Si el espacio cambia (se abre el teclado, aparece la barra de respuesta) o el contenido crece (terminan de cargar las fotos),
+  // lo último sigue a la vista mientras la persona esté abajo
   useEffect(() => {
     const el = scroller.current;
-    if (!el || typeof ResizeObserver === 'undefined') return undefined;
-    let height = el.clientHeight;
+    const content = contentRef.current;
+    if (!el || !content || typeof ResizeObserver === 'undefined') return undefined;
     const observer = new ResizeObserver(() => {
-      if (el.clientHeight !== height && state.current.near) el.scrollTop = el.scrollHeight;
-      height = el.clientHeight;
+      // ¿Estaba abajo antes de crecer? Se mide con la altura anterior (no con una marca que podría estar desactualizada al cargar mensajes antiguos arriba)
+      const wasAtBottom = state.current.height - el.scrollTop - el.clientHeight < NEAR_BOTTOM;
+      if (wasAtBottom && !state.current.initial && Date.now() > (state.current.noPinUntil || 0)) el.scrollTop = el.scrollHeight;
+      state.current.height = el.scrollHeight;
     });
     observer.observe(el);
+    observer.observe(content);
     return () => observer.disconnect();
   }, []);
 
@@ -102,7 +118,8 @@ const MessageList = forwardRef(function MessageList({
 
   return (
     <div className="relative min-h-0 flex-1">
-      <div ref={scroller} onScroll={onScroll} role="log" aria-live="polite" aria-label="Mensajes" className="chat-wallpaper h-full overflow-y-auto overscroll-contain pb-3 pt-2">
+      <div ref={scroller} onScroll={onScroll} role="log" aria-live="polite" aria-label="Mensajes" className="chat-wallpaper h-full overflow-y-auto overscroll-contain pb-3 pt-2 [overflow-anchor:none]">
+        <div ref={contentRef}>
         <div ref={topSentinel} aria-hidden="true" className="h-px" />
         {loadingOlder && <LoadingState variant="compact" label="Cargando mensajes anteriores…" />}
         {!hasMore && !loading && (
@@ -139,9 +156,10 @@ const MessageList = forwardRef(function MessageList({
             </div>
           </div>
         )}
+        </div>
       </div>
       {fab && (
-        <button type="button" onClick={() => toBottom('smooth')} aria-label={newBelow ? `Ir al final: ${newBelow} mensajes nuevos` : 'Ir al final'} className="chat-pop absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-600 shadow-[0_2px_8px_rgba(8,18,42,0.3)] transition-[transform,filter] duration-150 hover:brightness-95 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] sm:right-5">
+        <button type="button" onClick={() => toBottom('smooth')} aria-label={newBelow ? `Ir al final: ${newBelow} mensajes nuevos` : 'Ir al final'} className="chat-pop absolute bottom-3 right-3 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-600 shadow-[0_2px_8px_rgba(8,18,42,0.3)] transition-[transform,filter] duration-150 hover:brightness-95 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] sm:right-5">
           <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[28px]">keyboard_arrow_down</span>
           {newBelow > 0 && <span className="absolute -top-2 right-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#facc15] px-1 text-[11px] font-black text-[#12315f]">{newBelow > 99 ? '99+' : newBelow}</span>}
         </button>

@@ -220,6 +220,12 @@ const idOf = async (name) => (await prisma.user.findUnique({ where: { firebaseUi
     await call('PUT', '/chats/privacy', 'seller', { showLastSeen: true });
     ok('el chat no revela correo, teléfono ni uid', !/email|"phone"|firebaseUid|"rut"|bankDetails/i.test(JSON.stringify(await convo('jerry', 'seller'))));
 
+    // ---- Cuenta eliminada: no se le puede escribir
+    await prisma.user.update({ where: { id: chat2 }, data: { role: 'deleted' } });
+    r = await send('jerry', 'chat2', 'hola');
+    ok('escribirle a una cuenta eliminada → 403', r.status === 403 && r.j.code === 'deleted', JSON.stringify(r.j));
+    await prisma.user.update({ where: { id: chat2 }, data: { role: 'user' } });
+
     // ---- Bloqueo
     await prisma.userBlock.create({ data: { blockerId: seller, blockedId: ignacio } });
     ok('no se puede reaccionar con una persona bloqueada → 403', (await call('PUT', '/messages/item/' + (await convo('seller', 'ignacio')).messages.slice(-1)[0].id + '/reaction', 'seller', { emoji: '👍' })).status === 403);

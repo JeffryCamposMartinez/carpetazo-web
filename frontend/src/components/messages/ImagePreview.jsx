@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
+import useEscape from '../../hooks/useEscape';
 
 export const MAX_PHOTOS = 5;
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -14,12 +15,7 @@ export default function ImagePreview({ files, onSend, onClose, onRemove }) {
   useBodyScrollLock(files.length > 0);
   const safe = Math.min(index, Math.max(0, files.length - 1));
 
-  useEffect(() => {
-    if (!files.length) return undefined;
-    const onKey = (event) => { if (event.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [files.length, onClose]);
+  useEscape(files.length > 0, onClose);
 
   if (!files.length) return null;
   const send = () => onSend(files.map((file, at) => ({ file, caption: (captions[at] || '').trim() })));

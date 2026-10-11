@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import useEscape from '../../hooks/useEscape';
 
 // Botón de tres puntos con su menú desplegable (portal: no lo recorta ningún contenedor). Teclado: flechas, Enter y Esc.
 export default function MenuButton({ items, label = 'Más opciones', icon = 'more_vert', buttonClassName = '', onDark = false }) {
@@ -13,7 +14,6 @@ export default function MenuButton({ items, label = 'Más opciones', icon = 'mor
     if (!open) return undefined;
     const close = () => setOpen(false);
     const onKey = (event) => {
-      if (event.key === 'Escape') { setOpen(false); button.current?.focus(); return; }
       if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
       event.preventDefault();
       const nodes = [...menu.current.querySelectorAll('button')];
@@ -25,6 +25,8 @@ export default function MenuButton({ items, label = 'Más opciones', icon = 'mor
     menu.current?.querySelector('button')?.focus({ preventScroll: true });
     return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('resize', close); };
   }, [open]);
+
+  useEscape(open, () => { setOpen(false); button.current?.focus(); });
 
   const toggle = () => {
     const rect = button.current?.getBoundingClientRect();

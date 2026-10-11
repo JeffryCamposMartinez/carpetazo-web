@@ -602,7 +602,7 @@ export default function Header() {
           «contents» deja sus partes sueltas en la página para que cada una se pegue por su cuenta (es solo CSS, sin eventos de scroll) */}
       <header className="contents md:hidden">
         <div className="contents">
-          <div ref={mobileStripRef} className="sticky top-0 z-40 flex h-[52px] w-full items-center justify-between gap-2 bg-surface px-3 dark:bg-surface-dim" style={themedTopBarStyle}>
+          <div ref={mobileStripRef} className="sticky top-0 z-[45] flex h-[52px] w-full items-center justify-between gap-2 bg-surface px-3 dark:bg-surface-dim" style={themedTopBarStyle}>
             {/* Izquierda: cuenta y menú */}
             <div className="z-10 flex items-center">
               {currentUser ? (

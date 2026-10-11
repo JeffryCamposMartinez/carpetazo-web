@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
+import useEscape from '../../hooks/useEscape';
 
 // Hoja del chat: en el celular sube desde abajo (se cierra tocando fuera, con Esc o arrastrando hacia abajo); en pantalla ancha es un cuadro centrado.
 // `full` la abre a pantalla completa en el celular (para listas largas). El foco entra a la hoja y vuelve al cerrar.
@@ -9,14 +10,13 @@ export default function Sheet({ open, onClose, title, children, full = false, la
   const drag = useRef(null);
   useBodyScrollLock(open);
 
+  useEscape(open, onClose);
   useEffect(() => {
     if (!open) return undefined;
     const previous = document.activeElement;
     ref.current?.focus({ preventScroll: true });
-    const onKey = (event) => { if (event.key === 'Escape') { event.stopPropagation(); onClose(); } };
-    window.addEventListener('keydown', onKey);
-    return () => { window.removeEventListener('keydown', onKey); previous?.focus?.({ preventScroll: true }); };
-  }, [open, onClose]);
+    return () => { previous?.focus?.({ preventScroll: true }); };
+  }, [open]);
 
   if (!open) return null;
 

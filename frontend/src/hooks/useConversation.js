@@ -17,13 +17,14 @@ export default function useConversation(partnerKey, { onChanged } = {}) {
   const [loading, setLoading] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [error, setError] = useState('');
+  const [notFound, setNotFound] = useState(false);
   const keyRef = useRef(partnerKey);
   const requestRef = useRef(0);
   const pendingFiles = useRef(new Map()); // id temporal -> { file, previewUrl } para poder reintentar un envío fallido
   keyRef.current = partnerKey;
 
   const reset = useCallback(() => {
-    setMessages([]); setPartner(null); setHasMore(false); setFirstUnreadId(null); setError('');
+    setMessages([]); setPartner(null); setHasMore(false); setFirstUnreadId(null); setError(''); setNotFound(false);
     setSettings({ pinned: false, archived: false, mutedUntil: null, markedUnread: false });
   }, []);
 
@@ -51,10 +52,13 @@ export default function useConversation(partnerKey, { onChanged } = {}) {
       if (result.settings) setSettings(result.settings);
       setBlockedByMe(Boolean(result.blockedByMe));
       setError('');
+      setNotFound(false);
       return result;
     } catch (err) {
-      console.error('Error loading messages:', err);
-      if (!silent) setError('No pudimos cargar los mensajes.');
+      if (err?.status === 404) setNotFound(true);
+      else console.error('Error loading messages:', err);
+      if (err?.status === 404) { /* la conversación no existe */ }
+      else if (!silent) setError('No pudimos cargar los mensajes.');
       return null;
     } finally {
       if (!silent && request === requestRef.current) setLoading(false);
@@ -182,5 +186,5 @@ export default function useConversation(partnerKey, { onChanged } = {}) {
     pendingFiles.current.clear();
   }, [partnerKey]);
 
-  return { messages, partner, settings, blockedByMe, setBlockedByMe, hasMore, firstUnreadId, loading, loadingOlder, error, load, loadOlder, send, retry, discard, react, star, edit, markRead, setSettings };
+  return { notFound, messages, partner, settings, blockedByMe, setBlockedByMe, hasMore, firstUnreadId, loading, loadingOlder, error, load, loadOlder, send, retry, discard, react, star, edit, markRead, setSettings };
 }
