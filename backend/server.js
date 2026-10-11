@@ -37,6 +37,7 @@ import notificationRoutes from './routes/notifications.js';
 import { startWishlistAlerts } from './core/wishlistAlerts.js';
 import { startPriceHistory } from './core/priceHistory.js';
 import { startMarketPriceHistory } from './core/marketPriceHistory.js';
+import { startPriceWatch } from './moderation/priceWatch.js';
 import { startPreviewWarmer } from './core/folderPreview.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -119,4 +120,5 @@ app.listen(port, () => {
     startWishlistAlerts();
     startPriceHistory();
     startMarketPriceHistory();
+    startPriceWatch();
 });

@@ -5,6 +5,7 @@ import { prisma } from '../core/db.js';
 import { CARD_SEARCH_TCG_ALIASES, sameCardMatch } from '../core/listing.js';
 import { isValidComuna } from '../core/chileData.js';
 import { badRequest } from '../core/validation.js';
+import { eligibleSales, loadLiveOffers, loadSales, marketAnchors, offersAnchor, referenceFromSales, suspiciousOffers } from '../core/priceIntegrity.js';
 
 const router = express.Router();
 
@@ -79,40 +80,29 @@ router.get('/api/cards/recent', async (req, res) => {
 // 1) mediana de las ventas completadas en los últimos 6 meses (mínimo 3 ventas);
 // 2) si no hay ventas suficientes, mediana de lo que piden los vendedores. Cuenta un precio por vendedor (el más bajo)
 //    y exige al menos 3 vendedores distintos, para que una sola persona no mueva la referencia.
-const REFERENCE_MIN_SALES = 3;
 const REFERENCE_MIN_SELLERS = 3;
 const REFERENCE_MAX_IDS = 60;
 const REFERENCE_SALES_DAYS = 180;
 const roundClp = (value) => Math.max(10, Math.round(Number(value) / 10) * 10);
-// { [tcgId]: { clp, sales } | { clp, sellers } } solo para las cartas que alcanzan el mínimo de ventas o de vendedores
+// { [tcgId]: { clp, sales } | { clp, sellers } } solo para las cartas que alcanzan el mínimo de vendedores y compradores distintos.
+// Defensas contra la manipulación (ver core/priceIntegrity.js): una venta solo cuenta si está cerca de lo que piden otros vendedores,
+// la referencia se calcula con un valor por vendedor, y las publicaciones sospechosas (muy baratas, de cuentas nuevas) no cuentan.
 const mylReferencePrices = async (ids) => {
-  // Ventas completadas: la carta se identifica por el `tcgId` guardado en el pedido o, en los pedidos antiguos, por la carta que sigue existiendo
-  const sales = await prisma.$queryRaw`
-    SELECT s."tcgId", percentile_cont(0.5) WITHIN GROUP (ORDER BY s."unit") AS median, COUNT(*)::int AS n
-    FROM (
-      SELECT COALESCE(line->>'tcgId', c."tcgId") AS "tcgId", (line->>'price')::float AS "unit"
-      FROM "Order" o
-      JOIN "Folder" f ON f."id" = o."folderId"
-      CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(o."items"::jsonb) = 'array' THEN o."items"::jsonb ELSE '[]'::jsonb END) AS line
-      LEFT JOIN "Card" c ON c."id" = line->>'id'
-      WHERE o."status" = 'completed' AND f."tcg" = 'Mitos y Leyendas' AND o."createdAt" > now() - make_interval(days => ${REFERENCE_SALES_DAYS}::int)
-        AND line->>'price' ~ '^[0-9]+(\\.[0-9]+)?$'
-    ) s
-    WHERE s."tcgId" = ANY(${ids}) AND s."unit" > 0
-    GROUP BY s."tcgId" HAVING COUNT(*) >= ${REFERENCE_MIN_SALES}`;
-  const rows = await prisma.$queryRaw`
-    SELECT "tcgId", percentile_cont(0.5) WITHIN GROUP (ORDER BY "price") AS median, COUNT(*)::int AS sellers
-    FROM (
-      SELECT c."tcgId", f."userId", MIN(c."price") AS "price"
-      FROM "Card" c JOIN "Folder" f ON f."id" = c."folderId"
-      WHERE f."tcg" = 'Mitos y Leyendas' AND c."tcgId" = ANY(${ids}) AND c."stock" > 0 AND c."price" > 0
-        AND c."moderationState" = 'visible' AND f."isPublic" = true AND f."moderationState" = 'visible'
-      GROUP BY c."tcgId", f."userId"
-    ) per_seller
-    GROUP BY "tcgId" HAVING COUNT(*) >= ${REFERENCE_MIN_SELLERS}`;
+  const [sales, offers] = await Promise.all([
+    loadSales({ tcg: 'Mitos y Leyendas', tcgIds: ids, days: REFERENCE_SALES_DAYS }),
+    loadLiveOffers({ tcg: 'Mitos y Leyendas', tcgIds: ids })
+  ]);
   const prices = {};
-  rows.forEach((row) => { prices[row.tcgId] = { clp: roundClp(row.median), sellers: row.sellers }; });
-  sales.forEach((row) => { prices[row.tcgId] = { clp: roundClp(row.median), sales: row.n }; });
+  for (const id of ids) {
+    const cardOffers = offers.filter((offer) => offer.tcgId === id);
+    const bySales = referenceFromSales(eligibleSales(sales.filter((sale) => sale.tcgId === id), offersAnchor(cardOffers)));
+    if (bySales) { prices[id] = { clp: roundClp(bySales.value), sales: bySales.sales }; continue; }
+    const flagged = suspiciousOffers(cardOffers);
+    const fair = cardOffers.filter((offer) => !flagged.has(offer.cardId));
+    const sellers = new Set(fair.map((offer) => offer.userId)).size;
+    const anchor = sellers >= REFERENCE_MIN_SELLERS ? offersAnchor(fair, REFERENCE_MIN_SELLERS) : null;
+    if (anchor) prices[id] = { clp: roundClp(anchor), sellers };
+  }
   return prices;
 };
 
@@ -131,25 +121,20 @@ router.get('/api/cards/reference-prices', async (req, res) => {
   }
 });
 
-// Últimas ventas completadas de una carta en este juego: solo fecha, precio y cantidad (sin comprador ni vendedor)
+// Últimas ventas completadas de una carta en este juego: solo fecha, precio y cantidad (sin comprador ni vendedor).
+// Se descartan las autoventas y las que están muy lejos de lo que piden otros vendedores o del precio de mercado de TCGplayer.
 const SALES_SHOWN = 10;
 const recentSales = async (tcgId, tcg) => {
-  const rows = await prisma.$queryRaw`
-    SELECT s."at", s."unit", s."quantity"
-    FROM (
-      SELECT o."updatedAt" AS "at", (line->>'price')::float AS "unit",
-             CASE WHEN line->>'quantity' ~ '^[0-9]{1,4}$' THEN (line->>'quantity')::int ELSE 1 END AS "quantity",
-             COALESCE(line->>'tcgId', c."tcgId") AS "tcgId"
-      FROM "Order" o
-      JOIN "Folder" f ON f."id" = o."folderId"
-      CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(o."items"::jsonb) = 'array' THEN o."items"::jsonb ELSE '[]'::jsonb END) AS line
-      LEFT JOIN "Card" c ON c."id" = line->>'id'
-      WHERE o."status" = 'completed' AND f."tcg" = ${tcg} AND line->>'price' ~ '^[0-9]+(\\.[0-9]+)?$'
-    ) s
-    WHERE s."tcgId" = ${tcgId} AND s."unit" > 0
-    ORDER BY s."at" DESC
-    LIMIT ${SALES_SHOWN}`;
-  return rows.map((row) => ({ at: row.at, price: Math.round(Number(row.unit)), quantity: row.quantity }));
+  const [sales, offers, market] = await Promise.all([
+    loadSales({ tcg, tcgIds: [tcgId], days: 730 }),
+    loadLiveOffers({ tcg, tcgIds: [tcgId] }),
+    tcg === 'Pokemon' ? marketAnchors([tcgId]) : new Map()
+  ]);
+  const anchor = market.get(tcgId) || offersAnchor(offers);
+  return eligibleSales(sales, anchor)
+    .sort((a, b) => new Date(b.at) - new Date(a.at))
+    .slice(0, SALES_SHOWN)
+    .map((sale) => ({ at: sale.at, price: Math.round(sale.unit), quantity: sale.quantity }));
 };
 
 // Ficha pública de una carta a la venta: sus datos y todas las ofertas de esa misma carta (de menor a mayor precio)

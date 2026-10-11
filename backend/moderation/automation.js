@@ -2,6 +2,7 @@
 // métricas del panel, retención automática e informe de un caso para autoridades.
 import { analyzeText } from './textSignals.js';
 import { AUTO_REASONS, REPORT_TARGETS, findReason } from './reportReasons.js';
+import { runPriceWatch } from './priceWatch.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const HOUR = 60 * 60 * 1000;
@@ -97,6 +98,26 @@ export const registerAutomation = (app, deps) => {
   };
   hooks.flagText = (targetType, targetId, text, context, viewerId) => flagText(targetType, targetId, text, context, viewerId).catch((error) => console.error('Error flagging text:', error.message));
 
+  // ============ Manipulación de precios (publicaciones y ventas sospechosas) ============
+  // Abre un reporte automático una sola vez por objetivo y razón (aunque se haya descartado, no se vuelve a abrir)
+  hooks.flagPrice = async ({ targetType, targetId, reasonCode, context }) => {
+    const reason = AUTO_REASONS[reasonCode];
+    if (!reason) return false;
+    if (await prisma.report.findFirst({ where: { targetType, targetId, reasonCode }, select: { id: true } })) return false;
+    const resolved = await moderation.resolveTarget(targetType, targetId, { id: null });
+    if (resolved.error) return false;
+    for (let attempt = 0; attempt < SHORT_CODE_RETRIES; attempt += 1) {
+      try {
+        await prisma.report.create({ data: { shortCode: moderation.newShortCode(), targetType, targetId, targetOwnerId: resolved.ownerId, reasonCode, severity: reason.severity, extra: { contexto: context }, reporterId: null, weight: 1, snapshot: resolved.snapshot } });
+        return true;
+      } catch (error) {
+        if (error.code === 'P2002' && JSON.stringify(error.meta?.target || '').includes('shortCode')) continue;
+        throw error;
+      }
+    }
+    return false;
+  };
+
   // ============ Imágenes retenidas o a revisar por el escaneo automático ============
   const IMAGE_TARGETS = { avatar: ['profile_image', 'photoURL'], banner: ['profile_banner', 'bannerBase64'], wallpaper: ['profile_wallpaper', 'wallpaperBase64'] };
   // hide = true: la imagen queda fuera del perfil hasta que una persona la revise ("pendiente"); false: se publica y entra a la cola
@@ -170,6 +191,16 @@ export const registerAutomation = (app, deps) => {
       res.json({ success: true, ...(await runRetention()) });
     } catch (error) {
       console.error('Error running retention:', error);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
+  // Vigilancia de precios a pedido (también corre sola cada pocas horas): solo el equipo con nivel 3
+  app.post('/api/admin/price-watch/run', authenticateToken, requireStaff(3), async (_req, res) => {
+    try {
+      res.json({ success: true, created: await runPriceWatch() });
+    } catch (error) {
+      console.error('Error running price watch:', error);
       res.status(500).json({ success: false, message: 'Error interno' });
     }
   });

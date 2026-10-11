@@ -108,6 +108,8 @@ export const AUTO_REASONS = {
   'auto.suspicious_link': { code: 'auto.suspicious_link', label: 'Detección automática: enlace acortado o sospechoso', severity: 'S3', requiresComment: false, extra: [] },
   'auto.image_review': { code: 'auto.image_review', label: 'Detección automática: imagen con posible contenido sensible (se publicó, falta confirmar)', severity: 'S2', requiresComment: false, extra: [] },
   'auto.image_pending': { code: 'auto.image_pending', label: 'Imagen retenida: no se pudo escanear y la cuenta es nueva o tiene antecedentes (pendiente de revisión)', severity: 'S2', requiresComment: false, extra: [] },
+  'auto.price_listing': { code: 'auto.price_listing', label: 'Detección automática: carta publicada muy por debajo del precio de mercado por una cuenta nueva (posible manipulación de precios)', severity: 'S3', requiresComment: false, extra: [] },
+  'auto.price_manipulation': { code: 'auto.price_manipulation', label: 'Detección automática: ventas completadas muy por debajo del precio de mercado entre las mismas cuentas o cuentas nuevas (posible manipulación de precios)', severity: 'S2', requiresComment: false, extra: [] },
   'auto.repeated_text': { code: 'auto.repeated_text', label: 'Detección automática: texto repetitivo (posible spam)', severity: 'S4', requiresComment: false, extra: [] }
 };
 
