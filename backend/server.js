@@ -59,7 +59,8 @@ installErrorCapture();
 app.use(requestContext);
 
 const corsOptions = {
-  origin: ['https://carpetazo.cl', 'https://www.carpetazo.cl', 'http://localhost:5173'],
+  // Solo el sitio publicado: en local la web llama a la API por el proxy de Vite (mismo origen), sin CORS
+  origin: ['https://carpetazo.cl', 'https://www.carpetazo.cl'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true
 };
