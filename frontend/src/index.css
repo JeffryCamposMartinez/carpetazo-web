@@ -219,7 +219,8 @@ body.public-profile-active::after {
 .folder-sheet { animation: sheet-up 260ms cubic-bezier(0.32, 0.72, 0, 1) both; }
 .sheet-backdrop { animation: backdrop-in 180ms ease-out both; }
 .folder-popover { animation: menu-pop 140ms cubic-bezier(0.23, 1, 0.32, 1) both; transform-origin: bottom right; }
-.tab-panel, .toast-in { animation: panel-in 200ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+/* `backwards` y no `both`: al terminar, la pestaña no queda con transform y los paneles `fixed` de adentro (detalle de reportes, hojas) se miden contra la pantalla */
+.tab-panel, .toast-in { animation: panel-in 200ms cubic-bezier(0.23, 1, 0.32, 1) backwards; }
 /* Modal de acceso: hoja que sube en móvil; desde 640 px aparece centrado */
 .auth-sheet { animation: sheet-up 280ms cubic-bezier(0.32, 0.72, 0, 1) both; }
 @media (min-width: 640px) {
