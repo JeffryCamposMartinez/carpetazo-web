@@ -1,0 +1,5 @@
+Contact: mailto:carpetazo.soporte@gmail.com
+Expires: 2027-10-11T00:00:00.000Z
+Preferred-Languages: es, en
+Canonical: https://carpetazo.cl/.well-known/security.txt
+Policy: https://carpetazo.cl/terminos
