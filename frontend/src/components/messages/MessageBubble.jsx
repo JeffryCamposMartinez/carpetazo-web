@@ -17,7 +17,7 @@ function RichText({ text, query, own }) {
     : splitMatches(part.value, query).map((piece, at) => (piece.match ? <mark key={`${index}-${at}`} className="rounded bg-[#facc15] px-0.5 text-[#12315f]">{piece.text}</mark> : <span key={`${index}-${at}`}>{piece.text}</span>))));
 }
 
-function CardAttachment({ attachment, own }) {
+function CardAttachment({ attachment, own, onImage }) {
   if (!attachment || attachment.unavailable) {
     return (
       <div className={`mb-1 flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold ${own ? 'bg-white/15 text-blue-100' : 'bg-slate-100 text-slate-500'}`}>
@@ -26,21 +26,30 @@ function CardAttachment({ attachment, own }) {
       </div>
     );
   }
-  // Una carta de una carpeta no pública no tiene página: se muestra sin enlace
-  const Wrapper = attachment.private ? 'div' : Link;
-  const wrapperProps = attachment.private ? {} : { to: `/carta/${attachment.id}`, onClick: (event) => event.stopPropagation() };
+  // La foto se ve grande para revisar los detalles; al tocarla se abre a pantalla completa. Una carta de una carpeta no pública no tiene página, así que no lleva botón.
   return (
-    <Wrapper {...wrapperProps} className={`mb-1 flex w-[15.5rem] max-w-full items-stretch gap-3 overflow-hidden rounded-xl p-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] ${own ? 'bg-white/15' : 'bg-slate-100'} ${attachment.private ? '' : own ? 'hover:bg-white/25' : 'hover:bg-slate-200/70'}`}>
+    <div className={`mb-1 w-[16.5rem] max-w-full overflow-hidden rounded-xl p-2 ${own ? 'bg-white/15' : 'bg-slate-100'}`}>
       {attachment.imageUrl
-        ? <img src={attachment.imageUrl} alt="" loading="lazy" draggable="false" className="h-[5.5rem] w-[3.9rem] shrink-0 rounded-md bg-slate-200 object-cover" />
-        : <span aria-hidden="true" className="flex h-[5.5rem] w-[3.9rem] shrink-0 items-center justify-center rounded-md bg-slate-200 text-slate-400"><span translate="no" className="material-symbols-outlined">style</span></span>}
-      <span className="flex min-w-0 flex-1 flex-col justify-center">
-        <span className={`line-clamp-2 text-[14px] font-extrabold leading-tight ${own ? 'text-white' : 'text-[#12315f]'}`}>{attachment.name}</span>
-        {attachment.set && <span className={`mt-0.5 truncate text-xs ${own ? 'text-blue-100' : 'text-slate-500'}`}>{attachment.set}</span>}
-        <span className={`mt-1 text-[15px] font-black tabular-nums ${own ? 'text-[#facc15]' : 'text-[#12315f]'}`}>{Number(attachment.price) > 0 ? formatCLP(attachment.price) : 'Consultar'}</span>
-        <span className={`text-[11px] font-bold ${own ? 'text-blue-100' : 'text-[#1e40af]'}`}>{attachment.private ? 'Carta no publicada' : 'Ver carta'}</span>
-      </span>
-    </Wrapper>
+        ? (
+          <button type="button" onClick={() => onImage?.(attachment.imageUrl)} aria-label={`Ver ${attachment.name} a pantalla completa`} className="block w-full overflow-hidden rounded-lg bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+            <img src={attachment.imageUrl} alt={attachment.name} loading="lazy" draggable="false" className="aspect-[5/7] w-full object-cover" />
+          </button>
+        )
+        : <span aria-hidden="true" className="flex aspect-[5/7] w-full items-center justify-center rounded-lg bg-slate-200 text-slate-400"><span translate="no" className="material-symbols-outlined text-[40px]">style</span></span>}
+      <div className="px-1 pb-0.5 pt-2">
+        <span className={`block text-[15px] font-extrabold leading-tight ${own ? 'text-white' : 'text-[#12315f]'}`}>{attachment.name}</span>
+        {attachment.set && <span className={`mt-0.5 block truncate text-xs ${own ? 'text-blue-100' : 'text-slate-500'}`}>{attachment.set}</span>}
+        <span className={`mt-1 block text-[17px] font-black tabular-nums ${own ? 'text-[#facc15]' : 'text-[#12315f]'}`}>{Number(attachment.price) > 0 ? formatCLP(attachment.price) : 'Consultar'}</span>
+      </div>
+      {attachment.private
+        ? <span className={`block px-1 pt-1 text-[11px] font-bold ${own ? 'text-blue-100' : 'text-slate-500'}`}>Carta no publicada</span>
+        : (
+          <Link to={`/carta/${attachment.id}`} onClick={(event) => event.stopPropagation()} className={`mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-full text-[14px] font-extrabold transition-[filter,transform] active:scale-[0.97] [@media(hover:hover)]:hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] ${own ? 'bg-[#facc15] text-[#12315f]' : 'bg-[#1e40af] text-white'}`}>
+            Ir a ver carta
+            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">arrow_forward</span>
+          </Link>
+        )}
+    </div>
   );
 }
 
@@ -139,7 +148,7 @@ function MessageBubble({ message, own, partnerId, partnerName, grouped, query, c
             </p>
           )}
           {message.replyTo && <ReplyQuote reply={message.replyTo} own={{ mine: own, partnerId }} partnerName={partnerName} onJump={onJump} />}
-          {body.cardId && <CardAttachment attachment={message.attachment} own={own} />}
+          {body.cardId && <CardAttachment attachment={message.attachment} own={own} onImage={onImage} />}
           {body.audio && !message.hidden && <VoiceMessage audio={body.audio} own={own} />}
           {image && (
             imageBroken ? (
