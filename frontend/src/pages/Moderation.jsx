@@ -10,6 +10,7 @@ import AppealsPanel from '../components/moderation/AppealsPanel';
 import MetricsPanel from '../components/moderation/MetricsPanel';
 import ReviewsPanel from '../components/moderation/ReviewsPanel';
 import ToolsPanel from '../components/moderation/ToolsPanel';
+import OperationsPanel from '../components/moderation/OperationsPanel';
 import CatalogImportPanel from '../components/moderation/CatalogImportPanel';
 import ModNav from '../components/moderation/ModNav';
 
@@ -28,6 +29,7 @@ const TABS = [
   { id: 'metrics', group: 'system', label: 'Métricas', icon: 'monitoring', min: 3, blurb: 'Cómo está funcionando la moderación: volumen, tiempos y resultados.' },
   { id: 'audit', group: 'system', label: 'Auditoría', icon: 'history', min: 3, blurb: 'Todo lo que se decide queda registrado, con quién lo hizo.' },
   { id: 'catalog', group: 'system', label: 'Catálogo de cartas', shortLabel: 'Catálogo', icon: 'library_add', min: 3, blurb: 'Agrega cartas nuevas a la base cargando el archivo que genera Carpetazo Update.' },
+  { id: 'operations', group: 'system', label: 'Operación', icon: 'ecg_heart', min: 3, blurb: 'Estado del sitio, errores del servidor y de la web, y embudo de actividad.' },
   { id: 'tools', group: 'system', label: 'Herramientas', icon: 'build', min: 3, blurb: 'Retención de datos y prueba del envío de correos.' }
 ];
 const ROLE_LABELS = { 1: 'Soporte (solo lectura)', 2: 'Moderador', 3: 'Administrador' };
@@ -136,6 +138,7 @@ export default function Moderation() {
               {tab === 'metrics' && level >= 3 && <MetricsPanel />}
               {tab === 'audit' && level >= 3 && <AuditPanel />}
               {tab === 'catalog' && level >= 3 && <CatalogImportPanel />}
+              {tab === 'operations' && level >= 3 && <OperationsPanel />}
               {tab === 'tools' && level >= 3 && <ToolsPanel />}
             </div>
           </main>

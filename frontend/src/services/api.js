@@ -169,6 +169,10 @@ export const api = {
   // Carga de cartas nuevas desde cartas_incrementales.json (solo administradores): primero se revisa, después se carga lo revisado
   previewCatalogImport: (data) => apiFetch('/admin/catalog-import/preview', { method: 'POST', body: JSON.stringify({ fileName: 'cartas_incrementales.json', data }) }),
   applyCatalogImport: (data, digest) => apiFetch('/admin/catalog-import/apply', { method: 'POST', body: JSON.stringify({ fileName: 'cartas_incrementales.json', data, digest }) }),
+  getHealth: () => apiFetch('/health'),
+  getOpsErrors: () => apiFetch('/admin/ops/errors'),
+  resolveOpsError: (id) => apiFetch('/admin/ops/errors/' + encodeURIComponent(id), { method: 'DELETE' }),
+  getOpsFunnel: (days = 30) => apiFetch('/admin/ops/funnel?days=' + encodeURIComponent(days)),
   sendTestEmail: () => apiFetch('/admin/test-email', { method: 'POST', body: JSON.stringify({}) }),
   approveReview: (id) => apiFetch('/admin/reviews/' + encodeURIComponent(id) + '/approve', { method: 'POST' }),
   deleteReview: (id) => apiFetch('/admin/reviews/' + encodeURIComponent(id), { method: 'DELETE' }),

@@ -1,4 +1,5 @@
 import { Component } from 'react';
+import { reportClientError } from '../../utils/reportError';
 
 // Una pantalla que falla ya no deja la página en blanco: se recupera sola si es una descarga caída
 // (p. ej. después de una actualización del sitio) o muestra un aviso con un botón para reintentar.
@@ -30,6 +31,7 @@ export default class ErrorBoundary extends Component {
   componentDidCatch(error) {
     console.error('Error de pantalla:', error);
     if (isChunkLoadError(error)) reloadOnceForNewVersion();
+    else reportClientError(error, 'pantalla');
   }
 
   componentDidUpdate(prevProps) {

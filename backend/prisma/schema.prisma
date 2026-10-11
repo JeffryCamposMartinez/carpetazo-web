@@ -516,3 +516,18 @@ model CardMarketSnapshot {
   @@unique([tcgId, day])
   @@index([day])
 }
+
+// Errores del servidor y de la web agrupados por huella (sin datos personales): los ve el equipo en Moderación → Operación
+model ErrorEvent {
+  id          String   @id @default(uuid())
+  fingerprint String   @unique
+  kind        String // server | client | http
+  message     String
+  route       String?
+  stack       String?
+  count       Int      @default(1)
+  firstSeen   DateTime @default(now())
+  lastSeen    DateTime @default(now())
+
+  @@index([lastSeen])
+}

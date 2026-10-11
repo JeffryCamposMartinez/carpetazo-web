@@ -34,6 +34,8 @@ import catalogImportRoutes from './routes/catalogImport.js';
 import linkPreviewRoutes from './routes/linkPreview.js';
 import seoRoutes from './routes/seo.js';
 import notificationRoutes from './routes/notifications.js';
+import opsRoutes from './routes/ops.js';
+import { installErrorCapture, purgeOldErrors, requestContext } from './core/errorLog.js';
 import { startWishlistAlerts } from './core/wishlistAlerts.js';
 import { startPriceHistory } from './core/priceHistory.js';
 import { startMarketPriceHistory } from './core/marketPriceHistory.js';
@@ -49,12 +51,17 @@ initializeApp({
 
 const app = express();
 const port = process.env.PORT || 8000;
+installErrorCapture();
+app.use(requestContext);
 
-app.get('/api/health', (_req, res) => {
-  res.json({
-    success: true,
-    status: 'ok'
-  });
+// Estado del servicio para monitores externos y para el healthcheck de Coolify: responde 503 si la base de datos no contesta
+app.get('/api/health', async (_req, res) => {
+  try {
+    await Promise.race([prisma.$queryRaw`SELECT 1`, new Promise((_resolve, reject) => setTimeout(() => reject(new Error('timeout')), 3000))]);
+    res.json({ success: true, status: 'ok', db: 'ok', uptime: Math.round(process.uptime()) });
+  } catch (_error) {
+    res.status(503).json({ success: false, status: 'degraded', db: 'down' });
+  }
 });
 
 app.set('trust proxy', 1);
@@ -93,6 +100,7 @@ app.use(catalogImportRoutes);
 app.use(linkPreviewRoutes);
 app.use(seoRoutes);
 app.use(notificationRoutes);
+app.use(opsRoutes);
 app.use(messageRoutes);
 
 const moderation = registerReports(app, { prisma, authenticateToken, requireStaff, hooks: moderationHooks, badRequest, isUuid, currentUserId, hashConnection, sendUserEmail, escapeHtml, reviewHideReports: REVIEW_HIDE_REPORTS });
@@ -121,4 +129,5 @@ app.listen(port, () => {
     startPriceHistory();
     startMarketPriceHistory();
     startPriceWatch();
+    if (!process.env.TEST_AUTH_STUB) setInterval(() => purgeOldErrors().catch(() => {}), 6 * 60 * 60 * 1000).unref();
 });

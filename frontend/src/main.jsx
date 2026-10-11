@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './app/App.jsx'
 import ErrorBoundary, { reloadOnceForNewVersion } from './components/ui/ErrorBoundary.jsx'
+import { installClientErrorReporting } from './utils/reportError.js'
+
+installClientErrorReporting()
 
 // Si el navegador no puede descargar una parte del sitio (versión nueva publicada), se recarga una vez
 window.addEventListener('vite:preloadError', (event) => {
