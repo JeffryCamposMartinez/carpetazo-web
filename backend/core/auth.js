@@ -29,6 +29,16 @@ const adminEmails = (process.env.ADMIN_EMAILS || '')
 
 export const isAdminEmail = (email) => Boolean(email && adminEmails.includes(String(email).toLowerCase()));
 
+// Una medida vigente de suspensión o cierre corta el acceso al equipo (también de lectura). La cuenta propietaria nunca se corta.
+const staffBlocked = async (user) => {
+  if (!user || user.isOwner) return false;
+  const active = await prisma.sanction.findFirst({
+    where: { userId: user.id, type: { in: ['suspend', 'ban'] }, status: 'active', OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+    select: { id: true }
+  });
+  return Boolean(active);
+};
+
 // Equipo de moderación: 1 = soporte (solo lectura), 2 = moderador, 3 = administrador
 export const requireStaff = (minLevel) => async (req, res, next) => {
   try {
@@ -40,6 +50,7 @@ export const requireStaff = (minLevel) => async (req, res, next) => {
     else if (user?.role === 'moderator') level = 2;
     else if (user?.role === 'support') level = 1;
     if (level < minLevel) return res.status(403).json({ success: false, message: 'Acceso restringido' });
+    if (await staffBlocked(user)) return res.status(403).json({ success: false, code: 'staff_suspended', message: 'Tu acceso al equipo está suspendido' });
     req.staffLevel = level;
     req.dbUser = user;
     next();
@@ -60,6 +71,7 @@ export const requireAdmin = async (req, res, next) => {
     if (!firebaseAdminClaim && !databaseAdmin && !envAdmin) {
       return res.status(403).json({ success: false, message: 'Acceso administrativo requerido' });
     }
+    if (await staffBlocked(user)) return res.status(403).json({ success: false, code: 'staff_suspended', message: 'Tu acceso al equipo está suspendido' });
 
     req.dbUser = user;
     next();

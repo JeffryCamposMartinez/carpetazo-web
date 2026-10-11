@@ -140,8 +140,8 @@ export const registerSanctions = (app, deps) => {
   };
 
   // Crea una sanción y aplica sus efectos, todo en la misma transacción. Un baneo manual queda pendiente de segunda aprobación.
-  const createSanction = async (tx, { userId, type, reason, note = null, durationDays = null, reportId = null, caseId = null, createdById = null, automatic = false }) => {
-    const pending = type === 'ban' && !automatic;
+  const createSanction = async (tx, { userId, type, reason, note = null, durationDays = null, reportId = null, caseId = null, createdById = null, automatic = false, immediate = false }) => {
+    const pending = type === 'ban' && !automatic && !immediate;
     const sanction = await tx.sanction.create({
       data: {
         userId, type, reason, note, reportId, caseId, createdById, automatic,
@@ -154,9 +154,29 @@ export const registerSanctions = (app, deps) => {
     return sanction;
   };
 
+  // Medidas sobre integrantes del equipo (las pide la sección Equipo, que ya hizo todas las comprobaciones de jerarquía): rigen de inmediato
+  hooks.sanctionStaff = async ({ userId, type, reason, note = null, durationDays = null, actorId }) => {
+    if (!['suspend', 'ban'].includes(type)) throw new Error('Tipo de medida inválido');
+    const sanction = await prisma.$transaction((tx) => createSanction(tx, { userId, type, reason, note, durationDays, createdById: actorId, immediate: true }));
+    restrictions.invalidate(userId);
+    mailSanction(userId, sanction).catch(() => {});
+    return sanction;
+  };
+  hooks.restoreStaff = async ({ userId, note, actorId }) => {
+    const open = await prisma.sanction.findMany({ where: { userId, type: { in: ['suspend', 'ban'] }, status: { in: ['active', 'pending_approval'] } } });
+    let revoked = 0;
+    for (const sanction of open) {
+      if (await prisma.$transaction((tx) => revokeSanction(tx, sanction, actorId, note))) revoked += 1;
+    }
+    restrictions.invalidate(userId);
+    return revoked;
+  };
+
   // ============ Casos de estafa ============
   hooks.linkFraudCase = async (tx, report) => {
     const subjectId = report.targetOwnerId;
+    // La cuenta propietaria no entra a casos ni a medidas automáticas
+    if (subjectId && (await tx.user.findUnique({ where: { id: subjectId }, select: { isOwner: true } }))?.isOwner) return;
     let fraudCase = await tx.fraudCase.findFirst({ where: { subjectUserId: subjectId, status: { not: 'resolved' } } });
     let opened = false;
     if (!fraudCase) {
@@ -412,7 +432,7 @@ export const registerSanctions = (app, deps) => {
       if (!target || target.role === 'deleted') return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
       const actorId = await currentUserId(req);
       if (target.id === actorId) return badRequest(res, 'No puedes aplicarte una medida a ti mismo');
-      if (['admin', 'moderator', 'support'].includes(target.role)) return res.status(403).json({ success: false, message: 'No se aplican medidas a integrantes del equipo desde aquí' });
+      if (['admin', 'moderator', 'support'].includes(target.role)) return res.status(403).json({ success: false, message: 'No se aplican medidas a integrantes del equipo desde aquí. Usa la sección Equipo y administradores.' });
       const type = req.body?.type;
       if (!SANCTION_TYPES.includes(type)) return badRequest(res, 'Tipo de medida inválido');
       if (!textOk(req.body?.reason, 5, 300)) return badRequest(res, 'Escribe el motivo que verá la persona (entre 5 y 300 caracteres)');

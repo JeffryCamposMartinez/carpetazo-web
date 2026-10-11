@@ -137,6 +137,9 @@ export const registerReports = (app, deps) => {
   // Devuelve { ok:true } o { ok:false, message } si el contenido cambió desde el reporte
   const applyHide = async (tx, report, action) => {
     const { targetType: type, targetId: id, snapshot } = report;
+    if (report.targetOwnerId && (await tx.user.findUnique({ where: { id: report.targetOwnerId }, select: { isOwner: true } }))?.isOwner) {
+      return { ok: false, message: 'Esta es la cuenta original de Carpetazo: está protegida y no se oculta ni se retira su contenido.' };
+    }
     if (PROFILE_FIELD[type]) {
       const [column, marker] = PROFILE_FIELD[type];
       const user = await tx.user.findUnique({ where: { id }, select: { [column]: true, moderationHidden: true } });
