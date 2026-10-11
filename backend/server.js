@@ -55,8 +55,14 @@ const port = process.env.PORT || 8000;
 installErrorCapture();
 app.use(requestContext);
 
+const corsOptions = {
+  origin: ['https://carpetazo.cl', 'https://www.carpetazo.cl', 'http://localhost:5173'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true
+};
+
 // Estado del servicio para monitores externos y para el healthcheck de Coolify: responde 503 si la base de datos no contesta
-app.get('/api/health', async (_req, res) => {
+app.get('/api/health', cors(corsOptions), async (_req, res) => {
   try {
     await Promise.race([prisma.$queryRaw`SELECT 1`, new Promise((_resolve, reject) => setTimeout(() => reject(new Error('timeout')), 3000))]);
     res.json({ success: true, status: 'ok', db: 'ok', uptime: Math.round(process.uptime()) });
@@ -68,11 +74,7 @@ app.get('/api/health', async (_req, res) => {
 app.set('trust proxy', 1);
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(cors({
-  origin: ['https://carpetazo.cl', 'https://www.carpetazo.cl', 'http://localhost:5173'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true
-}));
+app.use(cors(corsOptions));
 app.use('/api', limiter);
 applyRouteLimits(app);
 
