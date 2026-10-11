@@ -1,5 +1,5 @@
 // Auditoría Fase 1 de la API: validación de entradas, datos que no deben salir y rutas que no deben fallar con 500.
-const { prisma, NAMES, call, ok, fixtures } = require('./fixtures.cjs');
+const { prisma, NAMES, B, call, ok, fixtures } = require('./fixtures.cjs');
 
 const { folderId, cardId } = fixtures();
 
@@ -37,6 +37,15 @@ const { folderId, cardId } = fixtures();
     const priv = await call('POST', '/folders', 'seller', { name: 'TEST privada', tcg: 'Pokemon', isPublic: false });
     ok('visita a carpeta privada → 404', (await call('POST', '/folders/' + priv.j.folder.id + '/visit', null, {}, '4.4.4.1')).status === 404);
     ok('visita a carpeta pública → 200', (await call('POST', '/folders/' + folderId + '/visit', null, {}, '4.4.4.2')).status === 200);
+    // El contador solo suma una vez por conexión y día, y no cuenta programas ni bots
+    const visits = async () => (await prisma.folder.findUnique({ where: { id: folderId }, select: { totalVisits: true } })).totalVisits;
+    const visit = (ip, userAgent) => fetch(B + '/folders/' + folderId + '/visit', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': ip, 'User-Agent': userAgent }, body: '{}' });
+    const browser = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36';
+    const visitsBefore = await visits();
+    await visit('4.4.4.3', 'curl/8.4.0'); await visit('4.4.4.3', 'Mozilla/5.0 (compatible; Googlebot/2.1)');
+    ok('visitas de programas y bots no cuentan', (await visits()) === visitsBefore);
+    await visit('4.4.4.3', browser); await visit('4.4.4.3', browser); await visit('4.4.4.3', browser);
+    ok('la misma conexión suma una sola visita al día', (await visits()) === visitsBefore + 1, `${visitsBefore}→${await visits()}`);
 
     // Catálogo y servicios externos: entradas acotadas
     ok('búsqueda del catálogo: juego no numérico → 400', (await call('GET', '/tcg/search?categoryId=abc')).status === 400);

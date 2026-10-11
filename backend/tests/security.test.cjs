@@ -81,6 +81,16 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     // 6) Opciones de filtros: la segunda consulta sale de la memoria con el mismo contenido
     const [a, b] = [await call('GET', '/tcg/99/filter-options', null), await call('GET', '/tcg/99/filter-options', null)];
     ok('opciones de filtros → 200 dos veces y con el mismo contenido', a.status === 200 && b.status === 200 && JSON.stringify(a.j.data) === JSON.stringify(b.j.data));
+
+    // Cuenta desactivada en Firebase: su token deja de valer aunque no haya vencido
+    const revoked = await fetch(B + '/users/me', { headers: { Authorization: 'Bearer test-cztest-ghost-disabled' } });
+    ok('sesión de una cuenta desactivada → 401', revoked.status === 401 && (await revoked.json()).code === 'session_revoked', String(revoked.status));
+
+    // Sin la clave de hashes y firmas el servidor no arranca (una clave por defecto en el código sería pública)
+    const { spawnSync } = require('child_process');
+    const path = require('path');
+    const noSalt = spawnSync(process.execPath, ['--import', './tests/register.mjs', 'server.js'], { cwd: path.join(__dirname, '..'), env: { ...process.env, IP_HASH_SALT: '', PORT: '0', TEST_AUTH_STUB: '1' }, timeout: 20000, encoding: 'utf8' });
+    ok('sin IP_HASH_SALT el servidor no arranca', noSalt.status === 1 && /IP_HASH_SALT/.test(noSalt.stderr || ''), `salida=${noSalt.status}`);
   } finally {
     await prisma.$disconnect();
   }

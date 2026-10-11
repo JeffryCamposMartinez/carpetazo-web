@@ -6,6 +6,7 @@ import { sendUserEmail } from './mail.js';
 import { isCurrentAcceptance, latestAcceptance } from './legal.js';
 import { sendPushToUser } from './push.js';
 import { alertEmailHtml } from './alertEmail.js';
+import { hashSecret } from './hashing.js';
 
 const SITE = 'https://carpetazo.cl';
 const API = process.env.PUBLIC_API_URL || 'https://api.carpetazo.cl';
@@ -20,7 +21,7 @@ const WISH_TCG = { 1: 'Pokemon', 99: 'Mitos y Leyendas', 68: 'OnePiece', 89: 'Ri
 const clp = (value) => `$${Math.round(Number(value) || 0).toLocaleString('es-CL')}`;
 
 // --- Baja de los avisos por correo: enlace firmado en cada correo ---
-const unsubscribeToken = (userId) => crypto.createHmac('sha256', process.env.IP_HASH_SALT || 'carpetazo').update(`wishlist-email-unsubscribe|${userId}`).digest('hex').slice(0, 40);
+const unsubscribeToken = (userId) => crypto.createHmac('sha256', hashSecret()).update(`wishlist-email-unsubscribe|${userId}`).digest('hex').slice(0, 40);
 export const isValidUnsubscribeToken = (userId, token) => {
   const expected = Buffer.from(unsubscribeToken(userId));
   const given = Buffer.from(String(token || ''));

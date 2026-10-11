@@ -40,9 +40,14 @@ const flushAlerts = async () => {
   pendingAlerts.clear();
   try {
     const admins = await prisma.user.findMany({ where: { role: 'admin' }, select: { id: true } });
-    const lines = items.map((item) => `- [${item.kind}] ${item.message}${item.route ? ` (${item.route})` : ''}`);
-    const text = `Aparecieron ${items.length + extra} error(es) nuevo(s) en Carpetazo:\n\n${lines.join('\n')}${extra > 0 ? `\n... y ${extra} más` : ''}\n\nRevísalos en https://carpetazo.cl/moderacion (sección Operación).`;
-    const html = `<p>Aparecieron <b>${items.length + extra}</b> error(es) nuevo(s) en Carpetazo:</p><ul>${items.map((item) => `<li>[${item.kind}] ${item.message.replace(/[<>&]/g, '')}${item.route ? ` (${item.route.replace(/[<>&]/g, '')})` : ''}</li>`).join('')}</ul><p><a href="https://carpetazo.cl/moderacion">Ver en Moderación → Operación</a></p>`;
+    // El texto de un error de la web lo manda el navegador (cualquiera puede escribirlo): en el correo van sin enlaces
+    // y con un aviso, para que nadie use la alerta oficial para colar un enlace engañoso
+    const unlink = (text) => String(text).replace(/(https?:\/\/|www\.)\S+/gi, '[enlace oculto]').replace(/\b([a-z0-9-]+\.)+(com|cl|net|org|io|app|xyz|info|link|me|co)\b\S*/gi, '[enlace oculto]');
+    const lines = items.map((item) => `- [${item.kind}] ${unlink(item.message)}${item.route ? ` (${item.route})` : ''}`);
+    const text = `Aparecieron ${items.length + extra} error(es) nuevo(s) en Carpetazo:\n\n${lines.join('\n')}${extra > 0 ? `\n... y ${extra} más` : ''}\n\nEl texto de los errores de la web lo envía el navegador: no es confiable y no abras enlaces que aparezcan en él.
+
+Revísalos en https://carpetazo.cl/moderacion (sección Operación).`;
+    const html = `<p>Aparecieron <b>${items.length + extra}</b> error(es) nuevo(s) en Carpetazo:</p><ul>${items.map((item) => `<li>[${item.kind}] ${unlink(item.message).replace(/[<>&]/g, '')}${item.route ? ` (${item.route.replace(/[<>&]/g, '')})` : ''}</li>`).join('')}</ul><p style="color:#64748b">El texto de los errores de la web lo envía el navegador: no es confiable y no abras enlaces que aparezcan en él.</p><p><a href="https://carpetazo.cl/moderacion">Ver en Moderación → Operación</a></p>`;
     await Promise.all(admins.map((admin) => sendUserEmail(admin.id, { subject: `Carpetazo: ${items.length + extra} error(es) nuevo(s)`, text, html })));
   } catch (_error) { /* el aviso nunca debe causar otro error */ }
 };

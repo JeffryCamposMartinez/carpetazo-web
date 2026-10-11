@@ -381,18 +381,21 @@ router.get('/api/folders/:id', optionalAuth, async (req, res) => {
       const folderId = req.params.id;
       const currentWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
 
-      // Una visita por IP y carpeta cada 30 minutos (evita inflar el contador)
-      const visitKey = `${req.ip}|${folderId}`;
-      const now = Date.now();
-      if ((recentVisits.get(visitKey) || 0) > now - 30 * 60 * 1000) return res.json({ success: true });
-      recentVisits.set(visitKey, now);
-      if (recentVisits.size > 5000) {
-        for (const [key, time] of recentVisits) if (time < now - 30 * 60 * 1000) recentVisits.delete(key);
-      }
-      
       // Solo cuentan las visitas a carpetas públicas
       const folder = await prisma.folder.findUnique({ where: { id: folderId }, select: { isPublic: true, lastVisitWeek: true } });
       if (!folder || !folder.isPublic) return res.status(404).json({ success: false });
+
+      // Una visita por conexión y carpeta al día, y solo desde un navegador (programas y bots no cuentan): así no se infla el contador
+      const userAgent = String(req.headers['user-agent'] || '');
+      if (!/Mozilla\//.test(userAgent) || /bot|crawler|spider|curl|wget|python|node-fetch|axios|headless|preview/i.test(userAgent)) return res.json({ success: true });
+      const visitKey = `${req.ip}|${folderId}`;
+      const now = Date.now();
+      const VISIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+      if ((recentVisits.get(visitKey) || 0) > now - VISIT_WINDOW_MS) return res.json({ success: true });
+      recentVisits.set(visitKey, now);
+      if (recentVisits.size > 20000) {
+        for (const [key, time] of recentVisits) if (time < now - VISIT_WINDOW_MS) recentVisits.delete(key);
+      }
 
       if (folder.lastVisitWeek !== currentWeek) {
         await prisma.folder.update({

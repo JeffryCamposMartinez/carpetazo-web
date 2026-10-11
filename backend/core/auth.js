@@ -2,6 +2,29 @@
 import { getAuth } from 'firebase-admin/auth';
 import { prisma } from './db.js';
 
+// Una cuenta desactivada o borrada en Firebase, o con las sesiones cerradas, deja de entrar en minutos y no al vencer
+// su token (que dura 1 hora). Necesita una cuenta de servicio de Firebase (GOOGLE_APPLICATION_CREDENTIALS): sin ella
+// no se consulta, porque cada intento fallido haría esperar a la petición. Se consulta como mucho cada 5 minutos por
+// persona; si Firebase no responde, se confía en el token (y no se reintenta hasta 5 minutos después).
+const REVOCATION_CHECK_MS = 5 * 60 * 1000;
+const canCheckRevocation = Boolean(process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.TEST_AUTH_STUB === '1');
+const revocationChecks = new Map(); // uid → { at, disabled, validAfter (segundos) }
+const sessionRevoked = async (decoded) => {
+  if (!canCheckRevocation) return false;
+  let entry = revocationChecks.get(decoded.uid);
+  if (!entry || Date.now() - entry.at > REVOCATION_CHECK_MS) {
+    try {
+      const record = await getAuth().getUser(decoded.uid);
+      entry = { at: Date.now(), disabled: Boolean(record.disabled), validAfter: record.tokensValidAfterTime ? Date.parse(record.tokensValidAfterTime) / 1000 : 0 };
+    } catch (error) {
+      entry = { at: Date.now(), disabled: error?.code === 'auth/user-not-found', validAfter: 0 };
+    }
+    if (revocationChecks.size > 20000) revocationChecks.clear();
+    revocationChecks.set(decoded.uid, entry);
+  }
+  return entry.disabled || Boolean(entry.validAfter && decoded.auth_time && decoded.auth_time < entry.validAfter);
+};
+
 // Middleware to validate Firebase ID Token
 export const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -13,6 +36,7 @@ export const authenticateToken = async (req, res, next) => {
 
   try {
     const decodedToken = await getAuth().verifyIdToken(token);
+    if (await sessionRevoked(decodedToken)) return res.status(401).json({ success: false, code: 'session_revoked', message: 'Tu sesión ya no es válida. Vuelve a iniciar sesión.' });
     req.user = decodedToken; // Contains user payload (uid, email, etc.)
     req.user.sub = decodedToken.uid; // Ensure 'sub' maps to 'uid' for backwards compatibility
     next();
