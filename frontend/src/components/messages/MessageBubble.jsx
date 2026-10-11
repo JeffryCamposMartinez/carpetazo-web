@@ -26,8 +26,11 @@ function CardAttachment({ attachment, own }) {
       </div>
     );
   }
+  // Una carta de una carpeta no pública no tiene página: se muestra sin enlace
+  const Wrapper = attachment.private ? 'div' : Link;
+  const wrapperProps = attachment.private ? {} : { to: `/carta/${attachment.id}`, onClick: (event) => event.stopPropagation() };
   return (
-    <Link to={`/carta/${attachment.id}`} onClick={(event) => event.stopPropagation()} className={`mb-1 flex w-[15.5rem] max-w-full items-stretch gap-3 overflow-hidden rounded-xl p-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] ${own ? 'bg-white/15 hover:bg-white/25' : 'bg-slate-100 hover:bg-slate-200/70'}`}>
+    <Wrapper {...wrapperProps} className={`mb-1 flex w-[15.5rem] max-w-full items-stretch gap-3 overflow-hidden rounded-xl p-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] ${own ? 'bg-white/15' : 'bg-slate-100'} ${attachment.private ? '' : own ? 'hover:bg-white/25' : 'hover:bg-slate-200/70'}`}>
       {attachment.imageUrl
         ? <img src={attachment.imageUrl} alt="" loading="lazy" draggable="false" className="h-[5.5rem] w-[3.9rem] shrink-0 rounded-md bg-slate-200 object-cover" />
         : <span aria-hidden="true" className="flex h-[5.5rem] w-[3.9rem] shrink-0 items-center justify-center rounded-md bg-slate-200 text-slate-400"><span translate="no" className="material-symbols-outlined">style</span></span>}
@@ -35,9 +38,9 @@ function CardAttachment({ attachment, own }) {
         <span className={`line-clamp-2 text-[14px] font-extrabold leading-tight ${own ? 'text-white' : 'text-[#12315f]'}`}>{attachment.name}</span>
         {attachment.set && <span className={`mt-0.5 truncate text-xs ${own ? 'text-blue-100' : 'text-slate-500'}`}>{attachment.set}</span>}
         <span className={`mt-1 text-[15px] font-black tabular-nums ${own ? 'text-[#facc15]' : 'text-[#12315f]'}`}>{Number(attachment.price) > 0 ? formatCLP(attachment.price) : 'Consultar'}</span>
-        <span className={`text-[11px] font-bold ${own ? 'text-blue-100' : 'text-[#1e40af]'}`}>Ver carta</span>
+        <span className={`text-[11px] font-bold ${own ? 'text-blue-100' : 'text-[#1e40af]'}`}>{attachment.private ? 'Carta no publicada' : 'Ver carta'}</span>
       </span>
-    </Link>
+    </Wrapper>
   );
 }
 

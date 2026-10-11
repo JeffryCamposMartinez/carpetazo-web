@@ -9,7 +9,7 @@ import EmptyState from '../ui/EmptyState';
 import Avatar from './Avatar';
 import Composer from './Composer';
 import ContactInfo from './ContactInfo';
-import { ConfirmSheet, ForwardSheet, MessageInfoSheet, StarredSheet } from './ChatSheets';
+import { ForwardSheet, MessageInfoSheet, StarredSheet } from './ChatSheets';
 import CardPicker from './CardPicker';
 import ImagePreview, { pickPhotos } from './ImagePreview';
 import ImageViewer from './ImageViewer';
@@ -43,7 +43,6 @@ export default function ConversationView({
   const [forwardBusy, setForwardBusy] = useState(false);
   const [messageInfo, setMessageInfo] = useState(null);
   const [reporting, setReporting] = useState(null);
-  const [confirmBlock, setConfirmBlock] = useState(false);
   const [files, setFiles] = useState([]);
   const [viewer, setViewer] = useState(null);
   const [cardsOpen, setCardsOpen] = useState(false);
@@ -129,7 +128,7 @@ export default function ConversationView({
     star: (message) => conv.star(message.id, !message.starred).then(() => showToast(message.starred ? 'Quitado de destacados' : 'Mensaje destacado', 'success')).catch(() => showToast('No se pudo cambiar el destacado.', 'error')),
     edit: (message) => { setReplyTo(null); setEditing({ id: message.id, text: decodeMessage(message.content).text }); },
     info: (message) => setMessageInfo(message),
-    report: (message) => setReporting({ targetType: 'message', targetId: message.id, blockUserId: partnerId })
+    report: (message) => setReporting({ targetType: 'message', targetId: message.id })
   };
   const openMenu = useCallback((message, point) => {
     const own = message.senderId !== partnerId;
@@ -173,8 +172,8 @@ export default function ConversationView({
     { id: 'search', icon: 'search', label: 'Buscar en el chat', onClick: () => setSearch({ open: true, query: '', at: 0 }) },
     { id: 'starred', icon: 'star', label: 'Mensajes destacados', onClick: () => setStarredOpen(true) },
     { id: 'mute', icon: muted ? 'notifications_active' : 'notifications_off', label: muted ? 'Activar sonido' : 'Silenciar 8 horas', onClick: () => changeSettings({ muted: muted ? null : '8h' }) },
-    { id: 'archive', icon: 'archive', label: 'Archivar chat', onClick: () => changeSettings({ archived: true }) },
-    { id: 'block', icon: 'block', label: blockedByMe ? 'Desbloquear' : 'Bloquear', danger: true, onClick: () => (blockedByMe ? toggleBlock() : setConfirmBlock(true)) }
+    { id: 'unarchive', icon: 'unarchive', label: 'Sacar de archivadas', hidden: !settings?.archived, onClick: () => changeSettings({ archived: false }) },
+    { id: 'unblock', icon: 'block', label: 'Desbloquear', danger: true, hidden: !blockedByMe, onClick: toggleBlock }
   ];
 
   if (conv.notFound) {
@@ -230,8 +229,8 @@ export default function ConversationView({
 
       <MessageActionMenu target={menu} onClose={() => setMenu(null)} actions={actions} myReaction={myReaction} />
       <ContactInfo open={info} onClose={() => setInfo(false)} partner={partner || { id: partnerId, name, photoURL: avatar, username }} settings={settings} muted={muted} blockedByMe={blockedByMe}
-        onSettings={changeSettings} onToggleBlock={() => { setInfo(false); if (blockedByMe) toggleBlock(); else setConfirmBlock(true); }} onViewImage={setViewer}
-        onStarred={() => setStarredOpen(true)} onSearch={() => setSearch({ open: true, query: '', at: 0 })} onReport={() => { setInfo(false); setReporting({ targetType: 'user', targetId: partnerId, blockUserId: partnerId }); }} />
+        onSettings={changeSettings} onToggleBlock={() => { setInfo(false); toggleBlock(); }} onViewImage={setViewer}
+        onStarred={() => setStarredOpen(true)} onSearch={() => setSearch({ open: true, query: '', at: 0 })} onReport={() => { setInfo(false); setReporting({ targetType: 'user', targetId: partnerId }); }} />
       <StarredSheet open={starredOpen} onClose={() => setStarredOpen(false)} partnerId={partnerId} onOpenMessage={(message) => jump(message.id)} />
       <ForwardSheet open={Boolean(forwarding)} onClose={() => setForwarding(null)} chats={chats.filter((chat) => (chat.otherUser || chat.partner)?.id !== partnerId)} onSend={forward} busy={forwardBusy} />
       <MessageInfoSheet message={messageInfo} partnerName={name} onClose={() => setMessageInfo(null)} />

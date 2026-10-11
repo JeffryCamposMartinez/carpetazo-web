@@ -36,6 +36,7 @@ export const applyRouteLimits = (app) => {
   // Rutas que escriben datos o hacen consultas pesadas
   app.get('/api/folders/search', routeLimiter(15 * 60 * 1000, 300));
   app.get('/api/sellers', routeLimiter(15 * 60 * 1000, 300));
+  app.get('/api/cards/mine', routeLimiter(15 * 60 * 1000, 300));
   app.get('/api/home/featured', routeLimiter(15 * 60 * 1000, 300));
   app.post('/api/folders', routeLimiter(15 * 60 * 1000, 60));
   app.put('/api/folders/:id', routeLimiter(15 * 60 * 1000, 200));

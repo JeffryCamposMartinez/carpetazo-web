@@ -31,6 +31,41 @@ router.delete('/api/cards/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Mis cartas para mandarlas por el chat: de carpetas públicas (scope=public) o no públicas (scope=private), con filtro por juego y nombre
+router.get('/api/cards/mine', authenticateToken, async (req, res) => {
+  try {
+    const scope = req.query.scope === 'private' ? 'private' : 'public';
+    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    const tcgRaw = typeof req.query.tcg === 'string' ? req.query.tcg.trim() : '';
+    const tcg = CARD_SEARCH_TCG_ALIASES[tcgRaw] || tcgRaw;
+    if (q.length > 80 || tcg.length > 60 || /[\u0000-\u001f]/.test(q + tcg)) return badRequest(res, 'Búsqueda inválida');
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
+    if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+
+    const where = {
+      moderationState: 'visible',
+      folder: { userId: user.id, isPublic: scope === 'public', moderationState: 'visible', ...(tcg ? { tcg } : {}) },
+      ...(q ? { name: { contains: q, mode: 'insensitive' } } : {})
+    };
+    const [cards, groups] = await Promise.all([
+      prisma.card.findMany({
+        where, orderBy: [{ createdAt: 'desc' }], take: 80,
+        select: { id: true, name: true, imageUrl: true, price: true, stock: true, data: true, folder: { select: { name: true, tcg: true } } }
+      }),
+      // Juegos disponibles en esta lista (sin el filtro de juego) para armar el filtro
+      prisma.folder.findMany({ where: { userId: user.id, isPublic: scope === 'public', moderationState: 'visible', cards: { some: { moderationState: 'visible' } } }, select: { tcg: true }, distinct: ['tcg'] })
+    ]);
+    res.set('Cache-Control', 'private, no-store');
+    res.json({
+      success: true,
+      tcgs: groups.map((group) => group.tcg).filter(Boolean).sort(),
+      cards: cards.map(({ data, folder, ...card }) => ({ ...card, tcg: folder.tcg, folderName: folder.name, set: data && typeof data === 'object' && typeof data.set === 'string' ? data.set.slice(0, 80) : null }))
+    });
+  } catch (error) {
+    console.error('Error listing my cards:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
 
 // --- RUTAS PÚBLICAS Y MENSAJES ---
 

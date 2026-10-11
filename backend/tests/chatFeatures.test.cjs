@@ -209,6 +209,16 @@ const idOf = async (name) => (await prisma.user.findUnique({ where: { firebaseUi
     const later = (await send('jerry', 'seller', cardMsg(hidden.id))).j.message;
     await prisma.folder.update({ where: { id: privateFolder.id }, data: { isPublic: false } });
     ok('si la carta deja de ser pública, el adjunto aparece como no disponible', (await convo('seller', 'jerry')).messages.find((m) => m.id === later.id).attachment.unavailable === true);
+    r = await send('seller', 'jerry', cardMsg(hidden.id));
+    ok('su dueño sí puede mandar una carta de una carpeta no pública (marcada como privada, sin dueño)', r.status === 200 && r.j.message.attachment?.private === true && !JSON.stringify(r.j.message.attachment).includes('ownerId'), JSON.stringify(r.j));
+    ok('quien la recibe la ve igual', (await convo('jerry', 'seller')).messages.find((m) => m.id === r.j.message.id)?.attachment?.private === true);
+    r = await call('GET', '/cards/mine?scope=private', 'seller');
+    ok('mis cartas no públicas la incluyen y entregan los juegos', r.status === 200 && r.j.cards.some((c) => c.id === hidden.id) && r.j.tcgs.includes('Pokemon'), JSON.stringify(r.j).slice(0, 300));
+    ok('mis cartas públicas no traen las de carpetas no públicas', !(await call('GET', '/cards/mine?scope=public', 'seller')).j.cards.some((c) => c.id === hidden.id));
+    ok('el filtro por juego deja fuera otros juegos', (await call('GET', '/cards/mine?scope=private&tcg=Magic', 'seller')).j.cards.length === 0);
+    ok('las cartas de otra persona no aparecen en mis cartas', !(await call('GET', '/cards/mine?scope=private', 'jerry')).j.cards.some((c) => c.id === hidden.id));
+    ok('mis cartas sin sesión → 401', (await call('GET', '/cards/mine?scope=private', null)).status === 401);
+    ok('mis cartas con filtro inválido → 400', (await call('GET', '/cards/mine?q=' + 'a'.repeat(100), 'seller')).status === 400);
     ok('un mensaje vacío sin foto ni carta → 400', (await send('jerry', 'seller', text('   '))).status === 400);
 
     // ---- Presencia y privacidad

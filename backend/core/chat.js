@@ -92,19 +92,30 @@ export const presenceFor = (partner, viewer) => {
 };
 
 // ---------- Cómo se entrega un mensaje ----------
-const cardInfo = (card) => ({ id: card.id, name: card.name, imageUrl: card.imageUrl, price: card.price, stock: card.stock, tcg: card.folder?.tcg || null, set: card.data && typeof card.data === 'object' && typeof card.data.set === 'string' ? card.data.set.slice(0, 80) : null });
+const cardInfo = (card) => ({ id: card.id, name: card.name, imageUrl: card.imageUrl, price: card.price, stock: card.stock, tcg: card.folder?.tcg || null, set: card.data && typeof card.data === 'object' && typeof card.data.set === 'string' ? card.data.set.slice(0, 80) : null, ...(card.folder?.isPublic ? {} : { private: true }) });
 
-const loadCards = async (ids) => {
+// Una carta de una carpeta pública la puede ver cualquiera; una de una carpeta no pública solo si la manda su dueño (`ownerIds`)
+const loadCards = async (ids, ownerIds = []) => {
   const unique = [...new Set(ids)].filter(isUuid);
   if (!unique.length) return new Map();
   const cards = await prisma.card.findMany({
-    where: { id: { in: unique }, moderationState: 'visible', folder: { isPublic: true, moderationState: 'visible' } },
-    select: { id: true, name: true, imageUrl: true, price: true, stock: true, data: true, folder: { select: { tcg: true } } }
+    where: {
+      id: { in: unique }, moderationState: 'visible',
+      OR: [{ folder: { isPublic: true, moderationState: 'visible' } }, ...(ownerIds.length ? [{ folder: { userId: { in: ownerIds }, moderationState: 'visible' } }] : [])]
+    },
+    select: { id: true, name: true, imageUrl: true, price: true, stock: true, data: true, folder: { select: { tcg: true, isPublic: true, userId: true } } }
   });
-  return new Map(cards.map((card) => [card.id, cardInfo(card)]));
+  return new Map(cards.map((card) => [card.id, { ...cardInfo(card), ownerId: card.folder.userId }]));
 };
 
-const replyPreview = (row, viewerId) => {
+// La carta de una carpeta no pública solo cuenta si quien la mandó es su dueño; nunca se devuelve el dueño
+const attachmentFor = (card, cardId, senderId) => {
+  if (!card || (card.private && card.ownerId !== senderId)) return { id: cardId, unavailable: true };
+  const { ownerId, ...visible } = card; // eslint-disable-line no-unused-vars
+  return visible;
+};
+
+const replyPreview =(row, viewerId) => {
   if (!row) return { id: null, gone: true };
   const hidden = row.moderationState === 'hidden' && row.senderId !== viewerId;
   const body = hidden ? { text: HIDDEN_MESSAGE_TEXT, imageUrl: null, imageBase64: null, cardId: null } : decodeContent(row.content);
@@ -121,7 +132,7 @@ export const serializeMessages = async (messages, { viewer, partner = null }) =>
     prisma.messageReaction.findMany({ where: { messageId: { in: ids } }, select: { messageId: true, userId: true, emoji: true } }),
     prisma.messageStar.findMany({ where: { userId: viewer.id, messageId: { in: ids } }, select: { messageId: true } }),
     replyIds.length ? prisma.message.findMany({ where: { id: { in: replyIds }, OR: [{ senderId: viewer.id }, { receiverId: viewer.id }] }, select: { id: true, senderId: true, content: true, moderationState: true } }) : [],
-    loadCards(cardIds)
+    loadCards(cardIds, [...new Set(messages.map((message) => message.senderId))])
   ]);
   const reactionsBy = new Map();
   for (const row of reactions) {
@@ -148,7 +159,7 @@ export const serializeMessages = async (messages, { viewer, partner = null }) =>
       starred: starred.has(message.id),
       reactions: hidden ? [] : [...(reactionsBy.get(message.id)?.values() || [])],
       replyTo: replyToId ? replyPreview(replyById.get(replyToId), viewer.id) : null,
-      attachment: !hidden && body.cardId ? cards.get(body.cardId) || { id: body.cardId, unavailable: true } : null
+      attachment: !hidden && body.cardId ? attachmentFor(cards.get(body.cardId), body.cardId, message.senderId) : null
     };
   });
 };
@@ -164,7 +175,7 @@ export const createMessage = async ({ sender, receiver, content, replyToId = nul
 
   const body = decodeContent(content);
   if (!body.text.trim() && !body.imageUrl && !body.imageBase64 && !body.cardId && !body.audio) return { status: 400, body: { success: false, message: 'Mensaje inválido' } };
-  if (body.cardId && !(await loadCards([body.cardId])).has(body.cardId)) return { status: 400, body: { success: false, message: 'Esa carta ya no está disponible.' } };
+  if (body.cardId && !(await loadCards([body.cardId], [sender.id])).has(body.cardId)) return { status: 400, body: { success: false, message: 'Esa carta ya no está disponible.' } };
   if (replyToId) {
     const target = isUuid(replyToId)
       ? await prisma.message.findFirst({ where: { id: replyToId, OR: [{ senderId: sender.id, receiverId: receiver.id }, { senderId: receiver.id, receiverId: sender.id }] }, select: { id: true } })

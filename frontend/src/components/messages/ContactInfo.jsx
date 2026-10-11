@@ -74,12 +74,17 @@ export default function ContactInfo({ open, onClose, partner, settings, blockedB
         </section>
 
         <section className="border-t border-slate-100 py-1">
-          <button type="button" onClick={() => onSettings({ archived: !settings.archived })} className={row}>
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px] text-slate-500">{settings.archived ? 'unarchive' : 'archive'}</span>{settings.archived ? 'Sacar de archivadas' : 'Archivar chat'}
-          </button>
-          <button type="button" onClick={onToggleBlock} className={`${row} text-red-600`}>
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px] text-red-500">block</span>{blockedByMe ? `Desbloquear a ${partner.name}` : `Bloquear a ${partner.name}`}
-          </button>
+          {/* Ya no se puede archivar ni bloquear; solo se deja salir de esos estados a quien ya los tenía */}
+          {settings.archived && (
+            <button type="button" onClick={() => onSettings({ archived: false })} className={row}>
+              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px] text-slate-500">unarchive</span>Sacar de archivadas
+            </button>
+          )}
+          {blockedByMe && (
+            <button type="button" onClick={onToggleBlock} className={`${row} text-red-600`}>
+              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px] text-red-500">block</span>Desbloquear a {partner.name}
+            </button>
+          )}
           <button type="button" onClick={onReport} className={`${row} text-red-600`}>
             <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px] text-red-500">flag</span>Reportar a {partner.name}
           </button>

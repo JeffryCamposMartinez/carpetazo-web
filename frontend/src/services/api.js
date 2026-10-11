@@ -124,6 +124,7 @@ export const api = {
   getCardOffers: (id) => apiFetch('/cards/' + encodeURIComponent(id) + '/offers'),
   getRecentCards: (limit = 12) => apiFetch('/cards/recent?limit=' + limit),
   searchCards: (queryString = '') => searchCardsShared(queryString),
+  getMyCards: (queryString = '') => apiFetch(`/cards/mine?${queryString}`),
   getSellerReviews: (username, page = 1) => apiFetch('/users/' + encodeURIComponent(username) + '/reviews?page=' + page),
   getPendingReviews: () => apiFetch('/reviews/pending'),
   uploadAudio: (formData) => apiFetch('/users/upload-audio', { method: 'POST', body: formData, isMultipart: true }),
