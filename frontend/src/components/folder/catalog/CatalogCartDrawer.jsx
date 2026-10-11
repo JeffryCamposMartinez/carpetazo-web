@@ -1,4 +1,5 @@
 import LoadableImage from '../../ui/LoadableImage';
+import EmptyState from '../../ui/EmptyState';
 // Carrito del catálogo público: cartas elegidas, total y envío del pedido.
 export default function CatalogCartDrawer({
   cart, cartTotal, currentUser, formatCLP, handleMessageCheckout, handleWhatsAppCheckout,
@@ -18,10 +19,9 @@ export default function CatalogCartDrawer({
 
         <div className="flex-1 overflow-y-auto flex flex-col gap-3 custom-scrollbar pr-2">
           {cart.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400 opacity-70">
-              <span translate="no" className="material-symbols-outlined text-6xl mb-2">shopping_bag</span>
-              <p>Tu carrito está vacío.</p>
-            </div>
+            <EmptyState variant="plain" className="my-auto" icon="shopping_bag" title="Tu carrito está vacío">
+              Agrega cartas desde el catálogo y envía tu pedido al vendedor.
+            </EmptyState>
           ) : (
             cart.map(item => (
               <div key={item.id} className="flex gap-4 bg-gray-50 p-3 rounded-xl border border-gray-200 shadow-sm relative group">

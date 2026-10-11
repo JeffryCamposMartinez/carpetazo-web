@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import ReportButton from '../moderation/ReportButton';
+import { ButtonSpinner } from '../ui/LoadingState';
 
 const STAR_PATH = 'M12 2.5l2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 17.52l-5.88 3.09 1.12-6.55L2.48 9.42l6.58-.96L12 2.5z';
 
@@ -146,7 +147,8 @@ export default function ReviewsSection({ username, isOwner = false, colors = {} 
   if (!data) return null;
   if (data.count === 0) {
     return (
-      <div className="rounded-2xl border border-dashed p-5 text-center" style={{ borderColor: `${primary}55`, color: text }}>
+      <div className="empty-in rounded-2xl border border-dashed px-5 py-8 text-center" style={{ borderColor: `${primary}55`, color: text }}>
+        <span aria-hidden="true" className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: `${primary}1f`, color: primary }}><span translate="no" className="material-symbols-outlined text-[28px]">reviews</span></span>
         <p className="text-lg font-extrabold">{isOwner ? 'Aún no tienes reseñas' : 'Este vendedor aún no tiene reseñas'}</p>
         <p className="mt-1 text-sm font-medium opacity-70">
           {isOwner
@@ -217,8 +219,8 @@ export default function ReviewsSection({ username, isOwner = false, colors = {} 
       </ul>
       {page < data.pages && (
         <div className="flex justify-center">
-          <button type="button" onClick={loadMore} disabled={loadingMore} className="h-11 rounded-full px-6 text-sm font-extrabold ring-2 disabled:opacity-60" style={{ color: text, '--tw-ring-color': `${primary}55` }}>
-            {loadingMore ? 'Cargando…' : 'Ver más reseñas'}
+          <button type="button" onClick={loadMore} disabled={loadingMore} className="inline-flex h-11 items-center gap-2 rounded-full px-6 text-sm font-extrabold ring-2 disabled:opacity-60 transition-[transform,box-shadow] duration-150 active:scale-[0.97] [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-[0_8px_18px_-10px_rgba(18,49,95,0.5)] disabled:pointer-events-none" style={{ color: text, '--tw-ring-color': `${primary}55` }}>
+            {loadingMore ? <><ButtonSpinner tone="current" />Cargando…</> : 'Ver más reseñas'}
           </button>
         </div>
       )}

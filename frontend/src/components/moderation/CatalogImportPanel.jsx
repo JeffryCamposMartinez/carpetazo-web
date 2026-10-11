@@ -4,6 +4,7 @@ import { api } from '../../services/api';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import { ErrorBox, ListSkeleton, dateTime } from './shared';
 import CatalogImportReview from './CatalogImportReview';
+import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 
 const FILE_NAME = 'cartas_incrementales.json';
 const MAX_BYTES = 12 * 1024 * 1024;
@@ -50,7 +51,7 @@ function ConfirmDialog({ count, updates = 0, busy, onCancel, onConfirm }) {
         <div className="mt-6 grid grid-cols-2 gap-2">
           <button ref={cancelRef} type="button" disabled={busy} onClick={onCancel} className="h-12 rounded-full border-2 border-slate-300 text-sm font-extrabold text-slate-700 transition-[background-color,transform] duration-150 active:scale-[0.97] hover:bg-slate-50 disabled:opacity-50">Cancelar</button>
           <button type="button" disabled={busy} onClick={onConfirm} className="flex h-12 items-center justify-center gap-2 rounded-full bg-[#facc15] text-sm font-extrabold text-[#12315f] transition-[filter,transform] duration-150 active:scale-[0.97] hover:brightness-95 disabled:opacity-70">
-            {busy && <span aria-hidden="true" className="h-4 w-4 animate-spin rounded-full border-2 border-[#12315f]/30 border-t-[#12315f]" />}
+            {busy && <ButtonSpinner tone="dark" />}
             {busy ? 'Cargando…' : 'Sí, cargar'}
           </button>
         </div>
@@ -162,7 +163,7 @@ export default function CatalogImportPanel() {
       {stage === 'reviewing' && (
         <div>
           <div className="mb-4 flex items-center gap-3 rounded-2xl border border-[#dbe3f0] bg-white p-4" role="status">
-            <span className="h-5 w-5 animate-spin rounded-full border-[3px] border-[#1e40af]/25 border-t-[#1e40af]" aria-hidden="true" />
+            <ButtonSpinner tone="dark" className="!h-5 !w-5 !border-[#1e40af]/25 !border-t-[#1e40af]" />
             <p className="text-sm font-bold text-slate-700">Revisando {file?.name}… comparando con la base y comprobando las imágenes.</p>
           </div>
           <ListSkeleton rows={4} label="Revisando archivo" />

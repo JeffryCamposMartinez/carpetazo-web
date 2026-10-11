@@ -5,6 +5,7 @@ import ComunaSelect from '../components/ui/ComunaSelect';
 import LocationLine from '../components/ui/LocationLine';
 import Select from '../components/ui/Select';
 import usePageMeta from '../hooks/usePageMeta';
+import EmptyState from '../components/ui/EmptyState';
 
 const SORTS = [
   { value: 'visits', label: 'Más visitados' },
@@ -85,18 +86,16 @@ export default function SellersPage() {
 
         {loading ? (
           <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 6 }, (_, i) => <li key={i} className="h-28 animate-pulse rounded-2xl bg-white/70" />)}
+            {Array.from({ length: 6 }, (_, i) => <li key={i} className="skeleton h-28 rounded-2xl" />)}
           </ul>
         ) : failed ? (
-          <div className="rounded-2xl bg-white p-8 text-center ring-1 ring-slate-900/5" role="alert">
-            <p className="text-lg font-extrabold text-[#12315f]">No pudimos cargar los vendedores</p>
-            <p className="mt-1 text-sm text-slate-600">Revisa tu conexión y recarga la página.</p>
-          </div>
+          <EmptyState icon="cloud_off" title="No pudimos cargar los vendedores" action={{ label: 'Recargar página', icon: 'refresh', onClick: () => window.location.reload() }}>
+            Revisa tu conexión e inténtalo de nuevo.
+          </EmptyState>
         ) : sellers.length === 0 ? (
-          <div className="rounded-2xl bg-white p-8 text-center ring-1 ring-slate-900/5">
-            <p className="text-lg font-extrabold text-[#12315f]">No hay vendedores con esa búsqueda</p>
-            <p className="mt-1 text-sm text-slate-600">{comuna ? 'Solo aparecen vendedores que indicaron su comuna. Prueba con otra comuna o quita el filtro.' : 'Prueba con otro nombre.'}</p>
-          </div>
+          <EmptyState icon="storefront" title="No hay vendedores con esa búsqueda">
+            {comuna ? 'Solo aparecen vendedores que indicaron su comuna. Prueba con otra comuna o quita el filtro.' : 'Prueba con otro nombre.'}
+          </EmptyState>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {sellers.map((seller) => {

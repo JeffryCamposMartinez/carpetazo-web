@@ -5,6 +5,7 @@ import LazyFolderCard from '../components/folder/LazyFolderCard';
 import ComunaSelect from '../components/ui/ComunaSelect';
 import Select from '../components/ui/Select';
 import usePageMeta from '../hooks/usePageMeta';
+import EmptyState from '../components/ui/EmptyState';
 
 const TCG_CATEGORIES = [
   { name: 'Pokémon', logo: '/images/logos/pokemon.webp' },
@@ -175,20 +176,16 @@ export default function FoldersPage() {
 
         {loading ? (
           <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-            {Array.from({ length: 10 }, (_, i) => <li key={i} className="aspect-[32/37] animate-pulse rounded-xl bg-white/70" />)}
+            {Array.from({ length: 10 }, (_, i) => <li key={i} className="skeleton aspect-[32/37] rounded-xl" />)}
           </ul>
         ) : failed ? (
-          <div className="rounded-2xl bg-white p-8 text-center ring-1 ring-slate-900/5" role="alert">
-            <p className="text-lg font-extrabold text-[#12315f]">No pudimos cargar las carpetas</p>
-            <p className="mt-1 text-sm text-slate-600">Revisa tu conexión e inténtalo de nuevo.</p>
-            <button type="button" onClick={() => window.location.reload()} className="mt-4 rounded-full bg-[#facc15] px-6 py-2.5 text-sm font-extrabold text-[#12315f]">Recargar página</button>
-          </div>
+          <EmptyState icon="cloud_off" title="No pudimos cargar las carpetas" action={{ label: 'Recargar página', icon: 'refresh', onClick: () => window.location.reload() }}>
+            Revisa tu conexión e inténtalo de nuevo.
+          </EmptyState>
         ) : foldersToRender.length === 0 ? (
-          <div className="rounded-2xl bg-white p-8 text-center ring-1 ring-slate-900/5">
-            <p className="text-lg font-extrabold text-[#12315f]">No hay carpetas con esa búsqueda</p>
-            <p className="mt-1 text-sm text-slate-600">Prueba con otro nombre o cambia el juego.</p>
-            {hasFilters && <button type="button" onClick={clearFilters} className="mt-4 rounded-full bg-[#facc15] px-6 py-2.5 text-sm font-extrabold text-[#12315f]">Quitar filtros</button>}
-          </div>
+          <EmptyState icon="folder_off" title="No hay carpetas con esa búsqueda" action={hasFilters ? { label: 'Quitar filtros', onClick: clearFilters } : undefined}>
+            Prueba con otro nombre o cambia el juego.
+          </EmptyState>
         ) : (
           <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 md:grid-cols-4 xl:grid-cols-5">
             {foldersToRender.map((folder) => (

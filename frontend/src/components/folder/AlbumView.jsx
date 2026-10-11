@@ -5,6 +5,8 @@ import { DRAG_PAGE_TURN_EDGE_RATIO, DRAG_PAGE_TURN_HOLD_MS } from './album/album
 import { DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from './dragScroll';
 import AlbumCardPreview from './album/AlbumCardPreview';
 import AlbumPagination from './album/AlbumPagination';
+import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
+import EmptyState from '../ui/EmptyState';
 
 
 const stripHtml = (value = '') => String(value || '').replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
@@ -528,15 +530,11 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
 
             {visiblePages.map((pageIndex) => <AlbumPage key={pageIndex} pageIndex={pageIndex} {...albumPageProps} />)}
           {!albumReady && hasCards && (
-            <div role="status" className="absolute inset-0 z-[3000] flex flex-col items-center justify-center gap-3 rounded-2xl bg-slate-950/85 text-white backdrop-blur-sm">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/25 border-t-yellow-300 motion-reduce:animate-none" />
-              <p className="text-base font-bold">Cargando álbum…</p>
-              <p className="px-6 text-center text-xs text-slate-300">Preparando las páginas para que giren sin tirones</p>
-            </div>
+            <LoadingState variant="overlay" tone="dark" label="Cargando álbum…" hint="Preparando las páginas para que giren sin tirones" className="!z-[3000] !bg-slate-950/85" />
           )}
           {cards.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-medium">
-              No hay cartas en esta carpeta.
+            <div className="absolute inset-0 flex items-center justify-center p-4">
+              <EmptyState variant="plain" tone="dark" icon="style" title="Esta carpeta todavía no tiene cartas">Cuando se agreguen cartas, aparecerán aquí en el álbum.</EmptyState>
             </div>
           )}
         </div>

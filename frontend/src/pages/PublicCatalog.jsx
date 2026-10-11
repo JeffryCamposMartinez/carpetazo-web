@@ -11,6 +11,8 @@ import CatalogBrowser from '../components/folder/catalog/CatalogBrowser';
 import CatalogCover from '../components/folder/catalog/CatalogCover';
 import { rarityRank } from '../utils/rarityRank';
 import usePageMeta from '../hooks/usePageMeta';
+import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
+import EmptyState from '../components/ui/EmptyState';
 
 const isLocalhostWithProductionApi = () => {
   if (typeof window === 'undefined') return false;
@@ -559,7 +561,7 @@ function PublicCatalog() {
     return (
       <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
         <div className="w-full rounded-none overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x border-gray-300 flex flex-col items-center justify-center relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-primary"></div>
+          <LoadingState variant="page" label="Abriendo el catálogo…" />
         </div>
       </div>
     );
@@ -567,10 +569,10 @@ function PublicCatalog() {
 
   if (errorMsg) {
     return (
-      <div className="min-h-[calc(100vh-80px)] w-full flex flex-col items-center justify-center bg-[#DBEAFE] p-6 relative z-10">
-        <span translate="no" className="material-symbols-outlined text-6xl text-error mb-4">error</span>
-        <h2 className="text-2xl font-bold mb-6 text-[#1a2b4b] text-center max-w-md leading-snug">{errorMsg}</h2>
-        <Link to="/" className="bg-[#1e40af] hover:bg-blue-800 text-white px-6 py-2.5 rounded-xl font-bold shadow-md transition-colors">Volver al inicio</Link>
+      <div className="relative z-10 flex min-h-[calc(100vh-80px)] w-full flex-col items-center justify-center bg-[#DBEAFE] p-6">
+        <EmptyState icon="folder_off" title={errorMsg} action={{ label: 'Volver al inicio', to: '/' }} secondary={{ label: 'Ver todas las carpetas', to: '/carpetas' }} className="max-w-md">
+          Revisa que el enlace esté completo o pídele al vendedor que te lo envíe de nuevo.
+        </EmptyState>
       </div>
     );
   }

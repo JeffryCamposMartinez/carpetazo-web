@@ -395,3 +395,76 @@ body.public-profile-active::after {
 .mod-confirm-in { animation: sheet-up 260ms cubic-bezier(0.32, 0.72, 0, 1) both; }
 @media (min-width: 640px) { .mod-confirm-in { animation: select-pop 160ms cubic-bezier(0.23, 1, 0.32, 1) both; } }
 @media (prefers-reduced-motion: reduce) { .mod-confirm-in { animation: none; } }
+
+/* === Estados de carga y vacíos (components/ui/LoadingState.jsx y EmptyState.jsx) ========== */
+@keyframes loading-in { from { opacity: 0; } to { opacity: 1; } }
+.loading-in { animation: loading-in 220ms ease-out 120ms both; } /* con 120 ms de espera: una respuesta rápida no hace parpadear la carga */
+@keyframes empty-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.empty-in { animation: empty-in 320ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .loading-in { animation: none; }
+  .empty-in { animation: none; }
+}
+
+/* === Respaldo de estados al pasar el mouse y al enfocar con el teclado ===================
+   Todo botón, pestaña o enlace con forma de botón que no defina su propio hover responde igual de bien;
+   los que sí lo definen (clases hover:) no se tocan. Solo con puntero fino: en el celular no existe "pasar el mouse". */
+@layer base {
+  button, [role='button'], [role='tab'], a[class*='rounded'] {
+    transition-property: color, background-color, border-color, box-shadow, transform, scale, filter, opacity;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled):not([aria-disabled='true']):not([class*='hover:']):not(:has(img)):hover,
+  [role='button']:not([aria-disabled='true']):not([class*='hover:']):not(:has(img)):hover,
+  [role='tab']:not([aria-selected='true']):not([class*='hover:']):hover,
+  a[class*='rounded']:not([class*='hover:']):not(:has(img)):hover {
+    filter: brightness(0.95) saturate(1.05);
+  }
+  /* Enlaces de texto sin hover propio: se subrayan con aire */
+  a:not([class*='hover:']):not([class*='flex']):not([class*='grid']):not([class*='block']):not([class*='rounded']):not(:has(img)):hover {
+    text-decoration-line: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1.5px;
+  }
+  /* Elementos con imagen (tarjetas de carta): se elevan un poco en vez de oscurecerse */
+  button:not(:disabled):not([class*='hover:']):has(img):hover,
+  a[class*='rounded']:not([class*='hover:']):has(img):hover {
+    box-shadow: 0 10px 22px -14px rgba(18, 49, 95, 0.55);
+  }
+}
+/* Foco de teclado: un aro azul uniforme para lo que no define el suyo */
+:where(button, a, [role='button'], [role='tab'], summary, select, textarea, input):focus-visible:not([class*='focus']) {
+  outline: 2px solid #1e40af;
+  outline-offset: 2px;
+}
+
+/* Hover por tipo de botón (solo para los que no definen el suyo): amarillo → amarillo profundo, azul → azul marino, translúcido del encabezado → más claro */
+@media (hover: hover) and (pointer: fine) {
+  :is(button, a, [role='button'])[class*='bg-[#facc15]']:not([class*='hover:']):not(:disabled):hover {
+    background-color: #eab308; filter: none; box-shadow: 0 6px 16px -8px rgba(18, 49, 95, 0.55);
+  }
+  :is(button, a, [role='button'])[class*='bg-[#1e40af]']:not([class*='hover:']):not(:disabled):hover {
+    background-color: #12315f; filter: none; box-shadow: 0 6px 16px -8px rgba(18, 49, 95, 0.55);
+  }
+  :is(button, a, [role='button'])[class*='bg-[#12315f]']:not([class*='hover:']):not(:disabled):hover {
+    background-color: #1e40af; filter: none; box-shadow: 0 6px 16px -8px rgba(18, 49, 95, 0.55);
+  }
+  :is(button, a, [role='button'])[class*='bg-white/10']:not([class*='hover:']):not(:disabled):hover,
+  :is(button, a, [role='button'])[class*='bg-white/15']:not([class*='hover:']):not(:disabled):hover {
+    background-color: rgba(255, 255, 255, 0.22); filter: none;
+  }
+  :is(button, a)[class*='bg-white']:not([class*='bg-white/']):not([class*='hover:']):not(:disabled):not(:has(img)):hover {
+    background-color: #f1f5fb; filter: none;
+  }
+  /* Enlaces de texto ya subrayados: el subrayado se engrosa y el color se profundiza */
+  a[class*='underline']:not([class*='hover:']):hover {
+    text-decoration-thickness: 2.5px; filter: brightness(0.8);
+  }
+}
+
+/* Esqueletos de carga con el brillo azul de la marca (los de moderación usan .mod-skeleton) */
+.skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.55) 25%, rgba(255,255,255,0.92) 50%, rgba(255,255,255,0.55) 75%); background-size: 200% 100%; animation: mod-shimmer 1.6s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }

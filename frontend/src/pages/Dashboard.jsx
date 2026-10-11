@@ -11,6 +11,8 @@ import FolderEmptySteps from '../components/folder/FolderEmptySteps';
 import FolderGrid from '../components/folder/FolderGrid';
 import { useToast } from '../components/ui/ToastProvider';
 import { warmFolderPreview } from '../utils/sharePreview';
+import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
+import { LoadingMark } from '../components/ui/LoadableImage';
 // html2canvas + jsPDF pesan mucho: se descargan solo al generar un PDF
 const HiddenPDFGenerator = lazy(() => import('../components/folder/HiddenPDFGenerator'));
 
@@ -345,7 +347,7 @@ export default function Dashboard() {
     return (
       <div className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col xl:px-12 2xl:px-16">
         <div className="relative z-10 flex w-full flex-1 flex-col items-center justify-center overflow-hidden rounded-none border-gray-300 bg-[#DBEAFE] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <LoadingState variant="page" label="Cargando tus carpetas…" />
         </div>
       </div>
     );
@@ -546,7 +548,7 @@ export default function Dashboard() {
       {generatingPdfFolder && (
         <div className="fixed inset-0 bg-slate-900 z-[9999] flex items-center justify-center p-4">
           <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full flex flex-col items-center">
-            <div className="w-16 h-16 border-4 border-blue-100 border-t-[#1e40af] rounded-full animate-spin mb-6"></div>
+            <LoadingMark className="relative mb-4" />
             
             <h2 className="text-2xl font-bold text-[#1a2b4b] mb-2 text-center">
               {pdfProgress.generating ? 'Generando PDF...' : 'Preparando Carpeta...'}

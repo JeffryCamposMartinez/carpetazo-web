@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import LazyFolderCard from '../folder/LazyFolderCard';
 import { cardRatio } from '../../utils/cardShape';
+import EmptyState from '../ui/EmptyState';
 
 const GAMES = [
   { name: 'Pokémon', logo: '/images/logos/pokemon.webp', scale: 'scale-100' },
@@ -58,7 +59,7 @@ function Avatar({ src, name, className = 'h-11 w-11' }) {
 }
 
 function Skeleton({ className }) {
-  return <div className={`animate-pulse rounded-xl bg-[#1a2b4b]/10 ${className}`} />;
+  return <div className={`skeleton rounded-xl ${className}`} />;
 }
 
 // Estante con las carpetas más visitadas de la semana
@@ -214,9 +215,9 @@ function RecentCards({ cards, loading }) {
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="aspect-[63/88]" />)}
         </div>
       ) : visible.length === 0 ? (
-        <p className="rounded-xl bg-white px-4 py-6 text-center text-sm text-[#1a2b4b]/70 ring-1 ring-[#1a2b4b]/10">
-          Todavía no hay cartas nuevas. Publica las tuyas y aparecerán aquí.
-        </p>
+        <EmptyState icon="new_releases" title="Todavía no hay cartas nuevas" action={{ label: 'Publicar mis cartas', to: '/dashboard' }}>
+          Cuando los vendedores suban cartas con stock, las más recientes aparecerán aquí.
+        </EmptyState>
       ) : (
         <div className="grid grid-cols-3 items-start gap-2 sm:grid-cols-4 lg:grid-cols-6">
           {visible.map((card, index) => {

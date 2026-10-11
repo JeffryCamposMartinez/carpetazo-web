@@ -15,6 +15,8 @@ import { EMPTY_OP_FILTERS, countOnePieceFilters } from '../../services/tcgcsvOne
 import { EMPTY_MAGIC_FILTERS, countMagicFilters } from '../../services/tcgcsvMagic';
 import { EMPTY_RB_FILTERS, countRiftboundFilters } from '../../services/tcgcsvRiftbound';
 import { EMPTY_YGO_FILTERS, countYugiohFilters } from '../../services/tcgcsvYugioh';
+import EmptyState from '../ui/EmptyState';
+import LoadingState from '../ui/LoadingState';
 
 // Juegos del sitio. Solo los marcados tienen buscador con filtros; el resto llegará pronto.
 export const WISHLIST_GAMES = [
@@ -295,8 +297,8 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
       {selectedGame?.available && (
         <div aria-live="polite">
           {hint && results.length === 0 && <p className="px-1 text-sm text-slate-500 lg:hidden">{hint}</p>}
-          {searching && results.length === 0 && <p className="px-1 text-sm text-slate-500">Buscando…</p>}
-          {!hint && !searching && results.length === 0 && <p className="px-1 text-sm text-slate-500">No encontramos cartas con esos filtros.</p>}
+          {searching && results.length === 0 && <LoadingState variant="compact" label="Buscando cartas…" />}
+          {!hint && !searching && results.length === 0 && <EmptyState variant="compact" icon="search_off" title="No encontramos cartas con esos filtros">Prueba con otro nombre o cambia la edición.</EmptyState>}
           {results.length > 0 && (
             <>
               <p className="mb-1.5 px-1 text-xs font-semibold text-slate-500">{results.length.toLocaleString('es-CL')} {results.length === 1 ? 'resultado' : 'resultados'}</p>

@@ -8,6 +8,8 @@ import { describeWishlistItem } from './wishlistLightbox';
 import LoadableImage from '../ui/LoadableImage';
 import WishlistLightboxActions from './WishlistLightboxActions';
 import WishlistAlerts from './WishlistAlerts';
+import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
+import EmptyState from '../ui/EmptyState';
 
 const LIMIT_FALLBACK = 200;
 
@@ -222,14 +224,13 @@ export default function WishlistTab({ showToast = () => {} }) {
   const inputClass = 'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base text-slate-900 focus:border-[#1e40af] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70';
 
   if (loading) {
-    return <div className="space-y-3" role="status" aria-label="Cargando tu lista">{[0, 1, 2].map((i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-white/70" />)}</div>;
+    return <LoadingState label="Cargando tu lista de deseos…" />;
   }
   if (failed) {
     return (
-      <div className="rounded-2xl bg-white p-6 text-center ring-1 ring-slate-900/5" role="alert">
-        <p className="text-lg font-extrabold text-[#12315f]">No pudimos cargar tu lista</p>
-        <p className="mt-1 text-sm text-slate-600">Revisa tu conexión y recarga la página.</p>
-      </div>
+      <EmptyState icon="cloud_off" title="No pudimos cargar tu lista" action={{ label: 'Recargar página', icon: 'refresh', onClick: () => window.location.reload() }}>
+        Revisa tu conexión e inténtalo de nuevo.
+      </EmptyState>
     );
   }
 
@@ -279,7 +280,7 @@ export default function WishlistTab({ showToast = () => {} }) {
             className="flex h-11 shrink-0 items-center gap-2 rounded-full bg-[#12315f] pl-3.5 pr-4 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-[#1e40af] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 disabled:opacity-50 disabled:active:scale-100"
           >
             {exporting
-              ? <span aria-hidden="true" className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              ? <ButtonSpinner />
               : <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">picture_as_pdf</span>}
             {exporting ? 'Creando…' : 'Exportar PDF'}
           </button>
@@ -330,16 +331,15 @@ export default function WishlistTab({ showToast = () => {} }) {
 
       {/* Lista */}
       {items.length === 0 ? (
-        <div className="order-3 rounded-2xl bg-white p-8 text-center ring-1 ring-slate-200 lg:flex lg:flex-1 lg:flex-col lg:items-center lg:justify-center lg:rounded-none lg:bg-transparent lg:shadow-none lg:ring-0">
-          <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-[#1e40af] lg:hidden">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[30px]">favorite</span>
-          </span>
-          <p className="text-lg font-extrabold text-[#12315f]">Tu lista está vacía</p>
-          <p className="mt-1 text-sm text-slate-600">Busca una carta y agrégala. También puedes tocar el corazón en cualquier carta de la sección Cartas.</p>
-          <button type="button" onClick={() => setFinderOpen(true)} aria-haspopup="dialog" className="mt-5 inline-flex h-12 items-center gap-2 rounded-full bg-[#1e40af] px-6 text-[15px] font-extrabold text-white shadow-[0_1px_2px_rgba(8,18,42,0.35),0_6px_14px_-6px_rgba(30,64,175,0.7)] transition-[transform,filter] duration-150 hover:brightness-110 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 lg:hidden">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px]">search</span>
-            Buscar mi primera carta
-          </button>
+        <div className="order-3 lg:flex lg:flex-1 lg:flex-col lg:items-center lg:justify-center">
+          <EmptyState
+            icon="favorite"
+            title="Tu lista de deseos está vacía"
+            action={{ label: 'Buscar mi primera carta', icon: 'search', onClick: () => setFinderOpen(true) }}
+            className="lg:rounded-none lg:bg-transparent lg:shadow-none lg:ring-0"
+          >
+            Busca una carta y agrégala. También puedes tocar el corazón en cualquier carta de la sección Cartas.
+          </EmptyState>
         </div>
       ) : (
         <ul ref={listRef} className="order-3 space-y-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:p-4">

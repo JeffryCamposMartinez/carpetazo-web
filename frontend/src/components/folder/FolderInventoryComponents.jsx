@@ -2,6 +2,7 @@ import React from 'react';
 import ThemedSelect from '../ui/ThemedSelect';
 import LiquidTabs from '../ui/LiquidTabs';
 import { DETAIL_MODES } from './folderCards';
+import EmptyState from '../ui/EmptyState';
 
 const formatCLP = (value) => {
   const number = Number(value || 0);
@@ -221,31 +222,16 @@ export const InventoryViewSwitcher = ({
 );
 
 export const InventoryEmptyState = ({ hasFilters, onClearFilters, onAddCards }) => (
-  <div className="rounded-3xl border border-dashed border-blue-200 bg-blue-50/50 px-6 py-12 text-center text-gray-600">
-    <span translate="no" className="material-symbols-outlined mb-3 text-5xl text-[#1e40af]/40">
-      {hasFilters ? 'search_off' : 'inventory_2'}
-    </span>
-    <h3 className="text-lg font-black text-[#1a2b4b]">
-      {hasFilters ? 'No hay cartas con esos filtros' : 'Esta carpeta todavía no tiene cartas'}
-    </h3>
-    <p className="mx-auto mt-2 max-w-md text-sm text-gray-500">
-      {hasFilters
-        ? 'Prueba limpiando la búsqueda o cambiando la edición seleccionada.'
-        : 'Agrega cartas desde la pestaña de búsqueda para empezar a construir el álbum.'}
-    </p>
-    <div className="mt-5 flex flex-wrap justify-center gap-3">
-      {hasFilters && (
-        <button type="button" onClick={onClearFilters} className="rounded-xl bg-white px-4 py-2 text-sm font-bold text-[#1e40af] shadow-sm ring-1 ring-blue-100">
-          Limpiar filtros
-        </button>
-      )}
-      {onAddCards && (
-        <button type="button" onClick={onAddCards} className="rounded-xl bg-[#1e40af] px-4 py-2 text-sm font-bold text-white shadow-sm">
-          Agregar cartas
-        </button>
-      )}
-    </div>
-  </div>
+  <EmptyState
+    icon={hasFilters ? 'search_off' : 'inventory_2'}
+    title={hasFilters ? 'No hay cartas con esos filtros' : 'Esta carpeta todavía no tiene cartas'}
+    action={hasFilters && onClearFilters ? { label: 'Limpiar filtros', onClick: onClearFilters } : onAddCards ? { label: 'Agregar cartas', icon: 'add', onClick: onAddCards } : undefined}
+    secondary={hasFilters && onAddCards ? { label: 'Agregar cartas', onClick: onAddCards } : undefined}
+  >
+    {hasFilters
+      ? 'Prueba limpiando la búsqueda o cambiando la edición seleccionada.'
+      : 'Agrega cartas desde la pestaña de búsqueda para empezar a construir el álbum.'}
+  </EmptyState>
 );
 
 export const DragFloatingPreview = ({ preview, previewRef }) => {

@@ -7,6 +7,7 @@ import CardLightbox from '../ui/CardLightbox';
 import { describeWishlistItem } from './wishlistLightbox';
 import LoadableImage from '../ui/LoadableImage';
 import { cardFill, cardRatio } from '../../utils/cardShape';
+import { ButtonSpinner } from '../ui/LoadingState';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 
@@ -82,10 +83,11 @@ export default function WishlistSection({ username, seller, isOwner = false, var
   if (total === 0) {
     // Solo el dueño ve la invitación a llenar su lista
     return isOwner && variant === 'profile' ? (
-      <div className="rounded-2xl border border-dashed p-5 text-center" style={{ borderColor: `${primary}55`, color: text }}>
+      <div className="empty-in rounded-2xl border border-dashed px-5 py-8 text-center" style={{ borderColor: `${primary}55`, color: text }}>
+        <span aria-hidden="true" className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: `${primary}1f`, color: primary }}><span translate="no" className="material-symbols-outlined text-[28px]">favorite</span></span>
         <p className="text-lg font-extrabold">Aún no tienes cartas deseadas</p>
         <p className="mt-1 text-sm font-medium" style={muted}>Agrega las cartas que buscas y quien entre a tus carpetas podrá ofrecértelas.</p>
-        <Link to="/dashboard?tab=deseadas" className="mt-3 inline-flex h-11 items-center rounded-full px-6 text-sm font-extrabold" style={{ backgroundColor: primary, color: '#fff' }}>Armar mi lista</Link>
+        <Link to="/dashboard?tab=deseadas" className="mt-4 inline-flex h-11 items-center rounded-full px-6 text-sm font-extrabold transition-[filter,transform] duration-150 active:scale-[0.97] [@media(hover:hover)]:hover:brightness-110" style={{ backgroundColor: primary, color: '#fff' }}>Armar mi lista</Link>
       </div>
     ) : null;
   }
@@ -134,8 +136,8 @@ export default function WishlistSection({ username, seller, isOwner = false, var
 
   const more = page < pages && (
     <div className="mt-4 flex justify-center">
-      <button type="button" onClick={loadMore} disabled={loadingMore} className="h-11 rounded-full px-6 text-sm font-extrabold ring-2 disabled:opacity-60" style={{ color: text, '--tw-ring-color': `${primary}66` }}>
-        {loadingMore ? 'Cargando…' : 'Ver más cartas'}
+      <button type="button" onClick={loadMore} disabled={loadingMore} className="inline-flex h-11 items-center gap-2 rounded-full px-6 text-sm font-extrabold ring-2 disabled:opacity-60 transition-[transform,box-shadow] duration-150 active:scale-[0.97] [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-[0_8px_18px_-10px_rgba(18,49,95,0.5)] disabled:pointer-events-none" style={{ color: text, '--tw-ring-color': `${primary}66` }}>
+        {loadingMore ? <><ButtonSpinner tone="current" />Cargando…</> : 'Ver más cartas'}
       </button>
     </div>
   );

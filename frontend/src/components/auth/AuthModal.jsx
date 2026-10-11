@@ -2,13 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { warmUpGoogleSignIn } from '../../services/firebase';
 import { markAcceptedBeforeLogin, clearPendingAcceptance } from '../../legal/pending';
+import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 
 const inputClass = 'w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white transition-all text-gray-800';
 const primaryButtonClass = 'w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50';
 
-function Spinner() {
-  return <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>;
-}
+const Spinner = () => <ButtonSpinner className="!h-5 !w-5" />;
 
 // Casilla de aceptación: sin marcar, obligatoria para ingresar por cualquier método
 function TermsCheckbox({ checked, onChange, showError, inputRef }) {
@@ -205,7 +204,7 @@ export default function AuthModal({ isOpen, onClose }) {
             >
               {loading ? (
                 <>
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                  <ButtonSpinner className="!h-5 !w-5" />
                   Conectando con Google…
                 </>
               ) : (
@@ -318,7 +317,7 @@ export default function AuthModal({ isOpen, onClose }) {
 
             <div className="flex flex-col gap-2 pt-2">
               <button type="button" onClick={handleEmailLogin} disabled={loading} className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-sm text-xs flex items-center justify-center gap-1.5 disabled:opacity-50">
-                {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : (<><span translate="no" className="material-symbols-outlined text-[16px]">refresh</span>Ya verifiqué, intentar ingresar</>)}
+                {loading ? <ButtonSpinner /> : (<><span translate="no" className="material-symbols-outlined text-[16px]">refresh</span>Ya verifiqué, intentar ingresar</>)}
               </button>
 
               <button type="button" onClick={() => setView('login')} className="w-full py-2 text-xs text-gray-500 hover:text-gray-700 font-bold transition-colors">

@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { ReportMenu } from '../components/moderation/ReportButton';
+import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
+import EmptyState from '../components/ui/EmptyState';
 
 const encodeMessage = ({ text, imageUrl, imageBase64 }) => JSON.stringify({
   v: 1,
@@ -409,9 +411,9 @@ export default function Messages() {
             </div>
 
             {loadingChats ? (
-              <p className="p-5 text-slate-500">Cargando chats...</p>
+              <LoadingState variant="compact" label="Cargando tus chats…" className="flex-1" />
             ) : chats.length === 0 ? (
-              <p className="p-5 text-slate-500">Aún no tienes conversaciones.</p>
+              <EmptyState variant="plain" icon="forum" title="Aún no tienes conversaciones" action={{ label: 'Ver cartas a la venta', to: '/cartas' }}>Cuando le escribas a un vendedor o alguien te escriba, la conversación aparecerá aquí.</EmptyState>
             ) : (
               <div className="min-h-0 flex-1 divide-y divide-slate-100 overflow-y-auto">
                 {chats.map(chat => {
@@ -475,9 +477,9 @@ export default function Messages() {
 
                 <div ref={messagesScrollRef} onScroll={handleMessagesScroll} className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[#dbeafe] bg-[radial-gradient(circle_at_20%_20%,rgba(30,64,175,0.10)_0_1px,transparent_1px),radial-gradient(circle_at_80%_30%,rgba(255,203,5,0.20)_0_1px,transparent_1px)] bg-[length:24px_24px] px-3 py-4 md:px-8 md:py-5">
                   {loadingMessages && messages.length === 0 ? (
-                    <p className="text-center text-slate-500">Cargando mensajes...</p>
+                    <LoadingState variant="compact" label="Cargando los mensajes…" />
                   ) : messages.length === 0 ? (
-                    <p className="text-center text-slate-500 mt-10">Empieza la conversación 👋</p>
+                    <EmptyState variant="plain" icon="waving_hand" title="Empieza la conversación" className="mt-6">Escribe el primer mensaje abajo. Acuerden la entrega y el pago por aquí, con calma.</EmptyState>
                   ) : (
                     messages.map(message => {
                       const own = message.senderId !== activeOther.id;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../services/api';
 import ReportButton from './ReportButton';
+import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 
 const dateLabel = (iso) => (iso ? new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(iso)) : '');
 const dateTimeLabel = (iso) => (iso ? new Intl.DateTimeFormat('es-CL', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(iso)) : '');
@@ -77,7 +78,7 @@ export default function MyModeration() {
   };
 
   if (error) return <p role="alert" className="rounded-2xl bg-red-50 p-4 text-sm font-bold text-red-700 ring-1 ring-red-100">{error}</p>;
-  if (!data) return <div className="flex justify-center py-10" role="status" aria-label="Cargando"><div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1e40af] border-t-transparent" /></div>;
+  if (!data) return <LoadingState label="Cargando tu actividad de moderación…" />;
 
   const restrictionsToShow = data.restrictions.filter((type) => RESTRICTION_TEXT[type]);
 

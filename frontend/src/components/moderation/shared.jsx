@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
+import LoadingState from '../ui/LoadingState';
 
 // Piezas compartidas del panel de moderación. Paleta: azul Carpetazo (#1e40af / #12315f), amarillo (#facc15) como único acento
 // y grises azulados para las líneas (#dbe3f0). Lo que pide atención (gravedad, vencimientos) se marca con punto + texto, nunca solo con color.
@@ -38,9 +39,7 @@ export const Badge = ({ className = 'bg-slate-200 text-slate-700', children }) =
   <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${className}`}>{children}</span>
 );
 
-export const Spinner = ({ label = 'Cargando' }) => (
-  <div className="flex justify-center py-10" role="status" aria-label={label}><div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#1e40af]/25 border-t-[#1e40af]" /></div>
-);
+export const Spinner = ({ label = 'Cargando…' }) => <LoadingState label={label} />;
 
 // Marcador de lugar mientras llega la lista: ocupa el mismo espacio que las filas reales y evita que la página salte
 export const ListSkeleton = ({ rows = 5, label = 'Cargando' }) => (

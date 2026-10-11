@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 // Estados del perfil público fuera del caso normal: cargando y no disponible
 
 export function ProfileLoading() {
-  const block = 'animate-pulse rounded-2xl bg-white/70 motion-reduce:animate-none';
+  const block = 'skeleton rounded-2xl';
   return (
     <div className="mx-auto w-full max-w-[1220px] space-y-5 px-4 py-5 sm:px-6 md:px-8" role="status" aria-label="Cargando perfil" aria-busy="true">
       <div className={`${block} h-[300px] sm:h-[340px]`} />

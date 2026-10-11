@@ -4,6 +4,7 @@ import { api } from '../../services/api';
 import { useRef } from 'react';
 import { DetailHeader, DetailPane, Dot, EmptyState, FilterSheet, ListSkeleton, Pills, ROW, ROW_ACTIVE, ROW_HOVER, SEVERITY_STYLE, relativeTime } from './shared';
 import Select from '../ui/Select';
+import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 
 const SEVERITY = {
   S1: { label: 'Crítica', className: 'bg-red-600 text-white' },
@@ -155,7 +156,7 @@ function ReportDetail({ id, level, onClose, onChanged, onOpenPerson }) {
       <DetailHeader title={report ? (TYPE_LABELS[report.targetType] || report.targetType) : 'Cargando…'} subtitle={report ? report.shortCode : undefined} onClose={onClose} />
       <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 pb-10">
         {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-200">{error}</p>}
-        {!data && !error && <div className="flex justify-center py-10" role="status" aria-label="Cargando"><div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1e40af] border-t-transparent" /></div>}
+        {!data && !error && <LoadingState label="Cargando el reporte…" />}
         {report && (
           <>
             <div className="flex flex-wrap items-center gap-2">

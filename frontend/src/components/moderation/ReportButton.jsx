@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
+import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 
 const COMMENT_MAX = 500;
 const COMMENT_MIN_REQUIRED = 20;
@@ -115,7 +116,7 @@ function ReportSheet({ targetType, targetId, blockUserId, onClose, onReported })
 
         <div ref={scrollRef} className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-5 py-4">
           {loadError && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{loadError}</p>}
-          {!catalog && !loadError && <div className="flex justify-center py-10" role="status" aria-label="Cargando"><div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1e40af] border-t-transparent" /></div>}
+          {!catalog && !loadError && <LoadingState variant="compact" label="Cargando los motivos…" />}
 
           {catalog && step === 1 && (
             <fieldset>

@@ -98,10 +98,10 @@ export default function ProfileModules({
 
           {folders.length === 0 ? (
             <div className="border border-dashed p-10 text-center" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}55` }}>
-              <span translate="no" className="material-symbols-outlined text-5xl" style={{ color: `${publicTheme.primary}99` }}>inventory_2</span>
+              <span aria-hidden="true" className="empty-in mx-auto flex h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: `${publicTheme.primary}1f`, color: publicTheme.primary }}><span translate="no" className="material-symbols-outlined text-[32px]">inventory_2</span></span>
               <p className="mt-3 text-lg font-extrabold" style={{ color: publicTheme.text }}>{isOwner ? 'Aún no tienes carpetas públicas' : 'Este vendedor está ordenando sus cartas'}</p>
               <p className="mt-1 text-sm font-medium" style={textMuted}>{isOwner ? 'Crea una carpeta en tu panel y márcala como pública para que aparezca aquí.' : 'Cuando publique una carpeta, aparecerá aquí.'}</p>
-              {isOwner && <Link to="/dashboard" className="mt-4 inline-flex h-11 items-center rounded-full px-6 text-sm font-extrabold" style={{ backgroundColor: publicTheme.primary, color: readableOn(publicTheme.primary) }}>Ir a mis carpetas</Link>}
+              {isOwner && <Link to="/dashboard" className="mt-4 inline-flex h-11 items-center rounded-full px-6 text-sm font-extrabold transition-[filter,transform] duration-150 active:scale-[0.97] [@media(hover:hover)]:hover:brightness-110" style={{ backgroundColor: publicTheme.primary, color: readableOn(publicTheme.primary) }}>Ir a mis carpetas</Link>}
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">

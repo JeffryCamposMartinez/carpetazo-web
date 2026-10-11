@@ -26,6 +26,8 @@ import { EMPTY_RB_FILTERS, RIFTBOUND_CATEGORY, riftboundGroupLabel } from '../se
 import { EMPTY_YGO_FILTERS, YUGIOH_CATEGORY, yugiohGroupLabel } from '../services/tcgcsvYugioh';
 import { tcgcsvCategoryId } from '../services/tcgcsvGames';
 import { warmFolderPreview } from '../utils/sharePreview';
+import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
+import EmptyState from '../components/ui/EmptyState';
 
 
 const PAGE_SIZE = 20;
@@ -908,16 +910,16 @@ const [isSearching, setIsSearching] = useState(false);
     return (
       <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
         <div className="w-full rounded-none shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] border-x border-gray-300 flex flex-col items-center justify-center relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <LoadingState variant="page" label="Abriendo la carpeta…" />
         </div>
       </div>
     );
   }
   if (!folderData) return (
-    <div className="min-h-[calc(100vh-80px)] w-full flex flex-col items-center justify-center bg-[#DBEAFE] p-6 relative z-10">
-      <span translate="no" className="material-symbols-outlined text-6xl text-error mb-4">error</span>
-      <h2 className="text-2xl font-bold mb-6 text-[#1a2b4b] text-center max-w-md leading-snug">Carpeta no encontrada o error al cargar los datos.</h2>
-      <button onClick={() => navigate('/dashboard')} className="bg-[#1e40af] hover:bg-blue-800 text-white px-6 py-2.5 rounded-xl font-bold shadow-md transition-colors">Volver al Dashboard</button>
+    <div className="relative z-10 flex min-h-[calc(100vh-80px)] w-full flex-col items-center justify-center bg-[#DBEAFE] p-6">
+      <EmptyState icon="folder_off" title="No pudimos abrir esta carpeta" action={{ label: 'Volver a mis carpetas', onClick: () => navigate('/dashboard') }} className="max-w-md">
+        Puede que ya no exista o que haya un problema de conexión. Revisa tu conexión e inténtalo de nuevo.
+      </EmptyState>
     </div>
   );
 

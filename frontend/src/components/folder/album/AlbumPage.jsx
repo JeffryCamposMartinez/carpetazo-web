@@ -1,5 +1,6 @@
 import { DRAG_PAGE_TURN_EDGE_RATIO } from './albumDrag';
 import { DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from '../dragScroll';
+import EmptyState from '../../ui/EmptyState';
 // Una hoja del álbum: sus bolsillos de cartas por delante y por detrás, y su giro.
 export default function AlbumPage({
   pageIndex, activeCardId, albumDragNavRef, cards, cardsPerPage, currentPage, dragPageTurnDirectionRef,
@@ -357,13 +358,7 @@ export default function AlbumPage({
         {/* Empty Message Overlay */}
         {cards.length === 0 && emptyMessage && pageIndex === 0 && (
           <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-5 md:p-8">
-             <div className="max-w-[82%] rounded-[1.6rem] border border-yellow-300/30 bg-slate-950/80 p-5 text-center text-white shadow-2xl backdrop-blur-md md:p-7">
-               <div className="mx-auto mb-3 flex h-16 w-20 items-center justify-center rounded-2xl border border-white/10 bg-white/10">
-                 <span translate="no" className="material-symbols-outlined text-4xl text-yellow-200/70 md:text-5xl">inventory_2</span>
-               </div>
-               <p className="text-base font-black leading-tight text-white md:text-xl">Carpeta vacía</p>
-               <p className="mt-2 text-xs font-semibold leading-relaxed text-slate-300 md:text-sm">{emptyMessage}</p>
-             </div>
+             <EmptyState tone="dark" icon="inventory_2" title="Carpeta vacía" className="max-w-[82%] !py-6 md:!py-8 rounded-[1.6rem] !bg-slate-950/80 backdrop-blur-md">{emptyMessage}</EmptyState>
           </div>
         )}
       </div>

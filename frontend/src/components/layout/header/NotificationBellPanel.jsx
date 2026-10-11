@@ -1,3 +1,5 @@
+import EmptyState from '../../ui/EmptyState';
+
 const decodeMessagePreview = (content = '') => {
   try {
     const parsed = JSON.parse(content);
@@ -137,10 +139,7 @@ export default function NotificationBellPanel({
               })}
             </div>
           ) : pendingOrders.count === 0 && wishMatches.items === 0 && reviewPrompts.items.length === 0 ? (
-            <div className="px-4 py-6 text-center">
-              <p className="text-sm font-black text-slate-800">Sin notificaciones nuevas</p>
-              <p className="mt-1 text-xs font-semibold text-slate-500">Las solicitudes de compra y los mensajes aparecerán aquí.</p>
-            </div>
+            <EmptyState variant="plain" icon="notifications_none" title="Estás al día" className="!py-8">Las solicitudes de compra, los mensajes y los avisos de tus cartas deseadas aparecerán aquí.</EmptyState>
           ) : null}
 
           <div className="flex border-t border-slate-100">

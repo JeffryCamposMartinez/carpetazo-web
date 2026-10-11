@@ -4,6 +4,7 @@ import { SocialLogo } from './SocialLogo';
 import { bannerForScreen } from '../../utils/responsiveImage';
 import { getCardStyle } from './profileStyles';
 import { readableOn } from '../../utils/color';
+import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 
 // Presentación del perfil: portada, avatar, nombre, datos y contacto; la forma cambia según el diseño elegido.
 export default function ProfileHero({
@@ -25,9 +26,7 @@ export default function ProfileHero({
         : <div className={`absolute inset-x-0 top-0 bg-gradient-to-b from-black/25 via-transparent to-black/30 ${heroBanner}`} />}
 
       {savingImage && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/70" role="status" aria-label="Subiendo imagen">
-          <div className="h-10 w-10 animate-spin rounded-full border-b-4 border-[#1e40af]" />
-        </div>
+        <LoadingState variant="overlay" label="Subiendo imagen…" className="!z-30 !backdrop-blur-none" />
       )}
 
       {isOwner && (

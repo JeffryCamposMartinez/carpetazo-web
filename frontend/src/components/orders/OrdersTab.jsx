@@ -4,6 +4,8 @@ import { api } from '../../services/api';
 import LiquidTabs from '../ui/LiquidTabs';
 import LoadableImage from '../ui/LoadableImage';
 import Select from '../ui/Select';
+import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
+import UiEmptyState from '../ui/EmptyState';
 
 // Solicitudes (pedidos pendientes) e historial de ventas del vendedor.
 // Los datos vienen de GET /api/orders/mine; las acciones de POST /api/orders/mine/:id/status.
@@ -296,7 +298,7 @@ function Requests({ orders, onDecide, busyId, showToast, onGoToFolders, emptyAct
           ))}
         </div>
       ) : (
-        <p className="py-10 text-center text-slate-600">Ningún pedido coincide con la búsqueda.</p>
+        <UiEmptyState variant="plain" icon="search_off" title="Ningún pedido coincide con la búsqueda">Prueba con otro código o con el nombre de la persona.</UiEmptyState>
       )}
     </div>
   );
@@ -634,7 +636,7 @@ function History({ orders }) {
             ))}
           </ul>
         ) : (
-          <p className="bg-white px-6 py-10 text-center text-slate-600">No hay pedidos con estos filtros.</p>
+          <UiEmptyState variant="plain" icon="filter_alt_off" title="No hay pedidos con estos filtros" className="bg-white">Prueba con otro estado o busca por otro código o nombre.</UiEmptyState>
         )}
         {ledger.length > limit && (
           <button type="button" onClick={() => setLimit(limit + 25)} className="w-full border-t border-slate-200 bg-white py-3.5 text-sm font-bold text-[#1e40af] hover:bg-slate-50">
@@ -668,9 +670,7 @@ export default function OrdersTab({ showToast, filter = 'solicitudes', orders = 
 
   if (loading) {
     return (
-      <div className="flex justify-center py-20">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#1e40af] border-t-transparent motion-reduce:animate-none" />
-      </div>
+      <LoadingState label="Cargando tus pedidos…" className="py-20" />
     );
   }
 

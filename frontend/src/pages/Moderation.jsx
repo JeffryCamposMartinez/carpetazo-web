@@ -14,6 +14,7 @@ import OperationsPanel from '../components/moderation/OperationsPanel';
 import TeamPanel from '../components/moderation/TeamPanel';
 import CatalogImportPanel from '../components/moderation/CatalogImportPanel';
 import ModNav from '../components/moderation/ModNav';
+import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 
 // Secciones según el rol: soporte (1) lee, moderador (2) decide, administrador (3) además ve reseñas, métricas, auditoría, catálogo y herramientas
 const GROUPS = [
@@ -83,7 +84,7 @@ export default function Moderation() {
   const openReport = (id) => { setFocusReportId(id); setTab('reports'); };
 
   if (state === 'checking') {
-    return <div className="flex flex-1 items-center justify-center py-20" role="status" aria-label="Verificando acceso"><div className="h-10 w-10 animate-spin rounded-full border-4 border-white/30 border-t-[#facc15]" /></div>;
+    return <LoadingState variant="page" tone="dark" label="Verificando tu acceso…" className="flex-1" />;
   }
 
   if (state === 'denied') {

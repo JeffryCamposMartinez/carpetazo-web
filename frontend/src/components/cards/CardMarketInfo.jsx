@@ -1,4 +1,5 @@
 import { formatClp } from '../../services/tcgcsvPrices';
+import EmptyState from '../ui/EmptyState';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 const BOX = 'rounded-2xl bg-white p-4 ring-1 ring-slate-900/5';
@@ -61,7 +62,7 @@ export function RecentSales({ sales }) {
     <section className={BOX} aria-labelledby="sales-title">
       <h2 id="sales-title" className="text-base font-extrabold text-[#12315f]">Últimas ventas</h2>
       {sales.length === 0 ? (
-        <p className="mt-1 text-sm text-slate-500">Todavía no hay ventas registradas de esta carta.</p>
+        <EmptyState variant="compact" className="mt-1 !px-0" icon="receipt_long" title="Sin ventas registradas todavía">Cuando alguien la compre en Carpetazo, el precio y la fecha aparecerán aquí.</EmptyState>
       ) : (
         <ul className="mt-2 divide-y divide-slate-100">
           {sales.map((sale, index) => (

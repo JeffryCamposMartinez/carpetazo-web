@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import LoadableImage from '../ui/LoadableImage';
 import { cardFill, cardRatio } from '../../utils/cardShape';
+import { LoadingMark } from '../ui/LoadableImage';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 const NEW_WINDOW_MS = 72 * 60 * 60 * 1000;
@@ -66,8 +67,8 @@ function WishButton({ card, wanted, onWish, className }) {
 
 export function CardTileSkeleton({ view }) {
   return view === 'list'
-    ? <li className="flex h-[8.5rem] animate-pulse gap-3 rounded-2xl bg-white/70 p-2.5" aria-hidden="true"><div className="w-[5.5rem] shrink-0 rounded-xl bg-slate-200/70" /><div className="flex-1 space-y-2 py-1"><div className="h-4 w-3/4 rounded bg-slate-200/70" /><div className="h-3 w-1/2 rounded bg-slate-200/70" /><div className="h-3 w-2/3 rounded bg-slate-200/70" /></div></li>
-    : <li className="animate-pulse overflow-hidden rounded-2xl bg-white/70" aria-hidden="true"><div className="aspect-[63/88] bg-slate-200/70" /><div className="space-y-2 p-3"><div className="h-4 w-4/5 rounded bg-slate-200/70" /><div className="h-3 w-1/2 rounded bg-slate-200/70" /><div className="h-3 w-3/5 rounded bg-slate-200/70" /></div></li>;
+    ? <li className="skeleton flex h-[8.5rem] gap-3 rounded-2xl p-2.5" aria-hidden="true"><div className="w-[5.5rem] shrink-0 rounded-xl bg-slate-200/70" /><div className="flex-1 space-y-2 py-1"><div className="h-4 w-3/4 rounded bg-slate-200/70" /><div className="h-3 w-1/2 rounded bg-slate-200/70" /><div className="h-3 w-2/3 rounded bg-slate-200/70" /></div></li>
+    : <li className="skeleton overflow-hidden rounded-2xl" aria-hidden="true"><div className="relative aspect-[63/88] bg-slate-200/60"><LoadingMark className="absolute inset-0 opacity-70" /></div><div className="space-y-2 p-3"><div className="h-4 w-4/5 rounded bg-slate-200/70" /><div className="h-3 w-1/2 rounded bg-slate-200/70" /><div className="h-3 w-3/5 rounded bg-slate-200/70" /></div></li>;
 }
 
 export default function CardTile({ card, index, view, wanted, onWish }) {

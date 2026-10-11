@@ -13,6 +13,8 @@ import { EMPTY_OP_FILTERS } from '../../../services/tcgcsvOnePiece';
 import { EMPTY_MAGIC_FILTERS } from '../../../services/tcgcsvMagic';
 import { EMPTY_RB_FILTERS } from '../../../services/tcgcsvRiftbound';
 import { EMPTY_YGO_FILTERS } from '../../../services/tcgcsvYugioh';
+import LoadingState, { ButtonSpinner } from '../../ui/LoadingState';
+import EmptyState from '../../ui/EmptyState';
 
 export default function FolderAddTab({
   activeQueueItemId, availableBlocks, availablePhysicalProducts, availableRarities, availableSets,
@@ -173,10 +175,7 @@ export default function FolderAddTab({
       )}
       <div className={`grid gap-4 pr-2 ${gridCols === 1 ? 'grid-cols-1' : gridCols === 2 ? 'grid-cols-2' : gridCols === 3 ? 'grid-cols-3' : gridCols === 4 ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-5'}`}>
           {isSearching ? (
-            <div className="col-span-full flex flex-col items-center justify-center py-16">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#1e40af] mb-4"></div>
-              <p className="text-gray-500 font-bold animate-pulse">Consultando la Pokédex mundial...</p>
-            </div>
+            <LoadingState className="col-span-full" label="Buscando cartas…" hint="Consultando el catálogo mundial." />
           ) : searchResults.length > 0 ? (
             <>
             {searchResults.slice(0, visibleCount).map((card, index) => {
@@ -203,26 +202,15 @@ export default function FolderAddTab({
             </div>
           );})}
           {(visibleCount < searchResults.length || hasMoreGroups) && (
-            <div ref={observerTarget} className="col-span-full h-10 w-full flex items-center justify-center mt-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e40af]"></div>
-            </div>
+            <div ref={observerTarget} className="col-span-full mt-4 flex w-full items-center justify-center"><LoadingState variant="compact" label="Cargando más cartas…" /></div>
           )}
           </>
           ) : hasSearchedAPI && hasMoreGroups ? (
-              <div className="col-span-full flex flex-col items-center justify-center py-16">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-[#1e40af] mb-3"></div>
-                <p className="text-gray-500 font-bold animate-pulse">Buscando en más ediciones...</p>
-              </div>
+              <LoadingState className="col-span-full" label="Buscando en más ediciones…" />
           ) : hasSearchedAPI ? (
-              <div className="col-span-full py-12 text-center text-gray-500 flex flex-col items-center">
-                  <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-50">search_off</span>
-                  <p className="font-bold">No se encontraron cartas que coincidan con tu búsqueda.</p>
-              </div>
+              <EmptyState variant="plain" className="col-span-full" icon="search_off" title="No encontramos cartas con esa búsqueda">Revisa cómo está escrito el nombre o prueba con otra edición.</EmptyState>
           ) : (
-              <div className="col-span-full py-12 text-center text-gray-500 flex flex-col items-center">
-                  <span translate="no" className="material-symbols-outlined text-5xl mb-3 opacity-50">travel_explore</span>
-                  <p className="font-bold">Realiza una búsqueda para empezar.</p>
-              </div>
+              <EmptyState variant="plain" className="col-span-full" icon="travel_explore" title="Busca la carta que quieres agregar">Escribe su nombre o su número y elige la edición para ver los resultados.</EmptyState>
           )}
         </div>
       </div>
@@ -369,7 +357,7 @@ export default function FolderAddTab({
               )}
 
               <button type="submit" disabled={isSaving} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-[15px]">
-                {isSaving ? <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span> : <span translate="no" className="material-symbols-outlined">add_circle</span>}
+                {isSaving ? <ButtonSpinner /> : <span translate="no" className="material-symbols-outlined">add_circle</span>}
                 {isSaving ? 'Guardando...' : isBatchAdding ? 'Guardar y continuar' : selectedExistingCard ? 'Sumar stock' : 'Guardar Carta'}
               </button>
             </div>

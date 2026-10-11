@@ -10,6 +10,7 @@ import { PALETTES } from '../config/profileThemes';
 import { useToast } from '../components/ui/ToastProvider';
 import ThemedSelect from '../components/ui/ThemedSelect';
 import Select from '../components/ui/Select';
+import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 
 const chileBanks = [
   'Banco de Chile - Edwards',
@@ -450,11 +451,7 @@ const ProfilePage = () => {
 
         <main className="min-w-0 overflow-hidden rounded-2xl bg-white p-4 shadow-sm ring-1 ring-blue-100 sm:p-6 lg:rounded-[1.75rem] lg:p-8">
           {loadingProfile ? (
-            <div className="flex min-h-[420px] flex-col items-center justify-center text-center">
-              <span translate="no" className="material-symbols-outlined animate-spin text-5xl text-[#1e40af]">sync</span>
-              <h2 className="mt-4 text-xl font-black text-[#1a2b4b]">Cargando tu perfil</h2>
-              <p className="mt-2 text-sm font-semibold text-slate-500">Leyendo datos desde la base de datos.</p>
-            </div>
+            <LoadingState variant="page" label="Cargando tu perfil…" hint="Un momento, estamos trayendo tus datos." className="!min-h-[420px]" />
           ) : (
             <>
               <div className="mb-6 border-b border-slate-100 pb-5">

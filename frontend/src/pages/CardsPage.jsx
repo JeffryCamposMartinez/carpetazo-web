@@ -12,6 +12,7 @@ import CardsPagination from '../components/cards/CardsPagination';
 import CardInfoResults from '../components/cards/CardInfoResults';
 import CardsResultsBar, { SORT_VALUES } from '../components/cards/CardsResultsBar';
 import usePageMeta from '../hooks/usePageMeta';
+import EmptyState from '../components/ui/EmptyState';
 
 const VIEW_KEY = 'carpetazo:cards-view';
 const EMPTY = { cards: [], total: 0, pages: 1 };
@@ -150,20 +151,17 @@ export default function CardsPage() {
             />
 
             {failed ? (
-              <div className="rounded-2xl bg-white p-8 text-center ring-1 ring-slate-900/5" role="alert">
-                <p className="text-lg font-extrabold text-[#12315f]">No pudimos cargar las cartas</p>
-                <p className="mt-1 text-sm text-slate-600">Revisa tu conexión e inténtalo de nuevo.</p>
-                <button type="button" onClick={() => setSearchParams(new URLSearchParams(searchParams), { replace: true })} className="mt-4 h-11 rounded-full bg-[#facc15] px-6 text-sm font-extrabold text-[#12315f] transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2">Reintentar</button>
-              </div>
+              <EmptyState icon="cloud_off" title="No pudimos cargar las cartas" action={{ label: 'Reintentar', icon: 'refresh', onClick: () => setSearchParams(new URLSearchParams(searchParams), { replace: true }) }} role="alert">
+                Revisa tu conexión e inténtalo de nuevo.
+              </EmptyState>
             ) : !loading && result.cards.length === 0 ? (
-              <div className="rounded-2xl bg-white p-8 text-center ring-1 ring-slate-900/5">
-                <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-[#1e40af]">
-                  <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[30px]">search_off</span>
-                </span>
-                <p className="text-lg font-extrabold text-[#12315f]">{hasFilters ? 'No encontramos cartas con esa búsqueda' : 'Todavía no hay cartas a la venta'}</p>
-                <p className="mx-auto mt-1 max-w-sm text-sm text-slate-600">{tcg && !urlQuery ? `Por ahora no hay cartas de ${tcg} con stock. Prueba con otro juego.` : hasFilters ? 'Revisa el nombre o prueba con otro juego.' : 'Cuando los vendedores publiquen cartas con stock, aparecerán aquí.'}</p>
-                {hasFilters && <button type="button" onClick={clearAll} className="mt-5 h-11 rounded-full bg-[#facc15] px-6 text-sm font-extrabold text-[#12315f] transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2">Ver todas las cartas</button>}
-              </div>
+              <EmptyState
+                icon={hasFilters ? 'search_off' : 'style'}
+                title={hasFilters ? 'No encontramos cartas con esa búsqueda' : 'Todavía no hay cartas a la venta'}
+                action={hasFilters ? { label: 'Ver todas las cartas', onClick: clearAll } : { label: 'Publicar mis cartas', to: '/dashboard' }}
+              >
+                {tcg && !urlQuery ? `Por ahora no hay cartas de ${tcg} con stock. Prueba con otro juego.` : hasFilters ? 'Revisa el nombre o prueba con otro juego.' : 'Cuando los vendedores publiquen cartas con stock, aparecerán aquí.'}
+              </EmptyState>
             ) : (
               <ul className={gridClass}>
                 {loading

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../services/api';
 import Select from '../ui/Select';
+import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 
 const ACTION_BUTTON = 'inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-bold transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]';
 const FIELD = 'h-12 w-full rounded-xl border border-gray-300 bg-white px-3 text-base text-gray-900 focus:border-[#1e40af] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70';
@@ -62,7 +63,7 @@ function BulkDialog({ action, count, busy, currentFolderId, tcg, onClose, onSetV
     body = (
       <>
         <p className="text-sm text-slate-600">Las cartas pasan al final de la carpeta elegida. Solo hay carpetas tuyas del mismo juego.</p>
-        {folders === null && <p className="mt-4 text-sm text-slate-500">Cargando carpetas...</p>}
+        {folders === null && <LoadingState variant="compact" label="Cargando tus carpetas…" />}
         {folders && folders.length === 0 && <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-900 ring-1 ring-amber-200">No tienes otra carpeta de este juego. Crea una desde Mis carpetas.</p>}
         {folders && folders.length > 0 && (
           <label className="mt-4 block text-sm font-bold text-slate-600">
