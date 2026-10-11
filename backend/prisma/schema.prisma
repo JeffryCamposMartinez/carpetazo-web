@@ -36,8 +36,11 @@ model User {
   wishlist                 WishlistItem[]
   isOwner                  Boolean           @default(false) // la cuenta original de Carpetazo: nadie puede cambiar su rol, suspenderla, cerrarla ni ocultar su contenido
   notifyWishlistEmail      Boolean           @default(true) // avisos por correo de su lista de deseos (se puede apagar desde el correo o desde la lista)
+  emailVerified            Boolean           @default(false) // Firebase confirmó el correo (se actualiza al iniciar sesión); alimenta la insignia de vendedor verificado
+  onboardingSharedAt       DateTime? // cuando compartió el enlace de su carpeta desde la guía de primeros pasos
+  onboardingNudgeAt        DateTime? // cuando se le envió el recordatorio único de «publica tus primeras cartas»
   pushSubscriptions        PushSubscription[]
-  reviewsReceived          SellerReview[]    @relation("ReviewsReceived")
+  reviewsReceived         SellerReview[]    @relation("ReviewsReceived")
   reviewsWritten           SellerReview[]    @relation("ReviewsWritten")
   reviewReports            ReviewReport[]
   reportsMade              Report[]

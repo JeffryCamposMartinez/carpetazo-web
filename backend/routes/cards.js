@@ -4,6 +4,7 @@ import { authenticateToken } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { CARD_SEARCH_TCG_ALIASES, sameCardMatch } from '../core/listing.js';
 import { isValidComuna } from '../core/chileData.js';
+import { isVerifiedSeller } from '../core/sellerTrust.js';
 import { badRequest } from '../core/validation.js';
 import { eligibleSales, loadLiveOffers, loadSales, marketAnchors, offersAnchor, referenceFromSales, suspiciousOffers } from '../core/priceIntegrity.js';
 
@@ -141,6 +142,9 @@ const recentSales = async (tcgId, tcg) => {
 const OFFERS_MAX = 50;
 const publicText = (value) => (typeof value === 'string' ? value.slice(0, 400) : null);
 const visibleCardWhere = { stock: { gt: 0 }, moderationState: 'visible', folder: { isPublic: true, moderationState: 'visible' } };
+// El vendedor de una oferta: solo datos públicos y si está verificado (el correo y el teléfono no salen)
+const publicOfferUser = ({ emailVerified, phone, ...user }) => ({ ...user, verified: isVerifiedSeller({ ...user, emailVerified, phone }) });
+
 router.get('/api/cards/:id/offers', async (req, res) => {
   try {
     if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) return badRequest(res, 'Carta inválida');
@@ -154,7 +158,7 @@ router.get('/api/cards/:id/offers', async (req, res) => {
       where: { ...visibleCardWhere, ...sameCardMatch(card), folder: { ...visibleCardWhere.folder, tcg: card.folder.tcg } },
       orderBy: [{ price: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
       take: OFFERS_MAX,
-      select: { id: true, price: true, stock: true, data: true, folder: { select: { id: true, name: true, user: { select: { name: true, username: true, photoURL: true, publicComuna: true } } } } },
+      select: { id: true, price: true, stock: true, data: true, folder: { select: { id: true, name: true, user: { select: { name: true, username: true, photoURL: true, publicComuna: true, emailVerified: true, phone: true } } } } },
     });
     const sales = await recentSales(card.tcgId, card.folder.tcg);
     const reference = card.folder.tcg === 'Mitos y Leyendas' ? (await mylReferencePrices([card.tcgId]))[card.tcgId] || null : null;
@@ -172,7 +176,7 @@ router.get('/api/cards/:id/offers', async (req, res) => {
       reference,
       sales,
       stats: { copies: offers.reduce((sum, offer) => sum + (offer.stock || 0), 0), sellers: new Set(offers.map((offer) => offer.folder.user?.username || offer.folder.id)).size },
-      offers: offers.map(({ data, ...offer }) => ({ ...offer, language: field(data, 'language') })),
+      offers: offers.map(({ data, ...offer }) => ({ ...offer, folder: { ...offer.folder, user: offer.folder.user ? publicOfferUser(offer.folder.user) : null }, language: field(data, 'language') })),
     });
   } catch (error) {
     console.error('Error loading card offers:', error);

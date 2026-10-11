@@ -99,6 +99,7 @@ export const applyRouteLimits = (app) => {
   app.use('/api/og', routeLimiter(15 * 60 * 1000, 600)); // vista previa de enlaces: los programas de mensajería la piden seguido, la imagen queda en memoria
   app.use('/api/admin/team', routeLimiter(15 * 60 * 1000, 120)); // buscador del equipo y cambios de rol
   app.use('/api/client-errors', routeLimiter(15 * 60 * 1000, 30)); // errores de la web: pocos por persona, nunca pueden inundar la base
+  app.use('/api/onboarding', routeLimiter(15 * 60 * 1000, 120)); // guía de primeros pasos
   app.use('/api/notifications', routeLimiter(15 * 60 * 1000, 60)); // preferencias, dispositivos y baja desde el correo
   app.use('/api/seo', routeLimiter(15 * 60 * 1000, 600)); // páginas para buscadores y sitemap: los rastreadores piden muchas seguidas
   app.use('/api/admin/catalog-import', routeLimiter(15 * 60 * 1000, 100));

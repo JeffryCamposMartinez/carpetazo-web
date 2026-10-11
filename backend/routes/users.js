@@ -7,6 +7,7 @@ import { prisma } from '../core/db.js';
 import { acceptedCache, getLegalStatus } from '../core/legal.js';
 import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/publicSeller.js';
 import { deleteR2ObjectByPublicUrl } from '../core/r2.js';
+import { getCompletedSales, getResponseStats } from '../core/sellerTrust.js';
 import { SOCIAL_DOMAINS, badRequest, checkImageField, checkSocialField, hasControlChars, isAllowedStoredImageUrl, isOptionalText, isShortText, normalizeUsername, sanitizePublicTheme, validUsername } from '../core/validation.js';
 import { moderationHooks, restrictions } from '../moderation/services.js';
 
@@ -52,6 +53,7 @@ router.post('/api/users/sync', authenticateToken, async (req, res) => {
           name: req.body.displayName || '',
           username,
           photoURL: isAllowedStoredImageUrl(req.body.photoURL) ? req.body.photoURL : null,
+          emailVerified: req.user.email_verified === true,
           role: req.user.email_verified === true && isAdminEmail(email) ? 'admin' : 'user'
         }
       });
@@ -64,6 +66,7 @@ router.post('/api/users/sync', authenticateToken, async (req, res) => {
           name: req.body.displayName || user.name,
           username: validUsername(req.body.username) || user.username || validUsername(normalizeUsername(user.name).slice(0, 20)) || `user_${firebaseUid.slice(0, 12).toLowerCase()}`,
           photoURL: user.photoURL || (isAllowedStoredImageUrl(req.body.photoURL) ? req.body.photoURL : null),
+          emailVerified: req.user.email_verified === true,
           ...(user.role === 'deleted' ? { role: 'user', email: email || user.email } : {}),
           ...(req.user.email_verified === true && isAdminEmail(email) && user.role !== 'admin' ? { role: 'admin' } : {})
         }
@@ -372,7 +375,8 @@ router.get('/api/users/:username', optionalAuth, async (req, res) => {
 
     const { folders, ...seller } = user;
     const publicFolders = folders.map(({ moderationState: _state, ...folder }) => folder);
-    res.json({ success: true, user: { ...toPublicSeller(seller, req.user?.sub, await getReviewSummary(seller.id)), folders: publicFolders } });
+    const [reviewSummary, responseTime, completedSales] = await Promise.all([getReviewSummary(seller.id), getResponseStats(seller.id), getCompletedSales(seller.id)]);
+    res.json({ success: true, user: { ...toPublicSeller(seller, req.user?.sub, reviewSummary), responseTime, completedSales, folders: publicFolders } });
   } catch (error) {
     console.error('Error fetching user:', error);
     res.status(500).json({ success: false, message: 'Error interno' });

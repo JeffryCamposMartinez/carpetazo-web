@@ -5,6 +5,7 @@ import { bannerForScreen } from '../../utils/responsiveImage';
 import { getCardStyle } from './profileStyles';
 import { readableOn } from '../../utils/color';
 import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
+import VerifiedBadge from '../ui/VerifiedBadge';
 
 // Presentación del perfil: portada, avatar, nombre, datos y contacto; la forma cambia según el diseño elegido.
 export default function ProfileHero({
@@ -59,6 +60,7 @@ export default function ProfileHero({
               <div className="min-w-0">
                 <h1 className={`break-words font-black leading-[1.05] ${isPosterLayout ? 'drop-shadow-[0_3px_14px_rgba(0,0,0,0.55)]' : ''}`} style={{ color: heroTheme.text, fontSize: displayNameSize }}>
                   {displayName}
+                  {seller?.verified && <VerifiedBadge size={Math.max(22, Math.round(parseFloat(displayNameSize) * 0.6) || 24)} color={heroTheme.primary} className="ml-2" />}
                 </h1>
                 <p className="mt-1.5 text-[15px] font-bold leading-snug" style={{ color: heroTheme.primary }}>@{seller?.username}</p>
                 {seller?.fullName && <p className="text-sm font-medium leading-snug" style={heroMuted}>{seller.fullName}</p>}

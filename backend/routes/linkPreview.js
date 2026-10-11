@@ -2,6 +2,8 @@
 // así que el servidor web les entrega esta página con las etiquetas Open Graph y la miniatura de la carpeta.
 import express from 'express';
 import { folderPreviewImage, loadFolderPreview, PREVIEW_H, PREVIEW_W } from '../core/folderPreview.js';
+import { cardShareImage, loadCardPreview, loadSellerPreview, sellerShareImage } from '../core/sharePreview.js';
+import { isAllowedProxyImageUrl } from '../core/validation.js';
 
 const router = express.Router();
 const SITE = 'https://carpetazo.cl';
@@ -63,5 +65,23 @@ router.get('/api/og/folder/:id/image.jpg', async (req, res) => {
     return res.status(500).json({ success: false, message: 'No se pudo crear la imagen' });
   }
 });
+
+// Imagen para compartir una carta o un vendedor. Si no se puede armar, se entrega la foto original en vez de dejar el enlace sin imagen.
+const sendShareImage = (load, render, fallback) => async (req, res) => {
+  const headers = { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400', 'X-Robots-Tag': 'noindex' };
+  let data = null;
+  try {
+    data = await load(req);
+    if (!data) return res.status(404).json({ success: false, message: 'No encontrada' });
+    return res.set(headers).send(await render(data.signature, data.data));
+  } catch (error) {
+    console.error('Error creando la imagen para compartir:', error);
+    const original = data && fallback(data.data);
+    if (original && isAllowedProxyImageUrl(original)) return res.redirect(302, original);
+    return res.status(500).json({ success: false, message: 'No se pudo crear la imagen' });
+  }
+};
+router.get('/api/og/card/:id/image.jpg', sendShareImage((req) => loadCardPreview(req.params.id), cardShareImage, (data) => data.imageUrl));
+router.get('/api/og/seller/:username/image.jpg', sendShareImage((req) => loadSellerPreview(req.params.username), sellerShareImage, (data) => data.photoURL));
 
 export default router;

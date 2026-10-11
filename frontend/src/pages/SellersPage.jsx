@@ -6,6 +6,7 @@ import LocationLine from '../components/ui/LocationLine';
 import Select from '../components/ui/Select';
 import usePageMeta from '../hooks/usePageMeta';
 import EmptyState from '../components/ui/EmptyState';
+import VerifiedBadge from '../components/ui/VerifiedBadge';
 
 const SORTS = [
   { value: 'visits', label: 'Más visitados' },
@@ -103,7 +104,7 @@ export default function SellersPage() {
                 <>
                   <Avatar seller={seller} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-base font-extrabold text-[#12315f]">{seller.name}</p>
+                    <p className="flex items-center gap-1 text-base font-extrabold text-[#12315f]"><span className="truncate">{seller.name}</span>{seller.verified && <VerifiedBadge size={18} />}</p>
                     <p className="truncate text-xs font-semibold text-slate-500">{seller.username ? `@${seller.username}` : 'Vendedor'}</p>
                     <LocationLine comuna={seller.publicComuna} region={seller.publicRegion} className="mt-0.5 text-xs font-semibold text-[#1e40af]" />
                     <p className="mt-1.5 text-xs font-semibold tabular-nums text-slate-600">

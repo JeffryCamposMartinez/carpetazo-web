@@ -5,6 +5,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { authenticateToken } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { hashConnection } from '../core/hashing.js';
+import { notifyReviewRequest } from '../core/reviewNotice.js';
 import { badRequest, isUuid } from '../core/validation.js';
 
 const router = express.Router();
@@ -334,6 +335,7 @@ router.post('/api/orders/mine/:id/status', authenticateToken, async (req, res) =
       return tx.order.update({ where: { id: order.id }, data: { status, ...(status === 'completed' ? { completedIpHash: hashConnection(req) } : {}) } });
     });
     if (!updated) return res.status(409).json({ success: false, message: 'Este pedido ya fue gestionado' });
+    if (status === 'completed') notifyReviewRequest(updated); // sin esperar: el aviso nunca retrasa ni rompe la confirmación
 
     res.json({ success: true, order: formatOrderForUi(updated) });
   } catch (error) {

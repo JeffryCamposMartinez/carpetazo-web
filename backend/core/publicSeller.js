@@ -1,5 +1,6 @@
 // Datos públicos de un vendedor: solo campos permitidos (nunca correo, RUT, banco, rol ni firebaseUid).
 import { prisma } from './db.js';
+import { isVerifiedSeller } from './sellerTrust.js';
 import { sanitizePublicTheme } from './validation.js';
 
 export const PUBLIC_SELLER_SELECT = {
@@ -20,6 +21,7 @@ export const PUBLIC_SELLER_SELECT = {
   instagramUrl: true,
   youtubeUrl: true,
   phone: true,
+  emailVerified: true, // solo para calcular la insignia de verificado; el serializador devuelve únicamente `verified`
   createdAt: true,
   firebaseUid: true // solo para calcular isOwner; el serializador lo elimina
 };
@@ -57,6 +59,7 @@ export const toPublicSeller = (user, viewerUid = null, reviewSummary = null) => 
     // Solo comuna y región (siempre públicas): las direcciones guardadas nunca salen de la base
     addresses: user.publicComuna ? [{ name: 'Mi ubicación', comuna: user.publicComuna, region: user.publicRegion || '', isDefault: true }] : [],
     createdAt: user.createdAt,
+    verified: isVerifiedSeller(user),
     isOwner: Boolean(viewerUid && user.firebaseUid && user.firebaseUid === viewerUid),
     reviewSummary: reviewSummary || { average: null, count: 0, showAverage: false }
   };

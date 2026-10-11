@@ -1,7 +1,21 @@
 import { getCardStyle } from './profileStyles';
+import { VERIFIED_HINT } from '../ui/VerifiedBadge';
+
+// "~20 min", "~3 h", "~2 días": tiempo típico que tarda en contestar
+export const formatResponseTime = (minutes) => {
+  if (!Number.isFinite(minutes)) return '';
+  if (minutes < 60) return `~${Math.max(1, Math.round(minutes))} min`;
+  if (minutes < 24 * 60) return `~${Math.round(minutes / 60)} h`;
+  const days = Math.round(minutes / (24 * 60));
+  return `~${days} ${days === 1 ? 'día' : 'días'}`;
+};
+const memberSinceLabel = (date) => {
+  const parsed = date ? new Date(date) : null;
+  return parsed && !Number.isNaN(parsed.getTime()) ? parsed.toLocaleDateString('es-CL', { month: 'short', year: 'numeric' }).replace('.', '') : '';
+};
 
 // Franja de confianza bajo la presentación: reseñas, carpetas, cartas y nivel, con datos reales del vendedor
-export default function ProfileTrustStrip({ folders, profileLevel, publicTheme, reviewSummary, totalCards }) {
+export default function ProfileTrustStrip({ completedSales = 0, folders, memberSince, profileLevel, publicTheme, responseTime, reviewSummary, totalCards, verified }) {
   const reviews = reviewSummary || { count: 0, showAverage: false };
   const items = [
     reviews.showAverage
@@ -11,6 +25,14 @@ export default function ProfileTrustStrip({ folders, profileLevel, publicTheme, 
     { icon: 'style', value: totalCards.toLocaleString('es-CL'), label: totalCards === 1 ? 'carta' : 'cartas' },
     { icon: 'military_tech', value: profileLevel, label: 'nivel' },
   ];
+
+  // Señales que se calculan con datos reales de la plataforma: solo aparecen las que existen
+  const chips = [
+    verified && { icon: 'verified', filled: true, label: 'Vendedor verificado', hint: VERIFIED_HINT },
+    responseTime && { icon: 'schedule', label: `Suele responder en ${formatResponseTime(responseTime.medianMinutes)}`, hint: 'Tiempo típico en contestar los mensajes de los últimos 90 días.' },
+    completedSales > 0 && { icon: 'task_alt', label: `${completedSales.toLocaleString('es-CL')} ${completedSales === 1 ? 'venta confirmada' : 'ventas confirmadas'}`, hint: 'Pedidos que el vendedor confirmó como concretados en Carpetazo.' },
+    memberSinceLabel(memberSince) && { icon: 'calendar_month', label: `En Carpetazo desde ${memberSinceLabel(memberSince)}` }
+  ].filter(Boolean);
 
   return (
     <section aria-label="Confianza del vendedor" className="relative z-10 mx-auto w-full max-w-[1220px] px-4 pt-5 sm:px-6 md:px-8">
@@ -37,6 +59,16 @@ export default function ProfileTrustStrip({ folders, profileLevel, publicTheme, 
           );
         })}
       </ul>
+      {chips.length > 0 && (
+        <ul className="mt-3 flex flex-wrap gap-2">
+          {chips.map((chip) => (
+            <li key={chip.icon} title={chip.hint} className="inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-bold ring-1" style={{ backgroundColor: `${publicTheme.primary}14`, color: publicTheme.text, '--tw-ring-color': `${publicTheme.primary}2e` }}>
+              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]" style={{ color: publicTheme.primary, ...(chip.filled ? { fontVariationSettings: "'FILL' 1" } : {}) }}>{chip.icon}</span>
+              {chip.label}
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

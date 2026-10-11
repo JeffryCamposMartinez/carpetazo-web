@@ -34,9 +34,11 @@ import catalogImportRoutes from './routes/catalogImport.js';
 import linkPreviewRoutes from './routes/linkPreview.js';
 import seoRoutes from './routes/seo.js';
 import notificationRoutes from './routes/notifications.js';
+import onboardingRoutes from './routes/onboarding.js';
 import opsRoutes from './routes/ops.js';
 import teamRoutes from './routes/team.js';
 import { installErrorCapture, purgeOldErrors, requestContext } from './core/errorLog.js';
+import { startOnboardingNudges } from './core/onboarding.js';
 import { startWishlistAlerts } from './core/wishlistAlerts.js';
 import { startPriceHistory } from './core/priceHistory.js';
 import { startMarketPriceHistory } from './core/marketPriceHistory.js';
@@ -104,6 +106,7 @@ app.use(linkPreviewRoutes);
 app.use(seoRoutes);
 app.use(notificationRoutes);
 app.use(opsRoutes);
+app.use(onboardingRoutes);
 app.use(teamRoutes);
 app.use(messageRoutes);
 
@@ -130,6 +133,7 @@ app.listen(port, () => {
     console.log(`🚀 Servidor backend corriendo en http://localhost:${port}`);
     startPreviewWarmer();
     startWishlistAlerts();
+    startOnboardingNudges();
     startPriceHistory();
     startMarketPriceHistory();
     startPriceWatch();

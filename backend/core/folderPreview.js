@@ -28,7 +28,7 @@ export const firstPageCards = (cards) => [...cards]
   .filter((card) => card.imageUrl && isAllowedProxyImageUrl(card.imageUrl))
   .slice(0, PAGE_CARDS);
 
-const downloadImage = async (url) => {
+export const downloadImage = async (url) => {
   try {
     const response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(IMAGE_TIMEOUT_MS), headers: { 'User-Agent': 'Carpetazo-LinkPreview/1.0' } });
     if (!response.ok) return null;
@@ -51,7 +51,7 @@ const layout = (slots) => {
   return { rows, cols, boxW, boxH };
 };
 
-const roundedPng = async (input, width, height, radius) => {
+export const roundedPng = async (input, width, height, radius) => {
   const resized = await sharp(input).rotate().resize({ width, height, fit: 'inside' }).png().toBuffer({ resolveWithObject: true });
   const mask = Buffer.from(`<svg width="${resized.info.width}" height="${resized.info.height}"><rect width="100%" height="100%" rx="${radius}" ry="${radius}"/></svg>`);
   const data = await sharp(resized.data).composite([{ input: mask, blend: 'dest-in' }]).png().toBuffer();

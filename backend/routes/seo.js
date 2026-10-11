@@ -8,6 +8,7 @@ import { isAllowedProxyImageUrl, isUuid } from '../core/validation.js';
 
 const router = express.Router();
 const SITE = 'https://carpetazo.cl';
+const API = process.env.PUBLIC_API_URL || 'https://api.carpetazo.cl';
 const TCG_LABELS = { Pokemon: 'Pokémon', 'Mitos y Leyendas': 'Mitos y Leyendas', OnePiece: 'One Piece', Magic: 'Magic', YuGiOh: 'Yu-Gi-Oh!', Riftbound: 'Riftbound' };
 const visibleCard = { stock: { gt: 0 }, moderationState: 'visible', folder: { isPublic: true, moderationState: 'visible' } };
 const USERNAME = /^[A-Za-z0-9_.-]{3,30}$/;
@@ -21,14 +22,15 @@ const text = (value, max = 300) => (typeof value === 'string' ? value.replace(/\
 const field = (data, key) => (data && typeof data === 'object' ? text(data[key], 120) : '');
 const cut = (value, max) => (value.length > max ? `${value.slice(0, max - 1).trimEnd()}…` : value);
 
-const page = ({ title, description, url, image, jsonLd, body }) => `<!doctype html>
+// `image` es la foto real (datos estructurados); `shareImage` es la tarjeta con marca que ven WhatsApp, Instagram, Telegram y Facebook
+const page = ({ title, description, url, image, shareImage, jsonLd, body }) => `<!doctype html>
 <html lang="es-CL"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
 <link rel="canonical" href="${esc(url)}">
 <meta property="og:type" content="website"><meta property="og:site_name" content="Carpetazo.cl"><meta property="og:locale" content="es_CL">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(url)}">
-${image ? `<meta property="og:image" content="${esc(image)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${esc(image)}">` : ''}
+${shareImage ? `<meta property="og:image" content="${esc(shareImage)}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:type" content="image/jpeg"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${esc(shareImage)}">` : image ? `<meta property="og:image" content="${esc(image)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${esc(image)}">` : ''}
 ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>${body}</body></html>`;
 
@@ -79,6 +81,7 @@ router.get('/api/seo/card/:id', async (req, res) => {
       .filter(([, value]) => value).map(([label, value]) => `<li>${esc(label)}: ${esc(value)}</li>`).join('');
     return sendPage(res, page({
       title, description, url, image, jsonLd,
+      shareImage: `${API}/api/og/card/${req.params.id}/image.jpg?v=${Math.round(low || 0)}-${offers.length}`,
       body: `<header><a href="${SITE}/">Carpetazo.cl</a> - <a href="${SITE}/cartas">Cartas</a></header><main><h1>${esc(name)}</h1>${image ? `<img src="${esc(image)}" alt="${esc(name)}" width="300">` : ''}<ul>${details}</ul><h2>Ofertas en Carpetazo</h2><ul>${list}</ul></main>`
     }));
   } catch (error) {
@@ -110,6 +113,7 @@ router.get('/api/seo/seller/:username', async (req, res) => {
     const list = user.folders.map((folder) => `<li><a href="${SITE}/c/${folder.id}">${esc(text(folder.name, 80))}</a> - ${esc(TCG_LABELS[folder.tcg] || folder.tcg)} (${folder._count.cards} cartas)</li>`).join('');
     return sendPage(res, page({
       title, description, url, image, jsonLd,
+      shareImage: `${API}/api/og/seller/${encodeURIComponent(user.username)}/image.jpg?v=${user.folders.length}`,
       body: `<header><a href="${SITE}/">Carpetazo.cl</a> - <a href="${SITE}/vendedores">Vendedores</a></header><main><h1>${esc(name)}</h1>${bio ? `<p>${esc(bio)}</p>` : ''}<h2>Carpetas a la venta</h2><ul>${list}</ul></main>`
     }));
   } catch (error) {

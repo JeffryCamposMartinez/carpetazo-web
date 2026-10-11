@@ -126,6 +126,8 @@ export const api = {
   searchCards: (queryString = '') => searchCardsShared(queryString),
   getSellerReviews: (username, page = 1) => apiFetch('/users/' + encodeURIComponent(username) + '/reviews?page=' + page),
   getPendingReviews: () => apiFetch('/reviews/pending'),
+  getOnboarding: () => apiFetch('/onboarding'),
+  markOnboardingShared: () => apiFetch('/onboarding/shared', { method: 'POST' }),
   createReview: (data) => apiFetch('/reviews', { method: 'POST', body: JSON.stringify(data) }),
   reportReview: (id, reason) => apiFetch('/reviews/' + encodeURIComponent(id) + '/report', { method: 'POST', body: JSON.stringify({ reason }) }),
   getModerationReviews: () => apiFetch('/admin/reviews'),

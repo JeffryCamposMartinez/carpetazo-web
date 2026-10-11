@@ -7,7 +7,7 @@ import WishlistTab from '../components/wishlist/WishlistTab';
 import LiquidTabs from '../components/ui/LiquidTabs';
 import FolderSummary from '../components/folder/FolderSummary';
 import FolderFormModal from '../components/folder/FolderFormModal';
-import FolderEmptySteps from '../components/folder/FolderEmptySteps';
+import OnboardingChecklist from '../components/folder/OnboardingChecklist';
 import FolderGrid from '../components/folder/FolderGrid';
 import { useToast } from '../components/ui/ToastProvider';
 import { warmFolderPreview } from '../utils/sharePreview';
@@ -491,7 +491,7 @@ export default function Dashboard() {
               Nueva carpeta
             </button>
             </div>
-            {folders.length === 0 && <FolderEmptySteps />}
+            <OnboardingChecklist foldersCount={folders.length} onCreateFolder={() => setIsCreateModalOpen(true)} version={`${folders.length}:${totalCards}`} />
 
             <FolderGrid {...folderGridProps} />
           </div>
