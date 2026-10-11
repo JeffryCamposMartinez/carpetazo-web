@@ -18,6 +18,22 @@ export const formatDuration = (seconds) => { const total = Math.max(0, Math.roun
 
 export const imageOf = (body) => body.imageUrl || body.imageBase64 || null;
 
+// Fotos y cartas de una conversación, en orden, para recorrerlas a pantalla completa
+export const mediaOf = (messages) => {
+  const items = [];
+  for (const message of messages) {
+    if (message.hidden) continue;
+    const body = decodeMessage(message.content);
+    const photo = imageOf(body);
+    if (photo) items.push({ id: message.id, src: photo });
+    else if (body.cardId && message.attachment?.imageUrl && !message.attachment.unavailable) {
+      const { id, name, set, price, private: unlisted } = message.attachment;
+      items.push({ id: message.id, src: message.attachment.imageUrl, card: { id, name, set, price, private: Boolean(unlisted) } });
+    }
+  }
+  return items;
+};
+
 // Resumen de una línea para la lista de chats y las citas
 export const summaryOf = (content, attachment = null) => {
   const body = decodeMessage(content);

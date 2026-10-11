@@ -148,7 +148,7 @@ function MessageBubble({ message, own, partnerId, partnerName, grouped, query, c
             </p>
           )}
           {message.replyTo && <ReplyQuote reply={message.replyTo} own={{ mine: own, partnerId }} partnerName={partnerName} onJump={onJump} />}
-          {body.cardId && <CardAttachment attachment={message.attachment} own={own} onImage={onImage} />}
+          {body.cardId && <CardAttachment attachment={message.attachment} own={own} onImage={(src) => onImage?.(src, message.id)} />}
           {body.audio && !message.hidden && <VoiceMessage audio={body.audio} own={own} />}
           {image && (
             imageBroken ? (
@@ -157,7 +157,7 @@ function MessageBubble({ message, own, partnerId, partnerName, grouped, query, c
                 La foto no está disponible
               </div>
             ) : (
-            <button type="button" onClick={() => onImage(image)} aria-label="Ver foto" className="relative mb-1 block overflow-hidden rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+            <button type="button" onClick={() => onImage(image, message.id)} aria-label="Ver foto" className="relative mb-1 block overflow-hidden rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
               <img src={image} alt="Foto enviada" loading="lazy" draggable="false" onError={() => setImageBroken(true)} className="max-h-80 min-h-24 w-full min-w-[9rem] max-w-[16rem] bg-black/10 object-cover sm:max-w-[20rem]" />
               {!hasText && (
                 <span className="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-black/45 px-2 py-0.5 text-[11px] font-semibold text-white">

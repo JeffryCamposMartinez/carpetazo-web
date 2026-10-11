@@ -24,6 +24,7 @@ export default function WishlistSection({ username, seller, isOwner = false, var
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [open, setOpen] = useState(variant === 'profile');
+  const [offering, setOffering] = useState(null); // deseada para la que se busca la carta propia
   const [previewId, setPreviewId] = useState(null); // carta que se ve en pantalla completa
 
   const primary = colors.primary || '#12315f';
@@ -64,8 +65,25 @@ export default function WishlistSection({ username, seller, isOwner = false, var
     }
   };
 
-  const offerCard = (item) => {
+  // La carta propia que coincide con la deseada (primero las de carpetas públicas, luego las no públicas) viaja con el mensaje
+  const findMyCard = async (item) => {
+    const same = (value) => String(value || '').trim().toLowerCase();
+    for (const scope of ['public', 'private']) {
+      try {
+        const res = await api.getMyCards(new URLSearchParams({ q: String(item.name || '').slice(0, 80), scope }).toString());
+        const matches = (res.cards || []).filter((card) => same(card.name) === same(item.name));
+        const found = matches.find((card) => card.stock > 0) || matches[0];
+        if (found) return found;
+      } catch (_error) { /* se ofrece sin la carta */ }
+    }
+    return null;
+  };
+
+  const offerCard = async (item) => {
     if (!currentUser) { navigate('/bienvenida'); return; }
+    setOffering(item.id);
+    const card = await findMyCard(item);
+    setOffering(null);
     navigate('/mensajes', {
       state: {
         startChatWith: {
@@ -73,6 +91,7 @@ export default function WishlistSection({ username, seller, isOwner = false, var
           name: displayName,
           avatar: seller?.avatar || seller?.photoURL || '',
           draft: `Hola, tengo "${item.name}" que buscas en tu lista de Carpetazo.`,
+          card: card ? { id: card.id, name: card.name, imageUrl: card.imageUrl, price: card.price } : null,
         },
       },
     });
@@ -119,7 +138,8 @@ export default function WishlistSection({ username, seller, isOwner = false, var
               <button
                 type="button"
                 onClick={() => offerCard(item)}
-                className="mt-auto flex h-10 items-center justify-center gap-1 whitespace-nowrap rounded-full px-1 text-[12.5px] font-extrabold transition active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#12315f]"
+                disabled={offering === item.id}
+                className="mt-auto flex h-10 items-center justify-center gap-1 whitespace-nowrap rounded-full px-1 text-[12.5px] font-extrabold transition active:scale-[0.97] disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#12315f]"
                 style={{ backgroundColor: accent, color: '#12315f' }}
               >
                 <span translate="no" className="material-symbols-outlined hidden text-[18px] min-[430px]:inline">sell</span>

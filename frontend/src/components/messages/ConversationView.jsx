@@ -16,7 +16,7 @@ import ImageViewer from './ImageViewer';
 import MenuButton from './MenuButton';
 import MessageActionMenu from './MessageActionMenu';
 import MessageList from './MessageList';
-import { EDIT_WINDOW_MS, QUICK_REPLIES_BUYER, QUICK_REPLIES_SELLER, decodeMessage, lastSeenLabel, summaryOf } from './messageUtils';
+import { EDIT_WINDOW_MS, QUICK_REPLIES_BUYER, QUICK_REPLIES_SELLER, decodeMessage, lastSeenLabel, mediaOf, summaryOf } from './messageUtils';
 
 const TYPING_IDLE_MS = 2200;
 const REMOTE_TYPING_MS = 5000;
@@ -24,7 +24,7 @@ const SEARCH_LOAD_CAP = 1500;
 
 // Una conversación completa: encabezado, mensajes, barra para escribir y todas las hojas (info, reenviar, fotos, cartas…)
 export default function ConversationView({
-  partnerKey, hint, bus, initialDraft, onDraft, onBack, showBack, chats, myUsername, onListChanged, onSettings, jumpId, onJumped, onOpenStarredMessage
+  partnerKey, hint, bus, initialDraft, onDraft, onBack, showBack, chats, myUsername, onListChanged, onSettings, jumpId, onJumped, onOpenStarredMessage, offer, onOfferUsed
 }) {
   const { showToast } = useToast();
   const conv = useConversation(partnerKey, { onChanged: onListChanged });
@@ -45,6 +45,11 @@ export default function ConversationView({
   const [reporting, setReporting] = useState(null);
   const [files, setFiles] = useState([]);
   const [viewer, setViewer] = useState(null);
+  const [attached, setAttached] = useState(offer || null);
+  useEffect(() => { if (offer) setAttached(offer); }, [offer]);
+  const gallery = useMemo(() => mediaOf(messages), [messages]);
+  // Desde un mensaje se recorre toda la conversación; desde "Datos del contacto" se ve solo esa foto
+  const viewerItems = !viewer ? [] : viewer.id && gallery.some((item) => item.id === viewer.id) ? gallery : [{ id: 'single', src: viewer.src }];
   const [cardsOpen, setCardsOpen] = useState(false);
   const [search, setSearch] = useState({ open: false, query: '', at: 0 });
   const [flashId, setFlashId] = useState(null);
@@ -138,7 +143,14 @@ export default function ConversationView({
   const saveEdit = async (id, text) => {
     try { await conv.edit(id, text); setEditing(null); onListChanged?.(); } catch (error) { showToast(error.code === 'edit_window' ? 'Ya pasaron más de 15 minutos: no se puede corregir.' : error.message || 'No se pudo corregir.', 'error'); setEditing(null); }
   };
-  const send = ({ text = '', file = null, cardId = null, audio = null }) => { const reply = replyTo; setReplyTo(null); conv.send({ text, file, cardId, audio, replyTo: reply }); };
+  // Una carta ofrecida desde la lista de deseos de la otra persona viaja con el primer mensaje de texto
+  const send = ({ text = '', file = null, cardId = null, card = null, audio = null }) => {
+    const reply = replyTo;
+    setReplyTo(null);
+    const withOffer = attached && !cardId && !audio && !file && text.trim() ? attached.id : cardId;
+    if (withOffer && withOffer === attached?.id) { setAttached(null); onOfferUsed?.(); }
+    conv.send({ text, file, cardId: withOffer, card: withOffer === attached?.id ? attached : card, audio, replyTo: reply });
+  };
   const sendPhotos = (items) => { setFiles([]); items.forEach(({ file, caption }, at) => conv.send({ text: caption, file, replyTo: at === 0 ? replyTo : null })); setReplyTo(null); };
   const addFiles = (incoming) => { const result = pickPhotos(incoming, files); if (result.error) showToast(result.error, 'error'); setFiles(result.files); };
   const forward = async (ids) => {
@@ -216,7 +228,7 @@ export default function ConversationView({
       <MessageList
         ref={list} messages={messages} partner={partner || { id: partnerId }} partnerName={name} resetKey={partnerKey} loading={conv.loading} hasMore={hasMore} loadingOlder={loadingOlder}
         onLoadOlder={conv.loadOlder} firstUnreadId={conv.firstUnreadId} typing={remoteTyping} query={search.open ? search.query : ''} currentMatchId={search.open ? currentMatch : null} flashId={flashId}
-        onMenu={openMenu} onReply={startReply} onJump={jump} onImage={setViewer} onRetry={conv.retry} onDiscard={conv.discard}
+        onMenu={openMenu} onReply={startReply} onJump={jump} onImage={(src, id) => setViewer({ src, id })} onRetry={conv.retry} onDiscard={conv.discard}
       />
 
       <Composer
@@ -225,18 +237,19 @@ export default function ConversationView({
         editing={editing} onCancelEdit={() => setEditing(null)} onSaveEdit={saveEdit}
         onFiles={addFiles} onOpenCards={() => setCardsOpen(true)} quickReplies={quickReplies} showQuick={!conv.loading && messages.length === 0}
         blocked={blockedByMe ? { byMe: true } : null} onUnblock={toggleBlock} focusKey={partnerKey} onVoice={(audio) => send({ audio })} onNotice={(message) => showToast(message, 'error')}
+        attachedCard={attached} onRemoveCard={() => { setAttached(null); onOfferUsed?.(); }}
       />
 
       <MessageActionMenu target={menu} onClose={() => setMenu(null)} actions={actions} myReaction={myReaction} />
       <ContactInfo open={info} onClose={() => setInfo(false)} partner={partner || { id: partnerId, name, photoURL: avatar, username }} settings={settings} muted={muted} blockedByMe={blockedByMe}
-        onSettings={changeSettings} onToggleBlock={() => { setInfo(false); toggleBlock(); }} onViewImage={setViewer}
+        onSettings={changeSettings} onToggleBlock={() => { setInfo(false); toggleBlock(); }} onViewImage={(src) => setViewer({ src })}
         onStarred={() => setStarredOpen(true)} onSearch={() => setSearch({ open: true, query: '', at: 0 })} onReport={() => { setInfo(false); setReporting({ targetType: 'user', targetId: partnerId }); }} />
       <StarredSheet open={starredOpen} onClose={() => setStarredOpen(false)} partnerId={partnerId} onOpenMessage={(message) => jump(message.id)} />
       <ForwardSheet open={Boolean(forwarding)} onClose={() => setForwarding(null)} chats={chats.filter((chat) => (chat.otherUser || chat.partner)?.id !== partnerId)} onSend={forward} busy={forwardBusy} />
       <MessageInfoSheet message={messageInfo} partnerName={name} onClose={() => setMessageInfo(null)} />
-      <CardPicker open={cardsOpen} onClose={() => setCardsOpen(false)} myUsername={myUsername} onPick={(card) => { setCardsOpen(false); send({ cardId: card.id }); }} />
+      <CardPicker open={cardsOpen} onClose={() => setCardsOpen(false)} myUsername={myUsername} onPick={(card) => { setCardsOpen(false); send({ cardId: card.id, card }); }} />
       <ImagePreview files={files} onClose={() => setFiles([])} onRemove={(at) => setFiles((previous) => previous.filter((_, index) => index !== at))} onSend={sendPhotos} />
-      <ImageViewer src={viewer} onClose={() => setViewer(null)} />
+      <ImageViewer items={viewerItems} startId={viewer?.id || 'single'} onClose={() => setViewer(null)} />
       {reporting && <ReportSheet {...reporting} onClose={() => setReporting(null)} />}
     </section>
   );

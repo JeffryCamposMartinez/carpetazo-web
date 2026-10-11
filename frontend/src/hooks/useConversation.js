@@ -119,14 +119,14 @@ export default function useConversation(partnerKey, { onChanged } = {}) {
     }
   }, [onChanged]);
 
-  const send = useCallback(async ({ text = '', file = null, cardId = null, replyTo = null, audio = null }) => {
+  const send = useCallback(async ({ text = '', file = null, cardId = null, card = null, replyTo = null, audio = null }) => {
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const previewUrl = file ? URL.createObjectURL(file) : null;
     const audioUrl = audio ? URL.createObjectURL(audio.blob) : null;
     if (file || audio) pendingFiles.current.set(tempId, { file, previewUrl: previewUrl || audioUrl, audio });
     const optimistic = {
       id: tempId, temp: true, pending: true, senderId: 'me', content: encodeMessage({ text, imageUrl: previewUrl, cardId, audio: audio ? { url: audioUrl, seconds: audio.seconds, wave: audio.wave } : null }), createdAt: new Date().toISOString(),
-      isRead: false, deliveredAt: null, reactions: [], starred: false, attachment: null,
+      isRead: false, deliveredAt: null, reactions: [], starred: false, attachment: card && cardId ? { id: card.id, name: card.name, imageUrl: card.imageUrl, price: card.price, set: card.set || null } : null,
       replyTo: replyTo ? { id: replyTo.id, senderId: replyTo.senderId, text: replyTo.text, kind: replyTo.kind } : null,
       retry: { text, cardId, replyTo }
     };

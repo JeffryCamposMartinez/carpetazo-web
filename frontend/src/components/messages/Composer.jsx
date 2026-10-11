@@ -9,7 +9,7 @@ const MAX_HEIGHT = 140;
 // Barra para escribir, como la de WhatsApp: emojis, texto que crece, clip, cámara y botón de enviar. También sirve para responder y corregir.
 export default function Composer({
   draft, onDraft, onSend, onTyping, replyTo, replyAuthor, onCancelReply, editing, onCancelEdit, onSaveEdit,
-  onFiles, onOpenCards, quickReplies, showQuick, blocked, onUnblock, focusKey, onVoice, onNotice
+  onFiles, onOpenCards, quickReplies, showQuick, blocked, onUnblock, focusKey, onVoice, onNotice, attachedCard, onRemoveCard
 }) {
   const [text, setText] = useState(draft || '');
   const [emojiOpen, setEmojiOpen] = useState(false);
@@ -111,6 +111,21 @@ export default function Composer({
               <span className="block truncate text-[13px] text-slate-600">{editing ? editing.text : replyTo.preview}</span>
             </span>
             <button type="button" onClick={editing ? onCancelEdit : onCancelReply} aria-label="Cancelar" className="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
+              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+          </div>
+        </div>
+      )}
+      {attachedCard && (
+        <div className="flex items-center gap-2 px-3 pt-2 sm:px-5">
+          <div className="flex min-w-0 flex-1 items-center gap-3 rounded-xl bg-white px-2 py-2 shadow-sm ring-1 ring-black/5">
+            {attachedCard.imageUrl ? <img src={attachedCard.imageUrl} alt="" className="h-14 w-10 shrink-0 rounded bg-slate-200 object-cover" /> : <span className="h-14 w-10 shrink-0 rounded bg-slate-200" />}
+            <span className="min-w-0 flex-1">
+              <span className="block text-xs font-extrabold text-[#1e40af]">Se enviará con esta carta</span>
+              <span className="block truncate text-[14px] font-extrabold text-[#12315f]">{attachedCard.name}</span>
+              <span className="block text-[13px] font-bold tabular-nums text-slate-600">{Number(attachedCard.price) > 0 ? `$${Math.round(Number(attachedCard.price)).toLocaleString('es-CL')}` : 'Consultar'}</span>
+            </span>
+            <button type="button" onClick={onRemoveCard} aria-label="Quitar la carta" className="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
               <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">close</span>
             </button>
           </div>

@@ -483,13 +483,17 @@ body.public-profile-active::after {
 @keyframes chat-flash { 0%, 100% { background-color: transparent; } 20%, 60% { background-color: rgba(250, 204, 21, 0.38); } }
 @keyframes chat-typing { 0%, 60%, 100% { transform: translateY(0); opacity: 0.45; } 30% { transform: translateY(-4px); opacity: 1; } }
 .chat-fade { animation: chat-fade-in 150ms ease-out; }
+@keyframes viewer-next { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+@keyframes viewer-prev { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+.viewer-in-next { animation: viewer-next 200ms cubic-bezier(0.23, 1, 0.32, 1); }
+.viewer-in-prev { animation: viewer-prev 200ms cubic-bezier(0.23, 1, 0.32, 1); }
 .chat-pop { animation: chat-pop-in 160ms cubic-bezier(0.23, 1, 0.32, 1); transform-origin: top right; }
 .chat-sheet { animation: chat-sheet-in 200ms cubic-bezier(0.23, 1, 0.32, 1); }
 .chat-slide-in { animation: chat-slide-in 200ms cubic-bezier(0.23, 1, 0.32, 1); }
 .chat-flash { animation: chat-flash 1.4s ease-out; }
 .chat-typing-dot { animation: chat-typing 1s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
-  .chat-fade, .chat-pop, .chat-sheet, .chat-slide-in, .chat-typing-dot { animation: none; }
+  .viewer-in-next, .viewer-in-prev, .chat-fade, .chat-pop, .chat-sheet, .chat-slide-in, .chat-typing-dot { animation: none; }
   .chat-flash { animation: none; background-color: rgba(250, 204, 21, 0.3); }
 }
 /* Texto seleccionado y cursor con los colores de la marca dentro del chat */

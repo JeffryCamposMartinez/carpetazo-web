@@ -49,6 +49,7 @@ export default function Messages() {
   const [sheet, setSheet] = useState(null);
   const [actionChat, setActionChat] = useState(null);
   const [hint, setHint] = useState(null);
+  const [offer, setOffer] = useState(null); // carta propia que se ofrece desde la lista de deseos de la otra persona: { key, card }
   const [jumpId, setJumpId] = useState(null);
   const [drafts, setDrafts] = useState(() => (currentUser ? readDrafts(currentUser.uid) : {}));
   const pushed = useRef(false);
@@ -83,6 +84,7 @@ export default function Messages() {
     if (!key) return;
     setHint({ key, id: target.id || '', name: target.name || target.username || 'Vendedor', username: target.username || '', avatar: target.avatar || target.photoURL || null });
     if (typeof target.draft === 'string' && target.draft) setDrafts((previous) => ({ ...previous, [key]: target.draft.slice(0, 500) }));
+    if (target.card?.id) setOffer({ key, card: target.card });
     pushed.current = false; // la entrada intermedia se reemplaza: atrás vuelve a la pantalla de origen y la flecha de la app, a la lista
     navigate(`/mensajes?c=${encodeURIComponent(key)}`, { replace: true, state: {} });
   }, [location.state, uid, navigate]);
@@ -186,6 +188,7 @@ export default function Messages() {
       onBack={closeChat} showBack={!isDesktop} chats={list.chats} myUsername={appUser?.username || ''}
       onListChanged={() => { list.load({ silent: true }); window.dispatchEvent(new Event('carpetazo:messages-updated')); }} onSettings={list.updateSettings}
       jumpId={jumpId} onJumped={() => setJumpId(null)}
+      offer={offer?.key === activeKey ? offer.card : null} onOfferUsed={() => setOffer(null)}
     />
   ) : null;
 
