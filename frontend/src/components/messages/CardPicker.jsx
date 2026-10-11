@@ -81,8 +81,8 @@ export default function CardPicker({ open, onClose, onPick, myUsername }) {
             <ul>
               {cards.map((card) => (
                 <li key={card.id}>
-                  <button type="button" onClick={() => onPick(card)} className="flex min-h-[4.5rem] w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-slate-50 focus:outline-none focus-visible:bg-slate-100">
-                    {card.imageUrl ? <img src={card.imageUrl} alt="" loading="lazy" className="h-14 w-10 shrink-0 rounded bg-slate-200 object-cover" /> : <span className="h-14 w-10 shrink-0 rounded bg-slate-200" />}
+                  <button type="button" onClick={() => onPick(card)} className="flex min-h-[7.5rem] w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-slate-50 focus:outline-none focus-visible:bg-slate-100">
+                    {card.imageUrl ? <img src={card.imageUrl} alt="" loading="lazy" className="h-28 w-20 shrink-0 rounded-md bg-slate-200 object-cover" /> : <span className="h-28 w-20 shrink-0 rounded-md bg-slate-200" />}
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[15px] font-extrabold text-[#12315f]">{card.name}</span>
                       <span className="block truncate text-xs text-slate-500">{[gameOf(card), sellerOf(card)].filter(Boolean).join(' · ')}</span>
