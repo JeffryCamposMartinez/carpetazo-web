@@ -686,6 +686,7 @@ const [isSearching, setIsSearching] = useState(false);
   };
 
   const copyBuyerLink = async () => {
+    if (folderData && !folderData.isPublic) { showToast('Esta carpeta es privada: quien abra el enlace no verá tus cartas ni la vista previa. Hazla pública para compartirla.', 'error'); return; }
     const url = siteUrl(`/c/${id}`);
     warmFolderPreview(id);
     try {

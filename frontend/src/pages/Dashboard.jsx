@@ -322,6 +322,8 @@ export default function Dashboard() {
 
   const handleShareFolder = (e, folder) => {
     e.stopPropagation();
+    // Una carpeta privada no se ve con el enlace (ni arma la vista previa en WhatsApp): se avisa en vez de compartir algo vacío
+    if (!folder.isPublic) { showToast('Esta carpeta es privada: quien abra el enlace no verá tus cartas ni la vista previa. Hazla pública para compartirla.', 'error'); return; }
     const url = siteUrl(`/c/${folder.id}`);
     warmFolderPreview(folder.id);
     
