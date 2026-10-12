@@ -1,10 +1,14 @@
 // Reseñas: antifraude (una por pareja, misma conexión, promedio desde 3), reportes y moderación.
-const { prisma, call, ok, fixtures } = require('./fixtures.cjs');
+const { prisma, U, call, ok, fixtures, acceptTerms } = require('./fixtures.cjs');
 
 const { folderId: F, cardId, sellerUsername: SELLER_USERNAME } = fixtures();
 const summary = async () => (await call('GET', '/users/' + SELLER_USERNAME + '/reviews')).j;
 
 (async () => {
+  // Las reseñas de cuentas con menos de 7 días no cuentan (se prueba al final): estas cuentas de prueba pasan por antiguas
+  // mientras dura esta prueba (al final vuelven a su fecha: otras pruebas dependen de que sean nuevas)
+  const reviewers = await prisma.user.findMany({ where: { firebaseUid: { in: [U.jerry, U.ignacio, U.ale, U.jeffry] } }, select: { id: true, createdAt: true } });
+  await prisma.user.updateMany({ where: { id: { in: reviewers.map((row) => row.id) } }, data: { createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } });
   const items = [{ id: cardId, quantity: 1 }];
   const orders = [];
   const buy = async (who, createIp, confirmIp) => {
@@ -88,6 +92,20 @@ const summary = async () => (await call('GET', '/users/' + SELLER_USERNAME + '/r
   r = await call('DELETE', '/admin/reviews/' + suspicious.id, 'admin');
   ok('F: eliminar → 200 y luego 404', r.status === 200 && (await call('DELETE', '/admin/reviews/' + suspicious.id, 'admin')).status === 404);
   ok('F: el comprador puede volver a calificar a ese vendedor', (await call('GET', '/reviews/pending', 'ignacio')).j.pending.length === 1);
+
+  // G) Cuenta recién creada: su reseña se guarda pero no cuenta y queda en moderación como "new_account"
+  U.reviewnew = 'cztest-reviewnew';
+  await call('POST', '/users/sync', 'reviewnew', { displayName: 'Prueba reseña nueva', username: 'cztest_reviewnew' });
+  await acceptTerms('reviewnew', {}, '198.51.100.91');
+  const fresh = await buy('reviewnew', '5.5.5.1', '5.5.5.2');
+  const countBefore = (await summary()).count;
+  r = await call('POST', '/reviews', 'reviewnew', { orderId: fresh, rating: 5, comment: 'cuenta nueva' });
+  const stored = await prisma.sellerReview.findFirst({ where: { orderId: fresh } });
+  ok('G: reseña de una cuenta de menos de 7 días → se guarda sin contar', r.status === 200 && stored && stored.counts === false && stored.flag === 'new_account', JSON.stringify([r.status, stored?.counts, stored?.flag]));
+  ok('G: no cambia el conteo público', (await summary()).count === countBefore);
+  ok('G: aparece en Moderación → Reseñas', (await call('GET', '/admin/reviews', 'admin')).j.reviews.some((x) => x.id === stored?.id && x.flag === 'new_account'));
+
+  for (const row of reviewers) await prisma.user.update({ where: { id: row.id }, data: { createdAt: row.createdAt } });
 
   // La limpieza general de tests/run.cjs borra pedidos, reseñas y mensajes de prueba
   await prisma.$disconnect();

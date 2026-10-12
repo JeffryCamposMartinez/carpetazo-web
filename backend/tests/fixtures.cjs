@@ -23,9 +23,10 @@ const call = async (method, path, who, body, ip) => {
 };
 
 // Acepta los textos vigentes (sin esto el servidor rechaza cualquier escritura de la cuenta)
-const acceptTerms = async (who, extra = {}) => {
+// `ip`: conexión simulada (la aceptación tiene límite por conexión; las cuentas extra de una prueba usan otra)
+const acceptTerms = async (who, extra = {}, ip) => {
   const versions = (await call('GET', '/legal/versions')).j;
-  const r = await call('POST', '/users/me/accept-terms', who, { adult: true, termsVersion: versions.termsVersion, privacyVersion: versions.privacyVersion, ...extra });
+  const r = await call('POST', '/users/me/accept-terms', who, { adult: true, termsVersion: versions.termsVersion, privacyVersion: versions.privacyVersion, ...extra }, ip);
   if (r.status !== 200) throw new Error('No se pudo aceptar los términos de ' + who + ': ' + r.status);
   return r;
 };

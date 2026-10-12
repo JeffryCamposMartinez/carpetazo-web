@@ -28,6 +28,12 @@ const providerIds = (user) => (user?.providerData || []).map((provider) => provi
 
 // Una cuenta solo de correo y contraseña debe verificar su correo antes de entrar. Si la cuenta tiene Google enlazado, Google ya verificó
 // ese correo: al crear una contraseña en el perfil, Firebase puede dejar "emailVerified" en falso y no se debe sacar a la persona por eso.
+// Borradores de los chats guardados en el navegador (pages/Messages.jsx los guarda por cuenta)
+const clearChatDrafts = () => {
+  try {
+    for (const key of Object.keys(window.localStorage)) if (key.startsWith('carpetazo:chat-drafts:')) window.localStorage.removeItem(key);
+  } catch (_error) { /* sin almacenamiento: no hay nada que borrar */ }
+};
 const mustVerifyEmail = (user) => Boolean(user) && !user.emailVerified && providerIds(user).includes('password') && !providerIds(user).includes('google.com');
 
 export function AuthProvider({ children }) {
@@ -69,8 +75,10 @@ export function AuthProvider({ children }) {
     return auth.currentUser ? await auth.currentUser.getIdToken(true) : null;
   }
 
-  // Cerrar sesión
+  // Cerrar sesión. Lo escrito sin enviar en los chats se guarda en el navegador: se borra al salir para que, en un
+  // computador compartido, la siguiente persona no pueda leerlo
   function logout() {
+    clearChatDrafts();
     setAppUser(null);
     setLegal(null);
     setPreAccepted(false);
@@ -200,6 +208,8 @@ export function AuthProvider({ children }) {
           photoURL: user.photoURL
         }).then(applyServerState).catch(console.error);
       } else {
+        // También si la sesión se cerró desde otra pestaña o venció
+        clearChatDrafts();
         setAppUser(null);
         setLegal(null);
       }

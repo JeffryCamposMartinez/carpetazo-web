@@ -44,6 +44,7 @@ import { startWishlistAlerts } from './core/wishlistAlerts.js';
 import { startPriceHistory } from './core/priceHistory.js';
 import { startMarketPriceHistory } from './core/marketPriceHistory.js';
 import { startPriceWatch } from './moderation/priceWatch.js';
+import { startOrphanCleanup } from './core/orphanFiles.js';
 import { startPreviewWarmer } from './core/folderPreview.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -142,5 +143,6 @@ app.listen(port, () => {
     startPriceHistory();
     startMarketPriceHistory();
     startPriceWatch();
+    startOrphanCleanup();
     if (!process.env.TEST_AUTH_STUB) setInterval(() => purgeOldErrors().catch(() => {}), 6 * 60 * 60 * 1000).unref();
 });

@@ -61,6 +61,11 @@ const { prisma, call, ok } = require('./fixtures.cjs');
     ok('mover a una carpeta de otro juego → 400', r.status === 400, String(r.status));
     r = await call('POST', '/folders/' + fid + '/cards-bulk/move', 'seller', { ids: [a], targetFolderId: fid });
     ok('mover a la misma carpeta → 400', r.status === 400, String(r.status));
+    // Carpeta ocultada por moderación: sus cartas no se pueden sacar a otra carpeta (volverían a estar a la venta)
+    await prisma.folder.update({ where: { id: fid }, data: { moderationState: 'hidden', isPublic: false } });
+    r = await call('POST', '/folders/' + fid + '/cards-bulk/move', 'seller', { ids: [a], targetFolderId: other });
+    ok('mover desde una carpeta ocultada por moderación → 403', r.status === 403 && (await stored(a)).folderId === fid, String(r.status));
+    await prisma.folder.update({ where: { id: fid }, data: { moderationState: 'visible' } });
     await prisma.card.update({ where: { id: a }, data: { data: { language: 'English', catalogOrder: 4 } } });
     r = await call('POST', '/folders/' + fid + '/cards-bulk/move', 'seller', { ids: [a, b], targetFolderId: other });
     ok('mover dos cartas a otra carpeta propia del mismo juego → 200', r.status === 200 && r.j.count === 2, JSON.stringify(r.j));

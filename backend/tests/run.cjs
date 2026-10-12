@@ -7,7 +7,7 @@ const { setup, cleanup, prisma, ADMIN_EMAIL } = require('./fixtures.cjs');
 
 const root = path.join(__dirname, '..');
 const server = spawn(process.execPath, ['--import', './tests/register.mjs', 'server.js'], {
-  cwd: root, env: { ...process.env, TEST_AUTH_STUB: '1', PORT, ADMIN_EMAILS: ADMIN_EMAIL, MAIL_TEST_OUTBOX: '1', R2_PUBLIC_URL: 'https://pub-cztest.r2.dev', R2_BUCKET_NAME: 'cztest-bucket', R2_TEST_STUB: '1', IMAGE_SCAN_TEST: '1', HASH_BANK_TTL_MS: '1', SIGHTENGINE_USER: '', SIGHTENGINE_SECRET: '', GOOGLE_VISION_KEY: '', EXTRA_ENV_FILE: '', SMTP_USER: '', SMTP_PASS: '', VAPID_PUBLIC_KEY: '', VAPID_PRIVATE_KEY: '' }, stdio: 'inherit'
+  cwd: root, env: { ...process.env, TEST_AUTH_STUB: '1', PORT, PREVIEW_PROXY_SECRET: 'cztest-preview-secret', ADMIN_EMAILS: ADMIN_EMAIL, MAIL_TEST_OUTBOX: '1', R2_PUBLIC_URL: 'https://pub-cztest.r2.dev', R2_BUCKET_NAME: 'cztest-bucket', R2_TEST_STUB: '1', IMAGE_SCAN_TEST: '1', HASH_BANK_TTL_MS: '1', SIGHTENGINE_USER: '', SIGHTENGINE_SECRET: '', GOOGLE_VISION_KEY: '', EXTRA_ENV_FILE: '', SMTP_USER: '', SMTP_PASS: '', VAPID_PUBLIC_KEY: '', VAPID_PRIVATE_KEY: '' }, stdio: 'inherit'
 });
 let failed = false;
 server.on('exit', (code) => { if (code) { console.error('El servidor de pruebas no pudo iniciar.'); process.exit(1); } });

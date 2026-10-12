@@ -104,7 +104,8 @@ export const api = {
 
   // Users
   syncUser: (data = {}) => apiFetch('/users/sync', { method: 'POST', body: JSON.stringify(data) }),
-  getUserProfile: (username) => apiFetch('/users/' + username),
+  // El usuario viene de la dirección de la página: se codifica para que "../" no pueda apuntar a otra ruta de la API
+  getUserProfile: (username) => apiFetch('/users/' + encodeURIComponent(username)),
   getMe: () => apiFetch('/users/me'),
   getLegalVersions: () => apiFetch('/legal/versions'),
   acceptTerms: (data) => apiFetch('/users/me/accept-terms', { method: 'POST', body: JSON.stringify(data) }),
@@ -201,31 +202,31 @@ export const api = {
   getPublicWishlist: (username, page = 1) => apiFetch('/users/' + encodeURIComponent(username) + '/wishlist?page=' + page),
   getMyFolders: () => apiFetch('/folders/me'),
   getMyFolderStats: () => apiFetch('/folders/me/stats'),
-  getFolder: (id) => apiFetch('/folders/' + id),
+  getFolder: (id) => apiFetch('/folders/' + encodeURIComponent(id)),
   createFolder: (data) => apiFetch('/folders', { method: 'POST', body: JSON.stringify(data) }),
-  deleteFolder: (id) => apiFetch('/folders/' + id, { method: 'DELETE' }),
-  saveFolderOrder: (id, ids) => apiFetch('/folders/' + id + '/order', { method: 'PUT', body: JSON.stringify({ ids }) }),
-  updateFolder: (id, data) => apiFetch('/folders/' + id, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteFolder: (id) => apiFetch('/folders/' + encodeURIComponent(id), { method: 'DELETE' }),
+  saveFolderOrder: (id, ids) => apiFetch('/folders/' + encodeURIComponent(id) + '/order', { method: 'PUT', body: JSON.stringify({ ids }) }),
+  updateFolder: (id, data) => apiFetch('/folders/' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(data) }),
   
   // Cards
-  addCard: (folderId, data) => apiFetch('/folders/' + folderId + '/cards', { method: 'POST', body: JSON.stringify(data) }),
-  updateCard: (folderId, cardId, data) => apiFetch('/folders/' + folderId + '/cards/' + cardId, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteCard: (folderId, cardId) => apiFetch('/folders/' + folderId + '/cards/' + cardId, { method: 'DELETE' }),
-  updateCardsBulk: (folderId, updates) => apiFetch('/folders/' + folderId + '/cards-bulk', { method: 'PUT', body: JSON.stringify({ updates }) }),
-  deleteCardsBulk: (folderId, ids) => apiFetch('/folders/' + folderId + '/cards-bulk/delete', { method: 'POST', body: JSON.stringify({ ids }) }),
-  moveCardsBulk: (folderId, ids, targetFolderId) => apiFetch('/folders/' + folderId + '/cards-bulk/move', { method: 'POST', body: JSON.stringify({ ids, targetFolderId }) }),
+  addCard: (folderId, data) => apiFetch('/folders/' + encodeURIComponent(folderId) + '/cards', { method: 'POST', body: JSON.stringify(data) }),
+  updateCard: (folderId, cardId, data) => apiFetch('/folders/' + encodeURIComponent(folderId) + '/cards/' + encodeURIComponent(cardId), { method: 'PUT', body: JSON.stringify(data) }),
+  deleteCard: (folderId, cardId) => apiFetch('/folders/' + encodeURIComponent(folderId) + '/cards/' + encodeURIComponent(cardId), { method: 'DELETE' }),
+  updateCardsBulk: (folderId, updates) => apiFetch('/folders/' + encodeURIComponent(folderId) + '/cards-bulk', { method: 'PUT', body: JSON.stringify({ updates }) }),
+  deleteCardsBulk: (folderId, ids) => apiFetch('/folders/' + encodeURIComponent(folderId) + '/cards-bulk/delete', { method: 'POST', body: JSON.stringify({ ids }) }),
+  moveCardsBulk: (folderId, ids, targetFolderId) => apiFetch('/folders/' + encodeURIComponent(folderId) + '/cards-bulk/move', { method: 'POST', body: JSON.stringify({ ids, targetFolderId }) }),
   
   // Messages/Chats
   getChats: (archived = false) => apiFetch('/chats' + (archived ? '?archived=1' : '')),
   getMessages: (otherId, { before, limit } = {}) => apiFetch('/messages/' + encodeURIComponent(otherId) + (before || limit ? '?' + new URLSearchParams({ ...(before ? { before } : {}), ...(limit ? { limit: String(limit) } : {}) }) : '')),
   sendMessage: (otherId, content, replyToId = null) => apiFetch('/messages/' + encodeURIComponent(otherId), { method: 'POST', body: JSON.stringify({ content, ...(replyToId ? { replyToId } : {}) }) }),
-  markMessageRead: (id) => apiFetch('/messages/' + id + '/read', { method: 'PUT' }),
+  markMessageRead: (id) => apiFetch('/messages/' + encodeURIComponent(id) + '/read', { method: 'PUT' }),
   markConversationRead: (otherId) => apiFetch('/messages/' + encodeURIComponent(otherId) + '/read', { method: 'POST' }),
   setTyping: (otherId, isTyping) => apiFetch('/messages/' + encodeURIComponent(otherId) + '/typing', { method: 'POST', body: JSON.stringify({ isTyping }) }),
   getTyping: (otherId) => apiFetch('/messages/' + encodeURIComponent(otherId) + '/typing'),
-  reactToMessage: (id, emoji) => apiFetch('/messages/item/' + id + '/reaction', { method: 'PUT', body: JSON.stringify({ emoji }) }),
-  starMessage: (id, starred) => apiFetch('/messages/item/' + id + '/star', { method: 'PUT', body: JSON.stringify({ starred }) }),
-  editMessage: (id, text) => apiFetch('/messages/item/' + id, { method: 'PUT', body: JSON.stringify({ text }) }),
+  reactToMessage: (id, emoji) => apiFetch('/messages/item/' + encodeURIComponent(id) + '/reaction', { method: 'PUT', body: JSON.stringify({ emoji }) }),
+  starMessage: (id, starred) => apiFetch('/messages/item/' + encodeURIComponent(id) + '/star', { method: 'PUT', body: JSON.stringify({ starred }) }),
+  editMessage: (id, text) => apiFetch('/messages/item/' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify({ text }) }),
   forwardMessage: (messageId, to) => apiFetch('/chats/forward', { method: 'POST', body: JSON.stringify({ messageId, to }) }),
   setChatSettings: (otherId, settings) => apiFetch('/chats/' + encodeURIComponent(otherId) + '/settings', { method: 'PUT', body: JSON.stringify(settings) }),
   setChatPrivacy: (privacy) => apiFetch('/chats/privacy', { method: 'PUT', body: JSON.stringify(privacy) }),
@@ -236,8 +237,8 @@ export const api = {
   
   // TCG Proxy
   getTcgCategories: () => apiFetch('/tcg/categories'),
-  getTcgGroups: (categoryId) => apiFetch('/tcg/' + categoryId + '/groups'),
-  getTcgFilterOptions: (categoryId) => apiFetch('/tcg/' + categoryId + '/filter-options'),
+  getTcgGroups: (categoryId) => apiFetch('/tcg/' + encodeURIComponent(categoryId) + '/groups'),
+  getTcgFilterOptions: (categoryId) => apiFetch('/tcg/' + encodeURIComponent(categoryId) + '/filter-options'),
   getTcgProductsMetadata: (ids = []) => apiFetch('/tcg/products/metadata', {
     method: 'POST',
     body: JSON.stringify({ ids: ids.filter(id => id !== undefined && id !== null).map(String) })
@@ -252,7 +253,7 @@ export const api = {
     if (mylFilters.cost) qs.append('mylCost', mylFilters.cost);
       if (mylFilters.physicalProductId) qs.append('physicalProductId', mylFilters.physicalProductId);
     const qString = qs.toString() ? '?' + qs.toString() : '';
-    return apiFetch('/tcg/' + categoryId + '/' + groupId + '/products' + qString);
+    return apiFetch('/tcg/' + encodeURIComponent(categoryId) + '/' + encodeURIComponent(groupId) + '/products' + qString);
   },
   searchTcgProducts: (query, categoryId, searchSet, mylFilters = {}) => {
     let qs = new URLSearchParams();
@@ -272,7 +273,7 @@ export const api = {
   createOrder: (data) => apiFetch('/orders/create', { method: 'POST', body: JSON.stringify(data) }),
   getMyOrders: () => apiFetch('/orders/mine'),
   getMyPendingOrders: (since) => apiFetch('/orders/mine/pending' + (since ? `?since=${encodeURIComponent(since)}` : '')),
-  setMyOrderStatus: (id, status) => apiFetch('/orders/mine/' + id + '/status', { method: 'POST', body: JSON.stringify({ status }) }),
+  setMyOrderStatus: (id, status) => apiFetch('/orders/mine/' + encodeURIComponent(id) + '/status', { method: 'POST', body: JSON.stringify({ status }) }),
 };
 
 export default api;

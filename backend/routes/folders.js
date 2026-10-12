@@ -84,7 +84,7 @@ const isStrictPrice = (value) => value === undefined || (value !== null && value
 const loadOwnFolder = async (req, res) => {
   if (!isUuid(req.params.id)) { res.status(404).json({ success: false, message: 'Carpeta no encontrada' }); return null; }
   const owner = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
-  const folder = await prisma.folder.findUnique({ where: { id: req.params.id }, select: { id: true, userId: true, tcg: true } });
+  const folder = await prisma.folder.findUnique({ where: { id: req.params.id }, select: { id: true, userId: true, tcg: true, moderationState: true } });
   if (!owner || !folder || folder.userId !== owner.id) { res.status(404).json({ success: false, message: 'Carpeta no encontrada' }); return null; }
   return { owner, folder };
 };
@@ -145,6 +145,8 @@ router.post('/api/folders/:id/cards-bulk/move', authenticateToken, async (req, r
   try {
     const own = await loadOwnFolder(req, res);
     if (!own) return;
+    // Las cartas de una carpeta ocultada por moderación no se pueden sacar a otra carpeta (volverían a estar a la venta)
+    if (own.folder.moderationState !== 'visible') return res.status(403).json({ success: false, message: 'Esta carpeta fue ocultada por moderación: sus cartas no se pueden mover. Escríbenos a carpetazo.soporte@gmail.com si crees que fue un error.' });
     const { ids, targetFolderId } = req.body || {};
     if (!hasUniqueIds(ids) || !isCleanId(targetFolderId) || targetFolderId === own.folder.id) return badRequest(res, 'Selección inválida');
     const target = await prisma.folder.findUnique({ where: { id: targetFolderId }, select: { id: true, userId: true, tcg: true } });
@@ -471,12 +473,16 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
   }
 });
 
+// Listado simple de carpetas públicas (la web usa /api/folders/search, paginado). Se mantiene la forma de la respuesta para
+// integraciones externas, pero con tope: sin él, con miles de carpetas sería una consulta pesada que cualquiera puede repetir.
+const PUBLIC_FOLDERS_MAX = 200;
 router.get('/api/folders', async (req, res) => {
   try {
     const folders = await prisma.folder.findMany({
       where: { isPublic: true },
       include: { user: { select: { name: true, username: true, photoURL: true } }, _count: { select: { cards: true } } },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      take: PUBLIC_FOLDERS_MAX
     });
     res.json({ success: true, folders });
   } catch (error) {

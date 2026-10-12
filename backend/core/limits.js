@@ -1,5 +1,27 @@
 // Límites de solicitudes: general por IP y más estrictos para rutas que escriben o consumen recursos externos.
-import rateLimit from 'express-rate-limit';
+import crypto from 'crypto';
+import net from 'net';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+
+// Las vistas previas (WhatsApp, Facebook…) y las páginas para buscadores llegan a la API a través del nginx del sitio,
+// todas desde la IP del servidor: sin esto compartirían un solo cupo para todo el mundo. Si nginx se identifica con la
+// clave PREVIEW_PROXY_SECRET (cabecera X-Preview-Proxy), se cuenta por la IP real del visitante que nginx informa
+// (X-Visitor-Ip). Sin la clave correcta esa cabecera se ignora: nadie puede elegir su IP llamando directo a la API.
+const sameProxySecret = (given) => {
+  const secret = process.env.PREVIEW_PROXY_SECRET || '';
+  if (!secret || typeof given !== 'string') return false;
+  const a = Buffer.from(given);
+  const b = Buffer.from(secret);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+};
+export const clientIp = (req) => {
+  if (sameProxySecret(req.headers['x-preview-proxy'])) {
+    const visitor = String(req.headers['x-visitor-ip'] || '').split(',')[0].trim();
+    if (net.isIP(visitor)) return visitor;
+  }
+  return req.ip;
+};
+const keyByClient = (req) => ipKeyGenerator(clientIp(req));
 
 const rateLimitMax = Number.parseInt(process.env.RATE_LIMIT_MAX || '2000', 10);
 
@@ -7,6 +29,7 @@ export const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: Number.isFinite(rateLimitMax) && rateLimitMax > 0 ? rateLimitMax : 2000,
   skip: (req) => req.method === 'OPTIONS',
+  keyGenerator: keyByClient,
   message: 'Demasiadas peticiones desde esta IP, por favor intenta de nuevo más tarde.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -17,6 +40,7 @@ export const routeLimiter = (windowMs, max) => rateLimit({
   windowMs,
   max,
   skip: (req) => req.method === 'OPTIONS',
+  keyGenerator: keyByClient,
   message: { success: false, message: 'Demasiadas solicitudes, intenta de nuevo más tarde.' },
   standardHeaders: true,
   legacyHeaders: false,

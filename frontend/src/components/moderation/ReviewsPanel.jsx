@@ -6,7 +6,8 @@ import { Dot, EmptyState, ErrorBox, ListSkeleton, ROW, dateOnly } from './shared
 
 const FLAG_LABELS = {
   reported: 'Reportada',
-  same_connection: 'Misma conexión (pedido creado y confirmado desde el mismo lugar)'
+  same_connection: 'Misma conexión (pedido creado y confirmado desde el mismo lugar)',
+  new_account: 'Cuenta nueva (menos de 7 días al calificar): revísala y apruébala si es legítima'
 };
 const personLabel = (person) => (person?.username ? `${person.name || person.username} (@${person.username})` : 'Cuenta eliminada');
 

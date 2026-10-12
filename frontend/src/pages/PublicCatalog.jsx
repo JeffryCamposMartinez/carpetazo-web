@@ -99,7 +99,7 @@ function PublicCatalog() {
     window.scrollTo(0, 0);
     const fetchCatalogData = async () => {
       try {
-                const response = await apiFetch('/folders/' + folderId);
+                const response = await apiFetch('/folders/' + encodeURIComponent(folderId));
         if (!response.success || !response.folder) {
           setErrorMsg("La carpeta no existe o fue eliminada.");
           setLoading(false);
@@ -111,7 +111,7 @@ function PublicCatalog() {
                 // Track folder visits
         if (!folder.user?.isOwner) {
           const currentWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
-          apiFetch('/folders/' + folderId + '/visit', { method: 'POST', body: JSON.stringify({ currentWeek }) }).catch(err => console.error("Error updating visits", err));
+          apiFetch('/folders/' + encodeURIComponent(folderId) + '/visit', { method: 'POST', body: JSON.stringify({ currentWeek }) }).catch(err => console.error("Error updating visits", err));
         }
 
                         if (folder.user) {

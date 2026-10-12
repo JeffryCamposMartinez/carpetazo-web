@@ -1,7 +1,7 @@
 // Revisión de seguridad: borrado de archivos ajenos en R2, datos libres de la carta, huella de conexión en pedidos,
 // cartas ocultadas por moderación y campos internos en el perfil público.
 const sharp = require('sharp');
-const { prisma, NAMES, B, U, call, ok } = require('./fixtures.cjs');
+const { prisma, NAMES, B, U, call, ok, acceptTerms } = require('./fixtures.cjs');
 
 const picture = (seed) => sharp({ create: { width: 64, height: 48, channels: 3, background: { r: (seed * 53) % 256, g: (seed * 97) % 256, b: (seed * 151) % 256 } } }).png().toBuffer();
 const upload = async (who, buffer, type = 'avatar') => {
@@ -81,6 +81,62 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     // 6) Opciones de filtros: la segunda consulta sale de la memoria con el mismo contenido
     const [a, b] = [await call('GET', '/tcg/99/filter-options', null), await call('GET', '/tcg/99/filter-options', null)];
     ok('opciones de filtros → 200 dos veces y con el mismo contenido', a.status === 200 && b.status === 200 && JSON.stringify(a.j.data) === JSON.stringify(b.j.data));
+
+    // Borrar la cuenta borra también las fotos y notas de voz que la persona envió por el chat
+    U.chatdel = 'cztest-chatdel';
+    await call('POST', '/users/sync', 'chatdel', { displayName: 'Prueba borrado chat', username: 'cztest_chatdel' });
+    await acceptTerms('chatdel', {}, '198.51.100.90');
+    const chatPhoto = (await upload('chatdel', await picture(7), 'message')).j?.url;
+    const voiceForm = new FormData();
+    voiceForm.append('audio', new Blob([Buffer.concat([Buffer.from([0x1a, 0x45, 0xdf, 0xa3]), Buffer.alloc(2000, 7)])], { type: 'audio/webm' }), 'voz.webm');
+    const chatVoice = (await (await fetch(B + '/users/upload-audio', { method: 'POST', headers: { Authorization: 'Bearer test-' + U.chatdel }, body: voiceForm })).json()).url;
+    const sendChat = (body) => call('POST', '/messages/' + NAMES.seller, 'chatdel', { content: JSON.stringify({ v: 1, text: '', imageUrl: null, imageBase64: null, ...body }) });
+    const sentPhoto = await sendChat({ imageUrl: chatPhoto });
+    const sentVoice = await sendChat({ text: 'nota', audio: { url: chatVoice, seconds: 2, wave: [10, 20] } });
+    ok('preparación: foto y nota de voz enviadas por el chat', sentPhoto.status === 200 && sentVoice.status === 200, `${sentPhoto.status},${sentVoice.status}`);
+    const chatDeletedBefore = (await r2Log()).filter((entry) => entry.op === 'delete').length;
+    ok('borrar la cuenta → 200', (await call('DELETE', '/users/me', 'chatdel')).status === 200);
+    const chatDeletedKeys = (await r2Log()).filter((entry) => entry.op === 'delete').slice(chatDeletedBefore).map((entry) => entry.key);
+    ok('al borrar la cuenta se borran la foto y la nota de voz del chat', chatDeletedKeys.includes(keyOf(chatPhoto)) && chatDeletedKeys.includes(keyOf(chatVoice)), JSON.stringify(chatDeletedKeys));
+
+    // El perfil público no se encuentra por el uid de Firebase (es privado), sí por el nombre de usuario
+    ok('perfil público por uid de Firebase → 404', (await call('GET', '/users/' + U.seller)).status === 404);
+    ok('perfil público por nombre de usuario → 200', (await call('GET', '/users/' + NAMES.seller)).status === 200);
+
+    // Limpieza de archivos sin uso: solo carpetas del chat, voz y cartas, con más de 7 días y que nada en la base menciona
+    const { findOrphanFiles } = await import('../core/orphanFiles.js');
+    const hex = (c) => c.repeat(32);
+    const base = 'Carpetazo.cl/Usuarios/' + U.seller + '/';
+    const old = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+    const sellerId = (await prisma.user.findUnique({ where: { firebaseUid: U.seller } })).id;
+    const jerryId = (await prisma.user.findUnique({ where: { firebaseUid: U.jerry } })).id;
+    const refMessage = await prisma.message.create({ data: { senderId: sellerId, receiverId: jerryId, content: JSON.stringify({ v: 1, text: '', imageUrl: 'https://pub-cztest.r2.dev/' + base + 'message/' + hex('a') + '.webp' }) } });
+    const refFolder = (await prisma.folder.findFirst({ where: { userId: sellerId } })).id;
+    const refCard = await prisma.card.create({ data: { tcgId: 'tst-orphan', name: 'carta con foto', folderId: refFolder, imageUrl: 'https://pub-cztest.r2.dev/' + base + 'card/' + hex('b') + '.webp' } });
+    const orphans = await findOrphanFiles([
+      { key: base + 'message/' + hex('a') + '.webp', lastModified: old }, // usada en un mensaje
+      { key: base + 'card/' + hex('b') + '.webp', lastModified: old }, // usada en una carta
+      { key: base + 'message/' + hex('c') + '.webp', lastModified: old }, // sin uso y vieja → se borra
+      { key: base + 'message/' + hex('d') + '.webp', lastModified: new Date() }, // sin uso pero reciente
+      { key: base + 'avatar/' + hex('e') + '.webp', lastModified: old }, // foto de perfil: nunca se toca
+      { key: base + 'voice/' + hex('f') + '.webm', lastModified: old } // nota de voz sin uso y vieja → se borra
+    ]);
+    ok('limpieza: solo salen los archivos sin uso, viejos y de chat/voz/cartas', JSON.stringify(orphans.sort()) === JSON.stringify([base + 'message/' + hex('c') + '.webp', base + 'voice/' + hex('f') + '.webm'].sort()), JSON.stringify(orphans));
+    await prisma.message.delete({ where: { id: refMessage.id } });
+    await prisma.card.delete({ where: { id: refCard.id } });
+
+    // Vistas previas que llegan por el nginx del sitio: con la clave correcta se cuentan por la IP del visitante; sin ella, la cabecera se ignora
+    const remaining = async (headers) => Number((await fetch(B + '/legal/versions', { headers })).headers.get('ratelimit-remaining'));
+    const viaProxy = (ip, secret = 'cztest-preview-secret') => ({ 'X-Preview-Proxy': secret, 'X-Visitor-Ip': ip });
+    const a1 = await remaining(viaProxy('203.0.113.70'));
+    const a2 = await remaining(viaProxy('203.0.113.70'));
+    const b1 = await remaining(viaProxy('203.0.113.71'));
+    ok('vía nginx con clave: cada visitante tiene su propio cupo', a2 === a1 - 1 && b1 > a2, `${a1},${a2},${b1}`);
+    const mine1 = await remaining({});
+    const forged = await remaining(viaProxy('203.0.113.72', 'clave-falsa'));
+    ok('con clave falsa la IP informada se ignora (cuenta como la conexión real)', forged === mine1 - 1, `${mine1},${forged}`);
+    const missing = await remaining({ 'X-Visitor-Ip': '203.0.113.73' });
+    ok('sin clave la IP informada se ignora', missing === forged - 1, `${forged},${missing}`);
 
     // Cuenta desactivada en Firebase: su token deja de valer aunque no haya vencido
     const revoked = await fetch(B + '/users/me', { headers: { Authorization: 'Bearer test-cztest-ghost-disabled' } });

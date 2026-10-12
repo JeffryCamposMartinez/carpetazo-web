@@ -11,6 +11,7 @@ const router = express.Router();
 // --- Reseñas de vendedores ---
 // Solo el comprador de un pedido completado puede calificar, una vez por pedido; la reseña no se edita ni se responde.
 const REVIEWS_PAGE_SIZE = 10;
+export const REVIEW_MIN_ACCOUNT_DAYS = 7; // antigüedad mínima de la cuenta para que su reseña cuente sin revisión
 
 router.post('/api/reviews', authenticateToken, async (req, res) => {
   try {
@@ -33,10 +34,15 @@ router.post('/api/reviews', authenticateToken, async (req, res) => {
     if (alreadyReviewed) return res.status(409).json({ success: false, message: 'Ya calificaste a este vendedor' });
     // Pedido creado y confirmado desde la misma conexión: la reseña se guarda pero no se muestra ni promedia
     const sameConnection = Boolean(order.createdIpHash && order.completedIpHash && order.createdIpHash === order.completedIpHash);
+    // Cuenta recién creada: es la forma más barata de fabricar reseñas (cuentas extra que se piden a sí mismas). Se guarda
+    // sin contar y queda en Moderación → Reseñas para aprobarla a mano. A quien califica no se le avisa (no enseña la regla).
+    const reviewer = await prisma.user.findUnique({ where: { id: reviewerId }, select: { createdAt: true } });
+    const newAccount = !reviewer || Date.now() - reviewer.createdAt.getTime() < REVIEW_MIN_ACCOUNT_DAYS * 24 * 60 * 60 * 1000;
+    const flag = sameConnection ? 'same_connection' : newAccount ? 'new_account' : null;
 
     let review;
     try {
-      review = await prisma.sellerReview.create({ data: { sellerId: order.sellerId, reviewerId, orderId: order.id, rating: stars, comment: text, counts: !sameConnection, flag: sameConnection ? 'same_connection' : null } });
+      review = await prisma.sellerReview.create({ data: { sellerId: order.sellerId, reviewerId, orderId: order.id, rating: stars, comment: text, counts: !flag, flag } });
     } catch (error) {
       if (error.code === 'P2002') return res.status(409).json({ success: false, message: 'Ya calificaste a este vendedor' });
       throw error;

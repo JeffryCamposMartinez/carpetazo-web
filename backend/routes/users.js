@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import express from 'express';
 import { authenticateToken, isAdminEmail, optionalAuth } from '../core/auth.js';
 import { isValidComuna, regionOfComuna } from '../core/chileData.js';
+import { decodeContent } from '../core/chat.js';
 import { prisma } from '../core/db.js';
 import { acceptedCache, getLegalStatus } from '../core/legal.js';
 import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/publicSeller.js';
@@ -241,6 +242,14 @@ router.delete('/api/users/me', authenticateToken, async (req, res) => {
     const current = await prisma.user.findUnique({ where: { firebaseUid }, select: { id: true, photoURL: true, bannerBase64: true, wallpaperBase64: true } });
     if (!current) return res.status(404).json({ success: false, error: 'User not found' });
 
+    // Fotos y notas de voz que envió por el chat: se juntan antes de vaciar sus mensajes para borrarlas también del almacenamiento
+    const r2Base = (process.env.R2_PUBLIC_URL || '').replace(/\/$/, '');
+    const sentFiles = r2Base
+      ? (await prisma.message.findMany({ where: { senderId: current.id, content: { contains: r2Base } }, select: { content: true } }))
+        .flatMap((row) => { const body = decodeContent(row.content); return [body.imageUrl, body.audio?.url]; })
+        .filter((url) => typeof url === 'string' && url.startsWith(r2Base + '/'))
+      : [];
+
     // Se borran los datos personales; quedan las filas anonimizadas (pedidos, reseñas y conversaciones de otras personas las referencian)
     const tag = `${Date.now()}_${firebaseUid.slice(0, 8)}`;
     const deletedMessage = JSON.stringify({ v: 1, text: 'Mensaje eliminado', imageUrl: null, imageBase64: null });
@@ -279,8 +288,9 @@ router.delete('/api/users/me', authenticateToken, async (req, res) => {
       prisma.order.updateMany({ where: { buyerId: current.id }, data: { buyerId: null, buyerName: 'Comprador eliminado' } })
     ]);
 
-    // Las imágenes propias se borran de R2 (si falla no detiene la eliminación)
+    // Las imágenes propias y los archivos del chat se borran de R2 (solo los de su propia carpeta; si falla no detiene la eliminación)
     await Promise.all([current.photoURL, current.bannerBase64, current.wallpaperBase64].filter(Boolean).map((url) => deleteR2ObjectByPublicUrl(url, firebaseUid)));
+    for (const url of [...new Set(sentFiles)]) await deleteR2ObjectByPublicUrl(url, firebaseUid);
 
     res.json({ success: true });
   } catch (error) {
@@ -345,9 +355,9 @@ router.get('/api/users/:username', optionalAuth, async (req, res) => {
   try {
     const identifier = String(req.params.username || '').trim();
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier);
+    // Solo por nombre de usuario (o id interno): el uid de Firebase es privado y no debe servir para encontrar a nadie
     const publicUserLookup = [
-      { username: identifier },
-      { firebaseUid: identifier }
+      { username: identifier }
     ];
 
     if (isUuid) {
