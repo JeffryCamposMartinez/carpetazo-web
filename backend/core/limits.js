@@ -28,7 +28,8 @@ const rateLimitMax = Number.parseInt(process.env.RATE_LIMIT_MAX || '2000', 10);
 export const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: Number.isFinite(rateLimitMax) && rateLimitMax > 0 ? rateLimitMax : 2000,
-  skip: (req) => req.method === 'OPTIONS',
+  // El catálogo de TCGCSV tiene su propio límite: una sola búsqueda de cartas pide decenas de ediciones y gastaba el cupo de toda la sesión
+  skip: (req) => req.method === 'OPTIONS' || req.path.startsWith('/tcgcsv/'),
   keyGenerator: keyByClient,
   message: 'Demasiadas peticiones desde esta IP, por favor intenta de nuevo más tarde.',
   standardHeaders: true,
@@ -50,6 +51,7 @@ export const routeLimiter = (windowMs, max) => rateLimit({
 export const applyRouteLimits = (app) => {
   app.use('/api/orders/create', routeLimiter(15 * 60 * 1000, 20));
   app.use('/api/proxy-image', routeLimiter(15 * 60 * 1000, 600));
+  app.use('/api/tcgcsv', routeLimiter(15 * 60 * 1000, 3000));
   app.use('/api/folders/:id/visit', routeLimiter(15 * 60 * 1000, 120));
   app.use('/api/users/username/check', routeLimiter(15 * 60 * 1000, 60));
   app.use('/api/users/username/available', routeLimiter(15 * 60 * 1000, 60));
