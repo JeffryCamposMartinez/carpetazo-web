@@ -12,7 +12,7 @@ let applying = false; // una carga a la vez: un doble clic o dos pestañas no la
 
 const field = (card, name) => card.extData.find((entry) => entry.name === name)?.value || '';
 const publicCard = (card) => ({
-  productId: card.productId, name: card.name, edition: card.editionName, editionId: card.groupId ?? undefined, fileEdition: card.chosenEdition ? card.fileEditionName : undefined, block: card.blockName, product: card.physicalName, imageUrl: card.imageUrl,
+  productId: card.productId, name: card.name, edition: card.editionName, editionId: card.groupId ?? undefined, fileEdition: card.chosenEdition ? card.fileEditionName : undefined, editionChoice: card.editionChoice || undefined, block: card.blockName, product: card.physicalName, imageUrl: card.imageUrl,
   previousName: card.previousName || undefined, previousEdition: card.previousEdition || undefined, type: field(card, 'Type'), cost: field(card, 'Cost'), force: field(card, 'Fuerza'), race: field(card, 'Race'), frequency: field(card, 'Frequency'), number: field(card, 'Number'),
   status: card.status
 });

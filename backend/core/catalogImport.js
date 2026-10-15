@@ -256,6 +256,7 @@ export const buildImportPlan = async (db, raw, overrides = {}) => {
     let status = 'new';
     let previousName = '';
     let previousEdition = '';
+    let editionChoice = null;
     if (existing) {
       // La misma carta puede venir corregida de nombre y hasta en otra edición del mismo bloque; en otro juego o bloque no se mezcla
       const existingGroup = groupById.get(existing.groupId);
@@ -267,13 +268,15 @@ export const buildImportPlan = async (db, raw, overrides = {}) => {
       status = changed ? 'update' : 'exists';
       previousName = existing.name;
       if (moved) previousEdition = existingGroup.name;
+      // Si el archivo trae otra edición que la actual, se puede elegir entre las dos
+      if (fileGroup.groupId !== null && fileGroup.groupId !== existingGroup.groupId) editionChoice = { before: { id: existingGroup.groupId, name: existingGroup.name }, file: { id: fileGroup.groupId, name: fileGroup.name } };
     }
     const blockName = blockById.get(group.blockId)?.name || '';
     // Las cartas existentes quedan intactas; las nuevas llevan el formato del bloque como las demás
     const withFormat = card.extData.some((entry) => entry.name === 'Format') || !blockName ? card.extData : [...card.extData, { name: 'Format', value: blockName }];
     const extData = group === fileGroup ? withFormat : withFormat.map((entry) => (entry.name === 'Edition' ? { ...entry, value: group.name } : entry)); // con edición elegida, el dato "Edition" sigue a la edición
     groupOfCard.set(card.productId, group);
-    ready.push({ ...card, extData, fileEditionName: fileGroup.name, chosenEdition: group !== fileGroup, groupKey: group.key, groupId: group.groupId, physicalKey: physical?.key ?? null, physicalProductId: physical?.id ?? null, blockName, editionName: group.name, editionIsNew: group.isNew, physicalName: physical?.name || '', physicalIsNew: Boolean(physical?.isNew), status, previousName, previousEdition });
+    ready.push({ ...card, extData, fileEditionName: fileGroup.name, chosenEdition: group !== fileGroup, editionChoice, groupKey: group.key, groupId: group.groupId, physicalKey: physical?.key ?? null, physicalProductId: physical?.id ?? null, blockName, editionName: group.name, editionIsNew: group.isNew, physicalName: physical?.name || '', physicalIsNew: Boolean(physical?.isNew), status, previousName, previousEdition });
   }
 
   // Enlaces carta-producto: los de cada carta y los extra del archivo (resueltos igual que el producto de la carta)

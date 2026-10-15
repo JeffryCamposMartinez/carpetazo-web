@@ -131,6 +131,7 @@ const file = (products, links) => ({ format: 'carpetazo-card-catalog-incremental
     // Corregir a mano el cambio de edición: el archivo la devuelve a la primera, pero se elige dejarla donde está
     r = await call('POST', PATH + '/preview', 'admin', { fileName: FILE, data: file([fixedCard]) });
     ok('sin elección, el archivo la devuelve a su edición anterior', r.j.counts.updated === 1 && r.j.cards[0].previousEdition === 'CZTEST Edición Dos' && r.j.editionOptions.some((option) => option.groupId === 98000002), JSON.stringify(r.j?.cards?.[0]));
+    ok('la carta ofrece elegir entre la edición de antes y la del archivo', r.j.cards[0].editionChoice?.before.id === 98000002 && r.j.cards[0].editionChoice?.file.id === GROUP_ID && r.j.cards[0].editionChoice.before.name === 'CZTEST Edición Dos', JSON.stringify(r.j?.cards?.[0]?.editionChoice));
     r = await call('POST', PATH + '/preview', 'admin', { fileName: FILE, data: file([fixedCard]), editionOverrides: { [IDS[0]]: 98000002 } });
     ok('edición elegida a mano: se queda donde está y se avisa qué decía el archivo', r.j.errors.length === 0 && r.j.counts.updated === 0 && r.j.cards[0].edition === 'CZTEST Edición Dos' && r.j.cards[0].fileEdition === 'CZTEST Edición Carga' && !r.j.cards[0].previousEdition, JSON.stringify(r.j?.counts) + JSON.stringify(r.j?.cards?.[0]));
     r = await call('POST', PATH + '/preview', 'admin', { fileName: FILE, data: file([fixedCard]), editionOverrides: { [IDS[0]]: 12345678 } });

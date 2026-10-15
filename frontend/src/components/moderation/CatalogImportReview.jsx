@@ -27,7 +27,7 @@ export default function CatalogImportReview({ plan, busy = false, onChooseEditio
   const hasErrors = plan.errors.length > 0;
   const missingImages = plan.images?.missing?.length || 0;
   const names = useMemo(() => new Map(plan.cards.map((card) => [card.productId, card.name])), [plan.cards]);
-  const visible = useMemo(() => (onlyNew ? plan.cards.filter((card) => card.status !== 'exists' || card.fileEdition) : plan.cards), [plan.cards, onlyNew]);
+  const visible = useMemo(() => (onlyNew ? plan.cards.filter((card) => card.status !== 'exists' || card.editionChoice) : plan.cards), [plan.cards, onlyNew]);
   const errors = showAllErrors ? plan.errors : plan.errors.slice(0, 4);
 
   const verdict = hasErrors
@@ -125,21 +125,26 @@ export default function CatalogImportReview({ plan, busy = false, onChooseEditio
                   <p className="truncate text-xs text-slate-500">{[card.type, card.cost && `Coste ${card.cost}`, card.force && `Fuerza ${card.force}`, card.race, card.frequency].filter(Boolean).join(' · ')}</p>
                   <p className="truncate text-xs text-slate-500">{card.edition}{card.number ? ` · ${card.number}` : ''}</p>
                   {card.previousName && card.previousName !== card.name && <p className="truncate text-xs font-semibold text-[#92400e]">Antes: {card.previousName}</p>}
-                  {card.previousEdition && <p className="truncate text-xs font-semibold text-[#92400e]">Cambia de edición: {card.previousEdition} → {card.edition}</p>}
-                  {card.fileEdition && !card.previousEdition && <p className="truncate text-xs font-semibold text-[#92400e]">Se queda en su edición (el archivo decía {card.fileEdition})</p>}
-                  {(card.previousEdition || card.fileEdition) && onChooseEdition && (
-                    <label className="mt-1 flex items-center gap-2 text-xs font-semibold text-slate-600">
-                      Edición
-                      <select
-                        value={card.editionId}
-                        disabled={busy}
-                        onChange={(event) => onChooseEdition(card.productId, Number(event.target.value))}
-                        className="h-9 min-w-0 max-w-full flex-1 rounded-lg border border-slate-300 bg-white px-2 text-xs font-bold text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:opacity-60"
-                      >
-                        {plan.editionOptions.filter((option) => option.blockId === plan.editionOptions.find((item) => item.groupId === card.editionId)?.blockId).map((option) => <option key={option.groupId} value={option.groupId}>{option.name}</option>)}
-                      </select>
-                    </label>
-                  )}
+                  {card.editionChoice && onChooseEdition ? (
+                    <div role="group" aria-label={`Edición de ${card.name}`} className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      {[{ key: 'before', label: 'La de antes', ...card.editionChoice.before }, { key: 'file', label: 'La nueva', ...card.editionChoice.file }].map((option) => {
+                        const active = card.editionId === option.id;
+                        return (
+                          <button
+                            key={option.key}
+                            type="button"
+                            aria-pressed={active}
+                            disabled={busy}
+                            onClick={() => !active && onChooseEdition(card.productId, option.id)}
+                            className={`min-h-9 min-w-0 max-w-full rounded-lg border px-2.5 py-1 text-left text-xs leading-tight transition-[background-color,border-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:opacity-60 ${active ? 'border-[#1e40af] bg-[#e8effc] text-[#12315f]' : 'border-slate-300 bg-white text-slate-600 [@media(hover:hover)]:hover:bg-slate-50'}`}
+                          >
+                            <span className="block font-semibold">{option.label}</span>
+                            <span className="block truncate font-bold">{option.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : card.previousEdition && <p className="truncate text-xs font-semibold text-[#92400e]">Cambia de edición: {card.previousEdition} → {card.edition}</p>}
                 </div>
                 <span className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${card.status === 'new' ? 'bg-[#e8effc] text-[#1e40af]' : card.status === 'update' ? 'bg-[#fef3c7] text-[#92400e]' : 'bg-slate-100 text-slate-600'}`}>
                   <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${card.status === 'new' ? 'bg-[#1e40af]' : card.status === 'update' ? 'bg-[#d97706]' : 'bg-slate-400'}`} />
