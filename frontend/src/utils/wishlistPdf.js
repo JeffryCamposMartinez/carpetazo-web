@@ -105,11 +105,11 @@ const loadThumbs = async (items, onProgress) => {
 };
 
 // Nombre del archivo: palabras con mayúscula inicial, separadas por espacios (sin guiones, números ni signos)
-const fileLabel = (value) => String(value || '').replace(/[^\p{L} ]/gu, '').replace(/\s+/g, ' ').trim();
+const fileLabel = (value) => String(value || '').replace(/[^\p{L}\p{N} ]/gu, '').replace(/\s+/g, ' ').trim();
 
 // items: cartas de la lista ya filtradas. filterLabel: texto del filtro aplicado ("Mitos y Leyendas" o "Todos los juegos").
 // phone: WhatsApp de quien busca; con él, tocar una carta del PDF abre su chat con un mensaje listo diciendo que la tiene.
-export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos', phone = '', onProgress }) {
+export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos', listName = '', phone = '', onProgress }) {
   if (!items.length) throw new Error('No hay cartas para exportar');
   const { jsPDF } = await import('jspdf');
   const [logo, thumbs] = await Promise.all([loadLogo(), loadThumbs(items, onProgress)]);
@@ -168,7 +168,8 @@ export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos'
     doc.setFontSize(10.5);
     ink([191, 209, 245]);
     const counts = `${items.length} ${items.length === 1 ? 'carta' : 'cartas'} - ${copies} ${copies === 1 ? 'copia' : 'copias'}`;
-    doc.text(filtered ? `${pdfText(filterLabel)} - ${counts}` : counts, PAGE_W / 2, 24, { align: 'center' });
+    const heading = [listName, filtered && filterLabel].filter(Boolean).join(' - ');
+    doc.text(heading ? `${pdfText(heading)} - ${counts}` : counts, PAGE_W / 2, 24, { align: 'center' });
   };
   const slimHeader = () => {
     fill(NAVY);
@@ -283,7 +284,7 @@ export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos'
     if (pages > 1) doc.text(`${page} / ${pages}`, PAGE_W - MARGIN, PAGE_H - 6, { align: 'right' });
   }
 
-  const filterPart = filtered && fileLabel(filterLabel) ? ` ${fileLabel(filterLabel)}` : '';
+  const filterPart = [listName, filtered && filterLabel].map(fileLabel).filter(Boolean).map((part) => ` ${part}`).join('');
   return { doc, fileName: `Cartas Que Busco${filterPart}.pdf` };
 }
 

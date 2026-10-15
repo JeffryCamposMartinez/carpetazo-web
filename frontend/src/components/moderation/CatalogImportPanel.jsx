@@ -1,66 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useCallback, useRef, useState } from 'react';
 import { api } from '../../services/api';
-import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import { ErrorBox, ListSkeleton, dateTime } from './shared';
 import CatalogImportReview from './CatalogImportReview';
-import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
+import TcgCatalogImport from './TcgCatalogImport';
+import { ButtonSpinner } from '../ui/LoadingState';
+import { ConfirmDialog, Stepper, sizeLabel } from './CatalogImportParts';
 
 const FILE_NAME = 'cartas_incrementales.json';
 const MAX_BYTES = 12 * 1024 * 1024;
-const STEPS = ['Elegir archivo', 'Revisar', 'Cargar'];
-
-const sizeLabel = (bytes) => (bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`);
-
-function Stepper({ current }) {
-  return (
-    <ol aria-label="Pasos de la carga" className="mb-5 flex items-center gap-2 text-sm font-bold">
-      {STEPS.map((label, index) => {
-        const done = index < current;
-        const active = index === current;
-        return (
-          <li key={label} aria-current={active ? 'step' : undefined} className="flex min-w-0 items-center gap-2">
-            {index > 0 && <span aria-hidden="true" className={`h-px w-4 sm:w-8 ${done || active ? 'bg-[#1e40af]' : 'bg-slate-300'}`} />}
-            <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs tabular-nums transition-colors duration-200 ${done ? 'bg-[#1e40af] text-white' : active ? 'bg-[#12315f] text-[#facc15]' : 'bg-slate-200 text-slate-500'}`}>
-              {done ? <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[16px]">check</span> : index + 1}
-            </span>
-            <span className={`truncate ${active ? 'text-[#12315f]' : done ? 'text-slate-700' : 'text-slate-500'} ${active ? '' : 'max-sm:hidden'}`}>{label}</span>
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
-// Aviso de confirmación antes de escribir en la base real. Interrumpe a propósito: la carga no se deshace desde aquí.
-function ConfirmDialog({ count, updates = 0, busy, onCancel, onConfirm }) {
-  const cancelRef = useRef(null);
-  useBodyScrollLock(true);
-  useEffect(() => {
-    cancelRef.current?.focus();
-    const onKey = (event) => { if (event.key === 'Escape' && !busy) onCancel(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [busy, onCancel]);
-  return createPortal(
-    <div className="sheet-backdrop fixed inset-0 z-[90] flex items-end justify-center bg-slate-900/55 p-3 sm:items-center" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) onCancel(); }}>
-      <div role="alertdialog" aria-modal="true" aria-labelledby="catalog-confirm-title" className="mod-confirm-in w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fef3c7] text-[#92400e]"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[28px]">library_add</span></span>
-        <h2 id="catalog-confirm-title" className="mt-4 text-xl font-extrabold text-[#12315f]">¿Cargar {[count > 0 && `${count} ${count === 1 ? 'carta nueva' : 'cartas nuevas'}`, updates > 0 && `${updates} ${updates === 1 ? 'corrección' : 'correcciones'}`].filter(Boolean).join(' y ')}?</h2>
-        <p className="mt-2 text-sm leading-relaxed text-slate-600">Las nuevas se agregan a la base de datos de Carpetazo y las correcciones cambian el nombre, la imagen, los datos y, si corresponde, la edición de cartas que ya existen. Esta carga no se deshace desde aquí.</p>
-        <div className="mt-6 grid grid-cols-2 gap-2">
-          <button ref={cancelRef} type="button" disabled={busy} onClick={onCancel} className="h-12 rounded-full border-2 border-slate-300 text-sm font-extrabold text-slate-700 transition-[background-color,transform] duration-150 active:scale-[0.97] hover:bg-slate-50 disabled:opacity-50">Cancelar</button>
-          <button type="button" disabled={busy} onClick={onConfirm} className="flex h-12 items-center justify-center gap-2 rounded-full bg-[#facc15] text-sm font-extrabold text-[#12315f] transition-[filter,transform] duration-150 active:scale-[0.97] hover:brightness-95 disabled:opacity-70">
-            {busy && <ButtonSpinner tone="dark" />}
-            {busy ? 'Cargando…' : 'Sí, cargar'}
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-}
-
+const TCG_FILE = /^cartas_incrementales_tcg_[\w .\-]{1,100}\.json$/;
+const MAX_TCG_FILES = 400;
 // Carga de cartas nuevas a la base desde cartas_incrementales.json (el archivo que genera Carpetazo Update).
 // El servidor vuelve a revisar todo al cargar: lo que se ve en la revisión es lo que se guarda.
 export default function CatalogImportPanel() {
@@ -75,14 +24,31 @@ export default function CatalogImportPanel() {
   const [busy, setBusy] = useState(false);
   const [overrides, setOverrides] = useState({}); // productId -> edición elegida a mano
   const [rechecking, setRechecking] = useState(false);
+  const [tcgFiles, setTcgFiles] = useState(null); // archivos del catálogo de TCGplayer elegidos
   const inputRef = useRef(null);
   const runId = useRef(0);
 
   const reset = useCallback(() => {
     runId.current += 1;
-    setStage('pick'); setFile(null); setData(null); setPlan(null); setResult(null); setError(''); setConfirming(false); setBusy(false); setOverrides({}); setRechecking(false);
+    setStage('pick'); setFile(null); setData(null); setPlan(null); setResult(null); setError(''); setConfirming(false); setBusy(false); setOverrides({}); setRechecking(false); setTcgFiles(null);
     if (inputRef.current) inputRef.current.value = '';
   }, []);
+
+  // Un cartas_incrementales.json (Mitos y Leyendas) o uno o más cartas_incrementales_tcg_*.json (TCGplayer)
+  const handleFiles = (list) => {
+    const picked = Array.from(list || []);
+    if (picked.length === 0) return;
+    setError('');
+    if (picked.every((item) => TCG_FILE.test(item.name))) {
+      if (picked.length > MAX_TCG_FILES) { setError(`Elige hasta ${MAX_TCG_FILES} archivos a la vez.`); return; }
+      const bad = picked.find((item) => item.size === 0 || item.size > MAX_BYTES);
+      if (bad) { setError(bad.size === 0 ? `El archivo "${bad.name}" está vacío.` : `El archivo "${bad.name}" supera los 12 MB.`); return; }
+      setTcgFiles(picked.sort((a, b) => a.name.localeCompare(b.name, 'es', { numeric: true })));
+      return;
+    }
+    if (picked.length > 1) { setError(`Elige un solo ${FILE_NAME} (Mitos y Leyendas) o archivos cartas_incrementales_tcg_….json (TCGplayer), sin mezclarlos.`); return; }
+    handleFile(picked[0]);
+  };
 
   const handleFile = async (picked) => {
     if (!picked) return;
@@ -145,11 +111,13 @@ export default function CatalogImportPanel() {
   const onDrop = (event) => {
     event.preventDefault();
     setDragging(false);
-    handleFile(event.dataTransfer.files?.[0]);
+    handleFiles(event.dataTransfer.files);
   };
 
   const step = stage === 'pick' ? 0 : stage === 'done' ? 3 : 1;
   const loadable = stage === 'review' && plan?.canApply;
+
+  if (tcgFiles) return <TcgCatalogImport files={tcgFiles} onReset={reset} />;
 
   return (
     <section aria-label="Carga de cartas nuevas" className="mx-auto max-w-3xl">
@@ -168,15 +136,15 @@ export default function CatalogImportPanel() {
             <span className={`flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e8effc] text-[#1e40af] transition-transform duration-200 ease-out ${dragging ? '-translate-y-1' : ''}`}>
               <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[34px]">upload_file</span>
             </span>
-            <span className="mt-5 text-lg font-extrabold text-[#12315f]">{dragging ? 'Suelta el archivo aquí' : 'Arrastra cartas_incrementales.json'}</span>
-            <span className="mt-1.5 text-sm text-slate-600">o toca para buscarlo en tu equipo</span>
+            <span className="mt-5 text-lg font-extrabold text-[#12315f]">{dragging ? 'Suelta los archivos aquí' : 'Arrastra cartas_incrementales.json o los archivos del catálogo TCG'}</span>
+            <span className="mt-1.5 text-sm text-slate-600">o toca para buscarlos en tu equipo. El catálogo de TCGplayer viene en varios archivos cartas_incrementales_tcg_….json: elígelos todos juntos.</span>
             <span className="mt-5 inline-flex h-11 items-center rounded-full bg-[#12315f] px-6 text-sm font-extrabold text-white">Elegir archivo</span>
-            <input id="catalog-file" ref={inputRef} type="file" accept=".json,application/json" className="sr-only" onChange={(event) => handleFile(event.target.files?.[0])} />
+            <input id="catalog-file" ref={inputRef} type="file" multiple accept=".json,application/json" className="sr-only" onChange={(event) => handleFiles(event.target.files)} />
           </label>
           <div className="mt-4 rounded-2xl border border-[#dbe3f0] bg-white p-4 text-sm leading-relaxed text-slate-600">
             <p className="font-bold text-slate-800">Dónde está el archivo</p>
             <p className="mt-1">Lo genera Carpetazo Update al exportar el catálogo local, en la carpeta <b className="break-words text-slate-800">Reportes › BaseDatos › año › mes › día › …_respaldo_catalogo_local</b>.</p>
-            <p className="mt-2">Solo se acepta un archivo llamado <b className="text-slate-800">{FILE_NAME}</b>. Antes de agregar nada, el servidor lo revisa y te muestra qué cambiaría.</p>
+            <p className="mt-2">Se acepta un archivo llamado <b className="text-slate-800">{FILE_NAME}</b> (Mitos y Leyendas) o los archivos <b className="text-slate-800">cartas_incrementales_tcg_….json</b> del catálogo de TCGplayer. Antes de agregar nada, el servidor los revisa y te muestra qué cambiaría.</p>
           </div>
         </>
       )}

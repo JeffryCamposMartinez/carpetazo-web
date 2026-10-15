@@ -7,7 +7,9 @@ import { badRequest, hasControlChars, isAllowedStoredImageUrl, isOptionalText, i
 const router = express.Router();
 
 // --- Lista de cartas deseadas ---
-const WISHLIST_MAX_ITEMS = 200;
+const WISHLIST_MAX_ITEMS = 200; // por lista
+const WISHLIST_MAX_LISTS = 10;
+const DEFAULT_LIST_NAME = 'Mi lista';
 const WISHLIST_PAGE_SIZE = 24;
 const WISHLIST_GAMES = ['Pokémon', 'Mitos y Leyendas', 'One Piece', 'Magic', 'Yu-Gi-Oh!', 'Riftbound'];
 const WISHLIST_GAME_BY_CATEGORY = { 1: 'Pokémon', 99: 'Mitos y Leyendas', 68: 'One Piece', 89: 'Riftbound', 1001: 'Magic', 2: 'Yu-Gi-Oh!' };
@@ -21,7 +23,7 @@ const WISHLIST_TCGCSV = {
   89: { stored: 89, game: 'Riftbound' },
   2: { stored: 2, game: 'Yu-Gi-Oh!' },
 };
-const WISHLIST_OWN_SELECT = { id: true, categoryId: true, productId: true, name: true, game: true, detail: true, imageUrl: true, quantity: true, maxPrice: true, priceVisible: true, note: true, createdAt: true };
+const WISHLIST_OWN_SELECT = { id: true, wishlistId: true, categoryId: true, productId: true, name: true, game: true, detail: true, imageUrl: true, quantity: true, maxPrice: true, priceVisible: true, note: true, createdAt: true };
 
 // Juego: solo los de la lista del sitio ("Pokemon" sin tilde se acepta). null = sin juego; undefined = inválido
 const normalizeWishlistGame = (value) => {
@@ -56,12 +58,28 @@ const parseWishlistFields = (body) => {
   return { data: out };
 };
 
+// Listas de la persona con la cantidad de cartas de cada una; si aún no tiene ninguna, se crea la primera (activa)
+const WISHLIST_LIST_SELECT = { id: true, name: true, isActive: true, _count: { select: { items: true } } };
+const publicList = (list) => ({ id: list.id, name: list.name, isActive: list.isActive, count: list._count.items });
+const ensureLists = async (userId) => {
+  const lists = await prisma.wishlist.findMany({ where: { userId }, orderBy: { createdAt: 'asc' }, select: WISHLIST_LIST_SELECT });
+  if (lists.length > 0) return lists;
+  try {
+    await prisma.wishlist.create({ data: { userId, name: DEFAULT_LIST_NAME, isActive: true } });
+  } catch (error) {
+    if (error?.code !== 'P2002') throw error; // otra petición la creó al mismo tiempo (índice único de la lista activa)
+  }
+  return prisma.wishlist.findMany({ where: { userId }, orderBy: { createdAt: 'asc' }, select: WISHLIST_LIST_SELECT });
+};
+const listName = (value) => (typeof value === 'string' && isShortText(value, 40) && !hasControlChars(value) ? value.trim() : null);
+
 router.get('/api/wishlist/me', authenticateToken, async (req, res) => {
   try {
     const userId = await currentUserId(req);
     if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-    const items = await prisma.wishlistItem.findMany({ where: { userId }, orderBy: { createdAt: 'asc' }, take: WISHLIST_MAX_ITEMS, select: WISHLIST_OWN_SELECT });
-    res.json({ success: true, items, limit: WISHLIST_MAX_ITEMS });
+    const lists = await ensureLists(userId);
+    const items = await prisma.wishlistItem.findMany({ where: { userId }, orderBy: { createdAt: 'asc' }, take: WISHLIST_MAX_ITEMS * WISHLIST_MAX_LISTS, select: WISHLIST_OWN_SELECT });
+    res.json({ success: true, lists: lists.map(publicList), items, limit: WISHLIST_MAX_ITEMS, maxLists: WISHLIST_MAX_LISTS });
   } catch (error) {
     console.error('Error loading wishlist:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
@@ -75,7 +93,7 @@ router.get('/api/wishlist/matches', authenticateToken, async (req, res) => {
   try {
     const userId = await currentUserId(req);
     if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-    const items = await prisma.wishlistItem.findMany({ where: { userId, productId: { not: null } }, take: WISHLIST_MAX_ITEMS, select: { id: true, categoryId: true, productId: true, maxPrice: true } });
+    const items = await prisma.wishlistItem.findMany({ where: { userId, productId: { not: null } }, take: WISHLIST_MAX_ITEMS * WISHLIST_MAX_LISTS, select: { id: true, categoryId: true, productId: true, maxPrice: true } });
     // tcgId de la carta = id del producto (las del catálogo de Pokémon se guardan como `tcgcsv:<cat>:<id>`)
     const wanted = items.map((item) => ({ ...item, tcgId: String(item.productId).replace(/^tcgcsv:\d+:/, ''), tcg: WISHLIST_MATCH_TCG[item.categoryId] })).filter((item) => item.tcg && /^\d{1,12}$/.test(item.tcgId));
     if (wanted.length === 0) return res.json({ success: true, matches: {}, prices: {} });
@@ -144,19 +162,27 @@ router.post('/api/wishlist', authenticateToken, async (req, res) => {
       identity = { productId: null, categoryId: null, name: name.trim(), game, detail, imageUrl: imageUrl && isAllowedStoredImageUrl(imageUrl) ? imageUrl : null };
     }
 
+    // Lista de destino: la elegida (debe ser suya) o, si no se indica, la activa
+    const requestedList = req.body?.wishlistId;
+    if (requestedList !== undefined && (typeof requestedList !== 'string' || requestedList.length > 40)) return badRequest(res, 'Lista inválida');
+    const lists = await ensureLists(userId);
+    const target = requestedList !== undefined ? lists.find((list) => list.id === requestedList) : lists.find((list) => list.isActive) || lists[0];
+    if (!target) return res.status(404).json({ success: false, message: 'Lista no encontrada' });
+    const wishlistId = target.id;
+
     const item = await prisma.$transaction(async (tx) => {
       const existing = identity.productId
-        ? await tx.wishlistItem.findUnique({ where: { userId_productId: { userId, productId: identity.productId } } })
-        : await tx.wishlistItem.findFirst({ where: { userId, productId: null, detail: identity.detail, name: { equals: identity.name, mode: 'insensitive' } } });
+        ? await tx.wishlistItem.findUnique({ where: { wishlistId_productId: { wishlistId, productId: identity.productId } } })
+        : await tx.wishlistItem.findFirst({ where: { wishlistId, productId: null, detail: identity.detail, name: { equals: identity.name, mode: 'insensitive' } } });
       if (existing) {
         // La misma carta no se duplica: se suma a la cantidad que ya buscaba
         const quantity = Math.min(99, existing.quantity + (parsed.data.quantity ?? 1));
         return tx.wishlistItem.update({ where: { id: existing.id }, data: { ...parsed.data, quantity }, select: WISHLIST_OWN_SELECT });
       }
-      if ((await tx.wishlistItem.count({ where: { userId } })) >= WISHLIST_MAX_ITEMS) return null;
-      return tx.wishlistItem.create({ data: { userId, ...identity, ...parsed.data }, select: WISHLIST_OWN_SELECT });
+      if ((await tx.wishlistItem.count({ where: { wishlistId } })) >= WISHLIST_MAX_ITEMS) return null;
+      return tx.wishlistItem.create({ data: { userId, wishlistId, ...identity, ...parsed.data }, select: WISHLIST_OWN_SELECT });
     });
-    if (!item) return badRequest(res, `Tu lista ya tiene ${WISHLIST_MAX_ITEMS} cartas. Quita alguna para agregar más.`);
+    if (!item) return badRequest(res, `Esta lista ya tiene ${WISHLIST_MAX_ITEMS} cartas. Quita alguna para agregar más.`);
     res.json({ success: true, item });
   } catch (error) {
     console.error('Error adding wishlist item:', error);
@@ -193,7 +219,71 @@ router.delete('/api/wishlist/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Lista pública de un jugador: solo si no la ocultó, y sin ningún dato privado
+// --- Listas ---
+router.post('/api/wishlists', authenticateToken, async (req, res) => {
+  try {
+    const userId = await currentUserId(req);
+    if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const name = listName(req.body?.name);
+    if (!name) return badRequest(res, 'Escribe un nombre de hasta 40 caracteres');
+    const lists = await ensureLists(userId);
+    if (lists.length >= WISHLIST_MAX_LISTS) return badRequest(res, `Puedes tener hasta ${WISHLIST_MAX_LISTS} listas.`);
+    const list = await prisma.wishlist.create({ data: { userId, name, isActive: false }, select: WISHLIST_LIST_SELECT });
+    res.json({ success: true, list: publicList(list) });
+  } catch (error) {
+    console.error('Error creating wishlist:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Cambia el nombre y/o la deja como la lista activa (la que se muestra en el perfil)
+router.put('/api/wishlists/:id', authenticateToken, async (req, res) => {
+  try {
+    const userId = await currentUserId(req);
+    if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const { name, isActive } = req.body || {};
+    if (name === undefined && isActive === undefined) return badRequest(res, 'Nada que cambiar');
+    const newName = name === undefined ? undefined : listName(name);
+    if (name !== undefined && !newName) return badRequest(res, 'Escribe un nombre de hasta 40 caracteres');
+    if (isActive !== undefined && isActive !== true) return badRequest(res, 'Dato inválido'); // una lista deja de ser activa al activar otra
+    const owned = await prisma.wishlist.findFirst({ where: { id: req.params.id, userId }, select: { id: true } });
+    if (!owned) return res.status(404).json({ success: false, message: 'Lista no encontrada' });
+    await prisma.$transaction(async (tx) => {
+      if (isActive) await tx.wishlist.updateMany({ where: { userId, isActive: true, id: { not: owned.id } }, data: { isActive: false } });
+      await tx.wishlist.update({ where: { id: owned.id }, data: { ...(newName ? { name: newName } : {}), ...(isActive ? { isActive: true } : {}) } });
+    });
+    const lists = await prisma.wishlist.findMany({ where: { userId }, orderBy: { createdAt: 'asc' }, select: WISHLIST_LIST_SELECT });
+    res.json({ success: true, lists: lists.map(publicList) });
+  } catch (error) {
+    console.error('Error updating wishlist:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Borra una lista con sus cartas; siempre queda al menos una, y si era la activa pasa a serlo la más antigua que quede
+router.delete('/api/wishlists/:id', authenticateToken, async (req, res) => {
+  try {
+    const userId = await currentUserId(req);
+    if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const owned = await prisma.wishlist.findFirst({ where: { id: req.params.id, userId }, select: { id: true, isActive: true } });
+    if (!owned) return res.status(404).json({ success: false, message: 'Lista no encontrada' });
+    const done = await prisma.$transaction(async (tx) => {
+      const rest = await tx.wishlist.findMany({ where: { userId, id: { not: owned.id } }, orderBy: { createdAt: 'asc' }, select: { id: true } });
+      if (rest.length === 0) return false;
+      await tx.wishlist.delete({ where: { id: owned.id } });
+      if (owned.isActive) await tx.wishlist.update({ where: { id: rest[0].id }, data: { isActive: true } });
+      return true;
+    });
+    if (!done) return badRequest(res, 'Debes tener al menos una lista.');
+    const lists = await prisma.wishlist.findMany({ where: { userId }, orderBy: { createdAt: 'asc' }, select: WISHLIST_LIST_SELECT });
+    res.json({ success: true, lists: lists.map(publicList) });
+  } catch (error) {
+    console.error('Error deleting wishlist:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Lista pública de un jugador: solo si no la ocultó, y sin ningún dato privado. Muestra solo su lista activa
 router.get('/api/users/:username/wishlist', async (req, res) => {
   try {
     const username = typeof req.params.username === 'string' ? req.params.username.trim() : '';
@@ -205,9 +295,9 @@ router.get('/api/users/:username/wishlist', async (req, res) => {
     if (theme.showWishlist === 'off') return res.json({ success: true, hidden: true, total: 0, page: 1, pages: 1, items: [] });
 
     const [total, rows] = await prisma.$transaction([
-      prisma.wishlistItem.count({ where: { userId: user.id, moderationState: 'visible' } }),
+      prisma.wishlistItem.count({ where: { userId: user.id, wishlist: { isActive: true }, moderationState: 'visible' } }),
       prisma.wishlistItem.findMany({
-        where: { userId: user.id, moderationState: 'visible' },
+        where: { userId: user.id, wishlist: { isActive: true }, moderationState: 'visible' },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * WISHLIST_PAGE_SIZE,
         take: WISHLIST_PAGE_SIZE,

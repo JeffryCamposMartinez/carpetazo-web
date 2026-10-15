@@ -89,6 +89,9 @@ export const applyRouteLimits = (app) => {
   app.get('/api/wishlist/me', routeLimiter(15 * 60 * 1000, 300));
   app.get('/api/wishlist/matches', routeLimiter(15 * 60 * 1000, 120));
   app.post('/api/wishlist', routeLimiter(15 * 60 * 1000, 120));
+  app.post('/api/wishlists', routeLimiter(15 * 60 * 1000, 60));
+  app.put('/api/wishlists/:id', routeLimiter(15 * 60 * 1000, 120));
+  app.delete('/api/wishlists/:id', routeLimiter(15 * 60 * 1000, 60));
   app.put('/api/wishlist/:id', routeLimiter(15 * 60 * 1000, 120));
   app.delete('/api/wishlist/:id', routeLimiter(15 * 60 * 1000, 120));
   app.get('/api/users/:username/wishlist', routeLimiter(15 * 60 * 1000, 300));
@@ -137,5 +140,6 @@ export const applyRouteLimits = (app) => {
   app.use('/api/notifications', routeLimiter(15 * 60 * 1000, 60)); // preferencias, dispositivos y baja desde el correo
   app.use('/api/seo', routeLimiter(15 * 60 * 1000, 600)); // páginas para buscadores y sitemap: los rastreadores piden muchas seguidas
   app.use('/api/admin/catalog-import', routeLimiter(15 * 60 * 1000, 100));
+  app.use('/api/admin/tcg-catalog-import', routeLimiter(15 * 60 * 1000, 400)); // el catálogo completo son decenas de archivos, con dos pedidos cada uno
   app.post('/api/admin/cases/:id/export', routeLimiter(15 * 60 * 1000, 20));
 };

@@ -172,6 +172,8 @@ export const api = {
   getAdminAppeals: (status) => apiFetch('/admin/appeals?status=' + (status || 'open')),
   decideAppeal: (id, action, note) => apiFetch('/admin/appeals/' + encodeURIComponent(id) + '/decision', { method: 'POST', body: JSON.stringify({ action, note }) }),
   // Carga de cartas nuevas desde cartas_incrementales.json (solo administradores): primero se revisa, después se carga lo revisado
+  previewTcgCatalogImport: (fileName, data) => apiFetch('/admin/tcg-catalog-import/preview', { method: 'POST', body: JSON.stringify({ fileName, data }) }),
+  applyTcgCatalogImport: (fileName, data, digest) => apiFetch('/admin/tcg-catalog-import/apply', { method: 'POST', body: JSON.stringify({ fileName, data, digest }) }),
   previewCatalogImport: (data, editionOverrides = {}) => apiFetch('/admin/catalog-import/preview', { method: 'POST', body: JSON.stringify({ fileName: 'cartas_incrementales.json', data, editionOverrides }) }),
   applyCatalogImport: (data, digest, editionOverrides = {}) => apiFetch('/admin/catalog-import/apply', { method: 'POST', body: JSON.stringify({ fileName: 'cartas_incrementales.json', data, digest, editionOverrides }) }),
   getTeam: () => apiFetch('/admin/team'),
@@ -190,6 +192,9 @@ export const api = {
   deleteReview: (id) => apiFetch('/admin/reviews/' + encodeURIComponent(id), { method: 'DELETE' }),
   getMyWishlist: () => apiFetch('/wishlist/me'),
   getWishlistMatches: () => apiFetch('/wishlist/matches'),
+  createWishlist: (name) => apiFetch('/wishlists', { method: 'POST', body: JSON.stringify({ name }) }),
+  updateWishlist: (id, data) => apiFetch('/wishlists/' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(data) }),
+  deleteWishlist: (id) => apiFetch('/wishlists/' + encodeURIComponent(id), { method: 'DELETE' }),
   getNotificationSettings: () => apiFetch('/notifications/settings'),
   updateNotificationSettings: (data) => apiFetch('/notifications/settings', { method: 'PUT', body: JSON.stringify(data) }),
   subscribePush: (subscription) => apiFetch('/notifications/push/subscribe', { method: 'POST', body: JSON.stringify(subscription) }),

@@ -32,6 +32,7 @@ import chatRoutes from './routes/chats.js';
 import messageRoutes from './routes/messages.js';
 import legalRoutes from './routes/legal.js';
 import catalogImportRoutes from './routes/catalogImport.js';
+import tcgCatalogImportRoutes from './routes/tcgCatalogImport.js';
 import linkPreviewRoutes from './routes/linkPreview.js';
 import seoRoutes from './routes/seo.js';
 import notificationRoutes from './routes/notifications.js';
@@ -87,6 +88,7 @@ applyRouteLimits(app);
 
 // La carga de cartas nuevas trae un archivo más grande que el resto de la API (solo administradores, con su propio límite)
 app.use('/api/admin/catalog-import', express.json({ limit: '12mb' }));
+app.use('/api/admin/tcg-catalog-import', express.json({ limit: '12mb' }));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
 
@@ -107,6 +109,7 @@ app.use(sellerRoutes);
 app.use(cardRoutes);
 app.use(wishlistRoutes);
 app.use(catalogImportRoutes);
+app.use(tcgCatalogImportRoutes);
 app.use(linkPreviewRoutes);
 app.use(seoRoutes);
 app.use(notificationRoutes);

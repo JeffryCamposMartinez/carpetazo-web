@@ -34,6 +34,7 @@ model User {
   bankDetails              Json?
   folders                  Folder[]
   wishlist                 WishlistItem[]
+  wishlists                Wishlist[]
   isOwner                  Boolean           @default(false) // la cuenta original de Carpetazo: nadie puede cambiar su rol, suspenderla, cerrarla ni ocultar su contenido
   lastSeenAt               DateTime? // última actividad en el chat (solo la ven quienes conversan con esta persona y si no la ocultó)
   showLastSeen             Boolean           @default(true)
@@ -254,11 +255,78 @@ model TcgProductPhysicalProduct {
   @@index([physicalProductId])
 }
 
+// Catálogo de TCGplayer (todos los juegos menos Mitos y Leyendas, que tiene el suyo arriba). Lo carga la pantalla de moderación
+// con los archivos que exporta TcgplayerUpdate. Los ids son los de TCGplayer; las imágenes viven en R2 y aquí solo se guarda su ruta.
+model CatalogGame {
+  categoryId Int          @id
+  name       String
+  folder     String
+  updatedAt  DateTime     @updatedAt
+  sets       CatalogSet[]
+  cards      CatalogCard[]
+}
+
+model CatalogSet {
+  groupId      Int           @id
+  categoryId   Int
+  game         CatalogGame   @relation(fields: [categoryId], references: [categoryId], onDelete: Cascade)
+  name         String
+  folder       String
+  abbreviation String?
+  publishedOn  DateTime?
+  modifiedOn   DateTime?
+  cards        CatalogCard[]
+
+  @@index([categoryId])
+}
+
+model CatalogCard {
+  productId      Int         @id
+  categoryId     Int
+  game           CatalogGame @relation(fields: [categoryId], references: [categoryId], onDelete: Cascade)
+  groupId        Int
+  set            CatalogSet  @relation(fields: [groupId], references: [groupId], onDelete: Cascade)
+  kind           String // card | product
+  name           String
+  cleanName      String
+  number         String?
+  rarity         String?
+  folder         String
+  imageKey       String?
+  thumbKey       String?
+  dataKey        String?
+  sourceImageUrl String?
+  tcgplayerUrl   String?
+  attributes     Json?
+  modifiedOn     DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([categoryId, groupId])
+  @@index([groupId])
+  @@index([categoryId, kind, cleanName])
+}
+
 // Cartas que un jugador busca. Se enlazan con el catálogo cuando existen allí; si no, se guardan con su nombre.
+// Listas de deseos de una persona: una sola está activa y es la que se muestra en su perfil (índice único parcial en la migración)
+model Wishlist {
+  id        String         @id @default(uuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  isActive  Boolean        @default(false)
+  createdAt DateTime       @default(now())
+  items     WishlistItem[]
+
+  @@index([userId, createdAt])
+}
+
 model WishlistItem {
   id              String   @id @default(uuid())
   userId          String
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wishlistId      String
+  wishlist        Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
   categoryId      Int?
   productId       String?
   name            String
@@ -275,7 +343,7 @@ model WishlistItem {
 
   alertState      WishlistAlertState?
 
-  @@unique([userId, productId])
+  @@unique([wishlistId, productId])
   @@index([userId, createdAt])
 }
 

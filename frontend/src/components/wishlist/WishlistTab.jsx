@@ -8,6 +8,7 @@ import { describeWishlistItem } from './wishlistLightbox';
 import LoadableImage from '../ui/LoadableImage';
 import WishlistLightboxActions from './WishlistLightboxActions';
 import WishlistAlerts from './WishlistAlerts';
+import WishlistLists from './WishlistLists';
 import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 import EmptyState from '../ui/EmptyState';
 
@@ -17,7 +18,11 @@ const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency',
 
 // Administración de la lista de cartas deseadas (panel del jugador). Pensada primero para el móvil.
 export default function WishlistTab({ showToast = () => {} }) {
-  const [items, setItems] = useState([]);
+  const [allItems, setItems] = useState([]); // cartas de todas las listas
+  const [lists, setLists] = useState([]);
+  const [selectedId, setSelectedId] = useState('');
+  const [listBusy, setListBusy] = useState(false);
+  const [maxLists, setMaxLists] = useState(10);
   const [limit, setLimit] = useState(LIMIT_FALLBACK);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -69,6 +74,8 @@ export default function WishlistTab({ showToast = () => {} }) {
   const [gameFilter, setGameFilter] = useState(''); // '' = todos los juegos
   const [exporting, setExporting] = useState(false);
   const [phone, setPhone] = useState(''); // WhatsApp de quien busca: va en los enlaces del PDF
+  const currentList = lists.find((list) => list.id === selectedId) || lists.find((list) => list.isActive) || lists[0];
+  const items = currentList ? allItems.filter((item) => item.wishlistId === currentList.id) : [];
   const [editingId, setEditingId] = useState('');
   const [draft, setDraft] = useState({ maxPrice: '', note: '', priceVisible: false });
 
@@ -78,6 +85,9 @@ export default function WishlistTab({ showToast = () => {} }) {
       .then(([list, me]) => {
         if (cancelled) return;
         setItems(list.items || []);
+        setLists(list.lists || []);
+        setMaxLists(list.maxLists || 10);
+        setSelectedId((list.lists || []).find((row) => row.isActive)?.id || list.lists?.[0]?.id || '');
         setLimit(list.limit || LIMIT_FALLBACK);
         const theme = (me.user || me)?.publicTheme;
         setPhone((me.user || me)?.phone || '');
@@ -95,7 +105,7 @@ export default function WishlistTab({ showToast = () => {} }) {
   const addItem = async (payload, label, key) => {
     setBusyId(key || payload.productId || 'manual');
     try {
-      const res = await api.addWishlistItem(payload);
+      const res = await api.addWishlistItem({ ...payload, wishlistId: currentList?.id });
       const isNew = !items.some((row) => row.id === res.item.id);
       upsertLocal(res.item);
       // En PC la lista se desplaza por dentro: la carta recién agregada (al final) queda a la vista
@@ -220,6 +230,16 @@ export default function WishlistTab({ showToast = () => {} }) {
     }
   };
 
+  // Crear, renombrar, activar o borrar una lista: devuelven true si salió bien
+  const listAction = async (run, doneMessage) => {
+    setListBusy(true);
+    try { await run(); showToast(doneMessage, 'success'); return true; } catch (error) { showToast(error.message || 'No se pudo completar', 'error'); return false; } finally { setListBusy(false); }
+  };
+  const createList = (name) => listAction(async () => { const res = await api.createWishlist(name); setLists((previous) => [...previous, res.list]); setSelectedId(res.list.id); setGameFilter(''); }, 'Lista creada');
+  const renameList = (id, name) => listAction(async () => { setLists((await api.updateWishlist(id, { name })).lists); }, 'Nombre cambiado');
+  const activateList = (id) => listAction(async () => { setLists((await api.updateWishlist(id, { isActive: true })).lists); }, 'Esta lista se verá en tu perfil');
+  const deleteList = (id) => listAction(async () => { const res = await api.deleteWishlist(id); setLists(res.lists); setItems((previous) => previous.filter((item) => item.wishlistId !== id)); setSelectedId(res.lists.find((list) => list.isActive)?.id || res.lists[0].id); setGameFilter(''); }, 'Lista borrada');
+
   const addedKeys = new Set(items.map((item) => item.productId).filter(Boolean));
   const inputClass = 'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base text-slate-900 focus:border-[#1e40af] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70';
 
@@ -247,7 +267,7 @@ export default function WishlistTab({ showToast = () => {} }) {
     setExporting(true);
     try {
       const { exportWishlistPdf } = await import('../../utils/wishlistPdf');
-      const share = await exportWishlistPdf({ items: shownItems, filterLabel: activeGame || 'Todos los juegos', phone });
+      const share = await exportWishlistPdf({ items: shownItems, filterLabel: activeGame || 'Todos los juegos', listName: lists.length > 1 ? currentList.name : '', phone });
       const hasPhone = String(phone).replace(/\D/g, '').length >= 8;
       showToast(hasPhone ? 'PDF descargado: al tocar una carta se abre tu WhatsApp' : 'PDF descargado. Agrega tu teléfono en tu perfil para que cada carta abra tu WhatsApp', { type: 'success', ...(share && { action: { label: 'Compartir', run: share } }) });
     } catch (error) {
@@ -266,7 +286,7 @@ export default function WishlistTab({ showToast = () => {} }) {
       <div className="order-1 space-y-3 lg:flex lg:min-h-12 lg:shrink-0 lg:items-center lg:justify-between lg:gap-3 lg:space-y-0 lg:border-b lg:border-slate-100 lg:px-5 lg:py-4">
         <div className="flex items-start justify-between gap-3 lg:flex-1">
           <div className="min-w-0">
-            <h2 className="text-lg font-extrabold leading-tight text-[#12315f]">Mi lista de deseos</h2>
+            <h2 className="truncate text-lg font-extrabold leading-tight text-[#12315f]">{lists.length > 1 ? currentList.name : 'Mi lista de deseos'}</h2>
             <p className="text-sm font-semibold text-slate-600">
               <span className="font-extrabold tabular-nums text-[#12315f]">{items.length}</span> de {limit} cartas
               {activeGame && <span className="font-medium text-slate-500"> · viendo {shownItems.length} de {activeGame}</span>}
@@ -306,6 +326,11 @@ export default function WishlistTab({ showToast = () => {} }) {
             <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px] font-bold">add</span>
           </span>
         </button>
+      </div>
+
+      {/* Mis listas */}
+      <div className="order-2 lg:shrink-0 lg:px-5 lg:pt-3">
+        <WishlistLists lists={lists.map((list) => ({ ...list, count: allItems.filter((item) => item.wishlistId === list.id).length }))} selectedId={currentList?.id} onSelect={(id) => { setSelectedId(id); setGameFilter(''); }} onCreate={createList} onRename={renameList} onActivate={activateList} onDelete={deleteList} busy={listBusy} maxLists={maxLists} />
       </div>
 
       {/* Avisos por correo y notificaciones */}
