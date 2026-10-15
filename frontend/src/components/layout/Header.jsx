@@ -551,9 +551,11 @@ export default function Header() {
                       <Link role="menuitem" to="/perfil" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
                         <span translate="no" className="material-symbols-outlined text-[20px]">person</span> Mi perfil
                       </Link>
-                      <Link role="menuitem" to={`/${userUsername || currentUser.uid}`} onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
-                        <span translate="no" className="material-symbols-outlined text-[20px]">storefront</span> Ver perfil público
-                      </Link>
+                      {userUsername && (
+                        <Link role="menuitem" to={`/${userUsername}`} onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
+                          <span translate="no" className="material-symbols-outlined text-[20px]">storefront</span> Ver perfil público
+                        </Link>
+                      )}
                       {['admin', 'moderator', 'support'].includes(appUser?.role) && (
                         <Link role="menuitem" to="/moderacion" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
                           <span translate="no" className="material-symbols-outlined text-[20px]">admin_panel_settings</span> Moderación
