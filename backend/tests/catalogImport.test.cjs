@@ -67,6 +67,10 @@ const file = (products, links) => ({ format: 'carpetazo-card-catalog-incremental
     ok('producto físico de otro bloque → error', r.j.errors.length === 1 && /bloque/.test(r.j.errors[0].message), JSON.stringify(r.j?.errors));
     r = await call('POST', PATH + '/preview', 'admin', { fileName: FILE, data: file([card(0, { imageUrl: 'https://evil.example.com/a.webp' })]) });
     ok('imagen en un dominio no permitido → error', r.j.errors.length === 1, JSON.stringify(r.j?.errors));
+    r = await call('POST', PATH + '/preview', 'admin', { fileName: FILE, data: file([card(0, { physicalProductId: physical.id, imageUrl: `${R2}/Carpetazo.cl/test/Kak'Na/Kak'Na.webp` })]) });
+    ok("imagen con apóstrofe (Kak'Na) se acepta", !r.j.errors?.some((e) => /imagen/i.test(e.message)), JSON.stringify(r.j?.errors));
+    r = await call('POST', PATH + '/preview', 'admin', { fileName: FILE, data: file([card(0, { imageUrl: `${R2}/a).webp` })]) });
+    ok('imagen con paréntesis → error (no se abre el CSS)', r.j.errors.length === 1, JSON.stringify(r.j?.errors));
     r = await call('POST', PATH + '/preview', 'admin', { fileName: FILE, data: file([card(0, { extData: [{ name: 'Edition', value: 'CZTEST Edición Carga' }, { name: 'Admin', value: 'si' }] })]) });
     ok('campo no permitido → error', r.j.errors.length === 1 && /no permitido/.test(r.j.errors[0].message), JSON.stringify(r.j?.errors));
     r = await call('POST', PATH + '/preview', 'admin', { fileName: FILE, data: file([card(0, { extData: [{ name: 'Edition', value: 'Otra edición distinta' }] })]) });
@@ -123,6 +127,20 @@ const file = (products, links) => ({ format: 'carpetazo-card-catalog-incremental
     r = await call('POST', PATH + '/apply', 'admin', { fileName: FILE, data: file([movedCard]), digest: r.j.digest });
     const movedRow = await prisma.tcgProduct.findUnique({ where: { productId: IDS[0] } });
     ok('apply mueve la carta a la otra edición', r.status === 200 && r.j.updated === 1 && movedRow.groupId === 98000002, JSON.stringify(r.j) + movedRow.groupId);
+
+    // Corregir a mano el cambio de edición: el archivo la devuelve a la primera, pero se elige dejarla donde está
+    r = await call('POST', PATH + '/preview', 'admin', { fileName: FILE, data: file([fixedCard]) });
+    ok('sin elección, el archivo la devuelve a su edición anterior', r.j.counts.updated === 1 && r.j.cards[0].previousEdition === 'CZTEST Edición Dos' && r.j.editionOptions.some((option) => option.groupId === 98000002), JSON.stringify(r.j?.cards?.[0]));
+    r = await call('POST', PATH + '/preview', 'admin', { fileName: FILE, data: file([fixedCard]), editionOverrides: { [IDS[0]]: 98000002 } });
+    ok('edición elegida a mano: se queda donde está y se avisa qué decía el archivo', r.j.errors.length === 0 && r.j.counts.updated === 0 && r.j.cards[0].edition === 'CZTEST Edición Dos' && r.j.cards[0].fileEdition === 'CZTEST Edición Carga' && !r.j.cards[0].previousEdition, JSON.stringify(r.j?.counts) + JSON.stringify(r.j?.cards?.[0]));
+    r = await call('POST', PATH + '/preview', 'admin', { fileName: FILE, data: file([fixedCard]), editionOverrides: { [IDS[0]]: 12345678 } });
+    ok('edición elegida que no es del bloque → error', r.j.errors.length === 1 && /mismo bloque/.test(r.j.errors[0].message), JSON.stringify(r.j?.errors));
+    r = await call('POST', PATH + '/preview', 'admin', { fileName: FILE, data: file([fixedCard]), editionOverrides: { [IDS[0]]: GROUP_ID } });
+    ok('elegir la edición del archivo equivale a no elegir', r.j.counts.updated === 1 && r.j.cards[0].previousEdition === 'CZTEST Edición Dos' && !r.j.cards[0].fileEdition, JSON.stringify(r.j?.cards?.[0]));
+    r = await call('POST', PATH + '/preview', 'admin', { fileName: FILE, data: file([fixedCard]), editionOverrides: { abc: 1 } });
+    ok('ediciones elegidas con formato inválido → 400', r.status === 400, String(r.status));
+    r = await call('POST', PATH + '/apply', 'admin', { fileName: FILE, data: file([fixedCard]), digest: 'a'.repeat(64), editionOverrides: { [IDS[0]]: 98000002 } });
+    ok('apply con elección pero digest de otra revisión → 409', r.status === 409, String(r.status));
     r = await call('POST', PATH + '/preview', 'admin', { fileName: FILE, data: { ...file([{ ...card(0, { name: 'CZTEST Carta Cero', extData: [{ name: 'Edition', value: 'CZTEST Edición B' }] }), groupId: 1 }]), groups: [{ groupId: 1, name: 'CZTEST Edición B', blockName: BLOCK_NAME + ' B' }] } });
     ok('misma carta en otro bloque → error (no se mezcla)', r.j.errors.length === 1 && /otro bloque/.test(r.j.errors[0].message), JSON.stringify(r.j?.errors));
 

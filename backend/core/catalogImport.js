@@ -99,7 +99,9 @@ export const normalizeIncrementalFile = (raw) => {
     if (groupId === null || groupId <= 0) { problem('Falta la edición (groupId).'); continue; }
     if (item.physicalProductId !== null && item.physicalProductId !== undefined && (physicalProductId === null || physicalProductId <= 0)) { problem('El producto físico no es válido.'); continue; }
     if (!name || name.length > 120) { problem('El nombre falta o supera los 120 caracteres.'); continue; }
-    if (typeof item.imageUrl !== 'string' || !isAllowedStoredImageUrl(item.imageUrl)) { problem('La URL de la imagen no está permitida.'); continue; }
+    // El apóstrofe de nombres como "Kak'Na" viaja codificado (%27): es la misma dirección y no rompe el CSS donde se inserta
+    const imageUrl = typeof item.imageUrl === 'string' ? item.imageUrl.replaceAll("'", '%27') : '';
+    if (!isAllowedStoredImageUrl(imageUrl)) { problem('La URL de la imagen no está permitida.'); continue; }
     if (!Array.isArray(item.extData) || item.extData.length > 60) { problem('Los datos de la carta no son válidos.'); continue; }
 
     const extData = [];
@@ -120,7 +122,7 @@ export const normalizeIncrementalFile = (raw) => {
     if (bad) { problem(bad); continue; }
     if (!extData.some((entry) => entry.name === 'Edition')) { problem('Falta la edición en los datos de la carta.'); continue; }
 
-    cards.push({ productId, groupId, physicalProductId, name, cleanName: cleanName(name), imageUrl: item.imageUrl, extData });
+    cards.push({ productId, groupId, physicalProductId, name, cleanName: cleanName(name), imageUrl, extData });
   }
 
   // Enlaces a productos físicos: solo valen los de cartas del archivo
@@ -173,7 +175,8 @@ const digestOf = (cards, links, newGroups, newProducts) => createHash('sha256')
   .digest('hex');
 
 // Compara el archivo con la base y dice qué se crearía (cartas, y también ediciones y productos físicos que aún no existan). No escribe nada.
-export const buildImportPlan = async (db, raw) => {
+// `overrides` (productId -> groupId) deja elegir otra edición del mismo bloque para cartas que ya existen, en vez de la que trae el archivo.
+export const buildImportPlan = async (db, raw, overrides = {}) => {
   const file = normalizeIncrementalFile(raw);
   if (file.fatal) return { fatal: file.fatal };
   const errors = [...file.errors];
@@ -231,15 +234,23 @@ export const buildImportPlan = async (db, raw) => {
   const groupOfCard = new Map();
   for (const card of cards) {
     const problem = (message) => errors.push({ productId: card.productId, name: card.name, message });
-    const group = resolveGroup(card.groupId);
-    if (group.error) { problem(group.error); continue; }
+    const fileGroup = resolveGroup(card.groupId);
+    if (fileGroup.error) { problem(fileGroup.error); continue; }
+    // Edición elegida a mano: solo cartas que ya existen y una edición de su mismo bloque
+    let group = fileGroup;
+    const forcedId = overrides[card.productId];
+    if (forcedId !== undefined && existingById.has(card.productId)) {
+      const forced = groupById.get(forcedId);
+      if (!forced || forced.blockId !== fileGroup.blockId) { problem('La edición elegida no es del mismo bloque que la carta.'); continue; }
+      if (forced.groupId !== fileGroup.groupId) group = { groupId: forced.groupId, key: `id:${forced.groupId}`, name: forced.name, blockId: forced.blockId, isNew: false };
+    }
     let physical = null;
     if (card.physicalProductId !== null) {
       physical = resolvePhysical(card.physicalProductId, group);
       if (physical.error) { problem(physical.error); continue; }
     }
     const edition = card.extData.find((entry) => entry.name === 'Edition').value;
-    if (cleanName(edition) !== cleanName(group.name)) { problem(`La edición del archivo ("${edition}") no coincide con la de la base ("${group.name}").`); continue; }
+    if (cleanName(edition) !== cleanName(fileGroup.name)) { problem(`La edición del archivo ("${edition}") no coincide con la de la base ("${fileGroup.name}").`); continue; }
     // Un ID que ya existe en la misma edición y con un nombre parecido es la misma carta (se actualiza); si no, es de otra carta y no se mezcla
     const existing = existingById.get(card.productId);
     let status = 'new';
@@ -259,9 +270,10 @@ export const buildImportPlan = async (db, raw) => {
     }
     const blockName = blockById.get(group.blockId)?.name || '';
     // Las cartas existentes quedan intactas; las nuevas llevan el formato del bloque como las demás
-    const extData = card.extData.some((entry) => entry.name === 'Format') || !blockName ? card.extData : [...card.extData, { name: 'Format', value: blockName }];
+    const withFormat = card.extData.some((entry) => entry.name === 'Format') || !blockName ? card.extData : [...card.extData, { name: 'Format', value: blockName }];
+    const extData = group === fileGroup ? withFormat : withFormat.map((entry) => (entry.name === 'Edition' ? { ...entry, value: group.name } : entry)); // con edición elegida, el dato "Edition" sigue a la edición
     groupOfCard.set(card.productId, group);
-    ready.push({ ...card, extData, groupKey: group.key, groupId: group.groupId, physicalKey: physical?.key ?? null, physicalProductId: physical?.id ?? null, blockName, editionName: group.name, editionIsNew: group.isNew, physicalName: physical?.name || '', physicalIsNew: Boolean(physical?.isNew), status, previousName, previousEdition });
+    ready.push({ ...card, extData, fileEditionName: fileGroup.name, chosenEdition: group !== fileGroup, groupKey: group.key, groupId: group.groupId, physicalKey: physical?.key ?? null, physicalProductId: physical?.id ?? null, blockName, editionName: group.name, editionIsNew: group.isNew, physicalName: physical?.name || '', physicalIsNew: Boolean(physical?.isNew), status, previousName, previousEdition });
   }
 
   // Enlaces carta-producto: los de cada carta y los extra del archivo (resueltos igual que el producto de la carta)
@@ -313,6 +325,8 @@ export const buildImportPlan = async (db, raw) => {
       rejected: errors.length
     },
     editions: [...editions.values()],
+    // Ediciones de los bloques que usa el archivo: son las opciones al elegir otra edición para una carta
+    editionOptions: groupRows.filter((row) => ready.some((card) => groupById.get(card.groupId)?.blockId === row.blockId)).map((row) => ({ groupId: row.groupId, name: row.name, blockId: row.blockId })).sort((a, b) => a.name.localeCompare(b.name)),
     physicalProducts: [...products.values()],
     digest: digestOf(ready.map((card) => ({ status: card.status, productId: card.productId, groupKey: card.groupKey, physicalKey: card.physicalKey, name: card.name, imageUrl: card.imageUrl, extData: card.extData })), linkList, groupsToCreate, productsToCreate)
   };

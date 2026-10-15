@@ -73,12 +73,14 @@ export default function CatalogImportPanel() {
   const [dragging, setDragging] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [overrides, setOverrides] = useState({}); // productId -> edición elegida a mano
+  const [rechecking, setRechecking] = useState(false);
   const inputRef = useRef(null);
   const runId = useRef(0);
 
   const reset = useCallback(() => {
     runId.current += 1;
-    setStage('pick'); setFile(null); setData(null); setPlan(null); setResult(null); setError(''); setConfirming(false); setBusy(false);
+    setStage('pick'); setFile(null); setData(null); setPlan(null); setResult(null); setError(''); setConfirming(false); setBusy(false); setOverrides({}); setRechecking(false);
     if (inputRef.current) inputRef.current.value = '';
   }, []);
 
@@ -105,11 +107,30 @@ export default function CatalogImportPanel() {
     }
   };
 
+  // Elegir otra edición para una carta que ya existe: el servidor revisa de nuevo con esa elección
+  const chooseEdition = async (productId, groupId) => {
+    const next = { ...overrides, [productId]: groupId };
+    const id = ++runId.current;
+    setRechecking(true);
+    setError('');
+    try {
+      const res = await api.previewCatalogImport(data, next);
+      if (id !== runId.current) return;
+      setOverrides(next);
+      setPlan(res);
+    } catch (err) {
+      if (id !== runId.current) return;
+      setError(err.message || 'No se pudo aplicar la edición elegida.');
+    } finally {
+      if (id === runId.current) setRechecking(false);
+    }
+  };
+
   const apply = async () => {
     setBusy(true);
     setError('');
     try {
-      const res = await api.applyCatalogImport(data, plan.digest);
+      const res = await api.applyCatalogImport(data, plan.digest, overrides);
       setResult(res);
       setConfirming(false);
       setStage('done');
@@ -181,12 +202,12 @@ export default function CatalogImportPanel() {
             <button type="button" onClick={reset} className="h-10 shrink-0 rounded-full px-4 text-sm font-bold text-[#1e40af] transition-[background-color,transform] duration-150 active:scale-[0.97] hover:bg-blue-50">Cambiar</button>
           </div>
 
-          <CatalogImportReview plan={plan} />
+          <CatalogImportReview plan={plan} busy={rechecking} onChooseEdition={chooseEdition} />
 
           <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#dbe3f0] bg-white/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mt-5 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
             <div className="mx-auto flex max-w-3xl gap-2 sm:justify-end">
               <button type="button" onClick={reset} className="h-12 flex-1 rounded-full border-2 border-slate-300 bg-white px-6 text-sm font-extrabold text-slate-700 transition-[background-color,transform] duration-150 active:scale-[0.97] hover:bg-slate-50 sm:flex-none">Cancelar</button>
-              <button type="button" disabled={!loadable} onClick={() => setConfirming(true)} className="h-12 flex-[1.6] rounded-full bg-[#facc15] px-7 text-sm font-extrabold text-[#12315f] transition-[filter,transform,opacity] duration-150 active:scale-[0.97] hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-45 sm:flex-none">
+              <button type="button" disabled={!loadable || rechecking} onClick={() => setConfirming(true)} className="h-12 flex-[1.6] rounded-full bg-[#facc15] px-7 text-sm font-extrabold text-[#12315f] transition-[filter,transform,opacity] duration-150 active:scale-[0.97] hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-45 sm:flex-none">
                 {loadable ? `Cargar ${plan.counts.new + plan.counts.updated} ${plan.counts.new + plan.counts.updated === 1 ? 'cambio' : 'cambios'}` : 'Nada que cargar'}
               </button>
             </div>

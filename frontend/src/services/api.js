@@ -172,8 +172,8 @@ export const api = {
   getAdminAppeals: (status) => apiFetch('/admin/appeals?status=' + (status || 'open')),
   decideAppeal: (id, action, note) => apiFetch('/admin/appeals/' + encodeURIComponent(id) + '/decision', { method: 'POST', body: JSON.stringify({ action, note }) }),
   // Carga de cartas nuevas desde cartas_incrementales.json (solo administradores): primero se revisa, después se carga lo revisado
-  previewCatalogImport: (data) => apiFetch('/admin/catalog-import/preview', { method: 'POST', body: JSON.stringify({ fileName: 'cartas_incrementales.json', data }) }),
-  applyCatalogImport: (data, digest) => apiFetch('/admin/catalog-import/apply', { method: 'POST', body: JSON.stringify({ fileName: 'cartas_incrementales.json', data, digest }) }),
+  previewCatalogImport: (data, editionOverrides = {}) => apiFetch('/admin/catalog-import/preview', { method: 'POST', body: JSON.stringify({ fileName: 'cartas_incrementales.json', data, editionOverrides }) }),
+  applyCatalogImport: (data, digest, editionOverrides = {}) => apiFetch('/admin/catalog-import/apply', { method: 'POST', body: JSON.stringify({ fileName: 'cartas_incrementales.json', data, digest, editionOverrides }) }),
   getTeam: () => apiFetch('/admin/team'),
   searchTeamPeople: (q) => apiFetch('/admin/team/search?q=' + encodeURIComponent(q)),
   getTeamHistory: () => apiFetch('/admin/team/history'),

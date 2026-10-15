@@ -12,7 +12,7 @@ let applying = false; // una carga a la vez: un doble clic o dos pestañas no la
 
 const field = (card, name) => card.extData.find((entry) => entry.name === name)?.value || '';
 const publicCard = (card) => ({
-  productId: card.productId, name: card.name, edition: card.editionName, block: card.blockName, product: card.physicalName, imageUrl: card.imageUrl,
+  productId: card.productId, name: card.name, edition: card.editionName, editionId: card.groupId ?? undefined, fileEdition: card.chosenEdition ? card.fileEditionName : undefined, block: card.blockName, product: card.physicalName, imageUrl: card.imageUrl,
   previousName: card.previousName || undefined, previousEdition: card.previousEdition || undefined, type: field(card, 'Type'), cost: field(card, 'Cost'), force: field(card, 'Fuerza'), race: field(card, 'Race'), frequency: field(card, 'Frequency'), number: field(card, 'Number'),
   status: card.status
 });
@@ -25,11 +25,22 @@ const readBody = (req, res) => {
   return data;
 };
 
+// Ediciones elegidas a mano: { productId: groupId } con ids numéricos y pocas entradas
+const readOverrides = (req, res) => {
+  const raw = req.body?.editionOverrides;
+  if (raw === undefined) return {};
+  const entries = raw && typeof raw === 'object' && !Array.isArray(raw) ? Object.entries(raw) : null;
+  if (!entries || entries.length > 5000 || entries.some(([productId, groupId]) => !/^\d{1,12}$/.test(productId) || !Number.isInteger(groupId) || groupId <= 0)) { badRequest(res, 'Las ediciones elegidas no son válidas.'); return null; }
+  return Object.fromEntries(entries);
+};
+
 router.post('/api/admin/catalog-import/preview', authenticateToken, requireStaff(3), async (req, res) => {
   const data = readBody(req, res);
   if (!data) return undefined;
+  const overrides = readOverrides(req, res);
+  if (!overrides) return undefined;
   try {
-    const plan = await buildImportPlan(prisma, data);
+    const plan = await buildImportPlan(prisma, data, overrides);
     if (plan.fatal) return badRequest(res, plan.fatal);
     const images = await checkImages(plan.cards);
     return res.json({
@@ -38,6 +49,7 @@ router.post('/api/admin/catalog-import/preview', authenticateToken, requireStaff
       generatedAt: plan.generatedAt,
       counts: plan.counts,
       editions: plan.editions,
+      editionOptions: plan.editionOptions,
       physicalProducts: plan.physicalProducts,
       errors: plan.errors.slice(0, 200),
       images,
@@ -55,10 +67,12 @@ router.post('/api/admin/catalog-import/apply', authenticateToken, requireStaff(3
   const data = readBody(req, res);
   if (!data) return undefined;
   if (typeof req.body.digest !== 'string' || !/^[0-9a-f]{64}$/.test(req.body.digest)) return badRequest(res, 'Falta revisar el archivo antes de cargarlo.');
+  const overrides = readOverrides(req, res);
+  if (!overrides) return undefined;
   if (applying) return res.status(409).json({ success: false, message: 'Ya hay una carga en curso. Espera a que termine.' });
   applying = true;
   try {
-    const plan = await buildImportPlan(prisma, data);
+    const plan = await buildImportPlan(prisma, data, overrides);
     if (plan.fatal) return badRequest(res, plan.fatal);
     if (plan.errors.length) return res.status(409).json({ success: false, message: 'El archivo tiene errores; corrígelos y vuelve a revisarlo.' });
     if (plan.digest !== req.body.digest) return res.status(409).json({ success: false, message: 'El archivo cambió desde la revisión. Vuelve a revisarlo.' });
