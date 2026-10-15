@@ -154,15 +154,15 @@ export default function CardsPage() {
               <EmptyState icon="cloud_off" title="No pudimos cargar las cartas" action={{ label: 'Reintentar', icon: 'refresh', onClick: () => setSearchParams(new URLSearchParams(searchParams), { replace: true }) }} role="alert">
                 Revisa tu conexión e inténtalo de nuevo.
               </EmptyState>
-            ) : !loading && result.cards.length === 0 ? (
+            ) : !loading && result.cards.length === 0 ? (hasFilters ? null : (
               <EmptyState
-                icon={hasFilters ? 'search_off' : 'style'}
-                title={hasFilters ? 'No encontramos cartas con esa búsqueda' : 'Todavía no hay cartas a la venta'}
-                action={hasFilters ? { label: 'Ver todas las cartas', onClick: clearAll } : { label: 'Publicar mis cartas', to: '/dashboard' }}
+                icon="style"
+                title="Todavía no hay cartas a la venta"
+                action={{ label: 'Publicar mis cartas', to: '/dashboard' }}
               >
-                {tcg && !urlQuery ? `Por ahora no hay cartas de ${tcg} con stock. Prueba con otro juego.` : hasFilters ? 'Revisa el nombre o prueba con otro juego.' : 'Cuando los vendedores publiquen cartas con stock, aparecerán aquí.'}
+                Cuando los vendedores publiquen cartas con stock, aparecerán aquí.
               </EmptyState>
-            ) : (
+            )) : (
               <ul className={gridClass}>
                 {loading
                   ? Array.from({ length: 12 }, (_, i) => <CardTileSkeleton key={i} view={effectiveView} />)
