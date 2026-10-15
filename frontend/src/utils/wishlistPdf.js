@@ -287,8 +287,11 @@ export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos'
   return { doc, fileName: `Cartas Que Busco${filterPart}.pdf` };
 }
 
-// Crea el PDF y lo descarga
+// Crea el PDF y lo descarga. Devuelve una función para compartir el archivo tal cual (sin enlace) si el dispositivo puede, o null.
+// Compartir un archivo descargado desde el navegador del móvil le agrega al mensaje un enlace "blob:" inútil.
 export async function exportWishlistPdf(options) {
   const { doc, fileName } = await buildWishlistPdf(options);
   doc.save(fileName);
+  const file = new File([doc.output('blob')], fileName, { type: 'application/pdf' });
+  return navigator.canShare?.({ files: [file] }) ? () => navigator.share({ files: [file] }).catch(() => {}) : null;
 }

@@ -247,9 +247,9 @@ export default function WishlistTab({ showToast = () => {} }) {
     setExporting(true);
     try {
       const { exportWishlistPdf } = await import('../../utils/wishlistPdf');
-      await exportWishlistPdf({ items: shownItems, filterLabel: activeGame || 'Todos los juegos', phone });
+      const share = await exportWishlistPdf({ items: shownItems, filterLabel: activeGame || 'Todos los juegos', phone });
       const hasPhone = String(phone).replace(/\D/g, '').length >= 8;
-      showToast(hasPhone ? 'PDF descargado: al tocar una carta se abre tu WhatsApp' : 'PDF descargado. Agrega tu teléfono en tu perfil para que cada carta abra tu WhatsApp', 'success');
+      showToast(hasPhone ? 'PDF descargado: al tocar una carta se abre tu WhatsApp' : 'PDF descargado. Agrega tu teléfono en tu perfil para que cada carta abra tu WhatsApp', { type: 'success', ...(share && { action: { label: 'Compartir', run: share } }) });
     } catch (error) {
       showToast(error.message || 'No se pudo crear el PDF', 'error');
     } finally {
