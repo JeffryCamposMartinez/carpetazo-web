@@ -7,6 +7,9 @@ import LoadableImage, { LoadingMark } from '../ui/LoadableImage';
 import CardLightbox from '../ui/CardLightbox';
 import CardsPagination from './CardsPagination';
 import useCardInfoSearch, { INFO_PAGE } from '../../hooks/useCardInfoSearch';
+import useReferencePrices from '../../hooks/useReferencePrices';
+import { ReferencePriceLine } from '../folder/ReferencePrice';
+import { formatClp } from '../../services/tcgcsvPrices';
 import { cardFill, cardRatio } from '../../utils/cardShape';
 
 const NOTE = 'Solo información: esta carta no está a la venta en Carpetazo ahora.';
@@ -26,9 +29,12 @@ export default function CardInfoResults({ query, game, enabled }) {
   const known = Math.max(1, Math.ceil(results.length / INFO_PAGE));
   useEffect(() => { if (exhausted && page > known) setPage(known); }, [exhausted, page, known]);
 
+  const shown = results.slice((page - 1) * INFO_PAGE, page * INFO_PAGE);
+  // Precio de mercado de TCGplayer como referencia (Mitos y Leyendas no está en TCGplayer)
+  const { variantsFor } = useReferencePrices(shown.filter((card) => card.groupId), 'pokemon');
+
   if (!enabled) return null;
 
-  const shown = results.slice((page - 1) * INFO_PAGE, page * INFO_PAGE);
   const goToPage = (next) => { setPage(next); document.getElementById('cartas-informativas')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); };
 
   const wish = async (card) => {
@@ -65,6 +71,7 @@ export default function CardInfoResults({ query, game, enabled }) {
                 </div>
                 <p className="mt-2 line-clamp-2 text-sm font-extrabold leading-snug text-[#12315f]">{card.name}</p>
                 <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{card.setName}</p>
+                <ReferencePriceLine variants={card.groupId ? variantsFor(card) : null} className="mt-0.5 text-xs" />
               </button>
             </li>
           ))}
@@ -86,7 +93,14 @@ export default function CardInfoResults({ query, game, enabled }) {
           cardId={openId}
           onChange={setOpenId}
           onClose={() => setOpenId(null)}
-          describe={(card) => ({ subtitle: [card.game, card.setName, card.language].filter(Boolean).join(' · '), chips: ['No está a la venta'], note: NOTE })}
+          describe={(card) => {
+            const prices = (card.groupId ? variantsFor(card) : null) || [];
+            return {
+              subtitle: [card.game, card.setName, card.language].filter(Boolean).join(' · '),
+              chips: ['No está a la venta', ...prices.slice(0, 3).map((variant) => `${variant.name} ${formatClp(variant.clp)}`)],
+              note: prices.length ? `${NOTE} El precio es una referencia de mercado en TCGplayer.` : NOTE,
+            };
+          }}
           renderActions={(card) => (
             <button type="button" onClick={() => wish(card)} disabled={Boolean(wished[card.id])} className="h-11 rounded-full bg-[#facc15] px-6 text-sm font-extrabold text-[#12315f] transition-transform duration-150 active:scale-[0.97] disabled:opacity-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">{wished[card.id] ? 'En tus deseadas' : 'Avísame cuando la vendan'}</button>
           )}

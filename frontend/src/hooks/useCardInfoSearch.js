@@ -18,8 +18,9 @@ const SIMILAR_FROM = 4; // desde este largo del texto también se buscan nombres
 
 const label = (name, number) => (number && !name.includes(number) ? `${name} - ${number}` : name);
 
-const fromTcgcsv = (card, game) => ({
+const fromTcgcsv = (card, game, groupId) => ({
   id: `tcgcsv:${card.catId}:${card.productId}`,
+  groupId, catId: card.catId, tcgProductId: card.productId, // para el precio de referencia de TCGplayer
   name: label(card.name, card.number),
   imageUrl: card.imageUrl,
   setName: card.setName,
@@ -73,11 +74,12 @@ export default function useCardInfoSearch({ query, game, enabled, page }) {
       const batch = cursor.groups.slice(cursor.at, cursor.at + BATCH);
       const lists = await Promise.all(batch.map((group) => (isPokemon ? fetchPokemonGroupCards('en', group, signal) : fetchGameGroupCards(name, group, signal)).catch(() => [])));
       if (signal.aborted) break; // una búsqueda cancelada no avanza la posición: no se pierden ediciones
-      lists.forEach((list) => {
+      lists.forEach((list, index) => {
+        const groupId = batch[index].groupId;
         const matches = isPokemon ? filterPokemonCards(list, { query: term }) : filterGameCards(name, list, term, GAME_FILTERS[name]);
         const matched = new Set(matches);
-        exact.push(...matches.map((card) => fromTcgcsv(card, name)));
-        if (term.length >= SIMILAR_FROM) similar.push(...list.filter((card) => !matched.has(card) && isSimilarName(card.name, term)).map((card) => fromTcgcsv(card, name)));
+        exact.push(...matches.map((card) => fromTcgcsv(card, name, groupId)));
+        if (term.length >= SIMILAR_FROM) similar.push(...list.filter((card) => !matched.has(card) && isSimilarName(card.name, term)).map((card) => fromTcgcsv(card, name, groupId)));
       });
       cursor.at += batch.length;
       scanned += batch.length;
