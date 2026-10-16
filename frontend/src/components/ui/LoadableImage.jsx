@@ -22,18 +22,20 @@ const RETRY_DELAY_MS = 1500;
 // Con `loading="lazy"` la descarga la decide un IntersectionObserver propio en vez del del navegador: el nativo, dentro de
 // tarjetas animadas o con «transform», a veces no despierta la imagen hasta que el mouse pasa por encima.
 // Si la descarga falla se reintenta sola un par de veces.
-export default function LoadableImage({ src, fallbackSrc, alt, className = '', compact = false, onError, loading, ...rest }) {
+export default function LoadableImage({ src, fallbackSrc, alt, className = '', compact = false, onError, onLoad, loading, rotateLandscape = false, style, ...rest }) {
   const lazy = loading === 'lazy';
   const [state, setState] = useState('loading'); // loading | loaded | failed
   const [near, setNear] = useState(!lazy);
   const [attempt, setAttempt] = useState(0);
   const [activeSrc, setActiveSrc] = useState(src);
+  const [isLandscape, setIsLandscape] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
     setState('loading');
     setAttempt(0);
     setActiveSrc(src);
+    setIsLandscape(false);
   }, [src]);
 
   useEffect(() => {
@@ -49,8 +51,18 @@ export default function LoadableImage({ src, fallbackSrc, alt, className = '', c
 
   useEffect(() => {
     // Si la imagen ya estaba en caché, `load` pudo haber ocurrido antes de enlazar el evento
-    if (near && ref.current?.complete && ref.current.naturalWidth > 0) setState('loaded');
-  }, [near, src, attempt]);
+    if (near && ref.current?.complete && ref.current.naturalWidth > 0) {
+      setIsLandscape(rotateLandscape && ref.current.naturalWidth > ref.current.naturalHeight);
+      setState('loaded');
+    }
+  }, [near, src, attempt, rotateLandscape]);
+
+  const handleLoad = (event) => {
+    const image = event.currentTarget;
+    setIsLandscape(rotateLandscape && image.naturalWidth > image.naturalHeight);
+    setState('loaded');
+    onLoad?.(event);
+  };
 
   const handleError = (event) => {
     if (attempt < MAX_RETRIES) {
@@ -78,7 +90,8 @@ export default function LoadableImage({ src, fallbackSrc, alt, className = '', c
         referrerPolicy="no-referrer"
         decoding="async"
         className={`${className} transition-opacity duration-200 motion-reduce:transition-none ${state === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
-        onLoad={() => setState('loaded')}
+        style={isLandscape ? { ...style, transform: `${style?.transform ? `${style.transform} ` : ''}rotate(-90deg)`, transformOrigin: 'center center' } : style}
+        onLoad={handleLoad}
         onError={handleError}
         {...rest}
       />

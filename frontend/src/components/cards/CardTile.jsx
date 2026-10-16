@@ -47,7 +47,7 @@ function Availability({ stock }) {
 
 function CardImage({ card, className }) {
   return card.imageUrl
-    ? <LoadableImage src={card.imageUrl} alt={card.name} loading="lazy" decoding="async" className={className} style={cardFill(card.folder?.tcg)} />
+    ? <LoadableImage src={card.imageUrl} alt={card.name} loading="lazy" decoding="async" rotateLandscape className={className} style={cardFill(card.folder?.tcg)} />
     : <span className="absolute inset-0 flex items-center justify-center px-2 text-center text-xs font-semibold text-slate-400">Sin imagen</span>;
 }
 

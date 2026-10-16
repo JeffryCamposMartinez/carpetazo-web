@@ -120,7 +120,7 @@ export default function WishlistSection({ username, seller, isOwner = false, var
           <div className="relative w-full bg-slate-100" style={{ aspectRatio: cardRatio(item.game) }}>
             {item.imageUrl ? (
               <button type="button" onClick={() => setPreviewId(item.id)} aria-label={`Ver ${item.name} en grande`} className="absolute inset-0 cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#12315f]">
-                <LoadableImage src={item.imageUrl} alt="" loading="lazy" decoding="async" className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-md object-contain" style={cardFill(item.game)} />
+                <LoadableImage src={item.imageUrl} alt="" loading="lazy" decoding="async" rotateLandscape className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-md object-contain" style={cardFill(item.game)} />
               </button>
             ) : (
               <span className="absolute inset-0 flex items-center justify-center px-2 text-center text-xs font-semibold text-slate-400">Sin imagen</span>

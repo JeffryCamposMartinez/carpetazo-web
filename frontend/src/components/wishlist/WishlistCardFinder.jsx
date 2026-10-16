@@ -306,7 +306,7 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
                 {results.slice(0, visible).map((row) => (
                   <li key={row.key} className="flex min-w-0 flex-col gap-1.5 rounded-xl bg-white p-1.5 ring-1 ring-slate-200 sm:p-2">
                     <button type="button" onClick={() => setPreviewKey(row.key)} aria-label={`Ver ${row.label} en pantalla completa`} className="relative block aspect-[5/7] w-full cursor-zoom-in overflow-hidden rounded-lg bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]" style={{ aspectRatio: cardRatio(game, '5 / 7') }}>
-                      {row.imageUrl ? <LoadableImage src={row.imageUrl} alt={row.label} loading="lazy" className="h-full w-full object-contain" style={cardFill(game)} /> : <span className="flex h-full items-center justify-center px-1 text-center text-[11px] font-semibold text-slate-500">Sin imagen</span>}
+                      {row.imageUrl ? <LoadableImage src={row.imageUrl} alt={row.label} loading="lazy" rotateLandscape className="h-full w-full object-contain" style={cardFill(game)} /> : <span className="flex h-full items-center justify-center px-1 text-center text-[11px] font-semibold text-slate-500">Sin imagen</span>}
                     </button>
                     <span className="min-w-0 px-0.5">
                       <span className="line-clamp-2 block text-[12px] font-bold leading-tight text-[#12315f] sm:text-[13px]" title={row.label}>{row.label}</span>

@@ -165,7 +165,7 @@ export default function FolderAddTab({
             <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
               {selectedQueue.map((item, index) => (
                 <button key={item.queueId} type="button" onClick={(e) => decreaseQueueItemQuantity(e, item.queueId)} onContextMenu={(e) => e.preventDefault()} className={`relative flex-shrink-0 w-16 ${isYugioh(folderData?.tcg) ? 'rounded-[3px] p-0' : 'rounded-lg p-1'} border-2 bg-white shadow-sm transition-all ${activeQueueItemId === item.queueId ? 'border-[#1e40af]' : 'border-blue-200 hover:border-red-300'}`} title="Quitar de la selección">
-                  <div className="relative w-full" style={{ aspectRatio: cardRatio(folderData?.tcg) }}><SafeImage src={item.card.imageUrl} alt={item.card.name} style={cardFit(folderData?.tcg)} className="w-full h-full object-contain rounded" fallbackType="queue" /></div>
+                  <div className="relative w-full" style={{ aspectRatio: cardRatio(folderData?.tcg) }}><SafeImage src={item.card.imageUrl} alt={item.card.name} rotateLandscape style={cardFit(folderData?.tcg)} className="w-full h-full object-contain rounded" fallbackType="queue" /></div>
                   <span className="absolute -top-2 -left-2 bg-[#1e40af] text-white text-[10px] font-bold rounded-full min-w-5 px-1 h-5 flex items-center justify-center border border-white">x{item.quantity || 1}</span>
                 </button>
               ))}
@@ -190,7 +190,7 @@ export default function FolderAddTab({
               )}
               {/* Cada juego tiene su proporción (Yu-Gi-Oh! es más angosta); la imagen entra entera, sin recortes */}
               <div className="relative w-full flex items-center justify-center bg-gray-50 overflow-hidden" style={{ aspectRatio: isMylFolder ? '709 / 1016' : cardRatio(folderData?.tcg) }}>
-                <SafeImage src={card.imageUrl} alt={card.name} style={cardFit(folderData?.tcg)} className="w-full h-full object-contain relative z-10 transition-opacity duration-300" fallbackType="grid" />
+                <SafeImage src={card.imageUrl} alt={card.name} rotateLandscape style={cardFit(folderData?.tcg)} className="w-full h-full object-contain relative z-10 transition-opacity duration-300" fallbackType="grid" />
               </div>
               {showCardDetails && (
                 <div className={`text-center border-t border-gray-100 w-full ${gridCols <= 2 ? 'p-2' : gridCols === 3 ? 'p-3' : gridCols === 4 ? 'p-2' : 'p-1'}`}>
@@ -284,7 +284,7 @@ export default function FolderAddTab({
           <form onSubmit={handleSaveCard} className="flex min-h-[610px] lg:min-h-0 lg:h-[calc(100%-58px)] flex-col justify-between gap-4 mt-2">
             <div className="flex justify-center relative z-50 mt-4 lg:flex-1 lg:min-h-0 w-full">
               <div className="relative inline-block lg:h-full flex justify-center items-center">
-                <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} style={{ aspectRatio: cardRatio(folderData?.tcg) }} className={`relative block h-72 sm:h-80 lg:h-full lg:max-h-full lg:w-full aspect-[63/88] cursor-zoom-in ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-lg'} focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2`}><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} style={cardCorners(folderData?.tcg)} className="w-full h-full object-contain rounded-lg shadow-md relative z-50 transition-transform duration-150 active:scale-[0.98]" fallbackType="zoom-main" /></button>
+                <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} style={{ aspectRatio: cardRatio(folderData?.tcg) }} className={`relative block h-72 sm:h-80 lg:h-full lg:max-h-full lg:w-full aspect-[63/88] cursor-zoom-in ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-lg'} focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2`}><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} rotateLandscape style={cardCorners(folderData?.tcg)} className="w-full h-full object-contain rounded-lg shadow-md relative z-50 transition-transform duration-150 active:scale-[0.98]" fallbackType="zoom-main" /></button>
                 <button 
                   type="button"
                   onClick={() => fileInputRef.current?.click()}

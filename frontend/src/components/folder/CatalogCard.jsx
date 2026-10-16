@@ -50,6 +50,7 @@ export default function CatalogCard({ tcg, card, availableStock, cartQuantity, o
           className={`w-full h-full ${isMyl ? 'object-fill' : 'object-contain'} ${isOutOfStock && cartQuantity === 0 ? 'grayscale opacity-60' : ''}`} 
           src={card.imageUrl} 
           alt={card.name} 
+          rotateLandscape
           style={isYugioh(tcg) ? cardFit(tcg) : undefined}
         />
         {onWish && (
