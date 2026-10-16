@@ -14,8 +14,8 @@ import { cardFill, cardRatio } from '../../utils/cardShape';
 
 const NOTE = 'Referencia del catálogo: esta ficha no es una oferta de venta.';
 const tcgplayerImage = (card) => {
-  const id = card?.payload?.external?.productId;
-  return id ? `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(id))}_200w.jpg` : '';
+  const id = card?.tcgProductId || card?.productId || card?.payload?.external?.productId;
+  return id ? `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(id))}_400w.jpg` : '';
 };
 
 // Cuando una carta no está a la venta: las que coinciden en el catálogo (TCGCSV), para ver su imagen y datos. No tienen precio ni compra.

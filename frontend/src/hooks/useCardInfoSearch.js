@@ -100,9 +100,11 @@ export default function useCardInfoSearch({ query, game, enabled, page }) {
       const indexed = await api.searchTcgIndex(term, indexGame, wantedRef.current);
       if (indexed.available) {
         const indexedCards = (indexed.cards || []).map((card) => ({
-          id: `tcg-index:${card.id}`, name: card.name, imageUrl: card.imageUrl, setName: card.setName || 'Catálogo',
+          id: `tcg-db:${card.id}`, productId: card.productId, tcgProductId: card.productId, catId: card.categoryId,
+          categoryId: card.categoryId, groupId: card.groupId, name: card.name, imageUrl: card.imageUrl,
+          sourceImageUrl: card.sourceImageUrl, setName: card.setName || 'Catálogo',
           language: card.categoryId === 85 ? 'Japonés' : 'Español', game: card.game,
-          payload: { external: { categoryId: card.categoryId, productId: String(card.productId) }, name: card.name, imageUrl: card.imageUrl, detail: card.setName || 'Catálogo', game: card.game },
+          payload: { external: { categoryId: card.categoryId, productId: String(card.productId) }, productId: card.productId, name: card.name, imageUrl: card.imageUrl, detail: card.setName || 'Catálogo', game: card.game },
         }));
         setState({ results: indexedCards, searching: false, exhausted: wantedRef.current >= indexed.pages, pages: indexed.pages || 1, total: indexed.total || indexedCards.length });
         loopRef.current = null;
