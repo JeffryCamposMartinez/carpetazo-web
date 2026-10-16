@@ -79,6 +79,16 @@ export default function LoadableImage({ src, fallbackSrc, alt, className = '', c
     }
   };
 
+  // El giro de una carta apaisada debe ser instantáneo al cambiar de carta;
+  // solo mantenemos el desvanecido propio de la carga de la imagen.
+  const imageStyle = rotateLandscape
+    ? {
+        ...style,
+        ...(isLandscape ? { transform: `${style?.transform ? `${style.transform} ` : ''}rotate(-90deg) scale(1.4)`, transformOrigin: 'center center' } : {}),
+        transition: 'opacity 200ms ease'
+      }
+    : style;
+
   return (
     <>
       {state !== 'loaded' && <LoadingMark still={state === 'failed'} compact={compact} />}
@@ -90,7 +100,7 @@ export default function LoadableImage({ src, fallbackSrc, alt, className = '', c
         referrerPolicy="no-referrer"
         decoding="async"
         className={`${className} transition-opacity duration-200 motion-reduce:transition-none ${state === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
-        style={isLandscape ? { ...style, transform: `${style?.transform ? `${style.transform} ` : ''}rotate(-90deg) scale(1.4)`, transformOrigin: 'center center' } : style}
+        style={imageStyle}
         onLoad={handleLoad}
         onError={handleError}
         {...rest}
