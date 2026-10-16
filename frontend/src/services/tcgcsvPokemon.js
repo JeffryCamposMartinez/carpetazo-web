@@ -56,7 +56,7 @@ export const fetchPokemonGroupCards = async (lang, group, signal) => {
   const key = `${catId}-${group.groupId}`;
   if (productsCache.has(key)) return productsCache.get(key);
   let json;
-  try { json = await catalogJson(`/${catId}/${group.groupId}/cards`, signal); json = { results: json.data || [] }; }
+  try { const local = await catalogJson(`/${catId}/${group.groupId}/cards`, signal); if (!local.data?.length) throw new Error('Edición no importada'); json = { results: local.data }; }
   catch (_error) { json = await tcgcsvJson(`/tcgplayer/${catId}/${group.groupId}/products`, signal); }
   const list = (json.results || [])
     .map((product) => {

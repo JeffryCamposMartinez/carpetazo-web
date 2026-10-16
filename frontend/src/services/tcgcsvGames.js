@@ -53,7 +53,7 @@ export const fetchGameGroupCards = async (game, group, signal) => {
   if (cardsCache.has(key)) return cardsCache.get(key);
   const [json, meta] = await Promise.all([
     catalogJson(`/${info.catId}/${group.groupId}/cards`, signal)
-      .then((response) => ({ results: response.data || [] }))
+      .then((response) => { if (!response.data?.length) throw new Error('Edición no importada'); return { results: response.data }; })
       .catch(() => tcgcsvJson(`/tcgplayer/${info.catId}/${group.groupId}/products`, signal)),
     info.meta ? info.meta() : null,
   ]);
