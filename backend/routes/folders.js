@@ -6,6 +6,7 @@ import { isValidComuna } from '../core/chileData.js';
 import { folderFilterSql, folderOrderSql, likePattern, loadPublicFolders, tcgVariants, validListText } from '../core/listing.js';
 import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/publicSeller.js';
 import { badRequest, cleanCardData, isAllowedStoredImageUrl, isOptionalText, isShortText, isSmallObject, isUuid, isValidPrice, isValidStock } from '../core/validation.js';
+import { r2PublicUrl } from '../core/tcgCatalogImport.js';
 
 const router = express.Router();
 
@@ -366,8 +367,17 @@ router.get('/api/folders/:id', optionalAuth, async (req, res) => {
     if (!folder || (!folder.isPublic && !isFolderOwner)) return res.status(404).json({ success: false, message: 'Folder not found' });
     // El estado de moderación solo lo ve el dueño; para los demás no se serializa
     const { moderationState: _folderState, ...publicFolder } = folder;
-    const cards = (isFolderOwner ? folder.cards : folder.cards.map(({ moderationState: _cardState, ...card }) => card))
-      .map((card) => ({ ...card, data: cleanCardData(card.data) }));
+    const visibleCards = isFolderOwner ? folder.cards : folder.cards.map(({ moderationState: _cardState, ...card }) => card);
+    const productIds = [...new Set(visibleCards.map((card) => Number(card.tcgId)).filter((id) => Number.isInteger(id) && id > 0))];
+    const localImages = productIds.length
+      ? await prisma.catalogCard.findMany({ where: { productId: { in: productIds }, kind: 'card', imageKey: { not: null } }, select: { productId: true, imageKey: true } })
+      : [];
+    const imageByProductId = new Map(localImages.map((card) => [card.productId, r2PublicUrl(card.imageKey)]));
+    const cards = visibleCards.map((card) => ({
+      ...card,
+      imageUrl: imageByProductId.get(Number(card.tcgId)) || card.imageUrl,
+      data: cleanCardData(card.data),
+    }));
     // `isOwner` deja que la pantalla de edición no se muestre a quien no es el dueño (la API ya rechaza sus cambios)
     res.json({ success: true, folder: { ...(isFolderOwner ? folder : publicFolder), isOwner: isFolderOwner, cards, user: toPublicSeller(folder.user, req.user?.sub, await getReviewSummary(folder.user.id)) } });
   } catch (error) {
