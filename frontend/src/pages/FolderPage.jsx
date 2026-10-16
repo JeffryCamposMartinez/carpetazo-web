@@ -19,7 +19,7 @@ import useCardSearch from '../hooks/useCardSearch';
 import { DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from '../components/folder/dragScroll';
 import useCatalogOrder from '../hooks/useCatalogOrder';
 import useInventoryTools from '../hooks/useInventoryTools';
-import { catalogJson, tcgcsvJson } from '../services/tcgcsvFetch';
+import { catalogJson } from '../services/tcgcsvFetch';
 import { EMPTY_OP_FILTERS, ONE_PIECE_CATEGORY, onePieceGroupLabel } from '../services/tcgcsvOnePiece';
 import { EMPTY_MAGIC_FILTERS, MAGIC_CATEGORY, magicGroupLabel, magicGroupRank } from '../services/tcgcsvMagic';
 import { EMPTY_RB_FILTERS, RIFTBOUND_CATEGORY, riftboundGroupLabel } from '../services/tcgcsvRiftbound';
@@ -512,13 +512,6 @@ const [isSearching, setIsSearching] = useState(false);
           if (!Array.isArray(local?.data)) throw new Error('Catálogo local no disponible');
           return { json: { results: local.data }, emptyGroups: {} };
         })
-        .catch((error) => {
-          if (error?.name === 'AbortError') throw error;
-          return Promise.all([
-            tcgcsvJson(`/tcgplayer/${catId}/groups`),
-            fetch('/empty-groups-tcgcsv.json').then(r => r.json()).catch(() => ({})),
-          ]).then(([json, emptyGroups]) => ({ json, emptyGroups }));
-        })
         .then(({ json, emptyGroups }) => {
           if (stale) return;
           const groups = (json.results || [])
@@ -532,7 +525,12 @@ const [isSearching, setIsSearching] = useState(false);
           if (catId === MAGIC_CATEGORY) groups.sort((a, b) => magicGroupRank(a) - magicGroupRank(b)); // Art Series, fichas y promos al final
           setAvailableSets(groups.map(g => ({ groupId: g.groupId, id: g.groupId, name: catId === ONE_PIECE_CATEGORY ? onePieceGroupLabel(g) : catId === MAGIC_CATEGORY ? magicGroupLabel(g) : catId === RIFTBOUND_CATEGORY ? riftboundGroupLabel(g) : catId === YUGIOH_CATEGORY ? yugiohGroupLabel(g) : g.name, isSupplemental: g.isSupplemental, abbreviation: g.abbreviation, publishedOn: g.publishedOn })));
         })
-        .catch(console.error);
+        .catch((error) => {
+          if (error?.name !== 'AbortError') {
+            console.error('No se pudieron cargar las ediciones locales:', error);
+            if (!stale) setAvailableSets([]);
+          }
+        });
       return () => { stale = true; };
     }
       api.getTcgGroups(searchCategory)
