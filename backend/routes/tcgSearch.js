@@ -22,6 +22,7 @@ router.get('/api/tcg/search-index', async (req, res) => {
   const value = clean(query);
   const gameWhere = game ? { game: { name: game } } : {};
   const where = {
+    kind: 'card',
     ...gameWhere,
     OR: [
       { cleanName: { contains: value } },
@@ -54,7 +55,7 @@ router.get('/api/tcg/search-index', async (req, res) => {
       const ids = (similar.cards || []).map((card) => Number(card.productId)).filter(Number.isInteger);
       if (ids.length) {
         hydratedRows = await prisma.catalogCard.findMany({
-          where: { productId: { in: ids }, ...gameWhere },
+          where: { productId: { in: ids }, kind: 'card', ...gameWhere },
           orderBy: [{ cleanName: 'asc' }, { productId: 'asc' }],
           select: {
             productId: true, categoryId: true, groupId: true, kind: true, name: true, cleanName: true,
