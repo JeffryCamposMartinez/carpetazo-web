@@ -69,11 +69,11 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
 
       {shown.length > 0 && (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-          {shown.map((card) => (
+          {shown.map((card, index) => (
             <li key={card.id}>
               <button type="button" onClick={() => setOpenId(card.id)} className="group block w-full rounded-2xl bg-white p-2 text-left ring-1 ring-slate-900/5 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.4)] transition-transform duration-150 active:scale-[0.985] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
                 <div className="relative w-full overflow-hidden rounded-xl bg-slate-50" style={{ aspectRatio: cardRatio(card.game) }}>
-                  {card.imageUrl || tcgplayerImage(card) ? <LoadableImage src={card.imageUrl || tcgplayerImage(card)} fallbackSrc={card.imageUrl ? tcgplayerImage(card) : undefined} alt={card.name} className="h-full w-full object-contain" style={cardFill(card.game)} /> : <span className="flex h-full items-center justify-center text-xs font-semibold text-slate-400">Sin imagen</span>}
+                  {card.imageUrl || tcgplayerImage(card) ? <LoadableImage loading={index < 10 ? 'eager' : 'lazy'} src={card.imageUrl || tcgplayerImage(card)} fallbackSrc={card.imageUrl ? tcgplayerImage(card) : undefined} alt={card.name} className="h-full w-full object-contain" style={cardFill(card.game)} /> : <span className="flex h-full items-center justify-center text-xs font-semibold text-slate-400">Sin imagen</span>}
                   <span className="absolute left-1.5 top-1.5 rounded-full bg-[#12315f]/90 px-2 py-0.5 text-[11px] font-extrabold text-white">Catálogo</span>
                 </div>
                 <p className="mt-2 line-clamp-2 text-sm font-extrabold leading-snug text-[#12315f]">{card.name}</p>

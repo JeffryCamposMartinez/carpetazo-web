@@ -11,6 +11,23 @@ const r2PublicUrl = (key) => {
 };
 
 const clean = (value) => String(value || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const SEARCH_CACHE_TTL = 30_000;
+const SEARCH_CACHE_MAX = 500;
+const searchCache = new Map();
+const pendingSearches = new Map();
+
+const cacheGet = (key) => {
+  const entry = searchCache.get(key);
+  if (!entry || entry.expiresAt <= Date.now()) { if (entry) searchCache.delete(key); return null; }
+  searchCache.delete(key);
+  searchCache.set(key, entry);
+  return entry.value;
+};
+const cacheSet = (key, value) => {
+  searchCache.delete(key);
+  searchCache.set(key, { value, expiresAt: Date.now() + SEARCH_CACHE_TTL });
+  while (searchCache.size > SEARCH_CACHE_MAX) searchCache.delete(searchCache.keys().next().value);
+};
 
 router.get('/api/tcg/search-index', async (req, res) => {
   const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
@@ -20,6 +37,10 @@ router.get('/api/tcg/search-index', async (req, res) => {
   res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=300');
   const limit = 60;
   const value = clean(query);
+  const cacheKey = `${value}|${game}|${page}`;
+  const cached = cacheGet(cacheKey);
+  if (cached) return res.json(cached);
+  if (pendingSearches.has(cacheKey)) return res.json(await pendingSearches.get(cacheKey));
   const gameWhere = game ? { game: { name: game } } : {};
   const where = {
     kind: 'card',
@@ -30,7 +51,8 @@ router.get('/api/tcg/search-index', async (req, res) => {
       { number: { contains: query, mode: 'insensitive' } },
     ],
   };
-  try {
+  const run = (async () => {
+   try {
     const [total, rows] = await prisma.$transaction([
       prisma.catalogCard.count({ where }),
       prisma.catalogCard.findMany({
@@ -83,10 +105,16 @@ router.get('/api/tcg/search-index', async (req, res) => {
       sourceImageUrl: card.sourceImageUrl,
       tcgplayerUrl: card.tcgplayerUrl,
     }));
-    return res.json({ success: true, source, available: true, total: hydratedTotal, page, pages: Math.max(1, Math.ceil(hydratedTotal / limit)), cards });
-  } catch (error) {
+    const response = { success: true, source, available: true, total: hydratedTotal, page, pages: Math.max(1, Math.ceil(hydratedTotal / limit)), cards };
+    cacheSet(cacheKey, response);
+    return response;
+   } catch (error) {
     console.error('Error buscando catálogo TCG en la base de datos:', error.message);
-    return res.status(503).json({ success: false, available: false, message: 'No se pudo consultar el catálogo' });
-  }
+    throw error;
+   }
+  })();
+  pendingSearches.set(cacheKey, run);
+  try { return res.json(await run); } catch { return res.status(503).json({ success: false, available: false, message: 'No se pudo consultar el catálogo' }); }
+  finally { pendingSearches.delete(cacheKey); }
 });
 export default router;
