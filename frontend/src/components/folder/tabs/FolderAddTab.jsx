@@ -284,7 +284,7 @@ export default function FolderAddTab({
           <form onSubmit={handleSaveCard} className="flex min-h-[610px] lg:min-h-0 lg:h-[calc(100%-58px)] flex-col justify-between gap-4 mt-2">
             <div className="flex justify-center relative z-50 mt-4 lg:flex-1 lg:min-h-0 w-full">
               <div className="relative inline-block lg:h-full flex justify-center items-center">
-                <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} style={{ aspectRatio: cardRatio(folderData?.tcg) }} className={`relative block h-72 sm:h-80 lg:h-full lg:max-h-full lg:w-full aspect-[63/88] cursor-zoom-in ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-lg'} focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2`}><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} rotateLandscape style={cardCorners(folderData?.tcg)} className="w-full h-full object-contain rounded-lg shadow-md relative z-50 transition-transform duration-150 active:scale-[0.98]" fallbackType="zoom-main" /></button>
+                <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} style={{ aspectRatio: cardRatio(folderData?.tcg) }} className={`relative block h-72 sm:h-80 lg:h-full lg:max-h-full aspect-[63/88] cursor-zoom-in ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-lg'} focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2`}><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} rotateLandscape style={cardCorners(folderData?.tcg)} className="w-full h-full object-contain rounded-lg shadow-md relative z-50 transition-transform duration-150 active:scale-[0.98]" fallbackType="zoom-main" /></button>
                 <button 
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -383,7 +383,7 @@ export default function FolderAddTab({
                       <div className="grid grid-cols-3 gap-4">
                         {selectedQueue.map((item, index) => (
                           <div key={item.queueId} onContextMenu={(e) => decreaseQueueItemQuantity(e, item.queueId)} title="Clic derecho para quitar 1 copia" style={{ aspectRatio: cardRatio(folderData?.tcg) }} className={`relative w-full aspect-[63/88] ${isYugioh(folderData?.tcg) ? 'rounded-[3px] p-0' : 'rounded-xl p-1.5'} shadow-sm border-2 border-blue-200 bg-white hover:border-red-300 transition-colors flex items-center justify-center cursor-context-menu`}>
-                            <div className="relative w-full h-full"><SafeImage src={getProxyImageUrl(item.card.tcgProductId || item.card.id, item.card.imageUrl)} alt={item.card.name} style={cardFit(folderData?.tcg)} className="w-full h-full object-contain rounded-md" fallbackType="queue" /></div>
+                            <div className="relative w-full h-full"><SafeImage src={getProxyImageUrl(item.card.tcgProductId || item.card.id, item.card.imageUrl)} alt={item.card.name} rotateLandscape style={cardFit(folderData?.tcg)} className="w-full h-full object-contain rounded-md" fallbackType="queue" /></div>
                             <button 
                               type="button" 
                               onClick={() => removeQueueItem(item.queueId)} 
