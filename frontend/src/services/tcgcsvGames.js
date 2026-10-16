@@ -70,7 +70,7 @@ export const fetchGameGroupCards = async (game, group, signal) => {
       catId: info.catId,
       name: product.name,
       number: ext.Number,
-      imageUrl: (product.imageUrl || '').replace('_200w', '_400w'),
+      imageUrl: product.imageUrl || `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(product.productId))}_400w.jpg`,
       setName: group.name,
       language: 'Inglés',
       extData: { ...ext, localId: ext.Number, ...info.parse(ext, group, product.name, meta) },
