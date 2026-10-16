@@ -32,7 +32,15 @@ const cardsCache = new Map();
 export const fetchGameGroups = async (game, signal) => {
   const info = GAMES[game];
   if (!groupsCache.has(game)) {
-    const json = await tcgcsvJson(`/tcgplayer/${info.catId}/groups`, signal);
+    let json;
+    try {
+      const local = await catalogJson(`/sets?categoryId=${info.catId}`, signal);
+      if (!Array.isArray(local?.data)) throw new Error('Catálogo local no disponible');
+      json = { results: local.data.map((g) => ({ ...g, groupId: g.groupId, id: g.groupId })) };
+    } catch (error) {
+      if (error?.name === 'AbortError') throw error;
+      json = await tcgcsvJson(`/tcgplayer/${info.catId}/groups`, signal);
+    }
     const results = json.results || [];
     const perDay = {};
     results.forEach((g) => { const day = g.publishedOn.slice(0, 10); perDay[day] = (perDay[day] || 0) + 1; });

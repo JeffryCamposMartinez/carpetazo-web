@@ -33,17 +33,27 @@ const productsCache = new Map();
 export const fetchPokemonGroups = async (lang, signal) => {
   const catId = pokemonCategoryForLang(lang);
   if (groupsCache.has(catId)) return groupsCache.get(catId);
-  const [json, emptyGroups] = await Promise.all([
-    tcgcsvJson(`/tcgplayer/${catId}/groups`, signal),
-    fetch('/empty-groups-tcgcsv.json', { signal }).then((r) => r.json()).catch(() => ({})),
-  ]);
+  let json;
+  try {
+    const local = await catalogJson(`/sets?categoryId=${catId}`, signal);
+    if (!Array.isArray(local?.data)) throw new Error('Catálogo local no disponible');
+    json = { results: local.data.map((g) => ({ ...g, groupId: g.groupId, id: g.groupId })) };
+  } catch (error) {
+    if (error?.name === 'AbortError') throw error;
+    const [remote, emptyGroups] = await Promise.all([
+      tcgcsvJson(`/tcgplayer/${catId}/groups`, signal),
+      fetch('/empty-groups-tcgcsv.json', { signal }).then((r) => r.json()).catch(() => ({})),
+    ]);
+    json = { results: remote.results || [], emptyGroups };
+  }
+  const emptyGroups = json.emptyGroups || {};
   const results = json.results || [];
   const perDay = {};
   results.forEach((g) => { const day = g.publishedOn.slice(0, 10); perDay[day] = (perDay[day] || 0) + 1; });
   const undated = (g) => perDay[g.publishedOn.slice(0, 10)] >= 8;
   const groups = results
     .filter((g) => new Date(g.publishedOn) <= new Date())
-    .filter((g) => emptyGroups[catId]?.[g.groupId] !== g.modifiedOn)
+    .filter((g) => !emptyGroups[catId] || emptyGroups[catId]?.[g.groupId] !== g.modifiedOn)
     .sort((a, b) => (undated(a) - undated(b)) || (undated(a) ? a.name.localeCompare(b.name) : new Date(b.publishedOn) - new Date(a.publishedOn)))
     .map((g) => ({ groupId: g.groupId, id: g.groupId, name: g.name, publishedOn: g.publishedOn }));
   groupsCache.set(catId, groups);

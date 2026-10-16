@@ -289,6 +289,25 @@ router.get('/api/tcg/catalog/:categoryId/:groupId/cards', async (req, res) => {
   }
 });
 
+// Ediciones disponibles en el catálogo local. Las pantallas de búsqueda usan
+// esta lista para no recorrer ediciones que solo existen en TCGCSV.
+router.get('/api/tcg/catalog/sets', async (req, res) => {
+  const categoryId = Number.parseInt(String(req.query.categoryId || ''), 10);
+  if (!Number.isInteger(categoryId) || categoryId <= 0) return badRequest(res, 'Categoría inválida');
+  try {
+    const sets = await prisma.catalogSet.findMany({
+      where: { categoryId, cards: { some: { kind: 'card' } } },
+      orderBy: [{ publishedOn: 'desc' }, { name: 'asc' }],
+      select: { groupId: true, categoryId: true, name: true, abbreviation: true, publishedOn: true, modifiedOn: true },
+    });
+    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=1800');
+    return res.json({ success: true, source: 'database', data: sets });
+  } catch (error) {
+    console.error('Error cargando ediciones del catálogo local:', error.message);
+    return res.status(503).json({ success: false, message: 'Catálogo local no disponible' });
+  }
+});
+
 const FILTER_OPTIONS_TTL_MS = 30 * 60 * 1000;
 const filterOptionsCache = new Map(); // categoryId -> { at, data } o { pending: Promise }
 router.get('/api/tcg/:categoryId/filter-options', async (req, res) => {
