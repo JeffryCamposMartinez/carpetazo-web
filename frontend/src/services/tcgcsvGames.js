@@ -1,8 +1,9 @@
 import { catalogJson } from './tcgcsvFetch';
 import { ONE_PIECE_CATEGORY, filterOnePieceCards, onePieceExt, onePieceGroupLabel, onePieceMatchesQuery } from './tcgcsvOnePiece';
-import { MAGIC_CATEGORY, MAGIC_MARKER, filterMagicCards, loadMagicMeta, magicExt, magicGroupLabel, magicGroupRank, magicMatchesQuery } from './tcgcsvMagic';
+import { MAGIC_CATEGORY, MAGIC_MARKER, filterMagicCards, loadMagicMeta, magicExt, magicGroupLabel, magicMatchesQuery } from './tcgcsvMagic';
 import { YUGIOH_CATEGORY, YUGIOH_MARKER, filterYugiohCards, loadYugiohMeta, yugiohExt, yugiohGroupLabel, yugiohMatchesQuery } from './tcgcsvYugioh';
 import { RIFTBOUND_CATEGORY, RIFTBOUND_MARKER, filterRiftboundCards, riftboundExt, riftboundGroupLabel, riftboundMatchesQuery } from './tcgcsvRiftbound';
+import { sortCatalogGroupsNewestFirst } from './catalogOrdering';
 
 // Juegos que se buscan directo en TCGCSV. `searchCategory` es el valor de la carpeta: '1' = Pokémon, '68' = One Piece, 'magic' = Magic, 'riftbound' = Riftbound, 'yugioh' = Yu-Gi-Oh!.
 // Devuelve la categoría de TCGCSV (Pokémon: 3 en inglés y 85 en japonés) o null si el juego se busca en la base de Carpetazo.
@@ -19,7 +20,7 @@ export const tcgcsvCategoryId = (searchCategory, lang) => {
 const GAMES = {
   'Yu-Gi-Oh!': { catId: YUGIOH_CATEGORY, marker: YUGIOH_MARKER, label: yugiohGroupLabel, meta: loadYugiohMeta, parse: (ext, group, name, meta) => yugiohExt(ext, group, name, meta), matches: yugiohMatchesQuery, filter: filterYugiohCards },
   'One Piece': { catId: ONE_PIECE_CATEGORY, marker: '68', label: onePieceGroupLabel, parse: (ext, group, name) => onePieceExt(ext, group, name), matches: onePieceMatchesQuery, filter: filterOnePieceCards },
-  Magic: { catId: MAGIC_CATEGORY, marker: MAGIC_MARKER, label: magicGroupLabel, rank: magicGroupRank, meta: loadMagicMeta, parse: (ext, group, name, meta) => magicExt(ext, group, name, meta), matches: magicMatchesQuery, filter: filterMagicCards },
+  Magic: { catId: MAGIC_CATEGORY, marker: MAGIC_MARKER, label: magicGroupLabel, meta: loadMagicMeta, parse: (ext, group, name, meta) => magicExt(ext, group, name, meta), matches: magicMatchesQuery, filter: filterMagicCards },
   Riftbound: { catId: RIFTBOUND_CATEGORY, marker: RIFTBOUND_MARKER, label: riftboundGroupLabel, parse: (ext, group, name) => riftboundExt(ext, group, name), matches: riftboundMatchesQuery, filter: filterRiftboundCards },
 };
 
@@ -45,13 +46,7 @@ export const fetchGameGroups = async (game, signal) => {
       json = { results: [] };
     }
     const results = json.results || [];
-    const perDay = {};
-    results.forEach((g) => { const day = g.publishedOn.slice(0, 10); perDay[day] = (perDay[day] || 0) + 1; });
-    const undated = (g) => perDay[g.publishedOn.slice(0, 10)] >= 8;
-    const groups = results
-      .filter((g) => new Date(g.publishedOn) <= new Date())
-      .sort((a, b) => (undated(a) - undated(b)) || (undated(a) ? a.name.localeCompare(b.name) : new Date(b.publishedOn) - new Date(a.publishedOn)));
-    if (info.rank) groups.sort((a, b) => info.rank(a) - info.rank(b));
+    const groups = sortCatalogGroupsNewestFirst(results.filter((g) => !g.publishedOn || new Date(g.publishedOn) <= new Date()));
     groupsCache.set(game, groups.map((g) => ({ groupId: g.groupId, id: g.groupId, name: info.label(g), abbreviation: g.abbreviation, isSupplemental: g.isSupplemental, publishedOn: g.publishedOn })));
   }
   return groupsCache.get(game);

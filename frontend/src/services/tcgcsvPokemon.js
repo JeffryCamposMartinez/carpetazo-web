@@ -1,4 +1,5 @@
 import { catalogJson } from './tcgcsvFetch';
+import { sortCatalogGroupsNewestFirst } from './catalogOrdering';
 
 // Búsqueda de cartas Pokémon en TCGCSV (inglés = categoría 3, japonés = 85), con los mismos criterios
 // que usa la búsqueda de "agregar cartas" de las carpetas.
@@ -46,13 +47,9 @@ export const fetchPokemonGroups = async (lang, signal) => {
   }
   const emptyGroups = json.emptyGroups || {};
   const results = json.results || [];
-  const perDay = {};
-  results.forEach((g) => { const day = g.publishedOn.slice(0, 10); perDay[day] = (perDay[day] || 0) + 1; });
-  const undated = (g) => perDay[g.publishedOn.slice(0, 10)] >= 8;
-  const groups = results
+  const groups = sortCatalogGroupsNewestFirst(results
     .filter((g) => new Date(g.publishedOn) <= new Date())
-    .filter((g) => !emptyGroups[catId] || emptyGroups[catId]?.[g.groupId] !== g.modifiedOn)
-    .sort((a, b) => (undated(a) - undated(b)) || (undated(a) ? a.name.localeCompare(b.name) : new Date(b.publishedOn) - new Date(a.publishedOn)))
+    .filter((g) => !emptyGroups[catId] || emptyGroups[catId]?.[g.groupId] !== g.modifiedOn))
     .map((g) => ({ groupId: g.groupId, id: g.groupId, name: g.name, publishedOn: g.publishedOn }));
   groupsCache.set(catId, groups);
   return groups;

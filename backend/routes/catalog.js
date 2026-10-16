@@ -250,7 +250,7 @@ router.get('/api/tcg/:categoryId/groups', async (req, res) => {
     const { categoryId } = req.params;
     const groups = await prisma.tcgGroup.findMany({
       where: { categoryId: parseInt(categoryId) },
-      orderBy: { publishedOn: 'desc' }
+      orderBy: [{ publishedOn: 'desc' }, { groupId: 'desc' }, { name: 'asc' }]
     });
     res.json({ success: true, data: groups });
   } catch (error) {
@@ -300,7 +300,7 @@ router.get('/api/tcg/catalog/sets', async (req, res) => {
   try {
     const sets = await prisma.catalogSet.findMany({
       where: { categoryId, cards: { some: { kind: 'card' } } },
-      orderBy: [{ publishedOn: 'desc' }, { name: 'asc' }],
+      orderBy: [{ publishedOn: 'desc' }, { name: 'asc' }, { groupId: 'desc' }],
       select: { groupId: true, categoryId: true, name: true, abbreviation: true, publishedOn: true, modifiedOn: true },
     });
     res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=1800');

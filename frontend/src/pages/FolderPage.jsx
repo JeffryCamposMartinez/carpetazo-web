@@ -21,10 +21,11 @@ import useCatalogOrder from '../hooks/useCatalogOrder';
 import useInventoryTools from '../hooks/useInventoryTools';
 import { catalogJson } from '../services/tcgcsvFetch';
 import { EMPTY_OP_FILTERS, ONE_PIECE_CATEGORY, onePieceGroupLabel } from '../services/tcgcsvOnePiece';
-import { EMPTY_MAGIC_FILTERS, MAGIC_CATEGORY, magicGroupLabel, magicGroupRank } from '../services/tcgcsvMagic';
+import { EMPTY_MAGIC_FILTERS, MAGIC_CATEGORY, magicGroupLabel } from '../services/tcgcsvMagic';
 import { EMPTY_RB_FILTERS, RIFTBOUND_CATEGORY, riftboundGroupLabel } from '../services/tcgcsvRiftbound';
 import { EMPTY_YGO_FILTERS, YUGIOH_CATEGORY, yugiohGroupLabel } from '../services/tcgcsvYugioh';
 import { tcgcsvCategoryId } from '../services/tcgcsvGames';
+import { sortCatalogGroupsNewestFirst } from '../services/catalogOrdering';
 import { warmFolderPreview } from '../utils/sharePreview';
 import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 import EmptyState from '../components/ui/EmptyState';
@@ -514,15 +515,9 @@ const [isSearching, setIsSearching] = useState(false);
         })
         .then(({ json, emptyGroups }) => {
           if (stale) return;
-          const groups = (json.results || [])
+          const groups = sortCatalogGroupsNewestFirst((json.results || [])
             .filter(g => new Date(g.publishedOn) <= new Date())
-            .filter(g => emptyGroups[catId]?.[g.groupId] !== g.modifiedOn);
-          // TCGCSV pone la fecha de importación a promos/varios: si muchas ediciones comparten día, van al final por nombre
-          const perDay = {};
-          (json.results || []).forEach(g => { const d = g.publishedOn.slice(0, 10); perDay[d] = (perDay[d] || 0) + 1; });
-          const undated = g => perDay[g.publishedOn.slice(0, 10)] >= 8;
-          groups.sort((a, b) => (undated(a) - undated(b)) || (undated(a) ? a.name.localeCompare(b.name) : new Date(b.publishedOn) - new Date(a.publishedOn)));
-          if (catId === MAGIC_CATEGORY) groups.sort((a, b) => magicGroupRank(a) - magicGroupRank(b)); // Art Series, fichas y promos al final
+            .filter(g => emptyGroups[catId]?.[g.groupId] !== g.modifiedOn));
           setAvailableSets(groups.map(g => ({ groupId: g.groupId, id: g.groupId, name: catId === ONE_PIECE_CATEGORY ? onePieceGroupLabel(g) : catId === MAGIC_CATEGORY ? magicGroupLabel(g) : catId === RIFTBOUND_CATEGORY ? riftboundGroupLabel(g) : catId === YUGIOH_CATEGORY ? yugiohGroupLabel(g) : g.name, isSupplemental: g.isSupplemental, abbreviation: g.abbreviation, publishedOn: g.publishedOn })));
         })
         .catch((error) => {
