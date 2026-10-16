@@ -27,7 +27,28 @@ const loadTcgcsv = async (tcgcsvPath) => {
     error.notFound = response.status === 404;
     throw error;
   }
-  const body = await response.text();
+  let body = await response.text();
+  // TCGCSV alimenta varias pantallas del frontend. Enriquecemos sus productos
+  // con la imagen local vinculada en CatalogCard para que R2 sea la fuente
+  // principal; si una carta todavía no tiene imageKey se conserva la URL API.
+  if (/\/products$/.test(tcgcsvPath)) {
+    try {
+      const json = JSON.parse(body);
+      const products = Array.isArray(json.results) ? json.results : [];
+      const ids = [...new Set(products.map((item) => Number(item.productId)).filter(Number.isInteger))];
+      if (ids.length) {
+        const linked = await prisma.catalogCard.findMany({
+          where: { productId: { in: ids }, kind: 'card', imageKey: { not: null } },
+          select: { productId: true, imageKey: true },
+        });
+        const byId = new Map(linked.map((item) => [item.productId, r2PublicUrl(item.imageKey)]));
+        json.results = products.map((item) => ({ ...item, imageUrl: byId.get(Number(item.productId)) || item.imageUrl }));
+        body = JSON.stringify(json);
+      }
+    } catch (error) {
+      console.warn('No se pudieron enriquecer imágenes TCGCSV desde CatalogCard:', error.message);
+    }
+  }
   const entry = {
     at: Date.now(),
     body,
@@ -37,6 +58,12 @@ const loadTcgcsv = async (tcgcsvPath) => {
   if (tcgcsvCache.size >= TCGCSV_MAX_ENTRIES) tcgcsvCache.delete(tcgcsvCache.keys().next().value);
   tcgcsvCache.set(tcgcsvPath, entry);
   return entry;
+};
+
+const r2PublicUrl = (key) => {
+  const base = String(process.env.R2_PUBLIC_URL || '').replace(/\/+$/, '');
+  if (!base || !key) return null;
+  return `${base}/${String(key).split('/').map((part) => encodeURIComponent(part).replace(/['()*!]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)).join('/')}`;
 };
 
 router.get(/^\/api\/tcgcsv(\/.*)$/, async (req, res) => {
