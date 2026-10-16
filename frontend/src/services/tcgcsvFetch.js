@@ -33,3 +33,16 @@ export const tcgcsvJson = (path, signal) => {
   entries.set(path, { at: Date.now(), promise });
   return waitFor(promise, signal);
 };
+
+// Cartas ya importadas en la base de datos local (imágenes de R2).
+export const catalogJson = (path, signal) => {
+  const key = `catalog:${path}`;
+  const hit = entries.get(key);
+  if (hit && Date.now() - hit.at < TTL_MS) return waitFor(hit.promise, signal);
+  const promise = fetch(apiUrl(`/tcg/catalog${path}`))
+    .then((response) => { if (!response.ok) throw new Error(`Catálogo ${response.status}`); return response.json(); })
+    .catch((error) => { if (entries.get(key)?.promise === promise) entries.delete(key); throw error; });
+  if (entries.size >= MAX_ENTRIES) entries.delete(entries.keys().next().value);
+  entries.set(key, { at: Date.now(), promise });
+  return waitFor(promise, signal);
+};

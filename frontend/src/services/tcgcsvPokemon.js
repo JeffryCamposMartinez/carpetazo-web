@@ -1,4 +1,4 @@
-import { tcgcsvJson } from './tcgcsvFetch';
+import { catalogJson, tcgcsvJson } from './tcgcsvFetch';
 
 // Búsqueda de cartas Pokémon en TCGCSV (inglés = categoría 3, japonés = 85), con los mismos criterios
 // que usa la búsqueda de "agregar cartas" de las carpetas.
@@ -55,7 +55,9 @@ export const fetchPokemonGroupCards = async (lang, group, signal) => {
   const catId = pokemonCategoryForLang(lang);
   const key = `${catId}-${group.groupId}`;
   if (productsCache.has(key)) return productsCache.get(key);
-  const json = await tcgcsvJson(`/tcgplayer/${catId}/${group.groupId}/products`, signal);
+  let json;
+  try { json = await catalogJson(`/${catId}/${group.groupId}/cards`, signal); json = { results: json.data || [] }; }
+  catch (_error) { json = await tcgcsvJson(`/tcgplayer/${catId}/${group.groupId}/products`, signal); }
   const list = (json.results || [])
     .map((product) => {
       const ext = {};

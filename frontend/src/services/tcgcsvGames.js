@@ -1,4 +1,4 @@
-import { tcgcsvJson } from './tcgcsvFetch';
+import { catalogJson, tcgcsvJson } from './tcgcsvFetch';
 import { ONE_PIECE_CATEGORY, filterOnePieceCards, onePieceExt, onePieceGroupLabel, onePieceMatchesQuery } from './tcgcsvOnePiece';
 import { MAGIC_CATEGORY, MAGIC_MARKER, filterMagicCards, loadMagicMeta, magicExt, magicGroupLabel, magicGroupRank, magicMatchesQuery } from './tcgcsvMagic';
 import { YUGIOH_CATEGORY, YUGIOH_MARKER, filterYugiohCards, loadYugiohMeta, yugiohExt, yugiohGroupLabel, yugiohMatchesQuery } from './tcgcsvYugioh';
@@ -52,7 +52,9 @@ export const fetchGameGroupCards = async (game, group, signal) => {
   const key = `${game}-${group.groupId}`;
   if (cardsCache.has(key)) return cardsCache.get(key);
   const [json, meta] = await Promise.all([
-    tcgcsvJson(`/tcgplayer/${info.catId}/${group.groupId}/products`, signal),
+    catalogJson(`/${info.catId}/${group.groupId}/cards`, signal)
+      .then((response) => ({ results: response.data || [] }))
+      .catch(() => tcgcsvJson(`/tcgplayer/${info.catId}/${group.groupId}/products`, signal)),
     info.meta ? info.meta() : null,
   ]);
   const toNumber = (text) => { const match = String(text || '').match(/\d+/); return match ? parseInt(match[0], 10) : 0; };

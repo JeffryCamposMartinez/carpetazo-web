@@ -259,6 +259,36 @@ router.get('/api/tcg/:categoryId/groups', async (req, res) => {
   }
 });
 
+// Catálogo local de cartas TCGplayer. Las pantallas de carpetas/deseadas usan
+// esta ruta para no descargar cada edición desde TCGCSV en cada búsqueda.
+router.get('/api/tcg/catalog/:categoryId/:groupId/cards', async (req, res) => {
+  try {
+    const categoryId = Number.parseInt(req.params.categoryId, 10);
+    const groupId = Number.parseInt(req.params.groupId, 10);
+    if (!Number.isInteger(categoryId) || !Number.isInteger(groupId)) return badRequest(res, 'Edición inválida');
+    const rows = await prisma.catalogCard.findMany({
+      where: { categoryId, groupId, kind: 'card' },
+      orderBy: [{ number: 'asc' }, { name: 'asc' }, { productId: 'asc' }],
+      select: { productId: true, categoryId: true, groupId: true, name: true, number: true, rarity: true, imageKey: true, attributes: true, set: { select: { name: true, publishedOn: true } }, game: { select: { name: true } } },
+    });
+    const data = rows.map((card) => {
+      const attributes = card.attributes && typeof card.attributes === 'object' && !Array.isArray(card.attributes) ? card.attributes : {};
+      const extendedData = Object.entries(attributes).map(([name, value]) => ({ name, value: String(value ?? '') }));
+      if (card.number && !extendedData.some((item) => item.name === 'Number')) extendedData.push({ name: 'Number', value: card.number });
+      return {
+        productId: card.productId, categoryId: card.categoryId, groupId: card.groupId, name: card.name,
+        imageUrl: r2PublicUrl(card.imageKey), number: card.number, rarity: card.rarity,
+        extendedData, group: card.set, game: card.game.name,
+      };
+    });
+    res.set('Cache-Control', 'public, max-age=1800, stale-while-revalidate=7200');
+    return res.json({ success: true, source: 'database', data });
+  } catch (error) {
+    console.error('Error cargando cartas TCG desde CatalogCard:', error.message);
+    return res.status(503).json({ success: false, message: 'No se pudo cargar el catálogo local' });
+  }
+});
+
 const FILTER_OPTIONS_TTL_MS = 30 * 60 * 1000;
 const filterOptionsCache = new Map(); // categoryId -> { at, data } o { pending: Promise }
 router.get('/api/tcg/:categoryId/filter-options', async (req, res) => {
