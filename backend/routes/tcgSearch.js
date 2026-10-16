@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../core/db.js';
 import { badRequest } from '../core/validation.js';
+import { searchTcgIndex } from '../core/tcgSearchIndex.js';
 
 const router = express.Router();
 const r2PublicUrl = (key) => {
@@ -43,7 +44,29 @@ router.get('/api/tcg/search-index', async (req, res) => {
         },
       }),
     ]);
-    const cards = rows.map((card) => ({
+    let source = 'database';
+    let hydratedRows = rows;
+    let hydratedTotal = total;
+    // La base es siempre la fuente de verdad. El índice solo aporta candidatos
+    // para errores tipográficos; los datos finales se vuelven a leer desde DB.
+    if (total === 0) {
+      const similar = searchTcgIndex({ query, game, page, limit });
+      const ids = (similar.cards || []).map((card) => Number(card.productId)).filter(Number.isInteger);
+      if (ids.length) {
+        hydratedRows = await prisma.catalogCard.findMany({
+          where: { productId: { in: ids }, ...gameWhere },
+          orderBy: [{ cleanName: 'asc' }, { productId: 'asc' }],
+          select: {
+            productId: true, categoryId: true, groupId: true, kind: true, name: true, cleanName: true,
+            number: true, rarity: true, imageKey: true, sourceImageUrl: true, tcgplayerUrl: true,
+            game: { select: { name: true } }, set: { select: { name: true } },
+          },
+        });
+        hydratedTotal = similar.total || hydratedRows.length;
+        source = 'database-similarity';
+      }
+    }
+    const cards = hydratedRows.map((card) => ({
       id: `${card.categoryId}:${card.productId}`,
       productId: card.productId,
       categoryId: card.categoryId,
@@ -59,7 +82,7 @@ router.get('/api/tcg/search-index', async (req, res) => {
       sourceImageUrl: card.sourceImageUrl,
       tcgplayerUrl: card.tcgplayerUrl,
     }));
-    return res.json({ success: true, source: 'database', available: true, total, page, pages: Math.max(1, Math.ceil(total / limit)), cards });
+    return res.json({ success: true, source, available: true, total: hydratedTotal, page, pages: Math.max(1, Math.ceil(hydratedTotal / limit)), cards });
   } catch (error) {
     console.error('Error buscando catálogo TCG en la base de datos:', error.message);
     return res.status(503).json({ success: false, available: false, message: 'No se pudo consultar el catálogo' });
