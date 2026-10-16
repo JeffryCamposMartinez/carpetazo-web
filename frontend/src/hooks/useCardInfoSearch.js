@@ -38,7 +38,7 @@ const fromMyl = (product, game) => ({
 // La lista solo crece al final, así las cartas ya vistas no cambian de página.
 export default function useCardInfoSearch({ query, game, enabled, page }) {
   const term = query.trim();
-  const [state, setState] = useState({ results: [], searching: false, exhausted: false });
+  const [state, setState] = useState({ results: [], searching: false, exhausted: false, pages: 1, total: 0 });
   const searchId = useRef(0);
   const loopRef = useRef(null);
   const wantedRef = useRef(1);
@@ -94,6 +94,21 @@ export default function useCardInfoSearch({ query, game, enabled, page }) {
   // Un solo ciclo por búsqueda: si cambia la página mientras corre, solo se actualiza lo que pide.
   const fill = async (id, signal) => {
     setState((previous) => ({ ...previous, searching: true }));
+    // Índice local: una sola petición paginada sustituye el recorrido de ediciones externas.
+    try {
+      const indexGame = game === 'Pokémon' ? 'Pokemon' : game === 'Yu-Gi-Oh!' ? 'YuGiOh' : game === 'One Piece' ? 'One_Piece' : game;
+      const indexed = await api.searchTcgIndex(term, indexGame, wantedRef.current);
+      if (indexed.available) {
+        const indexedCards = (indexed.cards || []).map((card) => ({
+          id: `tcg-index:${card.id}`, name: card.name, imageUrl: card.imageUrl, setName: card.setName || 'Catálogo',
+          language: card.categoryId === 85 ? 'Japonés' : 'Español', game: card.game,
+          payload: { external: { categoryId: card.categoryId, productId: String(card.productId) }, name: card.name, imageUrl: card.imageUrl, detail: card.setName || 'Catálogo', game: card.game },
+        }));
+        setState({ results: indexedCards, searching: false, exhausted: wantedRef.current >= indexed.pages, pages: indexed.pages || 1, total: indexed.total || indexedCards.length });
+        loopRef.current = null;
+        return;
+      }
+    } catch (_) { /* fallback al catálogo existente */ }
     while (id === searchId.current && !signal.aborted && listRef.current.length <= wantedRef.current * INFO_PAGE && !allDone()) {
       const pending = games.filter((name) => !cursors.current[name]?.done);
       const rounds = await Promise.all(pending.map((name) => scanGame(name, signal).catch(() => ({ exact: [], similar: [] }))));
@@ -118,7 +133,7 @@ export default function useCardInfoSearch({ query, game, enabled, page }) {
     cursors.current = {};
     listRef.current = [];
     seenRef.current = new Set();
-    setState({ results: [], searching: false, exhausted: false });
+    setState({ results: [], searching: false, exhausted: false, pages: 1, total: 0 });
   }, [enabled, term, gamesKey]);
 
   // Página pedida: se completa lo que falte

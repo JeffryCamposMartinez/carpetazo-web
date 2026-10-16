@@ -1,5 +1,6 @@
 // Cartas publicadas: recientes, búsqueda y borrado.
 import express from 'express';
+import { searchFragments, similarCardName } from '../core/cardSearch.js';
 import { authenticateToken } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { CARD_SEARCH_TCG_ALIASES, sameCardMatch } from '../core/listing.js';
@@ -272,6 +273,18 @@ router.get('/api/cards/search', async (req, res) => {
       folder: { isPublic: true, ...(tcg ? { tcg } : {}), ...(seller || comuna ? { user: { ...(seller ? { username: seller } : {}), ...(comuna ? { publicComuna: comuna } : {}) } } : {}) },
       ...(q ? { name: { contains: q, mode: 'insensitive' } } : {}),
     };
+    const fragments = searchFragments(q);
+    if (fragments.length) {
+      const { name: _name, ...publicScope } = where;
+      const candidates = await prisma.card.findMany({
+        where: { ...publicScope, OR: fragments.map((fragment) => ({ name: { contains: fragment, mode: 'insensitive' } })) },
+        distinct: ['name'],
+        select: { name: true },
+      });
+      const similarNames = candidates.filter((card) => similarCardName(card.name, q)).map((card) => card.name);
+      delete where.name;
+      where.OR = [{ name: { contains: q, mode: 'insensitive' } }, { name: { in: similarNames } }];
+    }
     const [total, cards] = await prisma.$transaction([
       prisma.card.count({ where }),
       prisma.card.findMany({

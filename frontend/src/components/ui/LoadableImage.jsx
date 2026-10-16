@@ -22,16 +22,18 @@ const RETRY_DELAY_MS = 1500;
 // Con `loading="lazy"` la descarga la decide un IntersectionObserver propio en vez del del navegador: el nativo, dentro de
 // tarjetas animadas o con «transform», a veces no despierta la imagen hasta que el mouse pasa por encima.
 // Si la descarga falla se reintenta sola un par de veces.
-export default function LoadableImage({ src, alt, className = '', compact = false, onError, loading, ...rest }) {
+export default function LoadableImage({ src, fallbackSrc, alt, className = '', compact = false, onError, loading, ...rest }) {
   const lazy = loading === 'lazy';
   const [state, setState] = useState('loading'); // loading | loaded | failed
   const [near, setNear] = useState(!lazy);
   const [attempt, setAttempt] = useState(0);
+  const [activeSrc, setActiveSrc] = useState(src);
   const ref = useRef(null);
 
   useEffect(() => {
     setState('loading');
     setAttempt(0);
+    setActiveSrc(src);
   }, [src]);
 
   useEffect(() => {
@@ -54,6 +56,12 @@ export default function LoadableImage({ src, alt, className = '', compact = fals
     if (attempt < MAX_RETRIES) {
       window.setTimeout(() => setAttempt((count) => count + 1), RETRY_DELAY_MS);
     } else {
+      if (fallbackSrc && activeSrc !== fallbackSrc) {
+        setActiveSrc(fallbackSrc);
+        setAttempt(0);
+        setState('loading');
+        return;
+      }
       setState('failed');
       onError?.(event);
     }
@@ -65,7 +73,7 @@ export default function LoadableImage({ src, alt, className = '', compact = fals
       <img
         key={attempt}
         ref={ref}
-        src={near ? src : undefined}
+        src={near ? activeSrc : undefined}
         alt={alt}
         referrerPolicy="no-referrer"
         decoding="async"

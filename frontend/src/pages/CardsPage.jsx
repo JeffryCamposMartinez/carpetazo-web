@@ -170,7 +170,7 @@ export default function CardsPage() {
               </ul>
             )}
 
-            <CardInfoResults query={urlQuery} game={tcg} enabled={!loading && !failed && result.cards.length === 0 && urlQuery.trim().length >= 2 && !seller && !comuna} />
+            <CardInfoResults query={urlQuery} game={tcg} hasOffers={result.total > 0} enabled={!loading && !failed && urlQuery.trim().length >= 2 && !seller && !comuna} />
 
             {!loading && !failed && <CardsPagination page={page} pages={result.pages} onPage={goToPage} />}
           </section>

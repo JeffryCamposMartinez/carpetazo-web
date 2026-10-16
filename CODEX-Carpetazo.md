@@ -29,3 +29,17 @@
 - Se instaló globalmente la habilidad rontend-design de Anthropic (vía 
 px skills add anthropics/skills) para mantener de forma automática consistencia de calidad en la composición visual, tipografía y diseño CSS de interfaces no genéricas.
 
+
+## Sesión: 29 de Septiembre, 2026
+
+### 1. Sistema Robusto de Fallbacks para Imágenes (SafeImage)
+- Se identificó un problema crítico en la visualización de cartas sin imagen o con links rotos en el catálogo (FolderPokemon.jsx) y en las carpetas de usuario (AdminCardEdit.jsx), donde el navegador mostraba íconos de imagen rota o simplemente recuadros blancos vacíos.
+- Se reemplazó el logo genérico de error por una interfaz limpia que muestra el escudo oficial de Carpetazo (/images/logos/logo_completo.webp) en escala de grises y semitransparente, junto al texto "SIN IMAGEN". (Se descartó el uso de avicon.png porque el archivo original estaba cortado en su borde superior).
+- Se utilizaron medidas proporcionales (w-1/2, max-h-[50%]) para asegurar que el diseño de fallback escale a la perfección sin cortarse, ya sea en la grilla miniatura o en la vista ampliada (zoom).
+
+### 2. Prevención de Errores por Re-renderizado de React
+- Se descubrió que la manipulación directa del DOM (usando innerHTML dentro de eventos onError) era borrada por React cada vez que el usuario hacía scroll infinito y la grilla se re-renderizaba, resultando en cartas eternamente blancas.
+- Además, si la API devolvía un string vacío ("") en lugar de un link de imagen válido, el evento onError del navegador nunca se disparaba, provocando un fallo visual silencioso.
+- **Solución Final:** Se construyó un componente nativo llamado <SafeImage> en FolderPokemon.jsx utilizando React.memo y manejando estados locales (useState para error y carga). Este componente intercepta de forma proactiva (!src) los links nulos antes de dibujar la carta y es totalmente resistente a los ciclos de renderizado de React.
+- Se implementó este componente en los 4 puntos críticos del catálogo: la grilla principal, la miniatura de la cola, el modal de zoom principal y el modal de zoom de la cola.
+- En AdminCardEdit.jsx se aplicó una lógica equivalente con estado local imgError, corrigiendo además un bug (ReferenceError: imgError is not defined) para que las cartas guardadas en el inventario también hereden la protección visual.

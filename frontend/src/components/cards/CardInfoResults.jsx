@@ -12,12 +12,16 @@ import { ReferencePriceLine } from '../folder/ReferencePrice';
 import { formatClp } from '../../services/tcgcsvPrices';
 import { cardFill, cardRatio } from '../../utils/cardShape';
 
-const NOTE = 'Solo información: esta carta no está a la venta en Carpetazo ahora.';
+const NOTE = 'Referencia del catálogo: esta ficha no es una oferta de venta.';
+const tcgplayerImage = (card) => {
+  const id = card?.payload?.external?.productId;
+  return id ? `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(id))}_200w.jpg` : '';
+};
 
 // Cuando una carta no está a la venta: las que coinciden en el catálogo (TCGCSV), para ver su imagen y datos. No tienen precio ni compra.
-export default function CardInfoResults({ query, game, enabled }) {
+export default function CardInfoResults({ query, game, enabled, hasOffers = false }) {
   const [page, setPage] = useState(1);
-  const { results, searching, exhausted } = useCardInfoSearch({ query, game, enabled, page });
+  const { results, searching, exhausted, pages: indexedPages, total: indexedTotal } = useCardInfoSearch({ query, game, enabled, page });
   const { currentUser } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -26,10 +30,13 @@ export default function CardInfoResults({ query, game, enabled }) {
 
   useEffect(() => { setPage(1); }, [query, game]);
   // Si la última página quedó vacía porque ya no hay más ediciones, se vuelve a la última con cartas
-  const known = Math.max(1, Math.ceil(results.length / INFO_PAGE));
+  const known = indexedPages || Math.max(1, Math.ceil(results.length / INFO_PAGE));
   useEffect(() => { if (exhausted && page > known) setPage(known); }, [exhausted, page, known]);
 
-  const shown = results.slice((page - 1) * INFO_PAGE, page * INFO_PAGE);
+  // El índice remoto ya devuelve la página solicitada; el fallback antiguo devuelve la lista acumulada.
+  const shown = indexedTotal > results.length || indexedPages > 1
+    ? results
+    : results.slice((page - 1) * INFO_PAGE, page * INFO_PAGE);
   // Precio de mercado de TCGplayer como referencia (Mitos y Leyendas no está en TCGplayer)
   const { variantsFor } = useReferencePrices(shown.filter((card) => card.groupId), 'pokemon');
 
@@ -51,12 +58,12 @@ export default function CardInfoResults({ query, game, enabled }) {
   };
 
   return (
-    <section id="cartas-informativas" aria-label="Información de cartas que no están a la venta" className="mt-5 scroll-mt-28">
+    <section id="cartas-informativas" aria-label="Coincidencias del catálogo" className="mt-5 scroll-mt-28">
       <div className="mb-3 flex items-start gap-3 rounded-2xl bg-white p-4 ring-1 ring-slate-900/5">
         <span translate="no" aria-hidden="true" className="material-symbols-outlined mt-0.5 text-[24px] text-[#1e40af]">info</span>
         <div className="min-w-0">
-          <h2 className="text-base font-extrabold text-[#12315f]">Ninguna carpeta vende "{query.trim()}" por ahora</h2>
-          <p className="mt-0.5 text-sm text-slate-600">Estas cartas del catálogo coinciden con tu búsqueda. Son solo informativas y no se pueden comprar aquí. Agrégalas a tus deseadas y te avisamos cuando alguien las publique.</p>
+          <h2 className="text-base font-extrabold text-[#12315f]">{hasOffers ? `Más coincidencias del catálogo para "${query.trim()}"` : `Sin ofertas para "${query.trim()}": busca también en el catálogo`}</h2>
+          <p className="mt-0.5 text-sm text-slate-600">Coincidencias por nombre o similitud. Estas fichas son informativas, no ofertas de venta; la disponibilidad se muestra en los resultados de arriba. Puedes agregarlas a tus deseadas.</p>
         </div>
       </div>
 
@@ -66,8 +73,8 @@ export default function CardInfoResults({ query, game, enabled }) {
             <li key={card.id}>
               <button type="button" onClick={() => setOpenId(card.id)} className="group block w-full rounded-2xl bg-white p-2 text-left ring-1 ring-slate-900/5 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.4)] transition-transform duration-150 active:scale-[0.985] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
                 <div className="relative w-full overflow-hidden rounded-xl bg-slate-50" style={{ aspectRatio: cardRatio(card.game) }}>
-                  {card.imageUrl ? <LoadableImage src={card.imageUrl} alt={card.name} className="h-full w-full object-contain" style={cardFill(card.game)} /> : <span className="flex h-full items-center justify-center text-xs font-semibold text-slate-400">Sin imagen</span>}
-                  <span className="absolute left-1.5 top-1.5 rounded-full bg-[#12315f]/90 px-2 py-0.5 text-[11px] font-extrabold text-white">No a la venta</span>
+                  {card.imageUrl || tcgplayerImage(card) ? <LoadableImage src={card.imageUrl || tcgplayerImage(card)} fallbackSrc={card.imageUrl ? tcgplayerImage(card) : undefined} alt={card.name} className="h-full w-full object-contain" style={cardFill(card.game)} /> : <span className="flex h-full items-center justify-center text-xs font-semibold text-slate-400">Sin imagen</span>}
+                  <span className="absolute left-1.5 top-1.5 rounded-full bg-[#12315f]/90 px-2 py-0.5 text-[11px] font-extrabold text-white">Catálogo</span>
                 </div>
                 <p className="mt-2 line-clamp-2 text-sm font-extrabold leading-snug text-[#12315f]">{card.name}</p>
                 <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{card.setName}</p>
@@ -97,7 +104,7 @@ export default function CardInfoResults({ query, game, enabled }) {
             const prices = (card.groupId ? variantsFor(card) : null) || [];
             return {
               subtitle: [card.game, card.setName, card.language].filter(Boolean).join(' · '),
-              chips: ['No está a la venta', ...prices.slice(0, 3).map((variant) => `${variant.name} ${formatClp(variant.clp)}`)],
+              chips: ['Referencia del catálogo', ...prices.slice(0, 3).map((variant) => `${variant.name} ${formatClp(variant.clp)}`)],
               note: prices.length ? `${NOTE} El precio es una referencia de mercado en TCGplayer.` : NOTE,
             };
           }}
