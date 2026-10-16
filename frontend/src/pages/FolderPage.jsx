@@ -19,7 +19,7 @@ import useCardSearch from '../hooks/useCardSearch';
 import { DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from '../components/folder/dragScroll';
 import useCatalogOrder from '../hooks/useCatalogOrder';
 import useInventoryTools from '../hooks/useInventoryTools';
-import { tcgcsvJson } from '../services/tcgcsvFetch';
+import { catalogJson, tcgcsvJson } from '../services/tcgcsvFetch';
 import { EMPTY_OP_FILTERS, ONE_PIECE_CATEGORY, onePieceGroupLabel } from '../services/tcgcsvOnePiece';
 import { EMPTY_MAGIC_FILTERS, MAGIC_CATEGORY, magicGroupLabel, magicGroupRank } from '../services/tcgcsvMagic';
 import { EMPTY_RB_FILTERS, RIFTBOUND_CATEGORY, riftboundGroupLabel } from '../services/tcgcsvRiftbound';
@@ -507,11 +507,19 @@ const [isSearching, setIsSearching] = useState(false);
       setIsSearching(false);
       const catId = tcgcsvCategoryId(searchCategory, searchLang);
       // Ediciones sin cartas (solo sellado), generado con scripts/find_empty_tcgcsv_groups.cjs
-      Promise.all([
-        tcgcsvJson(`/tcgplayer/${catId}/groups`),
-        fetch('/empty-groups-tcgcsv.json').then(r => r.json()).catch(() => ({})),
-      ])
-        .then(([json, emptyGroups]) => {
+      catalogJson(`/sets?categoryId=${catId}`)
+        .then((local) => {
+          if (!Array.isArray(local?.data)) throw new Error('Catálogo local no disponible');
+          return { json: { results: local.data }, emptyGroups: {} };
+        })
+        .catch((error) => {
+          if (error?.name === 'AbortError') throw error;
+          return Promise.all([
+            tcgcsvJson(`/tcgplayer/${catId}/groups`),
+            fetch('/empty-groups-tcgcsv.json').then(r => r.json()).catch(() => ({})),
+          ]).then(([json, emptyGroups]) => ({ json, emptyGroups }));
+        })
+        .then(({ json, emptyGroups }) => {
           if (stale) return;
           const groups = (json.results || [])
             .filter(g => new Date(g.publishedOn) <= new Date())
