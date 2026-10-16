@@ -1,5 +1,5 @@
 import { api } from '../services/api';
-import { catalogJson, tcgcsvJson } from '../services/tcgcsvFetch';
+import { catalogJson } from '../services/tcgcsvFetch';
 import { classifyTcgcsvCard } from '../services/tcgcsvPokemon';
 import { ONE_PIECE_CATEGORY, filterOnePieceCards, onePieceExt, onePieceMatchesQuery } from '../services/tcgcsvOnePiece';
 import { MAGIC_CATEGORY, MAGIC_MARKER, filterMagicCards, loadMagicMeta, magicExt, magicMatchesQuery } from '../services/tcgcsvMagic';
@@ -27,13 +27,13 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
     if (pokeGroupCacheRef.current.has(key)) return pokeGroupCacheRef.current.get(key);
     const [json, magicMeta] = await Promise.all([
       catalogJson(`/${catId}/${group.groupId}/cards`, signal)
-        .then((response) => {
-          if (!response?.data?.length) throw new Error('Edición no importada en el catálogo local');
-          return { results: response.data };
-        })
+        .then((response) => ({ results: Array.isArray(response?.data) ? response.data : [] }))
         .catch((error) => {
           if (error?.name === 'AbortError') throw error;
-          return tcgcsvJson(`/tcgplayer/${catId}/${group.groupId}/products`, signal);
+          // La búsqueda de cartas es local. Un fallo del catálogo no debe
+          // convertir una edición en una consulta remota de productos.
+          console.warn(`No se pudo cargar la edición local ${catId}/${group.groupId}:`, error?.message || error);
+          return { results: [] };
         }),
       catId === MAGIC_CATEGORY ? loadMagicMeta() : catId === YUGIOH_CATEGORY ? loadYugiohMeta() : null,
     ]);
@@ -48,7 +48,7 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
         id: p.productId,
         tcgProductId: p.productId,
         name: p.name,
-        imageUrl: (p.imageUrl || '').replace('_200w', '_400w'),
+        imageUrl: p.imageUrl || `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(p.productId))}_400w.jpg`,
         categoryId: catId === ONE_PIECE_CATEGORY ? ONE_PIECE_CATEGORY : 1,
         catId,
         cardLanguage: catId === 85 ? 'Japanese' : 'English',

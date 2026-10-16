@@ -269,7 +269,7 @@ router.get('/api/tcg/catalog/:categoryId/:groupId/cards', async (req, res) => {
     const rows = await prisma.catalogCard.findMany({
       where: { categoryId, groupId, kind: 'card' },
       orderBy: [{ number: 'asc' }, { name: 'asc' }, { productId: 'asc' }],
-      select: { productId: true, categoryId: true, groupId: true, name: true, number: true, rarity: true, imageKey: true, attributes: true, set: { select: { name: true, publishedOn: true } }, game: { select: { name: true } } },
+      select: { productId: true, categoryId: true, groupId: true, name: true, number: true, rarity: true, imageKey: true, sourceImageUrl: true, attributes: true, set: { select: { name: true, publishedOn: true } }, game: { select: { name: true } } },
     });
     const data = rows.map((card) => {
       const attributes = card.attributes && typeof card.attributes === 'object' && !Array.isArray(card.attributes) ? card.attributes : {};
@@ -277,7 +277,10 @@ router.get('/api/tcg/catalog/:categoryId/:groupId/cards', async (req, res) => {
       if (card.number && !extendedData.some((item) => item.name === 'Number')) extendedData.push({ name: 'Number', value: card.number });
       return {
         productId: card.productId, categoryId: card.categoryId, groupId: card.groupId, name: card.name,
-        imageUrl: r2PublicUrl(card.imageKey), number: card.number, rarity: card.rarity,
+        // R2 es la fuente principal. Solo si todavía no se subió la imagen
+        // se entrega la URL de respaldo de la importación (o el CDN de la
+        // carta) sin consultar el endpoint remoto de productos.
+        imageUrl: r2PublicUrl(card.imageKey) || card.sourceImageUrl || `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(card.productId))}_400w.jpg`, number: card.number, rarity: card.rarity,
         extendedData, group: card.set, game: card.game.name,
       };
     });

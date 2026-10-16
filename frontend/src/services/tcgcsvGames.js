@@ -1,4 +1,4 @@
-import { catalogJson, tcgcsvJson } from './tcgcsvFetch';
+import { catalogJson } from './tcgcsvFetch';
 import { ONE_PIECE_CATEGORY, filterOnePieceCards, onePieceExt, onePieceGroupLabel, onePieceMatchesQuery } from './tcgcsvOnePiece';
 import { MAGIC_CATEGORY, MAGIC_MARKER, filterMagicCards, loadMagicMeta, magicExt, magicGroupLabel, magicGroupRank, magicMatchesQuery } from './tcgcsvMagic';
 import { YUGIOH_CATEGORY, YUGIOH_MARKER, filterYugiohCards, loadYugiohMeta, yugiohExt, yugiohGroupLabel, yugiohMatchesQuery } from './tcgcsvYugioh';
@@ -39,7 +39,10 @@ export const fetchGameGroups = async (game, signal) => {
       json = { results: local.data.map((g) => ({ ...g, groupId: g.groupId, id: g.groupId })) };
     } catch (error) {
       if (error?.name === 'AbortError') throw error;
-      json = await tcgcsvJson(`/tcgplayer/${info.catId}/groups`, signal);
+      // El catálogo local es la fuente de verdad para la búsqueda de cartas.
+      // No sustituirlo por grupos remotos, que pueden contener ediciones sin
+      // cartas importadas y provocar peticiones /products 404.
+      json = { results: [] };
     }
     const results = json.results || [];
     const perDay = {};
@@ -61,8 +64,11 @@ export const fetchGameGroupCards = async (game, group, signal) => {
   if (cardsCache.has(key)) return cardsCache.get(key);
   const [json, meta] = await Promise.all([
     catalogJson(`/${info.catId}/${group.groupId}/cards`, signal)
-      .then((response) => { if (!response.data?.length) throw new Error('Edición no importada'); return { results: response.data }; })
-      .catch(() => tcgcsvJson(`/tcgplayer/${info.catId}/${group.groupId}/products`, signal)),
+      .then((response) => ({ results: Array.isArray(response?.data) ? response.data : [] }))
+      .catch((error) => {
+        if (error?.name === 'AbortError') throw error;
+        return { results: [] };
+      }),
     info.meta ? info.meta() : null,
   ]);
   const toNumber = (text) => { const match = String(text || '').match(/\d+/); return match ? parseInt(match[0], 10) : 0; };

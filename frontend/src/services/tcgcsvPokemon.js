@@ -1,4 +1,4 @@
-import { catalogJson, tcgcsvJson } from './tcgcsvFetch';
+import { catalogJson } from './tcgcsvFetch';
 
 // Búsqueda de cartas Pokémon en TCGCSV (inglés = categoría 3, japonés = 85), con los mismos criterios
 // que usa la búsqueda de "agregar cartas" de las carpetas.
@@ -40,11 +40,9 @@ export const fetchPokemonGroups = async (lang, signal) => {
     json = { results: local.data.map((g) => ({ ...g, groupId: g.groupId, id: g.groupId })) };
   } catch (error) {
     if (error?.name === 'AbortError') throw error;
-    const [remote, emptyGroups] = await Promise.all([
-      tcgcsvJson(`/tcgplayer/${catId}/groups`, signal),
-      fetch('/empty-groups-tcgcsv.json', { signal }).then((r) => r.json()).catch(() => ({})),
-    ]);
-    json = { results: remote.results || [], emptyGroups };
+    // Las ediciones y cartas de búsqueda provienen del catálogo importado.
+    // No degradar a la lista remota de TCGCSV si la base local no responde.
+    json = { results: [], emptyGroups: {} };
   }
   const emptyGroups = json.emptyGroups || {};
   const results = json.results || [];
@@ -66,8 +64,13 @@ export const fetchPokemonGroupCards = async (lang, group, signal) => {
   const key = `${catId}-${group.groupId}`;
   if (productsCache.has(key)) return productsCache.get(key);
   let json;
-  try { const local = await catalogJson(`/${catId}/${group.groupId}/cards`, signal); if (!local.data?.length) throw new Error('Edición no importada'); json = { results: local.data }; }
-  catch (_error) { json = await tcgcsvJson(`/tcgplayer/${catId}/${group.groupId}/products`, signal); }
+  try {
+    const local = await catalogJson(`/${catId}/${group.groupId}/cards`, signal);
+    json = { results: Array.isArray(local?.data) ? local.data : [] };
+  } catch (error) {
+    if (error?.name === 'AbortError') throw error;
+    json = { results: [] };
+  }
   const list = (json.results || [])
     .map((product) => {
       const ext = {};
