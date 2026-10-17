@@ -31,6 +31,7 @@ import { storedCardId } from '../utils/mylIdentity';
 import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 import EmptyState from '../components/ui/EmptyState';
 import { siteUrl } from '../utils/siteUrl';
+import { formatCardSearchQuery } from '../utils/cardCodeSearch';
 
 
 const PAGE_SIZE = 20;
@@ -60,6 +61,9 @@ export default function FolderPage() {
 
   // --- ADD TO CATALOG STATE ---
   const [searchQuery, setSearchQuery] = useState('');
+  const handleSearchQueryChange = (value) => {
+    setSearchQuery(formatCardSearchQuery(value, searchQuery));
+  };
   const [gridCols, setGridCols] = useState(typeof window !== 'undefined' && window.innerWidth <= 768 ? 2 : 3);
   const [searchCategory, setSearchCategory] = useState('1');
   const [searchSet, setSearchSet] = useState('');
@@ -949,7 +953,7 @@ const [isSearching, setIsSearching] = useState(false);
     searchResults, searchSet, selectedCard, selectedExistingCard, selectedQueue, selectedQueueCountByCard,
     selectedSupertype, selectedType, setActiveQueueItemId, setFilterRarity, setFilterType, setGridCols,
     setIsSetDropdownOpen, setLanguage, setMylCost, setMylRace, setMagicFilters, setMylType, setOpFilters, setPrice, setRbFilters, setYgFilters, setPseudoName, setSearchBlock,
-    setSearchLang, setSearchPhysicalProduct, setSearchQuery, setSearchSet, setSelectedCard, setSelectedQueue,
+    setSearchLang, setSearchPhysicalProduct, setSearchQuery: handleSearchQueryChange, setSearchSet, setSelectedCard, setSelectedQueue,
     setSelectedSupertype, setSelectedType, setShowCardDetails, setStock, showCardDetails, showScrollTop,
     startQueuedAdd, stock, toggleMultiSelectMode, totalQueuedCards, visibleCount };
 

@@ -8,19 +8,11 @@ import MobileMenu from './header/MobileMenu';
 import NotificationBellPanel from './header/NotificationBellPanel';
 import { useToast } from '../ui/ToastProvider';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
+import { formatCardSearchQuery } from '../../utils/cardCodeSearch';
 
 // Ventanas que solo se abren a pedido: su código se descarga al abrirlas, no en la primera carga de cada página
 const AuthModal = lazy(() => import('../auth/AuthModal'));
 const ReviewModal = lazy(() => import('../reviews/Reviews').then((module) => ({ default: module.ReviewModal })));
-
-// Los códigos de cartas suelen escribirse como 123/456. Si se pegan solo números,
-// completa el separador después de los primeros tres dígitos sin tocar búsquedas por nombre.
-const formatCardSearchQuery = (value, previousValue = '') => {
-  const nextValue = String(value ?? '');
-  if (previousValue.endsWith('/') && /^\d{3}$/.test(nextValue)) return nextValue;
-  if (/^\d{3,}$/.test(nextValue)) return `${nextValue.slice(0, 3)}/${nextValue.slice(3)}`;
-  return nextValue;
-};
 
 export default function Header() {
   const { currentUser, appUser, logout, loginWithGoogle } = useAuth();

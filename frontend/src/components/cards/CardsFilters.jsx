@@ -1,4 +1,5 @@
 import ComunaSelect from '../ui/ComunaSelect';
+import { formatCardSearchQuery } from '../../utils/cardCodeSearch';
 
 // Juegos del sitio con su logo. Solo Pokémon y Mitos y Leyendas tienen catálogo cargado; el resto se verá vacío hasta que haya cartas.
 export const GAMES = [
@@ -24,7 +25,7 @@ export default function CardsFilters({ comuna, onComuna, onQuery, onTcg, query, 
         <input
           type="search"
           value={query}
-          onChange={(event) => onQuery(event.target.value.slice(0, 80))}
+          onChange={(event) => onQuery(formatCardSearchQuery(event.target.value.slice(0, 80), query))}
           placeholder="Buscar carta por nombre"
           aria-label="Buscar carta por nombre"
           enterKeyHint="search"

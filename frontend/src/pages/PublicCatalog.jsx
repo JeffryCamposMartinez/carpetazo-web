@@ -13,6 +13,7 @@ import { rarityRank } from '../utils/rarityRank';
 import usePageMeta from '../hooks/usePageMeta';
 import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 import EmptyState from '../components/ui/EmptyState';
+import { formatCardSearchQuery } from '../utils/cardCodeSearch';
 
 const isLocalhostWithProductionApi = () => {
   if (typeof window === 'undefined') return false;
@@ -41,6 +42,9 @@ function PublicCatalog() {
   const [selectedSupertype, setSelectedSupertype] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const handleSearchQueryChange = (value) => {
+    setSearchQuery(formatCardSearchQuery(value, searchQuery));
+  };
   const [searchSet, setSearchSet] = useState('');
   const [isSetDropdownOpen, setIsSetDropdownOpen] = useState(false);
   const [viewMode, setViewMode] = useState('album');
@@ -584,7 +588,7 @@ function PublicCatalog() {
     cart, cartItemsCount, cartTotal, counts, decrementCart, folderData, formatCLP, isMobileFiltersOpen, isOwner,
     isSetDropdownOpen, mylCost, mylFilterOptions, mylRace, mylType, onlyAvailable, quickRarity, searchQuery,
     searchSet, selectedSupertype, selectedType, setIsMobileFiltersOpen, setIsSetDropdownOpen, setMylCost, setMylRace,
-    setMylType, setOnlyAvailable, setQuickRarity, setSearchQuery, setSearchSet, setSelectedSupertype, setSelectedType,
+    setMylType, setOnlyAvailable, setQuickRarity, setSearchQuery: handleSearchQueryChange, setSearchSet, setSelectedSupertype, setSelectedType,
     setSortBy, setViewMode, sortBy, sortedCards, viewMode, wanted };
 
   const catalogCoverProps = { availableCardsCount, cards, contactSeller, folderData, isOwner, sellerData,
