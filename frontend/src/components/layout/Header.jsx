@@ -13,6 +13,15 @@ import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 const AuthModal = lazy(() => import('../auth/AuthModal'));
 const ReviewModal = lazy(() => import('../reviews/Reviews').then((module) => ({ default: module.ReviewModal })));
 
+// Los códigos de cartas suelen escribirse como 123/456. Si se pegan solo números,
+// completa el separador después de los primeros tres dígitos sin tocar búsquedas por nombre.
+const formatCardSearchQuery = (value, previousValue = '') => {
+  const nextValue = String(value ?? '');
+  if (previousValue.endsWith('/') && /^\d{3}$/.test(nextValue)) return nextValue;
+  if (/^\d{3,}$/.test(nextValue)) return `${nextValue.slice(0, 3)}/${nextValue.slice(3)}`;
+  return nextValue;
+};
+
 export default function Header() {
   const { currentUser, appUser, logout, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
@@ -112,6 +121,10 @@ export default function Header() {
     e.preventDefault();
     const term = searchQuery.trim();
     navigate(term ? `/cartas?q=${encodeURIComponent(term)}` : '/cartas');
+  };
+
+  const handleSearchQueryChange = (value) => {
+    setSearchQuery(formatCardSearchQuery(value, searchQuery));
   };
 
   const NAV_ROUTES = [
@@ -473,7 +486,7 @@ export default function Header() {
             autoComplete="off"
             aria-label={`Buscar ${category}`}
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchQueryChange(e.target.value)}
             placeholder={`Busca ${category}...`}
             className={`h-full min-w-0 flex-1 pl-4 pr-3 font-medium text-[#12315f] caret-[#1e40af] selection:bg-[#facc15]/60 text-ellipsis placeholder:font-normal placeholder:text-slate-500 !bg-transparent !border-0 !shadow-none !ring-0 !rounded-none focus:outline-none ${isMobile ? 'text-base' : 'text-[15px]'}`}
           />
