@@ -48,6 +48,7 @@ model User {
   reviewsWritten           SellerReview[]    @relation("ReviewsWritten")
   reviewReports            ReviewReport[]
   reportsMade              Report[]
+  feedback                 Feedback[]
   sanctions                Sanction[]        @relation("SanctionsReceived")
   appeals                  Appeal[]
   moderationHidden         String[]          @default([]) // partes del perfil ocultas por moderación: photo | banner | wallpaper | text
@@ -647,4 +648,23 @@ model ErrorEvent {
   lastSeen    DateTime @default(now())
 
   @@index([lastSeen])
+}
+
+// Quejas y sugerencias enviadas por las personas; el equipo puede marcarlas como corregidas.
+model Feedback {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind          String    // complaint | suggestion
+  title         String
+  message       String
+  status        String    @default("open") // open | corrected
+  moderatorNote String?
+  correctedById String?
+  correctedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
 }

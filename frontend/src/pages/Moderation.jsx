@@ -13,8 +13,9 @@ import ToolsPanel from '../components/moderation/ToolsPanel';
 import OperationsPanel from '../components/moderation/OperationsPanel';
 import TeamPanel from '../components/moderation/TeamPanel';
 import CatalogImportPanel from '../components/moderation/CatalogImportPanel';
+import FeedbackPanel from '../components/moderation/FeedbackPanel';
 import ModNav from '../components/moderation/ModNav';
-import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
+import LoadingState from '../components/ui/LoadingState';
 
 // Secciones según el rol: soporte (1) lee, moderador (2) decide, administrador (3) además ve reseñas, métricas, auditoría, catálogo y herramientas
 const GROUPS = [
@@ -26,6 +27,7 @@ const TABS = [
   { id: 'reports', group: 'queue', label: 'Reportes', icon: 'flag', min: 1, blurb: 'Contenido reportado por la comunidad y por la detección automática, con lo más grave primero.' },
   { id: 'cases', group: 'queue', label: 'Estafas', shortLabel: 'Estafas', icon: 'security', min: 1, blurb: 'Casos abiertos contra una cuenta, con todos sus reportes reunidos.' },
   { id: 'appeals', group: 'queue', label: 'Apelaciones', icon: 'gavel', min: 1, blurb: 'Personas que piden revisar una medida o una decisión sobre su contenido.' },
+  { id: 'feedback', group: 'queue', label: 'Quejas y sugerencias', shortLabel: 'Sugerencias', icon: 'feedback', min: 1, blurb: 'Mensajes de la comunidad para mejorar el sitio o informar un problema.' },
   { id: 'people', group: 'people', label: 'Personas y medidas', shortLabel: 'Personas', icon: 'groups', min: 1, blurb: 'Busca una cuenta, revisa su historial y aplica o levanta medidas.' },
   { id: 'team', group: 'people', label: 'Equipo y administradores', shortLabel: 'Equipo', icon: 'admin_panel_settings', min: 3, blurb: 'Quién es del equipo y cómo dar el rol de administrador a otra persona, con doble confirmación.' },
   { id: 'reviews', group: 'people', label: 'Reseñas marcadas', shortLabel: 'Reseñas', icon: 'reviews', min: 3, blurb: 'Reseñas reportadas o sospechosas, para aprobarlas o eliminarlas.' },
@@ -41,7 +43,8 @@ const ROLE_LABELS = { 1: 'Soporte (solo lectura)', 2: 'Moderador', 3: 'Administr
 const QUEUE_LINKS = [
   { tab: 'reports', label: 'Reportes', field: 'reports' },
   { tab: 'cases', label: 'Estafas', field: 'cases' },
-  { tab: 'appeals', label: 'Apelaciones', field: 'appeals' }
+  { tab: 'appeals', label: 'Apelaciones', field: 'appeals' },
+  { tab: 'feedback', label: 'Quejas y sugerencias', field: 'feedback' }
 ];
 
 export default function Moderation() {
@@ -75,7 +78,7 @@ export default function Moderation() {
 
   const navItems = TABS.filter((item) => level >= item.min).map((item) => ({
     ...item,
-    count: item.id === 'reports' ? summary?.reports : item.id === 'cases' ? summary?.cases : item.id === 'appeals' ? summary?.appeals : item.id === 'people' ? summary?.pendingBans : 0,
+    count: item.id === 'reports' ? summary?.reports : item.id === 'cases' ? summary?.cases : item.id === 'appeals' ? summary?.appeals : item.id === 'feedback' ? summary?.feedback : item.id === 'people' ? summary?.pendingBans : 0,
     alert: item.id === 'reports' && (summary?.criticalReports || 0) > 0
   }));
   const current = navItems.find((item) => item.id === tab) || navItems[0];
@@ -137,6 +140,7 @@ export default function Moderation() {
               {tab === 'cases' && <CasesPanel level={level} onOpenPerson={openPerson} onOpenReport={openReport} />}
               {tab === 'people' && <PeoplePanel level={level} focusUsername={focusUsername} focusReportId={sanctionReportId || undefined} onFocusUsed={() => setFocusUsername('')} />}
               {tab === 'appeals' && <AppealsPanel level={level} />}
+              {tab === 'feedback' && <FeedbackPanel level={level} />}
               {tab === 'team' && level >= 3 && <TeamPanel />}
               {tab === 'reviews' && level >= 3 && <ReviewsPanel />}
               {tab === 'metrics' && level >= 3 && <MetricsPanel />}

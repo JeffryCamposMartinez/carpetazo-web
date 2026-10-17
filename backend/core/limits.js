@@ -110,6 +110,9 @@ export const applyRouteLimits = (app) => {
   app.post('/api/admin/test-email', routeLimiter(15 * 60 * 1000, 10));
   app.post('/api/admin/terms/evidence', routeLimiter(15 * 60 * 1000, 60));
   app.post('/api/reports', routeLimiter(15 * 60 * 1000, 80));
+  app.post('/api/feedback', routeLimiter(15 * 60 * 1000, 10));
+  app.get('/api/feedback/mine', routeLimiter(15 * 60 * 1000, 100));
+  app.use('/api/admin/feedback', routeLimiter(15 * 60 * 1000, 300));
   app.get('/api/reports/reasons', routeLimiter(15 * 60 * 1000, 200));
   app.get('/api/reports/mine', routeLimiter(15 * 60 * 1000, 100));
   app.use('/api/admin/reports', routeLimiter(15 * 60 * 1000, 300));

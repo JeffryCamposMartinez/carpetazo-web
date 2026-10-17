@@ -40,6 +40,7 @@ import notificationRoutes from './routes/notifications.js';
 import onboardingRoutes from './routes/onboarding.js';
 import opsRoutes from './routes/ops.js';
 import teamRoutes from './routes/team.js';
+import feedbackRoutes from './routes/feedback.js';
 import { installErrorCapture, purgeOldErrors, requestContext } from './core/errorLog.js';
 import { startOnboardingNudges } from './core/onboarding.js';
 import { startWishlistAlerts } from './core/wishlistAlerts.js';
@@ -118,6 +119,7 @@ app.use(notificationRoutes);
 app.use(opsRoutes);
 app.use(onboardingRoutes);
 app.use(teamRoutes);
+app.use(feedbackRoutes);
 app.use(chatRoutes);
 app.use(messageRoutes);
 

@@ -21,6 +21,7 @@ const SellerProfile = lazy(pageLoaders.seller);
 const ProfilePage = lazy(pageLoaders.profile);
 const Messages = lazy(pageLoaders.messages);
 const Moderation = lazy(pageLoaders.moderation);
+const FeedbackPage = lazy(pageLoaders.feedback);
 const FoldersPage = lazy(pageLoaders.folders);
 const CardsPage = lazy(pageLoaders.cards);
 const CardDetailPage = lazy(pageLoaders.cardDetail);
@@ -78,6 +79,7 @@ function App() {
                 <Route path="/c/:folderId" element={<PublicCatalog />} />
                 <Route path="/mensajes" element={<Messages />} />
                 <Route path="/moderacion" element={<Moderation />} />
+                <Route path="/sugerencias" element={<FeedbackPage />} />
                 <Route path="/carpetas" element={<FoldersPage />} />
                 <Route path="/cartas" element={<CardsPage />} />
                 <Route path="/carta/:cardId" element={<CardDetailPage />} />

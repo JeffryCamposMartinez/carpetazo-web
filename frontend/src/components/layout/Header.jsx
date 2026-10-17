@@ -174,7 +174,7 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    const reservedRoutes = ['/', '/bienvenida', '/dashboard', '/perfil', '/carpeta', '/c', '/admin', '/mensajes', '/moderacion', '/carpetas', '/cartas', '/vendedores', '/terminos', '/privacidad'];
+    const reservedRoutes = ['/', '/bienvenida', '/dashboard', '/perfil', '/carpeta', '/c', '/admin', '/mensajes', '/moderacion', '/sugerencias', '/carpetas', '/cartas', '/vendedores', '/terminos', '/privacidad'];
     const pathname = location.pathname;
     const isDynamicPublicProfile = pathname.split('/').filter(Boolean).length === 1 && !reservedRoutes.includes(pathname);
     if (!isDynamicPublicProfile) {
@@ -555,6 +555,9 @@ export default function Header() {
                       </Link>
                       <Link role="menuitem" to="/perfil" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
                         <span translate="no" className="material-symbols-outlined text-[20px]">person</span> Mi cuenta
+                      </Link>
+                      <Link role="menuitem" to="/sugerencias" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
+                        <span translate="no" className="material-symbols-outlined text-[20px]">feedback</span> Quejas y sugerencias
                       </Link>
                       {userUsername && (
                         <Link role="menuitem" to={`/${userUsername}`} onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">

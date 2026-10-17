@@ -12,6 +12,7 @@ export const pageLoaders = {
   profile: () => import('../pages/ProfilePage'),
   messages: () => import('../pages/Messages'),
   moderation: () => import('../pages/Moderation'),
+  feedback: () => import('../pages/FeedbackPage'),
   folders: () => import('../pages/FoldersPage'),
   cards: () => import('../pages/CardsPage'),
   cardDetail: () => import('../pages/CardDetailPage'),
@@ -28,6 +29,7 @@ const loaderByPath = {
   '/bienvenida': 'landing',
   '/dashboard': 'dashboard',
   '/mensajes': 'messages',
+  '/sugerencias': 'feedback',
 };
 
 const started = new Set();
