@@ -7,6 +7,7 @@ import { isCurrentAcceptance, latestAcceptance } from './legal.js';
 import { sendPushToUser } from './push.js';
 import { alertEmailHtml } from './alertEmail.js';
 import { hashSecret } from './hashing.js';
+import { storedMylId } from './mylIdentity.js';
 
 const SITE = 'https://carpetazo.cl';
 const API = process.env.PUBLIC_API_URL || 'https://api.carpetazo.cl';
@@ -89,8 +90,13 @@ export const runWishlistAlerts = async ({ deliver = deliverToUser, now = new Dat
     take: ITEMS_MAX,
     select: { id: true, userId: true, name: true, categoryId: true, productId: true, maxPrice: true, alertState: { select: { lastPrice: true, notifiedAt: true } } }
   });
-  // El código de la carta es el id del producto (las del catálogo de Pokémon se guardan como `tcgcsv:<cat>:<id>`)
-  const wanted = items.map((item) => ({ item, tcg: WISH_TCG[item.categoryId], tcgId: String(item.productId).replace(/^tcgcsv:\d+:/, '') })).filter((entry) => entry.tcg && /^\d{1,12}$/.test(entry.tcgId));
+  // El código de la carta es el id del producto. Mitos usa un namespace
+  // propio para no colisionar con ids numéricos de TCGplayer.
+  const wanted = items.map((item) => ({
+    item,
+    tcg: WISH_TCG[item.categoryId],
+    tcgId: item.categoryId === 99 ? storedMylId(item.productId) : String(item.productId).replace(/^tcgcsv:\d+:/, '')
+  })).filter((entry) => entry.tcg && (entry.item.categoryId === 99 ? /^myl:\d{1,12}$/.test(entry.tcgId) : /^\d{1,12}$/.test(entry.tcgId)));
   const ids = [...new Set(wanted.map((entry) => entry.tcgId))];
   const cards = [];
   for (let at = 0; at < ids.length; at += CHUNK) {

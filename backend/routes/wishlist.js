@@ -3,6 +3,7 @@ import express from 'express';
 import { authenticateToken, currentUserId } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { badRequest, hasControlChars, isAllowedStoredImageUrl, isOptionalText, isShortText, isValidPrice } from '../core/validation.js';
+import { rawMylId, storedMylId } from '../core/mylIdentity.js';
 
 const router = express.Router();
 
@@ -95,7 +96,11 @@ router.get('/api/wishlist/matches', authenticateToken, async (req, res) => {
     if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     const items = await prisma.wishlistItem.findMany({ where: { userId, productId: { not: null } }, take: WISHLIST_MAX_ITEMS * WISHLIST_MAX_LISTS, select: { id: true, categoryId: true, productId: true, maxPrice: true } });
     // tcgId de la carta = id del producto (las del catálogo de Pokémon se guardan como `tcgcsv:<cat>:<id>`)
-    const wanted = items.map((item) => ({ ...item, tcgId: String(item.productId).replace(/^tcgcsv:\d+:/, ''), tcg: WISHLIST_MATCH_TCG[item.categoryId] })).filter((item) => item.tcg && /^\d{1,12}$/.test(item.tcgId));
+    const wanted = items.map((item) => ({
+      ...item,
+      tcgId: item.categoryId === 99 ? storedMylId(item.productId) : String(item.productId).replace(/^tcgcsv:\d+:/, ''),
+      tcg: WISHLIST_MATCH_TCG[item.categoryId]
+    })).filter((item) => item.tcg && (item.categoryId === 99 ? /^myl:\d{1,12}$/.test(item.tcgId) : /^\d{1,12}$/.test(item.tcgId)));
     if (wanted.length === 0) return res.json({ success: true, matches: {}, prices: {} });
 
     const cards = await prisma.card.findMany({
@@ -143,12 +148,13 @@ router.post('/api/wishlist', authenticateToken, async (req, res) => {
     const detail = rawDetail ? String(rawDetail).trim() || null : null;
 
     // Carta del catálogo propio (Mitos y Leyendas, Pokémon del catálogo): nombre, imagen, juego y edición salen de la base
-    const catalog = productId
-      ? await prisma.tcgProduct.findUnique({ where: { productId }, select: { productId: true, name: true, imageUrl: true, categoryId: true, group: { select: { name: true } } } })
+    const catalogLookupId = productId && String(productId).startsWith('myl:') ? rawMylId(productId) : productId;
+    const catalog = catalogLookupId
+      ? await prisma.tcgProduct.findUnique({ where: { productId: catalogLookupId }, select: { productId: true, name: true, imageUrl: true, categoryId: true, group: { select: { name: true } } } })
       : null;
     let identity;
     if (catalog) {
-      identity = { productId: catalog.productId, categoryId: catalog.categoryId, name: catalog.name, game: WISHLIST_GAME_BY_CATEGORY[catalog.categoryId] || game, detail: catalog.group?.name || detail, imageUrl: catalog.imageUrl || null };
+      identity = { productId: catalog.categoryId === 99 ? storedMylId(catalog.productId) : catalog.productId, categoryId: catalog.categoryId, name: catalog.name, game: WISHLIST_GAME_BY_CATEGORY[catalog.categoryId] || game, detail: catalog.group?.name || detail, imageUrl: catalog.imageUrl || null };
     } else if (external !== undefined) {
       // Cartas de TCGCSV (Pokémon 3 y 85, One Piece 68, Magic 1, Riftbound 89, Yu-Gi-Oh! 2): el catálogo no está en la base, el identificador se valida por forma
       const externalCategory = Number(external?.categoryId);

@@ -146,7 +146,7 @@ const mylReferencePrices = async (ids) => {
 router.get('/api/cards/reference-prices', async (req, res) => {
   try {
     const ids = typeof req.query.ids === 'string' ? [...new Set(req.query.ids.split(','))] : [];
-    if (ids.length === 0 || ids.length > REFERENCE_MAX_IDS || ids.some((id) => !/^[A-Za-z0-9_-]{1,40}$/.test(id))) {
+    if (ids.length === 0 || ids.length > REFERENCE_MAX_IDS || ids.some((id) => !/^[A-Za-z0-9:_-]{1,40}$/.test(id))) {
       return badRequest(res, 'Cartas inválidas');
     }
     const prices = await mylReferencePrices(ids);

@@ -7,6 +7,7 @@ import { folderFilterSql, folderOrderSql, likePattern, loadPublicFolders, tcgVar
 import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/publicSeller.js';
 import { badRequest, cleanCardData, isAllowedStoredImageUrl, isOptionalText, isShortText, isSmallObject, isUuid, isValidPrice, isValidStock } from '../core/validation.js';
 import { r2PublicUrl } from '../core/tcgCatalogImport.js';
+import { isMylTcg, storedCardId } from '../core/mylIdentity.js';
 
 const router = express.Router();
 
@@ -368,7 +369,11 @@ router.get('/api/folders/:id', optionalAuth, async (req, res) => {
     // El estado de moderación solo lo ve el dueño; para los demás no se serializa
     const { moderationState: _folderState, ...publicFolder } = folder;
     const visibleCards = isFolderOwner ? folder.cards : folder.cards.map(({ moderationState: _cardState, ...card }) => card);
-    const productIds = [...new Set(visibleCards.map((card) => Number(card.tcgId)).filter((id) => Number.isInteger(id) && id > 0))];
+    // Los ids de Mitos son propios del catálogo de Mitos. No deben buscarse
+    // en CatalogCard, porque allí viven los ids de TCGplayer y pueden coincidir.
+    const productIds = isMylTcg(folder.tcg)
+      ? []
+      : [...new Set(visibleCards.map((card) => Number(card.tcgId)).filter((id) => Number.isInteger(id) && id > 0))];
     const localImages = productIds.length
       ? await prisma.catalogCard.findMany({ where: { productId: { in: productIds }, kind: 'card', imageKey: { not: null } }, select: { productId: true, imageKey: true } })
       : [];
@@ -464,10 +469,13 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
     if (imageUrl && !isAllowedStoredImageUrl(imageUrl)) {
       return res.status(400).json({ success: false, error: 'URL de imagen no permitida' });
     }
+
+    const normalizedTcgId = storedCardId(folder.tcg, tcgId);
+    if (!normalizedTcgId) return badRequest(res, 'Identificador de carta inválido');
       
       const card = await prisma.card.create({
         data: {
-          tcgId,
+          tcgId: normalizedTcgId,
           name,
           imageUrl,
           price: parseFloat(price) || null,

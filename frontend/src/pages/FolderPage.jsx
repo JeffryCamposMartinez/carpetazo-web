@@ -27,6 +27,7 @@ import { EMPTY_YGO_FILTERS, YUGIOH_CATEGORY, yugiohGroupLabel } from '../service
 import { tcgcsvCategoryId } from '../services/tcgcsvGames';
 import { sortCatalogGroupsNewestFirst } from '../services/catalogOrdering';
 import { warmFolderPreview } from '../utils/sharePreview';
+import { storedCardId } from '../utils/mylIdentity';
 import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 import EmptyState from '../components/ui/EmptyState';
 import { siteUrl } from '../utils/siteUrl';
@@ -823,7 +824,7 @@ const [isSearching, setIsSearching] = useState(false);
     setIsSaving(true);
     
     try {
-      const targetTcgId = normalizeTcgProductId(selectedCard.productId || selectedCard.id || selectedCard.tcgProductId);
+      const targetTcgId = storedCardId(folderData?.tcg, normalizeTcgProductId(selectedCard.productId || selectedCard.id || selectedCard.tcgProductId));
       const existingCard = cards.find(c => normalizeTcgProductId(c.tcgId) === targetTcgId);
       
       if (existingCard) {
@@ -903,7 +904,7 @@ const [isSearching, setIsSearching] = useState(false);
   };
 
   const selectedCardTcgId = selectedCard
-    ? normalizeTcgProductId(selectedCard.productId || selectedCard.id || selectedCard.tcgProductId)
+    ? storedCardId(folderData?.tcg, normalizeTcgProductId(selectedCard.productId || selectedCard.id || selectedCard.tcgProductId))
     : null;
   const selectedExistingCard = selectedCardTcgId
     ? cards.find(c => normalizeTcgProductId(c.tcgId) === selectedCardTcgId)

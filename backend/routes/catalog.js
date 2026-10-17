@@ -5,6 +5,7 @@ import { promisify } from 'node:util';
 import { gzip } from 'node:zlib';
 import { prisma } from '../core/db.js';
 import { badRequest, isAllowedProxyImageUrl } from '../core/validation.js';
+import { MYL_ID_PREFIX, rawMylId } from '../core/mylIdentity.js';
 
 const router = express.Router();
 const gzipAsync = promisify(gzip);
@@ -392,7 +393,11 @@ router.post('/api/tcg/products/metadata', async (req, res) => {
   try {
     const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
     if (ids.length > 500) return badRequest(res, 'Demasiadas cartas');
-    const productIds = [...new Set(ids.map(id => String(id)).filter(id => Boolean(id)))];
+    const requestedIds = [...new Set(ids.map(id => String(id).trim()).filter(Boolean))];
+    // Las cartas publicadas de Mitos usan ids con namespace (myl:1212),
+    // mientras TcgProduct conserva su id numérico interno.
+    const rawByRequested = new Map(requestedIds.map((id) => [id, id.startsWith(MYL_ID_PREFIX) ? rawMylId(id) : id]));
+    const productIds = [...new Set([...rawByRequested.values()])];
 
     if (productIds.length === 0) {
       return res.json({ success: true, data: {} });
@@ -415,7 +420,8 @@ router.post('/api/tcg/products/metadata', async (req, res) => {
 
     const data = {};
     products.forEach((product) => {
-      data[String(product.productId)] = {
+      const requested = requestedIds.find((id) => rawByRequested.get(id) === String(product.productId)) || String(product.productId);
+      data[requested] = {
         set: product.group?.name || '',
         groupId: product.group?.groupId || null,
         type: getExtValue(product.extData, 'Type'),

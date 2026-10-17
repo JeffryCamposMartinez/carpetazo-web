@@ -7,6 +7,7 @@ import AlbumCardPreview from './album/AlbumCardPreview';
 import AlbumPagination from './album/AlbumPagination';
 import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 import EmptyState from '../ui/EmptyState';
+import { rawMylId } from '../../utils/mylIdentity';
 
 
 const stripHtml = (value = '') => String(value || '').replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
@@ -290,7 +291,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
         try {
           const json = await api.searchTcgProducts(previewCard.name);
           if (json.success && json.data) {
-            const previewTcgId = String(previewCard.tcgId || previewCard.apiId || '');
+            const previewTcgId = rawMylId(previewCard.tcgId || previewCard.apiId || '');
             let match = json.data.find(c => String(c.productId || '') === previewTcgId);
             if (!match) match = json.data.find(c => c.name.toLowerCase() === previewCard.name.toLowerCase());
             const ability = getCardAbilityText({ ...match, extData: match?.extData });
