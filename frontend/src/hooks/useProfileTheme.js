@@ -24,8 +24,10 @@ export default function useProfileTheme({ isOwner, seller, setSeller, showToast 
     setSeller(prev => ({ ...prev, publicTheme: theme }));
     setSavingTheme(true);
     try {
-      const response = await api.updateProfile({ publicTheme: theme });
-      setSeller(prev => ({ ...prev, ...(response.user || {}), publicTheme: theme }));
+      await api.updateProfile({ publicTheme: theme });
+      // El endpoint devuelve el registro interno completo. Mantener solo el
+      // tema evita sobrescribir `isOwner` y otros datos del perfil público.
+      setSeller(prev => ({ ...prev, publicTheme: theme }));
       setSavedThemeJson(themeKey({ ...defaultPublicTheme, ...theme }));
     } catch (error) {
       console.error('Error saving public theme:', error);

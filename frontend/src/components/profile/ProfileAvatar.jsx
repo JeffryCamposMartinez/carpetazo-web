@@ -7,14 +7,14 @@ export default function ProfileAvatar({ avatarSizeClass, avatarUrl, displayName,
     <div className={`relative z-20 shrink-0 ${avatarSizeClass}`}>
       {/* Nivel como la gema de coste de una carta */}
       <div
-        className={`absolute z-20 flex flex-col items-center justify-center rounded-full shadow-[0_6px_16px_rgba(0,0,0,0.35)] ring-4 ${isSmallAvatar ? '-right-2.5 -top-2.5 h-10 w-10' : '-right-3 -top-3 h-12 w-12 md:h-14 md:w-14'}`}
+        className={`absolute z-20 flex flex-col items-center justify-center rounded-full shadow-[0_5px_12px_rgba(0,0,0,0.3)] ${isSmallAvatar ? '-right-2 -top-2 h-9 w-9 ring-2' : '-right-2.5 -top-2.5 h-10 w-10 ring-[3px] md:h-12 md:w-12'}`}
         style={{ backgroundColor: publicTheme.accent, color: readableOn(publicTheme.accent), '--tw-ring-color': isPosterLayout ? '#05070d' : publicTheme.card }}
         title={`Nivel ${profileLevel} del perfil`}
         aria-label={`Nivel ${profileLevel}`}
         role="img"
       >
-        <span className={`font-bold leading-none opacity-80 ${isSmallAvatar ? 'text-[8px]' : 'text-[9px]'}`} aria-hidden="true">nivel</span>
-        <span className="font-black leading-none tabular-nums" style={{ fontFamily: 'var(--seller-data)', fontSize: `${((isSmallAvatar ? 0.95 : 1.15) * Math.max(displayScale, 0.75)).toFixed(2)}rem` }} aria-hidden="true">{profileLevel}</span>
+        <span className={`font-bold leading-none opacity-80 ${isSmallAvatar ? 'text-[7px]' : 'text-[8px]'}`} aria-hidden="true">nivel</span>
+        <span className="font-black leading-none tabular-nums" style={{ fontFamily: 'var(--seller-data)', fontSize: `${((isSmallAvatar ? 0.78 : 0.9) * Math.max(displayScale, 0.75)).toFixed(2)}rem` }} aria-hidden="true">{profileLevel}</span>
       </div>
       <div className={`h-full w-full p-[4px] shadow-[0_18px_44px_rgba(0,0,0,0.4)] ${isSmallAvatar ? 'rounded-[1.4rem]' : 'rounded-[2.2rem] sm:p-[5px]'}`} style={{ background: getAvatarFrameStyle(publicTheme) }}>
         <div className={`h-full w-full overflow-hidden bg-white ring-2 ring-white/90 ${isSmallAvatar ? 'rounded-[1.15rem]' : 'rounded-[1.9rem]'}`}>

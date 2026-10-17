@@ -42,7 +42,10 @@ export default function SellerProfile() {
   const [savingBio, setSavingBio] = useState(false);
 
   // El servidor indica si quien mira es el dueño (ya no se publica el identificador interno)
-  const isOwner = Boolean(seller?.isOwner ?? (currentUser?.uid && seller?.firebaseUid === currentUser.uid));
+  // `isOwner` del perfil público indica si el visitante es el dueño. El endpoint
+  // de guardado también devuelve el campo interno `User.isOwner` (normalmente
+  // false), por lo que nunca debe reemplazar esta comprobación.
+  const isOwner = Boolean(seller?.isOwner === true || (currentUser?.uid && seller?.firebaseUid === currentUser.uid));
   const displayName = seller?.name || seller?.fullName || seller?.username || 'Vendedor Anónimo';
   const avatarUrl = seller?.photoURL;
   const {
@@ -147,8 +150,10 @@ export default function SellerProfile() {
     if (!isOwner) return;
     setSavingBio(true);
     try {
-      const response = await api.updateProfile({ bio: tempBio });
-      setSeller(prev => ({ ...prev, ...(response.user || {}), bio: tempBio }));
+      await api.updateProfile({ bio: tempBio });
+      // La respuesta de actualización contiene campos internos del usuario
+      // (incluido `isOwner`) y no debe mezclarse con el modelo público.
+      setSeller(prev => ({ ...prev, bio: tempBio }));
       setIsEditingBio(false);
     } catch (error) {
       console.error('Error saving bio:', error);
