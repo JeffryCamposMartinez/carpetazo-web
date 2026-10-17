@@ -50,7 +50,7 @@ export default function MobileMenu({
             { to: '/dashboard?tab=solicitudes', label: 'Solicitudes de compra', icon: 'inbox', active: location.pathname === '/dashboard' && location.search.includes('tab=solicitudes'), badge: pendingOrders.count > 0 ? pendingOrders.count : undefined },
             { to: '/dashboard?tab=historial', label: 'Historial de ventas', icon: 'receipt_long', active: location.pathname === '/dashboard' && location.search.includes('tab=historial') },
             { to: '/mensajes', label: 'Mensajes', icon: 'chat', active: location.pathname === '/mensajes', badge: unreadMessages },
-            { to: '/perfil', label: 'Mi perfil', icon: 'person', active: location.pathname === '/perfil' },
+            { to: '/perfil', label: 'Mi cuenta', icon: 'person', active: location.pathname === '/perfil' },
             ...(userUsername ? [{ to: `/${userUsername}`, label: 'Mi perfil público', icon: 'badge', active: false }] : []),
             ...(['admin', 'moderator', 'support'].includes(appUser?.role) ? [{ to: '/moderacion', label: 'Moderación', icon: 'admin_panel_settings', active: location.pathname === '/moderacion' }] : []),
           ];

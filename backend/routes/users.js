@@ -374,9 +374,13 @@ router.get('/api/users/:username', optionalAuth, optionalStaff, async (req, res)
         folders: {
           // Moderación necesita inspeccionar también catálogos privados desde el perfil.
           // Para cualquier otro visitante se conserva el filtro público actual.
-          where: req.staffLevel >= 2 ? {} : { isPublic: true },
+          where: req.staffLevel >= 2 ? {} : {
+            isPublic: true,
+            moderationState: 'visible',
+            cards: { some: { moderationState: { in: ['visible', 'image_hidden'] } } }
+          },
           include: {
-            _count: { select: { cards: true } },
+            _count: { select: { cards: { where: { moderationState: { in: ['visible', 'image_hidden'] } } } } },
             user: { select: { name: true, username: true, photoURL: true } }
           },
           orderBy: { createdAt: 'desc' }

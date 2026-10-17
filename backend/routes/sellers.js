@@ -12,7 +12,16 @@ const SELLERS_PAGE_SIZE = 24;
 
 // Vendedores = dueños de carpetas públicas, con sus cifras sumadas
 const querySellers = ({ like, comuna = null, sort, limit, offset }) => {
-  const filter = Prisma.sql`1 = 1 ${like ? Prisma.sql`AND (u."name" ILIKE ${like} OR u."username" ILIKE ${like})` : Prisma.empty} ${comuna ? Prisma.sql`AND u."publicComuna" = ${comuna}` : Prisma.empty}`;
+  const filter = Prisma.sql`1 = 1
+    AND f."isPublic" = true
+    AND f."moderationState" = 'visible'
+    AND EXISTS (
+      SELECT 1 FROM "Card" pc
+      WHERE pc."folderId" = f."id"
+        AND pc."moderationState" IN ('visible', 'image_hidden')
+    )
+    ${like ? Prisma.sql`AND (u."name" ILIKE ${like} OR u."username" ILIKE ${like})` : Prisma.empty}
+    ${comuna ? Prisma.sql`AND u."publicComuna" = ${comuna}` : Prisma.empty}`;
   const order = sort === 'name' ? Prisma.sql`LOWER(u."name") ASC` : sort === 'cards' ? Prisma.sql`cards DESC, visits DESC` : Prisma.sql`visits DESC, cards DESC`;
   return Promise.all([
     prisma.$queryRaw`
@@ -23,13 +32,13 @@ const querySellers = ({ like, comuna = null, sort, limit, offset }) => {
              COALESCE(SUM(f."totalVisits"), 0)::int AS visits,
              ARRAY_AGG(DISTINCT f."tcg") AS tcgs
       FROM "User" u
-      JOIN "Folder" f ON f."userId" = u."id" AND f."isPublic" = true
-      LEFT JOIN (SELECT "folderId", COUNT(*) AS cnt FROM "Card" GROUP BY "folderId") c ON c."folderId" = f."id"
+      JOIN "Folder" f ON f."userId" = u."id"
+      LEFT JOIN (SELECT "folderId", COUNT(*) AS cnt FROM "Card" WHERE "moderationState" IN ('visible', 'image_hidden') GROUP BY "folderId") c ON c."folderId" = f."id"
       WHERE ${filter}
       GROUP BY u."id"
       ORDER BY ${order}
       LIMIT ${limit} OFFSET ${offset}`,
-    prisma.$queryRaw`SELECT COUNT(DISTINCT u."id")::int AS n FROM "User" u JOIN "Folder" f ON f."userId" = u."id" AND f."isPublic" = true WHERE ${filter}`
+    prisma.$queryRaw`SELECT COUNT(DISTINCT u."id")::int AS n FROM "User" u JOIN "Folder" f ON f."userId" = u."id" WHERE ${filter}`
   ]);
 };
 
@@ -56,8 +65,8 @@ router.get('/api/home/featured', async (_req, res) => {
     const [visitedIds, newestIds, tcgRows, statRows, sellerResult, salesRows] = await Promise.all([
       prisma.$queryRaw`SELECT f."id" FROM "Folder" f JOIN "User" u ON u."id" = f."userId" WHERE ${filter} ORDER BY ${folderOrderSql('weekly')} LIMIT 5`,
       prisma.$queryRaw`SELECT f."id" FROM "Folder" f JOIN "User" u ON u."id" = f."userId" WHERE ${filter} ORDER BY f."createdAt" DESC LIMIT 5`,
-      prisma.$queryRaw`SELECT f."tcg", COUNT(*)::int AS n FROM "Folder" f WHERE f."isPublic" = true GROUP BY f."tcg"`,
-      prisma.$queryRaw`SELECT COUNT(DISTINCT f."id")::int AS folders, COUNT(DISTINCT f."userId")::int AS sellers, (SELECT COUNT(*) FROM "Card" c JOIN "Folder" f2 ON f2."id" = c."folderId" AND f2."isPublic" = true)::int AS cards FROM "Folder" f WHERE f."isPublic" = true`,
+      prisma.$queryRaw`SELECT f."tcg", COUNT(*)::int AS n FROM "Folder" f WHERE f."isPublic" = true AND f."moderationState" = 'visible' AND EXISTS (SELECT 1 FROM "Card" c WHERE c."folderId" = f."id" AND c."moderationState" IN ('visible', 'image_hidden')) GROUP BY f."tcg"`,
+      prisma.$queryRaw`SELECT COUNT(DISTINCT f."id")::int AS folders, COUNT(DISTINCT f."userId")::int AS sellers, (SELECT COUNT(*) FROM "Card" c JOIN "Folder" f2 ON f2."id" = c."folderId" AND f2."isPublic" = true AND f2."moderationState" = 'visible' WHERE c."moderationState" IN ('visible', 'image_hidden'))::int AS cards FROM "Folder" f WHERE f."isPublic" = true AND f."moderationState" = 'visible' AND EXISTS (SELECT 1 FROM "Card" c0 WHERE c0."folderId" = f."id" AND c0."moderationState" IN ('visible', 'image_hidden'))`,
       querySellers({ like: null, sort: 'visits', limit: 5, offset: 0 }),
       // Más ventas concretadas: solo pedidos confirmados por el vendedor
       prisma.$queryRaw`
@@ -66,7 +75,7 @@ router.get('/api/home/featured', async (_req, res) => {
         JOIN "User" u ON u."id" = o."sellerId"
         WHERE o."status" = 'completed'
           AND u."username" IS NOT NULL
-          AND EXISTS (SELECT 1 FROM "Folder" f WHERE f."userId" = u."id" AND f."isPublic" = true)
+          AND EXISTS (SELECT 1 FROM "Folder" f WHERE f."userId" = u."id" AND f."isPublic" = true AND f."moderationState" = 'visible' AND EXISTS (SELECT 1 FROM "Card" c WHERE c."folderId" = f."id" AND c."moderationState" IN ('visible', 'image_hidden')))
         GROUP BY u."id"
         ORDER BY sales DESC, MAX(o."updatedAt") DESC
         LIMIT 5`

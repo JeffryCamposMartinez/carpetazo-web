@@ -498,8 +498,15 @@ const PUBLIC_FOLDERS_MAX = 200;
 router.get('/api/folders', async (req, res) => {
   try {
     const folders = await prisma.folder.findMany({
-      where: { isPublic: true },
-      include: { user: { select: { name: true, username: true, photoURL: true } }, _count: { select: { cards: true } } },
+      where: {
+        isPublic: true,
+        moderationState: 'visible',
+        cards: { some: { moderationState: { in: ['visible', 'image_hidden'] } } }
+      },
+      include: {
+        user: { select: { name: true, username: true, photoURL: true } },
+        _count: { select: { cards: { where: { moderationState: { in: ['visible', 'image_hidden'] } } } } }
+      },
       orderBy: { createdAt: 'desc' },
       take: PUBLIC_FOLDERS_MAX
     });

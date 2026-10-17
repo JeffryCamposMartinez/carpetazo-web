@@ -554,7 +554,7 @@ export default function Header() {
                         <span translate="no" className="material-symbols-outlined text-[20px]">chat</span> Mensajes
                       </Link>
                       <Link role="menuitem" to="/perfil" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
-                        <span translate="no" className="material-symbols-outlined text-[20px]">person</span> Mi perfil
+                        <span translate="no" className="material-symbols-outlined text-[20px]">person</span> Mi cuenta
                       </Link>
                       {userUsername && (
                         <Link role="menuitem" to={`/${userUsername}`} onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">

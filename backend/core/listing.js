@@ -3,6 +3,9 @@ import { Prisma } from '@prisma/client';
 import { prisma } from './db.js';
 
 const currentWeekNumber = () => Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
+// Estos estados todavía son visibles para visitantes: `image_hidden` oculta
+// únicamente la imagen, pero la carta sigue formando parte del catálogo.
+export const PUBLIC_CARD_MODERATION_STATES = ['visible', 'image_hidden'];
 // Texto de búsqueda seguro para ILIKE (se escapan \, % y _)
 export const likePattern = (text) => `%${text.replace(/[\\%_]/g, '\\$&')}%`;
 // Un juego puede estar guardado con otro nombre en las carpetas (Pokemon / Pokémon, YuGiOh / Yu-Gi-Oh!, OnePiece / One Piece)
@@ -18,11 +21,16 @@ export const loadPublicFolders = async (ids) => {
   if (ids.length === 0) return [];
   const week = currentWeekNumber();
   const rows = await prisma.folder.findMany({
-    where: { id: { in: ids }, isPublic: true },
+    where: {
+      id: { in: ids },
+      isPublic: true,
+      moderationState: 'visible',
+      cards: { some: { moderationState: { in: PUBLIC_CARD_MODERATION_STATES } } }
+    },
     select: {
       id: true, name: true, tcg: true, color: true, createdAt: true, totalVisits: true, weeklyVisits: true, lastVisitWeek: true,
       user: { select: { name: true, username: true, photoURL: true, publicComuna: true, publicRegion: true } },
-      _count: { select: { cards: true } }
+      _count: { select: { cards: { where: { moderationState: { in: PUBLIC_CARD_MODERATION_STATES } } } } }
     }
   });
   const byId = new Map(rows.map((row) => [row.id, row]));
@@ -33,6 +41,12 @@ export const loadPublicFolders = async (ids) => {
 };
 
 export const folderFilterSql = ({ like, tcgs, comuna }) => Prisma.sql`f."isPublic" = true
+  AND f."moderationState" = 'visible'
+  AND EXISTS (
+    SELECT 1 FROM "Card" c
+    WHERE c."folderId" = f."id"
+      AND c."moderationState" IN ('visible', 'image_hidden')
+  )
   ${comuna ? Prisma.sql`AND u."publicComuna" = ${comuna}` : Prisma.empty}
   ${like ? Prisma.sql`AND (f."name" ILIKE ${like} OR u."name" ILIKE ${like} OR u."username" ILIKE ${like})` : Prisma.empty}
   ${tcgs ? Prisma.sql`AND f."tcg" = ANY(${tcgs})` : Prisma.empty}`;
