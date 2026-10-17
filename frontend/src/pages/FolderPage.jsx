@@ -32,6 +32,7 @@ import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 import EmptyState from '../components/ui/EmptyState';
 import { siteUrl } from '../utils/siteUrl';
 import { formatCardSearchQuery } from '../utils/cardCodeSearch';
+import { cardLanguageOf, normalizeCardLanguage } from '../utils/cardLanguage';
 
 
 const PAGE_SIZE = 20;
@@ -829,7 +830,8 @@ const [isSearching, setIsSearching] = useState(false);
     
     try {
       const targetTcgId = storedCardId(folderData?.tcg, normalizeTcgProductId(selectedCard.productId || selectedCard.id || selectedCard.tcgProductId));
-      const existingCard = cards.find(c => normalizeTcgProductId(c.tcgId) === targetTcgId);
+      const targetLanguage = isMylFolder ? 'Spanish' : normalizeCardLanguage(language);
+      const existingCard = cards.find(c => normalizeTcgProductId(c.tcgId) === targetTcgId && cardLanguageOf(c) === targetLanguage);
       
       if (existingCard) {
         const newStock = existingCard.stock + cardStock;
@@ -854,7 +856,7 @@ const [isSearching, setIsSearching] = useState(false);
             effect: getExtDataValue(selectedCard.extData, 'Effect'),
             number: getExtDataValue(selectedCard.extData, 'Number') || '',
             total: '',
-            language: isMylFolder ? 'Spanish' : language,
+            language: targetLanguage,
             catalogOrder: cards.length
           }
         };
@@ -910,8 +912,9 @@ const [isSearching, setIsSearching] = useState(false);
   const selectedCardTcgId = selectedCard
     ? storedCardId(folderData?.tcg, normalizeTcgProductId(selectedCard.productId || selectedCard.id || selectedCard.tcgProductId))
     : null;
+  const selectedCardLanguage = isMylFolder ? 'Spanish' : normalizeCardLanguage(language);
   const selectedExistingCard = selectedCardTcgId
-    ? cards.find(c => normalizeTcgProductId(c.tcgId) === selectedCardTcgId)
+    ? cards.find(c => normalizeTcgProductId(c.tcgId) === selectedCardTcgId && cardLanguageOf(c) === selectedCardLanguage)
     : null;
 
   if (loadingFolder) {
