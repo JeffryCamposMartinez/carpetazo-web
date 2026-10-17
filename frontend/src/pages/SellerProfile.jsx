@@ -260,7 +260,7 @@ export default function SellerProfile() {
     handleThemeFieldsChange, messageButtonEnabled, resetPublicTheme, saveCurrentTheme, savedTheme, savingTheme,
     setThemePanelOpen, setThemePanelTab, socialLinks, themeDirty, themePanelTab, totalCards };
 
-  const profileModulesProps = { avatarUrl, displayName, folders, getDistributionOrder, getDistributionSpan,
+  const profileModulesProps = { avatarUrl, canViewPrivateFolders: Boolean(seller?.canViewPrivateFolders), displayName, folders, getDistributionOrder, getDistributionSpan,
     getSocialEnabled, isOwner, profileLevel, publicTheme, seller, showProfileShowcase, spotlightFolders, textMuted,
     totalCards };
 

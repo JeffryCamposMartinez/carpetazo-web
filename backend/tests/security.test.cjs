@@ -78,6 +78,18 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     ok('perfil público → 200', r.status === 200, String(r.status));
     ok('...sus carpetas no traen el estado de moderación', (r.j.user.folders || []).every((item) => !('moderationState' in item)));
 
+    // 5b) Moderación: las carpetas privadas se pueden revisar sin abrirlas a visitantes
+    const sellerIdForFolders = (await prisma.user.findUnique({ where: { firebaseUid: U.seller }, select: { id: true } })).id;
+    const privateFolder = await prisma.folder.create({ data: { name: 'TEST privada moderación', tcg: 'Pokemon', color: 'blue', isPublic: false, userId: sellerIdForFolders } });
+    ok('visitante no ve la carpeta privada en el perfil', !(r.j.user.folders || []).some((item) => item.id === privateFolder.id));
+    await prisma.user.update({ where: { firebaseUid: U.ignacio }, data: { role: 'moderator' } });
+    r = await call('GET', '/users/' + NAMES.seller, 'ignacio');
+    ok('moderador ve carpetas públicas y privadas en el perfil', r.status === 200 && r.j.user.canViewPrivateFolders === true && r.j.user.folders.some((item) => item.id === privateFolder.id && item.isPublic === false));
+    r = await call('GET', '/folders/' + privateFolder.id, 'ignacio');
+    ok('moderador puede ingresar a la carpeta privada', r.status === 200 && r.j.folder.id === privateFolder.id && r.j.folder.isOwner === false, String(r.status));
+    ok('usuario común no puede ingresar a la carpeta privada', (await call('GET', '/folders/' + privateFolder.id, 'jerry')).status === 404);
+    await prisma.user.update({ where: { firebaseUid: U.ignacio }, data: { role: 'user' } });
+
     // 6) Opciones de filtros: la segunda consulta sale de la memoria con el mismo contenido
     const [a, b] = [await call('GET', '/tcg/99/filter-options', null), await call('GET', '/tcg/99/filter-options', null)];
     ok('opciones de filtros → 200 dos veces y con el mismo contenido', a.status === 200 && b.status === 200 && JSON.stringify(a.j.data) === JSON.stringify(b.j.data));

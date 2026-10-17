@@ -1,7 +1,7 @@
 // Cuenta y perfil: sincronizar sesión, perfil propio, nombre de usuario y perfil público.
 import { Prisma } from '@prisma/client';
 import express from 'express';
-import { authenticateToken, isAdminEmail, optionalAuth } from '../core/auth.js';
+import { authenticateToken, isAdminEmail, optionalAuth, optionalStaff } from '../core/auth.js';
 import { isValidComuna, regionOfComuna } from '../core/chileData.js';
 import { decodeContent } from '../core/chat.js';
 import { prisma } from '../core/db.js';
@@ -351,7 +351,7 @@ router.get('/api/users/username/available', async (req, res) => {
   }
 });
 
-router.get('/api/users/:username', optionalAuth, async (req, res) => {
+router.get('/api/users/:username', optionalAuth, optionalStaff, async (req, res) => {
   try {
     const identifier = String(req.params.username || '').trim();
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier);
@@ -372,7 +372,9 @@ router.get('/api/users/:username', optionalAuth, async (req, res) => {
       select: {
         ...PUBLIC_SELLER_SELECT,
         folders: {
-          where: { isPublic: true },
+          // Moderación necesita inspeccionar también catálogos privados desde el perfil.
+          // Para cualquier otro visitante se conserva el filtro público actual.
+          where: req.staffLevel >= 2 ? {} : { isPublic: true },
           include: {
             _count: { select: { cards: true } },
             user: { select: { name: true, username: true, photoURL: true } }
@@ -390,7 +392,13 @@ router.get('/api/users/:username', optionalAuth, async (req, res) => {
     const { folders, ...seller } = user;
     const publicFolders = folders.map(({ moderationState: _state, ...folder }) => folder);
     const [reviewSummary, responseTime, completedSales] = await Promise.all([getReviewSummary(seller.id), getResponseStats(seller.id), getCompletedSales(seller.id)]);
-    res.json({ success: true, user: { ...toPublicSeller(seller, req.user?.sub, reviewSummary), responseTime, completedSales, folders: publicFolders } });
+    res.json({ success: true, user: {
+      ...toPublicSeller(seller, req.user?.sub, reviewSummary),
+      responseTime,
+      completedSales,
+      folders: publicFolders,
+      canViewPrivateFolders: req.staffLevel >= 2
+    } });
   } catch (error) {
     console.error('Error fetching user:', error);
     res.status(500).json({ success: false, message: 'Error interno' });

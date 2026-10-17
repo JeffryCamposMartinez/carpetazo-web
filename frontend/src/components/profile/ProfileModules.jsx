@@ -14,9 +14,13 @@ const SHOWCASE_LINES = {
 
 // Módulos del perfil público: vitrina, carpetas, cartas deseadas y reseñas, en el orden y ancho de la distribución elegida.
 export default function ProfileModules({
-  avatarUrl, displayName, folders, getDistributionOrder, getDistributionSpan, getSocialEnabled, isOwner,
+  avatarUrl, canViewPrivateFolders, displayName, folders, getDistributionOrder, getDistributionSpan, getSocialEnabled, isOwner,
   profileLevel, publicTheme, seller, showProfileShowcase, spotlightFolders, textMuted, totalCards
 }) {
+  const folderHeading = canViewPrivateFolders ? 'Carpetas del usuario' : 'Carpetas públicas';
+  const folderDescription = canViewPrivateFolders
+    ? 'Vista de moderación: incluye carpetas públicas y privadas.'
+    : 'Catálogos publicados por este vendedor.';
   return (
     <main className="relative z-10 mx-auto w-full max-w-[1220px] px-4 py-6 sm:px-6 sm:py-8 md:px-8">
       <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-12">
@@ -48,7 +52,9 @@ export default function ProfileModules({
                     <span className="h-14 w-11 shrink-0 rounded-md bg-[url('/images/carpeta_v4.webp')] bg-[length:100%_100%] bg-no-repeat shadow-md" style={{ filter: getFolderFilter(folder.color) }} aria-hidden="true" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-base font-extrabold">{folder.name}</span>
-                      <span className="block truncate text-sm font-medium" style={textMuted}>{folder.tcg} · {folder.cardsCount} {folder.cardsCount === 1 ? 'carta' : 'cartas'}</span>
+                      <span className="block truncate text-sm font-medium" style={textMuted}>
+                        {folder.isPublic === false ? 'Privada · ' : ''}{folder.tcg} · {folder.cardsCount} {folder.cardsCount === 1 ? 'carta' : 'cartas'}
+                      </span>
                     </span>
                     <span translate="no" className="material-symbols-outlined transition-transform group-hover:translate-x-1" style={{ color: publicTheme.primary }}>arrow_forward</span>
                   </Link>
@@ -63,7 +69,7 @@ export default function ProfileModules({
             <h2 className="text-xl font-black leading-tight md:text-2xl" style={{ color: publicTheme.text }}>Resumen</h2>
             <dl className="mt-3 divide-y" style={{ borderColor: `${publicTheme.primary}22` }}>
               {[
-                ['Carpetas públicas', folders.length, 'auto_stories'],
+                [canViewPrivateFolders ? 'Carpetas visibles' : 'Carpetas públicas', folders.length, 'auto_stories'],
                 ['Cartas mostradas', totalCards.toLocaleString('es-CL'), 'style'],
                 ['Nivel del perfil', profileLevel, 'military_tech'],
               ].map(([label, value, icon]) => (
@@ -90,8 +96,8 @@ export default function ProfileModules({
         <section className={`min-w-0 space-y-5 ${getDistributionSpan('folders')}`} style={{ order: getDistributionOrder('folders') }}>
           <div className="flex items-center justify-between gap-3 p-4 ring-1 md:px-5" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}33` }}>
             <div className="min-w-0">
-              <h2 className="text-2xl font-black leading-tight" style={{ color: publicTheme.text }}>Carpetas públicas</h2>
-              <p className="text-sm font-medium" style={textMuted}>Catálogos publicados por este vendedor.</p>
+              <h2 className="text-2xl font-black leading-tight" style={{ color: publicTheme.text }}>{folderHeading}</h2>
+              <p className="text-sm font-medium" style={textMuted}>{folderDescription}</p>
             </div>
             <span className="shrink-0 rounded-full px-3 py-1 text-sm font-extrabold tabular-nums" style={{ backgroundColor: publicTheme.primary, color: readableOn(publicTheme.primary), fontFamily: 'var(--seller-data)' }}>{folders.length}</span>
           </div>
@@ -99,7 +105,7 @@ export default function ProfileModules({
           {folders.length === 0 ? (
             <div className="border border-dashed p-10 text-center" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}55` }}>
               <span aria-hidden="true" className="empty-in mx-auto flex h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: `${publicTheme.primary}1f`, color: publicTheme.primary }}><span translate="no" className="material-symbols-outlined text-[32px]">inventory_2</span></span>
-              <p className="mt-3 text-lg font-extrabold" style={{ color: publicTheme.text }}>{isOwner ? 'Aún no tienes carpetas públicas' : 'Este vendedor está ordenando sus cartas'}</p>
+              <p className="mt-3 text-lg font-extrabold" style={{ color: publicTheme.text }}>{isOwner ? 'Aún no tienes carpetas públicas' : canViewPrivateFolders ? 'Este vendedor no tiene carpetas' : 'Este vendedor está ordenando sus cartas'}</p>
               <p className="mt-1 text-sm font-medium" style={textMuted}>{isOwner ? 'Crea una carpeta en tu panel y márcala como pública para que aparezca aquí.' : 'Cuando publique una carpeta, aparecerá aquí.'}</p>
               {isOwner && <Link to="/dashboard" className="mt-4 inline-flex h-11 items-center rounded-full px-6 text-sm font-extrabold transition-[filter,transform] duration-150 active:scale-[0.97] [@media(hover:hover)]:hover:brightness-110" style={{ backgroundColor: publicTheme.primary, color: readableOn(publicTheme.primary) }}>Ir a mis carpetas</Link>}
             </div>
@@ -118,7 +124,10 @@ export default function ProfileModules({
                       </div>
                       <h3 className="mt-[2cqi] line-clamp-3 w-full break-words text-[11cqi] font-extrabold leading-tight text-white drop-shadow-md" title={folder.name}>{folder.name}</h3>
                     </div>
-                    <span className="w-fit rounded-[2cqi] border border-white/60 px-[3cqi] py-[1cqi] text-[3.5cqi] font-bold uppercase tracking-wider text-white drop-shadow-sm">{folder.tcg}</span>
+                    <span className="flex w-fit items-center gap-[1.5cqi] rounded-[2cqi] border border-white/60 px-[3cqi] py-[1cqi] text-[3.5cqi] font-bold uppercase tracking-wider text-white drop-shadow-sm">
+                      {folder.isPublic === false && <span translate="no" aria-label="Carpeta privada" title="Carpeta privada" className="material-symbols-outlined text-[4cqi]">lock</span>}
+                      {folder.isPublic === false ? 'Privada · ' : ''}{folder.tcg}
+                    </span>
                   </div>
                 </Link>
               ))}

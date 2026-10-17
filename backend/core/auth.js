@@ -53,6 +53,17 @@ const adminEmails = (process.env.ADMIN_EMAILS || '')
 
 export const isAdminEmail = (email) => Boolean(email && adminEmails.includes(String(email).toLowerCase()));
 
+// Calcula el nivel efectivo del equipo sin exponer el rol de la cuenta en las vistas públicas.
+// 1 = soporte, 2 = moderador, 3 = administrador.
+export const staffLevelOf = (firebaseUser, user) => {
+  const firebaseAdminClaim = firebaseUser?.admin === true || firebaseUser?.role === 'admin';
+  const envAdmin = firebaseUser?.email_verified === true && isAdminEmail(firebaseUser?.email);
+  if (firebaseAdminClaim || envAdmin || user?.role === 'admin') return 3;
+  if (user?.role === 'moderator') return 2;
+  if (user?.role === 'support') return 1;
+  return 0;
+};
+
 // Una medida vigente de suspensión o cierre corta el acceso al equipo (también de lectura). La cuenta propietaria nunca se corta.
 const staffBlocked = async (user) => {
   if (!user || user.isOwner) return false;
@@ -67,12 +78,7 @@ const staffBlocked = async (user) => {
 export const requireStaff = (minLevel) => async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    const firebaseAdminClaim = req.user?.admin === true || req.user?.role === 'admin';
-    const envAdmin = req.user.email_verified === true && isAdminEmail(req.user.email);
-    let level = 0;
-    if (firebaseAdminClaim || envAdmin || user?.role === 'admin') level = 3;
-    else if (user?.role === 'moderator') level = 2;
-    else if (user?.role === 'support') level = 1;
+    const level = staffLevelOf(req.user, user);
     if (level < minLevel) return res.status(403).json({ success: false, message: 'Acceso restringido' });
     if (await staffBlocked(user)) return res.status(403).json({ success: false, code: 'staff_suspended', message: 'Tu acceso al equipo está suspendido' });
     req.staffLevel = level;
@@ -112,11 +118,35 @@ export const optionalAuth = async (req, _res, next) => {
   const token = (req.headers['authorization'] || '').split(' ')[1];
   if (token) {
     try {
-      req.user = await getAuth().verifyIdToken(token);
-      req.user.sub = req.user.uid;
+      const decodedToken = await getAuth().verifyIdToken(token);
+      if (!(await sessionRevoked(decodedToken))) {
+        req.user = decodedToken;
+        req.user.sub = decodedToken.uid;
+      }
     } catch (_error) {
       // token inválido o vencido: se trata como visitante anónimo
     }
+  }
+  next();
+};
+
+// Añade permisos de moderación a las rutas que siguen siendo públicas para visitantes.
+// Un visitante, usuario normal o miembro suspendido continúa viendo exactamente la vista pública.
+export const optionalStaff = async (req, _res, next) => {
+  if (!req.user?.sub) return next();
+  try {
+    const user = await prisma.user.findUnique({
+      where: { firebaseUid: req.user.sub },
+      select: { id: true, role: true, isOwner: true }
+    });
+    const level = staffLevelOf(req.user, user);
+    if (level > 0 && !(await staffBlocked(user))) {
+      req.staffLevel = level;
+      req.dbUser = user;
+    }
+  } catch (error) {
+    // Esta capa es opcional: si falla, la petición conserva el comportamiento público.
+    console.error('Error checking optional staff permissions:', error.message);
   }
   next();
 };

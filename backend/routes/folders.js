@@ -1,6 +1,6 @@
 // Carpetas y sus cartas.
 import express from 'express';
-import { authenticateToken, optionalAuth } from '../core/auth.js';
+import { authenticateToken, optionalAuth, optionalStaff } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { isValidComuna } from '../core/chileData.js';
 import { folderFilterSql, folderOrderSql, likePattern, loadPublicFolders, tcgVariants, validListText } from '../core/listing.js';
@@ -351,7 +351,7 @@ router.get('/api/folders/search', async (req, res) => {
   }
 });
 
-router.get('/api/folders/:id', optionalAuth, async (req, res) => {
+router.get('/api/folders/:id', optionalAuth, optionalStaff, async (req, res) => {
   try {
     const folder = await prisma.folder.findUnique({
       where: { id: req.params.id },
@@ -363,9 +363,10 @@ router.get('/api/folders/:id', optionalAuth, async (req, res) => {
         user: { select: PUBLIC_SELLER_SELECT }
       }
     });
-    // Una carpeta privada no existe para nadie más que su dueño (mismo 404 que una carpeta inexistente)
+    // Una carpeta privada no existe para visitantes; el dueño y el equipo de moderación pueden revisarla.
     const isFolderOwner = Boolean(req.user?.sub && folder?.user?.firebaseUid && folder.user.firebaseUid === req.user.sub);
-    if (!folder || (!folder.isPublic && !isFolderOwner)) return res.status(404).json({ success: false, message: 'Folder not found' });
+    const isStaffViewer = req.staffLevel >= 2;
+    if (!folder || (!folder.isPublic && !isFolderOwner && !isStaffViewer)) return res.status(404).json({ success: false, message: 'Folder not found' });
     // El estado de moderación solo lo ve el dueño; para los demás no se serializa
     const { moderationState: _folderState, ...publicFolder } = folder;
     const visibleCards = isFolderOwner ? folder.cards : folder.cards.map(({ moderationState: _cardState, ...card }) => card);
