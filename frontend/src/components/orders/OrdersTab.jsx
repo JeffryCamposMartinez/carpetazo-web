@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import LiquidTabs from '../ui/LiquidTabs';
@@ -505,6 +505,26 @@ function History({ orders, hasMore = false, onLoadMore, loadingMore = false }) {
     .filter((o) => (status === 'all' || o.status === status || (status === 'rejected' && o.status !== 'completed')) && matchesSearch(o, query))
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)), [scoped, status, query]);
 
+  // Al llegar al final de la lista se muestran más pedidos y, si ya se mostraron todos los cargados, se piden los siguientes al servidor
+  const sentinelRef = useRef(null);
+  const loadState = useRef({});
+  loadState.current = { showMore: ledger.length > limit, hasMore, loadingMore, onLoadMore };
+  useEffect(() => {
+    if (!closed.length && hasMore && !loadingMore) onLoadMore?.(); // los primeros pedidos cargados no tienen ventas cerradas: se sigue buscando
+  }, [closed.length, hasMore, loadingMore, onLoadMore]);
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || typeof IntersectionObserver === 'undefined') return undefined;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      const state = loadState.current;
+      if (state.showMore) setLimit((current) => current + 25);
+      else if (state.hasMore && !state.loadingMore) state.onLoadMore?.();
+    }, { rootMargin: '300px' });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [ledger.length, limit, hasMore, loadingMore]);
+
   if (!closed.length) {
     return (
       <EmptyState
@@ -638,6 +658,7 @@ function History({ orders, hasMore = false, onLoadMore, loadingMore = false }) {
         ) : (
           <UiEmptyState variant="plain" icon="filter_alt_off" title="No hay pedidos con estos filtros" className="bg-white">Prueba con otro estado o busca por otro código o nombre.</UiEmptyState>
         )}
+        {(ledger.length > limit || hasMore) && <div ref={sentinelRef} aria-hidden="true" className="h-px" />}
         {ledger.length > limit ? (
           <button type="button" onClick={() => setLimit(limit + 25)} className="w-full border-t border-slate-200 bg-white py-3.5 text-sm font-bold text-[#1e40af] hover:bg-slate-50">
             Ver {Math.min(25, ledger.length - limit)} pedidos más
