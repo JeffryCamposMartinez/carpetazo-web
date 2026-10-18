@@ -104,7 +104,7 @@ export default function useCardInfoSearch({ query, game, enabled, page }) {
           categoryId: card.categoryId, groupId: card.groupId, name: card.name, imageUrl: card.imageUrl,
           sourceImageUrl: card.sourceImageUrl, setName: card.setName || 'Catálogo',
           language: card.categoryId === 85 ? 'Japonés' : 'Español', game: card.game,
-          payload: { external: { categoryId: card.categoryId, productId: String(card.productId) }, productId: card.productId, name: card.name, imageUrl: card.imageUrl, detail: card.setName || 'Catálogo', game: card.game },
+          payload: { external: { categoryId: card.categoryId, productId: String(card.productId) }, productId: String(card.productId), name: card.name, imageUrl: card.imageUrl, detail: card.setName || 'Catálogo', game: card.game },
         }));
         setState({ results: indexedCards, searching: false, exhausted: wantedRef.current >= indexed.pages, pages: indexed.pages || 1, total: indexed.total || indexedCards.length });
         loopRef.current = null;
