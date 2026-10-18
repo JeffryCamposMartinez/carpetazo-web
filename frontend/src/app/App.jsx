@@ -65,9 +65,16 @@ function App() {
         <BrowserRouter>
           <ScrollToTop />
           <div className="flex flex-col min-h-[100svh] w-full relative">
+            <a
+              href="#contenido"
+              onClick={(event) => { event.preventDefault(); const main = document.getElementById('contenido'); main?.focus(); main?.scrollIntoView(); }}
+              className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[200] focus:rounded-full focus:bg-[#facc15] focus:px-4 focus:py-2 focus:text-sm focus:font-extrabold focus:text-[#12315f] focus:outline-none focus:ring-2 focus:ring-[#1e40af]"
+            >
+              Saltar al contenido
+            </a>
             <Header />
-          
-            <div className="flex flex-1 flex-col">
+
+            <main id="contenido" tabIndex={-1} className="flex flex-1 flex-col focus:outline-none">
               <RouteBoundary>
               <Suspense fallback={<RouteLoading />}>
               <FirstPageShown />
@@ -95,8 +102,8 @@ function App() {
               </Routes>
               </Suspense>
               </RouteBoundary>
-            </div>
-          
+            </main>
+
             <Footer />
           </div>
           <AcceptTermsGate />

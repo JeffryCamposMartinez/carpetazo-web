@@ -128,7 +128,7 @@ export default function PlansPage() {
   const plan = billing?.plan;
   const usage = billing?.usage;
   return (
-    <main className="mx-auto w-full max-w-[1500px] flex-1 bg-[#DBEAFE] px-4 py-10 sm:px-7 lg:px-12">
+    <div className="mx-auto w-full max-w-[1500px] flex-1 bg-[#DBEAFE] px-4 py-10 sm:px-7 lg:px-12">
       <header className="mx-auto max-w-3xl text-center">
         <span className="inline-flex rounded-full bg-[#facc15] px-4 py-1.5 text-xs font-black uppercase tracking-[0.16em] text-[#12315f]">Planes Carpetazo</span>
         <h1 className="mt-4 text-4xl font-black tracking-tight text-[#12315f] sm:text-5xl">El espacio que necesita tu colección</h1>
@@ -156,6 +156,6 @@ export default function PlansPage() {
         <p className="mt-2 text-sm font-medium leading-6 text-blue-100">Cada combinación de carta e idioma ocupa un espacio. La misma carta en español y en inglés se conserva por separado. Reducir stock o eliminar una carta siempre está permitido, incluso si cambias a un plan menor.</p>
         {!currentUser && <Link to="/bienvenida" className="mt-5 inline-flex h-11 items-center rounded-xl bg-[#facc15] px-5 font-black text-[#12315f]">Conocer Carpetazo</Link>}
       </section>
-    </main>
+    </div>
   );
 }

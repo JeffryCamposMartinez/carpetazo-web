@@ -44,6 +44,13 @@ export const normalizeUsername = (value) => String(value || '')
   .trim()
   .replace(/\s+/g, '_')
   .replace(/[^a-z0-9_]/g, '');
+// Mensaje para un usuario rechazado por validUsername: distingue "reservado" de "formato inválido"
+export const usernameProblem = (value) => {
+  const username = normalizeUsername(value);
+  return /^[a-z0-9_]{3,20}$/.test(username) && RESERVED_USERNAMES.has(username)
+    ? 'Ese nombre de usuario no está disponible.'
+    : 'El usuario debe tener entre 3 y 20 caracteres: letras, números o _.';
+};
 // Devuelve el nombre normalizado o null si no cumple la política
 export const validUsername = (value) => {
   const username = normalizeUsername(value);

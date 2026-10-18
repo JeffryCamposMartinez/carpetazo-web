@@ -68,7 +68,7 @@ export default function CatalogCartDrawer({
           )}
           {(messageMode || socialEnabled('showMessageButton')) && (
             <button
-              className={`w-full p-4 rounded-xl font-extrabold flex justify-center items-center gap-3 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${messageMode ? 'text-white bg-[#1e40af] hover:bg-[#1d4ed8] shadow-[0_4px_15px_rgba(30,64,175,0.3)]' : 'mt-2 text-[#1e40af] bg-white ring-2 ring-[#1e40af] hover:bg-blue-50'}`}
+              className={`w-full p-4 rounded-xl font-extrabold flex justify-center items-center gap-3 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${messageMode ? 'text-white bg-[#1e40af] hover:bg-[#1d4ed8] shadow-[0_4px_15px_rgba(30,64,175,0.3)]' : 'mt-2 text-[#1e40af] bg-white ring-2 ring-[#1e40af] hover:bg-blue-50 disabled:bg-slate-100 disabled:text-slate-400 disabled:ring-slate-300 disabled:hover:bg-slate-100'}`}
               disabled={cart.length === 0 || isProcessingCheckout || !socialEnabled('showMessageButton')}
               onClick={handleMessageCheckout}
             >

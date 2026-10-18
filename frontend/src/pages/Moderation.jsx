@@ -130,7 +130,7 @@ export default function Moderation() {
 
         <div className="lg:flex lg:items-stretch">
           <ModNav items={navItems} groups={GROUPS} value={tab} onChange={setTab} />
-          <main className="min-h-[28rem] min-w-0 flex-1 bg-[#f3f6fc] p-3 sm:p-5 lg:p-7">
+          <div className="min-h-[28rem] min-w-0 flex-1 bg-[#f3f6fc] p-3 sm:p-5 lg:p-7">
             <div className="mb-4 lg:mb-6">
               <h2 className="text-xl font-extrabold tracking-tight text-[#12315f] lg:text-2xl">{current?.label}</h2>
               <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">{current?.blurb}</p>
@@ -149,7 +149,7 @@ export default function Moderation() {
               {tab === 'operations' && level >= 3 && <OperationsPanel />}
               {tab === 'tools' && level >= 3 && <ToolsPanel />}
             </div>
-          </main>
+          </div>
         </div>
       </div>
     </div>

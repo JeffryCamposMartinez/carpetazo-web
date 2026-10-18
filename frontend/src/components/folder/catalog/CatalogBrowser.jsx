@@ -16,7 +16,7 @@ export default function CatalogBrowser({
 }) {
   return (
       <div className="relative z-10 flex min-h-[calc(100vh-230px)] w-full flex-col overflow-hidden rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] md:rounded-[2rem]">
-        <main className="relative z-20 flex flex-1 flex-col px-3 pb-3 pt-2 text-gray-900 sm:px-6 md:px-8 md:py-8">
+        <div className="relative z-20 flex flex-1 flex-col px-3 pb-3 pt-2 text-gray-900 sm:px-6 md:px-8 md:py-8">
           <div className="mb-1 rounded-2xl bg-white p-2 shadow-sm ring-1 ring-slate-900/5 md:mb-5 md:p-3">
             <form onSubmit={(event) => event.preventDefault()} className="flex flex-col gap-2 md:gap-3">
               <div className="flex items-center gap-2">
@@ -231,7 +231,7 @@ export default function CatalogBrowser({
             </div>
           )}
         </div>
-    </main>
+    </div>
       </div>
   );
 }

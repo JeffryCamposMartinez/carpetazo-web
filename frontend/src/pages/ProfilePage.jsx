@@ -450,14 +450,14 @@ const ProfilePage = () => {
           </nav>
         </aside>
 
-        <main className="min-w-0 overflow-hidden rounded-2xl bg-white p-4 shadow-sm ring-1 ring-blue-100 sm:p-6 lg:rounded-[1.75rem] lg:p-8">
+        <div className="min-w-0 overflow-hidden rounded-2xl bg-white p-4 shadow-sm ring-1 ring-blue-100 sm:p-6 lg:rounded-[1.75rem] lg:p-8">
           {loadingProfile ? (
             <LoadingState variant="page" label="Cargando tu perfil…" hint="Un momento, estamos trayendo tus datos." className="!min-h-[420px]" />
           ) : (
             <>
               <div className="mb-6 border-b border-slate-100 pb-5">
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-[#1e40af]">{selectedTab.label}</p>
-                <h2 className="mt-1 break-words text-xl font-black leading-tight text-[#1a2b4b] sm:text-3xl">{selectedTab.description}</h2>
+                <h1 className="mt-1 break-words text-xl font-black leading-tight text-[#1a2b4b] sm:text-3xl">{selectedTab.description}</h1>
               </div>
 
               {activeTab === 'general' && (
@@ -551,7 +551,7 @@ const ProfilePage = () => {
               )}
             </>
           )}
-        </main>
+        </div>
       </div>
 
     </div>

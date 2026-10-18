@@ -16,7 +16,7 @@ export function ProfileLoading() {
 
 export function ProfileUnavailable() {
   return (
-    <main className="flex min-h-[calc(100svh-120px)] items-center justify-center bg-[#DBEAFE] px-5 py-12">
+    <div className="flex min-h-[calc(100svh-120px)] items-center justify-center bg-[#DBEAFE] px-5 py-12">
       <div className="flex max-w-md flex-col items-center text-center">
         <div className="relative mb-8 h-[132px] w-[124px]" aria-hidden="true">
           <span className="absolute left-0 top-2 h-[118px] w-[86px] -rotate-[10deg] rounded-xl border-2 border-[#1e40af]/25 bg-white/60" />
@@ -40,7 +40,7 @@ export function ProfileUnavailable() {
         </p>
         <p className="mt-6 text-sm text-slate-600">¿Crees que es un error? Escríbenos a <a href="mailto:carpetazo.soporte@gmail.com" className="font-bold text-[#1e40af] underline underline-offset-2">carpetazo.soporte@gmail.com</a>.</p>
       </div>
-    </main>
+    </div>
   );
 }
 

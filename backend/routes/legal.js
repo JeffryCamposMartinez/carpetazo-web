@@ -4,7 +4,7 @@ import { authenticateToken } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { hashConnection, hashEmail } from '../core/hashing.js';
 import { ACCEPTED_CACHE_MS, LEGAL_CURRENT, NEW_ACCOUNT_WINDOW_MS, acceptedCache, getLegalStatus } from '../core/legal.js';
-import { badRequest, validUsername } from '../core/validation.js';
+import { badRequest, usernameProblem, validUsername } from '../core/validation.js';
 
 const router = express.Router();
 
@@ -27,7 +27,7 @@ router.post('/api/users/me/accept-terms', authenticateToken, async (req, res) =>
       const status = await getLegalStatus(user);
       if (!status.canChooseUsername) return badRequest(res, 'No puedes cambiar el usuario en este paso');
       newUsername = validUsername(body.username);
-      if (!newUsername) return badRequest(res, 'El usuario debe tener entre 3 y 20 caracteres: letras, números o _.');
+      if (!newUsername) return badRequest(res, usernameProblem(body.username));
     }
     // Usuario nuevo y aceptación juntos: no puede quedar uno sin el otro
     await prisma.$transaction([

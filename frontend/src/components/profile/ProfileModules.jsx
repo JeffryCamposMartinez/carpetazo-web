@@ -22,7 +22,7 @@ export default function ProfileModules({
     ? 'Vista de moderación: incluye carpetas públicas y privadas.'
     : 'Catálogos publicados por este vendedor.';
   return (
-    <main className="relative z-10 mx-auto w-full max-w-[1220px] px-4 py-6 sm:px-6 sm:py-8 md:px-8">
+    <div className="relative z-10 mx-auto w-full max-w-[1220px] px-4 py-6 sm:px-6 sm:py-8 md:px-8">
       <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-12">
         {showProfileShowcase && (
           <section className={`min-w-0 border p-5 ring-1 ${getDistributionSpan('showcase')}`} style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}33`, order: getDistributionOrder('showcase') }}>
@@ -152,6 +152,6 @@ export default function ProfileModules({
           </section>
         )}
       </div>
-    </main>
+    </div>
   );
 }

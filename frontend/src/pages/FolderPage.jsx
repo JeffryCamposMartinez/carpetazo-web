@@ -974,7 +974,7 @@ const [isSearching, setIsSearching] = useState(false);
     <>
       <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
         <div className="w-full rounded-none shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] border-x border-gray-300 flex flex-col relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
-          <main className="relative z-20 flex flex-1 flex-col px-3 py-4 text-gray-900 sm:px-8 sm:py-5">
+          <div className="relative z-20 flex flex-1 flex-col px-3 py-4 text-gray-900 sm:px-8 sm:py-5">
       <div className="mb-3 flex items-center gap-2 border-b border-gray-300 pb-3 sm:gap-4">
         <button 
           onClick={() => navigate('/dashboard')}
@@ -1029,7 +1029,7 @@ const [isSearching, setIsSearching] = useState(false);
         onConfirm={executeDeleteCard} 
         onCancel={() => setConfirmDialog({ show: false, message: '', targetId: null })}
       />
-          </main>
+          </div>
         </div>
       </div>
     

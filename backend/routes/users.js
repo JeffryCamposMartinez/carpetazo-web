@@ -9,7 +9,7 @@ import { acceptedCache, getLegalStatus } from '../core/legal.js';
 import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/publicSeller.js';
 import { deleteR2ObjectByPublicUrl } from '../core/r2.js';
 import { getCompletedSales, getResponseStats } from '../core/sellerTrust.js';
-import { SOCIAL_DOMAINS, badRequest, checkImageField, checkSocialField, hasControlChars, isAllowedStoredImageUrl, isOptionalText, isShortText, normalizeUsername, sanitizePublicTheme, validUsername } from '../core/validation.js';
+import { SOCIAL_DOMAINS, badRequest, checkImageField, checkSocialField, hasControlChars, isAllowedStoredImageUrl, isOptionalText, isShortText, normalizeUsername, sanitizePublicTheme, usernameProblem, validUsername } from '../core/validation.js';
 import { moderationHooks, restrictions } from '../moderation/services.js';
 
 const router = express.Router();
@@ -157,7 +157,7 @@ router.put('/api/users/me', authenticateToken, async (req, res) => {
       // Nombres antiguos que no cumplen la política se conservan mientras no se cambien
       const current = username ? null : await prisma.user.findUnique({ where: { firebaseUid }, select: { username: true } });
       if (!username && current?.username !== normalizeUsername(updateData.username)) {
-        return res.status(400).json({ success: false, error: 'El usuario debe tener entre 3 y 20 caracteres: letras, números o _.' });
+        return res.status(400).json({ success: false, error: usernameProblem(updateData.username) });
       }
       updateData.username = username || current.username;
     }
@@ -307,7 +307,7 @@ router.get('/api/users/username/check', authenticateToken, async (req, res) => {
       return res.status(400).json({
         success: false,
         available: false,
-        message: 'El usuario debe tener entre 3 y 20 caracteres: letras, números o _.'
+        message: usernameProblem(req.query.username)
       });
     }
 
@@ -341,7 +341,7 @@ router.get('/api/users/username/available', async (req, res) => {
   try {
     const username = validUsername(req.query.username);
     if (!username) {
-      return res.status(400).json({ success: false, available: false, message: 'El usuario debe tener entre 3 y 20 caracteres: letras, números o _.' });
+      return res.status(400).json({ success: false, available: false, message: usernameProblem(req.query.username) });
     }
     const existing = await prisma.user.findUnique({ where: { username }, select: { id: true } });
     res.json({ success: true, available: !existing });
