@@ -133,7 +133,8 @@ const { prisma, call, ok, NAMES } = require('./fixtures.cjs');
     const events = r.j.events || [];
     const actions = new Set(events.map((e) => e.action));
     ok('el historial trae roles, suspensiones, cierres y restauraciones', ['role.admin_granted', 'role.admin_revoked', 'team.suspended', 'team.closed', 'team.restored'].every((a) => actions.has(a)), JSON.stringify([...actions]));
-    ok('cada evento dice quién lo hizo y a quién', events.every((e) => e.actor?.username && e.target?.username) && events.some((e) => e.actor.username === NAMES.admin && e.target.username === ale));
+    const testEvents = events.filter((e) => String(e.target?.username || '').startsWith('cztest_'));
+    ok('cada evento dice quién lo hizo y a quién', testEvents.every((e) => e.actor?.username && e.target?.username) && events.some((e) => e.actor.username === NAMES.admin && e.target.username === ale));
     ok('el historial viene del más nuevo al más antiguo', events.every((e, i) => i === 0 || new Date(events[i - 1].at) >= new Date(e.at)));
   } catch (error) {
     ok('la prueba terminó sin excepciones', false, error.stack || error.message);

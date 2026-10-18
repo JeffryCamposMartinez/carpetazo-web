@@ -268,26 +268,30 @@ export default function Header() {
     let timer = null;
     let idleChecks = 0;
     let lastSignature = '';
+    let lastPollAt = 0;
     const nextDelay = () => (idleChecks < 4 ? 8000 : idleChecks < 10 ? 15000 : 30000);
     const tick = async () => {
+      lastPollAt = Date.now();
       await loadUnreadMessages();
       if (!cancelled) timer = window.setTimeout(tick, nextDelay());
     };
     const wake = () => { idleChecks = 0; window.clearTimeout(timer); tick(); };
+    // Al volver a la pestaña saltan focus y visibilitychange juntos: una sola consulta
+    const wakeOnReturn = () => { if (Date.now() - lastPollAt > 3000) wake(); };
 
     tick();
-    window.addEventListener('focus', wake);
+    window.addEventListener('focus', wakeOnReturn);
     window.addEventListener('carpetazo:messages-updated', wake);
     window.addEventListener('carpetazo:orders-updated', wake);
-    document.addEventListener('visibilitychange', wake);
+    document.addEventListener('visibilitychange', wakeOnReturn);
 
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
-      window.removeEventListener('focus', wake);
+      window.removeEventListener('focus', wakeOnReturn);
       window.removeEventListener('carpetazo:messages-updated', wake);
       window.removeEventListener('carpetazo:orders-updated', wake);
-      document.removeEventListener('visibilitychange', wake);
+      document.removeEventListener('visibilitychange', wakeOnReturn);
     };
   }, [currentUser?.uid, location.pathname]);
 

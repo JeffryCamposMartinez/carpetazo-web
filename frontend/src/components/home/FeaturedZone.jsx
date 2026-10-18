@@ -39,7 +39,7 @@ function SectionHeader({ id, title, note, to, linkLabel, as: Heading = 'h3' }) {
         {note && <p className="mt-0.5 max-w-prose text-sm text-[#1a2b4b]/80">{note}</p>}
       </div>
       {to && (
-        <Link to={to} className="rounded text-sm font-semibold text-[#1e40af] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e40af]">
+        <Link to={to} className="relative rounded text-sm font-semibold text-[#1e40af] after:absolute after:-inset-x-1 after:-inset-y-3 after:content-[''] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e40af]">
           {linkLabel}
         </Link>
       )}

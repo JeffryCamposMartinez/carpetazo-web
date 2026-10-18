@@ -163,7 +163,7 @@ export default function HeroCarousel() {
           <button
             key={slide.id}
             onClick={() => setCurrentSlide(idx)}
-            className={`h-2 rounded-full transition-all duration-300 ${
+            className={`relative h-2 rounded-full transition-all duration-300 after:absolute after:-inset-x-1.5 after:-inset-y-4 after:content-[''] ${
               currentSlide === idx ? 'bg-[#12315f] w-8' : 'bg-slate-300 hover:bg-slate-400 w-3'
             }`}
             aria-label={`Ir al banner ${idx + 1}`}

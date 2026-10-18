@@ -29,14 +29,14 @@ export default function SellerProfile() {
   const { currentUser, refreshAppUser } = useAuth();
   const navigate = useNavigate();
   const [seller, setSeller] = useState(null);
+  const [folders, setFolders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
   usePageMeta(seller?.username ? {
     title: `${seller.name || seller.username} - Vendedor de cartas TCG | Carpetazo`,
     description: seller.bio ? seller.bio.slice(0, 160) : `Cartas a la venta de ${seller.name || seller.username} en Carpetazo, el mercado de cartas TCG en Chile.`,
     path: `/${seller.username}`
-  } : {});
-  const [folders, setFolders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
+  } : errorMsg ? { title: 'Perfil no disponible | Carpetazo', noindex: true } : {});
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [tempBio, setTempBio] = useState('');
   const [savingBio, setSavingBio] = useState(false);
