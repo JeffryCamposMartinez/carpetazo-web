@@ -611,7 +611,7 @@ function PublicCatalog() {
 
       <button 
         onClick={() => setIsCartOpen(true)}
-        className="fixed bottom-[80px] right-4 z-30 flex min-h-14 items-center gap-2 rounded-full bg-primary px-4 py-3 text-on-primary shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-transform hover:scale-105 md:bottom-8 md:right-8"
+        className="fixed bottom-[80px] right-[max(1rem,env(safe-area-inset-right))] z-30 flex min-h-14 items-center gap-2 rounded-full bg-primary px-4 py-3 text-on-primary shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-transform hover:scale-105 md:bottom-8 md:right-8"
       >
         <span translate="no" className="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
         {cartItemsCount > 0 ? (
@@ -624,7 +624,7 @@ function PublicCatalog() {
         )}
       </button>
 
-      <div className="fixed bottom-[150px] right-5 z-30 flex flex-col items-center gap-2.5 md:bottom-[104px] md:right-10">
+      <div className="fixed bottom-[150px] right-[max(1.25rem,env(safe-area-inset-right))] z-30 flex flex-col items-center gap-2.5 md:bottom-[104px] md:right-10">
         <button
           type="button"
           onClick={clearFilters}

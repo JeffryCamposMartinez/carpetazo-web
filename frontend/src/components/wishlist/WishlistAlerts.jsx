@@ -12,7 +12,7 @@ function Switch({ checked, busy, onChange, label }) {
       aria-label={label}
       disabled={busy}
       onClick={() => onChange(!checked)}
-      className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 disabled:opacity-60 ${checked ? 'bg-[#1e40af]' : 'bg-slate-300'}`}
+      className={`relative h-7 w-12 shrink-0 before:absolute before:-inset-2 before:content-[''] rounded-full transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 disabled:opacity-60 ${checked ? 'bg-[#1e40af]' : 'bg-slate-300'}`}
     >
       <span aria-hidden="true" className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-150 ${checked ? 'translate-x-5' : ''}`} />
     </button>
@@ -95,7 +95,7 @@ export default function WishlistAlerts() {
         </li>
         {settings.wishlistEmail && (
           <li className="pb-2">
-            <button type="button" onClick={sendTestEmail} disabled={busy === 'testEmail'} className="min-h-9 text-xs font-bold text-[#1e40af] hover:underline focus:outline-none focus-visible:underline disabled:opacity-60">Enviarme un correo de prueba</button>
+            <button type="button" onClick={sendTestEmail} disabled={busy === 'testEmail'} className="min-h-9 [@media(pointer:coarse)]:min-h-11 text-xs font-bold text-[#1e40af] hover:underline focus:outline-none focus-visible:underline disabled:opacity-60">Enviarme un correo de prueba</button>
           </li>
         )}
         {settings.pushAvailable && (
@@ -107,7 +107,7 @@ export default function WishlistAlerts() {
                 : <span className="text-xs font-semibold text-slate-500">No disponible</span>}
             </div>
             {!pushSupported() && <p className="mt-1 text-xs text-slate-500">Este navegador no las admite. En iPhone, agrega Carpetazo a la pantalla de inicio para activarlas.</p>}
-            {pushOn && <button type="button" onClick={sendTest} disabled={busy === 'test'} className="mt-1 min-h-9 text-xs font-bold text-[#1e40af] hover:underline focus:outline-none focus-visible:underline disabled:opacity-60">Enviarme una notificación de prueba</button>}
+            {pushOn && <button type="button" onClick={sendTest} disabled={busy === 'test'} className="mt-1 min-h-9 [@media(pointer:coarse)]:min-h-11 text-xs font-bold text-[#1e40af] hover:underline focus:outline-none focus-visible:underline disabled:opacity-60">Enviarme una notificación de prueba</button>}
           </li>
         )}
       </ul>

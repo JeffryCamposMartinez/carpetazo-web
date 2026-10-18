@@ -301,10 +301,10 @@ export default function AlbumPage({
                   <div className="h-full max-h-full w-[72%] rounded-[4%] bg-white/5 ring-1 ring-white/10" aria-label={card.name} />
                 )}
 
-                <div className="absolute top-1 right-1 md:top-1.5 md:right-1.5 z-[120] flex min-w-8 items-center justify-center rounded-full border border-white/20 bg-slate-950/85 px-2 py-0.5 text-[10px] md:text-xs font-black leading-none text-white shadow-lg backdrop-blur-sm pointer-events-none">
+                <div className="absolute top-1 right-1 md:top-1.5 md:right-1.5 z-[120] flex min-w-8 items-center justify-center rounded-full border border-white/20 bg-slate-950/85 px-2 py-0.5 text-[11px] md:text-xs font-black leading-none text-white shadow-lg backdrop-blur-sm pointer-events-none">
                   x{Number(card.stock || 0) > 999 ? '999+' : (card.stock || 0)}
                 </div>
-                <div className={`absolute -bottom-1 left-1/2 z-[120] flex -translate-x-1/2 items-center justify-center rounded-full border border-yellow-300/40 bg-yellow-400 px-3 py-0.5 text-[10px] md:text-xs font-black leading-none text-slate-950 shadow-md whitespace-nowrap pointer-events-none transition-opacity duration-300 ${cardIsActive || previewCard ? 'opacity-0' : 'opacity-100'}`}>
+                <div className={`absolute -bottom-1 left-1/2 z-[120] flex -translate-x-1/2 items-center justify-center rounded-full border border-yellow-300/40 bg-yellow-400 px-2 py-0.5 text-xs md:px-3 font-black leading-none text-slate-950 shadow-md whitespace-nowrap pointer-events-none transition-opacity duration-300 ${cardIsActive || previewCard ? 'opacity-0' : 'opacity-100'}`}>
                   {card.price ? '$' + Number(card.price).toLocaleString('es-CL') : 'Sin precio'}
                 </div>
 

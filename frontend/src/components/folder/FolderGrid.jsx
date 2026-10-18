@@ -3,7 +3,7 @@ import FolderStatusChip from './FolderStatusChip';
 import { createPortal } from 'react-dom';
 
 // Botón redondo de icono: 36 px visibles y 44 px de zona táctil
-const ICON_BUTTON = "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[background-color,transform] duration-150 hover:bg-white active:scale-[0.94] active:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] after:absolute after:-inset-1 after:content-['']";
+const ICON_BUTTON = "relative flex h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 shrink-0 items-center justify-center rounded-full transition-[background-color,transform] duration-150 hover:bg-white active:scale-[0.94] active:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] after:absolute after:-inset-1 after:content-['']";
 
 // Grilla de mis carpetas: hueco para crear una nueva y cada carpeta con su estado y su menú de acciones.
 export default function FolderGrid({

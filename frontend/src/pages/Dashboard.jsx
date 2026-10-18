@@ -517,7 +517,7 @@ export default function Dashboard() {
                   <p className="text-xs font-black uppercase tracking-wider text-slate-500">Plan {planState.plan.name}</p>
                   <p className="mt-1 font-bold text-[#12315f]">{planState.usage?.folders || 0} de {planState.plan.folders === null ? 'carpetas ilimitadas' : `${planState.plan.folders} carpetas`}</p>
                 </div>
-                <Link to="/planes" className="inline-flex h-10 items-center justify-center rounded-xl bg-[#12315f] px-4 text-sm font-extrabold text-white hover:bg-[#1e40af]">Ver mi plan</Link>
+                <Link to="/planes" className="inline-flex h-10 [@media(pointer:coarse)]:h-11 items-center justify-center rounded-xl bg-[#12315f] px-4 text-sm font-extrabold text-white hover:bg-[#1e40af]">Ver mi plan</Link>
               </div>
             )}
             {folders.length > 0 && <FolderSummary variant="strip" folderCount={folders.length} publicCount={publicCount} cardCount={totalCards} weeklyVisits={weeklyVisits} pendingCount={pendingCount} onOpenRequests={() => setActiveTab('solicitudes')} />}

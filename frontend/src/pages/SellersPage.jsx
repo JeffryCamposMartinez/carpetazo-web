@@ -19,9 +19,9 @@ const formatNumber = (value) => Number(value || 0).toLocaleString('es-CL');
 
 function Avatar({ seller }) {
   return seller.photoURL ? (
-    <img src={seller.photoURL} alt="" loading="lazy" className="h-14 w-14 flex-shrink-0 rounded-full border-2 border-[#facc15] bg-white object-cover" />
+    <img src={seller.photoURL} alt="" loading="lazy" className="h-[56px] w-[56px] flex-shrink-0 rounded-full border-2 border-[#facc15] bg-white object-cover" />
   ) : (
-    <span className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full border-2 border-[#facc15] bg-[#12315f] text-xl font-black text-white">{(seller.name || 'V')[0].toUpperCase()}</span>
+    <span className="flex h-[56px] w-[56px] flex-shrink-0 items-center justify-center rounded-full border-2 border-[#facc15] bg-[#12315f] text-xl font-black text-white">{(seller.name || 'V')[0].toUpperCase()}</span>
   );
 }
 
@@ -116,7 +116,7 @@ export default function SellersPage() {
                   <span translate="no" className="material-symbols-outlined text-[22px] text-slate-400">chevron_right</span>
                 </>
               );
-              const rowClass = 'flex min-w-0 items-center gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5';
+              const rowClass = 'flex min-w-0 items-center gap-3 rounded-2xl bg-white p-3 sm:gap-4 sm:p-4 shadow-sm ring-1 ring-slate-900/5';
               return (
                 <li key={seller.key} className="min-w-0">
                   {seller.username ? (

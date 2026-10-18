@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { ButtonSpinner } from '../ui/LoadingState';
 
-const chip = 'flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-bold transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:opacity-50';
-const textButton = 'flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-bold text-[#1e40af] transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:opacity-50';
+const chip = 'flex h-10 [@media(pointer:coarse)]:h-11 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-bold transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:opacity-50';
+const textButton = 'flex h-9 [@media(pointer:coarse)]:h-11 items-center gap-1.5 rounded-full px-3 text-sm font-bold text-[#1e40af] transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:opacity-50';
 const Icon = ({ name, className = '' }) => <span translate="no" aria-hidden="true" className={`material-symbols-outlined text-[18px] ${className}`}>{name}</span>;
 
 // Listas de deseos: elegir cuál se ve, crear, renombrar, borrar y dejar una como activa (la que se muestra en el perfil)
@@ -63,8 +63,8 @@ export default function WishlistLists({ lists, selectedId, onSelect, onCreate, o
       ) : mode === 'delete' ? (
         <div role="alertdialog" aria-label="Confirmar borrado de la lista" className="flex flex-wrap items-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-900">
           <span className="min-w-0 flex-1 font-semibold">¿Borrar “{current.name}” y sus {current.count} {current.count === 1 ? 'carta' : 'cartas'}?</span>
-          <button type="button" disabled={busy} onClick={async () => { if (await onDelete(current.id)) setMode(''); }} className="flex h-9 items-center gap-2 rounded-full bg-red-600 px-4 text-sm font-extrabold text-white transition-transform duration-150 active:scale-[0.97] disabled:opacity-50">{busy && <ButtonSpinner />}Sí, borrar</button>
-          <button type="button" onClick={() => setMode('')} className="h-9 rounded-full px-3 text-sm font-bold text-slate-700 hover:bg-white/70">No</button>
+          <button type="button" disabled={busy} onClick={async () => { if (await onDelete(current.id)) setMode(''); }} className="flex h-9 [@media(pointer:coarse)]:h-11 items-center gap-2 rounded-full bg-red-600 px-4 text-sm font-extrabold text-white transition-transform duration-150 active:scale-[0.97] disabled:opacity-50">{busy && <ButtonSpinner />}Sí, borrar</button>
+          <button type="button" onClick={() => setMode('')} className="h-9 [@media(pointer:coarse)]:h-11 rounded-full px-3 text-sm font-bold text-slate-700 hover:bg-white/70">No</button>
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-x-1 gap-y-1">

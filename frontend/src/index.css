@@ -162,6 +162,13 @@ body.public-profile-active::after {
   a, button, [role='button'], summary, label, select {
     touch-action: manipulation;               /* sin el retraso de 300 ms del doble toque */
   }
+  body {
+    padding-left: env(safe-area-inset-left);   /* con viewport-fit=cover, la muesca en horizontal no tapa el contenido */
+    padding-right: env(safe-area-inset-right);
+  }
+  h1, h2, h3 {
+    overflow-wrap: anywhere;                  /* un título con palabra larga no ensancha la pantalla (letra grande del sistema) */
+  }
   a[href^='mailto:'] {
     overflow-wrap: anywhere;                  /* un correo largo no ensancha la pantalla (letra grande del sistema) */
   }
