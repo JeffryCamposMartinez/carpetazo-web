@@ -49,6 +49,7 @@ export const routeLimiter = (windowMs, max) => rateLimit({
 
 // Se aplican sobre la app antes de montar las rutas
 export const applyRouteLimits = (app) => {
+  app.use('/api/admin/users/:username/plan', routeLimiter(15 * 60 * 1000, 60));
   app.use('/api/billing/checkout', routeLimiter(15 * 60 * 1000, 10));
   app.use('/api/billing/cancel', routeLimiter(15 * 60 * 1000, 10));
   app.use('/api/billing/mercadopago/webhook', routeLimiter(15 * 60 * 1000, 600));

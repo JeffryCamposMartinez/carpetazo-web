@@ -25,6 +25,8 @@ const ACTIONS = {
   'case.opened': { label: 'Caso de estafa abierto', tone: 'bg-rose-500' },
   'case.exported': { label: 'Informe de caso exportado', tone: 'bg-[#12315f]' },
   'evidence.viewed': { label: 'Vio una evidencia', tone: 'bg-slate-400' },
+  'plan.granted': { label: 'Asignó un plan', tone: 'bg-[#facc15]' },
+  'plan.revoked': { label: 'Quitó un plan asignado', tone: 'bg-slate-400' },
   'role.changed': { label: 'Cambió un rol del equipo', tone: 'bg-[#12315f]' },
   note: { label: 'Nota interna', tone: 'bg-slate-400' }
 };

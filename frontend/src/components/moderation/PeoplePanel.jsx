@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import { EmptyState, ErrorBox, Pills, QUICK_REASONS, ROW, SANCTION_TYPES, Spinner, dateOnly } from './shared';
 import TermsEvidence from './TermsEvidence';
+import PlanManager from './PlanManager';
 import Select from '../ui/Select';
 
 const STATUS = {
@@ -197,6 +198,8 @@ export default function PeoplePanel({ level, focusUsername, focusReportId, onFoc
                 </fieldset>
               )}
             </div>
+
+            {level >= 3 && <PlanManager username={profile.user.username} setError={setError} />}
 
             {canSanction && (showForm
               ? <SanctionForm username={profile.user.username} level={level} reportId={focusReportId} setError={setError} onCancel={() => setShowForm(false)} onDone={() => { setShowForm(false); refresh(); }} />

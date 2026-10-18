@@ -86,6 +86,29 @@ const { prisma, call, ok } = require('./fixtures.cjs');
     ok('la mora conserva siete días de gracia', r.status === 200 && r.j.plan?.key === 'premium' && r.j.subscription?.graceUntil);
     r = await call('POST', '/billing/checkout', 'nobuyer', { planKey: 'pro' });
     ok('no se crean dos suscripciones simultáneas', r.status === 409 && r.j.code === 'subscription_exists');
+
+    // Cambio de plan desde Moderación
+    const target = 'cztest_nobuyer';
+    r = await call('POST', `/admin/users/${target}/plan`, 'seller', { planKey: 'pro', reason: 'prueba sin permiso' });
+    ok('un usuario sin rol de equipo no puede cambiar planes', r.status === 403 || r.status === 401, String(r.status));
+    r = await call('POST', `/admin/users/${target}/plan`, 'admin', { planKey: 'oro', reason: 'plan inventado' });
+    ok('el administrador no puede asignar un plan inexistente', r.status === 400);
+    r = await call('POST', `/admin/users/${target}/plan`, 'admin', { planKey: 'pro', reason: 'no' });
+    ok('el motivo es obligatorio (mínimo 5 caracteres)', r.status === 400);
+    r = await call('POST', `/admin/users/${target}/plan`, 'admin', { planKey: 'pro', reason: 'cuenta antigua con varias carpetas', days: 0 });
+    ok('los días deben ser válidos', r.status === 400);
+    r = await call('POST', `/admin/users/nadie_existe_xyz/plan`, 'admin', { planKey: 'pro', reason: 'persona inexistente' });
+    ok('persona inexistente da 404', r.status === 404);
+    r = await call('POST', `/admin/users/${target}/plan`, 'admin', { planKey: 'pro', reason: 'cuenta antigua con varias carpetas', days: 30 });
+    ok('el administrador asigna Pro por 30 días', r.status === 200 && r.j.plan?.key === 'pro' && r.j.source === 'grant' && r.j.grant?.endsAt, JSON.stringify(r.j).slice(0, 200));
+    r = await call('GET', `/billing/me`, 'nobuyer');
+    ok('la persona ve de inmediato su nuevo plan', r.status === 200 && r.j.plan?.key === 'pro');
+    r = await call('GET', `/admin/users/${target}/plan`, 'admin');
+    ok('la ficha lista las concesiones', r.status === 200 && r.j.grants?.length >= 1 && r.j.plan?.key === 'pro');
+    r = await call('POST', `/admin/users/${target}/plan`, 'admin', { planKey: 'auto', reason: 'vuelve a su suscripción' });
+    ok('quitar el plan asignado vuelve al plan automático', r.status === 200 && r.j.source !== 'grant');
+    const audits = await prisma.moderationAudit.count({ where: { targetId: userId, action: { in: ['plan.granted', 'plan.revoked'] } } });
+    ok('cada cambio de plan queda en la auditoría con quién lo hizo', audits === 2 && (await prisma.moderationAudit.count({ where: { targetId: userId, action: { startsWith: 'plan.' }, actorId: null } })) === 0);
   } finally {
     await prisma.$disconnect();
   }

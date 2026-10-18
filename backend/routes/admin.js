@@ -2,10 +2,12 @@
 import express from 'express';
 import { authenticateToken, currentUserId, requireAdmin, requireStaff } from '../core/auth.js';
 import { prisma } from '../core/db.js';
+import { getPlanState, lockPlanUser } from '../core/entitlements.js';
+import { PLANS, validPlanKey } from '../core/plans.js';
 import { hashEmail, hashIp } from '../core/hashing.js';
 import { LEGAL_CURRENT } from '../core/legal.js';
 import { escapeHtml, sendUserEmail } from '../core/mail.js';
-import { badRequest, validUsername } from '../core/validation.js';
+import { badRequest, isShortText, validUsername } from '../core/validation.js';
 
 const router = express.Router();
 
@@ -76,6 +78,65 @@ router.post('/api/admin/terms/evidence', authenticateToken, requireStaff(3), asy
     });
   } catch (error) {
     console.error('Error loading terms evidence:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Plan de una persona (solo administradores): una concesión manual manda sobre la suscripción hasta que se quite.
+const planTarget = async (raw) => {
+  const username = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+  if (!validUsername(username)) return null;
+  return prisma.user.findUnique({ where: { username }, select: { id: true, username: true, role: true } });
+};
+
+router.get('/api/admin/users/:username/plan', authenticateToken, requireStaff(3), async (req, res) => {
+  try {
+    const target = await planTarget(req.params.username);
+    if (!target) return res.status(404).json({ success: false, message: 'Persona no encontrada' });
+    const [state, grants] = await Promise.all([
+      getPlanState(prisma, target.id),
+      prisma.planGrant.findMany({ where: { userId: target.id }, orderBy: { createdAt: 'desc' }, take: 10, select: { id: true, planKey: true, reason: true, startsAt: true, endsAt: true, revokedAt: true, createdAt: true } })
+    ]);
+    res.set('Cache-Control', 'private, no-store');
+    res.json({ success: true, ...state, grants });
+  } catch (error) {
+    console.error('Error loading user plan:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// planKey 'auto' quita las concesiones y la persona vuelve a su suscripción (o a Free).
+router.post('/api/admin/users/:username/plan', authenticateToken, requireStaff(3), async (req, res) => {
+  try {
+    const { planKey, reason } = req.body || {};
+    const days = req.body?.days === undefined || req.body?.days === null || req.body?.days === '' ? null : Number(req.body.days);
+    if (planKey !== 'auto' && !validPlanKey(planKey)) return badRequest(res, 'Plan inválido');
+    if (!isShortText(reason, 300) || reason.trim().length < 5) return badRequest(res, 'Escribe el motivo (mínimo 5 caracteres)');
+    if (days !== null && (!Number.isInteger(days) || days < 1 || days > 3650)) return badRequest(res, 'Los días deben ser un número entre 1 y 3650');
+    const target = await planTarget(req.params.username);
+    if (!target) return res.status(404).json({ success: false, message: 'Persona no encontrada' });
+    const actorId = await currentUserId(req);
+    const clean = reason.trim();
+    await prisma.$transaction(async (tx) => {
+      await lockPlanUser(tx, target.id);
+      await tx.planGrant.updateMany({ where: { userId: target.id, revokedAt: null }, data: { revokedAt: new Date() } });
+      if (planKey !== 'auto') {
+        await tx.planGrant.create({ data: { userId: target.id, planKey, reason: clean, grantedById: actorId, endsAt: days ? new Date(Date.now() + days * 86400000) : null } });
+      }
+      await tx.moderationAudit.create({
+        data: {
+          actorId,
+          action: planKey === 'auto' ? 'plan.revoked' : 'plan.granted',
+          targetType: 'user',
+          targetId: target.id,
+          note: planKey === 'auto' ? `Plan manual de @${target.username} quitado: ${clean}` : `Plan ${PLANS[planKey].name} para @${target.username}${days ? ` por ${days} días` : ' sin fecha de término'}: ${clean}`,
+          meta: { planKey, days }
+        }
+      });
+    });
+    res.json({ success: true, ...(await getPlanState(prisma, target.id)) });
+  } catch (error) {
+    console.error('Error changing user plan:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
   }
 });

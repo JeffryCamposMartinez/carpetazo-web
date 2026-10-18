@@ -186,6 +186,8 @@ export const api = {
   revokeSanction: (id, note) => apiFetch('/admin/sanctions/' + encodeURIComponent(id) + '/revoke', { method: 'POST', body: JSON.stringify({ note }) }),
   // Evidencia legal de aceptación de Términos (solo administradores): correo e IP van en el cuerpo, nunca en la URL
   getTermsEvidence: (body) => apiFetch('/admin/terms/evidence', { method: 'POST', body: JSON.stringify(body) }),
+  getUserPlan: (username) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/plan'),
+  setUserPlan: (username, payload) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/plan', { method: 'POST', body: JSON.stringify(payload) }),
   setStaffRole: (username, role) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/role', { method: 'POST', body: JSON.stringify({ role }) }),
   getAdminAppeals: (status) => apiFetch('/admin/appeals?status=' + (status || 'open')),
   decideAppeal: (id, action, note) => apiFetch('/admin/appeals/' + encodeURIComponent(id) + '/decision', { method: 'POST', body: JSON.stringify({ action, note }) }),
