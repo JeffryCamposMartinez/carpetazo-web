@@ -4,6 +4,7 @@ import { api } from '../../services/api';
 import LazyFolderCard from '../folder/LazyFolderCard';
 import { cardRatio } from '../../utils/cardShape';
 import EmptyState from '../ui/EmptyState';
+import PlanBadge from '../ui/PlanBadge';
 
 const GAMES = [
   { name: 'Pokémon', logo: '/images/logos/pokemon.webp', scale: 'scale-100' },
@@ -116,7 +117,7 @@ function TopSellers({ sellers }) {
               <span className="w-6 shrink-0 text-center text-lg font-black tabular-nums text-[#1e40af]">{index + 1}</span>
               <Avatar src={seller.photoURL} name={seller.name} />
               <div className="min-w-0 flex-1">
-                <p className="truncate font-bold text-[#1a2b4b]">{seller.name}</p>
+                <div className="flex min-w-0 items-center gap-1.5"><p className="truncate font-bold text-[#1a2b4b]">{seller.name}</p><PlanBadge badge={seller.planBadge} compact /></div>
                 <p className="truncate text-xs text-[#1a2b4b]/75">
                   {seller.username ? `@${seller.username}` : 'Vendedor'} · {seller.folders} {seller.folders === 1 ? 'carpeta' : 'carpetas'} · {formatNumber(seller.cards)} cartas
                 </p>
@@ -160,7 +161,7 @@ function TopSelling({ sellers }) {
               <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-black tabular-nums ${medals[index] || 'bg-[#1e40af]/10 text-[#1e40af]'}`}>{index + 1}</span>
               <Avatar src={seller.photoURL} name={seller.name} />
               <div className="min-w-0 flex-1">
-                <p className="truncate font-bold text-[#1a2b4b]">{seller.name}</p>
+                <div className="flex min-w-0 items-center gap-1.5"><p className="truncate font-bold text-[#1a2b4b]">{seller.name}</p><PlanBadge badge={seller.planBadge} compact /></div>
                 <p className="truncate text-xs text-[#1a2b4b]/75">@{seller.username}{seller.publicComuna ? ` · ${seller.publicComuna}` : ''}</p>
                 <div className="mt-2 flex items-center gap-3">
                   <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-emerald-600/10" role="presentation">
@@ -193,7 +194,10 @@ function NewFolders({ folders }) {
               <Avatar src={folder.user?.photoURL} name={folder.user?.name || folder.user?.username} className="h-9 w-9" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold text-[#1a2b4b]">{folder.name}</p>
-                <p className="truncate text-xs text-[#1a2b4b]/75">{folder.tcg} · {folder.user?.name || folder.user?.username || 'Vendedor'}</p>
+                <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
+                  <p className="truncate text-xs text-[#1a2b4b]/75">{folder.tcg} · {folder.user?.name || folder.user?.username || 'Vendedor'}</p>
+                  <PlanBadge badge={folder.user?.planBadge} compact />
+                </div>
               </div>
               <span className="shrink-0 text-xs text-[#1a2b4b]/75">{timeAgo(folder.createdAt)}</span>
             </Link>
@@ -302,7 +306,7 @@ export default function FeaturedZone({ recentCards = [], loadingCards = false })
 
   const visitedFolders = data?.visited || [];
   const newFolders = data?.newest || [];
-  const sellers = useMemo(() => (data?.topSellers || []).map((seller) => ({ key: seller.username || seller.name, name: seller.name || seller.username || 'Vendedor', username: seller.username, photoURL: seller.photoURL, visits: seller.visits, folders: seller.folders, cards: seller.cards })), [data]);
+  const sellers = useMemo(() => (data?.topSellers || []).map((seller) => ({ key: seller.username || seller.name, name: seller.name || seller.username || 'Vendedor', username: seller.username, photoURL: seller.photoURL, visits: seller.visits, folders: seller.folders, cards: seller.cards, planBadge: seller.planBadge })), [data]);
   const topSelling = data?.topSelling || [];
   const stats = data?.stats || { folders: 0, sellers: 0, cards: 0 };
   const gameCounts = useMemo(() => {

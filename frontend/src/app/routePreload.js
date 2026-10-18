@@ -13,6 +13,7 @@ export const pageLoaders = {
   messages: () => import('../pages/Messages'),
   moderation: () => import('../pages/Moderation'),
   feedback: () => import('../pages/FeedbackPage'),
+  plans: () => import('../pages/PlansPage'),
   folders: () => import('../pages/FoldersPage'),
   cards: () => import('../pages/CardsPage'),
   cardDetail: () => import('../pages/CardDetailPage'),
@@ -30,6 +31,7 @@ const loaderByPath = {
   '/dashboard': 'dashboard',
   '/mensajes': 'messages',
   '/sugerencias': 'feedback',
+  '/planes': 'plans',
 };
 
 const started = new Set();

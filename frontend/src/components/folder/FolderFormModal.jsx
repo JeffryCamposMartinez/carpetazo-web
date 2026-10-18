@@ -1,16 +1,23 @@
 import { AVAILABLE_TCGS, COLOR_NAMES, FOLDER_COLORS, TCG_OPTIONS } from '../../config/folderOptions';
 import FolderBinder from './FolderBinder';
+import { Link } from 'react-router-dom';
 
 // Crear o editar una carpeta: nombre, juego, color y visibilidad, con vista previa en vivo.
 export default function FolderFormModal({
   editFolderColor, editFolderName, editingFolder, handleCreateFolder, isCreating, newFolderColor,
   newFolderName, newFolderPublic, newFolderTcg, setEditFolderColor, setEditFolderName, setEditingFolder, setIsCreateModalOpen,
-  setNewFolderColor, setNewFolderName, setNewFolderPublic, setNewFolderTcg, submitEditFolder
+  setNewFolderColor, setNewFolderName, setNewFolderPublic, setNewFolderTcg, submitEditFolder, planState
 }) {
   const isEdit = Boolean(editingFolder);
   const name = isEdit ? editFolderName : newFolderName;
   const color = isEdit ? editFolderColor : newFolderColor;
   const close = () => (isEdit ? setEditingFolder(null) : setIsCreateModalOpen(false));
+  const plan = planState?.plan;
+  const totalUsed = planState?.usage?.folders || 0;
+  const tcgUsed = planState?.usage?.byTcg?.[newFolderTcg] || 0;
+  const totalReached = !isEdit && plan?.folders !== null && totalUsed >= plan?.folders;
+  const tcgReached = !isEdit && plan?.foldersPerTcg !== null && tcgUsed >= plan?.foldersPerTcg;
+  const quotaReached = Boolean(totalReached || tcgReached);
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1a2b4b]/60 p-4 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]" onClick={close}>
       <div
@@ -79,6 +86,7 @@ export default function FolderFormModal({
                 })}
               </div>
               <p className="text-xs text-slate-500">El juego no se puede cambiar después.</p>
+              {plan && <p className={`rounded-lg px-3 py-2 text-xs font-bold ${tcgReached ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-[#1e40af]'}`}>{tcgUsed} de {plan.foldersPerTcg === null ? '∞' : plan.foldersPerTcg} carpetas de este TCG · {totalUsed} de {plan.folders === null ? '∞' : plan.folders} totales</p>}
             </fieldset>
           )}
 
@@ -121,10 +129,11 @@ export default function FolderFormModal({
           )}
 
           <div className="mt-auto flex justify-end gap-3 pt-2">
+            {quotaReached && <Link to="/planes" onClick={close} className="mr-auto inline-flex h-11 items-center rounded-xl px-3 text-sm font-extrabold text-[#1e40af] hover:bg-blue-50">Mejorar plan</Link>}
             <button type="button" onClick={close} className="h-11 rounded-xl px-5 font-bold text-slate-600 hover:bg-slate-100">Cancelar</button>
             <button
               type="submit"
-              disabled={isCreating}
+              disabled={isCreating || quotaReached}
               className="flex h-11 items-center gap-2 rounded-xl bg-[#1e40af] px-6 font-bold text-white shadow-md hover:bg-[#1e3a8a] disabled:opacity-60"
             >
               {isEdit ? 'Guardar cambios' : isCreating ? 'Creando…' : 'Crear carpeta'}

@@ -14,6 +14,7 @@ import { warmFolderPreview } from '../utils/sharePreview';
 import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 import { LoadingMark } from '../components/ui/LoadableImage';
 import { siteUrl } from '../utils/siteUrl';
+import { Link } from 'react-router-dom';
 // html2canvas + jsPDF pesan mucho: se descargan solo al generar un PDF
 const HiddenPDFGenerator = lazy(() => import('../components/folder/HiddenPDFGenerator'));
 
@@ -21,6 +22,7 @@ export default function Dashboard() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [folders, setFolders] = useState([]);
+  const [planState, setPlanState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -130,6 +132,7 @@ export default function Dashboard() {
             validWeeklyVisits: f.lastVisitWeek === currentWeek ? (f.weeklyVisits || 0) : 0
           }));
           setFolders(formattedFolders);
+          setPlanState(response.planState || null);
         }
       } catch (error) {
         console.error("Error al cargar las carpetas:", error);
@@ -237,6 +240,7 @@ export default function Dashboard() {
       });
       
       setFolders([...folders, response.folder]);
+      setPlanState(previous => previous ? { ...previous, usage: { ...previous.usage, folders: (previous.usage?.folders || 0) + 1, byTcg: { ...(previous.usage?.byTcg || {}), [response.folder.tcg]: (previous.usage?.byTcg?.[response.folder.tcg] || 0) + 1 } } } : previous);
       setNewFolderName('');
       setNewFolderPublic(false);
       setIsCreateModalOpen(false);
@@ -244,6 +248,7 @@ export default function Dashboard() {
       navigate(`/carpeta/${response.folder.id}`); // abre directo en «Agregar Cartas»
     } catch (error) {
       console.error("Error al crear la carpeta:", error);
+      showToast(error.message || 'No se pudo crear la carpeta', 'error');
     } finally {
       setIsCreating(false);
     }
@@ -259,6 +264,8 @@ export default function Dashboard() {
     try {
       await api.deleteFolder(folderToDelete.id);
       setFolders(folders.filter(f => f.id !== folderToDelete.id));
+      const removed = folders.find(f => f.id === folderToDelete.id);
+      setPlanState(previous => previous ? { ...previous, usage: { ...previous.usage, folders: Math.max(0, (previous.usage?.folders || 0) - 1), byTcg: removed ? { ...(previous.usage?.byTcg || {}), [removed.tcg]: Math.max(0, (previous.usage?.byTcg?.[removed.tcg] || 0) - 1) } : previous.usage?.byTcg } } : previous);
       showToast("Carpeta eliminada", "success");
       setIsCreateModalOpen(false);
     } catch (error) {
@@ -430,7 +437,7 @@ export default function Dashboard() {
 
   const folderFormModalProps = { editFolderColor, editFolderName, editingFolder, handleCreateFolder, isCreating,
     newFolderColor, newFolderName, newFolderPublic, newFolderTcg, setEditFolderColor, setEditFolderName, setEditingFolder,
-    setIsCreateModalOpen, setNewFolderColor, setNewFolderName, setNewFolderPublic, setNewFolderTcg, submitEditFolder };
+    setIsCreateModalOpen, setNewFolderColor, setNewFolderName, setNewFolderPublic, setNewFolderTcg, submitEditFolder, planState };
 
   const folderGridProps = { MENU_ITEM, activeMenuFolderId, closeFolderMenu, copiedFolderId, folders,
     handleShareFolder, handleTogglePublic, navigate, onFolderMenuKeyDown, renderFolderMenuItems,
@@ -476,6 +483,15 @@ export default function Dashboard() {
       {activeTab === 'carpetas' ? (
         <div className={folders.length > 0 ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-8 xl:gap-10' : undefined}>
           <div className="min-w-0">
+            {planState?.plan && (
+              <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-blue-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wider text-slate-500">Plan {planState.plan.name}</p>
+                  <p className="mt-1 font-bold text-[#12315f]">{planState.usage?.folders || 0} de {planState.plan.folders === null ? 'carpetas ilimitadas' : `${planState.plan.folders} carpetas`}</p>
+                </div>
+                <Link to="/planes" className="inline-flex h-10 items-center justify-center rounded-xl bg-[#12315f] px-4 text-sm font-extrabold text-white hover:bg-[#1e40af]">Ver mi plan</Link>
+              </div>
+            )}
             {folders.length > 0 && <FolderSummary variant="strip" folderCount={folders.length} publicCount={publicCount} cardCount={totalCards} weeklyVisits={weeklyVisits} pendingCount={pendingCount} onOpenRequests={() => setActiveTab('solicitudes')} />}
           {/* Móvil: la acción primaria es un botón, no un banner; junto al resumen de lo que ya hay */}
             <div className="mb-5 flex items-center justify-between gap-3 sm:hidden">

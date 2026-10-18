@@ -1,4 +1,4 @@
-import React, { startTransition, useEffect, useMemo, useState } from 'react';
+import React, { startTransition, useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import LazyFolderCard from '../components/folder/LazyFolderCard';
@@ -40,18 +40,18 @@ export default function FoldersPage() {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
 
-  const updateParams = (changes, { resetPage = true } = {}) => {
+  const updateParams = useCallback((changes, { resetPage = true } = {}) => {
     const next = new URLSearchParams(searchParams);
     Object.entries({ ...changes, ...(resetPage ? { page: '' } : {}) }).forEach(([key, value]) => { if (value) next.set(key, value); else next.delete(key); });
     setSearchParams(next, { replace: true });
-  };
+  }, [searchParams, setSearchParams]);
 
   // El texto se envía a la búsqueda un momento después de dejar de escribir
   useEffect(() => {
     if (searchQuery === urlQuery) return undefined;
     const timer = setTimeout(() => updateParams({ q: searchQuery.trim() }), 350);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, updateParams, urlQuery]);
   useEffect(() => { setSearchQuery(urlQuery); }, [urlQuery]);
 
   useEffect(() => {
@@ -78,6 +78,7 @@ export default function FoldersPage() {
     avatarUrl: folder.user?.photoURL || null,
     user: folder.user?.name || folder.user?.username || 'Vendedor anónimo',
     location: folder.user?.publicComuna ? [folder.user.publicComuna, folder.user.publicRegion].filter(Boolean).join(', ') : '',
+    planBadge: folder.user?.planBadge || null,
   })), [result.folders]);
 
   const countsByTcg = useMemo(() => {

@@ -5,6 +5,7 @@ import { authenticateToken } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { CARD_SEARCH_TCG_ALIASES, sameCardMatch } from '../core/listing.js';
 import { isValidComuna } from '../core/chileData.js';
+import { PUBLIC_PLAN_RELATIONS_SELECT, withPublicPlanBadge } from '../core/publicSeller.js';
 import { isVerifiedSeller } from '../core/sellerTrust.js';
 import { badRequest } from '../core/validation.js';
 import { eligibleSales, loadLiveOffers, loadSales, marketAnchors, offersAnchor, referenceFromSales, suspiciousOffers } from '../core/priceIntegrity.js';
@@ -179,7 +180,11 @@ const OFFERS_MAX = 50;
 const publicText = (value) => (typeof value === 'string' ? value.slice(0, 400) : null);
 const visibleCardWhere = { stock: { gt: 0 }, moderationState: 'visible', folder: { isPublic: true, moderationState: 'visible' } };
 // El vendedor de una oferta: solo datos públicos y si está verificado (el correo y el teléfono no salen)
-const publicOfferUser = ({ emailVerified, phone, ...user }) => ({ ...user, verified: isVerifiedSeller({ ...user, emailVerified, phone }) });
+const publicOfferUser = (user) => {
+  const verified = isVerifiedSeller(user);
+  const { emailVerified: _email, phone: _phone, ...safe } = withPublicPlanBadge(user);
+  return { ...safe, verified };
+};
 
 router.get('/api/cards/:id/offers', async (req, res) => {
   try {
@@ -194,7 +199,7 @@ router.get('/api/cards/:id/offers', async (req, res) => {
       where: { ...visibleCardWhere, ...sameCardMatch(card), folder: { ...visibleCardWhere.folder, tcg: card.folder.tcg } },
       orderBy: [{ price: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
       take: OFFERS_MAX,
-      select: { id: true, price: true, stock: true, data: true, folder: { select: { id: true, name: true, user: { select: { name: true, username: true, photoURL: true, publicComuna: true, emailVerified: true, phone: true } } } } },
+      select: { id: true, price: true, stock: true, data: true, folder: { select: { id: true, name: true, user: { select: { name: true, username: true, photoURL: true, publicComuna: true, emailVerified: true, phone: true, ...PUBLIC_PLAN_RELATIONS_SELECT } } } } },
     });
     const sales = await recentSales(card.tcgId, card.folder.tcg);
     const reference = card.folder.tcg === 'Mitos y Leyendas' ? (await mylReferencePrices([card.tcgId]))[card.tcgId] || null : null;

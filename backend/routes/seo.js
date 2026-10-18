@@ -163,7 +163,7 @@ router.get('/api/seo/folder/:id', async (req, res) => {
 });
 
 // Sitemap con las páginas fijas, los vendedores, las carpetas públicas y una dirección por carta distinta a la venta
-const STATIC_PAGES = [['/', 'daily', '1.0'], ['/carpetas', 'daily', '0.9'], ['/cartas', 'daily', '0.9'], ['/vendedores', 'daily', '0.8'], ['/bienvenida', 'monthly', '0.5'], ['/terminos', 'yearly', '0.2'], ['/privacidad', 'yearly', '0.2']];
+const STATIC_PAGES = [['/', 'daily', '1.0'], ['/carpetas', 'daily', '0.9'], ['/cartas', 'daily', '0.9'], ['/vendedores', 'daily', '0.8'], ['/planes', 'monthly', '0.7'], ['/bienvenida', 'monthly', '0.5'], ['/terminos', 'yearly', '0.2'], ['/privacidad', 'yearly', '0.2']];
 let sitemapCache = { at: 0, xml: '' };
 let sitemapPending = null;
 

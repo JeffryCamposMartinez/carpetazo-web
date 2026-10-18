@@ -8,14 +8,17 @@ import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/
 import { badRequest, cleanCardData, isAllowedStoredImageUrl, isOptionalText, isShortText, isSmallObject, isUuid, isValidPrice, isValidStock } from '../core/validation.js';
 import { r2PublicUrl } from '../core/tcgCatalogImport.js';
 import { isMylTcg, storedCardId } from '../core/mylIdentity.js';
+import { PlanLimitError, assertCanAddUniqueCard, assertCanCreateFolder, assertStockChange, getEffectivePlan, getPlanState, lockPlanUser, sendPlanError } from '../core/entitlements.js';
 
 const router = express.Router();
+const CARD_LANGUAGES = ['English', 'Spanish', 'Japanese'];
+const normalizedLanguage = (tcg, value) => (isMylTcg(tcg) ? 'Spanish' : CARD_LANGUAGES.includes(value) ? value : 'English');
 
 // PUT update card in folder
 router.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    const folder = await prisma.folder.findUnique({ where: { id: req.params.id } });
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
+    const folder = await prisma.folder.findUnique({ where: { id: req.params.id }, select: { id: true, userId: true, tcg: true } });
     
     if (!user || !folder || folder.userId !== user.id) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
@@ -25,30 +28,39 @@ router.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res)
     if (!isValidPrice(price) || !isValidStock(stock) || !isSmallObject(data)) {
       return badRequest(res, 'Datos de carta inválidos');
     }
-    const dataToUpdate = {};
-    if (price !== undefined) dataToUpdate.price = parseFloat(price);
-    if (stock !== undefined) dataToUpdate.stock = parseInt(stock);
-    if (data !== undefined) {
-      const existingCard = await prisma.card.findFirst({
-        where: { id: req.params.cardId, folderId: req.params.id }
-      });
-      dataToUpdate.data = cleanCardData({
-        ...(existingCard?.data && typeof existingCard.data === 'object' ? existingCard.data : {}),
-        ...data
-      });
+    if (data?.language !== undefined && !CARD_LANGUAGES.includes(data.language)) {
+      return badRequest(res, 'Idioma de carta inválido');
     }
-    
-    const inFolder = await prisma.card.findFirst({ where: { id: req.params.cardId, folderId: req.params.id }, select: { id: true, moderationState: true } });
-    if (!inFolder) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
-    if (inFolder.moderationState === 'hidden') return res.status(403).json({ success: false, message: 'Esta carta fue ocultada por moderación.' });
-
-    const card = await prisma.card.update({
-      where: { id: req.params.cardId, folderId: req.params.id },
-      data: dataToUpdate
+    const card = await prisma.$transaction(async (tx) => {
+      await lockPlanUser(tx, user.id);
+      const current = await tx.card.findFirst({ where: { id: req.params.cardId, folderId: folder.id } });
+      if (!current) return null;
+      if (current.moderationState === 'hidden') throw Object.assign(new Error('Esta carta fue ocultada por moderación.'), { status: 403 });
+      const { plan } = await getEffectivePlan(tx, user.id);
+      const dataToUpdate = {};
+      if (price !== undefined) dataToUpdate.price = price === '' || price === null ? null : parseFloat(price);
+      if (stock !== undefined) {
+        const nextStock = parseInt(stock, 10);
+        assertStockChange(plan, current.stock, nextStock);
+        dataToUpdate.stock = nextStock;
+      }
+      if (data !== undefined) {
+        const merged = cleanCardData({ ...(current.data && typeof current.data === 'object' ? current.data : {}), ...data });
+        const nextLanguage = normalizedLanguage(folder.tcg, merged?.language || current.language);
+        if (nextLanguage !== current.language) {
+          const conflict = await tx.card.findFirst({ where: { folderId: folder.id, tcgId: current.tcgId, language: nextLanguage, id: { not: current.id } }, select: { id: true } });
+          if (conflict) throw new PlanLimitError('card_identity_conflict', { planKey: plan.key });
+        }
+        dataToUpdate.language = nextLanguage;
+        dataToUpdate.data = { ...(merged || {}), language: nextLanguage };
+      }
+      return tx.card.update({ where: { id: current.id }, data: dataToUpdate });
     });
-    
+    if (!card) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
     res.json({ success: true, card });
   } catch (error) {
+    if (error instanceof PlanLimitError) return sendPlanError(res, error);
+    if (error.status === 403) return res.status(403).json({ success: false, message: error.message });
     console.error('Error updating card:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
   }
@@ -77,7 +89,6 @@ router.delete('/api/folders/:id/cards/:cardId', authenticateToken, async (req, r
 // --- EDICIÓN EN BLOQUE DE CARTAS (el vendedor elige varias en su inventario) ---
 // Rutas con prefijo propio ("cards-bulk") para no chocar con /cards/:cardId.
 const BULK_MAX = 500;
-const CARD_LANGUAGES = ['English', 'Spanish', 'Japanese'];
 const isCleanId = (value) => typeof value === 'string' && isUuid(value);
 const hasUniqueIds = (ids) => Array.isArray(ids) && ids.length > 0 && ids.length <= BULK_MAX && ids.every(isCleanId) && new Set(ids).size === ids.length;
 const isStrictPrice = (value) => value === undefined || (value !== null && value !== '' && Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 100000000);
@@ -105,22 +116,43 @@ router.put('/api/folders/:id/cards-bulk', authenticateToken, async (req, res) =>
     ));
     if (!valid) return badRequest(res, 'Datos de cartas inválidos');
 
-    const cards = await prisma.card.findMany({ where: { folderId: own.folder.id, id: { in: updates.map((item) => item.id) } }, select: { id: true, data: true, moderationState: true } });
-    if (cards.length !== updates.length) return badRequest(res, 'La selección incluye cartas que no son de esta carpeta');
-    const byId = new Map(cards.map((card) => [card.id, card]));
-    // Las cartas ocultadas por moderación no se pueden editar: se omiten y se avisa cuántas
-    const editable = updates.filter((item) => byId.get(item.id).moderationState !== 'hidden');
-
-    await prisma.$transaction(editable.map((item) => {
-      const current = byId.get(item.id);
-      const data = {};
-      if (item.price !== undefined) data.price = parseFloat(item.price);
-      if (item.stock !== undefined) data.stock = parseInt(item.stock, 10);
-      if (item.language !== undefined) data.data = cleanCardData({ ...(current.data && typeof current.data === 'object' ? current.data : {}), language: item.language });
-      return prisma.card.update({ where: { id: item.id }, data });
-    }));
-    res.json({ success: true, count: editable.length, skipped: updates.length - editable.length });
+    const result = await prisma.$transaction(async (tx) => {
+      await lockPlanUser(tx, own.owner.id);
+      const [cards, allCards, effective] = await Promise.all([
+        tx.card.findMany({ where: { folderId: own.folder.id, id: { in: updates.map((item) => item.id) } }, select: { id: true, tcgId: true, language: true, stock: true, data: true, moderationState: true } }),
+        tx.card.findMany({ where: { folderId: own.folder.id }, select: { id: true, tcgId: true, language: true } }),
+        getEffectivePlan(tx, own.owner.id)
+      ]);
+      if (cards.length !== updates.length) throw Object.assign(new Error('La selección incluye cartas que no son de esta carpeta'), { status: 400 });
+      const byId = new Map(cards.map((card) => [card.id, card]));
+      const editable = updates.filter((item) => byId.get(item.id).moderationState !== 'hidden');
+      const editableIds = new Set(editable.map((item) => item.id));
+      const occupied = new Set(allCards.filter((card) => !editableIds.has(card.id)).map((card) => `${card.tcgId}\u0000${card.language}`));
+      for (const item of editable) {
+        const current = byId.get(item.id);
+        const nextLanguage = normalizedLanguage(own.folder.tcg, item.language || current.language);
+        const identity = `${current.tcgId}\u0000${nextLanguage}`;
+        if (occupied.has(identity)) throw new PlanLimitError('card_identity_conflict', { planKey: effective.plan.key });
+        occupied.add(identity);
+        const data = {};
+        if (item.price !== undefined) data.price = parseFloat(item.price);
+        if (item.stock !== undefined) {
+          const nextStock = parseInt(item.stock, 10);
+          assertStockChange(effective.plan, current.stock, nextStock);
+          data.stock = nextStock;
+        }
+        if (item.language !== undefined) {
+          data.language = nextLanguage;
+          data.data = cleanCardData({ ...(current.data && typeof current.data === 'object' ? current.data : {}), language: nextLanguage });
+        }
+        await tx.card.update({ where: { id: item.id }, data });
+      }
+      return { count: editable.length, skipped: updates.length - editable.length };
+    });
+    res.json({ success: true, ...result });
   } catch (error) {
+    if (error instanceof PlanLimitError) return sendPlanError(res, error);
+    if (error.status === 400) return badRequest(res, error.message);
     console.error('Error en edición en bloque:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
   }
@@ -155,15 +187,41 @@ router.post('/api/folders/:id/cards-bulk/move', authenticateToken, async (req, r
     if (!target || target.userId !== own.owner.id) return res.status(404).json({ success: false, message: 'Carpeta de destino no encontrada' });
     if (target.tcg !== own.folder.tcg) return badRequest(res, 'Solo puedes mover cartas a una carpeta del mismo juego');
 
-    const cards = await prisma.card.findMany({ where: { folderId: own.folder.id, id: { in: ids } }, select: { id: true, data: true } });
-    if (cards.length !== ids.length) return badRequest(res, 'La selección incluye cartas que no son de esta carpeta');
-    // En la carpeta nueva quedan al final: se descarta la posición que tenían
-    await prisma.$transaction(cards.map((card) => {
-      const { catalogOrder: _discarded, ...rest } = card.data && typeof card.data === 'object' ? card.data : {};
-      return prisma.card.update({ where: { id: card.id }, data: { folderId: target.id, data: rest } });
-    }));
-    res.json({ success: true, count: cards.length });
+    const count = await prisma.$transaction(async (tx) => {
+      await lockPlanUser(tx, own.owner.id);
+      const [cards, targetCards, effective] = await Promise.all([
+        tx.card.findMany({ where: { folderId: own.folder.id, id: { in: ids } }, select: { id: true, tcgId: true, language: true, stock: true, data: true } }),
+        tx.card.findMany({ where: { folderId: target.id }, select: { id: true, tcgId: true, language: true, stock: true } }),
+        getEffectivePlan(tx, own.owner.id)
+      ]);
+      if (cards.length !== ids.length) throw Object.assign(new Error('La selección incluye cartas que no son de esta carpeta'), { status: 400 });
+      const targetByIdentity = new Map(targetCards.map((card) => [`${card.tcgId}\u0000${card.language}`, card]));
+      const newIdentities = new Set(cards.map((card) => `${card.tcgId}\u0000${card.language}`).filter((identity) => !targetByIdentity.has(identity)));
+      if (effective.plan.uniqueCardsPerFolder !== null && targetCards.length + newIdentities.size > effective.plan.uniqueCardsPerFolder) {
+        throw new PlanLimitError('plan_unique_card_limit', { current: targetCards.length, limit: effective.plan.uniqueCardsPerFolder, planKey: effective.plan.key, details: { requested: targetCards.length + newIdentities.size } });
+      }
+      for (const card of cards) {
+        const identity = `${card.tcgId}\u0000${card.language}`;
+        const existing = targetByIdentity.get(identity);
+        if (existing) {
+          const nextStock = existing.stock + card.stock;
+          assertStockChange(effective.plan, existing.stock, nextStock);
+          await tx.card.update({ where: { id: existing.id }, data: { stock: nextStock } });
+          await tx.card.delete({ where: { id: card.id } });
+          existing.stock = nextStock;
+        } else {
+          assertStockChange(effective.plan, 0, card.stock);
+          const { catalogOrder: _discarded, ...rest } = card.data && typeof card.data === 'object' ? card.data : {};
+          await tx.card.update({ where: { id: card.id }, data: { folderId: target.id, data: rest } });
+          targetByIdentity.set(identity, card);
+        }
+      }
+      return cards.length;
+    });
+    res.json({ success: true, count });
   } catch (error) {
+    if (error instanceof PlanLimitError) return sendPlanError(res, error);
+    if (error.status === 400) return badRequest(res, error.message);
     console.error('Error al mover cartas en bloque:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
   }
@@ -259,7 +317,7 @@ router.get('/api/folders/me', authenticateToken, async (req, res) => {
       include: { _count: { select: { cards: true } } },
       orderBy: { createdAt: 'desc' }
     });
-    res.json({ success: true, folders });
+    res.json({ success: true, folders, planState: await getPlanState(prisma, user.id) });
   } catch (error) {
     console.error('Error en la ruta:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
@@ -301,18 +359,24 @@ router.post('/api/folders', authenticateToken, async (req, res) => {
       return badRequest(res, 'Datos de carpeta inválidos');
     }
     
-    const folder = await prisma.folder.create({
-      data: {
-        name,
-        description,
-        isPublic: isPublic !== undefined ? isPublic : false,
-        userId: user.id,
-        tcg: tcg || 'Pokemon',
-        color: color || 'red'
-      }
+    const folderTcg = tcg || 'Pokemon';
+    const folder = await prisma.$transaction(async (tx) => {
+      await lockPlanUser(tx, user.id);
+      await assertCanCreateFolder(tx, user.id, folderTcg);
+      return tx.folder.create({
+        data: {
+          name,
+          description,
+          isPublic: isPublic !== undefined ? isPublic : false,
+          userId: user.id,
+          tcg: folderTcg,
+          color: color || 'red'
+        }
+      });
     });
     res.json({ success: true, folder });
   } catch (error) {
+    if (error instanceof PlanLimitError) return sendPlanError(res, error);
     console.error('Error en la ruta:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
   }
@@ -467,6 +531,9 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
     if (!isShortText(String(tcgId ?? ''), 100) || !isShortText(name, 300) || !isValidPrice(price) || !isValidStock(stock) || !isSmallObject(data)) {
       return badRequest(res, 'Datos de carta inválidos');
     }
+    if (data?.language !== undefined && !CARD_LANGUAGES.includes(data.language)) {
+      return badRequest(res, 'Idioma de carta inválido');
+    }
     if (imageUrl && !isAllowedStoredImageUrl(imageUrl)) {
       return res.status(400).json({ success: false, error: 'URL de imagen no permitida' });
     }
@@ -474,19 +541,35 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
     const normalizedTcgId = storedCardId(folder.tcg, tcgId);
     if (!normalizedTcgId) return badRequest(res, 'Identificador de carta inválido');
       
-      const card = await prisma.card.create({
+    const cardLanguage = normalizedLanguage(folder.tcg, data?.language);
+    const requestedStock = stock !== undefined ? parseInt(stock, 10) : 1;
+    const card = await prisma.$transaction(async (tx) => {
+      await lockPlanUser(tx, user.id);
+      const stillOwned = await tx.folder.findFirst({ where: { id: folder.id, userId: user.id }, select: { id: true } });
+      if (!stillOwned) throw Object.assign(new Error('Not authorized'), { status: 403 });
+      const existing = await tx.card.findFirst({ where: { folderId: folder.id, tcgId: normalizedTcgId, language: cardLanguage }, select: { id: true } });
+      if (existing) {
+        const { plan } = await getEffectivePlan(tx, user.id);
+        throw new PlanLimitError('card_identity_conflict', { planKey: plan.key, details: { existingCardId: existing.id } });
+      }
+      await assertCanAddUniqueCard(tx, user.id, folder.id, requestedStock);
+      return tx.card.create({
         data: {
           tcgId: normalizedTcgId,
           name,
           imageUrl,
           price: parseFloat(price) || null,
-          stock: stock !== undefined ? parseInt(stock) : 1,
-          data: cleanCardData(data) || null,
+          stock: requestedStock,
+          language: cardLanguage,
+          data: { ...(cleanCardData(data) || {}), language: cardLanguage },
           folderId: folder.id
         }
       });
+    });
     res.json({ success: true, card });
   } catch (error) {
+    if (error instanceof PlanLimitError) return sendPlanError(res, error);
+    if (error.status === 403) return res.status(403).json({ success: false, message: error.message });
     console.error('Error en la ruta:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
   }

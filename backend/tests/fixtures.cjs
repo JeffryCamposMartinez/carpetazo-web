@@ -63,6 +63,10 @@ const setup = async () => {
     if (r.status !== 200 || r.j?.user?.username !== NAMES[name]) throw new Error('No se pudo crear el usuario de prueba ' + name + ': ' + r.status);
     await acceptTerms(name);
   }
+  // Las pruebas antiguas ejercitan muchas carpetas y cartas; se les entrega Tienda para que los nuevos topes
+  // no oculten errores ajenos. plans.test.cjs cambia de plan de forma explícita para probar cada cuota.
+  const fixtureUsers = await prisma.user.findMany({ where: { firebaseUid: { in: PEOPLE.map((name) => U[name]) } }, select: { id: true } });
+  await prisma.planGrant.createMany({ data: fixtureUsers.map((user) => ({ userId: user.id, planKey: 'store', reason: 'Pruebas automatizadas' })) });
   const folder = await call('POST', '/folders', 'seller', { name: 'TEST fixtures', tcg: 'Pokemon', color: 'blue', isPublic: true });
   const folderId = folder.j?.folder?.id;
   if (!folderId) throw new Error('No se pudo crear la carpeta de prueba: ' + folder.status);

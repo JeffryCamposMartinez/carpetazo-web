@@ -4,7 +4,8 @@ import { SocialLogo } from './SocialLogo';
 import { bannerForScreen } from '../../utils/responsiveImage';
 import { getCardStyle } from './profileStyles';
 import { readableOn } from '../../utils/color';
-import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
+import LoadingState from '../ui/LoadingState';
+import PlanBadge from '../ui/PlanBadge';
 import VerifiedBadge from '../ui/VerifiedBadge';
 
 // Presentación del perfil: portada, avatar, nombre, datos y contacto; la forma cambia según el diseño elegido.
@@ -63,6 +64,7 @@ export default function ProfileHero({
                   {seller?.verified && <VerifiedBadge size={Math.max(22, Math.round(parseFloat(displayNameSize) * 0.6) || 24)} color={heroTheme.primary} className="ml-2" />}
                 </h1>
                 <p className="mt-1.5 text-[15px] font-bold leading-snug" style={{ color: heroTheme.primary }}>@{seller?.username}</p>
+                {seller?.planBadge && <PlanBadge badge={seller.planBadge} className="mt-2" />}
                 {seller?.fullName && <p className="text-sm font-medium leading-snug" style={heroMuted}>{seller.fullName}</p>}
                 {seller?.username && (
                   <Link to={`/cartas?seller=${encodeURIComponent(seller.username)}`} className="mt-1 inline-flex min-h-8 items-center gap-1 text-sm font-bold underline-offset-2 hover:underline focus:outline-none focus-visible:underline" style={{ color: heroTheme.primary }}>

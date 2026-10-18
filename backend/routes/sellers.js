@@ -4,11 +4,27 @@ import express from 'express';
 import { prisma } from '../core/db.js';
 import { isValidComuna } from '../core/chileData.js';
 import { folderFilterSql, folderOrderSql, likePattern, loadPublicFolders, validListText } from '../core/listing.js';
+import { publicPlanBadge } from '../core/plans.js';
 import { badRequest } from '../core/validation.js';
 
 const router = express.Router();
 
 const SELLERS_PAGE_SIZE = 24;
+// Prisma persiste DateTime como `timestamp without time zone`; comparar contra UTC evita
+// que la zona horaria de PostgreSQL adelante o retrase la vigencia de una insignia.
+const utcNowSql = Prisma.sql`(NOW() AT TIME ZONE 'UTC')`;
+const effectivePlanSql = Prisma.sql`COALESCE(
+  (SELECT pg."planKey" FROM "PlanGrant" pg
+    WHERE pg."userId" = u."id" AND pg."revokedAt" IS NULL AND pg."startsAt" <= ${utcNowSql}
+      AND (pg."endsAt" IS NULL OR pg."endsAt" > ${utcNowSql})
+    ORDER BY pg."createdAt" DESC LIMIT 1),
+  (SELECT s."planKey" FROM "Subscription" s
+    WHERE s."userId" = u."id"
+      AND (s."status" = 'active' OR (s."status" = 'past_due' AND COALESCE(s."currentPeriodEnd", s."updatedAt") + INTERVAL '7 days' > ${utcNowSql}))
+    ORDER BY s."updatedAt" DESC LIMIT 1),
+  'free'
+)`;
+const withPlanBadge = ({ planKey, ...seller }) => ({ ...seller, planBadge: publicPlanBadge(planKey) });
 
 // Vendedores = dueños de carpetas públicas, con sus cifras sumadas
 const querySellers = ({ like, comuna = null, sort, limit, offset }) => {
@@ -27,6 +43,7 @@ const querySellers = ({ like, comuna = null, sort, limit, offset }) => {
     prisma.$queryRaw`
       SELECT u."name", u."username", u."photoURL", u."publicComuna", u."publicRegion",
              (u."emailVerified" AND u."username" IS NOT NULL AND u."photoURL" IS NOT NULL AND u."publicComuna" IS NOT NULL AND COALESCE(TRIM(u."phone"), '') <> '') AS verified,
+             ${effectivePlanSql} AS "planKey",
              COUNT(f."id")::int AS folders,
              COALESCE(SUM(c.cnt), 0)::int AS cards,
              COALESCE(SUM(f."totalVisits"), 0)::int AS visits,
@@ -51,7 +68,7 @@ router.get('/api/sellers', async (req, res) => {
     if (!validListText(q) || !['visits', 'cards', 'name'].includes(sort) || page < 1 || page > 1000 || (comuna && !isValidComuna(comuna))) return badRequest(res, 'Búsqueda inválida');
     const [rows, totalRows] = await querySellers({ like: q ? likePattern(q) : null, comuna: comuna || null, sort, limit: SELLERS_PAGE_SIZE, offset: (page - 1) * SELLERS_PAGE_SIZE });
     const total = totalRows[0]?.n || 0;
-    res.json({ success: true, sellers: rows, total, page, pages: Math.max(1, Math.ceil(total / SELLERS_PAGE_SIZE)) });
+    res.json({ success: true, sellers: rows.map(withPlanBadge), total, page, pages: Math.max(1, Math.ceil(total / SELLERS_PAGE_SIZE)) });
   } catch (error) {
     console.error('Error loading sellers:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
@@ -70,7 +87,7 @@ router.get('/api/home/featured', async (_req, res) => {
       querySellers({ like: null, sort: 'visits', limit: 5, offset: 0 }),
       // Más ventas concretadas: solo pedidos confirmados por el vendedor
       prisma.$queryRaw`
-        SELECT u."name", u."username", u."photoURL", u."publicComuna", COUNT(o."id")::int AS sales
+        SELECT u."name", u."username", u."photoURL", u."publicComuna", ${effectivePlanSql} AS "planKey", COUNT(o."id")::int AS sales
         FROM "Order" o
         JOIN "User" u ON u."id" = o."sellerId"
         WHERE o."status" = 'completed'
@@ -87,8 +104,8 @@ router.get('/api/home/featured', async (_req, res) => {
       counts: tcgRows.map((row) => ({ tcg: row.tcg, count: row.n })),
       visited: await loadPublicFolders(visitedIds.map((row) => row.id)),
       newest: await loadPublicFolders(newestIds.map((row) => row.id)),
-      topSellers: sellerResult[0],
-      topSelling: salesRows
+      topSellers: sellerResult[0].map(withPlanBadge),
+      topSelling: salesRows.map(withPlanBadge)
     });
   } catch (error) {
     console.error('Error loading featured:', error);

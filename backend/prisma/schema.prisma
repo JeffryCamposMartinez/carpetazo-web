@@ -11,13 +11,13 @@ datasource db {
 }
 
 model User {
-  id                       String            @id @default(uuid())
-  firebaseUid              String            @unique
-  email                    String            @unique
-  role                     String            @default("user")
+  id                       String             @id @default(uuid())
+  firebaseUid              String             @unique
+  email                    String             @unique
+  role                     String             @default("user")
   name                     String?
   fullName                 String?
-  username                 String?           @unique
+  username                 String?            @unique
   photoURL                 String?
   bannerBase64             String?
   wallpaperBase64          String?
@@ -35,28 +35,31 @@ model User {
   folders                  Folder[]
   wishlist                 WishlistItem[]
   wishlists                Wishlist[]
-  isOwner                  Boolean           @default(false) // la cuenta original de Carpetazo: nadie puede cambiar su rol, suspenderla, cerrarla ni ocultar su contenido
+  isOwner                  Boolean            @default(false) // la cuenta original de Carpetazo: nadie puede cambiar su rol, suspenderla, cerrarla ni ocultar su contenido
   lastSeenAt               DateTime? // última actividad en el chat (solo la ven quienes conversan con esta persona y si no la ocultó)
-  showLastSeen             Boolean           @default(true)
-  showReadReceipts         Boolean           @default(true) // si se apaga, ni esta persona ni las demás ven el ✓✓ amarillo entre ellas
-  notifyWishlistEmail      Boolean           @default(true) // avisos por correo de su lista de deseos (se puede apagar desde el correo o desde la lista)
-  emailVerified            Boolean           @default(false) // Firebase confirmó el correo (se actualiza al iniciar sesión); alimenta la insignia de vendedor verificado
+  showLastSeen             Boolean            @default(true)
+  showReadReceipts         Boolean            @default(true) // si se apaga, ni esta persona ni las demás ven el ✓✓ amarillo entre ellas
+  notifyWishlistEmail      Boolean            @default(true) // avisos por correo de su lista de deseos (se puede apagar desde el correo o desde la lista)
+  emailVerified            Boolean            @default(false) // Firebase confirmó el correo (se actualiza al iniciar sesión); alimenta la insignia de vendedor verificado
   onboardingSharedAt       DateTime? // cuando compartió el enlace de su carpeta desde la guía de primeros pasos
   onboardingNudgeAt        DateTime? // cuando se le envió el recordatorio único de «publica tus primeras cartas»
   pushSubscriptions        PushSubscription[]
-  reviewsReceived         SellerReview[]    @relation("ReviewsReceived")
-  reviewsWritten           SellerReview[]    @relation("ReviewsWritten")
+  reviewsReceived          SellerReview[]     @relation("ReviewsReceived")
+  reviewsWritten           SellerReview[]     @relation("ReviewsWritten")
   reviewReports            ReviewReport[]
   reportsMade              Report[]
   feedback                 Feedback[]
-  sanctions                Sanction[]        @relation("SanctionsReceived")
+  subscriptions            Subscription[]
+  planGrants               PlanGrant[]        @relation("PlanGrantUser")
+  planGrantsIssued         PlanGrant[]        @relation("PlanGrantIssuer")
+  sanctions                Sanction[]         @relation("SanctionsReceived")
   appeals                  Appeal[]
-  moderationHidden         String[]          @default([]) // partes del perfil ocultas por moderación: photo | banner | wallpaper | text
+  moderationHidden         String[]           @default([]) // partes del perfil ocultas por moderación: photo | banner | wallpaper | text
   termsAcceptances         TermsAcceptance[]
   publicRegion             String? // región y comuna que se muestran en el perfil y permiten buscar vendedores (solo ubicación general, nunca dirección exacta)
   publicComuna             String?
-  createdAt                DateTime          @default(now())
-  updatedAt                DateTime          @updatedAt
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
 
   @@index([publicComuna])
 }
@@ -89,6 +92,7 @@ model Card {
   imageUrl        String?
   price           Float?
   stock           Int      @default(1)
+  language        String   @default("English")
   data            Json?
   moderationState String   @default("visible") // visible | image_hidden | hidden | removed
   folderId        String
@@ -99,21 +103,22 @@ model Card {
   @@index([folderId])
   @@index([createdAt])
   @@index([tcgId])
+  @@index([folderId, tcgId, language])
 }
 
 model Message {
-  id              String   @id @default(uuid())
+  id              String            @id @default(uuid())
   senderId        String
   receiverId      String
   content         String
-  moderationState String   @default("visible") // visible | hidden (no se muestra al receptor)
-  isRead          Boolean  @default(false)
+  moderationState String            @default("visible") // visible | hidden (no se muestra al receptor)
+  isRead          Boolean           @default(false)
   deliveredAt     DateTime? // cuando la app de quien recibe lo descargó (✓✓ gris)
   readAt          DateTime? // cuando quien recibe abrió la conversación (✓✓ amarillo)
   replyToId       String? // mensaje al que responde (siempre de la misma conversación)
-  forwarded       Boolean  @default(false)
+  forwarded       Boolean           @default(false)
   editedAt        DateTime?
-  createdAt       DateTime @default(now())
+  createdAt       DateTime          @default(now())
   reactions       MessageReaction[]
   stars           MessageStar[]
 
@@ -259,10 +264,10 @@ model TcgProductPhysicalProduct {
 // Catálogo de TCGplayer (todos los juegos menos Mitos y Leyendas, que tiene el suyo arriba). Lo carga la pantalla de moderación
 // con los archivos que exporta TcgplayerUpdate. Los ids son los de TCGplayer; las imágenes viven en R2 y aquí solo se guarda su ruta.
 model CatalogGame {
-  categoryId Int          @id
+  categoryId Int           @id
   name       String
   folder     String
-  updatedAt  DateTime     @updatedAt
+  updatedAt  DateTime      @updatedAt
   sets       CatalogSet[]
   cards      CatalogCard[]
 }
@@ -342,7 +347,7 @@ model WishlistItem {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  alertState      WishlistAlertState?
+  alertState WishlistAlertState?
 
   @@unique([wishlistId, productId])
   @@index([userId, createdAt])
@@ -655,7 +660,7 @@ model Feedback {
   id            String    @id @default(uuid())
   userId        String
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  kind          String    // complaint | suggestion
+  kind          String // complaint | suggestion
   title         String
   message       String
   status        String    @default("open") // open | corrected
@@ -667,4 +672,82 @@ model Feedback {
 
   @@index([status, createdAt])
   @@index([userId, createdAt])
+}
+
+// Suscripción comercial. El precio se copia al contratar para conservar el historial aunque cambie el catálogo.
+model Subscription {
+  id                     String                @id @default(uuid())
+  userId                 String
+  user                   User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planKey                String
+  status                 String                @default("pending") // pending | active | past_due | paused | canceled | expired
+  provider               String                @default("mercadopago")
+  providerSubscriptionId String?               @unique
+  providerPlanId         String?
+  priceClp               Int
+  currency               String                @default("CLP")
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  nextPaymentAt          DateTime?
+  cancelAtPeriodEnd      Boolean               @default(false)
+  canceledAt             DateTime?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  payments               SubscriptionPayment[]
+  events                 BillingEvent[]
+
+  @@index([userId, status])
+  @@index([planKey, status])
+}
+
+model SubscriptionPayment {
+  id                String        @id @default(uuid())
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  providerPaymentId String        @unique
+  status            String
+  amountClp         Int
+  currency          String        @default("CLP")
+  paidAt            DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([subscriptionId, createdAt])
+}
+
+// Eventos externos idempotentes: un webhook repetido nunca aplica dos veces el mismo cambio.
+model BillingEvent {
+  id              String        @id @default(uuid())
+  provider        String        @default("mercadopago")
+  providerEventId String
+  topic           String
+  resourceId      String?
+  subscriptionId  String?
+  subscription    Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  status          String        @default("received") // received | processed | ignored | failed
+  attempts        Int           @default(0)
+  error           String?
+  payloadHash     String?
+  receivedAt      DateTime      @default(now())
+  processedAt     DateTime?
+
+  @@unique([provider, providerEventId])
+  @@index([status, receivedAt])
+}
+
+// Plan temporal entregado por administración o por el modo de prueba local.
+model PlanGrant {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation("PlanGrantUser", fields: [userId], references: [id], onDelete: Cascade)
+  planKey     String
+  reason      String
+  startsAt    DateTime  @default(now())
+  endsAt      DateTime?
+  revokedAt   DateTime?
+  grantedById String?
+  grantedBy   User?     @relation("PlanGrantIssuer", fields: [grantedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+
+  @@index([userId, startsAt, endsAt])
 }

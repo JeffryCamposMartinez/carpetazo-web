@@ -18,6 +18,7 @@ const MIN = 60 * 1000;
     await prisma.user.update({ where: { id: seller.id }, data: { photoURL: 'https://lh3.googleusercontent.com/a/cztest', publicComuna: 'Santiago', phone: '+56911112222' } });
     r = await call('GET', '/users/' + NAMES.seller);
     ok('con perfil completo y correo verificado → verificado', r.j.user.verified === true);
+    ok('el perfil público muestra la insignia del plan sin exponer datos internos', r.j.user.planBadge?.key === 'store' && !/planGrants|subscriptions|priceClp/.test(JSON.stringify(r.j.user)), JSON.stringify(r.j.user.planBadge));
     ok('el perfil público no revela el estado interno del correo', !JSON.stringify(r.j).includes('emailVerified'));
     await prisma.user.update({ where: { id: seller.id }, data: { emailVerified: false } });
     r = await call('GET', '/users/' + NAMES.seller);
@@ -30,10 +31,17 @@ const MIN = 60 * 1000;
     r = await call('GET', '/cards/' + fx.cardId + '/offers');
     const offerUser = r.j?.offers?.[0]?.folder?.user;
     ok('las ofertas de una carta traen si el vendedor está verificado', r.status === 200 && offerUser?.verified === true, JSON.stringify(offerUser));
+    ok('las ofertas muestran la insignia del plan', offerUser?.planBadge?.key === 'store', JSON.stringify(offerUser?.planBadge));
     ok('las ofertas no filtran correo, teléfono ni estado del correo', !/emailVerified|"phone"|"email"/.test(JSON.stringify(r.j)));
     r = await call('GET', '/sellers?q=' + encodeURIComponent(NAMES.seller));
     const row = r.j?.sellers?.find((entry) => entry.username === NAMES.seller);
     ok('el listado de vendedores marca al verificado', r.status === 200 && row?.verified === true && !JSON.stringify(r.j).includes('phone'), JSON.stringify(row));
+    ok('el listado de vendedores muestra la insignia del plan', row?.planBadge?.key === 'store', JSON.stringify(row?.planBadge));
+    r = await call('GET', '/home/featured');
+    const featuredSeller = r.j?.topSellers?.find((entry) => entry.username === NAMES.seller);
+    const featuredFolder = [...(r.j?.visited || []), ...(r.j?.newest || [])].find((entry) => entry.user?.username === NAMES.seller);
+    ok('la portada muestra la insignia en vendedores y carpetas destacadas', r.status === 200 && featuredSeller?.planBadge?.key === 'store' && featuredFolder?.user?.planBadge?.key === 'store', JSON.stringify({ seller: featuredSeller?.planBadge, folder: featuredFolder?.user?.planBadge }));
+    ok('la portada no expone concesiones ni suscripciones', !/planGrants|subscriptions|priceClp/.test(JSON.stringify(r.j)));
 
     // ---- Tiempo de respuesta
     for (const name of ['rtime', 'rbuyer']) {

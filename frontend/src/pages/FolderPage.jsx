@@ -567,7 +567,7 @@ const [isSearching, setIsSearching] = useState(false);
       showToast('Carta actualizada correctamente', 'success');
     } catch (error) {
       console.error(error);
-      showToast('Error de conexión al actualizar la carta.', 'error');
+      showToast(error.message || 'No se pudo actualizar la carta.', 'error');
     }
   };
 
@@ -903,7 +903,7 @@ const [isSearching, setIsSearching] = useState(false);
       }
     } catch (error) {
       console.error(error);
-      showToast('Error de conexión al guardar la carta', 'error');
+      showToast(error.message || 'No se pudo guardar la carta', 'error');
     } finally {
       setIsSaving(false);
     }

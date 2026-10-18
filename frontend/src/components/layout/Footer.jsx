@@ -14,7 +14,7 @@ export default function Footer() {
   }, []);
 
   useEffect(() => {
-    const reservedRoutes = ['/', '/bienvenida', '/dashboard', '/perfil', '/carpeta', '/c', '/admin', '/mensajes', '/moderacion', '/sugerencias', '/carpetas', '/cartas', '/vendedores'];
+    const reservedRoutes = ['/', '/bienvenida', '/dashboard', '/perfil', '/carpeta', '/c', '/admin', '/mensajes', '/moderacion', '/sugerencias', '/planes', '/carpetas', '/cartas', '/vendedores'];
     const pathname = location.pathname;
     const isDynamicPublicProfile = pathname.split('/').filter(Boolean).length === 1 && !reservedRoutes.includes(pathname);
     if (!isDynamicPublicProfile) {
@@ -42,6 +42,7 @@ export default function Footer() {
         carpetazo.soporte@gmail.com
       </a>
       <nav aria-label="Información legal" className="flex flex-wrap items-center justify-center gap-x-2 text-xs font-semibold">
+        <Link to="/planes" className="inline-flex min-h-11 items-center rounded-lg px-2 underline-offset-2 transition-colors duration-150 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">Planes</Link>
         <Link to="/terminos" className="inline-flex min-h-11 items-center rounded-lg px-2 underline-offset-2 transition-colors duration-150 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">Términos y Condiciones</Link>
         <Link to="/privacidad" className="inline-flex min-h-11 items-center rounded-lg px-2 underline-offset-2 transition-colors duration-150 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">Política de Privacidad</Link>
       </nav>

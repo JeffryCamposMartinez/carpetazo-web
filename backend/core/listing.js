@@ -1,6 +1,7 @@
 // Listados públicos paginados (carpetas y vendedores): filtros y orden en la base.
 import { Prisma } from '@prisma/client';
 import { prisma } from './db.js';
+import { PUBLIC_PLAN_RELATIONS_SELECT, withPublicPlanBadge } from './publicSeller.js';
 
 const currentWeekNumber = () => Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
 // Estos estados todavía son visibles para visitantes: `image_hidden` oculta
@@ -29,14 +30,14 @@ export const loadPublicFolders = async (ids) => {
     },
     select: {
       id: true, name: true, tcg: true, color: true, createdAt: true, totalVisits: true, weeklyVisits: true, lastVisitWeek: true,
-      user: { select: { name: true, username: true, photoURL: true, publicComuna: true, publicRegion: true } },
+      user: { select: { name: true, username: true, photoURL: true, publicComuna: true, publicRegion: true, ...PUBLIC_PLAN_RELATIONS_SELECT } },
       _count: { select: { cards: { where: { moderationState: { in: PUBLIC_CARD_MODERATION_STATES } } } } }
     }
   });
   const byId = new Map(rows.map((row) => [row.id, row]));
   return ids.filter((id) => byId.has(id)).map((id) => {
     const row = byId.get(id);
-    return { ...row, validWeeklyVisits: row.lastVisitWeek === week ? row.weeklyVisits : 0, validTotalVisits: row.totalVisits };
+    return { ...row, user: withPublicPlanBadge(row.user), validWeeklyVisits: row.lastVisitWeek === week ? row.weeklyVisits : 0, validTotalVisits: row.totalVisits };
   });
 };
 

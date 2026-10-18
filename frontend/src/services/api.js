@@ -67,6 +67,12 @@ export const apiFetch = async (endpoint, options = {}) => {
     const error = new Error(errorData.message || errorData.error || 'Error: ' + response.status);
     error.status = response.status;
     error.code = errorData.code;
+    error.plan = errorData.plan;
+    error.current = errorData.current;
+    error.limit = errorData.limit;
+    error.requested = errorData.requested;
+    error.tcg = errorData.tcg;
+    error.existingCardId = errorData.existingCardId;
     // El servidor exige aceptar los Términos para escribir: la pantalla de aceptación se muestra sola
     if (errorData.code === 'terms_required') window.dispatchEvent(new Event('carpetazo:terms-required'));
     throw error;
@@ -115,6 +121,13 @@ export const api = {
   updateProfile: (data) => apiFetch('/users/me', { method: 'PUT', body: JSON.stringify(data) }),
   uploadImage: (formData) => apiFetch('/users/upload-image', { method: 'POST', body: formData, isMultipart: true }),
   deleteProfile: () => apiFetch('/users/me', { method: 'DELETE' }),
+
+  // Planes y suscripciones
+  getPlans: () => apiFetch('/plans'),
+  getBillingMe: () => apiFetch('/billing/me'),
+  setLocalTestPlan: (planKey) => apiFetch('/billing/test-plan', { method: 'POST', body: JSON.stringify({ planKey }) }),
+  createSubscriptionCheckout: (planKey) => apiFetch('/billing/checkout', { method: 'POST', body: JSON.stringify({ planKey }) }),
+  cancelSubscription: () => apiFetch('/billing/cancel', { method: 'POST', body: JSON.stringify({}) }),
   
   // Folders
   getPublicFolders: () => getPublicFoldersShared(),

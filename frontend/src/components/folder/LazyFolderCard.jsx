@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { getFolderFilter } from '../../config/folderOptions';
 
@@ -8,9 +8,36 @@ export default function LazyFolderCard({ folder }) {
     user: folder.user || 'Cargando...',
     location: folder.location || '',
     avatarUrl: folder.avatarUrl || null,
+    planBadge: folder.planBadge || folder.user?.planBadge || null,
     loaded: false
   });
   const cardRef = useRef(null);
+
+  const fetchDetails = useCallback(async () => {
+    try {
+      // La API entrega el conteo y los datos públicos del vendedor junto con la carpeta.
+      const cardsCount = folder.cards?.length || folder._count?.cards || 0;
+      let userName = 'Usuario';
+      let location = folder.location || '';
+      let avatarUrl = null;
+      let planBadge = folder.planBadge || null;
+
+      if (typeof folder.user === 'string') {
+        userName = folder.user;
+        avatarUrl = folder.avatarUrl || null;
+      } else if (folder.user) {
+        userName = folder.user.name || folder.user.username || (folder.userId ? folder.userId.substring(0, 6) : 'Usuario');
+        avatarUrl = folder.user.photoURL || folder.avatarUrl || null;
+        planBadge = folder.user.planBadge || planBadge;
+        if (!location && folder.user.publicComuna) location = [folder.user.publicComuna, folder.user.publicRegion].filter(Boolean).join(', ');
+      }
+
+      setDetails({ cardsCount, user: userName, location, avatarUrl, planBadge, loaded: true });
+    } catch (err) {
+      console.error('Error loading folder details:', folder.id, err);
+      setDetails({ cardsCount: 0, user: 'Usuario', location: '', avatarUrl: null, planBadge: null, loaded: true });
+    }
+  }, [folder]);
 
   useEffect(() => {
     // If it's already loaded, we don't need to observe
@@ -33,45 +60,7 @@ export default function LazyFolderCard({ folder }) {
     }
 
     return () => observer.disconnect();
-  }, [details.loaded, folder.id]);
-
-  const fetchDetails = async () => {
-    try {
-      // In the new PostgreSQL backend, folder data comes preloaded with related cards count and user info.
-      // If we don't have it, we just display fallback or whatever is available in folder.
-      const cardsCount = folder.cards?.length || folder._count?.cards || 0;
-      
-      let userName = 'Usuario';
-      let location = folder.location || '';
-      let avatarUrl = null;
-
-            if (typeof folder.user === 'string') {
-        userName = folder.user;
-        avatarUrl = folder.avatarUrl || null;
-      } else if (folder.user) {
-        userName = folder.user.name || folder.user.username || (folder.userId ? folder.userId.substring(0, 6) : 'Usuario');
-        avatarUrl = folder.user.photoURL || folder.avatarUrl || null;
-        if (!location && folder.user.publicComuna) location = [folder.user.publicComuna, folder.user.publicRegion].filter(Boolean).join(', ');
-      }
-
-      setDetails({
-        cardsCount,
-        user: userName,
-        location,
-        avatarUrl,
-        loaded: true
-      });
-    } catch (err) {
-      console.error("Error loading folder details:", folder.id, err);
-      setDetails({
-        cardsCount: 0,
-        user: 'Usuario',
-        location: '',
-        avatarUrl: null,
-        loaded: true
-      });
-    }
-  };
+  }, [details.loaded, fetchDetails]);
 
   return (
     <Link 
@@ -100,10 +89,15 @@ export default function LazyFolderCard({ folder }) {
         </div>
         
         <div className="w-full mt-auto flex flex-col">
-          <div className="flex justify-start mb-[3cqi]">
+          <div className="mb-[3cqi] flex flex-wrap justify-start gap-[2cqi]">
             <span className="text-[3.5cqi] font-bold px-[3cqi] py-[1cqi] text-white rounded-[2cqi] border border-white/60 tracking-wider uppercase drop-shadow-sm">
               {folder.tcg}
             </span>
+            {details.planBadge && (
+              <span title="Insignia del plan contratado" className="rounded-[2cqi] border border-[#facc15]/80 bg-black/20 px-[3cqi] py-[1cqi] text-[3.5cqi] font-black uppercase tracking-wider text-[#facc15] drop-shadow-sm">
+                {details.planBadge.label}
+              </span>
+            )}
           </div>
           <hr className="border-white/20 mb-[3cqi] w-full" />
           <div className="flex items-center justify-start gap-[3cqi] w-full">
