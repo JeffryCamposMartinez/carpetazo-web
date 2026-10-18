@@ -277,11 +277,11 @@ export default function SellerProfile() {
 
   return (
     <div
-      className={`min-h-screen [&_h1]:[font-family:var(--seller-font)] [&_section_h2]:[font-family:var(--seller-font)] [&_section_h2]:[font-size:var(--seller-h2)] ${showMessageButton ? 'pb-24 sm:pb-0' : ''}`}
+      className={`min-h-[100svh] [&_h1]:[font-family:var(--seller-font)] [&_section_h2]:[font-family:var(--seller-font)] [&_section_h2]:[font-size:var(--seller-h2)] ${showMessageButton ? 'pb-24 sm:pb-0' : ''}`}
       style={{ fontFamily: getFontStack(publicTheme.bodyFont), '--seller-font': getFontStack(publicTheme.font), '--seller-data': getFontStack(publicTheme.dataFont), '--seller-h2': `${(1.45 * displayScale).toFixed(2)}rem` }}
     >
       <div className="mx-auto w-full max-w-[1470px] xl:px-4 2xl:px-6" style={getSideBackgroundStyle(publicTheme)}>
-      <div className={`relative min-h-screen w-full overflow-hidden shadow-[0_0_90px_rgba(0,0,0,0.22)] ${getEffectClassName(publicTheme)}`} style={getProfileBackgroundStyle(publicTheme)}>
+      <div className={`relative min-h-[100svh] w-full overflow-hidden shadow-[0_0_90px_rgba(0,0,0,0.22)] ${getEffectClassName(publicTheme)}`} style={getProfileBackgroundStyle(publicTheme)}>
 
       {/* Presentación: la forma cambia según la opción elegida (Clásico, Compacto, Showcase, Póster o Gamer) */}
       <ProfileHero {...profileHeroProps} />

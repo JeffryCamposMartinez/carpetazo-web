@@ -453,7 +453,7 @@ export const registerReports = (app, deps) => {
         where.OR = [{ shortCode: search.toUpperCase() }, ...(owners.length ? [{ targetOwnerId: { in: owners.map((owner) => owner.id) } }] : [])];
       }
       const [rows, total, counts] = await Promise.all([
-        prisma.report.findMany({ where, orderBy: [{ severity: 'asc' }, { weight: 'desc' }, { createdAt: 'asc' }], skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, select: { id: true, shortCode: true, targetType: true, targetId: true, targetOwnerId: true, reporterId: true, weight: true, reasonCode: true, severity: true, status: true, decision: true, autoActioned: true, comment: true, createdAt: true, decidedAt: true } }),
+        prisma.report.findMany({ where, orderBy: [{ severity: 'asc' }, { weight: 'desc' }, { createdAt: 'asc' }, { id: 'asc' }], skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, select: { id: true, shortCode: true, targetType: true, targetId: true, targetOwnerId: true, reporterId: true, weight: true, reasonCode: true, severity: true, status: true, decision: true, autoActioned: true, comment: true, createdAt: true, decidedAt: true } }),
         prisma.report.count({ where }),
         prisma.report.groupBy({ by: ['status'], _count: { _all: true } })
       ]);

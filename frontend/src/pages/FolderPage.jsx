@@ -930,14 +930,14 @@ const [isSearching, setIsSearching] = useState(false);
   if (loadingFolder) {
     return (
       <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
-        <div className="w-full rounded-none shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] border-x border-gray-300 flex flex-col items-center justify-center relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
+        <div className="w-full rounded-none shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] border-x border-gray-300 flex flex-col items-center justify-center relative z-10 min-h-[calc(100svh-80px)] bg-[#DBEAFE]">
           <LoadingState variant="page" label="Abriendo la carpeta…" />
         </div>
       </div>
     );
   }
   if (!folderData) return (
-    <div className="relative z-10 flex min-h-[calc(100vh-80px)] w-full flex-col items-center justify-center bg-[#DBEAFE] p-6">
+    <div className="relative z-10 flex min-h-[calc(100svh-80px)] w-full flex-col items-center justify-center bg-[#DBEAFE] p-6">
       <EmptyState icon="folder_off" title="No pudimos abrir esta carpeta" action={{ label: 'Volver a mis carpetas', onClick: () => navigate('/dashboard') }} className="max-w-md">
         Puede que ya no exista o que haya un problema de conexión. Revisa tu conexión e inténtalo de nuevo.
       </EmptyState>
@@ -973,7 +973,7 @@ const [isSearching, setIsSearching] = useState(false);
   return (
     <>
       <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
-        <div className="w-full rounded-none shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] border-x border-gray-300 flex flex-col relative z-10 min-h-[calc(100vh-80px)] bg-[#DBEAFE]">
+        <div className="w-full rounded-none shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] border-x border-gray-300 flex flex-col relative z-10 min-h-[calc(100svh-80px)] bg-[#DBEAFE]">
           <div className="relative z-20 flex flex-1 flex-col px-3 py-4 text-gray-900 sm:px-8 sm:py-5">
       <div className="mb-3 flex items-center gap-2 border-b border-gray-300 pb-3 sm:gap-4">
         <button 

@@ -162,8 +162,20 @@ body.public-profile-active::after {
   a, button, [role='button'], summary, label, select {
     touch-action: manipulation;               /* sin el retraso de 300 ms del doble toque */
   }
+  a[href^='mailto:'] {
+    overflow-wrap: anywhere;                  /* un correo largo no ensancha la pantalla (letra grande del sistema) */
+  }
   @media (prefers-reduced-motion: no-preference) {
     html { scroll-behavior: smooth; }
+  }
+}
+
+/* Campos de texto de 16 px como mínimo en pantallas táctiles: con menos, iOS Safari acerca la página al enfocarlos. */
+@media (pointer: coarse) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']),
+  textarea,
+  select {
+    font-size: 16px !important;
   }
 }
 

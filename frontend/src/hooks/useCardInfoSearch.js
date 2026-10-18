@@ -16,6 +16,7 @@ const BATCH = 3; // ediciones que se descargan a la vez
 const ROUND_EDITIONS = 24; // ediciones revisadas por juego en cada tanda; las tandas se repiten hasta llenar la página
 const SIMILAR_FROM = 4; // desde este largo del texto también se buscan nombres parecidos
 
+const INDEX_GAME_LABEL = { Pokemon: 'Pokémon', Pokemon_Japan: 'Pokémon', YuGiOh: 'Yu-Gi-Oh!', One_Piece: 'One Piece', OnePiece: 'One Piece' };
 const label = (name, number) => (number && !name.includes(number) ? `${name} - ${number}` : name);
 
 const fromTcgcsv = (card, game, groupId) => ({
@@ -99,13 +100,17 @@ export default function useCardInfoSearch({ query, game, enabled, page }) {
       const indexGame = game === 'Pokémon' ? 'Pokemon' : game === 'Yu-Gi-Oh!' ? 'YuGiOh' : game === 'One Piece' ? 'One_Piece' : game;
       const indexed = await api.searchTcgIndex(term, indexGame, wantedRef.current);
       if (indexed.available) {
-        const indexedCards = (indexed.cards || []).map((card) => ({
-          id: `tcg-db:${card.id}`, productId: card.productId, tcgProductId: card.productId, catId: card.categoryId,
-          categoryId: card.categoryId, groupId: card.groupId, name: card.name, imageUrl: card.imageUrl,
-          sourceImageUrl: card.sourceImageUrl, setName: card.setName || 'Catálogo',
-          language: card.categoryId === 85 ? 'Japonés' : 'Español', game: card.game,
-          payload: { external: { categoryId: card.categoryId, productId: String(card.productId) }, productId: String(card.productId), name: card.name, imageUrl: card.imageUrl, detail: card.setName || 'Catálogo', game: card.game },
-        }));
+        // El índice nombra los juegos con claves técnicas (Pokemon_Japan, One_Piece...): se muestran y se guardan con el nombre del sitio
+        const indexedCards = (indexed.cards || []).map((card) => {
+          const gameName = INDEX_GAME_LABEL[card.game] || card.game;
+          return {
+            id: `tcg-db:${card.id}`, productId: card.productId, tcgProductId: card.productId, catId: card.categoryId,
+            categoryId: card.categoryId, groupId: card.groupId, name: card.name, imageUrl: card.imageUrl,
+            sourceImageUrl: card.sourceImageUrl, setName: card.setName || 'Catálogo',
+            language: card.categoryId === 85 ? 'Japonés' : 'Español', game: gameName,
+            payload: { external: { categoryId: card.categoryId, productId: String(card.productId) }, productId: String(card.productId), name: card.name, imageUrl: card.imageUrl, detail: card.setName || 'Catálogo', game: gameName },
+          };
+        });
         setState({ results: indexedCards, searching: false, exhausted: wantedRef.current >= indexed.pages, pages: indexed.pages || 1, total: indexed.total || indexedCards.length });
         loopRef.current = null;
         return;

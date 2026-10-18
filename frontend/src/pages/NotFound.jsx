@@ -6,7 +6,7 @@ export default function NotFound() {
 
   return (
     <div className="w-full max-w-[1600px] mx-auto xl:px-12 2xl:px-16">
-      <div className="w-full rounded-none overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x border-outline-variant/30 flex flex-col relative z-10 min-h-[calc(100vh-80px)]">
+      <div className="w-full rounded-none overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x border-outline-variant/30 flex flex-col relative z-10 min-h-[calc(100svh-80px)]">
         <div className="flex-1 bg-[#DBEAFE] text-surface flex flex-col items-center justify-center relative z-20 overflow-hidden py-20">
           
           {/* Fondo cuadriculado sutil */}

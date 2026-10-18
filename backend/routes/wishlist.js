@@ -30,7 +30,7 @@ const WISHLIST_OWN_SELECT = { id: true, wishlistId: true, categoryId: true, prod
 const normalizeWishlistGame = (value) => {
   if (value === undefined || value === null || value === '') return null;
   if (typeof value !== 'string') return undefined;
-  const GAME_ALIASES = { Pokemon: 'Pokémon', YuGiOh: 'Yu-Gi-Oh!', OnePiece: 'One Piece' }; // nombres con que se guardan las carpetas
+  const GAME_ALIASES = { Pokemon: 'Pokémon', Pokemon_Japan: 'Pokémon', YuGiOh: 'Yu-Gi-Oh!', OnePiece: 'One Piece', One_Piece: 'One Piece' }; // nombres con que se guardan las carpetas y claves del índice del catálogo
   const game = GAME_ALIASES[value.trim()] || value.trim();
   return WISHLIST_GAMES.includes(game) ? game : undefined;
 };

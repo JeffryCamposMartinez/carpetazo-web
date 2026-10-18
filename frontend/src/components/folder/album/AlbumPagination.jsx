@@ -24,7 +24,7 @@ export default function AlbumPagination({
         <button
           onClick={handlePrev}
           disabled={currentPage === 0 || targetPage !== null}
-          className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+          aria-label="Página anterior" className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
         >
           <span translate="no" className="material-symbols-outlined text-sm md:text-base">arrow_back_ios_new</span>
         </button>
@@ -40,7 +40,7 @@ export default function AlbumPagination({
                 key={`page-${item}`}
                 onClick={() => jumpToPage(item)}
                 disabled={targetPage !== null}
-                className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-lg transition-all ${
+                aria-label={`Ir a la página ${item + 1}`} aria-current={isSelected ? 'page' : undefined} className={`w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-lg transition-all ${
                   isSelected 
                     ? 'bg-slate-100 dark:bg-slate-700 font-bold text-slate-900 dark:text-white' 
                     : 'hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer'
@@ -55,7 +55,7 @@ export default function AlbumPagination({
         <button
           onClick={handleNext}
           disabled={currentPage >= totalPages - 1 || targetPage !== null}
-          className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+          aria-label="Página siguiente" className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
         >
           <span translate="no" className="material-symbols-outlined text-sm md:text-base">arrow_forward_ios</span>
         </button>

@@ -140,7 +140,8 @@ export default function CatalogCard({ tcg, card, availableStock, cartQuantity, o
               <>
                 <button
                   onClick={() => onRemoveFromCart()}
-                  className="w-8 h-8 rounded-full border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 flex items-center justify-center transition-colors"
+                  aria-label={`Quitar una unidad de ${card.name} del carrito`}
+                  className="w-11 h-11 [@media(hover:hover)]:w-8 [@media(hover:hover)]:h-8 rounded-full border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 flex items-center justify-center transition-colors"
                 >
                   <span translate="no" className="material-symbols-outlined text-[16px]">remove</span>
                 </button>
@@ -149,8 +150,9 @@ export default function CatalogCard({ tcg, card, availableStock, cartQuantity, o
             ) : null}
             <button
               onClick={() => onAddToCart(card)}
+              aria-label={`Agregar ${card.name} al carrito`}
               disabled={isOutOfStock}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+              className={`w-11 h-11 [@media(hover:hover)]:w-8 [@media(hover:hover)]:h-8 rounded-full flex items-center justify-center transition-all ${
                 isOutOfStock ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' : 'bg-[#ffcb05] text-[#1a2b4b] hover:scale-105 shadow-sm hover:shadow-md'
               }`}
             >
@@ -166,7 +168,8 @@ export default function CatalogCard({ tcg, card, availableStock, cartQuantity, o
               <>
                 <button
                   onClick={() => onRemoveFromCart()}
-                  className="w-7 h-7 rounded-full border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 flex items-center justify-center transition-colors shadow-sm"
+                  aria-label={`Quitar una unidad de ${card.name} del carrito`}
+                  className="w-11 h-11 [@media(hover:hover)]:w-7 [@media(hover:hover)]:h-7 rounded-full border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 flex items-center justify-center transition-colors shadow-sm"
                 >
                   <span translate="no" className="material-symbols-outlined text-[15px]">remove</span>
                 </button>
@@ -175,8 +178,9 @@ export default function CatalogCard({ tcg, card, availableStock, cartQuantity, o
             ) : null}
             <button
               onClick={() => onAddToCart(card)}
+              aria-label={`Agregar ${card.name} al carrito`}
               disabled={isOutOfStock}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+              className={`w-11 h-11 [@media(hover:hover)]:w-8 [@media(hover:hover)]:h-8 rounded-full flex items-center justify-center transition-all ${
                 isOutOfStock ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' : 'bg-[#ffcb05] text-[#1a2b4b] hover:scale-105 shadow-sm hover:shadow-md'
               }`}
             >

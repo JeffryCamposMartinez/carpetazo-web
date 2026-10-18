@@ -1,5 +1,5 @@
 const BUTTON = 'flex h-11 flex-1 items-center justify-center gap-1 rounded-full bg-white px-4 text-sm font-extrabold text-[#12315f] ring-1 ring-slate-900/10 transition-[transform,opacity] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:pointer-events-none disabled:opacity-40 sm:flex-none';
-const NUMBER = 'flex h-10 min-w-10 items-center justify-center rounded-full px-2 text-sm font-extrabold tabular-nums transition-[transform,background-color] duration-150 active:scale-[0.95] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]';
+const NUMBER = 'flex h-11 min-w-11 items-center justify-center rounded-full px-2 text-sm font-extrabold tabular-nums transition-[transform,background-color] duration-150 active:scale-[0.95] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]';
 
 // Números a mostrar: todos si son pocos; si no, la primera, la última y las vecinas de la actual con "…" en los saltos
 const pageItems = (page, pages) => {
@@ -20,7 +20,7 @@ export default function CardsPagination({ onPage, openEnded = false, page, pages
         {pageItems(page, pages).map((item, index) => (
           <li key={item === '…' ? `gap-${index}` : item}>
             {item === '…'
-              ? <span aria-hidden="true" className="flex h-10 w-6 items-center justify-center text-sm font-bold text-slate-500">…</span>
+              ? <span aria-hidden="true" className="flex h-11 w-6 items-center justify-center text-sm font-bold text-slate-500">…</span>
               : <button type="button" onClick={() => item !== page && onPage(item)} aria-label={`Página ${item}`} aria-current={item === page ? 'page' : undefined} className={`${NUMBER} ${item === page ? 'bg-[#12315f] text-white' : 'bg-white text-[#12315f] ring-1 ring-slate-900/10 [@media(hover:hover)]:hover:bg-[#eef2fa]'}`}>{item}</button>}
           </li>
         ))}

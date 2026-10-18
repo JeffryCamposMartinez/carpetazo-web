@@ -87,7 +87,7 @@ export default function SellersPage() {
         </div>
 
         {loading ? (
-          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: 6 }, (_, i) => <li key={i} className="skeleton h-28 rounded-2xl" />)}
           </ul>
         ) : failed ? (
@@ -99,7 +99,7 @@ export default function SellersPage() {
             {comuna ? 'Solo aparecen vendedores que indicaron su comuna. Prueba con otra comuna o quita el filtro.' : 'Prueba con otro nombre.'}
           </EmptyState>
         ) : (
-          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {sellers.map((seller) => {
               const body = (
                 <>

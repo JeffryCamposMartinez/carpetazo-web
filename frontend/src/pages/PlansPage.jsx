@@ -147,7 +147,7 @@ export default function PlansPage() {
 
       {billing?.testMode && <div className="mx-auto mt-5 max-w-4xl rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900"><strong>Modo de prueba local:</strong> cambiar de plan aquí no realiza cobros y permite comprobar inmediatamente todos los límites.</div>}
 
-      <section className="mt-9 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
+      <section className="mt-9 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-5">
         {plans.map((item) => <PlanCard key={item.key} plan={item} current={plan?.key || (currentUser ? 'free' : '')} busy={busy === item.key} testMode={Boolean(billing?.testMode)} onChoose={choose} />)}
       </section>
 

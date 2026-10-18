@@ -79,7 +79,7 @@ export default function LandingPage() {
 
   return (
     <div className="mx-auto w-full max-w-[1600px] xl:px-12 2xl:px-16">
-      <div className="relative z-10 flex min-h-screen w-full flex-col overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x md:border-outline-variant/30">
+      <div className="relative z-10 flex min-h-[100svh] w-full flex-col overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x md:border-outline-variant/30">
 
         {/* Presentación y carrusel de juegos */}
         <section className="relative z-20 bg-blue-100 px-4 pb-6 pt-8 text-[#12315f] md:px-12 md:pt-14">

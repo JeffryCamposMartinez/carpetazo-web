@@ -128,6 +128,8 @@ export default function Header() {
   // La banda de secciones tiene su propio estado: se mueve en cuanto se toca y no espera a la pantalla ni a sus datos
   const [pendingNav, setPendingNav] = useState(null);
   useEffect(() => { setPendingNav(null); }, [location.pathname]);
+  // Cualquier cambio de ruta (incluido el gesto "Atrás") cierra el menú lateral
+  useEffect(() => { setIsMobileMenuOpen(false); setIsMobileMenuClosing(false); }, [location.pathname]);
   const goToSection = (route) => {
     setPendingNav(route);
     // Primero se pinta el movimiento de la banda; después la pantalla nueva, como transición interrumpible
@@ -511,7 +513,7 @@ export default function Header() {
   return (
     <>
       {/* TopAppBar - Desktop */}
-      <header ref={desktopHeaderRef} className="w-full top-0 sticky z-40 bg-surface dark:bg-surface-dim hidden md:block" style={themedTopBarStyle}>
+      <header ref={desktopHeaderRef} className="w-full top-0 sticky [@media(max-height:500px)]:static z-40 bg-surface dark:bg-surface-dim hidden md:block" style={themedTopBarStyle}>
         <div className="flex flex-col w-full">
           <div className="flex lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_minmax(0,36rem)_minmax(0,1fr)] items-center justify-between gap-4 lg:gap-8 px-md py-2 w-full max-w-container-max mx-auto">
             <Link to="/bienvenida" aria-label="Carpetazo.cl, ir a la bienvenida" className="flex shrink-0 items-center justify-self-start rounded-xl transition-[opacity,transform] duration-150 hover:opacity-85 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
@@ -602,7 +604,7 @@ export default function Header() {
               navigation
               layout="inline"
               className="gap-2 md:gap-4"
-              buttonClassName="h-9 rounded-full px-5 text-[15px] font-medium hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#facc15] after:pointer-events-none after:absolute after:inset-x-5 after:bottom-1 after:h-0.5 after:origin-center after:scale-x-0 after:rounded-full after:bg-[#facc15] after:transition-transform after:duration-200 hover:after:scale-x-100 aria-[current=page]:after:hidden"
+              buttonClassName="h-9 rounded-full px-5 text-[15px] font-medium before:absolute before:inset-x-0 before:-inset-y-0.5 before:content-[''] hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#facc15] after:pointer-events-none after:absolute after:inset-x-5 after:bottom-1 after:h-0.5 after:origin-center after:scale-x-0 after:rounded-full after:bg-[#facc15] after:transition-transform after:duration-200 hover:after:scale-x-100 aria-[current=page]:after:hidden"
               indicatorClassName="rounded-full shadow-sm"
               indicatorStyle={{ backgroundColor: themedNavActive ? (publicHeaderTheme.surface || publicHeaderTheme.card) : '#ffffff' }}
               activeTextClassName="font-bold"
@@ -667,7 +669,7 @@ export default function Header() {
               ariaLabel="Navegación principal"
               navigation
               layout="grid"
-              buttonClassName="h-10 rounded-full px-1 text-[13.5px] max-[359px]:text-[12px] font-medium leading-none focus-visible:ring-2 focus-visible:ring-[#facc15]"
+              buttonClassName="h-10 rounded-full px-1 text-[13.5px] max-[359px]:text-[12px] font-medium leading-none before:absolute before:inset-x-0 before:-inset-y-0.5 before:content-[''] focus-visible:ring-2 focus-visible:ring-[#facc15]"
               indicatorClassName="rounded-full shadow-sm"
               indicatorStyle={{ backgroundColor: themedNavActive ? (publicHeaderTheme.surface || publicHeaderTheme.card) : '#ffffff' }}
               activeTextClassName="font-bold"

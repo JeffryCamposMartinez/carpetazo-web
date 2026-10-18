@@ -34,10 +34,10 @@ export default function Footer() {
 
   return (
     <footer 
-      className="w-full bg-[#0a1120] text-white/70 pb-6 pt-3 mt-auto flex flex-col items-center justify-center gap-0.5 border-t border-white/5 relative z-10"
+      className="w-full bg-[#0a1120] px-3 text-white/70 pb-6 pt-3 mt-auto flex flex-col items-center justify-center gap-0.5 border-t border-white/5 relative z-10"
       style={themedFooterStyle}
     >
-      <a href="mailto:carpetazo.soporte@gmail.com" className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors duration-150 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+      <a href="mailto:carpetazo.soporte@gmail.com" className="inline-flex min-h-11 max-w-full items-center gap-2 break-all rounded-lg px-3 text-sm font-medium transition-colors duration-150 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
         <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">mail</span>
         carpetazo.soporte@gmail.com
       </a>

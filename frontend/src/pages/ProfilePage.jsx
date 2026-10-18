@@ -467,11 +467,11 @@ const ProfilePage = () => {
               {activeTab === 'general' && (
                 <section className="space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
-                    <Field label="Nombre completo"><TextInput value={profileData.fullName} onChange={e => updateProfileField('fullName', e.target.value)} placeholder="Ej. Jeffry Campos" /></Field>
-                    <Field label="Nombre visible"><TextInput value={profileData.displayName} onChange={e => updateProfileField('displayName', e.target.value)} placeholder="Nombre público" /></Field>
+                    <Field label="Nombre completo"><TextInput value={profileData.fullName} onChange={e => updateProfileField('fullName', e.target.value)} placeholder="Ej. Jeffry Campos" autoComplete="name" /></Field>
+                    <Field label="Nombre visible"><TextInput value={profileData.displayName} onChange={e => updateProfileField('displayName', e.target.value)} placeholder="Nombre público" autoComplete="nickname" /></Field>
                     <Field label="Usuario público" hint={usernameState.message}>
                       <div className="relative">
-                        <TextInput value={profileData.username} onChange={e => updateProfileField('username', normalizeUsername(e.target.value))} placeholder="mi_usuario" className={usernameState.available === false ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : usernameState.available ? 'border-emerald-300 focus:border-emerald-500 focus:ring-emerald-100' : ''} />
+                        <TextInput value={profileData.username} onChange={e => updateProfileField('username', normalizeUsername(e.target.value))} placeholder="mi_usuario" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} className={usernameState.available === false ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : usernameState.available ? 'border-emerald-300 focus:border-emerald-500 focus:ring-emerald-100' : ''} />
                         <span translate="no" className={`material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[20px] ${usernameState.checking ? 'animate-spin text-slate-400' : usernameState.available === false ? 'text-red-500' : usernameState.available ? 'text-emerald-500' : 'text-slate-300'}`}>{usernameState.checking ? 'sync' : usernameState.available === false ? 'cancel' : usernameState.available ? 'check_circle' : 'alternate_email'}</span>
                       </div>
                     </Field>
@@ -487,8 +487,8 @@ const ProfilePage = () => {
               {activeTab === 'personal' && (
                 <section className="space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
-                    <Field label="RUT" hint={!rutIsValid ? 'El RUT ingresado no es válido.' : 'Dato privado, solo para operaciones internas.'}><TextInput value={profileData.rut} onChange={e => updateProfileField('rut', formatRut(e.target.value))} placeholder="12345678-9" className={!rutIsValid ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : ''} /></Field>
-                    <Field label="Teléfono" hint={!phoneIsValid ? 'Usa solo números, con + o espacios. Ej.: +56 9 1234 5678.' : undefined}><TextInput value={profileData.phone} onChange={e => updateProfileField('phone', e.target.value)} placeholder="+56 9 1234 5678" className={!phoneIsValid ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : ''} /></Field>
+                    <Field label="RUT" hint={!rutIsValid ? 'El RUT ingresado no es válido.' : 'Dato privado, solo para operaciones internas.'}><TextInput value={profileData.rut} onChange={e => updateProfileField('rut', formatRut(e.target.value))} placeholder="12345678-9" autoComplete="off" autoCapitalize="characters" autoCorrect="off" spellCheck={false} className={!rutIsValid ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : ''} /></Field>
+                    <Field label="Teléfono" hint={!phoneIsValid ? 'Usa solo números, con + o espacios. Ej.: +56 9 1234 5678.' : undefined}><TextInput value={profileData.phone} onChange={e => updateProfileField('phone', e.target.value)} placeholder="+56 9 1234 5678" type="tel" inputMode="tel" autoComplete="tel" className={!phoneIsValid ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : ''} /></Field>
                   </div>
                   <div className="rounded-2xl bg-blue-50 p-4 text-sm font-semibold text-[#1a2b4b] ring-1 ring-blue-100">Estos datos no se muestran públicamente. Se guardan asociados solamente a tu usuario autenticado.</div>
                   <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('personal')} disabled={Boolean(savingKey) || !rutIsValid || !phoneIsValid}>{savingKey === 'personal' ? 'Guardando...' : 'Guardar datos privados'}</ActionButton></div>
@@ -517,7 +517,7 @@ const ProfilePage = () => {
                   <div className="grid gap-4 md:grid-cols-2">
                     <Field label="Banco"><SelectInput value={profileData.bankDetails?.bank || ''} onChange={e => updateBankField('bank', e.target.value)}><option value="">Selecciona banco</option>{chileBanks.map(bank => <option key={bank} value={bank}>{bank}</option>)}</SelectInput></Field>
                     <Field label="Tipo de cuenta"><SelectInput value={profileData.bankDetails?.accountType || ''} onChange={e => updateBankField('accountType', e.target.value)}><option value="">Selecciona tipo</option>{accountTypes.map(type => <option key={type} value={type}>{type}</option>)}</SelectInput></Field>
-                    <Field label="Número de cuenta"><TextInput value={profileData.bankDetails?.accountNumber || ''} onChange={e => updateBankField('accountNumber', e.target.value)} placeholder="000000000" /></Field>
+                    <Field label="Número de cuenta"><TextInput value={profileData.bankDetails?.accountNumber || ''} onChange={e => updateBankField('accountNumber', e.target.value)} placeholder="000000000" inputMode="numeric" autoComplete="off" /></Field>
                   </div>
                   <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <input
