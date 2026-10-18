@@ -105,7 +105,7 @@ export default function SellersPage() {
                 <>
                   <Avatar seller={seller} />
                   <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-1 text-base font-extrabold text-[#12315f]"><span className="truncate">{seller.name}</span>{seller.verified && <VerifiedBadge size={18} />}</p>
+                    <p className="flex min-w-0 items-center gap-1 text-base font-extrabold text-[#12315f]"><span className="truncate">{seller.name}</span>{seller.verified && <VerifiedBadge size={18} />}</p>
                     <div className="mt-0.5 flex min-w-0 items-center gap-1.5"><p className="truncate text-xs font-semibold text-slate-500">{seller.username ? `@${seller.username}` : 'Vendedor'}</p><PlanBadge badge={seller.planBadge} compact /></div>
                     <LocationLine comuna={seller.publicComuna} region={seller.publicRegion} className="mt-0.5 text-xs font-semibold text-[#1e40af]" />
                     <p className="mt-1.5 text-xs font-semibold tabular-nums text-slate-600">
@@ -116,9 +116,9 @@ export default function SellersPage() {
                   <span translate="no" className="material-symbols-outlined text-[22px] text-slate-400">chevron_right</span>
                 </>
               );
-              const rowClass = 'flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5';
+              const rowClass = 'flex min-w-0 items-center gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5';
               return (
-                <li key={seller.key}>
+                <li key={seller.key} className="min-w-0">
                   {seller.username ? (
                     <Link to={`/${seller.username}`} className={`${rowClass} transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]`}>{body}</Link>
                   ) : (

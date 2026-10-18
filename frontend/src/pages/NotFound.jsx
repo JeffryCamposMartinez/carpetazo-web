@@ -44,9 +44,9 @@ export default function NotFound() {
               Error de Conexión
             </div>
             
-            <h2 className="text-3xl md:text-4xl font-black text-[#1a2b4b] mb-4 drop-shadow-sm">
+            <h1 className="text-3xl md:text-4xl font-black text-[#1a2b4b] mb-4 drop-shadow-sm">
               Esta carta no está <span className="text-[#1e40af]">en el tablero</span>
-            </h2>
+            </h1>
             
             <p className="text-slate-600 text-base md:text-lg mb-8 font-medium">
               Te has adentrado en una zona inexplorada. La página que buscas no existe o ha sido retirada del juego.

@@ -177,6 +177,19 @@ const setTcgCache = (key, data) => {
   if (tcgCache.size >= TCG_CACHE_MAX) tcgCache.delete(tcgCache.keys().next().value);
   tcgCache.set(key, { timestamp: Date.now(), data });
 };
+// Pide a la API externa con tope de tiempo. Un rechazo por consulta mal formada (4xx) se devuelve como 400;
+// una caída o demora de la API externa como 502 (no es un fallo de este servidor).
+const fetchTcgApi = async (url) => {
+  const fetchOptions = { signal: AbortSignal.timeout(8000), ...(process.env.POKEMON_TCG_API_KEY ? { headers: { 'X-Api-Key': process.env.POKEMON_TCG_API_KEY } } : {}) };
+  const response = await fetch(url, fetchOptions);
+  if (!response.ok) throw Object.assign(new Error('Error en la API de cartas'), { upstreamStatus: response.status });
+  return response.json();
+};
+const sendTcgError = (res, error, what) => {
+  console.error(`TCG API ${what} Error:`, error?.upstreamStatus || error?.name || error?.message);
+  if (error?.upstreamStatus >= 400 && error.upstreamStatus < 500 && error.upstreamStatus !== 429) return badRequest(res, 'Búsqueda inválida');
+  return res.status(502).json({ success: false, message: 'El catálogo externo no está disponible por ahora. Intenta nuevamente.' });
+};
 
 router.get('/api/tcg/sets', async (req, res) => {
     const cacheKey = 'sets';
@@ -189,16 +202,11 @@ router.get('/api/tcg/sets', async (req, res) => {
     }
     
     try {
-        const fetchOptions = process.env.POKEMON_TCG_API_KEY ? { headers: { 'X-Api-Key': process.env.POKEMON_TCG_API_KEY } } : {};
-          const response = await fetch('https://api.pokemontcg.io/v2/sets?orderBy=-releaseDate', fetchOptions);
-        if (!response.ok) throw new Error('Error fetching sets');
-        const data = await response.json();
-        
+        const data = await fetchTcgApi('https://api.pokemontcg.io/v2/sets?orderBy=-releaseDate');
         setTcgCache(cacheKey, data);
         res.json(data);
     } catch (error) {
-        console.error('TCG API Sets Error:', error);
-        res.status(500).json({ error: 'Failed to fetch sets' });
+        sendTcgError(res, error, 'Sets');
     }
 });
 
@@ -219,16 +227,11 @@ router.get('/api/tcg/cards', async (req, res) => {
             ? `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(query)}` 
             : 'https://api.pokemontcg.io/v2/cards';
             
-        const fetchOptions = process.env.POKEMON_TCG_API_KEY ? { headers: { 'X-Api-Key': process.env.POKEMON_TCG_API_KEY } } : {};
-          const response = await fetch(url, fetchOptions);
-        if (!response.ok) throw new Error('Error fetching cards');
-        const data = await response.json();
-        
+        const data = await fetchTcgApi(url);
         setTcgCache(cacheKey, data);
         res.json(data);
     } catch (error) {
-        console.error('TCG API Cards Error:', error);
-        res.status(500).json({ error: 'Failed to fetch cards' });
+        sendTcgError(res, error, 'Cards');
     }
 });
 // --- TCGCSV LOCAL DB ---

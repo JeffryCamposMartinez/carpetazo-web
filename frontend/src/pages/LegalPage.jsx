@@ -62,7 +62,7 @@ export default function LegalPage({ kind }) {
             <ol className="columns-1 gap-6 text-sm sm:columns-2">
               {sections.map((section) => (
                 <li key={section.id} className="mb-1 break-inside-avoid">
-                  <a href={`#${section.id}`} className="text-slate-600 hover:text-[#1e40af] hover:underline">{section.x.replace(/^\d+\.\s*/, '')}</a>
+                  <a href={`#${section.id}`} className="inline-flex min-h-10 items-center text-slate-600 hover:text-[#1e40af] hover:underline">{section.x.replace(/^\d+\.\s*/, '')}</a>
                 </li>
               ))}
             </ol>
