@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import LoadableImage from '../../ui/LoadableImage';
 import EmptyState from '../../ui/EmptyState';
 // Carrito del catálogo público: cartas elegidas, total y envío del pedido.
@@ -5,11 +6,31 @@ export default function CatalogCartDrawer({
   cart, cartTotal, currentUser, formatCLP, handleMessageCheckout, handleWhatsAppCheckout,
   isProcessingCheckout, messageMode, removeFromCart, setIsCartOpen, socialEnabled
 }) {
+  const panelRef = useRef(null);
+  // Diálogo accesible: el foco entra al abrir, Tab no sale del panel, Escape cierra y el foco vuelve a donde estaba
+  useEffect(() => {
+    const previous = document.activeElement;
+    const panel = panelRef.current;
+    panel?.focus();
+    const onKey = (event) => {
+      if (event.key === 'Escape') { setIsCartOpen(false); return; }
+      if (event.key !== 'Tab' || !panel) return;
+      const items = [...panel.querySelectorAll('button:not([disabled]),a[href],input:not([disabled])')];
+      if (!items.length) { event.preventDefault(); return; }
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === panel)) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('keydown', onKey); previous?.focus?.(); };
+  }, [setIsCartOpen]);
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex justify-end" onClick={() => setIsCartOpen(false)}>
-      <div className="bg-white border-l border-gray-200 w-full max-w-md h-full p-6 flex flex-col shadow-2xl animate-[slideIn_0.3s_ease_forwards]" onClick={e => e.stopPropagation()}>
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="carrito-titulo" tabIndex={-1} className="bg-white border-l border-gray-200 w-full max-w-md h-full p-6 flex flex-col shadow-2xl outline-none animate-[slideIn_0.3s_ease_forwards]" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
-          <h2 className="font-headline-md text-2xl font-bold flex items-center gap-2 text-gray-900">
+          <h2 id="carrito-titulo" className="font-headline-md text-2xl font-bold flex items-center gap-2 text-gray-900">
             <span translate="no" className="material-symbols-outlined">shopping_cart</span> Tu Pedido
           </h2>
           <button aria-label="Cerrar carrito" className="text-gray-500 hover:text-gray-900 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100" onClick={() => setIsCartOpen(false)}>
@@ -34,7 +55,7 @@ export default function CatalogCartDrawer({
                     <span className="text-[#1e40af] font-bold text-sm">{formatCLP(item.price)} c/u</span>
                   </div>
                 </div>
-                <button className="absolute top-2 right-2 text-error/50 hover:text-error w-8 h-8 flex items-center justify-center rounded-full hover:bg-error/10 transition-colors" onClick={() => removeFromCart(item.id)}>
+                <button aria-label={`Quitar ${item.name} del carrito`} className="absolute top-2 right-2 text-error/50 hover:text-error w-8 h-8 flex items-center justify-center rounded-full hover:bg-error/10 transition-colors" onClick={() => removeFromCart(item.id)}>
                     <span translate="no" className="material-symbols-outlined text-sm">delete</span>
                 </button>
               </div>
@@ -68,7 +89,7 @@ export default function CatalogCartDrawer({
           )}
           {(messageMode || socialEnabled('showMessageButton')) && (
             <button
-              className={`w-full p-4 rounded-xl font-extrabold flex justify-center items-center gap-3 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${messageMode ? 'text-white bg-[#1e40af] hover:bg-[#1d4ed8] shadow-[0_4px_15px_rgba(30,64,175,0.3)]' : 'mt-2 text-[#1e40af] bg-white ring-2 ring-[#1e40af] hover:bg-blue-50 disabled:bg-slate-100 disabled:text-slate-400 disabled:ring-slate-300 disabled:hover:bg-slate-100'}`}
+              className={`w-full p-4 rounded-xl font-extrabold flex justify-center items-center gap-3 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${messageMode ? 'text-white bg-[#1e40af] hover:bg-[#1d4ed8] shadow-[0_4px_15px_rgba(30,64,175,0.3)]' : 'mt-2 text-[#1e40af] bg-white ring-2 ring-[#1e40af] hover:bg-blue-50 disabled:bg-slate-100 disabled:text-slate-500 disabled:ring-slate-300 disabled:hover:bg-slate-100'}`}
               disabled={cart.length === 0 || isProcessingCheckout || !socialEnabled('showMessageButton')}
               onClick={handleMessageCheckout}
             >

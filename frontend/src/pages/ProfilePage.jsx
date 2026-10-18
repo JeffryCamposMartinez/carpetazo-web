@@ -98,6 +98,8 @@ const validateRut = (rut = '') => {
   return dv === expectedDv;
 };
 
+const validatePhone = (phone = '') => !phone.trim() || /^\+?[0-9][0-9 ()-]{6,19}$/.test(phone.trim());
+
 const mapUserToProfile = (user = {}, currentUser = null) => ({
   ...emptyProfile,
   fullName: user.fullName || user.name || currentUser?.displayName || '',
@@ -198,6 +200,7 @@ const ProfilePage = () => {
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
 
   const rutIsValid = validateRut(profileData.rut);
+  const phoneIsValid = validatePhone(profileData.phone);
   const publicUrl = profileData.username ? siteUrl(`/${profileData.username}`) : '';
   const selectedTab = tabs.find(tab => tab.id === activeTab) || tabs[0];
   const availableComunas = useMemo(() => (
@@ -300,6 +303,7 @@ const ProfilePage = () => {
 
   const handleSaveProfile = async (section = 'profile') => {
     if (!rutIsValid) return showFeedback('error', 'El RUT ingresado no es válido.');
+    if (!phoneIsValid) return showFeedback('error', 'El teléfono ingresado no es válido.');
     if (usernameState.available === false || usernameState.checking) return showFeedback('error', 'Revisa el nombre de usuario antes de guardar.');
     const payload = compactProfilePayload(profileData);
     const ok = await persistProfile(payload, 'Perfil actualizado correctamente.', section);
@@ -484,10 +488,10 @@ const ProfilePage = () => {
                 <section className="space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
                     <Field label="RUT" hint={!rutIsValid ? 'El RUT ingresado no es válido.' : 'Dato privado, solo para operaciones internas.'}><TextInput value={profileData.rut} onChange={e => updateProfileField('rut', formatRut(e.target.value))} placeholder="12345678-9" className={!rutIsValid ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : ''} /></Field>
-                    <Field label="Teléfono"><TextInput value={profileData.phone} onChange={e => updateProfileField('phone', e.target.value)} placeholder="+56 9 1234 5678" /></Field>
+                    <Field label="Teléfono" hint={!phoneIsValid ? 'Usa solo números, con + o espacios. Ej.: +56 9 1234 5678.' : undefined}><TextInput value={profileData.phone} onChange={e => updateProfileField('phone', e.target.value)} placeholder="+56 9 1234 5678" className={!phoneIsValid ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : ''} /></Field>
                   </div>
                   <div className="rounded-2xl bg-blue-50 p-4 text-sm font-semibold text-[#1a2b4b] ring-1 ring-blue-100">Estos datos no se muestran públicamente. Se guardan asociados solamente a tu usuario autenticado.</div>
-                  <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('personal')} disabled={Boolean(savingKey) || !rutIsValid}>{savingKey === 'personal' ? 'Guardando...' : 'Guardar datos privados'}</ActionButton></div>
+                  <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('personal')} disabled={Boolean(savingKey) || !rutIsValid || !phoneIsValid}>{savingKey === 'personal' ? 'Guardando...' : 'Guardar datos privados'}</ActionButton></div>
                 </section>
               )}
 

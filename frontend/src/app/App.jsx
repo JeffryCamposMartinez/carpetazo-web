@@ -41,7 +41,7 @@ function FirstPageShown() {
 function RouteLoading() {
   if (!firstPageShown) return <AppSplash />;
   return (
-    <div className="flex-1" role="status" aria-label="Cargando">
+    <div className="min-h-[100svh] flex-1" role="status" aria-label="Cargando">
       <div className="h-[3px] w-full overflow-hidden bg-transparent">
         <div className="route-loading-bar h-full w-1/3 rounded-full bg-[#facc15]" />
       </div>

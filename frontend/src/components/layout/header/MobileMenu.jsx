@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 // Menú lateral del celular: cuenta, secciones y salida; se cierra deslizando hacia la izquierda.
@@ -6,15 +7,40 @@ export default function MobileMenu({
   onDrawerTouchEnd, onDrawerTouchMove, onDrawerTouchStart, pendingOrders, unreadMessages, userAvatar,
   userUsername
 }) {
+  const closeRef = useRef(closeMobileMenu);
+  closeRef.current = closeMobileMenu;
+  // Diálogo accesible: el foco entra al abrir, Tab no sale del panel, Escape cierra y el foco vuelve al botón del menú
+  useEffect(() => {
+    const previous = document.activeElement;
+    const panel = drawerRef.current;
+    panel?.focus();
+    const onKey = (event) => {
+      if (event.key === 'Escape') { closeRef.current(); return; }
+      if (event.key !== 'Tab' || !panel) return;
+      const items = [...panel.querySelectorAll('button:not([disabled]),a[href]')];
+      if (!items.length) { event.preventDefault(); return; }
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === panel)) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('keydown', onKey); previous?.focus?.(); };
+  }, [drawerRef]);
+
   return (
     <div className="fixed inset-0 z-50 flex md:hidden">
       <div className={`fixed inset-0 bg-black/60 ${isMobileMenuClosing ? 'animate-drawerFadeOut' : 'animate-fadeInOverlay'}`} onClick={closeMobileMenu}></div>
       <div
         ref={drawerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menú de Carpetazo"
+        tabIndex={-1}
         onTouchStart={onDrawerTouchStart}
         onTouchMove={onDrawerTouchMove}
         onTouchEnd={onDrawerTouchEnd}
-        className={`relative w-[85%] max-w-sm bg-white h-full flex flex-col overflow-y-auto overscroll-contain shadow-2xl pb-[env(safe-area-inset-bottom)] ${isMobileMenuClosing ? 'animate-drawerSlideOut' : 'animate-slideInLeft'}`}
+        className={`relative w-[85%] max-w-sm bg-white h-full outline-none flex flex-col overflow-y-auto overscroll-contain shadow-2xl pb-[env(safe-area-inset-bottom)] ${isMobileMenuClosing ? 'animate-drawerSlideOut' : 'animate-slideInLeft'}`}
       >
         {/* Cabecera: logo y, con sesión, la cuenta */}
         <div className="bg-gradient-to-br from-[#0f2b57] to-[#1e40af] px-4 pb-4 pt-3 text-white">

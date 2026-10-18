@@ -9,7 +9,7 @@ import { acceptedCache, getLegalStatus } from '../core/legal.js';
 import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/publicSeller.js';
 import { deleteR2ObjectByPublicUrl } from '../core/r2.js';
 import { getCompletedSales, getResponseStats } from '../core/sellerTrust.js';
-import { SOCIAL_DOMAINS, badRequest, checkImageField, checkSocialField, hasControlChars, isAllowedStoredImageUrl, isOptionalText, isShortText, normalizeUsername, sanitizePublicTheme, usernameProblem, validUsername } from '../core/validation.js';
+import { SOCIAL_DOMAINS, badRequest, checkImageField, checkSocialField, hasControlChars, isAllowedStoredImageUrl, isOptionalText, isShortText, normalizeUsername, isValidPhone, isValidRut, sanitizePublicTheme, usernameProblem, validUsername } from '../core/validation.js';
 import { moderationHooks, restrictions } from '../moderation/services.js';
 
 const router = express.Router();
@@ -151,6 +151,13 @@ router.put('/api/users/me', authenticateToken, async (req, res) => {
       if (!valid || (typeof updateData[field] === 'string' && hasControlChars(updateData[field].replace(/[\r\n]/g, ' ')))) {
         return res.status(400).json({ success: false, error: 'Datos de perfil inválidos' });
       }
+    }
+    // RUT y teléfono nuevos deben tener formato válido; el valor anterior a esta regla se conserva mientras no se cambie
+    for (const [field, isValid, message] of [['rut', isValidRut, 'El RUT ingresado no es válido.'], ['phone', isValidPhone, 'El teléfono ingresado no es válido.']]) {
+      const value = updateData[field];
+      if (typeof value !== 'string' || !value.trim() || isValid(value)) continue;
+      const stored = await prisma.user.findUnique({ where: { firebaseUid }, select: { [field]: true } });
+      if (stored?.[field] !== value) return res.status(400).json({ success: false, error: message });
     }
     if (updateData.username !== undefined) {
       const username = validUsername(updateData.username);

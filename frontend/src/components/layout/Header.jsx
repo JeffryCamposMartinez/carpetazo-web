@@ -120,10 +120,10 @@ export default function Header() {
   };
 
   const NAV_ROUTES = [
-    { value: '/', label: 'Inicio' },
-    { value: '/carpetas', label: 'Carpetas' },
-    { value: '/cartas', label: 'Cartas' },
-    { value: '/vendedores', label: 'Vendedores' },
+    { value: '/', href: '/', label: 'Inicio' },
+    { value: '/carpetas', href: '/carpetas', label: 'Carpetas' },
+    { value: '/cartas', href: '/cartas', label: 'Cartas' },
+    { value: '/vendedores', href: '/vendedores', label: 'Vendedores' },
   ];
   // La banda de secciones tiene su propio estado: se mueve en cuanto se toca y no espera a la pantalla ni a sus datos
   const [pendingNav, setPendingNav] = useState(null);
@@ -301,8 +301,10 @@ export default function Header() {
         setIsNotificationOpen(false);
       }
     };
+    const handleEscape = (event) => { if (event.key === 'Escape') setIsNotificationOpen(false); };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => { document.removeEventListener('mousedown', handleClickOutside); document.removeEventListener('keydown', handleEscape); };
   }, []);
 
   const getChatPartner = (chat) => chat?.otherUser || chat?.partner || {};

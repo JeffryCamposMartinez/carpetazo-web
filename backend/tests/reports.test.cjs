@@ -169,6 +169,17 @@ const DAY = 24 * 60 * 60 * 1000;
     r = await call('POST', '/reports', 'ale', { targetType: 'folder', targetId: folderId, reasonCode: 'folder.illegal' });
     ok('más de 20 reportes en una hora → 429', r.status === 429, String(r.status));
 
+    // --- Orden de la cola: lo más grave primero aunque haya más reportes abiertos que una página ---
+    const oldDay = new Date(Date.now() - 5 * DAY);
+    await prisma.report.createMany({ data: Array.from({ length: 35 }, (_, index) => ({ shortCode: 'RP-OR' + String(index).padStart(3, '0'), targetType: 'folder', targetId: randomUuid(), reasonCode: 'folder.spam', severity: 'S4', reporterId: aleId, snapshot: {}, createdAt: oldDay })) });
+    await prisma.report.create({ data: { shortCode: 'RP-ORS1A', targetType: 'folder', targetId: randomUuid(), reasonCode: 'folder.illegal', severity: 'S1', reporterId: aleId, snapshot: {} } });
+    r = await call('GET', '/admin/reports?status=open', 'admin');
+    ok('la cola abierta tiene más de una página', r.status === 200 && r.j.pages > 1, JSON.stringify({ pages: r.j.pages, total: r.j.total }));
+    ok('un reporte grave y reciente aparece primero, no detrás de los antiguos leves', r.j.reports[0]?.shortCode === 'RP-ORS1A', JSON.stringify(r.j.reports.slice(0, 2).map((x) => [x.shortCode, x.severity])));
+    const page2 = await call('GET', '/admin/reports?status=open&page=2', 'admin');
+    const firstIds = new Set(r.j.reports.map((x) => x.id));
+    ok('...la página 2 no repite los de la página 1', page2.j.reports.length > 0 && page2.j.reports.every((x) => !firstIds.has(x.id)));
+
     // --- Auditoría ---
     ok('auditoría sin permiso → 403', (await call('GET', '/admin/audit', 'jerry')).status === 403);
     r = await call('GET', '/admin/audit', 'admin');

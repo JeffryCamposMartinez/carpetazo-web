@@ -120,7 +120,7 @@ export default function CardsPage() {
     : 'grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5';
 
   return (
-    <div className="mx-auto w-full max-w-[1470px] px-3 py-3 sm:px-6 sm:py-6 lg:px-8">
+    <div className="mx-auto min-h-[100svh] w-full max-w-[1470px] px-3 py-3 sm:px-6 sm:py-6 lg:px-8">
       <div className="rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 p-3 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] sm:p-6 md:rounded-[2rem] lg:p-8">
         <header className="mb-4 sm:mb-6">
           <h1 className="text-3xl font-extrabold tracking-tight text-[#12315f] [text-wrap:balance] md:text-4xl">Cartas en venta</h1>

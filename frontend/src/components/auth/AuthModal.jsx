@@ -70,6 +70,27 @@ export default function AuthModal({ isOpen, onClose }) {
     }
   }, [isOpen, view]);
 
+  // Diálogo accesible: el foco entra al abrir, Tab no sale de la ventana, Escape la cierra (salvo mientras carga) y el foco vuelve a donde estaba
+  const sheetRef = useRef(null);
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const previous = document.activeElement;
+    const sheet = sheetRef.current;
+    sheet?.focus();
+    const onKey = (event) => {
+      if (event.key === 'Escape') { if (!loading) onClose(); return; }
+      if (event.key !== 'Tab' || !sheet) return;
+      const items = [...sheet.querySelectorAll('button:not([disabled]),a[href],input:not([disabled])')];
+      if (!items.length) { event.preventDefault(); return; }
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === sheet)) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('keydown', onKey); previous?.focus?.(); };
+  }, [isOpen, loading, onClose]);
+
   // Sin la casilla marcada no se abre Google ni se envía el formulario: se avisa y se lleva el foco a la casilla
   const requireAgreement = () => {
     if (agreed) return true;
@@ -164,7 +185,7 @@ export default function AuthModal({ isOpen, onClose }) {
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={titles[view]}>
       <div className="sheet-backdrop fixed inset-0 bg-[#0a1120]/75 backdrop-blur-md" onClick={loading ? null : onClose}></div>
 
-      <div className="auth-sheet relative z-10 max-h-[calc(100dvh-1rem)] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-6 shadow-[0_-12px_40px_-12px_rgba(8,18,42,0.45)] sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl sm:p-8 sm:shadow-[0_24px_60px_-20px_rgba(8,18,42,0.55)]">
+      <div ref={sheetRef} tabIndex={-1} className="auth-sheet relative z-10 outline-none max-h-[calc(100dvh-1rem)] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-6 shadow-[0_-12px_40px_-12px_rgba(8,18,42,0.45)] sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl sm:p-8 sm:shadow-[0_24px_60px_-20px_rgba(8,18,42,0.55)]">
         <button
           type="button"
           onClick={onClose}

@@ -1,7 +1,7 @@
 // Reportes y moderación de contenido (documento 20, Fase A).
 // Se registra desde server.js con las utilidades de seguridad de core/ (sesión, administrador, límites, correo).
 import crypto from 'node:crypto';
-import { REPORT_TARGETS, REPORT_TARGET_TYPES, findReason, publicReasons, SEVERITY_ORDER } from './reportReasons.js';
+import { REPORT_TARGETS, REPORT_TARGET_TYPES, findReason, publicReasons } from './reportReasons.js';
 
 const COMMENT_MAX = 500;
 const COMMENT_MIN_REQUIRED = 20;
@@ -453,12 +453,11 @@ export const registerReports = (app, deps) => {
         where.OR = [{ shortCode: search.toUpperCase() }, ...(owners.length ? [{ targetOwnerId: { in: owners.map((owner) => owner.id) } }] : [])];
       }
       const [rows, total, counts] = await Promise.all([
-        prisma.report.findMany({ where, orderBy: [{ createdAt: 'asc' }], skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, select: { id: true, shortCode: true, targetType: true, targetId: true, targetOwnerId: true, reporterId: true, weight: true, reasonCode: true, severity: true, status: true, decision: true, autoActioned: true, comment: true, createdAt: true, decidedAt: true } }),
+        prisma.report.findMany({ where, orderBy: [{ severity: 'asc' }, { weight: 'desc' }, { createdAt: 'asc' }], skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, select: { id: true, shortCode: true, targetType: true, targetId: true, targetOwnerId: true, reporterId: true, weight: true, reasonCode: true, severity: true, status: true, decision: true, autoActioned: true, comment: true, createdAt: true, decidedAt: true } }),
         prisma.report.count({ where }),
         prisma.report.groupBy({ by: ['status'], _count: { _all: true } })
       ]);
-      // Más grave primero; dentro de cada gravedad, el más antiguo
-      rows.sort((a, b) => (SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]) || (b.weight - a.weight) || (new Date(a.createdAt) - new Date(b.createdAt)));
+      // Más grave primero (S1 < S4 en orden alfabético); dentro de cada gravedad, el de más peso y luego el más antiguo. Se ordena en la base para que cada página siga ese criterio
       const owners = await ownerCache(rows.map((row) => row.targetOwnerId));
       const sameTarget = rows.length ? await prisma.report.groupBy({ by: ['targetType', 'targetId'], where: { OR: rows.map((row) => ({ targetType: row.targetType, targetId: row.targetId })), status: 'open' }, _count: { _all: true } }) : [];
       const sameMap = new Map(sameTarget.map((row) => [`${row.targetType}:${row.targetId}`, row._count._all]));

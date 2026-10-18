@@ -138,9 +138,12 @@ export default function LiquidTabs({
       )}
       {options.map((o, i) => {
         const active = hasActive && i === activeIndex;
+        const asLink = navigation && Boolean(o.href); // enlace real: se puede abrir en otra pestaña y los buscadores lo siguen
+        const Tag = asLink ? 'a' : 'button';
         return (
-          <button
-            type="button"
+          <Tag
+            type={asLink ? undefined : 'button'}
+            href={asLink ? o.href : undefined}
             key={o.value}
             ref={el => { buttonRefs.current[i] = el; }}
             id={tabs ? `${idPrefix}-${o.value}` : undefined}
@@ -149,12 +152,18 @@ export default function LiquidTabs({
             tabIndex={tabs ? (active ? 0 : -1) : undefined}
             aria-pressed={navigation || tabs ? undefined : active}
             aria-current={navigation && active ? 'page' : undefined}
-            onClick={() => onChange(o.value)}
+            onClick={(event) => {
+              if (asLink) {
+                if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+              }
+              onChange(o.value);
+            }}
             style={active ? activeTextStyle : inactiveTextStyle}
-            className={`relative z-10 outline-none transition-colors duration-300 ${active ? activeTextClassName : inactiveTextClassName} ${buttonClassName}`}
+            className={`relative z-10 outline-none transition-colors duration-300 ${asLink ? 'inline-flex items-center justify-center no-underline' : ''} ${active ? activeTextClassName : inactiveTextClassName} ${buttonClassName}`}
           >
             {o.label}
-          </button>
+          </Tag>
         );
       })}
     </div>

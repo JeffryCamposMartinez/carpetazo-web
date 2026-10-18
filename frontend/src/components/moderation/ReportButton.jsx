@@ -203,6 +203,7 @@ export function ReportSheet({ targetType, targetId, blockUserId, onClose, onRepo
 export default function ReportButton({ targetType, targetId, blockUserId, label = 'Reportar', className = '', onReported, children }) {
   const { currentUser } = useAuth();
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef(null);
 
   if (!targetId) return null;
   const start = () => {
@@ -212,10 +213,10 @@ export default function ReportButton({ targetType, targetId, blockUserId, label 
 
   return (
     <>
-      <button type="button" onClick={start} className={className || 'text-xs font-bold text-slate-400 underline-offset-2 hover:text-red-600 hover:underline'}>
+      <button ref={triggerRef} type="button" onClick={start} className={className || 'text-xs font-bold text-slate-400 underline-offset-2 hover:text-red-600 hover:underline'}>
         {children || label}
       </button>
-      {open && <ReportSheet targetType={targetType} targetId={targetId} blockUserId={blockUserId} onClose={() => setOpen(false)} onReported={onReported} />}
+      {open && <ReportSheet targetType={targetType} targetId={targetId} blockUserId={blockUserId} onClose={() => { setOpen(false); triggerRef.current?.focus({ preventScroll: true }); }} onReported={onReported} />}
     </>
   );
 }
@@ -307,7 +308,7 @@ export function ReportMenu({ options, label = 'Reportar', buttonClassName = '', 
         ),
         document.body
       )}
-      {target && <ReportSheet targetType={target.targetType} targetId={target.targetId} blockUserId={target.blockUserId} onClose={() => setTarget(null)} />}
+      {target && <ReportSheet targetType={target.targetType} targetId={target.targetId} blockUserId={target.blockUserId} onClose={() => { setTarget(null); buttonRef.current?.focus({ preventScroll: true }); }} />}
     </div>
   );
 }

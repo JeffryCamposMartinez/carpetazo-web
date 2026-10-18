@@ -12,7 +12,8 @@ const setMeta = (selector, create, value) => {
 
 // Título, descripción y dirección canónica de la página actual (lo que leen Google y las pestañas); al salir de la página vuelven los de la portada.
 // `path` es la dirección oficial, por ejemplo "/carta/<id>"; sin título no hace nada (mientras carga se queda lo anterior).
-export default function usePageMeta({ title, description, path, noindex }) {
+export default function usePageMeta({ title, description, path, noindex, jsonLd }) {
+  const structured = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : '';
   useEffect(() => {
     if (!title) return undefined;
     const previousTitle = document.title;
@@ -31,6 +32,11 @@ export default function usePageMeta({ title, description, path, noindex }) {
       document.head.appendChild(robots);
       restore.push(() => robots.remove());
     }
+    if (structured) {
+      const script = Object.assign(document.createElement('script'), { type: 'application/ld+json', textContent: structured });
+      document.head.appendChild(script);
+      restore.push(() => script.remove());
+    }
     return () => { document.title = previousTitle; restore.forEach((run) => run()); };
-  }, [title, description, path, noindex]);
+  }, [title, description, path, noindex, structured]);
 }

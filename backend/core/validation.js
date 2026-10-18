@@ -44,6 +44,22 @@ export const normalizeUsername = (value) => String(value || '')
   .trim()
   .replace(/\s+/g, '_')
   .replace(/[^a-z0-9_]/g, '');
+// RUT chileno con dígito verificador (módulo 11); acepta puntos y guion
+export const isValidRut = (value) => {
+  const clean = String(value || '').replace(/[^0-9kK]/g, '').toUpperCase();
+  if (!/^\d{7,8}[0-9K]$/.test(clean)) return false;
+  const body = clean.slice(0, -1);
+  let sum = 0;
+  let multiplier = 2;
+  for (let i = body.length - 1; i >= 0; i -= 1) {
+    sum += Number(body[i]) * multiplier;
+    multiplier = multiplier < 7 ? multiplier + 1 : 2;
+  }
+  const remainder = 11 - (sum % 11);
+  return clean.slice(-1) === (remainder === 11 ? '0' : remainder === 10 ? 'K' : String(remainder));
+};
+// Teléfono: dígitos con +, espacios, guiones o paréntesis (7 a 20 caracteres)
+export const isValidPhone = (value) => /^\+?[0-9][0-9 ()-]{6,19}$/.test(String(value || '').trim());
 // Mensaje para un usuario rechazado por validUsername: distingue "reservado" de "formato inválido"
 export const usernameProblem = (value) => {
   const username = normalizeUsername(value);

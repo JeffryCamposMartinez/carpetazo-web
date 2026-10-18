@@ -61,7 +61,7 @@ export default function SellersPage() {
   const sellers = useMemo(() => result.sellers.map((seller) => ({ ...seller, key: seller.username || seller.name, photoURL: seller.photoURL || '', tcgs: seller.tcgs || [] })), [result.sellers]);
 
   return (
-    <div className="mx-auto w-full max-w-[1470px] px-3 py-3 sm:px-6 sm:py-6 lg:px-8">
+    <div className="mx-auto min-h-[100svh] w-full max-w-[1470px] px-3 py-3 sm:px-6 sm:py-6 lg:px-8">
       <div className="rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 p-4 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] md:rounded-[2rem] md:p-8">
         <header className="mb-5">
           <h1 className="text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Vendedores</h1>

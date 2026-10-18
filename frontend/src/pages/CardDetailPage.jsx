@@ -80,7 +80,23 @@ export default function CardDetailPage() {
   usePageMeta(card ? {
     title: `${card.name}${card.set ? ` (${card.set})` : ''} - ${card.tcg}${best ? ` desde ${formatCLP(best.price)}` : ''} | Carpetazo`,
     description: `Compra ${card.name} de ${card.tcg}${card.set ? `, edición ${card.set}` : ''} en Chile. ${offers.length} ${offers.length === 1 ? 'oferta' : 'ofertas'}${best ? ` desde ${formatCLP(best.price)}` : ''}.`,
-    path: `/carta/${offers[0]?.id || card.id}`
+    path: `/carta/${offers[0]?.id || card.id}`,
+    jsonLd: best ? {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: card.name,
+      category: card.tcg,
+      ...(/^https:\/\//.test(card.imageUrl || '') ? { image: card.imageUrl } : {}),
+      url: `https://carpetazo.cl/carta/${offers[0]?.id || card.id}`,
+      offers: {
+        '@type': 'AggregateOffer',
+        priceCurrency: 'CLP',
+        lowPrice: Math.min(...offers.map((offer) => Number(offer.price)).filter((price) => price > 0)),
+        highPrice: Math.max(...offers.map((offer) => Number(offer.price))),
+        offerCount: offers.length,
+        availability: 'https://schema.org/InStock'
+      }
+    } : undefined
   } : {});
   const lightboxCards = useMemo(() => (card ? [{ id: card.id, name: card.name, imageUrl: card.imageUrl }] : []), [card]);
 
