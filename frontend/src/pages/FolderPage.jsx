@@ -672,8 +672,18 @@ const [isSearching, setIsSearching] = useState(false);
 
   const fetchOrders = async () => {
     try {
-      const result = await api.getMyOrders();
-      if (result.success) setFolderOrders((result.orders || []).filter(order => order.folderId === id));
+      let all = [];
+      let cursor = undefined;
+      let more = true;
+      while (more) {
+        // eslint-disable-next-line no-await-in-loop
+        const result = await api.getMyOrders(cursor);
+        if (!result.success) break;
+        all = all.concat(result.orders || []);
+        more = result.hasMore;
+        cursor = result.nextCursor;
+      }
+      setFolderOrders(all.filter(order => order.folderId === id));
     } catch (err) {
       console.error('Error al cargar pedidos:', err);
     } finally {

@@ -296,7 +296,7 @@ export const api = {
 
   // Orders
   createOrder: (data) => apiFetch('/orders/create', { method: 'POST', body: JSON.stringify(data) }),
-  getMyOrders: () => apiFetch('/orders/mine'),
+  getMyOrders: (cursor) => apiFetch('/orders/mine' + (cursor ? `?cursor=${encodeURIComponent(cursor)}` : '')),
   getMyPendingOrders: (since) => apiFetch('/orders/mine/pending' + (since ? `?since=${encodeURIComponent(since)}` : '')),
   setMyOrderStatus: (id, status) => apiFetch('/orders/mine/' + encodeURIComponent(id) + '/status', { method: 'POST', body: JSON.stringify({ status }) }),
 };

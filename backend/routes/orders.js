@@ -243,11 +243,20 @@ router.get('/api/orders/mine', authenticateToken, async (req, res) => {
     const sellerId = await getSellerId(req);
     if (!sellerId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
 
-    const orders = await prisma.order.findMany({
+    const PAGE = 50;
+    const rawCursor = typeof req.query.cursor === 'string' ? req.query.cursor : null;
+    const cursor = rawCursor && isUuid(rawCursor) ? rawCursor : null;
+
+    const rows = await prisma.order.findMany({
       where: { sellerId },
       orderBy: { createdAt: 'desc' },
-      take: 1000
+      take: PAGE + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {})
     });
+
+    const hasMore = rows.length > PAGE;
+    const orders = hasMore ? rows.slice(0, PAGE) : rows;
+    const nextCursor = hasMore ? orders[orders.length - 1].id : null;
 
     // Imagen, edición, número e idioma actuales de cada carta del pedido
     const cardIds = [...new Set(orders.flatMap((order) => normalizeOrderItems(order.items).map((item) => String(item.id || ''))).filter(isUuid))];
@@ -258,6 +267,8 @@ router.get('/api/orders/mine', authenticateToken, async (req, res) => {
 
     res.json({
       success: true,
+      hasMore,
+      nextCursor,
       orders: orders.map((order) => {
         const formatted = formatOrderForUi(order);
         return {

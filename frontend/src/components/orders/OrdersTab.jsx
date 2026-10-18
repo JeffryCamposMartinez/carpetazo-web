@@ -450,7 +450,7 @@ const downloadCsv = (orders) => {
   URL.revokeObjectURL(url);
 };
 
-function History({ orders }) {
+function History({ orders, hasMore = false, onLoadMore, loadingMore = false }) {
   const [range, setRange] = useState('90');
   const [status, setStatus] = useState('completed');
   const [folder, setFolder] = useState('all');
@@ -638,11 +638,15 @@ function History({ orders }) {
         ) : (
           <UiEmptyState variant="plain" icon="filter_alt_off" title="No hay pedidos con estos filtros" className="bg-white">Prueba con otro estado o busca por otro código o nombre.</UiEmptyState>
         )}
-        {ledger.length > limit && (
+        {ledger.length > limit ? (
           <button type="button" onClick={() => setLimit(limit + 25)} className="w-full border-t border-slate-200 bg-white py-3.5 text-sm font-bold text-[#1e40af] hover:bg-slate-50">
             Ver {Math.min(25, ledger.length - limit)} pedidos más
           </button>
-        )}
+        ) : hasMore ? (
+          <button type="button" onClick={onLoadMore} disabled={loadingMore} className="w-full border-t border-slate-200 bg-white py-3.5 text-sm font-bold text-[#1e40af] hover:bg-slate-50 disabled:opacity-60">
+            {loadingMore ? 'Cargando…' : 'Cargar más historial'}
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -650,7 +654,7 @@ function History({ orders }) {
 
 /* ----------------------------------- Contenedor ----------------------------------- */
 
-export default function OrdersTab({ showToast, filter = 'solicitudes', orders = [], loading = false, onOrderUpdated, onGoToFolders, emptyActionLabel }) {
+export default function OrdersTab({ showToast, filter = 'solicitudes', orders = [], loading = false, onOrderUpdated, onGoToFolders, emptyActionLabel, hasMore = false, onLoadMore, loadingMore = false }) {
   const [busyId, setBusyId] = useState(null);
 
   const decide = async (order, status) => {
@@ -675,6 +679,6 @@ export default function OrdersTab({ showToast, filter = 'solicitudes', orders = 
   }
 
   return filter === 'historial'
-    ? <History orders={orders} />
+    ? <History orders={orders} hasMore={hasMore} onLoadMore={onLoadMore} loadingMore={loadingMore} />
     : <Requests orders={orders} onDecide={decide} busyId={busyId} showToast={showToast} onGoToFolders={onGoToFolders} emptyActionLabel={emptyActionLabel} />;
 }

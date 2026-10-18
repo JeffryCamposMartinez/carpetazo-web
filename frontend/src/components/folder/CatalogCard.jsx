@@ -134,10 +134,11 @@ export default function CatalogCard({ tcg, card, availableStock, cartQuantity, o
             </div>
           )}
           
+          {onAddToCart && (
           <div className="flex items-center gap-2">
             {cartQuantity > 0 ? (
               <>
-                <button 
+                <button
                   onClick={() => onRemoveFromCart()}
                   className="w-8 h-8 rounded-full border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 flex items-center justify-center transition-colors"
                 >
@@ -146,7 +147,7 @@ export default function CatalogCard({ tcg, card, availableStock, cartQuantity, o
                 <span className="text-[#1a2b4b] font-bold min-w-[12px] text-center">{cartQuantity}</span>
               </>
             ) : null}
-            <button 
+            <button
               onClick={() => onAddToCart(card)}
               disabled={isOutOfStock}
               className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
@@ -156,13 +157,14 @@ export default function CatalogCard({ tcg, card, availableStock, cartQuantity, o
               <span translate="no" className="material-symbols-outlined text-[18px]">add</span>
             </button>
           </div>
+          )}
         </div>
 
-        {isMyl && (
+        {isMyl && onAddToCart && (
           <div className="absolute bottom-3 right-3 flex items-center gap-2">
             {cartQuantity > 0 ? (
               <>
-                <button 
+                <button
                   onClick={() => onRemoveFromCart()}
                   className="w-7 h-7 rounded-full border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 flex items-center justify-center transition-colors shadow-sm"
                 >
@@ -171,7 +173,7 @@ export default function CatalogCard({ tcg, card, availableStock, cartQuantity, o
                 <span className="text-[#1a2b4b] font-bold min-w-[12px] text-center text-sm">{cartQuantity}</span>
               </>
             ) : null}
-            <button 
+            <button
               onClick={() => onAddToCart(card)}
               disabled={isOutOfStock}
               className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${

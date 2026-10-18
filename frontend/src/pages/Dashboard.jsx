@@ -44,6 +44,9 @@ export default function Dashboard() {
   }, [linkedTab]);
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
+  const [ordersNextCursor, setOrdersNextCursor] = useState(null);
+  const [ordersHasMore, setOrdersHasMore] = useState(false);
+  const [loadingMoreOrders, setLoadingMoreOrders] = useState(false);
   const [generatingPdfFolder, setGeneratingPdfFolder] = useState(null);
   const [pdfProgress, setPdfProgress] = useState({ loaded: 0, total: 1, generating: false });
   const [activeMenuFolderId, setActiveMenuFolderId] = useState(null);
@@ -149,6 +152,8 @@ export default function Dashboard() {
         const response = await api.getMyOrders();
         if (response.success) {
           setOrders(response.orders);
+          setOrdersNextCursor(response.nextCursor);
+          setOrdersHasMore(response.hasMore);
         }
       } catch (e) {
         console.error("Error al cargar pedidos", e);
@@ -214,9 +219,32 @@ export default function Dashboard() {
   useEffect(() => {
     if (!currentUser || !['solicitudes', 'historial'].includes(activeTab)) return;
     api.getMyOrders()
-      .then((response) => { if (response.success) setOrders(response.orders); })
+      .then((response) => {
+        if (response.success) {
+          setOrders(response.orders);
+          setOrdersNextCursor(response.nextCursor);
+          setOrdersHasMore(response.hasMore);
+        }
+      })
       .catch(() => {});
   }, [activeTab, currentUser]);
+
+  const loadMoreOrders = async () => {
+    if (!ordersHasMore || loadingMoreOrders) return;
+    setLoadingMoreOrders(true);
+    try {
+      const response = await api.getMyOrders(ordersNextCursor);
+      if (response.success) {
+        setOrders(prev => [...prev, ...response.orders]);
+        setOrdersNextCursor(response.nextCursor);
+        setOrdersHasMore(response.hasMore);
+      }
+    } catch (e) {
+      console.error("Error al cargar más pedidos", e);
+    } finally {
+      setLoadingMoreOrders(false);
+    }
+  };
 
   // Reemplaza el pedido gestionado conservando el detalle de sus cartas
   const handleOrderUpdated = (updated) => {
@@ -526,6 +554,9 @@ export default function Dashboard() {
             loading={ordersLoading}
             onOrderUpdated={handleOrderUpdated}
             onGoToFolders={() => setActiveTab('carpetas')}
+            hasMore={ordersHasMore}
+            onLoadMore={loadMoreOrders}
+            loadingMore={loadingMoreOrders}
           />
         )}
       </div>

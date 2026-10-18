@@ -178,16 +178,16 @@ export default function CatalogBrowser({
                         <span translate="no" className="material-symbols-outlined text-[16px]" style={wanted[card.id] ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>
                       </button>
                       )}
-                      {cartItem ? (
+                      {!isOwner && (cartItem ? (
                         <div className="flex items-center justify-between w-full bg-slate-100 rounded-md p-1 border border-slate-200">
-                          <button 
+                          <button
                             onClick={() => decrementCart(card.id)}
                             className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-slate-700 hover:bg-slate-50 transition-colors"
                           >
                             <span translate="no" className="material-symbols-outlined text-[16px]">remove</span>
                           </button>
                           <span className="font-bold text-slate-800 text-xs px-2">{cartItem.quantity}</span>
-                          <button 
+                          <button
                             onClick={() => addToCart(card)}
                             disabled={availableStock <= 0}
                             className="w-6 h-6 flex items-center justify-center bg-[#2563eb] rounded shadow-sm text-white hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors"
@@ -196,7 +196,7 @@ export default function CatalogBrowser({
                           </button>
                         </div>
                       ) : (
-                        <button 
+                        <button
                           onClick={() => addToCart(card)}
                           disabled={availableStock <= 0}
                           className="w-full flex items-center justify-center gap-1 bg-[#2563eb] hover:bg-[#1d4ed8] text-white py-1.5 rounded-md font-bold transition-all disabled:opacity-50 shadow-sm text-[10px]"
@@ -204,7 +204,7 @@ export default function CatalogBrowser({
                           <span translate="no" className="material-symbols-outlined text-[14px]">shopping_cart</span>
                           {availableStock <= 0 ? 'Agotado' : 'Agregar'}
                         </button>
-                      )}
+                      ))}
                     </div>
                   );
                 }}
@@ -221,8 +221,8 @@ export default function CatalogBrowser({
                     card={card} 
                     availableStock={availableStock}
                     cartQuantity={cartItem ? cartItem.quantity : 0}
-                    onAddToCart={addToCart}
-                    onRemoveFromCart={() => decrementCart(card.id)}
+                    onAddToCart={isOwner ? undefined : addToCart}
+                    onRemoveFromCart={isOwner ? undefined : () => decrementCart(card.id)}
                     onWish={isOwner ? undefined : addToWishlist}
                     wished={Boolean(wanted[card.id])}
                   />

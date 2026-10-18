@@ -24,7 +24,7 @@ router.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res)
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     
-    const { price, stock, data } = req.body;
+    const { price, stock, data } = req.body || {};
     if (!isValidPrice(price) || !isValidStock(stock) || !isSmallObject(data)) {
       return badRequest(res, 'Datos de carta inválidos');
     }
@@ -230,8 +230,8 @@ router.post('/api/folders/:id/cards-bulk/move', authenticateToken, async (req, r
 // PUT update folder
 router.put('/api/folders/:id', authenticateToken, async (req, res) => {
   try {
-    const { name, color, tcg, isPublic } = req.body;
-    
+    const { name, color, tcg, isPublic } = req.body || {};
+
     // Validar propiedad de la carpeta
     const folder = await prisma.folder.findUnique({
       where: { id: req.params.id }
@@ -351,7 +351,7 @@ const CREATABLE_TCGS = ['Pokemon', 'Mitos y Leyendas', 'OnePiece', 'Magic', 'Rif
 router.post('/api/folders', authenticateToken, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    const { name, description, isPublic, tcg, color } = req.body;
+    const { name, description, isPublic, tcg, color } = req.body || {};
     if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     if (!isShortText(name, 100) || !isOptionalText(description, 1000) || !isOptionalText(tcg, 60) || !isOptionalText(color, 40)
       || (tcg !== undefined && tcg !== null && !CREATABLE_TCGS.includes(tcg))
@@ -527,7 +527,7 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     
-    const { tcgId, name, imageUrl, price, stock, data } = req.body;
+    const { tcgId, name, imageUrl, price, stock, data } = req.body || {};
     if (!isShortText(String(tcgId ?? ''), 100) || !isShortText(name, 300) || !isValidPrice(price) || !isValidStock(stock) || !isSmallObject(data)) {
       return badRequest(res, 'Datos de carta inválidos');
     }

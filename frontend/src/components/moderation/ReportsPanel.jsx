@@ -58,7 +58,7 @@ function SnapshotView({ report }) {
   const { targetType, snapshot, reasonCode } = report;
   const minor = reasonCode.endsWith('.minor_risk');
   if (!snapshot) return null;
-  const line = (label, value) => (value ? <p className="text-sm"><span className="font-bold text-slate-500">{label}:</span> <span className="break-words">{String(value)}</span></p> : null);
+  const line = (label, value) => (value != null ? <p className="text-sm"><span className="font-bold text-slate-500">{label}:</span> <span className="break-words">{String(value)}</span></p> : null);
   if (['profile_image', 'profile_banner', 'profile_wallpaper'].includes(targetType)) return <SafeImage src={snapshot.value} hardBlock={minor} />;
   if (targetType === 'card_image') return <div className="space-y-2">{line('Carta', snapshot.name)}<SafeImage src={snapshot.imageUrl} hardBlock={minor} /></div>;
   if (targetType === 'profile_text') return <div className="space-y-1">{line('Nombre', snapshot.name)}{line('Usuario', snapshot.username)}{line('Biografía', snapshot.bio)}{line('Facebook', snapshot.facebookUrl)}{line('Instagram', snapshot.instagramUrl)}{line('YouTube', snapshot.youtubeUrl)}</div>;

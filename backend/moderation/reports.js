@@ -201,6 +201,8 @@ export const registerReports = (app, deps) => {
     } else if (type === 'folder') {
       await tx.folder.updateMany({ where: { id }, data: { isPublic: true, moderationState: 'visible' } });
     } else if (type === 'card') {
+      const card = await tx.card.findUnique({ where: { id }, select: { moderationState: true } });
+      if (!card) return { ok: false, message: 'La carta fue quitada definitivamente y no puede restaurarse.' };
       await tx.card.updateMany({ where: { id, moderationState: 'hidden' }, data: { moderationState: 'visible' } });
     } else if (type === 'card_image') {
       const card = await tx.card.findUnique({ where: { id }, select: { imageUrl: true, data: true } });
@@ -211,6 +213,8 @@ export const registerReports = (app, deps) => {
         await tx.card.update({ where: { id }, data: { imageUrl: snapshot.imageUrl, moderationState: 'visible', data } });
       } else if (card.imageUrl === null) return { ok: false, message: 'No se puede restaurar: la copia del original no se guardó completa' };
     } else if (type === 'review') {
+      const rev = await tx.sellerReview.findUnique({ where: { id }, select: { id: true } });
+      if (!rev) return { ok: false, message: 'La reseña fue quitada definitivamente y no puede restaurarse.' };
       await tx.reviewReport.deleteMany({ where: { reviewId: id } });
       await tx.sellerReview.updateMany({ where: { id }, data: { counts: true, flag: null } });
     } else if (type === 'message' || type === 'message_image') {
@@ -493,7 +497,7 @@ export const registerReports = (app, deps) => {
           reporterRole: report.reporterRole,
           evidence: req.staffLevel >= 2 ? evidence : [],
           reporter: report.reporter && req.staffLevel >= 2 ? { username: report.reporter.username, name: report.reporter.name, createdAt: report.reporter.createdAt } : null,
-          allowedActions: req.staffLevel < 2 ? [] : ['user', 'order'].includes(report.targetType) ? ['dismiss'] : ADMIN_ACTIONS,
+          allowedActions: req.staffLevel < 2 ? [] : ['user', 'order'].includes(report.targetType) ? ['dismiss'] : ['message', 'message_image', 'wishlist_item'].includes(report.targetType) ? ADMIN_ACTIONS.filter(a => a !== 'remove') : ADMIN_ACTIONS,
           isImage: IMAGE_TYPES.includes(report.targetType)
         },
         owner: owner ? { username: owner.username, name: owner.name, createdAt: owner.createdAt, moderationHidden: owner.moderationHidden } : null,

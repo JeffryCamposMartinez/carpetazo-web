@@ -38,8 +38,8 @@ router.post('/api/users/sync', authenticateToken, async (req, res) => {
 
     if (!user) {
       // Si el usuario derivado del nombre ya está tomado, se agrega un número: un choque de nombres no debe dejar a nadie sin cuenta
-      const chosen = validUsername(req.body.username);
-      const derived = validUsername(normalizeUsername(req.body.displayName).slice(0, 20)) || `user_${firebaseUid.slice(0, 12).toLowerCase()}`;
+      const chosen = validUsername(req.body?.username);
+      const derived = validUsername(normalizeUsername(req.body?.displayName ?? '').slice(0, 20)) || `user_${firebaseUid.slice(0, 12).toLowerCase()}`;
       let username = chosen || derived;
       if (!chosen) {
         for (let attempt = 0; attempt < 8 && (await prisma.user.findUnique({ where: { username }, select: { id: true } })); attempt += 1) {
