@@ -82,7 +82,6 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
     if (!currentUser) { navigate('/bienvenida'); return; }
     setAddTarget(card);
   };
-  const refPriceOf = (card) => (card.groupId ? variantsFor(card) : null)?.[0]?.clp || 0;
 
   return (
     <section id="cartas-informativas" aria-label="Coincidencias del catálogo" className="mt-5 scroll-mt-28">
@@ -164,7 +163,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
         />
       )}
 
-      {addTarget && <AddToFolderModal card={addTarget} refPrice={refPriceOf(addTarget)} onClose={() => setAddTarget(null)} />}
+      {addTarget && <AddToFolderModal card={addTarget} variants={addTarget.groupId ? variantsFor(addTarget) : []} onClose={() => setAddTarget(null)} />}
     </section>
   );
 }
