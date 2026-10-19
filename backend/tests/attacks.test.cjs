@@ -323,6 +323,19 @@ const LEAK = /node_modules|\/backend\/|C:\\|\bat (async )?[\w.<>$]+ \((file:\/\/
       await clean();
       await prisma.folder.delete({ where: { id: ordFolderId } });
     }
+    // ===== 13. Plan de prueba solo para administradores =====
+
+    console.log('\n-- 13. plan de prueba (solo administradores)');
+    r = await raw('GET', '/plans', {});
+    ok('el catálogo público no lista el plan de prueba', r.status === 200 && !/"test"|Prueba/.test(r.text), '');
+    for (const who of ['jerry', 'seller']) {
+      r = await call('GET', '/billing/me', who);
+      ok('/billing/me no muestra planes de administrador a ' + who, r.status === 200 && !r.j?.adminPlans, '');
+      r = await call('POST', '/billing/checkout', who, { planKey: 'test' });
+      ok('contratar el plan de prueba sin ser administrador → 404 (' + who + ')', r.status === 404, 'status ' + r.status);
+    }
+    r = await call('GET', '/billing/me', 'admin');
+    ok('/billing/me muestra el plan de prueba ($100) a un administrador', r.status === 200 && r.j?.adminPlans?.[0]?.key === 'test' && r.j.adminPlans[0].priceClp === 100, JSON.stringify(r.j?.adminPlans));
   } finally {
     await prisma.$disconnect();
   }

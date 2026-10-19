@@ -1,10 +1,10 @@
 // Planes, suscripción propia y notificación de Mercado Pago.
 import crypto from 'crypto';
 import express from 'express';
-import { authenticateToken } from '../core/auth.js';
+import { authenticateToken, isAdminEmail } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { getPlanState, lockPlanUser } from '../core/entitlements.js';
-import { paidPlan, publicPlans, validPlanKey } from '../core/plans.js';
+import { adminOnlyPlans, paidPlan, publicPlans, validPlanKey } from '../core/plans.js';
 
 const router = express.Router();
 const MP_API = 'https://api.mercadopago.com';
@@ -38,6 +38,9 @@ const mpFetch = async (path, options = {}) => {
   }
   return body;
 };
+
+// Mismos criterios que requireAdmin (core/auth.js): claim de Firebase, rol en la base o correo verificado de ADMIN_EMAILS
+const isAdminRequest = (req, user) => req.user?.admin === true || req.user?.role === 'admin' || user?.role === 'admin' || (req.user?.email_verified === true && isAdminEmail(req.user?.email));
 
 const ownUser = (firebaseUid) => prisma.user.findUnique({
   where: { firebaseUid },
@@ -78,7 +81,7 @@ router.get('/api/billing/me', authenticateToken, async (req, res) => {
       prisma.subscription.findMany({ where: { userId: user.id }, orderBy: { createdAt: 'desc' }, take: 12 })
     ]);
     res.set('Cache-Control', 'private, no-store');
-    res.json({ success: true, ...state, subscriptions: subscriptions.map(safeSubscription), testMode: TEST_MODE });
+    res.json({ success: true, ...state, subscriptions: subscriptions.map(safeSubscription), testMode: TEST_MODE, ...(isAdminRequest(req, user) ? { adminPlans: adminOnlyPlans() } : {}) });
   } catch (error) {
     console.error('Error loading billing state:', error);
     res.status(500).json({ success: false, message: 'No se pudo cargar tu plan' });
@@ -111,6 +114,7 @@ router.post('/api/billing/checkout', authenticateToken, async (req, res) => {
     if (!plan) return res.status(400).json({ success: false, message: 'Selecciona un plan pagado válido' });
     const user = await ownUser(req.user.sub);
     if (!user || !user.email) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    if (plan.adminOnly && !isAdminRequest(req, user)) return res.status(404).json({ success: false, message: 'Selecciona un plan pagado válido' });
     const id = crypto.randomUUID();
     const providerPlanId = String(process.env[planEnvKey(plan.key)] || '').trim() || null;
     const existing = await prisma.$transaction(async (tx) => {

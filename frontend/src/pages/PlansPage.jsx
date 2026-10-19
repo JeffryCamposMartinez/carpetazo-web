@@ -6,13 +6,14 @@ import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 import { useToast } from '../components/ui/ToastProvider';
 import usePageMeta from '../hooks/usePageMeta';
 
-const ICONS = { free: 'style', enthusiast: 'local_fire_department', premium: 'workspace_premium', pro: 'diamond', store: 'storefront' };
+const ICONS = { free: 'style', enthusiast: 'local_fire_department', premium: 'workspace_premium', pro: 'diamond', store: 'storefront', test: 'science' };
 const STYLES = {
   free: 'border-slate-200 bg-white',
   enthusiast: 'border-emerald-300 bg-gradient-to-b from-emerald-50 to-white',
   premium: 'border-amber-300 bg-gradient-to-b from-amber-50 to-white',
   pro: 'border-violet-300 bg-gradient-to-b from-violet-50 to-white',
-  store: 'border-sky-300 bg-gradient-to-b from-sky-50 to-white'
+  store: 'border-sky-300 bg-gradient-to-b from-sky-50 to-white',
+  test: 'border-dashed border-slate-400 bg-white'
 };
 const number = (value) => value === null ? 'Ilimitadas' : Number(value).toLocaleString('es-CL');
 const price = (value) => value === 0 ? 'Gratis' : `$${Number(value).toLocaleString('es-CL')}`;
@@ -24,10 +25,11 @@ function PlanCard({ plan, current, busy, testMode, onChoose }) {
     `${number(plan.uniqueCardsPerFolder)} cartas únicas por carpeta`,
     `${number(plan.copiesPerCard)} copias por carta`,
     plan.foldersPerTcg === null ? 'Varias carpetas del mismo TCG' : `${plan.foldersPerTcg} ${plan.foldersPerTcg === 1 ? 'carpeta' : 'carpetas'} por TCG`,
-    ...(plan.key === 'free' ? [] : [`Insignia pública ${plan.name}`])
+    ...(plan.key === 'free' || plan.adminOnly ? [] : [`Insignia pública ${plan.name}`])
   ];
   return (
     <article className={`relative flex min-h-[30rem] flex-col rounded-3xl border-2 p-6 shadow-[0_16px_38px_-24px_rgba(15,39,80,0.55)] ${STYLES[plan.key]} ${active ? 'ring-4 ring-[#1e40af]/15' : ''}`}>
+      {plan.adminOnly && <span className="absolute left-4 top-4 rounded-full bg-slate-700 px-3 py-1 text-xs font-black text-white">Solo administradores</span>}
       {active && <span className="absolute right-4 top-4 rounded-full bg-[#1e40af] px-3 py-1 text-xs font-black text-white">Plan actual</span>}
       <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#12315f] text-[#facc15]"><span translate="no" className="material-symbols-outlined text-[27px]">{ICONS[plan.key]}</span></span>
       <h2 className="text-2xl font-black text-[#12315f]">{plan.name}</h2>
@@ -148,7 +150,7 @@ export default function PlansPage() {
       {billing?.testMode && <div className="mx-auto mt-5 max-w-4xl rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900"><strong>Modo de prueba local:</strong> cambiar de plan aquí no realiza cobros y permite comprobar inmediatamente todos los límites.</div>}
 
       <section className="mt-9 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-5">
-        {plans.map((item) => <PlanCard key={item.key} plan={item} current={plan?.key || (currentUser ? 'free' : '')} busy={busy === item.key} testMode={Boolean(billing?.testMode)} onChoose={choose} />)}
+        {[...plans, ...(billing?.adminPlans || [])].map((item) => <PlanCard key={item.key} plan={item} current={plan?.key || (currentUser ? 'free' : '')} busy={busy === item.key} testMode={Boolean(billing?.testMode)} onChoose={choose} />)}
       </section>
 
       <section className="mx-auto mt-10 max-w-4xl rounded-3xl bg-[#12315f] p-6 text-white sm:p-8">
