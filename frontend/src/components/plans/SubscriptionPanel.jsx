@@ -5,6 +5,17 @@ import { ButtonSpinner } from '../ui/LoadingState';
 export const formatDate = (value) => value ? new Date(value).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
 const money = (value) => `$${Number(value).toLocaleString('es-CL')}`;
 
+// Plan que el equipo asignó a mano: no se cobra ni se cancela
+export function GrantNote({ billing }) {
+  const endsAt = billing.grant?.endsAt;
+  return (
+    <section id="tu-suscripcion" className="mx-auto mt-5 max-w-4xl scroll-mt-28 rounded-2xl border border-blue-200 bg-white p-5 shadow-sm">
+      <h2 className="text-lg font-black text-[#12315f]">Tu plan {billing.plan.name}</h2>
+      <p className="mt-2 text-sm font-medium leading-6 text-slate-700">Este plan lo asignó el equipo de Carpetazo{endsAt ? ` y vence el ${formatDate(endsAt)}` : ' y no tiene fecha de término'}. No es una suscripción: no se te cobra nada y no hay nada que cancelar. Si quieres uno propio, elige un plan pagado más abajo.</p>
+    </section>
+  );
+}
+
 // "Tu suscripción": estado del cobro, cambio programado y, aparte de todo lo demás, la cancelación (siempre con confirmación).
 export default function SubscriptionPanel({ billing, plans, busy, onCancel, onUndoChange }) {
   const [confirming, setConfirming] = useState(false);

@@ -397,6 +397,47 @@ export const registerSanctions = (app, deps) => {
     }
   });
 
+  // Personas con un usuario o nombre parecido: primero las que lo contienen, luego las de escritura cercana (faltas de ortografía, letras cambiadas)
+  const bigrams = (text) => { const set = new Set(); for (let i = 0; i < text.length - 1; i += 1) set.add(text.slice(i, i + 2)); return set; };
+  const similarity = (a, b) => {
+    if (!a || !b) return 0;
+    const [x, y] = [bigrams(a), bigrams(b)];
+    if (!x.size || !y.size) return a === b ? 1 : 0;
+    let shared = 0;
+    x.forEach((gram) => { if (y.has(gram)) shared += 1; });
+    return (2 * shared) / (x.size + y.size);
+  };
+  app.get('/api/admin/users/search', authenticateToken, requireStaff(1), async (req, res) => {
+    try {
+      const q = typeof req.query.q === 'string' ? req.query.q.trim().toLowerCase().replace(/^@/, '') : '';
+      if (q.length < 2 || q.length > 30 || hasBadControlChars(q)) return res.json({ success: true, users: [] });
+      const select = { username: true, name: true, role: true, createdAt: true };
+      const base = { username: { not: null }, NOT: { role: 'deleted' } };
+      const contains = await prisma.user.findMany({ where: { ...base, OR: [{ username: { contains: q, mode: 'insensitive' } }, { name: { contains: q, mode: 'insensitive' } }] }, select, take: 30 });
+      const found = new Map(contains.map((user) => [user.username, user]));
+      const scored = [];
+      if (found.size < 12) {
+        // Candidatas por trozos de tres letras; el orden final lo da la similitud
+        const grams = [...new Set(Array.from({ length: Math.max(q.length - 2, 1) }, (_unused, i) => q.slice(i, i + 3)))].slice(0, 8);
+        const pool = await prisma.user.findMany({ where: { ...base, OR: grams.flatMap((gram) => [{ username: { contains: gram, mode: 'insensitive' } }, { name: { contains: gram, mode: 'insensitive' } }]) }, select, take: 300 });
+        pool.forEach((user) => {
+          if (found.has(user.username)) return;
+          const score = Math.max(similarity(q, user.username.toLowerCase()), similarity(q, String(user.name || '').toLowerCase()));
+          if (score >= 0.35) scored.push({ user, score });
+        });
+      }
+      const rank = (user) => (user.username === q ? 0 : user.username.startsWith(q) ? 1 : 2);
+      const users = [
+        ...contains.sort((a, b) => rank(a) - rank(b) || a.username.length - b.username.length),
+        ...scored.sort((a, b) => b.score - a.score).map((row) => row.user)
+      ].slice(0, 12).map((user) => ({ username: user.username, name: user.name, role: user.role, ageDays: Math.floor((Date.now() - user.createdAt.getTime()) / DAY) }));
+      res.json({ success: true, users });
+    } catch (error) {
+      console.error('Error searching users:', error);
+      res.status(500).json({ success: false, message: 'Error interno' });
+    }
+  });
+
   app.get('/api/admin/users/:username/moderation', authenticateToken, requireStaff(1), async (req, res) => {
     try {
       const user = await findUserByUsername(req.params.username);

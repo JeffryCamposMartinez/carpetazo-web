@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../services/api';
 import Select from '../ui/Select';
+import ConfirmModal from '../ui/ConfirmModal';
+import { useToast } from '../ui/ToastProvider';
 import { dateOnly } from './shared';
 
 const SOURCE_TEXT = { grant: 'Plan asignado por el equipo', subscription: 'Suscripción pagada', default: 'Plan gratuito por defecto' };
@@ -15,6 +17,8 @@ export default function PlanManager({ username, setError }) {
   const [days, setDays] = useState('');
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState(null);
+  const { showToast } = useToast();
 
   const load = useCallback(() => {
     api.getUserPlan(username).then(setState).catch((err) => setError(err.message || 'No se pudo cargar el plan.'));
@@ -30,8 +34,10 @@ export default function PlanManager({ username, setError }) {
       setReason('');
       setDays('');
       load();
+      showToast(key === 'auto' ? `Plan asignado quitado a @${username}` : `Plan ${plans.find((plan) => plan.key === key)?.name || key} asignado a @${username}`, 'success');
     } catch (err) {
       setError(err.message || 'No se pudo cambiar el plan.');
+      showToast(err.message || 'No se pudo cambiar el plan', 'error');
     } finally {
       setBusy(false);
     }
@@ -63,9 +69,21 @@ export default function PlanManager({ username, setError }) {
         <textarea rows={2} maxLength={300} value={reason} onChange={(event) => setReason(event.target.value)} className={`${field} resize-none py-2`} />
       </label>
       <div className="grid gap-2 sm:grid-cols-2">
-        <button type="button" disabled={!ready} onClick={() => submit(planKey)} className="h-12 rounded-full bg-[#12315f] px-5 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 active:scale-[0.97] hover:bg-[#1e40af] disabled:opacity-50">{busy ? 'Guardando…' : 'Asignar plan'}</button>
-        <button type="button" disabled={!ready || !grant} onClick={() => submit('auto')} className="h-12 rounded-full border-2 border-slate-300 px-5 text-sm font-extrabold text-slate-700 transition-[background-color,transform] duration-150 active:scale-[0.97] hover:bg-slate-50 disabled:opacity-50">Quitar plan asignado</button>
+        <button type="button" disabled={!ready} onClick={() => setPending(planKey)} className="h-12 rounded-full bg-[#12315f] px-5 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 active:scale-[0.97] hover:bg-[#1e40af] disabled:opacity-50">{busy ? 'Guardando…' : 'Asignar plan'}</button>
+        <button type="button" disabled={!ready || !grant} onClick={() => setPending('auto')} className="h-12 rounded-full border-2 border-slate-300 px-5 text-sm font-extrabold text-slate-700 transition-[background-color,transform] duration-150 active:scale-[0.97] hover:bg-slate-50 disabled:opacity-50">Quitar plan asignado</button>
       </div>
+      <ConfirmModal
+        isOpen={Boolean(pending)}
+        title={pending === 'auto' ? 'Quitar el plan asignado' : 'Asignar plan'}
+        message={pending === 'auto'
+          ? `@${username} vuelve a su plan automático (${state.subscription ? 'su suscripción' : 'Free'}). No se borra nada de lo que ya tiene. Quedará en la auditoría.`
+          : `@${username} pasará a ${plans.find((plan) => plan.key === pending)?.name || pending} ${days ? `por ${days} días` : 'sin fecha de término'}, sin cobro. Quedará en la auditoría.`}
+        confirmText={pending === 'auto' ? 'Quitar plan' : 'Asignar plan'}
+        cancelText="Volver"
+        isDestructive={pending === 'auto'}
+        onCancel={() => setPending(null)}
+        onConfirm={() => { const key = pending; setPending(null); submit(key); }}
+      />
     </section>
   );
 }

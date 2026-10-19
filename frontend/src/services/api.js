@@ -181,6 +181,7 @@ export const api = {
   requestCaseResponse: (id) => apiFetch('/admin/cases/' + encodeURIComponent(id) + '/request-response', { method: 'POST', body: JSON.stringify({}) }),
   resolveCase: (id, payload) => apiFetch('/admin/cases/' + encodeURIComponent(id) + '/resolve', { method: 'POST', body: JSON.stringify(payload) }),
   getAdminSanctions: (status) => apiFetch('/admin/sanctions?status=' + (status || 'active')),
+  searchUsersModeration: (q) => apiFetch('/admin/users/search?q=' + encodeURIComponent(q)),
   getUserModeration: (username) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/moderation'),
   applySanction: (username, payload) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/sanctions', { method: 'POST', body: JSON.stringify(payload) }),
   approveSanction: (id) => apiFetch('/admin/sanctions/' + encodeURIComponent(id) + '/approve', { method: 'POST', body: JSON.stringify({}) }),

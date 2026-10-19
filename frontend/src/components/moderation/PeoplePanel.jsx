@@ -5,6 +5,8 @@ import { EmptyState, ErrorBox, Pills, QUICK_REASONS, ROW, SANCTION_TYPES, Spinne
 import TermsEvidence from './TermsEvidence';
 import PlanManager from './PlanManager';
 import Select from '../ui/Select';
+import ConfirmModal from '../ui/ConfirmModal';
+import { useToast } from '../ui/ToastProvider';
 
 const STATUS = {
   active: { label: 'Vigente', bar: 'bg-red-600', text: 'text-red-700' },
@@ -17,17 +19,18 @@ const ROLE_LABELS = { user: 'Sin rol de equipo', support: 'Soporte', moderator: 
 
 function SanctionRow({ sanction, level, onChanged, setError, showUser }) {
   const [busy, setBusy] = useState(false);
+  const { showToast } = useToast();
   const status = STATUS[sanction.status] || STATUS.expired;
   const revoke = async () => {
     const note = window.prompt('Motivo para levantar la medida (mínimo 5 caracteres):');
     if (!note || note.trim().length < 5) return;
     setBusy(true);
-    try { await api.revokeSanction(sanction.id, note.trim()); onChanged(); } catch (err) { setError(err.message); } finally { setBusy(false); }
+    try { await api.revokeSanction(sanction.id, note.trim()); onChanged(); showToast(sanction.status === 'pending_approval' ? 'Medida rechazada' : 'Medida levantada', 'success'); } catch (err) { setError(err.message); } finally { setBusy(false); }
   };
   const approve = async () => {
     if (!window.confirm('¿Aprobar el cierre de esta cuenta? Es una medida grave: la persona queda sin poder escribir.')) return;
     setBusy(true);
-    try { await api.approveSanction(sanction.id); onChanged(); } catch (err) { setError(err.message); } finally { setBusy(false); }
+    try { await api.approveSanction(sanction.id); onChanged(); showToast('Cierre de cuenta aprobado', 'success'); } catch (err) { setError(err.message); } finally { setBusy(false); }
   };
   const until = sanction.expiresAt ? `hasta el ${dateOnly(sanction.expiresAt)}` : sanction.type === 'warning' ? '' : 'sin fecha de término';
   return (
@@ -60,26 +63,31 @@ function SanctionForm({ username, level, reportId, onDone, onCancel, setError })
   const [reason, setReason] = useState(QUICK_REASONS.warning);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const { showToast } = useToast();
   const needsDays = type !== 'warning' && type !== 'ban';
+  const typeLabel = (SANCTION_TYPES.find(([key]) => key === type)?.[1] || 'Medida').replace(/ \(.*\)$/, '');
   const types = SANCTION_TYPES.filter(([key]) => key !== 'ban' || level >= 3);
   const field = 'mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 text-base sm:text-[15px] font-normal text-slate-800 outline-none focus:border-[#1e40af]';
 
-  const submit = async (event) => {
-    event.preventDefault();
+  const submit = async () => {
     setBusy(true);
     setError('');
     try {
       await api.applySanction(username, { type, reason: reason.trim(), note: note.trim() || undefined, durationDays: needsDays && days ? Number(days) : undefined, reportId });
       onDone();
+      showToast(type === 'ban' ? `Cierre de @${username} pedido: falta la aprobación de otro administrador` : `${typeLabel} aplicada a @${username}`, 'success');
     } catch (err) {
       setError(err.message || 'No se pudo aplicar la medida.');
+      showToast(err.message || 'No se pudo aplicar la medida', 'error');
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <form onSubmit={submit} className="space-y-3 rounded-2xl bg-white p-4 ring-1 ring-slate-900/10">
+    <>
+    <form onSubmit={(event) => { event.preventDefault(); setConfirming(true); }} className="space-y-3 rounded-2xl bg-white p-4 ring-1 ring-slate-900/10">
       <h3 className="text-base font-extrabold text-[#12315f]">Aplicar una medida a @{username}</h3>
       <label className="block text-sm font-bold text-slate-700">Tipo de medida
         <Select value={type} onChange={(event) => { setType(event.target.value); setReason(QUICK_REASONS[event.target.value]); }} className={`${field} h-12`}>
@@ -103,6 +111,16 @@ function SanctionForm({ username, level, reportId, onDone, onCancel, setError })
         <button type="submit" disabled={busy || reason.trim().length < 5 || (needsDays && level < 3 && !days)} className="h-12 rounded-full bg-[#12315f] px-5 text-sm font-extrabold text-white disabled:opacity-50">{busy ? 'Aplicando…' : 'Aplicar medida'}</button>
       </div>
     </form>
+    <ConfirmModal
+      isOpen={confirming}
+      title={type === 'ban' ? 'Pedir el cierre de la cuenta' : `Aplicar: ${typeLabel}`}
+      message={`Vas a aplicar «${typeLabel}» a @${username}${needsDays && days ? ` por ${days} días` : ''}. La persona verá el motivo y quedará en la auditoría.${type === 'ban' ? ' El cierre queda pendiente hasta que otro administrador lo apruebe.' : ''}`}
+      confirmText="Aplicar medida"
+      cancelText="Volver"
+      onCancel={() => setConfirming(false)}
+      onConfirm={() => { setConfirming(false); submit(); }}
+    />
+    </>
   );
 }
 
@@ -123,6 +141,10 @@ export default function PeoplePanel({ level, focusUsername, focusReportId, onFoc
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [roleBusy, setRoleBusy] = useState(false);
+  const [matches, setMatches] = useState([]);
+  const [rolePending, setRolePending] = useState(null);
+  const { showToast } = useToast();
+  const [searching, setSearching] = useState(false);
 
   const loadList = useCallback(() => {
     api.getAdminSanctions(listStatus).then((res) => setList(res.sanctions)).catch((err) => { setList([]); setError(err.message || 'No se pudo cargar la lista.'); });
@@ -140,12 +162,44 @@ export default function PeoplePanel({ level, focusUsername, focusReportId, onFoc
     if (focusUsername) { setSearch(focusUsername); loadProfile(focusUsername); onFocusUsed?.(); }
   }, [focusUsername, loadProfile, onFocusUsed]);
 
+  const cleanQuery = search.trim().toLowerCase().replace(/^@/, '');
+
+  // Mientras se escribe se sugieren personas con un nombre parecido (con una pequeña espera para no consultar en cada letra)
+  useEffect(() => {
+    if (cleanQuery.length < 2 || cleanQuery === username) { setMatches([]); return undefined; }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setSearching(true);
+      api.searchUsersModeration(cleanQuery).then((res) => { if (!cancelled) setMatches(res.users || []); }).catch(() => { if (!cancelled) setMatches([]); }).finally(() => { if (!cancelled) setSearching(false); });
+    }, 300);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [cleanQuery, username]);
+
+  const pickMatch = (name) => { setSearch(name); setMatches([]); setShowForm(false); loadProfile(name); };
+
+  const submitSearch = async (event) => {
+    event.preventDefault();
+    setShowForm(false);
+    if (!cleanQuery) return;
+    setError('');
+    try {
+      const { users = [] } = await api.searchUsersModeration(cleanQuery);
+      if (users.some((user) => user.username === cleanQuery)) return pickMatch(cleanQuery);
+      setProfile(null);
+      setUsername('');
+      setMatches(users);
+      if (!users.length) setError('No encontramos a nadie con un nombre parecido.');
+    } catch (err) {
+      setError(err.message || 'No se pudo buscar.');
+    }
+  };
+
   const refresh = () => { loadList(); if (username) loadProfile(username); };
 
   const changeRole = async (role) => {
     setRoleBusy(true);
     setError('');
-    try { await api.setStaffRole(username, role); loadProfile(username); } catch (err) { setError(err.message || 'No se pudo cambiar el rol.'); } finally { setRoleBusy(false); }
+    try { await api.setStaffRole(username, role); loadProfile(username); showToast(`@${username}: ${ROLE_LABELS[role] || role}`, 'success'); } catch (err) { setError(err.message || 'No se pudo cambiar el rol.'); } finally { setRoleBusy(false); }
   };
 
   const counts = (group) => Object.entries(group || {}).map(([key, value]) => `${value} ${COUNT_LABELS[key] || key}`).join(', ') || 'ninguno';
@@ -155,14 +209,30 @@ export default function PeoplePanel({ level, focusUsername, focusReportId, onFoc
     <div className="space-y-6 xl:grid xl:grid-cols-2 xl:items-start xl:gap-6 xl:space-y-0">
       <section aria-label="Ficha de una persona">
         <h2 className="mb-2 px-1 text-base font-extrabold text-[#12315f]">Buscar a una persona</h2>
-        <form className="mb-3 flex gap-2" onSubmit={(event) => { event.preventDefault(); setShowForm(false); loadProfile(search.trim().toLowerCase().replace(/^@/, '')); }}>
+        <form className="mb-3 flex gap-2" onSubmit={submitSearch}>
           <div className="relative min-w-0 flex-1">
             <span translate="no" aria-hidden="true" className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">person_search</span>
-            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Usuario, sin la @" aria-label="Usuario" maxLength={20} className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-base sm:text-[15px] text-slate-800 outline-none focus:border-[#1e40af]" />
+            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Usuario o nombre, sin la @" aria-label="Usuario o nombre" maxLength={30} className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-base sm:text-[15px] text-slate-800 outline-none focus:border-[#1e40af]" />
           </div>
           <button type="submit" className="h-12 shrink-0 rounded-xl bg-[#1e40af] px-5 text-sm font-bold text-white">Buscar</button>
         </form>
         <ErrorBox>{error}</ErrorBox>
+        {(matches.length > 0 || searching) && (
+          <div className="mb-3 overflow-hidden rounded-2xl bg-white ring-1 ring-slate-900/5" role="listbox" aria-label="Personas con un nombre parecido">
+            <p className="px-4 pt-3 text-xs font-bold text-slate-500">{searching && !matches.length ? 'Buscando…' : 'Personas con un nombre parecido'}</p>
+            <ul className="divide-y divide-slate-100">
+              {matches.map((user) => (
+                <li key={user.username}>
+                  <button type="button" role="option" aria-selected="false" onClick={() => pickMatch(user.username)} className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-blue-50 focus-visible:bg-blue-50 focus-visible:outline-none">
+                    <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#12315f] text-sm font-extrabold text-[#facc15]">{(user.name || user.username).charAt(0).toUpperCase()}</span>
+                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-extrabold text-[#12315f]">{user.name || user.username}</span><span className="block truncate text-xs text-slate-500">@{user.username} · hace {user.ageDays} {user.ageDays === 1 ? 'día' : 'días'}</span></span>
+                    {['admin', 'moderator', 'support'].includes(user.role) && <span className="shrink-0 rounded-full bg-[#facc15] px-2 py-0.5 text-[11px] font-extrabold text-[#12315f]">Equipo</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {username && !profile && <Spinner />}
         {!username && !profile && !error && <p className="rounded-2xl bg-white/60 px-5 py-8 text-center text-sm text-slate-600">Busca por usuario para ver su historial de reportes, sus medidas y aplicar una nueva.</p>}
 
@@ -192,7 +262,7 @@ export default function PeoplePanel({ level, focusUsername, focusReportId, onFoc
                   <legend className="mb-1.5 text-sm font-bold text-slate-500">Rol en el equipo</legend>
                   <div className="grid grid-cols-3 gap-1.5">
                     {[['user', 'Ninguno'], ['support', 'Soporte'], ['moderator', 'Moderador']].map(([key, label]) => (
-                      <button key={key} type="button" disabled={roleBusy || profile.user.role === key} aria-pressed={profile.user.role === key} onClick={() => changeRole(key)} className={`h-10 rounded-full text-sm font-bold ${profile.user.role === key ? 'bg-[#12315f] text-white' : 'bg-white text-[#12315f] ring-1 ring-slate-300'} disabled:opacity-100`}>{label}</button>
+                      <button key={key} type="button" disabled={roleBusy || profile.user.role === key} aria-pressed={profile.user.role === key} onClick={() => setRolePending(key)} className={`h-10 rounded-full text-sm font-bold ${profile.user.role === key ? 'bg-[#12315f] text-white' : 'bg-white text-[#12315f] ring-1 ring-slate-300'} disabled:opacity-100`}>{label}</button>
                     ))}
                   </div>
                 </fieldset>
@@ -226,6 +296,17 @@ export default function PeoplePanel({ level, focusUsername, focusReportId, onFoc
       </section>
 
       {level >= 3 && <TermsEvidence key={username} initialUsername={username} />}
+
+      <ConfirmModal
+        isOpen={Boolean(rolePending)}
+        title="Cambiar el rol en el equipo"
+        message={`@${username} pasará de «${ROLE_LABELS[profile?.user.role] || 'Sin rol de equipo'}» a «${ROLE_LABELS[rolePending] || rolePending}». Cambia lo que puede ver y hacer en Moderación, y queda en la auditoría.`}
+        confirmText="Cambiar rol"
+        cancelText="Volver"
+        isDestructive={rolePending === 'admin'}
+        onCancel={() => setRolePending(null)}
+        onConfirm={() => { const role = rolePending; setRolePending(null); changeRole(role); }}
+      />
     </div>
   );
 }

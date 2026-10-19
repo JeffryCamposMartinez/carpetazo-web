@@ -336,6 +336,26 @@ const LEAK = /node_modules|\/backend\/|C:\\|\bat (async )?[\w.<>$]+ \((file:\/\/
     }
     r = await call('GET', '/billing/me', 'admin');
     ok('/billing/me muestra el plan de prueba ($950) a un administrador', r.status === 200 && r.j?.adminPlans?.[0]?.key === 'test' && r.j.adminPlans[0].priceClp === 950, JSON.stringify(r.j?.adminPlans));
+
+    // ===== 14. Búsqueda de personas por parecido (moderación) =====
+    console.log('\n-- 14. búsqueda de personas');
+    r = await call('GET', '/admin/users/search?q=cztest', 'jerry');
+    ok('una persona sin rol de equipo no busca personas → 403', r.status === 403, 'status ' + r.status);
+    r = await raw('GET', '/admin/users/search?q=cztest', {});
+    ok('sin sesión no busca personas → 401', r.status === 401, 'status ' + r.status);
+    r = await call('GET', '/admin/users/search?q=' + NAMES.seller, 'admin');
+    ok('el usuario exacto aparece primero', r.status === 200 && r.j.users?.[0]?.username === NAMES.seller, JSON.stringify(r.j.users?.slice(0, 3)));
+    r = await call('GET', '/admin/users/search?q=' + NAMES.seller.slice(0, -1) + 'x', 'admin');
+    ok('con una letra mal escrita igual aparece (por parecido)', r.status === 200 && r.j.users?.some((u) => u.username === NAMES.seller), JSON.stringify(r.j.users?.map((u) => u.username)));
+    r = await call('GET', '/admin/users/search?q=%40' + NAMES.seller.slice(0, 8).toUpperCase(), 'admin');
+    ok('acepta @ y mayúsculas, y devuelve varias personas parecidas', r.status === 200 && r.j.users?.length > 1, String(r.j.users?.length));
+    ok('la lista solo trae usuario, nombre, rol y antigüedad (sin correo ni datos privados)', r.j.users?.every((u) => Object.keys(u).sort().join() === 'ageDays,name,role,username'), JSON.stringify(r.j.users?.[0]));
+    for (const q of ['a', 'x'.repeat(31), '%00', '%', '_', "'%20OR%201=1--"]) {
+      r = await call('GET', '/admin/users/search?q=' + q, 'admin');
+      ok('búsqueda hostil (' + q.slice(0, 12) + ') no da 5xx', r.status < 500, 'status ' + r.status);
+    }
+    r = await call('GET', '/admin/users/search?q=%25', 'admin');
+    ok('el comodín % no lista a todo el mundo', r.status === 200 && (r.j.users || []).every((u) => /%/.test(u.username + (u.name || ''))), String(r.j.users?.length));
   } finally {
     await prisma.$disconnect();
   }

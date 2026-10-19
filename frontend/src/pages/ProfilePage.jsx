@@ -6,6 +6,7 @@ import { api } from '../services/api';
 import { chileData } from '../config/chileData';
 import PasswordCard from '../components/auth/PasswordCard';
 import MyModeration from '../components/moderation/MyModeration';
+import AccountSubscription from '../components/plans/AccountSubscription';
 import { PALETTES } from '../config/profileThemes';
 import { useToast } from '../components/ui/ToastProvider';
 import ThemedSelect from '../components/ui/ThemedSelect';
@@ -67,6 +68,7 @@ const tabs = [
   { id: 'addresses', label: 'Ubicación', icon: 'location_on', description: 'Tu región y comuna: se muestran en tu perfil público para que te encuentren.' },
   { id: 'payments', label: 'Pagos', icon: 'account_balance', description: 'Datos bancarios para recibir ventas.' },
   { id: 'social', label: 'Redes', icon: 'share', description: 'Enlaces visibles en tu perfil público.' },
+  { id: 'plan', label: 'Plan', icon: 'workspace_premium', description: 'Tu plan, tu suscripción y cómo cancelarla.' },
   { id: 'security', label: 'Cuenta', icon: 'shield', description: 'Estado de sesión y acciones sensibles.' },
   { id: 'moderation', label: 'Moderación', icon: 'gavel', description: 'Medidas, apelaciones, tus reportes y personas bloqueadas.' }
 ];
@@ -545,6 +547,7 @@ const ProfilePage = () => {
               )}
 
               {activeTab === 'moderation' && <MyModeration />}
+              {activeTab === 'plan' && <AccountSubscription />}
 
               {activeTab === 'security' && (
                 <section className="space-y-6">

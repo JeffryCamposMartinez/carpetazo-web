@@ -6,7 +6,7 @@ import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 import { useToast } from '../components/ui/ToastProvider';
 import usePageMeta from '../hooks/usePageMeta';
 import ConfirmModal from '../components/ui/ConfirmModal';
-import SubscriptionPanel, { formatDate } from '../components/plans/SubscriptionPanel';
+import SubscriptionPanel, { GrantNote, formatDate } from '../components/plans/SubscriptionPanel';
 
 const ICONS = { free: 'style', enthusiast: 'local_fire_department', premium: 'workspace_premium', pro: 'diamond', store: 'storefront', test: 'science' };
 const STYLES = {
@@ -151,7 +151,9 @@ export default function PlansPage() {
         const next = await api.setLocalTestPlan(plan.key);
         setBilling(previous => ({ ...previous, ...next }));
         showToast(`Plan ${plan.name} activado para pruebas locales`, 'success');
-      } else if (plan.key !== 'free') {
+      } else if (plan.key === 'free') {
+        showToast(billing?.source === 'grant' ? 'Tu plan lo asignó el equipo de Carpetazo: no es una suscripción y no hay nada que cancelar.' : 'Ya estás en el plan Free: no tienes una suscripción que cancelar.', 'info');
+      } else {
         const response = await api.createSubscriptionCheckout(plan.key);
         window.location.assign(response.checkoutUrl);
       }
@@ -191,6 +193,7 @@ export default function PlansPage() {
         </section>
       )}
 
+      {billing?.source === 'grant' && <GrantNote billing={billing} />}
       {sub && <SubscriptionPanel billing={billing} plans={plans} busy={busy === 'cancel'} onCancel={cancelSubscription} onUndoChange={() => applyChange(plans.find((item) => item.key === sub.planKey))} />}
 
       {billing?.testMode && <div className="mx-auto mt-5 max-w-4xl rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900"><strong>Modo de prueba local:</strong> cambiar de plan aquí no realiza cobros y permite comprobar inmediatamente todos los límites.</div>}
