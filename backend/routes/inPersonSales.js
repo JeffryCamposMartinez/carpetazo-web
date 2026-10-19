@@ -69,12 +69,15 @@ router.post('/api/folders/:id/in-person-sales', authenticateToken, async (req, r
     const lines = [];
     const seen = new Set();
     for (const item of items) {
-      const quantity = Number(item?.quantity);
+      // Solo números y textos reales: un arreglo u objeto no se convierte (Number([1]) sería 1)
+      const quantity = item?.quantity;
       const hasPrice = item?.unitPrice !== undefined && item?.unitPrice !== null && item?.unitPrice !== '';
-      const unitPrice = hasPrice ? Number(item.unitPrice) : null;
-      if (!isUuid(String(item?.cardId || '')) || seen.has(item.cardId)) return badRequest(res, 'Carta inválida');
+      const unitPrice = hasPrice ? item.unitPrice : null;
+      if (typeof item?.cardId !== 'string' || !isUuid(item.cardId) || seen.has(item.cardId)) return badRequest(res, 'Carta inválida');
+      if (typeof quantity !== 'number') return badRequest(res, 'Cantidad inválida');
+      if (hasPrice && typeof unitPrice !== 'number') return badRequest(res, 'Precio inválido');
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY) return badRequest(res, 'Cantidad inválida');
-      if (hasPrice && (!Number.isFinite(unitPrice) || unitPrice < 0 || unitPrice > MAX_PRICE)) return badRequest(res, 'Precio inválido');
+      if (hasPrice && (!Number.isInteger(unitPrice) || unitPrice < 0 || unitPrice > MAX_PRICE)) return badRequest(res, 'Precio inválido');
       seen.add(item.cardId);
       lines.push({ cardId: item.cardId, quantity, unitPrice });
     }

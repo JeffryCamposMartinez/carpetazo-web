@@ -42,7 +42,7 @@ function ManageSheet({ person, onClose, onChoose }) {
   const isStaff = person.rank > 0;
   const restricted = Boolean(person.restriction);
   const options = [
-    { action: 'role', label: isStaff ? 'Cambiar rol' : 'Dar un rol de equipo', help: isStaff ? 'Subirla o bajarla de nivel, o quitarle el rol.' : 'Hacerla administradora, co-administradora, o moderadora.' },
+    { action: 'role', label: isStaff ? 'Cambiar rol' : 'Dar un rol de equipo', help: isStaff ? 'Subirla o bajarla de nivel, o quitarle el rol.' : 'Hacerla administradora, co-administradora o moderadora.' },
     ...(isStaff && !restricted ? [{ action: 'suspend', label: 'Suspender cuenta', help: 'Pierde el acceso al equipo y a escribir, por un tiempo.' }, { action: 'close', label: 'Cerrar cuenta', help: 'La medida más grave. Queda sin rol de equipo.', danger: true }] : []),
     ...(restricted ? [{ action: 'restore', label: 'Restaurar cuenta', help: 'Levanta la suspensión o el cierre.' }] : [])
   ];

@@ -32,7 +32,7 @@ export default function InPersonSale({ folderId, cards, setCards, showToast }) {
   const lines = available.filter((card) => picked[card.id]?.quantity > 0);
   const units = lines.reduce((sum, card) => sum + picked[card.id].quantity, 0);
   const total = lines.reduce((sum, card) => sum + picked[card.id].quantity * unitPrice(card), 0);
-  const invalid = lines.some((card) => !Number.isFinite(unitPrice(card)) || unitPrice(card) < 0);
+  const invalid = lines.some((card) => !Number.isInteger(unitPrice(card)) || unitPrice(card) < 0);
   const shown = useMemo(() => {
     const text = query.trim().toLowerCase();
     return available.filter((card) => (!onlyPicked || picked[card.id]?.quantity > 0) && (!text || `${card.name} ${card.pseudoName || ''}`.toLowerCase().includes(text)));
