@@ -236,7 +236,7 @@ router.post('/api/billing/mercadopago/webhook', async (req, res) => {
     return res.json({ success: true });
   } catch (error) {
     await prisma.billingEvent.update({ where: { id: event.id }, data: { status: 'failed', attempts: { increment: 1 }, error: String(error.code || error.message || 'error').slice(0, 300) } }).catch(() => {});
-    console.error('Error processing Mercado Pago webhook:', error.code || error.message);
+    console.error('Error processing Mercado Pago webhook:', error.code || error.message, error.providerStatus || '');
     return res.status(500).json({ success: false });
   }
 });
