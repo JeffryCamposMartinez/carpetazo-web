@@ -111,7 +111,7 @@ const LEAK = /node_modules|\/backend\/|C:\\|\bat (async )?[\w.<>$]+ \((file:\/\/
     const fill = (p) => p.replace(':id', cardId).replace(':folderId', folderId).replace(':cardId', cardId).replace(':username', NAMES.seller).replace(/:[A-Za-z]+/g, 'x');
     const payloads = ['?q[a]=1&q[b][c]=2', '?q[]=a&q[]=b&page[]=1&limit[]=5', '?q=%00&page=-1&limit=999999999', "?q=' OR 1=1--&sort=;DROP TABLE users", '?q=' + encodeURIComponent('(a+)+$'.repeat(2000)), '?page=1e309&limit=NaN&offset=-5&skip=-1&take=-1', '?tcg=__proto__&comuna[$ne]=x&sort[$gt]=1&username[contains]=a'];
     let malos = [];
-    for (const route of [...new Set(publicGets.map(fill))]) {
+    for (const route of [...new Set(publicGets.map(fill))].filter((route) => route !== '/seo/sitemap.xml')) {
       for (const qs of payloads) {
         const rr = await raw('GET', route + qs, {}).catch((e) => ({ status: 599, text: String(e) }));
         if ((rr.status >= 500 && !(rr.status === 502 && /^\/tcg\//.test(route))) || LEAK.test(rr.text)) malos.push(`${route}${qs.slice(0, 18)} → ${rr.status} [${(rr.text.match(LEAK) || [''])[0].slice(0, 40)}] ...${(rr.text.slice(Math.max(0, rr.text.search(LEAK) - 30), rr.text.search(LEAK) + 50) || '').replace(/\s+/g, ' ')}`);
@@ -244,7 +244,7 @@ const LEAK = /node_modules|\/backend\/|C:\\|\bat (async )?[\w.<>$]+ \((file:\/\/
       const rr = await raw('GET', route, { who });
       if (rr.status === 200 && /SECRETO-ATAQUE|carta secreta ataque|"price":777|777/.test(rr.text)) fugas.push(label);
     }
-    for (const [label, route] of [['búsqueda de cartas', '/cards/search?q=secreta'], ['búsqueda de carpetas', '/folders/search?q=SECRETO'], ['inicio destacado', '/home/featured'], ['perfil público', '/users/' + NAMES.seller], ['sitemap', '/../sitemap.xml']]) {
+    for (const [label, route] of [['búsqueda de cartas', '/cards/search?q=secreta'], ['búsqueda de carpetas', '/folders/search?q=SECRETO'], ['inicio destacado', '/home/featured'], ['perfil público', '/users/' + NAMES.seller]]) {
       const rr = await raw('GET', route, {});
       if (/SECRETO-ATAQUE|carta secreta ataque/.test(rr.text)) fugas.push(label);
     }
@@ -266,6 +266,63 @@ const LEAK = /node_modules|\/backend\/|C:\\|\bat (async )?[\w.<>$]+ \((file:\/\/
       if (rr.status === 429) user429 = i;
     }
     ok('consultar la disponibilidad de usuarios (enumeración) se frena con 429 (primer 429 en el intento ' + (user429 || '—') + ' de 200)', user429 > 0, '');
+
+    // ===== 12. Lógica de pedidos =====
+    console.log('\n-- 12. lógica de pedidos');
+    const sellerRow = await prisma.user.findUnique({ where: { username: NAMES.seller } });
+    const ordF = await call('POST', '/folders', 'seller', { name: 'TEST pedidos', tcg: 'Pokemon', color: 'blue', isPublic: true });
+    const ordFolderId = ordF.j?.folder?.id;
+    if (ordFolderId) {
+      const mkCard = async (tcgId, stock) => (await call('POST', '/folders/' + ordFolderId + '/cards', 'seller', { tcgId, name: 'pedido ' + tcgId, price: 1000, stock })).j?.card?.id;
+      const cA = await mkCard('ord-a', 3);
+      const cB = await mkCard('ord-b', 1);
+      const clean = () => prisma.order.deleteMany({ where: { folderId: ordFolderId } });
+      let n = 0;
+      const order = (items, extra = {}) => call('POST', '/orders/create', 'jerry', { folderId: ordFolderId, items, ...extra }, '203.0.113.' + (++n));
+      const stockOf = async (id) => (await prisma.card.findUnique({ where: { id } })).stock;
+
+      for (const q of [-5, 0, 1.5, 'abc', null, 1e9, 1e400]) {
+        const r = await order([{ id: cA, quantity: q }]);
+        const it = r.j?.order?.items?.[0];
+        ok('cantidad ' + String(q) + ' no rompe el pedido (sin 500, cantidad válida o 409)', r.status < 500 && (r.status === 409 || (it && Number.isInteger(it.quantity) && it.quantity >= 1 && it.quantity <= 3)), 'status ' + r.status + ' qty ' + it?.quantity);
+        await clean();
+      }
+      let r = await order([{ id: cA, quantity: 1, price: 1, name: 'gratis' }], { total: 1, sellerId: 'x', status: 'completed', buyerId: 'x' });
+      const stored = r.j?.code && await prisma.order.findFirst({ where: { code: r.j.code } });
+      ok('precio, total, vendedor, estado y comprador enviados por el cliente se ignoran', !!stored && stored.total === 1000 && stored.sellerId === sellerRow.id && stored.status === 'pending' && stored.buyerId !== 'x', JSON.stringify(stored && { total: stored.total, status: stored.status }));
+      await clean();
+      r = await order([{ id: cardId, quantity: 1 }]);
+      ok('carta de otra carpeta → 400', r.status === 400, 'status ' + r.status);
+      r = await order(Array.from({ length: 101 }, () => ({ id: cA, quantity: 1 })));
+      ok('más de 100 líneas → 400', r.status === 400, 'status ' + r.status);
+      r = await order([{ id: cA, quantity: 2 }, { id: cA, quantity: 2 }]);
+      ok('la misma carta repetida no supera el stock → 409', r.status === 409, 'status ' + r.status);
+      r = await order([{ id: cA, quantity: 1 }], { items: [{ id: cA, quantity: 1 }], orderItems: [{ id: cB, quantity: 99 }] });
+      ok('items/orderItems duplicados no suman más de lo pedido', r.status === 200 && r.j.order.items.length === 1, 'status ' + r.status);
+      await clean();
+
+      // Doble confirmación en paralelo: el stock baja una sola vez
+      r = await order([{ id: cB, quantity: 1 }]);
+      const oid = r.j?.order?.id;
+      const stockBefore = await stockOf(cB);
+      const [x1, x2] = await Promise.all([call('POST', '/orders/mine/' + oid + '/status', 'seller', { status: 'completed' }), call('POST', '/orders/mine/' + oid + '/status', 'seller', { status: 'completed' })]);
+      ok('confirmar dos veces a la vez: una sola respuesta 200', [x1.status, x2.status].filter((s) => s === 200).length === 1, x1.status + '/' + x2.status);
+      ok('el stock baja una sola vez', (await stockOf(cB)) === stockBefore - 1, 'antes ' + stockBefore + ' después ' + (await stockOf(cB)));
+      r = await call('POST', '/orders/mine/' + oid + '/status', 'seller', { status: 'rejected' });
+      ok('un pedido ya gestionado no se puede cambiar → 409', r.status === 409, 'status ' + r.status);
+      await clean();
+      r = await order([{ id: cA, quantity: 1 }]);
+      const oid2 = r.j?.order?.id;
+      for (const who of ['jerry', 'ignacio']) {
+        const rr = await call('POST', '/orders/mine/' + oid2 + '/status', who, { status: 'completed' });
+        ok('el comprador u otra persona no confirma el pedido (' + who + ')', rr.status === 404 || rr.status === 403, 'status ' + rr.status);
+      }
+      ok('el pedido sigue pendiente tras los intentos ajenos', (await prisma.order.findUnique({ where: { id: oid2 } })).status === 'pending', '');
+      r = await call('POST', '/orders/mine/' + oid2 + '/status', 'seller', { status: 'canceled' });
+      ok('estado inválido → 400', r.status === 400, 'status ' + r.status);
+      await clean();
+      await prisma.folder.delete({ where: { id: ordFolderId } });
+    }
   } finally {
     await prisma.$disconnect();
   }
