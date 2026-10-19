@@ -116,6 +116,22 @@ router.post('/api/billing/checkout', authenticateToken, async (req, res) => {
     const user = await ownUser(req.user.sub);
     if (!user || !user.email) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     if (plan.adminOnly && !isAdminRequest(req, user)) return res.status(404).json({ success: false, message: 'Selecciona un plan pagado válido' });
+    // Un checkout abandonado (Mercado Pago sigue en "pending", sin tarjeta autorizada) no debe bloquear para siempre: se descarta y se crea otro.
+    // Si Mercado Pago ya la autorizó, se sincroniza y sigue contando como suscripción existente.
+    const stale = await prisma.subscription.findFirst({ where: { userId: user.id, status: 'pending', providerSubscriptionId: { not: null } }, orderBy: { createdAt: 'desc' }, select: { id: true, providerSubscriptionId: true } });
+    if (stale) {
+      try {
+        const remote = await mpFetch(`/preapproval/${encodeURIComponent(stale.providerSubscriptionId)}`);
+        if (remote.status === 'pending') {
+          await mpFetch(`/preapproval/${encodeURIComponent(stale.providerSubscriptionId)}`, { method: 'PUT', body: JSON.stringify({ status: 'cancelled' }) }).catch(() => {});
+          await prisma.subscription.updateMany({ where: { id: stale.id, status: 'pending' }, data: { status: 'failed' } });
+        } else {
+          await syncPreapproval(stale.providerSubscriptionId);
+        }
+      } catch (error) {
+        console.error('Error revisando la suscripción pendiente:', error.code || error.message, error.providerStatus || '');
+      }
+    }
     const id = crypto.randomUUID();
     const providerPlanId = String(process.env[planEnvKey(plan.key)] || '').trim() || null;
     const existing = await prisma.$transaction(async (tx) => {
