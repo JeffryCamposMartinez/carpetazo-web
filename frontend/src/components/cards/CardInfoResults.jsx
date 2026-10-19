@@ -46,12 +46,26 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
 
   const goToPage = (next) => { setPage(next); document.getElementById('cartas-informativas')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); };
 
+  // wished[id]: id del ítem en la lista (ya agregada), 'pending' mientras se guarda, o vacío. Tocar el corazón otra vez la quita.
   const wish = async (card) => {
     if (!currentUser) { navigate('/bienvenida'); return; }
-    if (wished[card.id]) return;
-    setWished((previous) => ({ ...previous, [card.id]: true }));
+    const current = wished[card.id];
+    if (current === 'pending') return;
+    if (current) {
+      setWished((previous) => ({ ...previous, [card.id]: false })); // el corazón responde al instante
+      try {
+        await api.deleteWishlistItem(current);
+        showToast(`${card.name} quitada de tus deseadas`, 'success');
+      } catch (error) {
+        setWished((previous) => ({ ...previous, [card.id]: current }));
+        showToast(error.message || 'No se pudo quitar la carta', 'error');
+      }
+      return;
+    }
+    setWished((previous) => ({ ...previous, [card.id]: 'pending' }));
     try {
-      await api.addWishlistItem(card.payload);
+      const response = await api.addWishlistItem(card.payload);
+      setWished((previous) => ({ ...previous, [card.id]: response?.item?.id || 'pending' }));
       showToast(`${card.name} agregada a tus deseadas`, { type: 'success', action: { label: 'Ver lista', run: () => navigate('/dashboard?tab=deseadas') } });
     } catch (error) {
       setWished((previous) => ({ ...previous, [card.id]: false }));
@@ -79,7 +93,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {shown.map((card, index) => (
             <li key={card.id}>
-              <div className="block w-full rounded-2xl bg-white p-2 ring-1 ring-slate-900/5 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.4)]">
+              <div className="relative block w-full rounded-2xl bg-white p-2 ring-1 ring-slate-900/5 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.4)]">
               <button type="button" onClick={() => setOpenId(card.id)} className="group block w-full rounded-xl text-left transition-transform duration-150 active:scale-[0.985] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
                 <div className="relative w-full overflow-hidden rounded-xl bg-slate-50" style={{ aspectRatio: cardRatio(card.game) }}>
                   {card.imageUrl || tcgplayerImage(card) ? <LoadableImage loading={index < 10 ? 'eager' : 'lazy'} src={card.imageUrl || tcgplayerImage(card)} fallbackSrc={card.imageUrl ? tcgplayerImage(card) : undefined} alt={card.name} rotateLandscape className="h-full w-full object-contain" style={cardFill(card.game)} /> : <span className="flex h-full items-center justify-center text-xs font-semibold text-slate-400">Sin imagen</span>}
@@ -88,21 +102,18 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
                 <p className="mt-2 line-clamp-2 text-sm font-extrabold leading-snug text-[#12315f]">{card.name}</p>
                 <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{card.setName}</p>
               </button>
-              <div className="mt-0.5 flex items-center justify-between gap-2">
-                <ReferencePriceLine variants={card.groupId ? variantsFor(card) : null} className="min-w-0 text-xs" />
-                <button
-                  type="button"
-                  onClick={() => wish(card)}
-                  aria-pressed={Boolean(wished[card.id])}
-                  aria-label={wished[card.id] ? `${card.name} ya está en tus deseadas` : `Agregar ${card.name} a mis deseadas`}
-                  title={wished[card.id] ? 'En tus deseadas' : 'Agregar a mis deseadas'}
-                  className={`-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[background-color,color,transform] duration-150 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${wished[card.id] ? 'bg-red-50 text-red-500' : 'text-[#1e40af] hover:bg-red-50 hover:text-red-500'}`}
-                >
-                  <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px]" style={wished[card.id] ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>
-                </button>
-              </div>
-              <button type="button" onClick={() => addToFolder(card)} className="mt-1.5 flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-[#1e40af] px-2 py-1.5 text-[13px] leading-tight font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-[#12315f] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
-                <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">add_circle</span>Agregar a mi carpeta
+              <ReferencePriceLine variants={card.groupId ? variantsFor(card) : null} className="mt-0.5 text-xs" />
+              <button
+                type="button"
+                onClick={() => wish(card)}
+                aria-pressed={Boolean(wished[card.id])}
+                aria-label={wished[card.id] ? `Quitar ${card.name} de mis deseadas` : `Agregar ${card.name} a mis deseadas`}
+                className={`absolute right-3.5 top-3.5 z-10 flex h-11 w-11 items-center justify-center rounded-full shadow-md ring-1 ring-black/10 transition-[transform,background-color] duration-150 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${wished[card.id] ? 'bg-[#facc15] text-[#12315f]' : 'bg-white/95 text-[#12315f] hover:bg-white'}`}
+              >
+                <span key={wished[card.id] ? 'on' : 'off'} translate="no" aria-hidden="true" className={`material-symbols-outlined text-[24px] ${wished[card.id] ? 'heart-pop' : ''}`} style={wished[card.id] ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>
+              </button>
+              <button type="button" onClick={() => addToFolder(card)} className="mt-1.5 flex min-h-8 w-full items-center justify-center gap-1 rounded-lg bg-[#1e40af] px-2 py-1 text-xs leading-tight font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-[#12315f] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+                <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[16px]">add</span>Agregar a mi carpeta
               </button>
               </div>
             </li>
@@ -138,8 +149,8 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
               <button type="button" onClick={() => addToFolder(card)} className="flex h-11 items-center justify-center gap-1.5 rounded-full bg-[#facc15] px-5 text-sm font-extrabold text-[#12315f] transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
                 <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">add_circle</span>Agregar a mi carpeta
               </button>
-              <button type="button" onClick={() => wish(card)} disabled={Boolean(wished[card.id])} className="flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/40 px-5 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-white/10 active:scale-[0.97] disabled:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
-                <span translate="no" aria-hidden="true" className={`material-symbols-outlined text-[20px] ${wished[card.id] ? 'text-red-400' : ''}`} style={wished[card.id] ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>{wished[card.id] ? 'En tus deseadas' : 'Avísame cuando la vendan'}
+              <button type="button" onClick={() => wish(card)} aria-pressed={Boolean(wished[card.id])} disabled={wished[card.id] === 'pending'} className="flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/40 px-5 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-white/10 active:scale-[0.97] disabled:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+                <span translate="no" aria-hidden="true" className={`material-symbols-outlined text-[20px] ${wished[card.id] ? 'text-red-400' : ''}`} style={wished[card.id] ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>{wished[card.id] ? 'En tus deseadas · Quitar' : 'Avísame cuando la vendan'}
               </button>
             </div>
           )}

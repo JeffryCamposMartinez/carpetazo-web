@@ -58,7 +58,7 @@ export const isAdminEmail = (email) => Boolean(email && adminEmails.includes(Str
 export const staffLevelOf = (firebaseUser, user) => {
   const firebaseAdminClaim = firebaseUser?.admin === true || firebaseUser?.role === 'admin';
   const envAdmin = firebaseUser?.email_verified === true && isAdminEmail(firebaseUser?.email);
-  if (firebaseAdminClaim || envAdmin || user?.role === 'admin') return 3;
+  if (firebaseAdminClaim || envAdmin || user?.role === 'admin' || user?.role === 'coadmin') return 3;
   if (user?.role === 'moderator') return 2;
   if (user?.role === 'support') return 1;
   return 0;
@@ -75,6 +75,11 @@ const staffBlocked = async (user) => {
 };
 
 // Equipo de moderación: 1 = soporte (solo lectura), 2 = moderador, 3 = administrador
+// Co-administrador: los poderes de un administrador, pero no puede actuar sobre administradores, otros co-administradores ni la cuenta propietaria.
+// Quien es administrador por la configuración del servidor o por una credencial de Firebase nunca cuenta como co-administrador.
+export const isCoAdmin = (req) => req.dbUser?.role === 'coadmin'
+  && !(req.user?.admin === true || req.user?.role === 'admin' || (req.user?.email_verified === true && isAdminEmail(req.user?.email)));
+
 export const requireStaff = (minLevel) => async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
@@ -94,7 +99,7 @@ export const requireAdmin = async (req, res, next) => {
   try {
     const firebaseAdminClaim = req.user?.admin === true || req.user?.role === 'admin';
     const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub } });
-    const databaseAdmin = user?.role === 'admin';
+    const databaseAdmin = user?.role === 'admin' || user?.role === 'coadmin';
     // El correo solo cuenta si Firebase confirma que fue verificado
     const envAdmin = req.user.email_verified === true && isAdminEmail(req.user.email);
 

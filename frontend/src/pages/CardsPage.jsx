@@ -103,10 +103,24 @@ export default function CardsPage() {
 
   const addToWishlist = async (card) => {
     if (!currentUser) { navigate('/bienvenida'); return; }
-    if (wanted[card.id]) return;
-    setWanted((previous) => ({ ...previous, [card.id]: true })); // el corazón responde al instante
+    // wanted[id]: id del ítem en la lista, 'pending' mientras se guarda, o vacío. Tocar el corazón otra vez la quita.
+    const current = wanted[card.id];
+    if (current === 'pending') return;
+    if (current) {
+      setWanted((previous) => ({ ...previous, [card.id]: false })); // el corazón responde al instante
+      try {
+        await api.deleteWishlistItem(current);
+        showToast(`${card.name} quitada de tus deseadas`, 'success');
+      } catch (error) {
+        setWanted((previous) => ({ ...previous, [card.id]: current }));
+        showToast(error.message || 'No se pudo quitar la carta', 'error');
+      }
+      return;
+    }
+    setWanted((previous) => ({ ...previous, [card.id]: 'pending' }));
     try {
-      await api.addWishlistItem(wishlistPayloadFromCard(card, card.folder?.tcg));
+      const response = await api.addWishlistItem(wishlistPayloadFromCard(card, card.folder?.tcg));
+      setWanted((previous) => ({ ...previous, [card.id]: response?.item?.id || 'pending' }));
       showToast(`${card.name} agregada a tus deseadas`, { type: 'success', action: { label: 'Ver lista', run: () => navigate('/dashboard?tab=deseadas') } });
     } catch (error) {
       setWanted((previous) => ({ ...previous, [card.id]: false }));

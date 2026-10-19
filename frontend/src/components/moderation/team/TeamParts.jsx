@@ -6,12 +6,14 @@ import { ErrorBox, dateOnly } from '../shared';
 export const RANKS = {
   4: { label: 'Propietario', tone: 'bg-[#facc15] text-[#12315f]', blurb: 'La cuenta original de Carpetazo. Está protegida: nadie puede cambiar su rol, suspenderla, cerrarla ni ocultar su contenido.' },
   3: { label: 'Administrador', tone: 'bg-[#12315f] text-white', blurb: 'Acceso total. Puede dar y quitar roles, suspender o cerrar cuentas del equipo (salvo la del propietario) y ver todos los datos.' },
+  2.5: { label: 'Co-administrador', tone: 'bg-[#1e40af] text-white', blurb: 'Los poderes de un administrador (datos de las personas, planes, métricas, catálogo y equipo), pero no puede actuar sobre administradores, otros co-administradores ni el propietario, ni dar esos roles.' },
   2: { label: 'Moderador', tone: 'bg-blue-100 text-[#1e40af]', blurb: 'Decide sobre reportes y aplica medidas a las personas, con límites de tiempo.' },
   1: { label: 'Soporte', tone: 'bg-slate-200 text-slate-700', blurb: 'Solo lectura: revisa reportes, casos y apelaciones.' },
   0: { label: 'Sin rol de equipo', tone: 'bg-slate-100 text-slate-600', blurb: '' }
 };
 export const ROLE_OPTIONS = [
   { value: 'admin', label: 'Administrador', help: 'Acceso total a Moderación y a los datos de las personas.' },
+  { value: 'coadmin', label: 'Co-administrador', help: 'Poderes de administrador, sin poder actuar sobre administradores ni sobre el propietario.' },
   { value: 'moderator', label: 'Moderador', help: 'Decide sobre reportes y aplica medidas.' },
   { value: 'support', label: 'Soporte', help: 'Solo lectura.' },
   { value: 'user', label: 'Sin rol de equipo', help: 'Deja de ser parte del equipo y pierde el acceso a Moderación.' }
@@ -27,7 +29,7 @@ export function Avatar({ person, size = 'h-14 w-14', text = 'text-xl' }) {
 }
 
 export const RankBadge = ({ person }) => {
-  const rank = RANKS[person.isOwner ? 4 : { admin: 3, moderator: 2, support: 1 }[person.role] ?? 0];
+  const rank = RANKS[person.isOwner ? 4 : { admin: 3, coadmin: 2.5, moderator: 2, support: 1 }[person.role] ?? 0];
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${rank.tone}`}>
       {person.isOwner && <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[14px]">verified_user</span>}
@@ -53,7 +55,7 @@ export const ACTIONS = {
   restore: { title: 'Restaurar cuenta', tone: 'bg-emerald-600', confirm: 'Restaurar', icon: 'restore' }
 };
 
-export function ActionDialog({ person, action, initialRole = '', onClose, onRun }) {
+export function ActionDialog({ person, action, initialRole = '', viewerRank = 3, onClose, onRun }) {
   const meta = ACTIONS[action];
   const [step, setStep] = useState(1);
   const [role, setRole] = useState(initialRole);
@@ -77,7 +79,7 @@ export function ActionDialog({ person, action, initialRole = '', onClose, onRun 
   const formOk = action === 'role' ? Boolean(role) : reasonOk;
   const matches = typed.trim().replace(/^@/, '').toLowerCase() === person.username.toLowerCase();
   const roleLabel = ROLE_OPTIONS.find((option) => option.value === role)?.label;
-  const summary = action === 'role' ? `Rol: ${RANKS[person.isOwner ? 4 : { admin: 3, moderator: 2, support: 1 }[person.role] ?? 0].label} → ${roleLabel}`
+  const summary = action === 'role' ? `Rol: ${RANKS[person.isOwner ? 4 : { admin: 3, coadmin: 2.5, moderator: 2, support: 1 }[person.role] ?? 0].label} → ${roleLabel}`
     : action === 'suspend' ? `Suspensión ${days === 'none' ? 'hasta nuevo aviso' : `por ${days} días`}: ${reason.trim()}`
       : action === 'close' ? `Cierre de la cuenta: ${reason.trim()}` : `Restauración: ${reason.trim()}`;
 
@@ -104,13 +106,14 @@ export function ActionDialog({ person, action, initialRole = '', onClose, onRun 
             {action === 'role' && (
               <fieldset className="mt-4 space-y-2">
                 <legend className="mb-1 text-sm font-extrabold text-[#12315f]">¿Qué rol tendrá?</legend>
-                {ROLE_OPTIONS.filter((option) => option.value !== person.role).map((option) => (
+                {ROLE_OPTIONS.filter((option) => option.value !== person.role && (viewerRank >= 3 || !['admin', 'coadmin'].includes(option.value))).map((option) => (
                   <label key={option.value} className={`flex cursor-pointer items-start gap-3 rounded-xl border-2 p-3 transition-colors ${role === option.value ? 'border-[#1e40af] bg-[#f3f7ff]' : 'border-[#dbe3f0]'}`}>
                     <input type="radio" name="role" value={option.value} checked={role === option.value} onChange={() => setRole(option.value)} className="mt-1 h-4 w-4 accent-[#1e40af]" />
                     <span><span className="block text-sm font-extrabold text-[#12315f]">{option.label}</span><span className="block text-xs text-slate-600">{option.help}</span></span>
                   </label>
                 ))}
                 {role === 'admin' && <p className="rounded-xl bg-amber-50 p-3 text-xs leading-relaxed text-amber-900 ring-1 ring-amber-200"><strong>Un administrador tiene acceso total.</strong> Puede ver los datos de las personas y suspender o cerrar cuentas del equipo. Dalo solo a alguien de absoluta confianza.</p>}
+                {role === 'coadmin' && <p className="rounded-xl bg-amber-50 p-3 text-xs leading-relaxed text-amber-900 ring-1 ring-amber-200"><strong>Un co-administrador tiene casi todos los poderes de un administrador.</strong> Puede ver los datos de las personas, cambiar planes y gestionar a moderadores y soporte, pero no puede actuar sobre administradores, otros co-administradores ni el propietario.</p>}
                 {person.role === 'admin' && role && role !== 'admin' && <p className="rounded-xl bg-amber-50 p-3 text-xs leading-relaxed text-amber-900 ring-1 ring-amber-200">Perderá el acceso de administrador de inmediato.</p>}
               </fieldset>
             )}

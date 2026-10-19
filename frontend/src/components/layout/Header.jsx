@@ -577,7 +577,7 @@ export default function Header() {
                           <span translate="no" className="material-symbols-outlined text-[20px]">storefront</span> Ver perfil público
                         </Link>
                       )}
-                      {['admin', 'moderator', 'support'].includes(appUser?.role) && (
+                      {['admin', 'coadmin', 'moderator', 'support'].includes(appUser?.role) && (
                         <Link role="menuitem" to="/moderacion" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
                           <span translate="no" className="material-symbols-outlined text-[20px]">admin_panel_settings</span> Moderación
                         </Link>

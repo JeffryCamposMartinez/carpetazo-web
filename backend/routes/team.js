@@ -1,12 +1,13 @@
 // Equipo y administradores: jerarquía, búsqueda de personas (con foto), cambios de rol y medidas sobre integrantes del equipo.
 //
-// Jerarquía (de mayor a menor): Propietario > Administrador > Moderador > Soporte > Persona sin rol.
+// Jerarquía (de mayor a menor): Propietario > Administrador > Co-administrador > Moderador > Soporte > Persona sin rol.
 //  - La cuenta PROPIETARIA es la cuenta original de Carpetazo: nadie puede cambiar su rol, suspenderla, cerrarla ni ocultar su contenido.
 //  - Los administradores pueden hacer de todo sobre los demás integrantes del equipo (incluidos otros administradores), salvo sobre la propietaria.
+//  - El co-administrador tiene los poderes de un administrador, pero solo actúa sobre moderadores, soporte y personas sin rol: nunca sobre administradores, otros co-administradores ni la propietaria, y no puede dar esos dos roles.
 //  - Nadie actúa sobre su propia cuenta desde aquí, y siempre queda al menos un administrador.
 //  - Cada acción exige escribir el usuario exacto de la persona (segunda confirmación en el servidor), queda en la auditoría y se avisa por correo.
 import express from 'express';
-import { authenticateToken, currentUserId, isAdminEmail, requireStaff } from '../core/auth.js';
+import { authenticateToken, currentUserId, isAdminEmail, isCoAdmin, requireStaff } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { badRequest, isUuid } from '../core/validation.js';
 import { escapeHtml, sendUserEmail } from '../core/mail.js';
@@ -19,9 +20,9 @@ const CHANGES_PER_HOUR = 30;
 const DAY = 24 * 60 * 60 * 1000;
 const changeLog = new Map(); // quien hace el cambio -> momentos de los últimos intentos
 
-const RANK = { owner: 4, admin: 3, moderator: 2, support: 1, user: 0 };
-const ROLE_LABEL = { admin: 'Administrador', moderator: 'Moderador', support: 'Soporte', user: 'Sin rol de equipo' };
-const ASSIGNABLE = ['admin', 'moderator', 'support', 'user'];
+const RANK = { owner: 4, admin: 3, coadmin: 2.5, moderator: 2, support: 1, user: 0 };
+const ROLE_LABEL = { admin: 'Administrador', coadmin: 'Co-administrador', moderator: 'Moderador', support: 'Soporte', user: 'Sin rol de equipo' };
+const ASSIGNABLE = ['admin', 'coadmin', 'moderator', 'support', 'user'];
 const rankOf = (user) => (user.isOwner ? RANK.owner : RANK[user.role] ?? 0);
 
 const PERSON = { id: true, username: true, name: true, photoURL: true, role: true, isOwner: true, createdAt: true, publicComuna: true };
@@ -58,8 +59,12 @@ const loadParties = async (req, targetId) => {
   if (target.isOwner) return { error: [403, 'Esta es la cuenta original de Carpetazo. Está protegida: nadie puede cambiar su rol, suspenderla ni cerrarla.'] };
   if (target.id === actor.id) return { error: [403, 'No puedes hacer esto sobre tu propia cuenta.'] };
   // Quien es administrador por la configuración o por una credencial de Firebase cuenta como administrador aunque su fila diga otra cosa
-  const actorRank = Math.max(rankOf(actor), req.staffLevel >= 3 ? RANK.admin : 0);
-  if (actorRank < rankOf(target)) return { error: [403, 'No puedes actuar sobre alguien de un nivel superior al tuyo.'] };
+  if (isCoAdmin(req)) {
+    if (rankOf(target) >= RANK.coadmin) return { error: [403, 'Un co-administrador no puede actuar sobre administradores ni sobre otros co-administradores.'] };
+  } else {
+    const actorRank = Math.max(rankOf(actor), req.staffLevel >= 3 ? RANK.admin : 0);
+    if (actorRank < rankOf(target)) return { error: [403, 'No puedes actuar sobre alguien de un nivel superior al tuyo.'] };
+  }
   if (throttled(actor.id)) return { error: [429, 'Hiciste varios cambios seguidos. Inténtalo más tarde.'] };
   return { actor, target };
 };
@@ -84,7 +89,7 @@ const audit = (actorId, action, target, note, meta = {}) => prisma.moderationAud
 router.get('/api/admin/team', authenticateToken, requireStaff(3), async (req, res) => {
   try {
     const meId = await currentUserId(req);
-    const members = await prisma.user.findMany({ where: { OR: [{ role: { in: ['admin', 'moderator', 'support'] } }, { isOwner: true }] }, select: { ...PERSON, email: true }, orderBy: { createdAt: 'asc' }, take: 200 });
+    const members = await prisma.user.findMany({ where: { OR: [{ role: { in: ['admin', 'coadmin', 'moderator', 'support'] } }, { isOwner: true }] }, select: { ...PERSON, email: true }, orderBy: { createdAt: 'asc' }, take: 200 });
     const ids = members.map((member) => member.id);
     const [blocks, activity] = await Promise.all([
       prisma.sanction.findMany({ where: { userId: { in: ids }, ...blockWhere() }, select: { userId: true, type: true, reason: true, createdAt: true, expiresAt: true } }),
@@ -151,6 +156,7 @@ router.post('/api/admin/team/:id/role', authenticateToken, requireStaff(3), asyn
   try {
     const { role, confirmUsername } = req.body || {};
     if (!ASSIGNABLE.includes(role) || typeof confirmUsername !== 'string') return badRequest(res, 'Datos inválidos');
+    if (isCoAdmin(req) && rankOf({ role }) >= RANK.coadmin) return fail(res, [403, 'Solo un administrador puede dar el rol de administrador o de co-administrador.']);
     const parties = await loadParties(req, req.params.id);
     if (parties.error) return fail(res, parties.error);
     const { actor, target } = parties;

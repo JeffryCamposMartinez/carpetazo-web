@@ -15,7 +15,7 @@ const STATUS = {
   expired: { label: 'Venció', bar: 'bg-slate-300', text: 'text-slate-600' }
 };
 const COUNT_LABELS = { open: 'pendientes', actioned: 'con medida', dismissed: 'descartados' };
-const ROLE_LABELS = { user: 'Sin rol de equipo', support: 'Soporte', moderator: 'Moderador', admin: 'Administrador' };
+const ROLE_LABELS = { user: 'Sin rol de equipo', coadmin: 'Co-administrador', support: 'Soporte', moderator: 'Moderador', admin: 'Administrador' };
 
 function SanctionRow({ sanction, level, onChanged, setError, showUser }) {
   const [busy, setBusy] = useState(false);
@@ -203,7 +203,7 @@ export default function PeoplePanel({ level, focusUsername, focusReportId, onFoc
   };
 
   const counts = (group) => Object.entries(group || {}).map(([key, value]) => `${value} ${COUNT_LABELS[key] || key}`).join(', ') || 'ninguno';
-  const canSanction = level >= 2 && profile && !['admin', 'moderator', 'support'].includes(profile.user.role);
+  const canSanction = level >= 2 && profile && !['admin', 'coadmin', 'moderator', 'support'].includes(profile.user.role);
 
   return (
     <div className="space-y-6 xl:grid xl:grid-cols-2 xl:items-start xl:gap-6 xl:space-y-0">
@@ -226,7 +226,7 @@ export default function PeoplePanel({ level, focusUsername, focusReportId, onFoc
                   <button type="button" role="option" aria-selected="false" onClick={() => pickMatch(user.username)} className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-blue-50 focus-visible:bg-blue-50 focus-visible:outline-none">
                     <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#12315f] text-sm font-extrabold text-[#facc15]">{(user.name || user.username).charAt(0).toUpperCase()}</span>
                     <span className="min-w-0 flex-1"><span className="block truncate text-sm font-extrabold text-[#12315f]">{user.name || user.username}</span><span className="block truncate text-xs text-slate-500">@{user.username} · hace {user.ageDays} {user.ageDays === 1 ? 'día' : 'días'}</span></span>
-                    {['admin', 'moderator', 'support'].includes(user.role) && <span className="shrink-0 rounded-full bg-[#facc15] px-2 py-0.5 text-[11px] font-extrabold text-[#12315f]">Equipo</span>}
+                    {['admin', 'coadmin', 'moderator', 'support'].includes(user.role) && <span className="shrink-0 rounded-full bg-[#facc15] px-2 py-0.5 text-[11px] font-extrabold text-[#12315f]">Equipo</span>}
                   </button>
                 </li>
               ))}
@@ -258,7 +258,7 @@ export default function PeoplePanel({ level, focusUsername, focusReportId, onFoc
                 <div className="flex gap-2"><dt className="shrink-0 font-bold text-slate-500">Reportes que hizo</dt><dd className="text-slate-700">{counts(profile.reportsMade)}</dd></div>
                 {profile.cases.length > 0 && <div className="flex gap-2"><dt className="shrink-0 font-bold text-slate-500">Casos de estafa</dt><dd className="text-slate-700">{profile.cases.map((item) => `${item.shortCode} (${item.status})`).join(', ')}</dd></div>}
               </dl>
-              {level >= 3 && profile.user.role !== 'admin' && (
+              {level >= 3 && !['admin', 'coadmin'].includes(profile.user.role) && (
                 <fieldset className="mt-4">
                   <legend className="mb-1.5 text-sm font-bold text-slate-500">Rol en el equipo</legend>
                   <div className="grid grid-cols-3 gap-1.5">

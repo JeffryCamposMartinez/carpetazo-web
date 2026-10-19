@@ -1,6 +1,6 @@
 // Rutas de administración que no son de moderación.
 import express from 'express';
-import { authenticateToken, currentUserId, requireAdmin, requireStaff } from '../core/auth.js';
+import { authenticateToken, currentUserId, isCoAdmin, requireAdmin, requireStaff } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { getPlanState, lockPlanUser } from '../core/entitlements.js';
 import { PLANS, validPlanKey } from '../core/plans.js';
@@ -88,8 +88,11 @@ router.post('/api/admin/terms/evidence', authenticateToken, requireStaff(3), asy
 const planTarget = async (raw) => {
   const username = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
   if (!validUsername(username)) return null;
-  return prisma.user.findUnique({ where: { username }, select: { id: true, username: true, role: true } });
+  return prisma.user.findUnique({ where: { username }, select: { id: true, username: true, role: true, isOwner: true } });
 };
+// Un co-administrador no modifica cuentas de administradores, de otros co-administradores ni la propietaria
+const COADMIN_LIMIT = 'Un co-administrador no puede cambiar la cuenta de un administrador ni de la propietaria.';
+const blockedForCoAdmin = (req, user) => Boolean(user) && isCoAdmin(req) && (user.isOwner || ['admin', 'coadmin'].includes(user.role));
 
 router.get('/api/admin/users/:username/plan', authenticateToken, requireStaff(3), async (req, res) => {
   try {
@@ -122,6 +125,7 @@ router.post('/api/admin/users/:username/plan', authenticateToken, requireStaff(3
     if (days !== null && (!Number.isInteger(days) || days < 1 || days > 3650)) return badRequest(res, 'Los días deben ser un número entre 1 y 3650');
     const target = await planTarget(req.params.username);
     if (!target) return res.status(404).json({ success: false, message: 'Persona no encontrada' });
+    if (blockedForCoAdmin(req, target)) return res.status(403).json({ success: false, message: COADMIN_LIMIT });
     const actorId = await currentUserId(req);
     const clean = reason.trim();
     await prisma.$transaction(async (tx) => {
@@ -216,6 +220,7 @@ router.put('/api/admin/users/:username/profile', authenticateToken, requireStaff
     if (!isShortText(reason, 300) || reason.trim().length < 5) return badRequest(res, 'Escribe el motivo (mínimo 5 caracteres)');
     const user = await fullTarget(req.params.username);
     if (!user) return res.status(404).json({ success: false, message: 'Persona no encontrada' });
+    if (blockedForCoAdmin(req, user)) return res.status(403).json({ success: false, message: COADMIN_LIMIT });
     const data = {};
     const changes = [];
     if (name !== undefined && name !== user.name) {
@@ -260,6 +265,7 @@ router.put('/api/admin/users/:username/grants/:id', authenticateToken, requireSt
     const user = await fullTarget(req.params.username);
     const grant = user && await prisma.planGrant.findFirst({ where: { id: req.params.id, userId: user.id } });
     if (!grant) return res.status(404).json({ success: false, message: 'Concesión no encontrada' });
+    if (blockedForCoAdmin(req, user)) return res.status(403).json({ success: false, message: COADMIN_LIMIT });
     if (grant.revokedAt) return res.status(409).json({ success: false, message: 'Esa concesión ya fue quitada' });
     const data = {};
     if (planKey !== undefined) {
@@ -305,6 +311,7 @@ router.post('/api/admin/users/:username/subscription/cancel', authenticateToken,
     if (!isShortText(reason, 300) || reason.trim().length < 5) return badRequest(res, 'Escribe el motivo (mínimo 5 caracteres)');
     const user = await fullTarget(req.params.username);
     if (!user) return res.status(404).json({ success: false, message: 'Persona no encontrada' });
+    if (blockedForCoAdmin(req, user)) return res.status(403).json({ success: false, message: COADMIN_LIMIT });
     const subscription = await prisma.subscription.findFirst({ where: { userId: user.id, status: { in: ['active', 'past_due', 'paused', 'pending'] }, cancelAtPeriodEnd: false }, orderBy: { createdAt: 'desc' } });
     if (!subscription) return res.status(404).json({ success: false, message: 'Esa persona no tiene una suscripción activa' });
     const actorId = await currentUserId(req);

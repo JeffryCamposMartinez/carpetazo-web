@@ -112,7 +112,7 @@ export const registerSanctions = (app, deps) => {
   // Avisos al equipo (administradores y moderadores) por correo: apelaciones, descargos
   const notifyStaff = async (subject, line) => {
     try {
-      const staff = await prisma.user.findMany({ where: { role: { in: ['admin', 'moderator'] } }, select: { id: true } });
+      const staff = await prisma.user.findMany({ where: { role: { in: ['admin', 'coadmin', 'moderator'] } }, select: { id: true } });
       await Promise.all(staff.map((member) => sendUserEmail(member.id, { subject, text: `${line}\n\nRevísalo en https://carpetazo.cl/moderacion`, html: `<p>${escapeHtml(line)}</p><p><a href="https://carpetazo.cl/moderacion">Revisarlo en Moderación</a></p>` })));
     } catch (error) {
       console.error('Error notifying staff:', error.message);
@@ -473,7 +473,7 @@ export const registerSanctions = (app, deps) => {
       if (!target || target.role === 'deleted') return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
       const actorId = await currentUserId(req);
       if (target.id === actorId) return badRequest(res, 'No puedes aplicarte una medida a ti mismo');
-      if (['admin', 'moderator', 'support'].includes(target.role)) return res.status(403).json({ success: false, message: 'No se aplican medidas a integrantes del equipo desde aquí. Usa la sección Equipo y administradores.' });
+      if (['admin', 'coadmin', 'moderator', 'support'].includes(target.role)) return res.status(403).json({ success: false, message: 'No se aplican medidas a integrantes del equipo desde aquí. Usa la sección Equipo y administradores.' });
       const type = req.body?.type;
       if (!SANCTION_TYPES.includes(type)) return badRequest(res, 'Tipo de medida inválido');
       if (!textOk(req.body?.reason, 5, 300)) return badRequest(res, 'Escribe el motivo que verá la persona (entre 5 y 300 caracteres)');
@@ -585,7 +585,7 @@ export const registerSanctions = (app, deps) => {
       if (!target || target.role === 'deleted') return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
       const role = req.body?.role;
       if (!['moderator', 'support', 'user'].includes(role)) return badRequest(res, 'Rol inválido');
-      if (target.role === 'admin') return res.status(403).json({ success: false, message: 'El rol de un administrador no se cambia desde aquí' });
+      if (target.role === 'admin' || target.role === 'coadmin') return res.status(403).json({ success: false, message: 'El rol de un administrador o co-administrador se cambia desde «Equipo y administradores»' });
       const actorId = await currentUserId(req);
       const message = cleanNotice(req.body?.message);
       if (message === null) return badRequest(res, 'El mensaje para la persona admite hasta 600 caracteres');
@@ -726,7 +726,7 @@ export const registerSanctions = (app, deps) => {
       const originalDecider = appeal.sanction?.createdById || report?.decidedById || null;
       let selfReview = false;
       if (originalDecider && originalDecider === actorId) {
-        const others = await prisma.user.count({ where: { role: 'admin', id: { notIn: [actorId] } } });
+        const others = await prisma.user.count({ where: { role: { in: ['admin', 'coadmin'] }, id: { notIn: [actorId] } } });
         if (others > 0) return res.status(403).json({ success: false, message: 'La apelación debe revisarla otra persona distinta de quien tomó la medida' });
         selfReview = true;
       }

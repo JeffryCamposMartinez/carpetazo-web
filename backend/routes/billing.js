@@ -15,7 +15,7 @@ const WEB_URL = (process.env.APP_WEB_URL || (TEST_MODE ? 'http://localhost:5173'
 const planEnvKey = (key) => `MERCADOPAGO_PLAN_${key.toUpperCase()}_ID`;
 
 // Mismos criterios que requireAdmin (core/auth.js): claim de Firebase, rol en la base o correo verificado de ADMIN_EMAILS
-const isAdminRequest = (req, user) => req.user?.admin === true || req.user?.role === 'admin' || user?.role === 'admin' || (req.user?.email_verified === true && isAdminEmail(req.user?.email));
+const isAdminRequest = (req, user) => req.user?.admin === true || req.user?.role === 'admin' || user?.role === 'admin' || user?.role === 'coadmin' || (req.user?.email_verified === true && isAdminEmail(req.user?.email));
 
 const ownUser = (firebaseUid) => prisma.user.findUnique({
   where: { firebaseUid },

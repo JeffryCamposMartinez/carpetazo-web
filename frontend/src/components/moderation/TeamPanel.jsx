@@ -12,12 +12,13 @@ const ACTION_TEXT = {
   'team.restored': 'restauró la cuenta de'
 };
 const ACTION_ICON = { 'role.admin_granted': 'shield_person', 'role.admin_revoked': 'remove_moderator', 'role.changed': 'badge', 'team.suspended': 'pause_circle', 'team.closed': 'block', 'team.restored': 'restore' };
-const PLURAL = { 3: 'Administradores', 2: 'Moderadores' };
+const PLURAL = { 3: 'Administradores', 2.5: 'Co-administradores', 2: 'Moderadores' };
 const TABS = [['hierarchy', 'Jerarquía'], ['add', 'Agregar o buscar'], ['history', 'Historial']];
 
 function MemberCard({ person, me, onAction }) {
   const mine = person.id === me?.id;
-  const mayManage = !person.isOwner && !mine && (me?.rank || 0) >= person.rank;
+  // Un co-administrador (rango 2,5) solo gestiona a quienes están por debajo de él; un administrador, a todo el equipo salvo a la propietaria
+  const mayManage = !person.isOwner && !mine && (me?.rank === 2.5 ? person.rank < 2.5 : (me?.rank || 0) >= person.rank);
   return (
     <li className={`rounded-2xl border bg-white p-4 ${person.isOwner ? 'border-[#facc15] shadow-[0_0_0_1px_#facc15]' : 'border-[#dbe3f0]'}`}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-3 sm:flex-nowrap">
@@ -40,7 +41,7 @@ function ManageSheet({ person, onClose, onChoose }) {
   const isStaff = person.rank > 0;
   const restricted = Boolean(person.restriction);
   const options = [
-    { action: 'role', label: isStaff ? 'Cambiar rol' : 'Dar un rol de equipo', help: isStaff ? 'Subirla o bajarla de nivel, o quitarle el rol.' : 'Hacerla administradora, moderadora o de soporte.' },
+    { action: 'role', label: isStaff ? 'Cambiar rol' : 'Dar un rol de equipo', help: isStaff ? 'Subirla o bajarla de nivel, o quitarle el rol.' : 'Hacerla administradora, co-administradora, moderadora o de soporte.' },
     ...(isStaff && !restricted ? [{ action: 'suspend', label: 'Suspender cuenta', help: 'Pierde el acceso al equipo y a escribir, por un tiempo.' }, { action: 'close', label: 'Cerrar cuenta', help: 'La medida más grave. Queda sin rol de equipo.', danger: true }] : []),
     ...(restricted ? [{ action: 'restore', label: 'Restaurar cuenta', help: 'Levanta la suspensión o el cierre.' }] : [])
   ];
@@ -106,7 +107,7 @@ export default function TeamPanel() {
     if (results) setResults(null);
   };
 
-  const groups = data ? [4, 3, 2, 1].map((rank) => ({ rank, members: data.team.filter((member) => member.rank === rank) })).filter((group) => group.members.length) : [];
+  const groups = data ? [4, 3, 2.5, 2, 1].map((rank) => ({ rank, members: data.team.filter((member) => member.rank === rank) })).filter((group) => group.members.length) : [];
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
@@ -116,7 +117,7 @@ export default function TeamPanel() {
 
       {tab === 'hierarchy' && (!data ? <Spinner label="Cargando el equipo" /> : (
         <>
-          <p className="text-sm leading-relaxed text-slate-600">Tu nivel: <strong className="text-[#12315f]">{RANKS[data.me?.rank ?? 0].label}</strong>. Los administradores pueden gestionar a todo el equipo, incluidos otros administradores, salvo la cuenta del propietario.</p>
+          <p className="text-sm leading-relaxed text-slate-600">Tu nivel: <strong className="text-[#12315f]">{RANKS[data.me?.rank ?? 0].label}</strong>. Los administradores pueden gestionar a todo el equipo, incluidos otros administradores, salvo la cuenta del propietario. Los co-administradores tienen los mismos poderes, pero no pueden actuar sobre administradores, otros co-administradores ni el propietario.</p>
           {groups.map((group) => (
             <section key={group.rank} aria-label={RANKS[group.rank].label}>
               <div className="mb-2"><h3 className="text-lg font-extrabold text-[#12315f]">{group.members.length > 1 ? (PLURAL[group.rank] || RANKS[group.rank].label) : RANKS[group.rank].label} <span className="text-sm font-bold text-slate-500">({group.members.length})</span></h3><p className="text-xs text-slate-500">{RANKS[group.rank].blurb}</p></div>
@@ -181,7 +182,7 @@ export default function TeamPanel() {
       ))}
 
       {managing && !dialog && <ManageSheet person={managing} onClose={() => setManaging(null)} onChoose={(action) => { setDialog({ person: managing, action }); setManaging(null); }} />}
-      {dialog && <ActionDialog person={dialog.person} action={dialog.action} onClose={() => setDialog(null)} onRun={run} />}
+      {dialog && <ActionDialog person={dialog.person} action={dialog.action} viewerRank={data?.me?.rank ?? 0} onClose={() => setDialog(null)} onRun={run} />}
     </div>
   );
 }

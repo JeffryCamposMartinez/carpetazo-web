@@ -80,7 +80,7 @@ export default function MobileMenu({
             { to: '/planes', label: 'Mi plan', icon: 'workspace_premium', active: location.pathname === '/planes' },
             { to: '/sugerencias', label: 'Reclamos y sugerencias', icon: 'feedback', active: location.pathname === '/sugerencias' },
             ...(userUsername ? [{ to: `/${userUsername}`, label: 'Mi perfil público', icon: 'badge', active: false }] : []),
-            ...(['admin', 'moderator', 'support'].includes(appUser?.role) ? [{ to: '/moderacion', label: 'Moderación', icon: 'admin_panel_settings', active: location.pathname === '/moderacion' }] : []),
+            ...(['admin', 'coadmin', 'moderator', 'support'].includes(appUser?.role) ? [{ to: '/moderacion', label: 'Moderación', icon: 'admin_panel_settings', active: location.pathname === '/moderacion' }] : []),
           ];
           const renderItem = (item) => (
             <Link
