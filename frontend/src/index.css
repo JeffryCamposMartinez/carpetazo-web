@@ -66,6 +66,18 @@
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
 
+  /* Íconos propios (components/ui/SvgIcon.jsx): miden 1em, como los de la fuente, así el tamaño sigue dándolo text-[..] */
+  .cz-icon {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 1em;
+    height: 1em;
+    font-size: 24px;
+    line-height: 1;
+    vertical-align: -0.125em;
+    overflow: visible;
+  }
+
   /* Ocultar flechas en inputs de número */
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {

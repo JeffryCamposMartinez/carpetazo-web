@@ -1,5 +1,6 @@
 import { readableOn } from '../../utils/color';
 import { getAvatarFrameStyle } from './profileStyles';
+import SvgIcon from '../ui/SvgIcon';
 
 // Foto del vendedor con su marco, el nivel como la gema de coste de una carta y, para el dueño, el botón de cambiarla
 export default function ProfileAvatar({ avatarSizeClass, avatarUrl, displayName, displayScale, handleImageUpload, isOwner, isPosterLayout, isSmallAvatar, profileLevel, publicTheme }) {
@@ -30,12 +31,12 @@ export default function ProfileAvatar({ avatarSizeClass, avatarUrl, displayName,
       {isOwner && (
         isSmallAvatar ? (
           <label className="absolute -bottom-1 -left-1 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-black/75 text-white shadow-lg ring-2 ring-white transition hover:bg-black/90" title="Cambiar foto">
-            <span translate="no" className="material-symbols-outlined text-[16px]">photo_camera</span>
+            <SvgIcon name="photo_camera" translate="no" className="text-[16px]" />
             <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleImageUpload(event, 'avatar')} aria-label="Cambiar foto de perfil" />
           </label>
         ) : (
           <label className="absolute inset-x-4 bottom-2 z-10 flex h-8 cursor-pointer items-center justify-center gap-1 rounded-full bg-black/70 text-xs font-bold text-white shadow-lg ring-1 ring-white/30 transition hover:bg-black/85">
-            <span translate="no" className="material-symbols-outlined text-[15px]">photo_camera</span>
+            <SvgIcon name="photo_camera" translate="no" className="text-[15px]" />
             Cambiar foto
             <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleImageUpload(event, 'avatar')} aria-label="Cambiar foto de perfil" />
           </label>

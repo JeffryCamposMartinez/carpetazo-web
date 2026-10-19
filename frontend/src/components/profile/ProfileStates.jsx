@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import SvgIcon from '../ui/SvgIcon';
 
 // Estados del perfil público fuera del caso normal: cargando y no disponible
 
@@ -21,7 +22,7 @@ export function ProfileUnavailable() {
         <div className="relative mb-8 h-[132px] w-[124px]" aria-hidden="true">
           <span className="absolute left-0 top-2 h-[118px] w-[86px] -rotate-[10deg] rounded-xl border-2 border-[#1e40af]/25 bg-white/60" />
           <span className="absolute right-0 top-0 grid h-[124px] w-[90px] rotate-[6deg] place-items-center rounded-xl bg-[#12315f] text-[#facc15] shadow-[0_18px_34px_-14px_rgba(18,49,95,0.7)]">
-            <span translate="no" className="material-symbols-outlined text-[38px]">lock</span>
+            <SvgIcon name="lock" translate="no" className="text-[38px]" />
           </span>
         </div>
         <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-[#1e40af] ring-1 ring-[#1e40af]/15">Perfil no disponible</span>
@@ -32,7 +33,7 @@ export function ProfileUnavailable() {
             Ver vendedores
           </Link>
           <Link to="/" className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-6 text-[15px] font-bold text-[#12315f] ring-1 ring-slate-900/10 transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">arrow_back</span>Volver al inicio
+            <SvgIcon name="arrow_back" translate="no" aria-hidden="true" className="text-[20px]" />Volver al inicio
           </Link>
         </div>
         <p className="mt-4 text-sm text-slate-600">
@@ -53,7 +54,7 @@ export function ProfileContactBar({ displayName, folders, onContact, publicTheme
         <span className="block truncate text-xs font-semibold tabular-nums text-slate-500">{folders} {folders === 1 ? 'carpeta' : 'carpetas'} · {totalCards.toLocaleString('es-CL')} {totalCards === 1 ? 'carta' : 'cartas'}</span>
       </span>
       <button type="button" onClick={onContact} className="inline-flex h-12 shrink-0 items-center gap-2 rounded-full px-5 text-[15px] font-extrabold shadow-md transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2" style={{ backgroundColor: publicTheme.accent, color: readableOn(publicTheme.accent) }}>
-        <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">chat</span>Contactar
+        <SvgIcon name="chat" translate="no" aria-hidden="true" className="text-[20px]" />Contactar
       </button>
     </div>
   );

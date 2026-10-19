@@ -1,4 +1,5 @@
 import Select from '../ui/Select';
+import SvgIcon from '../ui/SvgIcon';
 const SORT_OPTIONS = [
   { value: 'recent', label: 'Más recientes' },
   { value: 'price_asc', label: 'Precio: menor a mayor' },
@@ -29,7 +30,7 @@ export default function CardsResultsBar({ failed, loading, comuna, onClearAll, o
           <div role="group" aria-label="Vista" className="flex h-10 items-center rounded-full bg-white p-1 ring-1 ring-slate-900/10 lg:hidden">
             {[{ value: 'grid', icon: 'grid_view', label: 'Cuadrícula' }, { value: 'list', icon: 'view_agenda', label: 'Lista' }].map((option) => (
               <button key={option.value} type="button" aria-pressed={view === option.value} aria-label={option.label} onClick={() => onView(option.value)} className={`flex h-8 w-9 items-center justify-center rounded-full transition-[background-color,color,transform] duration-150 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${view === option.value ? 'bg-[#12315f] text-white' : 'text-slate-500'}`}>
-                <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">{option.icon}</span>
+                <SvgIcon name={option.icon} translate="no" aria-hidden="true" className="text-[20px]" />
               </button>
             ))}
           </div>
@@ -38,10 +39,10 @@ export default function CardsResultsBar({ failed, loading, comuna, onClearAll, o
 
       {hasFilters && (
         <div className="flex flex-wrap items-center gap-2">
-          {tcg && <button type="button" onClick={() => onTcg('')} className={REMOVABLE}>{tcg}<span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px] text-slate-500">close</span><span className="sr-only">Quitar filtro</span></button>}
-          {comuna && <button type="button" onClick={onComuna} className={REMOVABLE}>Comuna: {comuna}<span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px] text-slate-500">close</span><span className="sr-only">Quitar filtro de comuna</span></button>}
-          {seller && <button type="button" onClick={onSeller} className={REMOVABLE}><span className="min-w-0 truncate">Vendedor: @{seller}</span><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px] text-slate-500">close</span><span className="sr-only">Quitar filtro de vendedor</span></button>}
-          {query && <button type="button" onClick={() => onQuery('')} className={REMOVABLE}><span className="min-w-0 truncate">“{query}”</span><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px] text-slate-500">close</span><span className="sr-only">Quitar búsqueda</span></button>}
+          {tcg && <button type="button" onClick={() => onTcg('')} className={REMOVABLE}>{tcg}<SvgIcon name="close" translate="no" aria-hidden="true" className="text-[18px] text-slate-500" /><span className="sr-only">Quitar filtro</span></button>}
+          {comuna && <button type="button" onClick={onComuna} className={REMOVABLE}>Comuna: {comuna}<SvgIcon name="close" translate="no" aria-hidden="true" className="text-[18px] text-slate-500" /><span className="sr-only">Quitar filtro de comuna</span></button>}
+          {seller && <button type="button" onClick={onSeller} className={REMOVABLE}><span className="min-w-0 truncate">Vendedor: @{seller}</span><SvgIcon name="close" translate="no" aria-hidden="true" className="text-[18px] text-slate-500" /><span className="sr-only">Quitar filtro de vendedor</span></button>}
+          {query && <button type="button" onClick={() => onQuery('')} className={REMOVABLE}><span className="min-w-0 truncate">“{query}”</span><SvgIcon name="close" translate="no" aria-hidden="true" className="text-[18px] text-slate-500" /><span className="sr-only">Quitar búsqueda</span></button>}
           {[tcg, query, seller, comuna].filter(Boolean).length > 1 && <button type="button" onClick={onClearAll} className="h-9 rounded-full px-3 text-xs font-bold text-[#1e40af] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">Quitar todo</button>}
         </div>
       )}

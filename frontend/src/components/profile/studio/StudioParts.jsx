@@ -1,3 +1,4 @@
+import SvgIcon from '../../ui/SvgIcon';
 // Piezas comunes del editor de perfil («Profile Studio»): introducción de cada pestaña, secciones, opciones con muestra e interruptores.
 
 export const STUDIO = {
@@ -10,7 +11,7 @@ export const STUDIO = {
 };
 
 export const Symbol = ({ name, className = 'text-[20px]', filled = false }) => (
-  <span translate="no" aria-hidden="true" className={`material-symbols-outlined leading-none ${className}`} style={filled ? { fontVariationSettings: "'FILL' 1" } : undefined}>{name}</span>
+  <SvgIcon name={name} translate="no" aria-hidden="true" className={`leading-none ${className}`} style={filled ? { fontVariationSettings: "'FILL' 1" } : undefined} />
 );
 
 // Carta pequeña inclinada junto al título de cada pestaña: cambia de «estampado» según lo que se edita

@@ -17,6 +17,7 @@ import MenuButton from './MenuButton';
 import MessageActionMenu from './MessageActionMenu';
 import MessageList from './MessageList';
 import { EDIT_WINDOW_MS, QUICK_REPLIES_BUYER, QUICK_REPLIES_SELLER, decodeMessage, lastSeenLabel, mediaOf, summaryOf } from './messageUtils';
+import SvgIcon from '../ui/SvgIcon';
 
 const TYPING_IDLE_MS = 2200;
 const REMOTE_TYPING_MS = 5000;
@@ -203,16 +204,16 @@ export default function ConversationView({
     <section className="relative flex h-full min-h-0 flex-col bg-[#dbeafe]" aria-label={`Conversación con ${name}`}>
       {search.open ? (
         <header className="flex h-[60px] shrink-0 items-center gap-1 bg-white px-2 shadow-sm">
-          <button type="button" onClick={() => setSearch({ open: false, query: '', at: 0 })} aria-label="Cerrar búsqueda" className="flex h-11 w-11 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"><span translate="no" aria-hidden="true" className="material-symbols-outlined">arrow_back</span></button>
+          <button type="button" onClick={() => setSearch({ open: false, query: '', at: 0 })} aria-label="Cerrar búsqueda" className="flex h-11 w-11 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"><SvgIcon name="arrow_back" translate="no" aria-hidden="true" /></button>
           <input autoFocus value={search.query} onChange={(event) => setSearch({ open: true, query: event.target.value, at: 0 })} placeholder="Buscar en el chat" aria-label="Buscar en el chat" className="min-w-0 flex-1 bg-transparent border-0 focus:ring-0 px-2 text-[16px] outline-none placeholder:text-slate-500" />
           <span className="shrink-0 text-xs font-bold tabular-nums text-slate-500" aria-live="polite">{search.query.trim().length >= 2 ? (matches.length ? `${matchAt + 1} de ${matches.length}` : 'Sin resultados') : ''}</span>
           {[['keyboard_arrow_up', 'Resultado anterior', 1], ['keyboard_arrow_down', 'Resultado siguiente', -1]].map(([icon, label, step]) => (
-            <button key={icon} type="button" disabled={!matches.length} onClick={() => setSearch((previous) => ({ ...previous, at: previous.at + step }))} aria-label={label} className="flex h-11 w-11 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"><span translate="no" aria-hidden="true" className="material-symbols-outlined">{icon}</span></button>
+            <button key={icon} type="button" disabled={!matches.length} onClick={() => setSearch((previous) => ({ ...previous, at: previous.at + step }))} aria-label={label} className="flex h-11 w-11 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"><SvgIcon name={icon} translate="no" aria-hidden="true" /></button>
           ))}
         </header>
       ) : (
         <header className="flex h-[60px] shrink-0 items-center gap-1 bg-gradient-to-r from-[#0b214a] to-[#1e40af] pr-1 text-white shadow-[0_2px_8px_rgba(8,18,42,0.25)]">
-          {showBack && <button type="button" onClick={onBack} aria-label="Volver a los chats" className="flex h-12 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"><span translate="no" aria-hidden="true" className="material-symbols-outlined">arrow_back</span></button>}
+          {showBack && <button type="button" onClick={onBack} aria-label="Volver a los chats" className="flex h-12 w-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"><SvgIcon name="arrow_back" translate="no" aria-hidden="true" /></button>}
           <button type="button" onClick={() => setInfo(true)} className={`flex min-w-0 flex-1 items-center gap-3 rounded-xl py-1.5 text-left transition-colors hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] ${showBack ? '' : 'pl-3'}`} aria-label={`Datos de ${name}`}>
             <Avatar name={name} src={avatar} size={40} online={Boolean(presence?.online)} />
             <span className="min-w-0">
@@ -220,8 +221,8 @@ export default function ConversationView({
               <span className={`block truncate text-[12.5px] font-semibold leading-tight ${remoteTyping ? 'text-[#facc15]' : 'text-blue-100'}`} aria-live="polite">{status || (username ? `@${username}` : '')}</span>
             </span>
           </button>
-          {username && <Link to={`/${username}`} aria-label={`Ver perfil de ${name}`} title="Ver perfil" className="hidden h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] sm:flex"><span translate="no" aria-hidden="true" className="material-symbols-outlined">storefront</span></Link>}
-          <button type="button" onClick={() => setSearch({ open: true, query: '', at: 0 })} aria-label="Buscar en el chat" className="hidden h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] sm:flex"><span translate="no" aria-hidden="true" className="material-symbols-outlined">search</span></button>
+          {username && <Link to={`/${username}`} aria-label={`Ver perfil de ${name}`} title="Ver perfil" className="hidden h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] sm:flex"><SvgIcon name="storefront" translate="no" aria-hidden="true" /></Link>}
+          <button type="button" onClick={() => setSearch({ open: true, query: '', at: 0 })} aria-label="Buscar en el chat" className="hidden h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] sm:flex"><SvgIcon name="search" translate="no" aria-hidden="true" /></button>
           <MenuButton items={menuItems} label="Opciones del chat" onDark />
         </header>
       )}

@@ -1,4 +1,5 @@
 import FlipCounter from '../ui/FlipCounter';
+import SvgIcon from '../ui/SvgIcon';
 
 const SURFACE = 'rounded-2xl bg-white ring-1 ring-slate-900/5 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.35)]';
 
@@ -59,7 +60,7 @@ export default function FolderSummary({ folderCount, publicCount, cardCount, wee
             <span className="block text-lg font-extrabold">{pendingCount} {pendingCount === 1 ? 'pedido' : 'pedidos'}</span>
           </span>
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#ffcb05] text-[#1a2b4b] transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:translate-x-0.5">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px]">arrow_forward</span>
+            <SvgIcon name="arrow_forward" translate="no" aria-hidden="true" className="text-[22px]" />
           </span>
         </button>
       )}

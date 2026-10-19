@@ -33,6 +33,7 @@ import EmptyState from '../components/ui/EmptyState';
 import { siteUrl } from '../utils/siteUrl';
 import { formatCardSearchQuery } from '../utils/cardCodeSearch';
 import { cardLanguageOf, normalizeCardLanguage } from '../utils/cardLanguage';
+import SvgIcon from '../components/ui/SvgIcon';
 
 
 const PAGE_SIZE = 20;
@@ -981,7 +982,7 @@ const [isSearching, setIsSearching] = useState(false);
           className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-100 hover:text-[#1e40af] sm:h-10 sm:w-10"
           title="Volver a mis carpetas"
         >
-          <span translate="no" className="material-symbols-outlined text-xl">arrow_back</span>
+          <SvgIcon name="arrow_back" translate="no" className="text-xl" />
         </button>
         <h1 className="m-0 truncate text-2xl font-black leading-tight text-[#1a2b4b] sm:text-4xl">Carpeta: {folderData.name}</h1>
       </div>
@@ -1005,7 +1006,7 @@ const [isSearching, setIsSearching] = useState(false);
             value: t.value,
             label: (
               <>
-                <span translate="no" className="material-symbols-outlined text-[18px] sm:text-[24px]">{t.icon}</span>
+                <SvgIcon name={t.icon} translate="no" className="text-[18px] sm:text-[24px]" />
                 <span className="text-xs sm:text-sm">{t.label}</span>
               </>
             ),
@@ -1040,7 +1041,7 @@ const [isSearching, setIsSearching] = useState(false);
           className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-[max(1.5rem,env(safe-area-inset-right))] bg-[#1e40af] text-white w-14 h-14 rounded-full shadow-lg hover:bg-blue-800 transition-all z-50 flex items-center justify-center transform hover:scale-110 active:scale-95 border-2 border-white/20 lg:hidden"
           aria-label="Volver arriba"
         >
-          <span translate="no" className="material-symbols-outlined text-2xl">arrow_upward</span>
+          <SvgIcon name="arrow_upward" translate="no" className="text-2xl" />
         </button>
       )}
       {shareNoticeOpen && !isBatchAdding && (

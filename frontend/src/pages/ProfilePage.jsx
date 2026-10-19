@@ -13,6 +13,7 @@ import ThemedSelect from '../components/ui/ThemedSelect';
 import Select from '../components/ui/Select';
 import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 import { siteUrl } from '../utils/siteUrl';
+import SvgIcon from '../components/ui/SvgIcon';
 
 const chileBanks = [
   'Banco de Chile - Edwards',
@@ -396,7 +397,7 @@ const ProfilePage = () => {
     return (
       <div className="mx-auto max-w-xl px-4 py-16 text-center">
         <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-blue-100">
-          <span translate="no" className="material-symbols-outlined text-5xl text-[#1e40af]">lock</span>
+          <SvgIcon name="lock" translate="no" className="text-5xl text-[#1e40af]" />
           <h1 className="mt-4 text-2xl font-black text-[#1a2b4b]">Inicia sesión para ver tu perfil</h1>
           <p className="mt-2 text-sm font-medium text-slate-500">Esta sección usa tu sesión para cargar y guardar datos de forma segura.</p>
           <Link to="/bienvenida" className="mt-5 inline-flex h-12 items-center rounded-full bg-[#facc15] px-7 text-[15px] font-extrabold text-[#12315f] shadow-sm transition-transform duration-150 active:scale-[0.97]">Iniciar sesión</Link>
@@ -423,7 +424,7 @@ const ProfilePage = () => {
         <aside className="min-w-0 space-y-3 lg:space-y-4">
           <div className="hidden rounded-[1.75rem] bg-white p-4 shadow-sm ring-1 ring-blue-100 lg:block">
             <div className="relative mx-auto h-32 w-32 overflow-hidden rounded-[2rem] bg-slate-100 ring-4 ring-white">
-              {profileData.photoURL ? <img src={profileData.photoURL} alt="Avatar" className="h-full w-full object-cover" /> : <span translate="no" className="material-symbols-outlined flex h-full w-full items-center justify-center text-6xl text-slate-300">person</span>}
+              {profileData.photoURL ? <img src={profileData.photoURL} alt="Avatar" className="h-full w-full object-cover" /> : <SvgIcon name="person" translate="no" className="flex h-full w-full items-center justify-center text-6xl text-slate-300" />}
               <label className="absolute inset-x-0 bottom-0 cursor-pointer bg-black/60 py-2 text-center text-xs font-black text-white backdrop-blur transition hover:bg-black/70">
                 Cambiar foto
                 <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
@@ -436,11 +437,11 @@ const ProfilePage = () => {
             </div>
             <div className="mt-4 grid gap-2">
               <button type="button" onClick={() => publicUrl && window.open(publicUrl, '_blank', 'noopener,noreferrer')} disabled={!publicUrl} className="flex items-center justify-center gap-2 rounded-2xl bg-blue-50 px-4 py-3 text-sm font-black text-[#1e40af] ring-1 ring-blue-100 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50">
-                <span translate="no" className="material-symbols-outlined text-[18px]">storefront</span>
+                <SvgIcon name="storefront" translate="no" className="text-[18px]" />
                 Ver perfil público
               </button>
               <button type="button" onClick={loadProfile} disabled={loadingProfile} className="flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
-                <span translate="no" className="material-symbols-outlined text-[18px]">refresh</span>
+                <SvgIcon name="refresh" translate="no" className="text-[18px]" />
                 Recargar
               </button>
             </div>
@@ -448,8 +449,8 @@ const ProfilePage = () => {
 
           <nav className="flex max-w-full gap-2 overflow-x-auto rounded-2xl bg-white p-2 shadow-sm ring-1 ring-blue-100 lg:flex-col lg:overflow-visible lg:rounded-[1.75rem]">
             {tabs.map(tab => (
-              <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`flex min-w-[92px] [@media(pointer:coarse)]:min-h-11 items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-[11px] font-black transition sm:min-w-[110px] sm:gap-2 sm:rounded-2xl sm:px-3 sm:py-3 sm:text-xs lg:min-w-0 lg:justify-start lg:text-sm ${activeTab === tab.id ? 'bg-[#1e40af] text-white shadow-md' : 'text-slate-500 hover:bg-blue-50 hover:text-[#1e40af]'}`}>
-                <span translate="no" className="material-symbols-outlined text-[20px]">{tab.icon}</span>
+              <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`flex min-w-[92px] [@media(pointer:coarse)]:min-h-11 items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-[11px] font-black transition sm:min-w-[110px] sm:gap-2 sm:rounded-2xl sm:px-3 sm:py-3 sm:text-xs lg:min-w-0 lg:justify-start lg:text-sm ${activeTab === tab.id ? 'bg-[#1e40af] text-white shadow-md' : 'text-slate-600 hover:bg-blue-50 hover:text-[#1e40af]'}`}>
+                <SvgIcon name={tab.icon} translate="no" className="text-[20px]" />
                 {tab.label}
               </button>
             ))}
@@ -474,7 +475,7 @@ const ProfilePage = () => {
                     <Field label="Usuario público" hint={usernameState.message}>
                       <div className="relative">
                         <TextInput value={profileData.username} onChange={e => updateProfileField('username', normalizeUsername(e.target.value))} placeholder="mi_usuario" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} className={usernameState.available === false ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : usernameState.available ? 'border-emerald-300 focus:border-emerald-500 focus:ring-emerald-100' : ''} />
-                        <span translate="no" className={`material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[20px] ${usernameState.checking ? 'animate-spin text-slate-400' : usernameState.available === false ? 'text-red-500' : usernameState.available ? 'text-emerald-500' : 'text-slate-300'}`}>{usernameState.checking ? 'sync' : usernameState.available === false ? 'cancel' : usernameState.available ? 'check_circle' : 'alternate_email'}</span>
+                        <SvgIcon name={usernameState.checking ? 'sync' : usernameState.available === false ? 'cancel' : usernameState.available ? 'check_circle' : 'alternate_email'} translate="no" className={`absolute right-4 top-1/2 -translate-y-1/2 text-[20px] ${usernameState.checking ? 'animate-spin text-slate-400' : usernameState.available === false ? 'text-red-500' : usernameState.available ? 'text-emerald-500' : 'text-slate-300'}`} />
                       </div>
                     </Field>
                     <Field label="Correo de acceso" hint="El correo viene desde tu autenticación y no se edita aquí."><TextInput value={profileData.email || currentUser.email || ''} disabled /></Field>

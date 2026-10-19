@@ -3,6 +3,7 @@ import ReportButton from '../moderation/ReportButton';
 import LocationLine from '../ui/LocationLine';
 import PlanBadge from '../ui/PlanBadge';
 import VerifiedBadge from '../ui/VerifiedBadge';
+import SvgIcon from '../ui/SvgIcon';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 
@@ -43,7 +44,7 @@ function OfferRow({ offer, isBest, isChosen }) {
         {offer.language && <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-600">{LANGUAGES[offer.language] || offer.language}</span>}
         <ReportButton targetType="card" targetId={offer.id} label="Reportar" className="inline-flex h-9 items-center rounded-lg px-2 text-xs font-bold text-slate-500 hover:bg-slate-100" />
         <Link to={`/c/${offer.folder.id}`} className="ml-auto flex h-11 items-center justify-center gap-1.5 rounded-xl bg-[#1e40af] px-4 text-sm font-bold text-white transition-[background-color,transform] duration-150 hover:bg-[#12315f] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2">
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">folder_open</span>
+          <SvgIcon name="folder_open" translate="no" aria-hidden="true" className="text-[20px]" />
           Ver carpeta del vendedor
         </Link>
       </div>

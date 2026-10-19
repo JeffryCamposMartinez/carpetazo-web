@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ReportMenu } from '../../moderation/ReportButton';
 import { Stars } from '../../reviews/Reviews';
 import { bannerForScreen } from '../../../utils/responsiveImage';
+import SvgIcon from '../../ui/SvgIcon';
 
 // Cifras grandes con separador de miles; desde 100.000 en formato corto para que nunca desborden
 const formatCount = (value) => {
@@ -79,7 +80,7 @@ export default function CatalogCover({
                 <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs font-semibold text-blue-100">
                   {locationText && (
                     <span className="flex items-center gap-1">
-                      <span translate="no" className="material-symbols-outlined text-[15px]">location_on</span>{locationText}
+                      <SvgIcon name="location_on" translate="no" className="text-[15px]" />{locationText}
                     </span>
                   )}
                   <Link to={sellerPath} className="inline-flex min-h-6 items-center font-bold text-[#facc15] hover:underline">Ver más del vendedor</Link>
@@ -95,7 +96,7 @@ export default function CatalogCover({
                 to={`/carpeta/${folderData.id}`}
                 className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#facc15] px-4 py-2.5 text-sm font-extrabold text-[#12315f] shadow-md transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-white/70 md:flex-none md:px-5"
               >
-                <span translate="no" className="material-symbols-outlined text-[20px]">add_circle</span>
+                <SvgIcon name="add_circle" translate="no" className="text-[20px]" />
                 <span className="md:hidden">Agregar cartas</span><span className="hidden md:inline">Agregar cartas a tu carpeta</span>
               </Link>
             )}

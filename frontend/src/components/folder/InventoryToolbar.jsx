@@ -1,5 +1,6 @@
 import { SORT_OPTIONS } from '../../hooks/useInventoryTools';
 import ThemedSelect from '../ui/ThemedSelect';
+import SvgIcon from '../ui/SvgIcon';
 
 const CHIP = 'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-bold ring-1 transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]';
 
@@ -25,7 +26,7 @@ export default function InventoryToolbar({ counts, draftCount, onSaveDrafts, onS
 
       {sortKey !== 'manual' && (
         <button type="button" onClick={onSaveOrder} disabled={saving} title="Los compradores verán la carpeta en este orden" className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#facc15] px-3.5 text-xs font-extrabold text-[#12315f] shadow-sm transition-[filter,transform] duration-150 hover:brightness-95 active:scale-[0.97] disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">{saving ? 'hourglass_empty' : 'bookmark_added'}</span>
+          <SvgIcon name={saving ? 'hourglass_empty' : 'bookmark_added'} translate="no" aria-hidden="true" className="text-[18px]" />
           {saving ? 'Guardando…' : <><span className="sm:hidden">Usar este orden</span><span className="hidden sm:inline">Usar como orden de la carpeta</span></>}
         </button>
       )}
@@ -44,13 +45,13 @@ export default function InventoryToolbar({ counts, draftCount, onSaveDrafts, onS
       <div className="ml-auto flex items-center gap-2">
         {draftCount > 0 && !selecting && (
           <button type="button" onClick={onSaveDrafts} disabled={saving} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#1e40af] px-3.5 text-xs font-extrabold text-white shadow-sm transition-[filter,transform] duration-150 hover:brightness-110 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 disabled:opacity-60">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">{saving ? 'hourglass_empty' : 'save'}</span>
+            <SvgIcon name={saving ? 'hourglass_empty' : 'save'} translate="no" aria-hidden="true" className="text-[18px]" />
             {saving ? 'Guardando...' : `Guardar ${draftCount} ${draftCount === 1 ? 'cambio' : 'cambios'}`}
           </button>
         )}
         {!selecting && (
           <button type="button" onClick={onStartSelecting} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-gray-300 bg-white px-3.5 text-xs font-bold text-[#1e40af] shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">checklist</span>
+            <SvgIcon name="checklist" translate="no" aria-hidden="true" className="text-[18px]" />
             Seleccionar
           </button>
         )}

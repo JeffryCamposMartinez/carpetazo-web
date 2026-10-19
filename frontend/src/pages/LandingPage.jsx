@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useRef } from 'react';
 import usePageMeta from '../hooks/usePageMeta';
+import SvgIcon from '../components/ui/SvgIcon';
 
 const BUY_STEPS = [
   'Busca una carta o una carpeta.',
@@ -192,7 +193,7 @@ export default function LandingPage() {
               {FEATURES.map((feature) => (
                 <div key={feature.title} className="grid gap-1 py-5 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] md:gap-8">
                   <dt className="flex items-center gap-3 text-lg font-extrabold text-[#12315f]">
-                    <span translate="no" className="material-symbols-outlined text-[24px] text-[#1e40af]">{feature.icon}</span>
+                    <SvgIcon name={feature.icon} translate="no" className="text-[24px] text-[#1e40af]" />
                     {feature.title}
                   </dt>
                   <dd className="text-base leading-relaxed text-slate-600 md:pl-0">{feature.text}</dd>

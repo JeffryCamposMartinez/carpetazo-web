@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import SvgIcon from '../ui/SvgIcon';
 
 const hideScrollbar = '[&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]';
 
@@ -36,7 +37,7 @@ export default function ModNav({ items, groups, value, onChange }) {
         <div ref={barRef} role="tablist" className={`flex gap-1.5 overflow-x-auto ${hideScrollbar}`}>
           {items.map((item) => (
             <button key={item.id} role="tab" type="button" aria-selected={value === item.id} onClick={() => onChange(item.id)} className={`flex h-11 shrink-0 items-center gap-2 rounded-full pl-3 pr-4 text-sm font-bold transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-1 ${value === item.id ? 'bg-[#12315f] text-white' : 'bg-[#eef2fa] text-[#12315f]'}`}>
-              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">{item.icon}</span>
+              <SvgIcon name={item.icon} translate="no" aria-hidden="true" className="text-[20px]" />
               {item.shortLabel || item.label}
               {item.count > 0 && <span className={`rounded-full px-1.5 text-xs font-extrabold tabular-nums ${item.alert ? 'bg-red-600 text-white' : 'bg-[#facc15] text-[#12315f]'}`}>{item.count > 99 ? '99+' : item.count}</span>}
             </button>
@@ -57,7 +58,7 @@ export default function ModNav({ items, groups, value, onChange }) {
                     const active = value === item.id;
                     return (
                       <button key={item.id} role="tab" type="button" aria-selected={active} tabIndex={active ? 0 : -1} onClick={() => onChange(item.id)} className={`flex h-11 items-center gap-3 rounded-lg px-3 text-left text-[15px] font-bold transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${active ? 'bg-[#12315f] text-white shadow-[0_4px_12px_-4px_rgba(18,49,95,0.55)]' : 'text-slate-700 [@media(hover:hover)]:hover:bg-[#e6ecf7]'}`}>
-                        <span translate="no" aria-hidden="true" className={`material-symbols-outlined text-[22px] ${active ? 'text-[#facc15]' : 'text-slate-500'}`}>{item.icon}</span>
+                        <SvgIcon name={item.icon} translate="no" aria-hidden="true" className={`text-[22px] ${active ? 'text-[#facc15]' : 'text-slate-500'}`} />
                         <span className="min-w-0 flex-1 truncate">{item.label}</span>
                         <Count value={item.count} alert={item.alert} active={active} />
                       </button>

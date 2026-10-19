@@ -1,6 +1,7 @@
 import LoadableImage from '../ui/LoadableImage';
 import { cardFit, cardRatio, isYugioh } from '../../utils/cardShape';
 import { Link } from 'react-router-dom';
+import SvgIcon from '../ui/SvgIcon';
 // En celular las fotos de cartas se descargan al acercarse a la pantalla; en PC se mantienen como siempre
 const MOBILE_IMAGE_LOADING = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 'lazy' : undefined;
 
@@ -61,7 +62,7 @@ export default function CatalogCard({ tcg, card, availableStock, cartQuantity, o
             aria-label={wished ? `${card.name} está en tu lista de deseadas` : `Agregar ${card.name} a mis deseadas`}
             className={`absolute right-1.5 top-1.5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 shadow-md ring-1 ring-black/10 transition active:scale-90 ${wished ? 'text-rose-500' : 'text-slate-500'}`}
           >
-            <span translate="no" className="material-symbols-outlined text-[22px]" style={wished ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>
+            <SvgIcon name="favorite" translate="no" className="text-[22px]" style={wished ? { fontVariationSettings: "'FILL' 1" } : undefined} />
           </button>
         )}
         {isOutOfStock && cartQuantity === 0 && (
@@ -124,11 +125,11 @@ export default function CatalogCard({ tcg, card, availableStock, cartQuantity, o
           {!isMyl && (
             <div className="flex flex-col gap-1">
               <a href={tcgPlayerUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-gray-400 hover:text-[#1e40af] text-[11px] font-bold transition-colors">
-                <span translate="no" className="material-symbols-outlined text-[12px]">open_in_new</span>
+                <SvgIcon name="open_in_new" translate="no" className="text-[12px]" />
                 TCGPlayer
               </a>
               <a href={tcgMatchUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-gray-400 hover:text-[#1e40af] text-[11px] font-bold transition-colors">
-                <span translate="no" className="material-symbols-outlined text-[12px]">open_in_new</span>
+                <SvgIcon name="open_in_new" translate="no" className="text-[12px]" />
                 TCGMatch
               </a>
             </div>
@@ -143,7 +144,7 @@ export default function CatalogCard({ tcg, card, availableStock, cartQuantity, o
                   aria-label={`Quitar una unidad de ${card.name} del carrito`}
                   className="w-11 h-11 [@media(hover:hover)]:w-8 [@media(hover:hover)]:h-8 rounded-full border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 flex items-center justify-center transition-colors"
                 >
-                  <span translate="no" className="material-symbols-outlined text-[16px]">remove</span>
+                  <SvgIcon name="remove" translate="no" className="text-[16px]" />
                 </button>
                 <span className="text-[#1a2b4b] font-bold min-w-[12px] text-center">{cartQuantity}</span>
               </>
@@ -156,7 +157,7 @@ export default function CatalogCard({ tcg, card, availableStock, cartQuantity, o
                 isOutOfStock ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' : 'bg-[#ffcb05] text-[#1a2b4b] hover:scale-105 shadow-sm hover:shadow-md'
               }`}
             >
-              <span translate="no" className="material-symbols-outlined text-[18px]">add</span>
+              <SvgIcon name="add" translate="no" className="text-[18px]" />
             </button>
           </div>
           )}
@@ -171,7 +172,7 @@ export default function CatalogCard({ tcg, card, availableStock, cartQuantity, o
                   aria-label={`Quitar una unidad de ${card.name} del carrito`}
                   className="w-11 h-11 [@media(hover:hover)]:w-7 [@media(hover:hover)]:h-7 rounded-full border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 flex items-center justify-center transition-colors shadow-sm"
                 >
-                  <span translate="no" className="material-symbols-outlined text-[15px]">remove</span>
+                  <SvgIcon name="remove" translate="no" className="text-[15px]" />
                 </button>
                 <span className="text-[#1a2b4b] font-bold min-w-[12px] text-center text-sm">{cartQuantity}</span>
               </>
@@ -184,7 +185,7 @@ export default function CatalogCard({ tcg, card, availableStock, cartQuantity, o
                 isOutOfStock ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' : 'bg-[#ffcb05] text-[#1a2b4b] hover:scale-105 shadow-sm hover:shadow-md'
               }`}
             >
-              <span translate="no" className="material-symbols-outlined text-[18px]">add</span>
+              <SvgIcon name="add" translate="no" className="text-[18px]" />
             </button>
           </div>
         )}

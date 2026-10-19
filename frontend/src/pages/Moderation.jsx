@@ -17,6 +17,7 @@ import CatalogImportPanel from '../components/moderation/CatalogImportPanel';
 import FeedbackPanel from '../components/moderation/FeedbackPanel';
 import ModNav from '../components/moderation/ModNav';
 import LoadingState from '../components/ui/LoadingState';
+import SvgIcon from '../components/ui/SvgIcon';
 
 // Secciones según el rol: soporte (1) lee, moderador (2) decide, administrador (3) además ve reseñas, métricas, auditoría, catálogo y herramientas
 const GROUPS = [
@@ -96,7 +97,7 @@ export default function Moderation() {
     return (
       <div className="mx-auto w-full max-w-md px-4 py-16 text-center">
         <div className="rounded-3xl border border-[#dbe3f0] bg-white p-8 shadow-xl">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e8effc] text-[#1e40af]"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[30px]">lock</span></span>
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e8effc] text-[#1e40af]"><SvgIcon name="lock" translate="no" aria-hidden="true" className="text-[30px]" /></span>
           <h1 className="mt-4 text-xl font-black text-[#12315f]">Acceso restringido</h1>
           <p className="mt-2 text-sm font-semibold text-slate-600">Esta sección es solo para el equipo de moderación.</p>
           <Link to="/" className="mt-5 inline-flex h-11 items-center rounded-full bg-[#facc15] px-6 text-sm font-extrabold text-[#12315f] transition-transform duration-150 active:scale-[0.97]">Volver al inicio</Link>
@@ -110,7 +111,7 @@ export default function Moderation() {
       <div className="overflow-hidden rounded-2xl border border-white/60 bg-white shadow-[0_30px_70px_-35px_rgba(8,18,42,0.85)] lg:rounded-3xl">
         <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 bg-[#12315f] px-4 py-4 text-white sm:px-6 lg:py-5">
           <div className="flex min-w-0 items-center gap-3.5">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#facc15] text-[#12315f]"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[26px]">shield_person</span></span>
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#facc15] text-[#12315f]"><SvgIcon name="shield_person" translate="no" aria-hidden="true" className="text-[26px]" /></span>
             <div className="min-w-0">
               <h1 className="text-2xl font-extrabold leading-tight tracking-tight lg:text-[1.75rem]">Moderación</h1>
               <p className="text-sm font-medium text-blue-100/90">{ROLE_LABELS[level]}</p>

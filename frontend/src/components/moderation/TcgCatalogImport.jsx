@@ -3,6 +3,7 @@ import { api } from '../../services/api';
 import { ErrorBox, ListSkeleton } from './shared';
 import { ConfirmDialog, Stepper, sizeLabel } from './CatalogImportParts';
 import { ButtonSpinner } from '../ui/LoadingState';
+import SvgIcon from '../ui/SvgIcon';
 
 const fmt = (value) => Number(value || 0).toLocaleString('es-CL');
 
@@ -121,7 +122,7 @@ export default function TcgCatalogImport({ files, onReset }) {
       {stage === 'review' && (
         <div className="space-y-4 pb-24 sm:pb-0">
           <div role="status" className={`flex items-start gap-3 rounded-2xl border p-4 ${hasProblems ? 'border-red-200 bg-red-50 text-red-900' : pending > 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-[#dbe3f0] bg-white text-[#12315f]'}`}>
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined mt-0.5 text-[26px]">{hasProblems ? 'error' : pending > 0 ? 'check_circle' : 'task_alt'}</span>
+            <SvgIcon name={hasProblems ? 'error' : pending > 0 ? 'check_circle' : 'task_alt'} translate="no" aria-hidden="true" className="mt-0.5 text-[26px]" />
             <div className="min-w-0">
               <p className="text-base font-extrabold leading-snug">
                 {hasProblems ? `Hay ${fileErrors.length + failedFiles.length} ${fileErrors.length + failedFiles.length === 1 ? 'problema' : 'problemas'} en los archivos` : pending > 0 ? `Listo para cargar: ${[total('new') > 0 && `${fmt(total('new'))} nuevas`, total('updated') > 0 && `${fmt(total('updated'))} correcciones`].filter(Boolean).join(' y ') || 'ediciones y juegos nuevos'}` : 'No hay nada nuevo que cargar'}
@@ -167,7 +168,7 @@ export default function TcgCatalogImport({ files, onReset }) {
 
           {checkedImages > 0 && (
             <div role="status" className={`flex items-start gap-3 rounded-2xl border p-4 text-sm ${missingImages ? 'border-amber-300 bg-amber-50 text-amber-950' : 'border-[#dbe3f0] bg-white text-slate-700'}`}>
-              <span translate="no" aria-hidden="true" className={`material-symbols-outlined mt-px text-[22px] ${missingImages ? 'text-amber-600' : 'text-emerald-600'}`}>{missingImages ? 'image_not_supported' : 'imagesmode'}</span>
+              <SvgIcon name={missingImages ? 'image_not_supported' : 'imagesmode'} translate="no" aria-hidden="true" className={`mt-px text-[22px] ${missingImages ? 'text-amber-600' : 'text-emerald-600'}`} />
               <p className="font-semibold">{missingImages ? `${fmt(missingImages)} de ${fmt(checkedImages)} imágenes comprobadas todavía no están en R2. Puedes cargar igual, pero esas cartas se verán sin foto hasta subirlas.` : `Las ${fmt(checkedImages)} imágenes comprobadas (una muestra de las nuevas) ya están disponibles en R2.`}</p>
             </div>
           )}
@@ -179,7 +180,7 @@ export default function TcgCatalogImport({ files, onReset }) {
                 {samples.map((card) => (
                   <li key={card.productId} className="min-w-0">
                     <span className="flex aspect-[5/7] items-center justify-center overflow-hidden rounded-lg bg-[#e6ecf7]">
-                      {card.imageUrl ? <img src={card.imageUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" className="h-full w-full object-cover" /> : <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px] text-slate-400">image_not_supported</span>}
+                      {card.imageUrl ? <img src={card.imageUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" className="h-full w-full object-cover" /> : <SvgIcon name="image_not_supported" translate="no" aria-hidden="true" className="text-[22px] text-slate-400" />}
                     </span>
                     <p className="mt-1 truncate text-xs font-bold text-slate-800" title={card.name}>{card.name}</p>
                     <p className="truncate text-[11px] text-slate-500">{card.edition}</p>
@@ -216,7 +217,7 @@ export default function TcgCatalogImport({ files, onReset }) {
 
       {stage === 'done' && summary && (
         <div className="mod-row-in rounded-3xl border border-emerald-200 bg-white p-8 text-center">
-          <span className={`mx-auto flex h-16 w-16 items-center justify-center rounded-2xl ${error ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[36px]">{error ? 'warning' : 'check_circle'}</span></span>
+          <span className={`mx-auto flex h-16 w-16 items-center justify-center rounded-2xl ${error ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}><SvgIcon name={error ? 'warning' : 'check_circle'} translate="no" aria-hidden="true" className="text-[36px]" /></span>
           <h3 className="mt-4 text-xl font-extrabold text-[#12315f]">{[summary.created > 0 && `${fmt(summary.created)} cartas nuevas`, summary.updated > 0 && `${fmt(summary.updated)} correcciones`].filter(Boolean).join(' y ') || 'No había cambios'} {error ? 'cargadas hasta aquí' : 'cargadas'}</h3>
           <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-slate-600">{summary.filesDone} de {summary.filesTotal} archivos procesados{summary.newSets ? ` · ${fmt(summary.newSets)} ediciones nuevas` : ''}. La carga quedó registrada en la auditoría.</p>
           <button type="button" onClick={onReset} className="mt-6 h-12 rounded-full bg-[#12315f] px-7 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 active:scale-[0.97] hover:bg-[#1e40af]">{error ? 'Volver a elegir archivos' : 'Cargar otros archivos'}</button>

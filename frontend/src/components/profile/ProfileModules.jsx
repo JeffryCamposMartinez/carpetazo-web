@@ -4,6 +4,7 @@ import WishlistSection from '../wishlist/WishlistSection';
 import { getCardStyle } from './profileStyles';
 import { getFolderFilter } from '../../config/folderOptions';
 import { readableOn } from '../../utils/color';
+import SvgIcon from '../ui/SvgIcon';
 
 // Frase de la vitrina según su estilo
 const SHOWCASE_LINES = {
@@ -35,7 +36,7 @@ export default function ProfileModules({
                 {totalCards.toLocaleString('es-CL')} {totalCards === 1 ? 'carta' : 'cartas'} en {folders.length} {folders.length === 1 ? 'carpeta' : 'carpetas'}
               </p>
               <span className="mt-3 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-extrabold" style={{ backgroundColor: `${publicTheme.accent}40`, color: publicTheme.text }}>
-                <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]" style={{ color: publicTheme.primary }}>military_tech</span>
+                <SvgIcon name="military_tech" translate="no" aria-hidden="true" className="text-[18px]" style={{ color: publicTheme.primary }} />
                 Coleccionista nivel <span style={{ fontFamily: 'var(--seller-data)' }}>{profileLevel}</span>
               </span>
             </div>
@@ -56,7 +57,7 @@ export default function ProfileModules({
                         {folder.isPublic === false ? 'Privada · ' : ''}{folder.tcg} · {folder.cardsCount} {folder.cardsCount === 1 ? 'carta' : 'cartas'}
                       </span>
                     </span>
-                    <span translate="no" className="material-symbols-outlined transition-transform group-hover:translate-x-1" style={{ color: publicTheme.primary }}>arrow_forward</span>
+                    <SvgIcon name="arrow_forward" translate="no" className="transition-transform group-hover:translate-x-1" style={{ color: publicTheme.primary }} />
                   </Link>
                 </li>
               ))}
@@ -75,7 +76,7 @@ export default function ProfileModules({
               ].map(([label, value, icon]) => (
                 <div key={label} className="flex items-center gap-3 py-3" style={{ borderColor: `${publicTheme.primary}22` }}>
                   <dt className="flex min-w-0 flex-1 items-center gap-3 text-sm font-semibold">
-                    <span translate="no" aria-hidden="true" className="material-symbols-outlined shrink-0 text-[24px]" style={{ color: publicTheme.primary }}>{icon}</span>
+                    <SvgIcon name={icon} translate="no" aria-hidden="true" className="shrink-0 text-[24px]" style={{ color: publicTheme.primary }} />
                     <span style={textMuted}>{label}</span>
                   </dt>
                   <dd className="text-xl font-black tabular-nums" style={{ color: publicTheme.text, fontFamily: 'var(--seller-data)' }}>{value}</dd>
@@ -104,7 +105,7 @@ export default function ProfileModules({
 
           {folders.length === 0 ? (
             <div className="border border-dashed p-10 text-center" style={{ ...getCardStyle(publicTheme), borderColor: `${publicTheme.primary}55` }}>
-              <span aria-hidden="true" className="empty-in mx-auto flex h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: `${publicTheme.primary}1f`, color: publicTheme.primary }}><span translate="no" className="material-symbols-outlined text-[32px]">inventory_2</span></span>
+              <span aria-hidden="true" className="empty-in mx-auto flex h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: `${publicTheme.primary}1f`, color: publicTheme.primary }}><SvgIcon name="inventory_2" translate="no" className="text-[32px]" /></span>
               <p className="mt-3 text-lg font-extrabold" style={{ color: publicTheme.text }}>{isOwner ? 'Aún no tienes carpetas públicas' : canViewPrivateFolders ? 'Este vendedor no tiene carpetas' : 'Este vendedor está ordenando sus cartas'}</p>
               <p className="mt-1 text-sm font-medium" style={textMuted}>{isOwner ? 'Crea una carpeta en tu panel y márcala como pública para que aparezca aquí.' : 'Cuando publique una carpeta, aparecerá aquí.'}</p>
               {isOwner && <Link to="/dashboard" className="mt-4 inline-flex h-11 items-center rounded-full px-6 text-sm font-extrabold transition-[filter,transform] duration-150 active:scale-[0.97] [@media(hover:hover)]:hover:brightness-110" style={{ backgroundColor: publicTheme.primary, color: readableOn(publicTheme.primary) }}>Ir a mis carpetas</Link>}
@@ -118,14 +119,14 @@ export default function ProfileModules({
                     <div>
                       <div className="flex justify-end">
                         <div className="flex items-center gap-[1.5cqi] rounded-[3cqi] bg-black/30 px-[3cqi] py-[1.5cqi] text-[4.5cqi] font-bold text-white shadow-sm">
-                          <span translate="no" className="material-symbols-outlined text-[5cqi]">style</span>
+                          <SvgIcon name="style" translate="no" className="text-[5cqi]" />
                           {folder.cardsCount}
                         </div>
                       </div>
                       <h3 className="mt-[2cqi] line-clamp-3 w-full break-words text-[11cqi] font-extrabold leading-tight text-white drop-shadow-md" title={folder.name}>{folder.name}</h3>
                     </div>
                     <span className="flex w-fit items-center gap-[1.5cqi] rounded-[2cqi] border border-white/60 px-[3cqi] py-[1cqi] text-[3.5cqi] font-bold uppercase tracking-wider text-white drop-shadow-sm">
-                      {folder.isPublic === false && <span translate="no" aria-label="Carpeta privada" title="Carpeta privada" className="material-symbols-outlined text-[4cqi]">lock</span>}
+                      {folder.isPublic === false && <SvgIcon name="lock" translate="no" aria-label="Carpeta privada" title="Carpeta privada" className="text-[4cqi]" />}
                       {folder.isPublic === false ? 'Privada · ' : ''}{folder.tcg}
                     </span>
                   </div>

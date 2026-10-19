@@ -5,6 +5,7 @@ import { useRef } from 'react';
 import { DetailHeader, DetailPane, Dot, EmptyState, FilterSheet, ListSkeleton, Pills, ROW, ROW_ACTIVE, ROW_HOVER, SEVERITY_STYLE, relativeTime } from './shared';
 import Select from '../ui/Select';
 import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
+import SvgIcon from '../ui/SvgIcon';
 
 const SEVERITY = {
   S1: { label: 'Crítica', className: 'bg-red-600 text-white' },
@@ -313,11 +314,11 @@ export default function ReportsPanel({ level = 1, onOpenPerson = () => {}, initi
 
         <form onSubmit={submitSearch} className="mb-3 flex flex-wrap gap-2">
           <div className="relative min-w-0 flex-1">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">search</span>
+            <SvgIcon name="search" translate="no" aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-slate-400" />
             <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Código RP o usuario" aria-label="Buscar reporte" maxLength={40} className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-base sm:text-sm text-slate-800 outline-none focus:border-[#1e40af]" />
           </div>
           <button type="button" onClick={() => setShowFilters(true)} className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-bold text-[#12315f] ring-1 ring-slate-300 lg:hidden">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">tune</span>
+            <SvgIcon name="tune" translate="no" aria-hidden="true" className="text-[20px]" />
             Filtros
             {activeFilters > 0 && <span className="rounded-full bg-[#facc15] px-1.5 text-xs font-extrabold text-[#12315f]">{activeFilters}</span>}
           </button>
@@ -377,7 +378,7 @@ export default function ReportsPanel({ level = 1, onOpenPerson = () => {}, initi
           <ReportDetail id={selected} level={level} onClose={() => setSelected(null)} onChanged={load} onOpenPerson={onOpenPerson} />
         </DetailPane>
       ) : (
-        <section className="sticky top-4 hidden min-h-[18rem] flex-col items-center justify-center rounded-2xl border border-dashed border-[#c5d2ea] bg-white/60 p-10 text-center xl:flex"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[36px] text-[#1e40af]/40">fact_check</span><p className="mt-3 max-w-[16rem] text-sm font-semibold leading-relaxed text-slate-500">Elige un reporte de la lista para ver el contenido y decidir.</p></section>
+        <section className="sticky top-4 hidden min-h-[18rem] flex-col items-center justify-center rounded-2xl border border-dashed border-[#c5d2ea] bg-white/60 p-10 text-center xl:flex"><SvgIcon name="fact_check" translate="no" aria-hidden="true" className="text-[36px] text-[#1e40af]/40" /><p className="mt-3 max-w-[16rem] text-sm font-semibold leading-relaxed text-slate-500">Elige un reporte de la lista para ver el contenido y decidir.</p></section>
       )}
     </div>
   );

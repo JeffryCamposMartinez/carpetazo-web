@@ -5,6 +5,7 @@ import CatalogImportReview from './CatalogImportReview';
 import TcgCatalogImport from './TcgCatalogImport';
 import { ButtonSpinner } from '../ui/LoadingState';
 import { ConfirmDialog, Stepper, sizeLabel } from './CatalogImportParts';
+import SvgIcon from '../ui/SvgIcon';
 
 const FILE_NAME = 'cartas_incrementales.json';
 const MAX_BYTES = 12 * 1024 * 1024;
@@ -134,7 +135,7 @@ export default function CatalogImportPanel() {
             className={`flex cursor-pointer flex-col items-center rounded-3xl border-2 border-dashed px-6 py-12 text-center transition-[border-color,background-color,transform] duration-200 ease-out focus-within:ring-2 focus-within:ring-[#1e40af] ${dragging ? 'scale-[0.995] border-[#1e40af] bg-[#e8effc]' : 'border-[#b9c7e0] bg-white [@media(hover:hover)]:hover:border-[#1e40af] [@media(hover:hover)]:hover:bg-[#f7f9fd]'}`}
           >
             <span className={`flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e8effc] text-[#1e40af] transition-transform duration-200 ease-out ${dragging ? '-translate-y-1' : ''}`}>
-              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[34px]">upload_file</span>
+              <SvgIcon name="upload_file" translate="no" aria-hidden="true" className="text-[34px]" />
             </span>
             <span className="mt-5 text-lg font-extrabold text-[#12315f]">{dragging ? 'Suelta los archivos aquí' : 'Arrastra cartas_incrementales.json o los archivos del catálogo TCG'}</span>
             <span className="mt-1.5 text-sm text-slate-600">o toca para buscarlos en tu equipo. El catálogo de TCGplayer viene en varios archivos cartas_incrementales_tcg_….json: elígelos todos juntos.</span>
@@ -162,7 +163,7 @@ export default function CatalogImportPanel() {
       {stage === 'review' && plan && (
         <div className="pb-24 sm:pb-0">
           <div className="mb-4 flex items-center gap-3 rounded-2xl border border-[#dbe3f0] bg-white p-3 pl-4">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[26px] text-[#1e40af]">description</span>
+            <SvgIcon name="description" translate="no" aria-hidden="true" className="text-[26px] text-[#1e40af]" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-slate-800">{file?.name}</p>
               <p className="truncate text-xs text-slate-500">{sizeLabel(file?.size || 0)}{plan.generatedAt ? ` · generado ${dateTime(plan.generatedAt)}` : ''}</p>
@@ -185,7 +186,7 @@ export default function CatalogImportPanel() {
 
       {stage === 'done' && result && (
         <div className="mod-row-in rounded-3xl border border-emerald-200 bg-white p-8 text-center">
-          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[36px]">check_circle</span></span>
+          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700"><SvgIcon name="check_circle" translate="no" aria-hidden="true" className="text-[36px]" /></span>
           <h3 className="mt-4 text-xl font-extrabold text-[#12315f]">{result.created === 0 && !result.updated ? 'No había cambios' : [result.created > 0 && `${result.created === 1 ? '1 carta nueva' : `${result.created} cartas nuevas`}`, result.updated > 0 && `${result.updated === 1 ? '1 corrección' : `${result.updated} correcciones`}`].filter(Boolean).join(' y ') + ' cargadas'}</h3>
           <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-slate-600">{result.existing > 0 ? `${result.existing} ${result.existing === 1 ? 'carta no tenía cambios' : 'cartas no tenían cambios'}. ` : ''}La carga quedó registrada en la auditoría.</p>
           <button type="button" onClick={reset} className="mt-6 h-12 rounded-full bg-[#12315f] px-7 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 active:scale-[0.97] hover:bg-[#1e40af]">Cargar otro archivo</button>

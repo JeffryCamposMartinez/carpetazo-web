@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api } from '../../services/api';
 import { warmFolderPreview } from '../../utils/sharePreview';
 import { siteUrl } from '../../utils/siteUrl';
+import SvgIcon from '../ui/SvgIcon';
 
 // Tras guardar la primera carta: invita a publicar la carpeta y compartir su enlace (copiar o WhatsApp).
 // Una carpeta privada no la ve nadie, así que publicar es el paso que falta para vender.
@@ -54,7 +55,7 @@ export default function FolderShareNotice({ folder, onPublished, onClose, showTo
       <div role="dialog" aria-label="Publica y comparte tu carpeta" className="auth-sheet w-full max-w-md rounded-2xl bg-white p-4 shadow-[0_18px_50px_-12px_rgba(8,18,42,0.55)] ring-1 ring-slate-900/10 sm:p-5">
         <div className="flex items-start gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#facc15] text-[#12315f]">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[24px]">celebration</span>
+            <SvgIcon name="celebration" translate="no" aria-hidden="true" className="text-[24px]" />
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-base font-extrabold text-[#12315f]">¡Ya cargaste tu primera carta!</p>
@@ -63,16 +64,16 @@ export default function FolderShareNotice({ folder, onPublished, onClose, showTo
             </p>
           </div>
           <button type="button" onClick={onClose} aria-label="Cerrar aviso" className="-mr-1.5 -mt-1.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px]">close</span>
+            <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[22px]" />
           </button>
         </div>
         <div className="mt-3 space-y-2">
           <button type="button" disabled={busy} onClick={copyLink} className={`${button} bg-[#1e40af] text-white hover:bg-[#12315f]`}>
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px]">link</span>
+            <SvgIcon name="link" translate="no" aria-hidden="true" className="text-[22px]" />
             {isPublic ? 'Copiar enlace' : 'Publicar y copiar enlace'}
           </button>
           <button type="button" disabled={busy} onClick={shareWhatsapp} className={`${button} bg-[#25D366] text-white hover:bg-[#128C7E]`}>
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px]">share</span>
+            <SvgIcon name="share" translate="no" aria-hidden="true" className="text-[22px]" />
             {isPublic ? 'Compartir por WhatsApp' : 'Publicar y compartir por WhatsApp'}
           </button>
           <button type="button" onClick={onClose} className={`${button} text-slate-600 hover:bg-slate-100`}>Más tarde</button>

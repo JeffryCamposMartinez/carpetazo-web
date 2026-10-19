@@ -1,6 +1,7 @@
 import { DRAG_PAGE_TURN_EDGE_RATIO } from './albumDrag';
 import { DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from '../dragScroll';
 import EmptyState from '../../ui/EmptyState';
+import SvgIcon from '../../ui/SvgIcon';
 // Una hoja del álbum: sus bolsillos de cartas por delante y por detrás, y su giro.
 export default function AlbumPage({
   pageIndex, activeCardId, albumDragNavRef, cards, cardsPerPage, currentPage, dragPageTurnDirectionRef,
@@ -320,7 +321,7 @@ export default function AlbumPage({
           </div>
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center opacity-20 select-none relative z-0">
-            <span translate="no" className="material-symbols-outlined text-white text-4xl mb-1">style</span>
+            <SvgIcon name="style" translate="no" className="text-white text-4xl mb-1" />
           </div>
         )}
       </div>
@@ -384,7 +385,7 @@ export default function AlbumPage({
             <div className="absolute inset-0 opacity-40 mix-blend-overlay bg-[url('/images/cubes.png')]" />
             <div className="absolute right-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-l from-black/90 to-transparent pointer-events-none z-20" />
             <div className="absolute inset-0 flex items-center justify-center opacity-10">
-              <span translate="no" className="material-symbols-outlined text-[10rem] md:text-[15rem]">style</span>
+              <SvgIcon name="style" translate="no" className="text-[10rem] md:text-[15rem]" />
             </div>
           </>
         )}

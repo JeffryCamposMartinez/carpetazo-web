@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import LiquidTabs from '../../ui/LiquidTabs';
+import SvgIcon from '../../ui/SvgIcon';
 
 const typesList = ["Colorless", "Fire", "Water", "Grass", "Lightning", "Fighting", "Fairy", "Metal", "Darkness", "Dragon", "Psychic"];
 
@@ -168,7 +169,7 @@ export default function PokemonFilters({
                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-red-50 text-red-500 hover:bg-red-100 hover:scale-110 hover:shadow-md transition-all outline-none flex items-center justify-center border-2 border-red-200 shrink-0"
                 title="Limpiar filtro de tipo"
               >
-                <span translate="no" className="material-symbols-outlined text-xl sm:text-2xl font-bold">close</span>
+                <SvgIcon name="close" translate="no" className="text-xl sm:text-2xl font-bold" />
               </button>
             )}
             {typesList.map(type => (

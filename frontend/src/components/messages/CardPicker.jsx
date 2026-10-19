@@ -3,6 +3,7 @@ import { api } from '../../services/api';
 import Sheet from './Sheet';
 import LoadingState from '../ui/LoadingState';
 import EmptyState from '../ui/EmptyState';
+import SvgIcon from '../ui/SvgIcon';
 
 const formatCLP = (value) => `$${Math.round(Number(value) || 0).toLocaleString('es-CL')}`;
 const TCG_LABELS = { Pokemon: 'Pokémon', OnePiece: 'One Piece', YuGiOh: 'Yu-Gi-Oh!' };
@@ -57,7 +58,7 @@ export default function CardPicker({ open, onClose, onPick, myUsername }) {
     <Sheet open={open} onClose={onClose} title="Enviar una carta" full className="sm:max-w-lg">
       <div className="shrink-0 px-4 pb-2">
         <label className="flex h-12 items-center gap-2 rounded-full bg-slate-100 px-4 focus-within:ring-2 focus-within:ring-[#1e40af]">
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px] text-slate-500">search</span>
+          <SvgIcon name="search" translate="no" aria-hidden="true" className="text-[22px] text-slate-500" />
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Busca por nombre de la carta" aria-label="Buscar carta" className="min-w-0 flex-1 bg-transparent border-0 focus:ring-0 p-0 text-[16px] text-slate-900 outline-none placeholder:text-slate-500" />
         </label>
         {myUsername && (

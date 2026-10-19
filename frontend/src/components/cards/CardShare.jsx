@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { siteUrl } from '../../utils/siteUrl';
+import SvgIcon from '../ui/SvgIcon';
 
 // Íconos de marca (trazos simples, 24×24)
 const ICONS = {
@@ -52,10 +53,10 @@ export default function CardShare({ cardId, name, message, showToast, children }
       <h2 id="share-title" className="text-base font-extrabold text-[#12315f]">Compartir esta carta</h2>
 
       <button type="button" onClick={copy} aria-label="Copiar enlace de la carta" className="mt-3 flex h-12 w-full items-center gap-2 rounded-xl bg-slate-50 pl-3 pr-1.5 text-left ring-1 ring-slate-200 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-        <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px] text-slate-400">link</span>
+        <SvgIcon name="link" translate="no" aria-hidden="true" className="text-[20px] text-slate-400" />
         <span className="min-w-0 flex-1 truncate text-xs text-slate-500">{shown}</span>
         <span className={`flex h-9 shrink-0 items-center gap-1 rounded-lg px-3 text-sm font-bold transition-colors ${copied ? 'bg-emerald-600 text-white' : 'bg-[#1e40af] text-white'}`}>
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">{copied ? 'check' : 'content_copy'}</span>
+          <SvgIcon name={copied ? 'check' : 'content_copy'} translate="no" aria-hidden="true" className="text-[18px]" />
           {copied ? 'Copiado' : 'Copiar'}
         </span>
       </button>
@@ -69,7 +70,7 @@ export default function CardShare({ cardId, name, message, showToast, children }
         ))}
         {typeof navigator !== 'undefined' && navigator.share ? (
           <button type="button" onClick={nativeShare} aria-label="Más opciones para compartir" className={TILE}>
-            <span className={`${CIRCLE} bg-slate-500`}><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[24px]">share</span></span>
+            <span className={`${CIRCLE} bg-slate-500`}><SvgIcon name="share" translate="no" aria-hidden="true" className="text-[24px]" /></span>
             Más
           </button>
         ) : null}

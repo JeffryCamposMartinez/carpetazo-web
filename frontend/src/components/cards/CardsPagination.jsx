@@ -1,3 +1,4 @@
+import SvgIcon from '../ui/SvgIcon';
 const BUTTON = 'flex h-11 flex-1 items-center justify-center gap-1 rounded-full bg-white px-4 text-sm font-extrabold text-[#12315f] ring-1 ring-slate-900/10 transition-[transform,opacity] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:pointer-events-none disabled:opacity-40 sm:flex-none';
 const NUMBER = 'flex h-11 min-w-11 items-center justify-center rounded-full px-2 text-sm font-extrabold tabular-nums transition-[transform,background-color] duration-150 active:scale-[0.95] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]';
 
@@ -27,10 +28,10 @@ export default function CardsPagination({ onPage, openEnded = false, page, pages
         {openEnded && <li aria-hidden="true" className="flex h-10 items-center px-1 text-sm font-bold text-slate-500">…</li>}
       </ul>
       <button type="button" disabled={page <= 1} onClick={() => onPage(page - 1)} className={`${BUTTON} sm:order-first`}>
-        <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">chevron_left</span>Anterior
+        <SvgIcon name="chevron_left" translate="no" aria-hidden="true" className="text-[20px]" />Anterior
       </button>
       <button type="button" disabled={page >= pages} onClick={() => onPage(page + 1)} className={BUTTON}>
-        Siguiente<span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">chevron_right</span>
+        Siguiente<SvgIcon name="chevron_right" translate="no" aria-hidden="true" className="text-[20px]" />
       </button>
     </nav>
   );

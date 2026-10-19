@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import WishlistCardFinder from './WishlistCardFinder';
+import SvgIcon from '../ui/SvgIcon';
 
 // Móvil y tablet: el buscador de cartas ocupa toda la pantalla para que los resultados tengan espacio. Va al <body> para quedar sobre el encabezado.
 export default function WishlistFinderSheet({ onClose, onAdd, addedKeys, busyKey, count, limit }) {
@@ -33,7 +34,7 @@ export default function WishlistFinderSheet({ onClose, onAdd, addedKeys, busyKey
           aria-label="Cerrar buscador"
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#12315f] transition-[background-color,transform] duration-150 hover:bg-slate-100 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"
         >
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[26px]">close</span>
+          <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[26px]" />
         </button>
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-base font-extrabold leading-tight text-[#12315f]">Agregar carta</h2>
@@ -44,7 +45,7 @@ export default function WishlistFinderSheet({ onClose, onAdd, addedKeys, busyKey
           onClick={() => resetRef.current?.()}
           className="flex h-11 shrink-0 items-center gap-1 rounded-full px-3 text-sm font-bold text-[#1e40af] transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"
         >
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">filter_alt_off</span>
+          <SvgIcon name="filter_alt_off" translate="no" aria-hidden="true" className="text-[20px]" />
           Limpiar
         </button>
       </div>

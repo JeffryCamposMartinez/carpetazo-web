@@ -1,6 +1,7 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { getFolderFilter } from '../../config/folderOptions';
+import SvgIcon from '../ui/SvgIcon';
 
 export default function LazyFolderCard({ folder }) {
   const [details, setDetails] = useState({
@@ -77,7 +78,7 @@ export default function LazyFolderCard({ folder }) {
         <div className="w-full flex flex-col">
           <div className="flex justify-end w-full">
             <div className="bg-black/30 px-[3cqi] py-[1.5cqi] rounded-[3cqi] text-[4.5cqi] font-bold text-white shadow-sm flex items-center gap-[1.5cqi]" title="Cartas">
-              <span translate="no" className="material-symbols-outlined text-[5cqi]">style</span> {details.cardsCount}
+              <SvgIcon name="style" translate="no" className="text-[5cqi]" /> {details.cardsCount}
             </div>
           </div>
           

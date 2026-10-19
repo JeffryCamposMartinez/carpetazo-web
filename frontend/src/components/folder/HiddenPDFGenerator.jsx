@@ -3,6 +3,7 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import api, { apiUrl } from '../../services/api';
 import { useToast } from '../ui/ToastProvider';
+import SvgIcon from '../ui/SvgIcon';
 
 // Mismo orden que ve el usuario en su carpeta: primero catalogOrder, luego fecha de creación
 const sortCatalogCards = (cardArray = []) => {
@@ -280,7 +281,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
                           </div>
                         ) : (
                           <div className="w-full h-full border-2 border-dashed border-white/5 rounded-lg flex items-center justify-center z-30">
-                            <span translate="no" className="material-symbols-outlined text-white/10 text-4xl">style</span>
+                            <SvgIcon name="style" translate="no" className="text-white/10 text-4xl" />
                           </div>
                         )}
                       </div>

@@ -8,6 +8,7 @@ import AlbumPagination from './album/AlbumPagination';
 import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 import EmptyState from '../ui/EmptyState';
 import { rawMylId } from '../../utils/mylIdentity';
+import SvgIcon from '../ui/SvgIcon';
 
 
 const stripHtml = (value = '') => String(value || '').replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
@@ -444,7 +445,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
             disabled={currentPage === 0 || targetPage !== null}
             className="hidden md:flex absolute left-2 xl:left-6 2xl:left-12 top-1/2 -translate-y-1/2 w-16 h-16 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 items-center justify-center rounded-full shadow-lg text-slate-700 dark:text-slate-300 disabled:opacity-30 disabled:hover:bg-white/80 transition-all z-50 cursor-pointer border border-slate-200 dark:border-slate-700 hover:scale-110"
           >
-            <span translate="no" className="material-symbols-outlined text-4xl">chevron_left</span>
+            <SvgIcon name="chevron_left" translate="no" className="text-4xl" />
           </button>
           
           <button 
@@ -452,7 +453,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
             disabled={currentPage >= totalPages - 1 || targetPage !== null}
             className="hidden md:flex absolute right-2 xl:right-6 2xl:right-12 top-1/2 -translate-y-1/2 w-16 h-16 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 items-center justify-center rounded-full shadow-lg text-slate-700 dark:text-slate-300 disabled:opacity-30 disabled:hover:bg-white/80 transition-all z-50 cursor-pointer border border-slate-200 dark:border-slate-700 hover:scale-110"
           >
-            <span translate="no" className="material-symbols-outlined text-4xl">chevron_right</span>
+            <SvgIcon name="chevron_right" translate="no" className="text-4xl" />
           </button>
         </>
       )}

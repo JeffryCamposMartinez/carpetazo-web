@@ -10,6 +10,7 @@ import WishlistButton from './header/WishlistButton';
 import { useToast } from '../ui/ToastProvider';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import { formatCardSearchQuery } from '../../utils/cardCodeSearch';
+import SvgIcon from '../ui/SvgIcon';
 
 // Ventanas que solo se abren a pedido: su código se descarga al abrirlas, no en la primera carga de cada página
 const AuthModal = lazy(() => import('../auth/AuthModal'));
@@ -496,7 +497,7 @@ export default function Header() {
             aria-label="Buscar"
             className={`relative flex shrink-0 items-center justify-center rounded-full bg-[#facc15] text-[#12315f] shadow-[inset_0_-1px_0_rgba(0,0,0,0.12)] transition-[transform,filter] duration-150 hover:brightness-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12315f] after:absolute after:-inset-1 after:content-[''] ${isMobile ? 'h-10 w-10' : 'h-9 w-9'}`}
           >
-            <span translate="no" aria-hidden="true" className={`material-symbols-outlined font-bold ${isMobile ? 'text-[22px]' : 'text-[20px]'}`}>search</span>
+            <SvgIcon name="search" translate="no" aria-hidden="true" className={`font-bold ${isMobile ? 'text-[22px]' : 'text-[20px]'}`} />
           </button>
         </div>
       </form>
@@ -538,7 +539,7 @@ export default function Header() {
                   >
                     <img src={userAvatar || currentUser.photoURL} alt="" className="h-9 w-9 rounded-full border-2 border-[#facc15] object-cover bg-white" />
                     <span className="hidden text-[13px] font-extrabold xl:block">Mi cuenta</span>
-                    <span translate="no" aria-hidden="true" className={`material-symbols-outlined hidden text-[18px] text-blue-100 transition-transform duration-150 xl:block ${isDropdownOpen ? 'rotate-180' : ''}`}>expand_more</span>
+                    <SvgIcon name="expand_more" translate="no" aria-hidden="true" className={`hidden text-[18px] text-blue-100 transition-transform duration-150 xl:block ${isDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
 
                   {isDropdownOpen && (
@@ -548,43 +549,43 @@ export default function Header() {
                         <p className="mt-1 truncate text-sm font-extrabold text-[#1a2b4b]">{userUsername || currentUser.displayName || 'Usuario'}</p>
                       </div>
                       <Link role="menuitem" to="/dashboard" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
-                        <span translate="no" className="material-symbols-outlined text-[20px]">folder</span> Mis carpetas
+                        <SvgIcon name="folder" translate="no" className="text-[20px]" /> Mis carpetas
                       </Link>
                       <Link role="menuitem" to="/dashboard?tab=deseadas" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
-                        <span translate="no" className="material-symbols-outlined text-[20px]">favorite</span> Mi lista de deseos
+                        <SvgIcon name="favorite" translate="no" className="text-[20px]" /> Mi lista de deseos
                       </Link>
                       <Link role="menuitem" to="/dashboard?tab=solicitudes" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
-                        <span translate="no" className="material-symbols-outlined text-[20px]">inbox</span> Solicitudes
+                        <SvgIcon name="inbox" translate="no" className="text-[20px]" /> Solicitudes
                         {pendingOrders.count > 0 && <span className="ml-auto rounded-full bg-[#facc15] px-2 py-0.5 text-[11px] font-black tabular-nums text-[#12315f]">{pendingOrders.count}</span>}
                       </Link>
                       <Link role="menuitem" to="/dashboard?tab=historial" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
-                        <span translate="no" className="material-symbols-outlined text-[20px]">receipt_long</span> Historial de ventas
+                        <SvgIcon name="receipt_long" translate="no" className="text-[20px]" /> Historial de ventas
                       </Link>
                       <Link role="menuitem" to="/mensajes" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
-                        <span translate="no" className="material-symbols-outlined text-[20px]">chat</span> Mensajes
+                        <SvgIcon name="chat" translate="no" className="text-[20px]" /> Mensajes
                       </Link>
                       <Link role="menuitem" to="/perfil" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
-                        <span translate="no" className="material-symbols-outlined text-[20px]">person</span> Mi cuenta
+                        <SvgIcon name="person" translate="no" className="text-[20px]" /> Mi cuenta
                       </Link>
                       <Link role="menuitem" to="/planes" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
-                        <span translate="no" className="material-symbols-outlined text-[20px]">workspace_premium</span> Mi plan
+                        <SvgIcon name="workspace_premium" translate="no" className="text-[20px]" /> Mi plan
                       </Link>
                       <Link role="menuitem" to="/sugerencias" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
-                        <span translate="no" className="material-symbols-outlined text-[20px]">feedback</span> Reclamos y sugerencias
+                        <SvgIcon name="feedback" translate="no" className="text-[20px]" /> Reclamos y sugerencias
                       </Link>
                       {userUsername && (
                         <Link role="menuitem" to={`/${userUsername}`} onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
-                          <span translate="no" className="material-symbols-outlined text-[20px]">storefront</span> Ver perfil público
+                          <SvgIcon name="storefront" translate="no" className="text-[20px]" /> Ver perfil público
                         </Link>
                       )}
                       {['admin', 'coadmin', 'moderator', 'support'].includes(appUser?.role) && (
                         <Link role="menuitem" to="/moderacion" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
-                          <span translate="no" className="material-symbols-outlined text-[20px]">admin_panel_settings</span> Moderación
+                          <SvgIcon name="admin_panel_settings" translate="no" className="text-[20px]" /> Moderación
                         </Link>
                       )}
                       <div className="h-px bg-gray-100 my-1 mx-2"></div>
                       <button role="menuitem" onClick={() => { setIsDropdownOpen(false); handleLogout(); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-bold flex items-center gap-3">
-                        <span translate="no" className="material-symbols-outlined text-[20px]">logout</span> Salir
+                        <SvgIcon name="logout" translate="no" className="text-[20px]" /> Salir
                       </button>
                     </div>
                   )}
@@ -636,11 +637,11 @@ export default function Header() {
                   className="relative flex h-11 items-center gap-1 rounded-full border border-white/15 bg-white/10 py-1 pl-1 pr-2 text-white transition-[background-color,transform] duration-150 active:scale-[0.97] active:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"
                 >
                   <img src={userAvatar || currentUser.photoURL} alt="" className="h-9 w-9 rounded-full border-2 border-[#facc15] object-cover bg-white" />
-                  <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[24px] text-white">menu</span>
+                  <SvgIcon name="menu" translate="no" aria-hidden="true" className="text-[24px] text-white" />
                 </button>
               ) : (
                 <button onClick={() => setIsMobileMenuOpen(true)} aria-label="Abrir menú" aria-haspopup="dialog" className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition-[background-color,transform] duration-150 active:scale-[0.97] active:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
-                  <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[26px]">menu</span>
+                  <SvgIcon name="menu" translate="no" aria-hidden="true" className="text-[26px]" />
                 </button>
               )}
             </div>

@@ -1,6 +1,7 @@
 import FolderBinder from './FolderBinder';
 import FolderStatusChip from './FolderStatusChip';
 import { createPortal } from 'react-dom';
+import SvgIcon from '../ui/SvgIcon';
 
 // Botón redondo de icono: 36 px visibles y 44 px de zona táctil
 const ICON_BUTTON = "relative flex h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 shrink-0 items-center justify-center rounded-full transition-[background-color,transform] duration-150 hover:bg-white active:scale-[0.94] active:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] after:absolute after:-inset-1 after:content-['']";
@@ -20,7 +21,7 @@ export default function FolderGrid({
         className="group mx-auto hidden aspect-[32/37] w-full max-w-[260px] flex-col items-center justify-center gap-3 self-start rounded-[22px] border-[3px] border-dashed border-[#1e40af]/35 bg-white/40 text-[#1e40af] transition-[border-color,background-color,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 hover:border-[#1e40af] hover:bg-white/80 active:scale-[0.98] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#1e40af]/40 motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:flex"
       >
         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1e40af] text-white shadow-md transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-105 group-active:scale-95 motion-reduce:transition-none">
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined text-3xl">add</span>
+          <SvgIcon name="add" translate="no" aria-hidden="true" className="text-3xl" />
         </span>
         <span className="text-lg font-extrabold">Nueva carpeta</span>
         {folders.length === 0 && <span className="max-w-[80%] text-center text-sm text-slate-600">Crea la primera para empezar a subir cartas</span>}
@@ -52,7 +53,7 @@ export default function FolderGrid({
                 aria-label={`Compartir ${folder.name}`}
                 className={`${ICON_BUTTON} text-[#1e40af]`}
               >
-                <span translate="no" aria-hidden="true" className="material-symbols-outlined text-xl">{copiedFolderId === folder.id ? 'check' : 'share'}</span>
+                <SvgIcon name={copiedFolderId === folder.id ? 'check' : 'share'} translate="no" aria-hidden="true" className="text-xl" />
               </button>
               <button
                 type="button"
@@ -63,7 +64,7 @@ export default function FolderGrid({
                 aria-label={`Más opciones de ${folder.name}`}
                 className={`${ICON_BUTTON} text-slate-600`}
               >
-                <span translate="no" aria-hidden="true" className="material-symbols-outlined text-xl">more_horiz</span>
+                <SvgIcon name="more_horiz" translate="no" aria-hidden="true" className="text-xl" />
               </button>
             </div>
 

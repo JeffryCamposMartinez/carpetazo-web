@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
 import usePageMeta from '../hooks/usePageMeta';
 import { ButtonSpinner } from '../components/ui/LoadingState';
+import SvgIcon from '../components/ui/SvgIcon';
 
 const KIND_LABELS = { complaint: 'Reclamo', suggestion: 'Sugerencia' };
 const STATUS_LABELS = { open: 'Pendiente de revisión', corrected: 'Marcada como corregida' };
@@ -49,7 +50,7 @@ export default function FeedbackPage() {
     return (
       <div className="mx-auto w-full max-w-xl px-3 py-8 sm:px-6">
         <section className="rounded-3xl border border-white/70 bg-white p-8 text-center shadow-xl">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e8effc] text-[#1e40af]"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[30px]">feedback</span></span>
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e8effc] text-[#1e40af]"><SvgIcon name="feedback" translate="no" aria-hidden="true" className="text-[30px]" /></span>
           <h1 className="mt-4 text-2xl font-black text-[#12315f]">Reclamos y sugerencias</h1>
           <p className="mt-2 text-sm font-semibold text-slate-600">Inicia sesión para enviar un mensaje al equipo y revisar su estado.</p>
           <Link to="/" className="mt-5 inline-flex h-11 items-center rounded-full bg-[#facc15] px-6 text-sm font-extrabold text-[#12315f]">Volver al inicio</Link>
@@ -63,7 +64,7 @@ export default function FeedbackPage() {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.85fr)]">
         <section className="rounded-3xl border border-white/70 bg-white p-5 shadow-xl sm:p-7">
           <div className="flex items-start gap-3">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#e8effc] text-[#1e40af]"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[27px]">feedback</span></span>
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#e8effc] text-[#1e40af]"><SvgIcon name="feedback" translate="no" aria-hidden="true" className="text-[27px]" /></span>
             <div>
               <h1 className="text-2xl font-black tracking-tight text-[#12315f]">Reclamos y sugerencias</h1>
               <p className="mt-1 text-sm leading-relaxed text-slate-600">Cuéntanos qué ocurrió o qué mejorarías. El equipo revisará tu mensaje desde Moderación.</p>
@@ -86,7 +87,7 @@ export default function FeedbackPage() {
               <textarea required minLength={10} maxLength={3000} rows={7} value={form.message} onChange={(event) => setForm((previous) => ({ ...previous, message: event.target.value }))} placeholder="Describe la situación o la idea con el mayor detalle posible…" className="mt-1.5 w-full resize-y rounded-xl border border-[#b9c7e0] px-3 py-2.5 text-sm font-medium leading-relaxed text-[#12315f] outline-none placeholder:text-slate-400 focus:border-[#1e40af] focus:ring-2 focus:ring-[#1e40af]/15" />
             </label>
             <button type="submit" disabled={saving} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#1e40af] px-5 text-sm font-extrabold text-white transition-[background-color,transform] hover:bg-[#12315f] active:scale-[0.98] disabled:cursor-wait disabled:opacity-60">
-              {saving ? <><ButtonSpinner /> Enviando…</> : <><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[19px]">send</span> Enviar al equipo</>}
+              {saving ? <><ButtonSpinner /> Enviando…</> : <><SvgIcon name="send" translate="no" aria-hidden="true" className="text-[19px]" /> Enviar al equipo</>}
             </button>
           </form>
         </section>

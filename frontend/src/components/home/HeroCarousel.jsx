@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import HomeHero from './HomeHero';
+import SvgIcon from '../ui/SvgIcon';
 
 // Cada banner dice qué se puede hacer en el sitio, con lo que existe hoy.
 const THEMES = {
@@ -29,7 +30,7 @@ function InfoSlide({ theme, title, text, points, cta, to }) {
       <ul className="hidden gap-2.5 md:grid">
         {points.map(({ icon, label }) => (
           <li key={label} className="flex items-center gap-4 rounded-2xl border border-white/15 bg-white/10 px-4 py-3.5 text-[15px] font-semibold backdrop-blur-sm">
-            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${t.chip}`}><span translate="no" className="material-symbols-outlined text-[24px]">{icon}</span></span>
+            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${t.chip}`}><SvgIcon name={icon} translate="no" className="text-[24px]" /></span>
             {label}
           </li>
         ))}

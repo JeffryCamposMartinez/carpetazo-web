@@ -1,3 +1,4 @@
+import SvgIcon from '../../ui/SvgIcon';
 // Controles de página del álbum (arriba y abajo): anterior, números y siguiente.
 export default function AlbumPagination({
   inverted = false, currentPage, getPaginationItems, handleNext, handlePrev, jumpToPage, targetPage,
@@ -7,7 +8,7 @@ export default function AlbumPagination({
     <div className={`relative z-10 flex flex-col items-center w-full max-w-7xl px-5 md:px-4 ${inverted ? 'mt-6 md:mt-10' : 'mb-2 md:mb-4'}`} onClick={(e) => e.stopPropagation()}>
       {!inverted && (
         <div className="md:hidden flex items-center gap-1.5 text-slate-600 dark:text-slate-400 text-xs mb-3 font-medium bg-slate-200/50 dark:bg-slate-800/50 px-3 py-1 rounded-full">
-          <span translate="no" className="material-symbols-outlined text-[16px]">swipe</span>
+          <SvgIcon name="swipe" translate="no" className="text-[16px]" />
           Desliza para cambiar de página
         </div>
       )}
@@ -26,7 +27,7 @@ export default function AlbumPagination({
           disabled={currentPage === 0 || targetPage !== null}
           aria-label="Página anterior" className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
         >
-          <span translate="no" className="material-symbols-outlined text-sm md:text-base">arrow_back_ios_new</span>
+          <SvgIcon name="arrow_back_ios_new" translate="no" className="text-sm md:text-base" />
         </button>
 
         <div className="flex items-center gap-1 md:gap-2 font-medium text-slate-700 dark:text-slate-300">
@@ -57,7 +58,7 @@ export default function AlbumPagination({
           disabled={currentPage >= totalPages - 1 || targetPage !== null}
           aria-label="Página siguiente" className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
         >
-          <span translate="no" className="material-symbols-outlined text-sm md:text-base">arrow_forward_ios</span>
+          <SvgIcon name="arrow_forward_ios" translate="no" className="text-sm md:text-base" />
         </button>
       </div>
 

@@ -6,6 +6,7 @@ import ComunaSelect from '../components/ui/ComunaSelect';
 import Select from '../components/ui/Select';
 import usePageMeta from '../hooks/usePageMeta';
 import EmptyState from '../components/ui/EmptyState';
+import SvgIcon from '../components/ui/SvgIcon';
 
 const TCG_CATEGORIES = [
   { name: 'Pokémon', logo: '/images/logos/pokemon.webp' },
@@ -113,7 +114,7 @@ export default function FoldersPage() {
 
         <div className="mb-3 flex flex-col gap-2 rounded-2xl bg-white p-2.5 shadow-sm ring-1 ring-slate-900/5 md:flex-row md:items-center md:p-3">
           <div className="relative min-w-0 flex-1">
-            <span translate="no" className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">search</span>
+            <SvgIcon name="search" translate="no" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-slate-400" />
             <input
               type="search"
               inputMode="search"
@@ -198,11 +199,11 @@ export default function FoldersPage() {
         {!loading && !failed && totalPages > 1 && (
           <nav aria-label="Paginación" className="mt-8 flex items-center justify-center gap-3">
             <button type="button" disabled={page <= 1} onClick={() => goToPage(page - 1)} className="flex h-10 items-center gap-1 rounded-full bg-white px-4 text-sm font-bold text-[#12315f] shadow-sm ring-1 ring-slate-900/5 disabled:opacity-40">
-              <span translate="no" className="material-symbols-outlined text-[18px]">chevron_left</span> Anterior
+              <SvgIcon name="chevron_left" translate="no" className="text-[18px]" /> Anterior
             </button>
             <span className="text-sm font-semibold tabular-nums text-slate-600">Página {page} de {totalPages}</span>
             <button type="button" disabled={page >= totalPages} onClick={() => goToPage(page + 1)} className="flex h-10 items-center gap-1 rounded-full bg-white px-4 text-sm font-bold text-[#12315f] shadow-sm ring-1 ring-slate-900/5 disabled:opacity-40">
-              Siguiente <span translate="no" className="material-symbols-outlined text-[18px]">chevron_right</span>
+              Siguiente <SvgIcon name="chevron_right" translate="no" className="text-[18px]" />
             </button>
           </nav>
         )}

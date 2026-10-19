@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatDuration } from './messageUtils';
+import SvgIcon from '../ui/SvgIcon';
 
 const RATES = [1, 1.5, 2];
 let active = null; // solo suena una nota de voz a la vez: al reproducir otra, la anterior se detiene
@@ -49,7 +50,7 @@ export default function VoiceMessage({ audio, own }) {
   return (
     <div className="flex w-[15.5rem] max-w-full items-center gap-2.5 py-1 sm:w-[17rem]">
       <button type="button" onClick={toggle} aria-label={playing ? 'Pausar nota de voz' : 'Reproducir nota de voz'} className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-[transform,filter] duration-150 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] ${own ? 'bg-white text-[#1e40af]' : 'bg-[#1e40af] text-white'}`}>
-        <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>{playing ? 'pause' : 'play_arrow'}</span>
+        <SvgIcon name={playing ? 'pause' : 'play_arrow'} translate="no" aria-hidden="true" className="text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }} />
       </button>
       <div className="min-w-0 flex-1">
         <div

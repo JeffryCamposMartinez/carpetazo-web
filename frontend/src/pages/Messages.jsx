@@ -12,6 +12,7 @@ import ConversationView from '../components/messages/ConversationView';
 import { ChatActionSheet, NewChatSheet, PrivacySheet, StarredSheet } from '../components/messages/ChatSheets';
 import { personOf } from '../components/messages/messageUtils';
 import usePageMeta from '../hooks/usePageMeta';
+import SvgIcon from '../components/ui/SvgIcon';
 
 const POLL_LIVE_MS = 45000; // con la conexión en vivo basta una revisión de respaldo
 const POLL_FALLBACK_MS = 4000;
@@ -220,7 +221,7 @@ export default function Messages() {
           <div className="min-h-0 bg-[#dbeafe]">
             {conversation || (
               <div className="chat-wallpaper flex h-full flex-col items-center justify-center px-8 text-center">
-                <span aria-hidden="true" className="flex h-20 w-20 items-center justify-center rounded-full bg-white text-[#1e40af] shadow-md"><span translate="no" className="material-symbols-outlined text-[40px]">forum</span></span>
+                <span aria-hidden="true" className="flex h-20 w-20 items-center justify-center rounded-full bg-white text-[#1e40af] shadow-md"><SvgIcon name="forum" translate="no" className="text-[40px]" /></span>
                 <h2 className="mt-5 text-2xl font-extrabold text-[#12315f]">Tus mensajes de Carpetazo</h2>
                 <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-slate-600">Elige una conversación para ver los mensajes. Puedes mandar fotos y cartas a la venta desde el clip.</p>
               </div>

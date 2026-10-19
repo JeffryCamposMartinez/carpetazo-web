@@ -1,6 +1,7 @@
 import { AVAILABLE_TCGS, COLOR_NAMES, FOLDER_COLORS, TCG_OPTIONS } from '../../config/folderOptions';
 import FolderBinder from './FolderBinder';
 import { Link } from 'react-router-dom';
+import SvgIcon from '../ui/SvgIcon';
 
 // Crear o editar una carpeta: nombre, juego, color y visibilidad, con vista previa en vivo.
 export default function FolderFormModal({
@@ -44,7 +45,7 @@ export default function FolderFormModal({
           <div className="flex items-start justify-between gap-4">
             <h3 id="folder-dialog-title" className="text-2xl font-extrabold text-[#1a2b4b]">{isEdit ? 'Editar carpeta' : 'Nueva carpeta'}</h3>
             <button type="button" onClick={close} aria-label="Cerrar" className="-mr-2 -mt-1 flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100">
-              <span translate="no" className="material-symbols-outlined text-xl">close</span>
+              <SvgIcon name="close" translate="no" className="text-xl" />
             </button>
           </div>
 
@@ -119,7 +120,7 @@ export default function FolderFormModal({
                     onClick={() => setNewFolderPublic(value)}
                     className={`flex min-h-[4.25rem] flex-col items-start gap-0.5 rounded-xl px-3 py-2 text-left ring-1 transition-colors ${newFolderPublic === value ? 'bg-[#1e40af] text-white ring-[#1e40af]' : 'bg-white text-slate-700 ring-slate-300 hover:bg-slate-50'}`}
                   >
-                    <span className="flex items-center gap-1.5 text-sm font-bold"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">{icon}</span>{label}</span>
+                    <span className="flex items-center gap-1.5 text-sm font-bold"><SvgIcon name={icon} translate="no" aria-hidden="true" className="text-[18px]" />{label}</span>
                     <span className={`text-xs ${newFolderPublic === value ? 'text-white/85' : 'text-slate-500'}`}>{hint}</span>
                   </button>
                 ))}

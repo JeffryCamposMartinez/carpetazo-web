@@ -5,6 +5,7 @@ import CardLightbox from '../../ui/CardLightbox';
 import InventoryBulkBar from '../InventoryBulkBar';
 import InventoryToolbar from '../InventoryToolbar';
 import { DragFloatingPreview, FolderInventorySummary, InventoryEmptyState, InventoryFilters, InventoryStatusBar, InventoryViewSwitcher } from '../FolderInventoryComponents';
+import SvgIcon from '../../ui/SvgIcon';
 
 export default function FolderCatalogTab({
   availableSets, cards, catQuery, catSet, catalogDragFloatingPreview, catalogDragFloatingPreviewRef,
@@ -26,7 +27,7 @@ export default function FolderCatalogTab({
       <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-black leading-tight text-[#1a2b4b] sm:text-xl">
-            <span translate="no" className="material-symbols-outlined text-[22px] text-[#1e40af]">inventory_2</span>
+            <SvgIcon name="inventory_2" translate="no" className="text-[22px] text-[#1e40af]" />
             Inventario Actual
           </h2>
           <p className="text-xs text-gray-500">Carpeta de {folderData?.tcg || 'este TCG'}.</p>
@@ -37,7 +38,7 @@ export default function FolderCatalogTab({
             onClick={openBuyerPreview}
             className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-blue-100 bg-blue-50 px-3 text-xs font-black text-[#1e40af] shadow-sm transition-colors hover:bg-blue-100 sm:gap-2 sm:px-4"
           >
-            <span translate="no" className="material-symbols-outlined text-[18px]">visibility</span>
+            <SvgIcon name="visibility" translate="no" className="text-[18px]" />
             <span className="truncate">Vista</span>
             <span className="hidden sm:inline">comprador</span>
           </button>
@@ -46,7 +47,7 @@ export default function FolderCatalogTab({
             onClick={copyBuyerLink}
             className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 text-xs font-black text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-[#1e40af] sm:gap-2 sm:px-4"
           >
-            <span translate="no" className="material-symbols-outlined text-[18px]">link</span>
+            <SvgIcon name="link" translate="no" className="text-[18px]" />
             <span className="truncate">Copiar</span>
             <span className="hidden sm:inline">enlace</span>
           </button>
@@ -115,7 +116,7 @@ export default function FolderCatalogTab({
             title={`Información de las cartas: ${DETAIL_MODES[cardDetailsMode].label}. Toca para cambiar`}
             aria-label={`Información de las cartas: ${DETAIL_MODES[cardDetailsMode].label}. Toca para cambiar`}
           >
-            <span translate="no" className="material-symbols-outlined text-[21px]">{DETAIL_MODES[cardDetailsMode].icon}</span>
+            <SvgIcon name={DETAIL_MODES[cardDetailsMode].icon} translate="no" className="text-[21px]" />
           </button>
           <button
             type="button"
@@ -124,7 +125,7 @@ export default function FolderCatalogTab({
             title="Cambiar tamaño de cuadrícula"
             aria-label="Cambiar tamaño de cuadrícula"
           >
-            <span translate="no" className="material-symbols-outlined text-[20px]">grid_view</span>
+            <SvgIcon name="grid_view" translate="no" className="text-[20px]" />
             <span className="ml-0.5">{catalogGridColumns}</span>
           </button>
           </>
@@ -136,7 +137,7 @@ export default function FolderCatalogTab({
           title="Limpiar filtros"
           aria-label="Limpiar filtros"
         >
-          <span translate="no" className="material-symbols-outlined text-[21px]">filter_alt_off</span>
+          <SvgIcon name="filter_alt_off" translate="no" className="text-[21px]" />
         </button>
         <button
           type="button"
@@ -145,7 +146,7 @@ export default function FolderCatalogTab({
           title="Volver arriba"
           aria-label="Volver arriba"
         >
-          <span translate="no" className="material-symbols-outlined text-[24px]">arrow_upward</span>
+          <SvgIcon name="arrow_upward" translate="no" className="text-[24px]" />
         </button>
       </div>
 
@@ -157,9 +158,7 @@ export default function FolderCatalogTab({
             disabled={savingCatalogOrder}
             className="inline-flex h-14 whitespace-nowrap items-center gap-2 rounded-full bg-[#1e40af] px-4 text-xs font-black text-white shadow-2xl ring-4 ring-white/70 transition-all hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-70 sm:px-5 sm:text-sm"
           >
-            <span translate="no" className="material-symbols-outlined text-[20px]">
-              {savingCatalogOrder ? 'hourglass_empty' : 'save'}
-            </span>
+            <SvgIcon name={savingCatalogOrder ? 'hourglass_empty' : 'save'} translate="no" className="text-[20px]" />
             <span className="hidden min-[360px]:inline">
               {savingCatalogOrder ? 'Guardando orden...' : 'Guardar orden del álbum'}
             </span>

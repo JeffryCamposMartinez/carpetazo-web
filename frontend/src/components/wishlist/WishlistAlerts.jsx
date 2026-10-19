@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../../services/api';
 import { useToast } from '../ui/ToastProvider';
 import { currentPushSubscription, disablePush, enablePush, pushSupported } from '../../services/pushNotifications';
+import SvgIcon from '../ui/SvgIcon';
 
 function Switch({ checked, busy, onChange, label }) {
   return (
@@ -85,7 +86,7 @@ export default function WishlistAlerts() {
   return (
     <section aria-label="Avisos de tu lista de deseos" className="rounded-2xl bg-[#eef2fa] p-3">
       <p className="flex items-center gap-1.5 text-sm font-extrabold text-[#12315f]">
-        <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px] text-[#1e40af]">notifications_active</span>
+        <SvgIcon name="notifications_active" translate="no" aria-hidden="true" className="text-[20px] text-[#1e40af]" />
         Avísame cuando aparezcan o bajen de precio
       </p>
       <ul className="mt-2 divide-y divide-slate-200/70">

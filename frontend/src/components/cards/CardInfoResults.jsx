@@ -13,6 +13,7 @@ import useReferencePrices from '../../hooks/useReferencePrices';
 import { ReferencePriceLine } from '../folder/ReferencePrice';
 import { formatClp } from '../../services/tcgcsvPrices';
 import { cardFill, cardRatio } from '../../utils/cardShape';
+import SvgIcon from '../ui/SvgIcon';
 
 const NOTE = 'Referencia del catálogo: esta ficha no es una oferta de venta.';
 const tcgplayerImage = (card) => {
@@ -86,7 +87,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
   return (
     <section id="cartas-informativas" aria-label="Coincidencias del catálogo" className="mt-5 scroll-mt-28">
       <div className="mb-3 flex items-start gap-3 rounded-2xl bg-white p-4 ring-1 ring-slate-900/5">
-        <span translate="no" aria-hidden="true" className="material-symbols-outlined mt-0.5 text-[24px] text-[#1e40af]">info</span>
+        <SvgIcon name="info" translate="no" aria-hidden="true" className="mt-0.5 text-[24px] text-[#1e40af]" />
         <div className="min-w-0">
           <h2 className="text-base font-extrabold text-[#12315f]">{hasOffers ? `Más coincidencias del catálogo para "${query.trim()}"` : `Sin ofertas para "${query.trim()}": busca también en el catálogo`}</h2>
           <p className="mt-0.5 text-sm text-slate-600">Coincidencias por nombre o similitud. Estas fichas son informativas, no ofertas de venta; la disponibilidad se muestra en los resultados de arriba. Puedes agregarlas a tus deseadas.</p>
@@ -109,7 +110,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
               <div className="mt-1 flex items-center justify-between gap-2">
                 <ReferencePriceLine variants={card.groupId ? variantsFor(card) : null} className="shrink-0 text-xs" />
                 <button type="button" onClick={() => addToFolder(card)} title="Agregar a mi carpeta" className="flex h-8 w-8 shrink-0 items-center justify-center gap-0.5 rounded-lg bg-[#1e40af] px-0 text-xs font-extrabold @[10.5rem]:w-auto @[10.5rem]:pl-1.5 @[10.5rem]:pr-2.5 text-white transition-[background-color,transform] duration-150 hover:bg-[#12315f] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
-                  <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[16px]">add</span><span aria-hidden="true" className="hidden @[10.5rem]:inline">Agregar</span><span className="sr-only">Agregar a mi carpeta</span>
+                  <SvgIcon name="add" translate="no" aria-hidden="true" className="text-[16px]" /><span aria-hidden="true" className="hidden @[10.5rem]:inline">Agregar</span><span className="sr-only">Agregar a mi carpeta</span>
                 </button>
               </div>
               <button
@@ -119,7 +120,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
                 aria-label={stateOf(card) ? `Quitar ${card.name} de mis deseadas` : `Agregar ${card.name} a mis deseadas`}
                 className={`absolute right-3.5 top-3.5 z-10 flex h-11 w-11 items-center justify-center rounded-full shadow-md ring-1 ring-black/10 transition-[transform,background-color] duration-150 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${stateOf(card) ? 'bg-[#facc15]/90 text-[#12315f]' : 'bg-white/55 text-[#12315f] backdrop-blur-sm hover:bg-white/80'}`}
               >
-                <span key={stateOf(card) ? 'on' : 'off'} translate="no" aria-hidden="true" className={`material-symbols-outlined text-[24px] ${stateOf(card) ? 'heart-pop' : ''}`} style={stateOf(card) ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>
+                <SvgIcon name="favorite" key={stateOf(card) ? 'on' : 'off'} translate="no" aria-hidden="true" className={`text-[24px] ${stateOf(card) ? 'heart-pop' : ''}`} style={stateOf(card) ? { fontVariationSettings: "'FILL' 1" } : undefined} />
               </button>
                             </div>
             </li>
@@ -153,10 +154,10 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
           renderActions={(card) => (
             <div className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:justify-center">
               <button type="button" onClick={() => addToFolder(card)} className="flex h-11 items-center justify-center gap-1.5 rounded-full bg-[#facc15] px-5 text-sm font-extrabold text-[#12315f] transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
-                <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">add_circle</span>Agregar a mi carpeta
+                <SvgIcon name="add_circle" translate="no" aria-hidden="true" className="text-[20px]" />Agregar a mi carpeta
               </button>
               <button type="button" onClick={() => wish(card)} aria-pressed={Boolean(stateOf(card))} disabled={stateOf(card) === 'pending'} className="flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/40 px-5 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-white/10 active:scale-[0.97] disabled:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
-                <span translate="no" aria-hidden="true" className={`material-symbols-outlined text-[20px] ${stateOf(card) ? 'text-red-400' : ''}`} style={stateOf(card) ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>{stateOf(card) ? 'En tus deseadas · Quitar' : 'Avísame cuando la vendan'}
+                <SvgIcon name="favorite" translate="no" aria-hidden="true" className={`text-[20px] ${stateOf(card) ? 'text-red-400' : ''}`} style={stateOf(card) ? { fontVariationSettings: "'FILL' 1" } : undefined} />{stateOf(card) ? 'En tus deseadas · Quitar' : 'Avísame cuando la vendan'}
               </button>
             </div>
           )}

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import Sheet from './Sheet';
+import SvgIcon from '../ui/SvgIcon';
 
 const CIRCLE = 'flex h-14 w-14 items-center justify-center rounded-full text-white shadow-sm transition-[transform,filter] duration-150 group-active:scale-90 [@media(hover:hover)]:group-hover:brightness-110';
 
@@ -28,7 +29,7 @@ export default function AttachSheet({ open, onClose, onFiles, onCard, quickRepli
             ['Respuestas', 'bolt', 'bg-[#eab308] !text-[#12315f]', () => setView('quick')]
           ].map(([label, icon, color, run]) => (
             <button key={label} type="button" onClick={run} className="group flex flex-col items-center gap-2 rounded-xl py-1 text-xs font-bold text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-              <span className={`${CIRCLE} ${color}`}><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[28px]">{icon}</span></span>
+              <span className={`${CIRCLE} ${color}`}><SvgIcon name={icon} translate="no" aria-hidden="true" className="text-[28px]" /></span>
               {label}
             </button>
           ))}
@@ -38,7 +39,7 @@ export default function AttachSheet({ open, onClose, onFiles, onCard, quickRepli
           {quickReplies.map((reply) => (
             <li key={reply}>
               <button type="button" onClick={() => { close(); onQuick(reply); }} className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-[15px] font-semibold text-slate-800 transition-colors hover:bg-slate-50 focus:outline-none focus-visible:bg-slate-100">
-                <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px] text-[#1e40af]">bolt</span>{reply}
+                <SvgIcon name="bolt" translate="no" aria-hidden="true" className="text-[20px] text-[#1e40af]" />{reply}
               </button>
             </li>
           ))}

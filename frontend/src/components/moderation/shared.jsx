@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import LoadingState from '../ui/LoadingState';
+import SvgIcon from '../ui/SvgIcon';
 
 // Piezas compartidas del panel de moderación. Paleta: azul Carpetazo (#1e40af / #12315f), amarillo (#facc15) como único acento
 // y grises azulados para las líneas (#dbe3f0). Lo que pide atención (gravedad, vencimientos) se marca con punto + texto, nunca solo con color.
@@ -60,7 +61,7 @@ export const ListSkeleton = ({ rows = 5, label = 'Cargando' }) => (
 
 export const ErrorBox = ({ children }) => (children ? (
   <p role="alert" className="mb-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-800">
-    <span translate="no" aria-hidden="true" className="material-symbols-outlined mt-px text-[20px]">error</span>
+    <SvgIcon name="error" translate="no" aria-hidden="true" className="mt-px text-[20px]" />
     <span>{children}</span>
   </p>
 ) : null);
@@ -68,7 +69,7 @@ export const ErrorBox = ({ children }) => (children ? (
 export const EmptyState = ({ icon = 'task_alt', title, children }) => (
   <div className="rounded-2xl border border-dashed border-[#c5d2ea] bg-white/70 px-6 py-12 text-center">
     <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e8effc] text-[#1e40af]">
-      <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[30px]">{icon}</span>
+      <SvgIcon name={icon} translate="no" aria-hidden="true" className="text-[30px]" />
     </span>
     <h2 className="mt-4 text-lg font-extrabold text-[#12315f]">{title}</h2>
     {children && <p className="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-slate-600">{children}</p>}
@@ -103,7 +104,7 @@ export function DetailPane({ label, children }) {
 export const DetailHeader = ({ title, subtitle, onClose }) => (
   <div className="flex shrink-0 items-center gap-2 border-b border-[#dbe3f0] bg-white px-3 py-2.5 xl:px-4">
     <button type="button" onClick={onClose} aria-label="Volver a la lista" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#12315f] transition-[background-color,transform] duration-150 active:scale-[0.94] hover:bg-slate-100 xl:hidden">
-      <span translate="no" aria-hidden="true" className="material-symbols-outlined">arrow_back</span>
+      <SvgIcon name="arrow_back" translate="no" aria-hidden="true" />
     </button>
     <div className="min-w-0 flex-1">
       <h2 className="truncate text-base font-extrabold leading-tight text-[#12315f]">{title}</h2>

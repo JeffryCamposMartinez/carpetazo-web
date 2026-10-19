@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { EMOJI_CATEGORIES, readFrequent, rememberEmoji } from './emojiData';
+import SvgIcon from '../ui/SvgIcon';
 
 // Selector de emojis por categorías. Los más usados por la persona van primero.
 export default function EmojiPicker({ onPick, className = '', height = 'h-64' }) {
@@ -13,7 +14,7 @@ export default function EmojiPicker({ onPick, className = '', height = 'h-64' })
       <div role="tablist" aria-label="Categorías de emojis" className="hide-scrollbar flex shrink-0 gap-1 overflow-x-auto border-b border-slate-100 px-2 py-1">
         {categories.map((category) => (
           <button key={category.id} type="button" role="tab" aria-selected={active === category.id} aria-label={category.label} title={category.label} onClick={() => setActive(category.id)} className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${active === category.id ? 'bg-[#dbeafe] text-[#1e40af]' : 'text-slate-400 hover:bg-slate-100'}`}>
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px]">{category.icon}</span>
+            <SvgIcon name={category.icon} translate="no" aria-hidden="true" className="text-[22px]" />
           </button>
         ))}
       </div>

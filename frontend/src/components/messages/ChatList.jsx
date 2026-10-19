@@ -5,9 +5,10 @@ import LoadingState from '../ui/LoadingState';
 import EmptyState from '../ui/EmptyState';
 import MenuButton from './MenuButton';
 import { listTime, personOf, splitMatches, summaryOf } from './messageUtils';
+import SvgIcon from '../ui/SvgIcon';
 
 const LONG_PRESS_MS = 420;
-const Icon = ({ name, className = '' }) => <span translate="no" aria-hidden="true" className={`material-symbols-outlined ${className}`}>{name}</span>;
+const Icon = ({ name, className = '' }) => <SvgIcon name={name} translate="no" aria-hidden="true" className={`${className}`} />;
 
 // Una fila de la lista: avatar, nombre, último mensaje con su estado, hora y no leídos
 const ChatRow = memo(function ChatRow({ chat, active, draft, query, onOpen, onActions }) {

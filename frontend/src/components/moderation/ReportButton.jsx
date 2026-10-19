@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
+import SvgIcon from '../ui/SvgIcon';
 
 const COMMENT_MAX = 500;
 const COMMENT_MIN_REQUIRED = 20;
@@ -288,7 +289,7 @@ export function ReportMenu({ options, label = 'Reportar', buttonClassName = '', 
   return (
     <div className="relative inline-block">
       <button ref={buttonRef} type="button" aria-label={label || "Reportar"} aria-haspopup="menu" aria-expanded={menuOpen} onClick={openMenu} style={buttonStyle} className={buttonClassName || 'inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-bold text-slate-500 hover:bg-black/5 hover:text-red-600'}>
-        <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">flag</span>
+        <SvgIcon name="flag" translate="no" aria-hidden="true" className="text-[18px]" />
         {label}
       </button>
       {menuOpen && createPortal(

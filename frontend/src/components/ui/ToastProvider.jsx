@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import SvgIcon from './SvgIcon';
 
 // Avisos de toda la página: un solo lugar (abajo y al centro), misma forma y mismo comportamiento en todas las pantallas.
 // Uso: const { showToast } = useToast();  showToast('Carpeta creada', 'success');
@@ -57,7 +58,7 @@ function ToastCard({ toast, onClose }) {
     >
       <div className="flex items-start gap-3 py-3 pl-3.5 pr-2">
         <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${tone.chip}`}>
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px] font-bold">{tone.icon}</span>
+          <SvgIcon name={tone.icon} translate="no" aria-hidden="true" className="text-[20px] font-bold" />
         </span>
         <p className="min-w-0 flex-1 py-1.5 text-[15px] font-semibold leading-snug text-[#1a2b4b] [overflow-wrap:anywhere]">{toast.message}</p>
         {toast.action && (
@@ -75,7 +76,7 @@ function ToastCard({ toast, onClose }) {
           aria-label="Cerrar aviso"
           className="relative flex h-9 w-9 shrink-0 items-center justify-center self-center rounded-full text-slate-400 transition-[background-color,color,transform] duration-150 hover:bg-slate-100 hover:text-slate-600 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] after:absolute after:-inset-1 after:content-['']"
         >
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">close</span>
+          <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[20px]" />
         </button>
       </div>
       {/* Tiempo que le queda al aviso */}

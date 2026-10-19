@@ -3,6 +3,7 @@ import ThemedSelect from '../ui/ThemedSelect';
 import LiquidTabs from '../ui/LiquidTabs';
 import { DETAIL_MODES } from './folderCards';
 import EmptyState from '../ui/EmptyState';
+import SvgIcon from '../ui/SvgIcon';
 
 const formatCLP = (value) => {
   const number = Number(value || 0);
@@ -32,7 +33,7 @@ export const FolderInventorySummary = ({ cards = [], filteredCards = [], tcg, ha
           <p className="hidden text-[11px] text-gray-500 sm:block">Stock, páginas y valor antes de publicar.</p>
         </div>
         <div className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-black sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs ${hasUnsavedCatalogOrder ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-200' : 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200'}`}>
-          <span translate="no" className="material-symbols-outlined text-[16px]">{hasUnsavedCatalogOrder ? 'pending_actions' : 'check_circle'}</span>
+          <SvgIcon name={hasUnsavedCatalogOrder ? 'pending_actions' : 'check_circle'} translate="no" className="text-[16px]" />
           <span className="hidden min-[360px]:inline">{hasUnsavedCatalogOrder ? 'Pendiente' : 'Guardado'}</span>
         </div>
       </div>
@@ -55,7 +56,7 @@ export const FolderInventorySummary = ({ cards = [], filteredCards = [], tcg, ha
           <div key={stat.label} className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-white/70 bg-white/85 p-3 shadow-sm">
             <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1 ${stat.bar}`} />
             <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${stat.chip}`}>
-              <span translate="no" data-weight="fill" className="material-symbols-outlined text-[22px]">{stat.icon}</span>
+              <SvgIcon name={stat.icon} translate="no" data-weight="fill" className="text-[22px]" />
             </div>
             <div className="min-w-0">
               <p className="truncate text-lg font-black leading-none tabular-nums text-[#1a2b4b]">{stat.value}</p>
@@ -78,9 +79,7 @@ export const FolderInventorySummary = ({ cards = [], filteredCards = [], tcg, ha
 export const InventoryStatusBar = ({ hasUnsavedCatalogOrder, savingCatalogOrder, onSave }) => (
   <div className={`mb-2 items-center justify-between gap-2 rounded-xl border border-gray-200 bg-gray-50/70 px-3 py-2 text-sm sm:mb-3 sm:flex ${hasUnsavedCatalogOrder ? 'flex' : 'hidden'}`}>
     <div className="flex min-w-0 items-center gap-2 text-gray-600 sm:items-start">
-      <span translate="no" className={`material-symbols-outlined text-[18px] sm:mt-0.5 ${hasUnsavedCatalogOrder ? 'text-amber-600' : 'text-emerald-600'}`}>
-        {hasUnsavedCatalogOrder ? 'edit_note' : 'verified'}
-      </span>
+      <SvgIcon name={hasUnsavedCatalogOrder ? 'edit_note' : 'verified'} translate="no" className={`text-[18px] sm:mt-0.5 ${hasUnsavedCatalogOrder ? 'text-amber-600' : 'text-emerald-600'}`} />
       <div className="min-w-0">
         <p className="truncate text-xs font-bold text-gray-800 sm:text-sm">
           {hasUnsavedCatalogOrder ? 'Posiciones sin guardar' : 'Posiciones guardadas'}
@@ -95,7 +94,7 @@ export const InventoryStatusBar = ({ hasUnsavedCatalogOrder, savingCatalogOrder,
         disabled={savingCatalogOrder}
         className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#1e40af] px-3 py-2 text-xs font-black text-white shadow-sm transition-colors hover:bg-blue-800 disabled:opacity-60 sm:gap-2 sm:px-4"
       >
-        <span translate="no" className="material-symbols-outlined text-[17px]">{savingCatalogOrder ? 'hourglass_empty' : 'save'}</span>
+        <SvgIcon name={savingCatalogOrder ? 'hourglass_empty' : 'save'} translate="no" className="text-[17px]" />
         {savingCatalogOrder ? 'Guardando...' : 'Guardar orden'}
       </button>
     )}
@@ -117,7 +116,7 @@ export const InventoryFilters = ({
   <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-gray-200 bg-gray-50/70 p-2.5 sm:mb-3 sm:p-3">
     <div className="flex flex-col gap-2 md:flex-row">
       <div className="relative flex-1">
-        <span translate="no" className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-gray-400">search</span>
+        <SvgIcon name="search" translate="no" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-gray-400" />
         <input
           type="text"
           value={query}
@@ -149,7 +148,7 @@ export const InventoryFilters = ({
         aria-label="Limpiar filtros"
         className={`h-10 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold text-gray-500 shadow-sm transition-colors hover:bg-red-50 hover:text-red-500 md:inline-flex md:px-4 ${hasFilters ? 'inline-flex' : 'hidden'}`}
       >
-        <span translate="no" className="material-symbols-outlined text-[18px]">filter_alt_off</span>
+        <SvgIcon name="filter_alt_off" translate="no" className="text-[18px]" />
         <span className="hidden sm:inline">Limpiar filtros</span>
       </button>
       </div>
@@ -179,9 +178,7 @@ export const InventoryViewSwitcher = ({
           title={`Información de las cartas: ${DETAIL_MODES[detailMode].label}. Toca para cambiar`}
           aria-label={`Información de las cartas: ${DETAIL_MODES[detailMode].label}. Toca para cambiar`}
         >
-          <span translate="no" className="material-symbols-outlined text-[21px] md:text-[18px]">
-            {DETAIL_MODES[detailMode].icon}
-          </span>
+          <SvgIcon name={DETAIL_MODES[detailMode].icon} translate="no" className="text-[21px] md:text-[18px]" />
           <span className="sr-only md:not-sr-only">Info</span>
         </button>
       )}
@@ -193,7 +190,7 @@ export const InventoryViewSwitcher = ({
           title="Cambiar cartas por fila"
           aria-label="Cambiar cartas por fila"
         >
-          <span translate="no" className="material-symbols-outlined text-[21px]">grid_view</span>
+          <SvgIcon name="grid_view" translate="no" className="text-[21px]" />
           <span className="ml-0.5">{gridDensity}</span>
         </button>
       )}
@@ -214,7 +211,7 @@ export const InventoryViewSwitcher = ({
           { value: 'grid', label: 'Cuadrícula', icon: 'grid_view' },
         ].map((option) => ({
           value: option.value,
-          label: <><span translate="no" className="material-symbols-outlined text-[21px] md:text-[18px]" aria-hidden="true">{option.icon}</span><span className="sr-only md:not-sr-only">{option.label}</span></>
+          label: <><SvgIcon name={option.icon} translate="no" className="text-[21px] md:text-[18px]" aria-hidden="true" /><span className="sr-only md:not-sr-only">{option.label}</span></>
         }))}
       />
     </div>
@@ -260,7 +257,7 @@ export const DuplicateCardNotice = ({ existingCard, selectedCard }) => {
   return (
     <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-left text-xs text-amber-800">
       <div className="flex gap-2">
-        <span translate="no" className="material-symbols-outlined text-[18px]">add_task</span>
+        <SvgIcon name="add_task" translate="no" className="text-[18px]" />
         <div>
           <p className="font-black">Esta carta ya existe en la carpeta</p>
           <p className="mt-0.5">Al guardar, se sumará el stock al registro existente y se actualizará el precio.</p>

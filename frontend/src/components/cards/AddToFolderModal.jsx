@@ -6,6 +6,7 @@ import { storedCardId } from '../../utils/mylIdentity';
 import { normalizeCardLanguage } from '../../utils/cardLanguage';
 import { ButtonSpinner } from '../ui/LoadingState';
 import { useToast } from '../ui/ToastProvider';
+import SvgIcon from '../ui/SvgIcon';
 
 // Juego de la ficha del catálogo (nombre que se muestra) → clave de la carpeta
 const FOLDER_TCG = { 'Pokémon': 'Pokemon', 'Mitos y Leyendas': 'Mitos y Leyendas', 'One Piece': 'OnePiece', Magic: 'Magic', 'Yu-Gi-Oh!': 'YuGiOh', Riftbound: 'Riftbound' };
@@ -80,7 +81,7 @@ export default function AddToFolderModal({ card, refPrice, onClose }) {
             <p className="mt-1 line-clamp-2 text-sm font-bold text-slate-700">{card.name}</p>
             <p className="line-clamp-1 text-xs text-slate-500">{[card.setName, language === 'English' ? 'Inglés' : language === 'Spanish' ? 'Español' : language === 'Japanese' ? 'Japonés' : language].filter(Boolean).join(' · ')}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Cerrar" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px]">close</span></button>
+          <button type="button" onClick={onClose} aria-label="Cerrar" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100"><SvgIcon name="close" translate="no" aria-hidden="true" className="text-[22px]" /></button>
         </div>
 
         {folders === null && <p role="status" className="py-8 text-center text-sm font-semibold text-slate-500">Cargando tus carpetas…</p>}
@@ -112,7 +113,7 @@ export default function AddToFolderModal({ card, refPrice, onClose }) {
               </p>
             )}
             <button type="submit" disabled={busy} className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#1e40af] text-sm font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-[#12315f] active:scale-[0.98] disabled:opacity-60">
-              {busy ? <><ButtonSpinner /> Guardando…</> : <><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">add_circle</span> Agregar a mi carpeta</>}
+              {busy ? <><ButtonSpinner /> Guardando…</> : <><SvgIcon name="add_circle" translate="no" aria-hidden="true" className="text-[20px]" /> Agregar a mi carpeta</>}
             </button>
           </form>
         )}

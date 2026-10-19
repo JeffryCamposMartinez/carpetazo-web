@@ -4,6 +4,7 @@ import EmojiPicker from './EmojiPicker';
 import { QUICK_REACTIONS } from './emojiData';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import useEscape from '../../hooks/useEscape';
+import SvgIcon from '../ui/SvgIcon';
 
 const MENU_W = 236;
 
@@ -56,14 +57,14 @@ export default function MessageActionMenu({ target, onClose, actions, myReaction
               <button key={emoji} type="button" onClick={() => react(emoji)} aria-label={`Reaccionar con ${emoji}`} className={`flex h-10 w-10 items-center justify-center rounded-full text-[24px] leading-none transition-transform duration-100 hover:scale-110 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${myReaction === emoji ? 'bg-[#dbeafe]' : ''}`}>{emoji}</button>
             ))}
             <button type="button" onClick={() => setPicker(true)} aria-label="Más reacciones" className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px]">add</span>
+              <SvgIcon name="add" translate="no" aria-hidden="true" className="text-[22px]" />
             </button>
           </div>
           <ul role="menu" aria-label="Acciones del mensaje" className="overflow-hidden rounded-2xl bg-white py-1 shadow-xl ring-1 ring-black/5">
             {items.map((item) => (
               <li key={item.id} role="none">
                 <button type="button" role="menuitem" onClick={() => choose(item.id)} className={`flex min-h-12 w-full items-center gap-4 px-4 text-left text-[15px] font-semibold transition-colors hover:bg-slate-50 focus:outline-none focus-visible:bg-slate-100 ${item.danger ? 'text-red-600' : 'text-slate-800'}`}>
-                  <span translate="no" aria-hidden="true" className={`material-symbols-outlined text-[22px] ${item.danger ? 'text-red-500' : 'text-slate-500'}`}>{item.icon}</span>
+                  <SvgIcon name={item.icon} translate="no" aria-hidden="true" className={`text-[22px] ${item.danger ? 'text-red-500' : 'text-slate-500'}`} />
                   {item.label}
                 </button>
               </li>

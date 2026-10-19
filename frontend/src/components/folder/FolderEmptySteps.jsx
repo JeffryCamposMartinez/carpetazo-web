@@ -1,3 +1,4 @@
+import SvgIcon from '../ui/SvgIcon';
 const STEPS = [
   ['create_new_folder', 'Crea tu carpeta', 'Elige un nombre, el juego y un color.'],
   ['sell', 'Agrega cartas con su precio', 'Busca cada carta, ponle precio y la cantidad que tienes.'],
@@ -13,7 +14,7 @@ export default function FolderEmptySteps() {
         {STEPS.map(([icon, title, text], index) => (
           <li key={title} className="flex items-start gap-3 rounded-xl bg-[#eff6ff] p-3 sm:flex-col sm:gap-2 sm:p-4">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1e40af] text-white">
-              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px]">{icon}</span>
+              <SvgIcon name={icon} translate="no" aria-hidden="true" className="text-[22px]" />
             </span>
             <span className="min-w-0">
               <span className="block text-[15px] font-extrabold text-[#12315f]">{index + 1}. {title}</span>

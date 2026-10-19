@@ -6,6 +6,7 @@ import { useToast } from '../ui/ToastProvider';
 import { warmFolderPreview } from '../../utils/sharePreview';
 import FolderEmptySteps from './FolderEmptySteps';
 import { siteUrl } from '../../utils/siteUrl';
+import SvgIcon from '../ui/SvgIcon';
 
 const hiddenKey = (uid) => `carpetazo:onboarding-hidden:${uid}`;
 const readHidden = (uid) => { try { return localStorage.getItem(hiddenKey(uid)) === '1'; } catch (_error) { return false; } };
@@ -85,7 +86,7 @@ export default function OnboardingChecklist({ foldersCount, onCreateFolder, vers
             <li key={step.key} className={`flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:gap-4 sm:px-6 ${isCurrent ? 'bg-[#f5f9ff]' : ''}`}>
               <div className="flex min-w-0 flex-1 items-start gap-3">
                 <span aria-hidden="true" className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${step.done ? 'bg-[#1e40af] text-white' : isCurrent ? 'bg-[#facc15] text-[#12315f]' : 'bg-slate-100 text-slate-500'}`}>
-                  <span translate="no" className="material-symbols-outlined text-[22px]">{step.done ? 'check' : copy.icon}</span>
+                  <SvgIcon name={step.done ? 'check' : copy.icon} translate="no" className="text-[22px]" />
                 </span>
                 <span className="min-w-0">
                   <span className={`block text-[15px] font-extrabold ${step.done ? 'text-slate-500 line-through decoration-slate-300' : 'text-[#12315f]'}`}>{copy.title}{step.done && <span className="sr-only"> (hecho)</span>}</span>

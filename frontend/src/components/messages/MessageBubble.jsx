@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Ticks, { messageStatus } from './Ticks';
 import VoiceMessage from './VoiceMessage';
 import { clock, decodeMessage, splitLinks, splitMatches } from './messageUtils';
+import SvgIcon from '../ui/SvgIcon';
 
 const LONG_PRESS_MS = 420;
 const REPLY_DISTANCE = 56;
@@ -21,7 +22,7 @@ function CardAttachment({ attachment, own, onImage }) {
   if (!attachment || attachment.unavailable) {
     return (
       <div className={`mb-1 flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold ${own ? 'bg-white/15 text-blue-100' : 'bg-slate-100 text-slate-500'}`}>
-        <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">block</span>
+        <SvgIcon name="block" translate="no" aria-hidden="true" className="text-[20px]" />
         Esta carta ya no está disponible
       </div>
     );
@@ -35,7 +36,7 @@ function CardAttachment({ attachment, own, onImage }) {
             <img src={attachment.imageUrl} alt={attachment.name} loading="lazy" draggable="false" className="aspect-[5/7] w-full object-cover" />
           </button>
         )
-        : <span aria-hidden="true" className="flex aspect-[5/7] w-full items-center justify-center rounded-lg bg-slate-200 text-slate-400"><span translate="no" className="material-symbols-outlined text-[40px]">style</span></span>}
+        : <span aria-hidden="true" className="flex aspect-[5/7] w-full items-center justify-center rounded-lg bg-slate-200 text-slate-400"><SvgIcon name="style" translate="no" className="text-[40px]" /></span>}
       <div className="px-1 pb-0.5 pt-2">
         <span className={`block text-[15px] font-extrabold leading-tight ${own ? 'text-white' : 'text-[#12315f]'}`}>{attachment.name}</span>
         {attachment.set && <span className={`mt-0.5 block truncate text-xs ${own ? 'text-blue-100' : 'text-slate-500'}`}>{attachment.set}</span>}
@@ -46,7 +47,7 @@ function CardAttachment({ attachment, own, onImage }) {
         : (
           <Link to={`/carta/${attachment.id}`} onClick={(event) => event.stopPropagation()} className={`mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-full text-[14px] font-extrabold transition-[filter,transform] active:scale-[0.97] [@media(hover:hover)]:hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] ${own ? 'bg-[#facc15] text-[#12315f]' : 'bg-[#1e40af] text-white'}`}>
             Ir a ver carta
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">arrow_forward</span>
+            <SvgIcon name="arrow_forward" translate="no" aria-hidden="true" className="text-[18px]" />
           </Link>
         )}
     </div>
@@ -57,7 +58,7 @@ function ReplyQuote({ reply, own, partnerName, onJump }) {
   const author = reply.gone ? '' : reply.senderId && reply.senderId !== 'me' && reply.senderId === own?.partnerId ? partnerName : 'Tú';
   return (
     <button type="button" onClick={(event) => { event.stopPropagation(); if (reply.id) onJump(reply.id); }} disabled={!reply.id} className={`mb-1 flex w-full items-start gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] ${own?.mine ? 'bg-white/15 hover:bg-white/25' : 'bg-slate-100 hover:bg-slate-200/70'}`}>
-      <span translate="no" aria-hidden="true" className={`material-symbols-outlined mt-px shrink-0 text-[16px] ${own?.mine ? 'text-[#facc15]' : 'text-[#1e40af]'}`}>reply</span>
+      <SvgIcon name="reply" translate="no" aria-hidden="true" className={`mt-px shrink-0 text-[16px] ${own?.mine ? 'text-[#facc15]' : 'text-[#1e40af]'}`} />
       <span className="min-w-0 flex-1">
         {author && <span className={`block truncate text-xs font-extrabold ${own?.mine ? 'text-[#facc15]' : 'text-[#1e40af]'}`}>{author}</span>}
         <span className={`line-clamp-2 break-words ${own?.mine ? 'text-blue-50' : 'text-slate-600'}`}>
@@ -125,7 +126,7 @@ function MessageBubble({ message, own, partnerId, partnerName, grouped, query, c
   return (
     <div data-mid={message.id} className={`relative flex px-3 sm:px-6 ${own ? 'justify-end' : 'justify-start'} ${grouped ? 'mt-[2px]' : 'mt-2'} ${reactions.length ? 'mb-3' : ''} ${flash ? 'chat-flash' : ''}`}>
       <span data-reply-icon aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/10 text-slate-600 opacity-0 sm:left-8">
-        <span translate="no" className="material-symbols-outlined text-[20px]">reply</span>
+        <SvgIcon name="reply" translate="no" className="text-[20px]" />
       </span>
       <div
         ref={rowRef}
@@ -139,12 +140,12 @@ function MessageBubble({ message, own, partnerId, partnerName, grouped, query, c
         <div className={`relative px-2.5 pb-1.5 pt-1.5 shadow-[0_1px_1px_rgba(15,23,42,0.14)] ${radius} ${tail} ${own ? 'bg-[#1e40af] text-white' : 'bg-white text-slate-900'} ${message.pending ? 'opacity-80' : ''} ${current ? 'ring-2 ring-[#facc15]' : ''}`}>
           {!message.temp && !message.hidden && (
             <button type="button" onClick={(event) => { const rect = event.currentTarget.getBoundingClientRect(); onMenu(message, { x: rect.right, y: rect.bottom }); }} aria-label="Opciones del mensaje" className={`absolute right-1 top-1 z-10 hidden h-7 w-7 items-center justify-center rounded-full opacity-0 transition-opacity focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] group-hover:opacity-100 sm:flex ${own ? 'bg-[#1e40af] text-white/80' : 'bg-white text-slate-500'}`}>
-              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">keyboard_arrow_down</span>
+              <SvgIcon name="keyboard_arrow_down" translate="no" aria-hidden="true" className="text-[20px]" />
             </button>
           )}
           {message.forwarded && (
             <p className={`mb-0.5 flex items-center gap-1 text-xs italic ${own ? 'text-blue-100' : 'text-slate-500'}`}>
-              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[14px]">forward</span>Reenviado
+              <SvgIcon name="forward" translate="no" aria-hidden="true" className="text-[14px]" />Reenviado
             </p>
           )}
           {message.replyTo && <ReplyQuote reply={message.replyTo} own={{ mine: own, partnerId }} partnerName={partnerName} onJump={onJump} />}
@@ -153,7 +154,7 @@ function MessageBubble({ message, own, partnerId, partnerName, grouped, query, c
           {image && (
             imageBroken ? (
               <div className={`mb-1 flex h-28 w-[14rem] max-w-full flex-col items-center justify-center gap-1 rounded-xl text-xs font-semibold ${own ? 'bg-white/15 text-blue-100' : 'bg-slate-100 text-slate-500'}`}>
-                <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[28px]">broken_image</span>
+                <SvgIcon name="broken_image" translate="no" aria-hidden="true" className="text-[28px]" />
                 La foto no está disponible
               </div>
             ) : (
@@ -167,7 +168,7 @@ function MessageBubble({ message, own, partnerId, partnerName, grouped, query, c
             </button>
             )
           )}
-          {message.hidden && <p className="flex items-center gap-1 text-sm italic text-slate-500"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[16px]">visibility_off</span>{message.content}</p>}
+          {message.hidden && <p className="flex items-center gap-1 text-sm italic text-slate-500"><SvgIcon name="visibility_off" translate="no" aria-hidden="true" className="text-[16px]" />{message.content}</p>}
           {hasText && !message.hidden && (
             <p className="whitespace-pre-wrap break-words text-[15px] leading-[1.35]">
               <RichText text={body.text} query={query} own={own} />
@@ -176,7 +177,7 @@ function MessageBubble({ message, own, partnerId, partnerName, grouped, query, c
           )}
           {(hasText || !image || imageBroken) && !message.hidden && (
             <span className={`absolute bottom-1 right-2 flex items-center gap-1 text-[11px] leading-none ${own ? 'text-white/70' : 'text-slate-400'}`}>
-              {message.starred && <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>}
+              {message.starred && <SvgIcon name="star" translate="no" aria-hidden="true" className="text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }} />}
               {message.editedAt && <span>editado</span>}
               <span>{clock(message.createdAt)}</span>
               {own && <Ticks status={status} />}

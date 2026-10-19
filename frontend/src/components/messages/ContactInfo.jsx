@@ -5,6 +5,7 @@ import Avatar from './Avatar';
 import Sheet from './Sheet';
 import VerifiedBadge from '../ui/VerifiedBadge';
 import { lastSeenLabel } from './messageUtils';
+import SvgIcon from '../ui/SvgIcon';
 
 const MUTE_OPTIONS = [['8h', '8 horas'], ['1w', '1 semana'], ['always', 'Siempre']];
 
@@ -32,7 +33,7 @@ export default function ContactInfo({ open, onClose, partner, settings, blockedB
           <Avatar name={partner.name} src={partner.photoURL} size={96} online={Boolean(presence?.online)} />
           <h3 className="mt-3 flex items-center gap-1.5 text-xl font-extrabold text-[#12315f]">{partner.name}{partner.verified && <VerifiedBadge size={20} />}</h3>
           {partner.username && <p className="text-sm font-semibold text-slate-500">@{partner.username}</p>}
-          {partner.publicComuna && <p className="mt-0.5 flex items-center gap-1 text-sm text-slate-500"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[16px]">location_on</span>{partner.publicComuna}</p>}
+          {partner.publicComuna && <p className="mt-0.5 flex items-center gap-1 text-sm text-slate-500"><SvgIcon name="location_on" translate="no" aria-hidden="true" className="text-[16px]" />{partner.publicComuna}</p>}
           {status && <p className={`mt-1 text-sm font-semibold ${presence?.online ? 'text-emerald-600' : 'text-slate-500'}`}>{status}</p>}
           <div className="mt-4 grid w-full grid-cols-3 gap-2">
             {[
@@ -40,7 +41,7 @@ export default function ContactInfo({ open, onClose, partner, settings, blockedB
               { id: 'search', icon: 'search', label: 'Buscar', onClick: () => { onClose(); onSearch(); } },
               { id: 'starred', icon: 'star', label: 'Destacados', onClick: () => { onClose(); onStarred(); } }
             ].filter(Boolean).map((action) => {
-              const content = (<><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[24px] text-[#1e40af]">{action.icon}</span><span className="text-xs font-bold text-[#12315f]">{action.label}</span></>);
+              const content = (<><SvgIcon name={action.icon} translate="no" aria-hidden="true" className="text-[24px] text-[#1e40af]" /><span className="text-xs font-bold text-[#12315f]">{action.label}</span></>);
               const cls = 'flex h-[4.5rem] flex-col items-center justify-center gap-1 rounded-2xl bg-[#eff6ff] transition-colors hover:bg-[#dbeafe] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]';
               return action.to ? <Link key={action.id} to={action.to} className={cls}>{content}</Link> : <button key={action.id} type="button" onClick={action.onClick} className={cls}>{content}</button>;
             })}
@@ -77,16 +78,16 @@ export default function ContactInfo({ open, onClose, partner, settings, blockedB
           {/* Ya no se puede archivar ni bloquear; solo se deja salir de esos estados a quien ya los tenía */}
           {settings.archived && (
             <button type="button" onClick={() => onSettings({ archived: false })} className={row}>
-              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px] text-slate-500">unarchive</span>Sacar de archivadas
+              <SvgIcon name="unarchive" translate="no" aria-hidden="true" className="text-[22px] text-slate-500" />Sacar de archivadas
             </button>
           )}
           {blockedByMe && (
             <button type="button" onClick={onToggleBlock} className={`${row} text-red-600`}>
-              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px] text-red-500">block</span>Desbloquear a {partner.name}
+              <SvgIcon name="block" translate="no" aria-hidden="true" className="text-[22px] text-red-500" />Desbloquear a {partner.name}
             </button>
           )}
           <button type="button" onClick={onReport} className={`${row} text-red-600`}>
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px] text-red-500">flag</span>Reportar a {partner.name}
+            <SvgIcon name="flag" translate="no" aria-hidden="true" className="text-[22px] text-red-500" />Reportar a {partner.name}
           </button>
         </section>
       </div>

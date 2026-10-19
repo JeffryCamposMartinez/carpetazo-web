@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useEscape from '../../hooks/useEscape';
+import SvgIcon from '../ui/SvgIcon';
 
 // Botón de tres puntos con su menú desplegable (portal: no lo recorta ningún contenedor). Teclado: flechas, Enter y Esc.
 export default function MenuButton({ items, label = 'Más opciones', icon = 'more_vert', buttonClassName = '', onDark = false }) {
@@ -37,7 +38,7 @@ export default function MenuButton({ items, label = 'Más opciones', icon = 'mor
   return (
     <>
       <button ref={button} type="button" onClick={toggle} aria-label={label} aria-haspopup="menu" aria-expanded={open} className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] ${onDark ? 'text-white hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'} ${buttonClassName}`}>
-        <span translate="no" aria-hidden="true" className="material-symbols-outlined">{icon}</span>
+        <SvgIcon name={icon} translate="no" aria-hidden="true" />
       </button>
       {open && createPortal(
         <div className="fixed inset-0 z-[85]" role="presentation">
@@ -46,7 +47,7 @@ export default function MenuButton({ items, label = 'Más opciones', icon = 'mor
             {shown.map((item) => (
               <li key={item.id} role="none">
                 <button type="button" role="menuitem" onClick={() => { setOpen(false); item.onClick(); }} className={`flex min-h-12 w-full items-center gap-3 px-4 text-left text-[15px] font-semibold transition-colors hover:bg-slate-50 focus:outline-none focus-visible:bg-slate-100 ${item.danger ? 'text-red-600' : 'text-slate-800'}`}>
-                  {item.icon && <span translate="no" aria-hidden="true" className={`material-symbols-outlined text-[22px] ${item.danger ? 'text-red-500' : 'text-slate-500'}`}>{item.icon}</span>}
+                  {item.icon && <SvgIcon name={item.icon} translate="no" aria-hidden="true" className={`text-[22px] ${item.danger ? 'text-red-500' : 'text-slate-500'}`} />}
                   <span className="flex-1">{item.label}</span>
                   {item.badge > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#facc15] px-1.5 text-[11px] font-black text-[#12315f]">{item.badge}</span>}
                 </button>

@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import SvgIcon from './SvgIcon';
 
 const normalize = (text) => String(text).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const GAP = 6; // px entre el botón y la lista
@@ -100,9 +101,9 @@ export default function ThemedSelect({
         onKeyDown={(event) => { if (!open && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) { event.preventDefault(); setOpen(true); } }}
         className={`flex min-h-12 w-full items-center gap-2 rounded-xl border-2 bg-white px-3.5 text-left text-[15px] font-bold shadow-sm transition-[border-color,box-shadow,background-color] duration-150 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${open ? 'border-[#facc15] text-[#12315f]/70 ring-4 ring-[#facc15]/25' : value ? 'border-[#12315f] text-[#12315f]' : 'border-[#12315f]/25 text-[#12315f]/60 hover:border-[#12315f]/50'} ${buttonClassName}`}
       >
-        {icon && <span translate="no" aria-hidden="true" className="material-symbols-outlined shrink-0 text-[20px] text-[#1e40af]">{icon}</span>}
+        {icon && <SvgIcon name={icon} translate="no" aria-hidden="true" className="shrink-0 text-[20px] text-[#1e40af]" />}
         <span className={`min-w-0 flex-1 truncate ${current ? 'text-[#12315f]' : ''}`}>{current?.label || placeholder}</span>
-        <span translate="no" aria-hidden="true" className={`material-symbols-outlined shrink-0 text-[22px] text-[#12315f] transition-transform duration-150 ${open ? 'rotate-180 text-[#b45309]' : ''}`}>expand_more</span>
+        <SvgIcon name="expand_more" translate="no" aria-hidden="true" className={`shrink-0 text-[22px] text-[#12315f] transition-transform duration-150 ${open ? 'rotate-180 text-[#b45309]' : ''}`} />
       </button>
 
       {open && box && createPortal(
@@ -117,7 +118,7 @@ export default function ThemedSelect({
           {searchable && (
             <div className="shrink-0 border-b border-[#12315f]/10 bg-slate-50 p-2">
               <div className="relative">
-                <span translate="no" aria-hidden="true" className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-[#12315f]/50">search</span>
+                <SvgIcon name="search" translate="no" aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-[#12315f]/50" />
                 <input
                   ref={inputRef}
                   type="text"
@@ -148,7 +149,7 @@ export default function ThemedSelect({
                     className={`flex min-h-11 cursor-pointer items-center gap-2 px-3.5 text-[15px] font-bold transition-colors ${selected ? 'bg-[#12315f] text-[#facc15]' : index === active ? 'bg-[#facc15]/25 text-[#12315f]' : 'text-[#12315f] hover:bg-[#facc15]/20'}`}
                   >
                     <span className="min-w-0 flex-1 break-words py-2 leading-snug">{option.label}</span>
-                    {selected && <span translate="no" aria-hidden="true" className="material-symbols-outlined shrink-0 text-[20px]">check</span>}
+                    {selected && <SvgIcon name="check" translate="no" aria-hidden="true" className="shrink-0 text-[20px]" />}
                   </div>
                 </li>
               );
@@ -157,7 +158,7 @@ export default function ThemedSelect({
           </ul>
           {moreBelow && (
             <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 flex h-9 items-end justify-center bg-gradient-to-t from-white via-white/90 to-transparent pb-0.5">
-              <span translate="no" className="material-symbols-outlined text-[22px] text-[#12315f]">keyboard_arrow_down</span>
+              <SvgIcon name="keyboard_arrow_down" translate="no" className="text-[22px] text-[#12315f]" />
             </div>
           )}
         </div>,

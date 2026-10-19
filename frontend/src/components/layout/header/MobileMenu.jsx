@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import SvgIcon from '../../ui/SvgIcon';
 
 // Menú lateral del celular: cuenta, secciones y salida; se cierra deslizando hacia la izquierda.
 export default function MobileMenu({
@@ -47,7 +48,7 @@ export default function MobileMenu({
           <div className="flex items-center justify-between">
             <img src="/images/logos/logo_completo.webp" alt="Carpetazo.cl" className="h-16 w-auto object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)]" />
             <button onClick={closeMobileMenu} aria-label="Cerrar menú" className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60">
-              <span translate="no" className="material-symbols-outlined text-[26px]">close</span>
+              <SvgIcon name="close" translate="no" className="text-[26px]" />
             </button>
           </div>
           {currentUser && (
@@ -63,7 +64,7 @@ export default function MobileMenu({
                 <span className="block truncate text-[15px] font-extrabold">{userUsername || 'Usuario'}</span>
                 <span className="block truncate text-xs font-medium text-blue-100">{currentUser.email}</span>
               </span>
-              <span translate="no" className="material-symbols-outlined text-[20px] text-blue-200">chevron_right</span>
+              <SvgIcon name="chevron_right" translate="no" className="text-[20px] text-blue-200" />
             </Link>
           )}
         </div>
@@ -91,7 +92,7 @@ export default function MobileMenu({
               className={`${rowBase} ${item.active ? 'bg-blue-50 text-[#12315f]' : 'text-slate-700 active:bg-slate-100'}`}
             >
               {item.active && <span aria-hidden="true" className="absolute inset-y-2 left-0 w-1 rounded-full bg-[#facc15]" />}
-              <span translate="no" className={`material-symbols-outlined text-[22px] ${item.active ? 'text-[#1e40af]' : 'text-slate-400'}`} style={item.active ? { fontVariationSettings: "'FILL' 1" } : undefined}>{item.icon}</span>
+              <SvgIcon name={item.icon} translate="no" className={`text-[22px] ${item.active ? 'text-[#1e40af]' : 'text-slate-400'}`} style={item.active ? { fontVariationSettings: "'FILL' 1" } : undefined} />
               <span className="flex-1">{item.label}</span>
               {item.badge > 0 && (
                 <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#ef233c] px-1.5 text-[11px] font-black text-white">{item.badge > 99 ? '99+' : item.badge}</span>
@@ -111,7 +112,7 @@ export default function MobileMenu({
                       onClick={() => { closeMobileMenu(); handleLogout(); }}
                       className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-red-200 px-4 text-[15px] font-bold text-red-600 transition-colors active:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
                     >
-                      <span translate="no" className="material-symbols-outlined text-[20px]">logout</span> Cerrar sesión
+                      <SvgIcon name="logout" translate="no" className="text-[20px]" /> Cerrar sesión
                     </button>
                   </div>
                 </>

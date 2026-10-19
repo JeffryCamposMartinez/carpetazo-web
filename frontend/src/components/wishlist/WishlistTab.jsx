@@ -11,6 +11,7 @@ import WishlistAlerts from './WishlistAlerts';
 import WishlistLists from './WishlistLists';
 import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 import EmptyState from '../ui/EmptyState';
+import SvgIcon from '../ui/SvgIcon';
 
 const LIMIT_FALLBACK = 200;
 
@@ -301,7 +302,7 @@ export default function WishlistTab({ showToast = () => {} }) {
           >
             {exporting
               ? <ButtonSpinner />
-              : <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">picture_as_pdf</span>}
+              : <SvgIcon name="picture_as_pdf" translate="no" aria-hidden="true" className="text-[20px]" />}
             {exporting ? 'Creando…' : 'Exportar PDF'}
           </button>
         </div>
@@ -320,10 +321,10 @@ export default function WishlistTab({ showToast = () => {} }) {
           aria-haspopup="dialog"
           className="flex h-12 w-full items-center gap-3 rounded-full bg-white pl-4 pr-1.5 text-left shadow-[0_1px_2px_rgba(26,43,75,0.08),0_8px_18px_-12px_rgba(26,43,75,0.45)] ring-1 ring-slate-900/10 transition-transform duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] lg:hidden"
         >
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px] text-slate-400">search</span>
+          <SvgIcon name="search" translate="no" aria-hidden="true" className="text-[22px] text-slate-400" />
           <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-slate-500">Buscar una carta para agregar</span>
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#facc15] text-[#12315f]">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px] font-bold">add</span>
+            <SvgIcon name="add" translate="no" aria-hidden="true" className="text-[22px] font-bold" />
           </span>
         </button>
       </div>
@@ -392,7 +393,7 @@ export default function WishlistTab({ showToast = () => {} }) {
                   {item.note && <p className="mt-1 line-clamp-2 text-xs italic text-slate-500">{item.note}</p>}
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
                     <Link to={`/cartas?q=${encodeURIComponent(item.name)}`} className="inline-flex min-h-8 items-center gap-1 text-xs font-bold text-[#1e40af] hover:underline focus:outline-none focus-visible:underline">
-                      <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[16px]">search</span>
+                      <SvgIcon name="search" translate="no" aria-hidden="true" className="text-[16px]" />
                       Ver quién la vende
                     </Link>
                     {prices[item.id] ? (
@@ -407,12 +408,12 @@ export default function WishlistTab({ showToast = () => {} }) {
                 </div>
               <div className="col-start-2 mt-2 flex flex-wrap items-center gap-1 sm:mt-0 sm:w-auto sm:shrink-0 sm:flex-nowrap">
                 <div className="flex items-center rounded-full bg-slate-100">
-                  <button type="button" aria-label="Quitar una copia" disabled={busyId === item.id || item.quantity <= 1} onClick={() => changeQuantity(item, -1)} className={`${iconButton} text-[#12315f] hover:bg-slate-200`}><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">remove</span></button>
+                  <button type="button" aria-label="Quitar una copia" disabled={busyId === item.id || item.quantity <= 1} onClick={() => changeQuantity(item, -1)} className={`${iconButton} text-[#12315f] hover:bg-slate-200`}><SvgIcon name="remove" translate="no" aria-hidden="true" className="text-[20px]" /></button>
                   <span className="w-8 text-center text-sm font-extrabold tabular-nums text-[#12315f]" aria-label={`${item.quantity} copias`}>{item.quantity}</span>
-                  <button type="button" aria-label="Agregar una copia" disabled={busyId === item.id || item.quantity >= 99} onClick={() => changeQuantity(item, 1)} className={`${iconButton} text-[#12315f] hover:bg-slate-200`}><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">add</span></button>
+                  <button type="button" aria-label="Agregar una copia" disabled={busyId === item.id || item.quantity >= 99} onClick={() => changeQuantity(item, 1)} className={`${iconButton} text-[#12315f] hover:bg-slate-200`}><SvgIcon name="add" translate="no" aria-hidden="true" className="text-[20px]" /></button>
                 </div>
                 <button type="button" onClick={() => (editingId === item.id ? setEditingId('') : openDetails(item))} aria-expanded={editingId === item.id} className="h-10 rounded-full px-3 text-sm font-bold text-[#1e40af] sm:h-11 sm:px-4 transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">Detalles</button>
-                <button type="button" aria-label={`Quitar ${item.name}`} disabled={busyId === item.id} onClick={() => removeItem(item)} className={`${iconButton} ml-auto sm:ml-2 text-[#475569] hover:bg-red-50 hover:text-[#b91c1c]`}><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px]">delete</span></button>
+                <button type="button" aria-label={`Quitar ${item.name}`} disabled={busyId === item.id} onClick={() => removeItem(item)} className={`${iconButton} ml-auto sm:ml-2 text-[#475569] hover:bg-red-50 hover:text-[#b91c1c]`}><SvgIcon name="delete" translate="no" aria-hidden="true" className="text-[22px]" /></button>
               </div>
               </div>
               {matches[item.id] && (
@@ -512,7 +513,7 @@ export default function WishlistTab({ showToast = () => {} }) {
             aria-label="Limpiar filtros"
             className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-slate-600 shadow-[0_2px_4px_rgba(8,18,42,0.18),0_10px_22px_-8px_rgba(8,18,42,0.45)] ring-1 ring-slate-200 transition-[color,transform] duration-150 hover:text-[#1e40af] active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"
           >
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[24px]">filter_alt_off</span>
+            <SvgIcon name="filter_alt_off" translate="no" aria-hidden="true" className="text-[24px]" />
           </button>
         )}
         <button
@@ -524,7 +525,7 @@ export default function WishlistTab({ showToast = () => {} }) {
           aria-hidden={!showScrollTop}
           className={`flex h-12 w-12 items-center justify-center rounded-full bg-[#1e40af] text-white shadow-[0_2px_4px_rgba(8,18,42,0.25),0_10px_22px_-8px_rgba(30,64,175,0.7)] ring-2 ring-white/40 transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.94] focus:outline-none focus-visible:ring-white motion-reduce:transition-opacity ${showScrollTop ? 'scale-100 opacity-100' : 'pointer-events-none scale-90 opacity-0'}`}
         >
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[26px]">arrow_upward</span>
+          <SvgIcon name="arrow_upward" translate="no" aria-hidden="true" className="text-[26px]" />
         </button>
       </div>
       </div>

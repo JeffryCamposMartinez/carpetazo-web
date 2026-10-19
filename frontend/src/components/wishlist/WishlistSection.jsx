@@ -8,6 +8,7 @@ import { describeWishlistItem } from './wishlistLightbox';
 import LoadableImage from '../ui/LoadableImage';
 import { cardFill, cardRatio } from '../../utils/cardShape';
 import { ButtonSpinner } from '../ui/LoadingState';
+import SvgIcon from '../ui/SvgIcon';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 
@@ -104,7 +105,7 @@ export default function WishlistSection({ username, seller, isOwner = false, var
     // Solo el dueño ve la invitación a llenar su lista
     return isOwner && variant === 'profile' ? (
       <div className="empty-in rounded-2xl border border-dashed px-5 py-8 text-center" style={{ borderColor: `${primary}55`, color: text }}>
-        <span aria-hidden="true" className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: `${primary}1f`, color: primary }}><span translate="no" className="material-symbols-outlined text-[28px]">favorite</span></span>
+        <span aria-hidden="true" className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: `${primary}1f`, color: primary }}><SvgIcon name="favorite" translate="no" className="text-[28px]" /></span>
         <p className="text-lg font-extrabold">Aún no tienes cartas deseadas</p>
         <p className="mt-1 text-sm font-medium" style={muted}>Agrega las cartas que buscas y quien entre a tus carpetas podrá ofrecértelas.</p>
         <Link to="/dashboard?tab=deseadas" className="mt-4 inline-flex h-11 items-center rounded-full px-6 text-sm font-extrabold transition-[filter,transform] duration-150 active:scale-[0.97] [@media(hover:hover)]:hover:brightness-110" style={{ backgroundColor: primary, color: '#fff' }}>Armar mi lista</Link>
@@ -143,7 +144,7 @@ export default function WishlistSection({ username, seller, isOwner = false, var
                 className="mt-auto flex h-10 items-center justify-center gap-1 whitespace-nowrap rounded-full px-1 text-[12.5px] font-extrabold transition active:scale-[0.97] disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#12315f]"
                 style={{ backgroundColor: accent, color: '#12315f' }}
               >
-                <span translate="no" className="material-symbols-outlined hidden text-[18px] min-[430px]:inline">sell</span>
+                <SvgIcon name="sell" translate="no" className="hidden text-[18px] min-[430px]:inline" />
                 Tengo esta carta
               </button>
             )}
@@ -167,12 +168,12 @@ export default function WishlistSection({ username, seller, isOwner = false, var
     return (
       <section className="mb-3 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 md:mb-5" aria-label="Cartas que busca el vendedor">
         <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} className="flex min-h-12 w-full items-center gap-3 px-4 py-2 text-left md:min-h-14 md:py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1e40af]">
-          <span translate="no" className="material-symbols-outlined text-[24px] text-[#1e40af]">favorite</span>
+          <SvgIcon name="favorite" translate="no" className="text-[24px] text-[#1e40af]" />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[15px] font-extrabold text-[#12315f]">{displayName} busca {total} {total === 1 ? 'carta' : 'cartas'}</span>
             <span className="hidden text-xs font-medium text-slate-500 sm:block">{isOwner ? 'Así ven tu lista los demás' : '¿Tienes alguna? Ofrécesela.'}</span>
           </span>
-          <span translate="no" className={`material-symbols-outlined text-[24px] text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}>expand_more</span>
+          <SvgIcon name="expand_more" translate="no" className={`text-[24px] text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
         {open && <div className="border-t border-slate-100 bg-slate-50 p-3">{grid}{more}</div>}
       </section>

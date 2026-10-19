@@ -15,6 +15,7 @@ import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 import { LoadingMark } from '../components/ui/LoadableImage';
 import { siteUrl } from '../utils/siteUrl';
 import { Link } from 'react-router-dom';
+import SvgIcon from '../components/ui/SvgIcon';
 // html2canvas + jsPDF pesan mucho: se descargan solo al generar un PDF
 const HiddenPDFGenerator = lazy(() => import('../components/folder/HiddenPDFGenerator'));
 
@@ -396,13 +397,13 @@ export default function Dashboard() {
   const publicCount = folders.filter(f => f.isPublic).length;
 
   const TAB_OPTIONS = [
-    { value: 'carpetas', label: <span className="flex items-center justify-center gap-2"><span translate="no" aria-hidden="true" className="material-symbols-outlined hidden text-xl sm:inline">folder</span>Carpetas</span> },
-    { value: 'deseadas', label: <span className="flex items-center justify-center gap-2"><span translate="no" aria-hidden="true" className="material-symbols-outlined hidden text-xl sm:inline">favorite</span>Deseadas</span> },
+    { value: 'carpetas', label: <span className="flex items-center justify-center gap-2"><SvgIcon name="folder" translate="no" aria-hidden="true" className="hidden text-xl sm:inline" />Carpetas</span> },
+    { value: 'deseadas', label: <span className="flex items-center justify-center gap-2"><SvgIcon name="favorite" translate="no" aria-hidden="true" className="hidden text-xl sm:inline" />Deseadas</span> },
     {
       value: 'solicitudes',
       label: (
         <span className="flex items-center justify-center gap-2">
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined hidden text-xl sm:inline">inbox</span>
+          <SvgIcon name="inbox" translate="no" aria-hidden="true" className="hidden text-xl sm:inline" />
           {/* El contador flota sobre la esquina del texto: así la etiqueta nunca cambia de ancho ni de lugar */}
           <span className="relative whitespace-nowrap">
             Solicitudes
@@ -415,7 +416,7 @@ export default function Dashboard() {
         </span>
       )
     },
-    { value: 'historial', label: <span className="flex items-center justify-center gap-2"><span translate="no" aria-hidden="true" className="material-symbols-outlined hidden text-xl sm:inline">history</span>Historial</span> }
+    { value: 'historial', label: <span className="flex items-center justify-center gap-2"><SvgIcon name="history" translate="no" aria-hidden="true" className="hidden text-xl sm:inline" />Historial</span> }
   ];
 
   // Menú de cada carpeta: se comparte el contenido entre la hoja inferior (móvil) y el menú anclado (pantallas anchas)
@@ -446,7 +447,7 @@ export default function Dashboard() {
           onClick={(e) => { setActiveMenuFolderId(null); action(e); }}
           className={`${itemClass} text-[#1a2b4b] hover:bg-slate-50 active:bg-slate-100`}
         >
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined text-xl text-slate-500">{icon}</span>{label}
+          <SvgIcon name={icon} translate="no" aria-hidden="true" className="text-xl text-slate-500" />{label}
         </button>
       ))}
       <hr className="mx-3 my-1 border-slate-100" />
@@ -456,7 +457,7 @@ export default function Dashboard() {
         onClick={(e) => { setActiveMenuFolderId(null); handleDeleteFolder(e, folder.id, folder.name); }}
         className={`${itemClass} text-[#b91c1c] hover:bg-red-50 active:bg-red-100`}
       >
-        <span translate="no" aria-hidden="true" className="material-symbols-outlined text-xl">delete</span>Eliminar carpeta
+        <SvgIcon name="delete" translate="no" aria-hidden="true" className="text-xl" />Eliminar carpeta
       </button>
     </>
   );
@@ -533,7 +534,7 @@ export default function Dashboard() {
               className="group inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-[#1e40af] pl-1.5 pr-4 text-sm font-extrabold text-white shadow-[0_1px_2px_rgba(8,18,42,0.35),0_6px_14px_-6px_rgba(30,64,175,0.7)] transition-[transform,filter] duration-150 hover:brightness-110 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 focus-visible:ring-offset-[#DBEAFE]"
             >
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#facc15] text-[#12315f]">
-                <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px] font-bold">add</span>
+                <SvgIcon name="add" translate="no" aria-hidden="true" className="text-[22px] font-bold" />
               </span>
               Nueva carpeta
             </button>
@@ -572,7 +573,7 @@ export default function Dashboard() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1a2b4b]/60 p-4 backdrop-blur-sm" onClick={() => setFolderToDelete(null)}>
           <div role="alertdialog" aria-modal="true" aria-labelledby="delete-title" className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl animate-[fadeIn_0.2s_ease-out] sm:p-8" onClick={e => e.stopPropagation()}>
             <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
-              <span translate="no" className="material-symbols-outlined text-3xl text-[#b91c1c]">delete</span>
+              <SvgIcon name="delete" translate="no" className="text-3xl text-[#b91c1c]" />
             </div>
             <h3 id="delete-title" className="mb-2 text-2xl font-extrabold text-[#1a2b4b]">¿Eliminar "{folderToDelete.name}"?</h3>
             <p className="mb-8 text-slate-600">Se borrarán la carpeta y todas sus cartas. Los compradores dejarán de verla y no se puede recuperar.</p>

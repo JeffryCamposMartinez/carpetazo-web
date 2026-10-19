@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { ButtonSpinner } from '../ui/LoadingState';
+import SvgIcon from '../ui/SvgIcon';
 
 const chip = 'flex h-10 [@media(pointer:coarse)]:h-11 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-bold transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:opacity-50';
 const textButton = 'flex h-9 [@media(pointer:coarse)]:h-11 items-center gap-1.5 rounded-full px-3 text-sm font-bold text-[#1e40af] transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:opacity-50';
-const Icon = ({ name, className = '' }) => <span translate="no" aria-hidden="true" className={`material-symbols-outlined text-[18px] ${className}`}>{name}</span>;
+const Icon = ({ name, className = '' }) => <SvgIcon name={name} translate="no" aria-hidden="true" className={`text-[18px] ${className}`} />;
 
 // Listas de deseos: elegir cuál se ve, crear, renombrar, borrar y dejar una como activa (la que se muestra en el perfil)
 export default function WishlistLists({ lists, selectedId, onSelect, onCreate, onRename, onActivate, onDelete, busy, maxLists }) {

@@ -1,3 +1,4 @@
+import SvgIcon from './SvgIcon';
 const BADGE_STYLE = {
   enthusiast: { icon: 'local_fire_department', classes: 'border-emerald-300 bg-emerald-50 text-emerald-800' },
   premium: { icon: 'workspace_premium', classes: 'border-amber-300 bg-amber-50 text-amber-900' },
@@ -16,7 +17,7 @@ export default function PlanBadge({ badge, compact = false, className = '' }) {
       aria-label={`Plan ${badge.label}`}
       className={`inline-flex shrink-0 items-center rounded-full border font-black uppercase tracking-wide ${compact ? 'h-6 gap-0.5 px-1.5 text-[10px]' : 'min-h-7 gap-1 px-2.5 py-1 text-[11px]'} ${style.classes} ${className}`}
     >
-      <span translate="no" aria-hidden="true" className={`material-symbols-outlined ${compact ? 'text-[14px]' : 'text-[16px]'}`}>{style.icon}</span>
+      <SvgIcon name={style.icon} translate="no" aria-hidden="true" className={`${compact ? 'text-[14px]' : 'text-[16px]'}`} />
       {badge.label}
     </span>
   );

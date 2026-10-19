@@ -16,6 +16,7 @@ import usePageMeta from '../hooks/usePageMeta';
 import CardPriceHistory from '../components/cards/CardPriceHistory';
 import { referencePrice } from '../utils/referencePrice';
 import { cardFill, cardRatio, isYugioh } from '../utils/cardShape';
+import SvgIcon from '../components/ui/SvgIcon';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 
@@ -160,19 +161,19 @@ export default function CardDetailPage() {
               )}
               {best?.folder.user?.username && (
                 <Link to={`/cartas?seller=${encodeURIComponent(best.folder.user.username)}`} className="mt-1 inline-flex min-h-8 items-center gap-1 text-xs font-bold text-[#1e40af] hover:underline focus:outline-none focus-visible:underline">
-                  <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[16px]">style</span>
+                  <SvgIcon name="style" translate="no" aria-hidden="true" className="text-[16px]" />
                   Ver más cartas de este vendedor
                 </Link>
               )}
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                 {best && (
                   <Link to={`/c/${best.folder.id}`} className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#facc15] sm:flex-1 px-4 text-[15px] font-extrabold text-[#12315f] transition-[background-color,transform] duration-150 hover:bg-[#eab308] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2">
-                    <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px]">folder_open</span>
+                    <SvgIcon name="folder_open" translate="no" aria-hidden="true" className="text-[22px]" />
                     Ver la carpeta del mejor precio
                   </Link>
                 )}
                 <button type="button" onClick={addToWishlist} aria-pressed={wished} className={`flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl px-4 text-[15px] font-bold ring-1 transition-[background-color,transform] duration-150 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${wished ? 'bg-[#facc15] text-[#12315f] ring-[#facc15]' : 'bg-white text-[#12315f] ring-slate-300 hover:bg-slate-50'}`}>
-                  <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px]" style={wished ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>
+                  <SvgIcon name="favorite" translate="no" aria-hidden="true" className="text-[22px]" style={wished ? { fontVariationSettings: "'FILL' 1" } : undefined} />
                   {wished ? 'En tus deseadas' : 'Agregar a deseadas'}
                 </button>
               </div>

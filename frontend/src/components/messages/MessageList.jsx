@@ -3,6 +3,7 @@ import MessageBubble from './MessageBubble';
 import LoadingState from '../ui/LoadingState';
 import EmptyState from '../ui/EmptyState';
 import { dayLabel, isSameDay } from './messageUtils';
+import SvgIcon from '../ui/SvgIcon';
 
 const GROUP_MS = 5 * 60 * 1000;
 const NEAR_BOTTOM = 140;
@@ -124,7 +125,7 @@ const MessageList = forwardRef(function MessageList({
         {loadingOlder && <LoadingState variant="compact" label="Cargando mensajes anteriores…" />}
         {!hasMore && !loading && (
           <p className="mx-auto mb-2 mt-3 flex max-w-[22rem] items-start gap-2 rounded-xl bg-[#fef3c7] px-3 py-2 text-center text-[12.5px] font-semibold leading-snug text-[#6b4f00] shadow-sm">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined mt-px shrink-0 text-[16px]">lock</span>
+            <SvgIcon name="lock" translate="no" aria-hidden="true" className="mt-px shrink-0 text-[16px]" />
             <span>Conversación privada. Acuerden entrega y pago con calma y no pagues por adelantado a quien no conoces.</span>
           </p>
         )}
@@ -160,7 +161,7 @@ const MessageList = forwardRef(function MessageList({
       </div>
       {fab && (
         <button type="button" onClick={() => toBottom('smooth')} aria-label={newBelow ? `Ir al final: ${newBelow} mensajes nuevos` : 'Ir al final'} className="chat-pop absolute bottom-3 right-3 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-600 shadow-[0_2px_8px_rgba(8,18,42,0.3)] transition-[transform,filter] duration-150 hover:brightness-95 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] sm:right-5">
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[28px]">keyboard_arrow_down</span>
+          <SvgIcon name="keyboard_arrow_down" translate="no" aria-hidden="true" className="text-[28px]" />
           {newBelow > 0 && <span className="absolute -top-2 right-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#facc15] px-1 text-[11px] font-black text-[#12315f]">{newBelow > 99 ? '99+' : newBelow}</span>}
         </button>
       )}

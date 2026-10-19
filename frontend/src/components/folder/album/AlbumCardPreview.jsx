@@ -1,5 +1,6 @@
 import LoadableImage from '../../ui/LoadableImage';
 import { Link } from 'react-router-dom';
+import SvgIcon from '../../ui/SvgIcon';
 // Vista ampliada de una carta dentro del álbum: imagen a un lado y datos al otro.
 export default function AlbumCardPreview({
   fetchedAbility, fetchingAbility, isDesktop, previewCard, previewSubtitle, renderCardActions,
@@ -50,7 +51,7 @@ export default function AlbumCardPreview({
         className="absolute top-2 right-2 md:top-4 md:right-4 w-8 h-8 md:w-10 md:h-10 bg-white/10 hover:bg-white/20 flex items-center justify-center rounded-full text-white transition-colors z-[1010] border border-white/10 shadow-lg"
         onClick={(e) => { e.stopPropagation(); setPreviewCard(null); setActiveCardId(null); }}
       >
-        <span translate="no" className="material-symbols-outlined text-xl md:text-2xl">close</span>
+        <SvgIcon name="close" translate="no" className="text-xl md:text-2xl" />
       </button>
 
       {/* Left Side (Image) */}
@@ -74,7 +75,7 @@ export default function AlbumCardPreview({
               {previewCard.price ? '$' + Number(previewCard.price).toLocaleString('es-CL') : 'Sin precio'}
             </span>
             <span className="flex items-center gap-1 rounded-xl border border-slate-700 bg-slate-800/90 px-2.5 py-1.5 text-[10.5px] font-bold leading-none text-white shadow-md">
-              <span translate="no" className="material-symbols-outlined text-[14px]">inventory_2</span>
+              <SvgIcon name="inventory_2" translate="no" className="text-[14px]" />
               {Number(previewCard.stock || 0) <= 0 ? 'Sin stock' : `x${Number(previewCard.stock || 0) > 999 ? '999+' : (previewCard.stock || 0)}`}
             </span>
           </div>
@@ -103,7 +104,7 @@ export default function AlbumCardPreview({
               )}
             </div>
             <h2 className="text-[18px] md:text-3xl font-black leading-[1] text-white drop-shadow-md line-clamp-1">{previewCard.name}</h2>
-            <Link to={`/carta/${previewCard.id}`} className="mt-1 inline-flex min-h-8 items-center gap-1 self-start rounded-full bg-white/15 px-3 text-[11px] font-bold text-white ring-1 ring-white/25 transition-colors hover:bg-white/25 md:text-sm"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[16px] md:text-[18px]">open_in_new</span>Ver ficha y comparar precios</Link>
+            <Link to={`/carta/${previewCard.id}`} className="mt-1 inline-flex min-h-8 items-center gap-1 self-start rounded-full bg-white/15 px-3 text-[11px] font-bold text-white ring-1 ring-white/25 transition-colors hover:bg-white/25 md:text-sm"><SvgIcon name="open_in_new" translate="no" aria-hidden="true" className="text-[16px] md:text-[18px]" />Ver ficha y comparar precios</Link>
             {previewSubtitle && (
               <p className="text-slate-400 text-[11px] md:text-sm italic leading-tight line-clamp-1">
                 {previewSubtitle}
@@ -116,7 +117,7 @@ export default function AlbumCardPreview({
               {previewCard.price ? '$' + Number(previewCard.price).toLocaleString('es-CL') : 'Sin precio'}
             </span>
             <span className="bg-slate-800/90 border border-slate-700 px-2.5 py-1.5 md:px-3.5 md:py-2.5 rounded-xl text-white font-bold text-[11px] md:text-sm flex items-center gap-1.5 leading-none shadow-md">
-                <span translate="no" className="material-symbols-outlined text-[14px] md:text-xl">inventory_2</span>
+                <SvgIcon name="inventory_2" translate="no" className="text-[14px] md:text-xl" />
                 {Number(previewCard.stock || 0) <= 0 ? 'Sin stock' : `x${Number(previewCard.stock || 0) > 999 ? '999+' : (previewCard.stock || 0)} Disponibles`}
             </span>
           </div>
@@ -143,7 +144,7 @@ export default function AlbumCardPreview({
                 </div><div className="w-full bg-black/45 p-2 md:p-4 rounded-2xl border border-white/10 shadow-inner overflow-y-auto custom-scrollbar flex-shrink">
                 <p className="flex flex-col">
                   <strong className="flex items-center gap-1.5 text-yellow-100/80 text-[9px] md:text-sm uppercase tracking-wider mb-1 md:mb-2">
-                    <span translate="no" className="material-symbols-outlined text-[14px] md:text-[16px]">auto_fix_high</span>
+                    <SvgIcon name="auto_fix_high" translate="no" className="text-[14px] md:text-[16px]" />
                     Habilidad
                   </strong> 
                   <span className="font-medium text-white text-[10px] md:text-sm leading-snug md:leading-relaxed whitespace-pre-wrap">

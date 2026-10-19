@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../services/api';
 import { Badge, DetailHeader, DetailPane, Dot, ErrorBox, ListSkeleton, Pills, ROW, ROW_ACTIVE, ROW_HOVER, Spinner, dateTime, relativeTime } from './shared';
 import Select from '../ui/Select';
+import SvgIcon from '../ui/SvgIcon';
 
 const STATUS = {
   open: { label: 'Nuevo', className: 'bg-blue-100 text-blue-800' },
@@ -199,7 +200,7 @@ export default function CasesPanel({ level, onOpenPerson, onOpenReport }) {
         <ErrorBox>{error}</ErrorBox>
         {list === null ? <ListSkeleton /> : list.cases.length === 0 ? (
           <div className="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-900/5">
-            <span translate="no" className="material-symbols-outlined text-5xl text-[#1e40af]/40">verified_user</span>
+            <SvgIcon name="verified_user" translate="no" className="text-5xl text-[#1e40af]/40" />
             <h2 className="mt-2 text-lg font-extrabold text-[#12315f]">No hay casos aquí</h2>
             <p className="mx-auto mt-1 max-w-md text-sm text-slate-600">Cuando alguien reporte una estafa, se abrirá un caso contra esa persona y reunirá todos los reportes.</p>
           </div>

@@ -4,6 +4,7 @@ import LiquidTabs from '../../ui/LiquidTabs';
 import PublicCatalogFilters from '../filters/PublicCatalogFilters';
 import { ReportMenu } from '../../moderation/ReportButton';
 import Select from '../../ui/Select';
+import SvgIcon from '../../ui/SvgIcon';
 
 // Catálogo público: búsqueda, filtros y vista de álbum o cuadrícula de las cartas.
 export default function CatalogBrowser({
@@ -21,7 +22,7 @@ export default function CatalogBrowser({
             <form onSubmit={(event) => event.preventDefault()} className="flex flex-col gap-2 md:gap-3">
               <div className="flex items-center gap-2">
                 <div className="relative min-w-0 flex-1">
-                  <span translate="no" className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">search</span>
+                  <SvgIcon name="search" translate="no" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-slate-400" />
                   <input
                     type="text"
                     value={searchQuery}
@@ -44,8 +45,8 @@ export default function CatalogBrowser({
                     activeTextClassName="text-white"
                     inactiveTextClassName="text-slate-500 hover:text-slate-800"
                     options={[
-                      { value: 'album', label: <><span translate="no" className="material-symbols-outlined text-[18px]" aria-hidden="true">auto_stories</span><span className="hidden min-[420px]:inline">Álbum</span><span className="sr-only min-[420px]:hidden">Álbum</span></> },
-                      { value: 'grid', label: <><span translate="no" className="material-symbols-outlined text-[18px]" aria-hidden="true">grid_view</span><span className="hidden min-[420px]:inline">Cuadrícula</span><span className="sr-only min-[420px]:hidden">Cuadrícula</span></> }
+                      { value: 'album', label: <><SvgIcon name="auto_stories" translate="no" className="text-[18px]" aria-hidden="true" /><span className="hidden min-[420px]:inline">Álbum</span><span className="sr-only min-[420px]:hidden">Álbum</span></> },
+                      { value: 'grid', label: <><SvgIcon name="grid_view" translate="no" className="text-[18px]" aria-hidden="true" /><span className="hidden min-[420px]:inline">Cuadrícula</span><span className="sr-only min-[420px]:hidden">Cuadrícula</span></> }
                     ]}
                   />
                   <button
@@ -58,7 +59,7 @@ export default function CatalogBrowser({
                         : 'border-slate-200 bg-white text-[#12315f] hover:border-[#12315f]/40'
                     }`}
                   >
-                    <span translate="no" className="material-symbols-outlined text-[20px]">tune</span>
+                    <SvgIcon name="tune" translate="no" className="text-[20px]" />
                     <span className="hidden min-[420px]:inline">Filtros</span>
                     {activeFilterCount > 0 && (
                       <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#facc15] px-1 text-[11px] font-black text-[#12315f] ring-2 ring-white min-[420px]:static min-[420px]:ring-0">{activeFilterCount}</span>
@@ -135,7 +136,7 @@ export default function CatalogBrowser({
                           : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:text-[#1e40af]'
                       }`}
                     >
-                      <span translate="no" className="material-symbols-outlined text-[18px]">{onlyAvailable ? 'visibility' : 'visibility_off'}</span>
+                      <SvgIcon name={onlyAvailable ? 'visibility' : 'visibility_off'} translate="no" className="text-[18px]" />
                       Disponibles
                     </button>
                   </div>
@@ -175,7 +176,7 @@ export default function CatalogBrowser({
                         aria-label={wanted[card.id] ? `${card.name} está en tu lista de deseadas` : `Agregar ${card.name} a mis deseadas`}
                         className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white shadow-sm transition active:scale-90 ${wanted[card.id] ? 'text-rose-500' : 'text-slate-500'}`}
                       >
-                        <span translate="no" className="material-symbols-outlined text-[16px]" style={wanted[card.id] ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>
+                        <SvgIcon name="favorite" translate="no" className="text-[16px]" style={wanted[card.id] ? { fontVariationSettings: "'FILL' 1" } : undefined} />
                       </button>
                       )}
                       {!isOwner && (cartItem ? (
@@ -184,7 +185,7 @@ export default function CatalogBrowser({
                             onClick={() => decrementCart(card.id)}
                             className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-slate-700 hover:bg-slate-50 transition-colors"
                           >
-                            <span translate="no" className="material-symbols-outlined text-[16px]">remove</span>
+                            <SvgIcon name="remove" translate="no" className="text-[16px]" />
                           </button>
                           <span className="font-bold text-slate-800 text-xs px-2">{cartItem.quantity}</span>
                           <button
@@ -192,7 +193,7 @@ export default function CatalogBrowser({
                             disabled={availableStock <= 0}
                             className="w-6 h-6 flex items-center justify-center bg-[#2563eb] rounded shadow-sm text-white hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors"
                           >
-                            <span translate="no" className="material-symbols-outlined text-[16px]">add</span>
+                            <SvgIcon name="add" translate="no" className="text-[16px]" />
                           </button>
                         </div>
                       ) : (
@@ -201,7 +202,7 @@ export default function CatalogBrowser({
                           disabled={availableStock <= 0}
                           className="w-full flex items-center justify-center gap-1 bg-[#2563eb] hover:bg-[#1d4ed8] text-white py-1.5 rounded-md font-bold transition-all disabled:opacity-50 shadow-sm text-[10px]"
                         >
-                          <span translate="no" className="material-symbols-outlined text-[14px]">shopping_cart</span>
+                          <SvgIcon name="shopping_cart" translate="no" className="text-[14px]" />
                           {availableStock <= 0 ? 'Agotado' : 'Agregar'}
                         </button>
                       ))}

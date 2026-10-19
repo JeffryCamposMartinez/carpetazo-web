@@ -15,6 +15,7 @@ import { EMPTY_RB_FILTERS } from '../../../services/tcgcsvRiftbound';
 import { EMPTY_YGO_FILTERS } from '../../../services/tcgcsvYugioh';
 import LoadingState, { ButtonSpinner } from '../../ui/LoadingState';
 import EmptyState from '../../ui/EmptyState';
+import SvgIcon from '../../ui/SvgIcon';
 
 export default function FolderAddTab({
   activeQueueItemId, availableBlocks, availablePhysicalProducts, availableRarities, availableSets,
@@ -56,7 +57,7 @@ export default function FolderAddTab({
       <div className="flex-1 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
         <div className="bg-white pb-4 mb-4 border-b border-gray-200">
             <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 mb-4">
-          <span translate="no" className="material-symbols-outlined text-[#1e40af]">search</span>
+          <SvgIcon name="search" translate="no" className="text-[#1e40af]" />
             Buscar en {TCG_LABELS[folderData?.tcg] || folderData?.tcg || "Carpeta"}
         </h2>
         
@@ -104,7 +105,7 @@ export default function FolderAddTab({
               aria-label={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
               aria-pressed={showCardDetails}
             >
-              <span translate="no" className="material-symbols-outlined text-[22px]">{showCardDetails ? 'visibility' : 'visibility_off'}</span>
+              <SvgIcon name={showCardDetails ? 'visibility' : 'visibility_off'} translate="no" className="text-[22px]" />
             </button>
             <button 
               type="button" 
@@ -113,7 +114,7 @@ export default function FolderAddTab({
               title={multiSelectMode ? 'Desactivar selección múltiple' : 'Activar selección múltiple'}
               aria-label={multiSelectMode ? 'Desactivar selección múltiple' : 'Activar selección múltiple'}
             >
-              <span translate="no" className="material-symbols-outlined text-[22px]">library_add</span>
+              <SvgIcon name="library_add" translate="no" className="text-[22px]" />
               {selectedQueue.length > 0 && (
                 <span className={`absolute -top-1 -right-1 min-w-6 h-6 px-1 rounded-full text-xs flex items-center justify-center border-2 border-white ${multiSelectMode ? 'bg-white text-[#1e40af]' : 'bg-[#1e40af] text-white'}`}>
                   {selectedQueue.length}
@@ -127,7 +128,7 @@ export default function FolderAddTab({
               title="Cambiar vista"
               aria-label="Cambiar vista"
             >
-              <span translate="no" className="material-symbols-outlined text-[20px]">grid_view</span>
+              <SvgIcon name="grid_view" translate="no" className="text-[20px]" />
               <span className="ml-1">{gridCols}</span>
             </button>
             <button type="submit" className="hidden" />
@@ -138,7 +139,7 @@ export default function FolderAddTab({
               title="Limpiar filtros"
               aria-label="Limpiar filtros"
             >
-              <span translate="no" className="material-symbols-outlined text-[22px]">filter_alt_off</span>
+              <SvgIcon name="filter_alt_off" translate="no" className="text-[22px]" />
             </button>
           </div>
         </form>
@@ -227,7 +228,7 @@ export default function FolderAddTab({
                 aria-label={showCardDetails ? 'Ocultar información de cartas' : 'Mostrar información de cartas'}
                 aria-pressed={showCardDetails}
             >
-                <span translate="no" className="material-symbols-outlined text-[22px]">{showCardDetails ? 'visibility' : 'visibility_off'}</span>
+                <SvgIcon name={showCardDetails ? 'visibility' : 'visibility_off'} translate="no" className="text-[22px]" />
             </button>
             <button 
                 type="button" 
@@ -237,7 +238,7 @@ export default function FolderAddTab({
                 aria-label={multiSelectMode ? 'Desactivar selección múltiple' : 'Activar selección múltiple'}
               aria-label={multiSelectMode ? 'Desactivar selección múltiple' : 'Activar selección múltiple'}
             >
-                <span translate="no" className="material-symbols-outlined text-[22px]">library_add</span>
+                <SvgIcon name="library_add" translate="no" className="text-[22px]" />
                 {selectedQueue.length > 0 && (
                     <span className={`absolute -top-1 -right-1 min-w-6 h-6 px-1 rounded-full text-xs flex items-center justify-center border-2 border-white ${multiSelectMode ? 'bg-white text-[#1e40af]' : 'bg-[#1e40af] text-white'}`}>
                         {selectedQueue.length}
@@ -252,7 +253,7 @@ export default function FolderAddTab({
                 aria-label="Cambiar vista"
               aria-label="Cambiar vista"
             >
-                <span translate="no" className="material-symbols-outlined text-[20px]">grid_view</span>
+                <SvgIcon name="grid_view" translate="no" className="text-[20px]" />
                 <span className="ml-1">{gridCols}</span>
             </button>
             <button 
@@ -262,7 +263,7 @@ export default function FolderAddTab({
                 title="Limpiar filtros"
               aria-label="Limpiar filtros"
             >
-                <span translate="no" className="material-symbols-outlined text-[22px]">filter_alt_off</span>
+                <SvgIcon name="filter_alt_off" translate="no" className="text-[22px]" />
             </button>
             <button
                 type="button"
@@ -271,13 +272,13 @@ export default function FolderAddTab({
                 aria-label="Volver arriba"
                 title="Volver arriba"
             >
-                <span translate="no" className="material-symbols-outlined text-2xl">arrow_upward</span>
+                <SvgIcon name="arrow_upward" translate="no" className="text-2xl" />
             </button>
         </div>
 
       <div id="add-catalog-panel" className={`w-full max-w-[400px] lg:w-[400px] bg-white p-6 lg:p-6 rounded-2xl shadow-sm border border-gray-200 lg:sticky lg:top-[140px] flex-shrink-0 z-10 hover:z-[60] mx-auto lg:mx-0 self-center lg:self-start scroll-mt-[130px] lg:scroll-mt-[150px] ${selectedCard ? 'block' : 'hidden lg:block'} lg:h-[calc(100vh-160px)] overflow-visible`}>
         <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 border-b border-gray-200 pb-4">
-          <span translate="no" className="material-symbols-outlined text-[#1e40af]">add_circle</span>
+          <SvgIcon name="add_circle" translate="no" className="text-[#1e40af]" />
           {isBatchAdding ? 'Agregar Selección' : 'Añadir a Carpeta'}
         </h2>
         {selectedCard ? (
@@ -292,7 +293,7 @@ export default function FolderAddTab({
                   title="Subir foto real de la carta"
                   aria-label="Subir foto real de la carta"
                 >
-                  <span translate="no" className="material-symbols-outlined text-[20px]">photo_camera</span>
+                  <SvgIcon name="photo_camera" translate="no" className="text-[20px]" />
                 </button>
               </div>
               <input 
@@ -357,7 +358,7 @@ export default function FolderAddTab({
               )}
 
               <button type="submit" disabled={isSaving} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-[15px]">
-                {isSaving ? <ButtonSpinner /> : <span translate="no" className="material-symbols-outlined">add_circle</span>}
+                {isSaving ? <ButtonSpinner /> : <SvgIcon name="add_circle" translate="no" />}
                 {isSaving ? 'Guardando...' : isBatchAdding ? 'Guardar y continuar' : selectedExistingCard ? 'Sumar stock' : 'Guardar Carta'}
               </button>
             </div>
@@ -390,7 +391,7 @@ export default function FolderAddTab({
                               className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center shadow-md border-2 border-white hover:scale-110 transition-transform z-[60]"
                               title="Quitar de la selección"
                             >
-                              <span translate="no" className="material-symbols-outlined text-[14px]">close</span>
+                              <SvgIcon name="close" translate="no" className="text-[14px]" />
                             </button>
                             <span className="absolute -bottom-2 -left-2 bg-[#1e40af] text-white text-[11px] font-bold rounded-full min-w-7 px-1 h-7 flex items-center justify-center shadow-md border-2 border-white z-[60]">
                               x{item.quantity || 1}
@@ -400,7 +401,7 @@ export default function FolderAddTab({
                       </div>
                     ) : (
                       <div className="w-full h-full min-h-[300px] flex flex-col items-center justify-center text-gray-400 opacity-80 border-2 border-dashed border-gray-200 rounded-xl">
-                        <span translate="no" className="material-symbols-outlined text-6xl mb-4 text-gray-300">library_add</span>
+                        <SvgIcon name="library_add" translate="no" className="text-6xl mb-4 text-gray-300" />
                         <div className="text-center px-4">
                           <p className="text-sm font-bold">Usa clic izquierdo para sumar copias.</p>
                           <p className="text-sm font-bold mt-1 opacity-80">Usa clic derecho para restarlas.</p>
@@ -410,13 +411,13 @@ export default function FolderAddTab({
                   </div>
 
                   <button type="button" disabled={selectedQueue.length === 0} onClick={startQueuedAdd} className="w-full py-3.5 rounded-xl text-[15px] font-bold bg-[#1e40af] text-white disabled:bg-gray-300 disabled:cursor-not-allowed shadow-sm hover:bg-blue-800 transition-colors flex items-center justify-center gap-2">
-                    <span translate="no" className="material-symbols-outlined text-[20px]">playlist_add_check</span>
+                    <SvgIcon name="playlist_add_check" translate="no" className="text-[20px]" />
                     Agregar selección
                   </button>
                 </div>
             ) : (
               <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-gray-400 opacity-80 border-2 border-dashed border-gray-200 rounded-xl mt-6 p-6">
-                <span translate="no" className="material-symbols-outlined text-6xl mb-4 text-gray-300">style</span>
+                <SvgIcon name="style" translate="no" className="text-6xl mb-4 text-gray-300" />
                 <p className="text-sm font-bold text-center">Selecciona una carta de los resultados.</p>
               </div>
             )}

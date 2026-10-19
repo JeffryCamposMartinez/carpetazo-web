@@ -1,3 +1,4 @@
+import SvgIcon from '../ui/SvgIcon';
 // Íconos de contacto del vendedor en el catálogo público.
 
 export const ContactIcon = ({ type, className = 'h-4 w-4' }) => {
@@ -40,5 +41,5 @@ export const ContactIcon = ({ type, className = 'h-4 w-4' }) => {
     );
   }
 
-  return <span translate="no" className="material-symbols-outlined text-[18px]">chat</span>;
+  return <SvgIcon name="chat" translate="no" className="text-[18px]" />;
 };

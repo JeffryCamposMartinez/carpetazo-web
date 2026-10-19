@@ -6,6 +6,7 @@ import LoadableImage from '../ui/LoadableImage';
 import Select from '../ui/Select';
 import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 import UiEmptyState from '../ui/EmptyState';
+import SvgIcon from '../ui/SvgIcon';
 
 // Solicitudes (pedidos pendientes) e historial de ventas del vendedor.
 // Los datos vienen de GET /api/orders/mine; las acciones de POST /api/orders/mine/:id/status.
@@ -31,7 +32,7 @@ const cardCount = (order) => (order.items || []).reduce((sum, item) => sum + Num
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 const Icon = ({ name, className = '' }) => (
-  <span translate="no" aria-hidden="true" className={`material-symbols-outlined ${className}`}>{name}</span>
+  <SvgIcon name={name} translate="no" aria-hidden="true" className={`${className}`} />
 );
 
 // Nombre de la carta del pedido: si sigue a la venta, abre su ficha pública

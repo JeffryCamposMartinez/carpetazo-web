@@ -7,6 +7,7 @@ import { useToast } from '../components/ui/ToastProvider';
 import usePageMeta from '../hooks/usePageMeta';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import SubscriptionPanel, { GrantNote, formatDate } from '../components/plans/SubscriptionPanel';
+import SvgIcon from '../components/ui/SvgIcon';
 
 const ICONS = { free: 'style', enthusiast: 'local_fire_department', premium: 'workspace_premium', pro: 'diamond', store: 'storefront', test: 'science' };
 const STYLES = {
@@ -33,11 +34,11 @@ function PlanCard({ plan, current, busy, testMode, cta, onChoose }) {
     <article className={`relative flex min-h-[30rem] flex-col rounded-3xl border-2 p-6 shadow-[0_16px_38px_-24px_rgba(15,39,80,0.55)] ${STYLES[plan.key]} ${active ? 'ring-4 ring-[#1e40af]/15' : ''}`}>
       {plan.adminOnly && <span className="absolute left-4 top-4 rounded-full bg-slate-700 px-3 py-1 text-xs font-black text-white">Solo administradores</span>}
       {active && <span className="absolute right-4 top-4 rounded-full bg-[#1e40af] px-3 py-1 text-xs font-black text-white">Plan actual</span>}
-      <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#12315f] text-[#facc15]"><span translate="no" className="material-symbols-outlined text-[27px]">{ICONS[plan.key]}</span></span>
+      <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#12315f] text-[#facc15]"><SvgIcon name={ICONS[plan.key]} translate="no" className="text-[27px]" /></span>
       <h2 className="text-2xl font-black text-[#12315f]">{plan.name}</h2>
       <p className="mt-2 flex flex-wrap items-end gap-x-1 text-[#12315f]"><span className="text-4xl font-black tracking-tight">{price(plan.priceClp)}</span>{plan.priceClp > 0 && <span className="pb-1 text-sm font-bold text-slate-500">/mes</span>}</p>
       <ul className="my-7 flex flex-1 flex-col gap-3">
-        {features.map((feature) => <li key={feature} className="flex gap-2 text-sm font-semibold text-slate-700"><span translate="no" className="material-symbols-outlined text-[20px] text-emerald-600">check_circle</span><span>{feature}</span></li>)}
+        {features.map((feature) => <li key={feature} className="flex gap-2 text-sm font-semibold text-slate-700"><SvgIcon name="check_circle" translate="no" className="text-[20px] text-emerald-600" /><span>{feature}</span></li>)}
       </ul>
       <button type="button" disabled={busy || (cta ? cta.disabled : active)} onClick={() => onChoose(plan)} className="flex h-12 items-center justify-center rounded-xl bg-[#1e40af] px-4 font-extrabold text-white shadow-md transition hover:bg-[#1e3a8a] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
         {busy ? <><ButtonSpinner /><span className="ml-2">Procesando…</span></> : cta ? cta.label : active ? 'Plan activo' : testMode ? 'Probar este plan' : plan.priceClp === 0 ? 'Usar Free' : 'Elegir plan'}

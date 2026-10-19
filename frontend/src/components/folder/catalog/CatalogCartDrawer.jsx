@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import LoadableImage from '../../ui/LoadableImage';
 import EmptyState from '../../ui/EmptyState';
+import SvgIcon from '../../ui/SvgIcon';
 // Carrito del catálogo público: cartas elegidas, total y envío del pedido.
 export default function CatalogCartDrawer({
   cart, cartTotal, currentUser, formatCLP, handleMessageCheckout, handleWhatsAppCheckout,
@@ -31,10 +32,10 @@ export default function CatalogCartDrawer({
       <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="carrito-titulo" tabIndex={-1} className="bg-white border-l border-gray-200 w-full max-w-md h-full p-6 flex flex-col shadow-2xl outline-none animate-[slideIn_0.3s_ease_forwards]" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
           <h2 id="carrito-titulo" className="font-headline-md text-2xl font-bold flex items-center gap-2 text-gray-900">
-            <span translate="no" className="material-symbols-outlined">shopping_cart</span> Tu Pedido
+            <SvgIcon name="shopping_cart" translate="no" /> Tu Pedido
           </h2>
           <button aria-label="Cerrar carrito" className="text-gray-500 hover:text-gray-900 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100" onClick={() => setIsCartOpen(false)}>
-            <span translate="no" className="material-symbols-outlined text-xl">close</span>
+            <SvgIcon name="close" translate="no" className="text-xl" />
           </button>
         </div>
 
@@ -56,7 +57,7 @@ export default function CatalogCartDrawer({
                   </div>
                 </div>
                 <button aria-label={`Quitar ${item.name} del carrito`} className="absolute top-2 right-2 text-error/50 hover:text-error w-8 h-8 flex items-center justify-center rounded-full hover:bg-error/10 transition-colors" onClick={() => removeFromCart(item.id)}>
-                    <span translate="no" className="material-symbols-outlined text-sm">delete</span>
+                    <SvgIcon name="delete" translate="no" className="text-sm" />
                 </button>
               </div>
             ))
@@ -81,9 +82,7 @@ export default function CatalogCartDrawer({
               disabled={cart.length === 0 || isProcessingCheckout}
               onClick={handleWhatsAppCheckout}
             >
-              <span translate="no" className="material-symbols-outlined text-2xl">
-                {isProcessingCheckout ? 'hourglass_empty' : 'chat'}
-              </span>
+              <SvgIcon name={isProcessingCheckout ? 'hourglass_empty' : 'chat'} translate="no" className="text-2xl" />
               {isProcessingCheckout ? 'Procesando...' : 'Generar Pedido por WhatsApp'}
             </button>
           )}
@@ -93,9 +92,7 @@ export default function CatalogCartDrawer({
               disabled={cart.length === 0 || isProcessingCheckout || !socialEnabled('showMessageButton')}
               onClick={handleMessageCheckout}
             >
-              <span translate="no" className="material-symbols-outlined text-2xl">
-                {isProcessingCheckout ? 'hourglass_empty' : 'mail'}
-              </span>
+              <SvgIcon name={isProcessingCheckout ? 'hourglass_empty' : 'mail'} translate="no" className="text-2xl" />
               {isProcessingCheckout ? 'Procesando...' : currentUser ? 'Enviar pedido por mensaje' : 'Iniciar sesión y enviar pedido por mensaje'}
             </button>
           )}

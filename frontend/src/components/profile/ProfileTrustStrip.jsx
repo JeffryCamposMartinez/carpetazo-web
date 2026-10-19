@@ -1,5 +1,6 @@
 import { getCardStyle } from './profileStyles';
 import { VERIFIED_HINT } from '../ui/VerifiedBadge';
+import SvgIcon from '../ui/SvgIcon';
 
 // "~20 min", "~3 h", "~2 días": tiempo típico que tarda en contestar
 export const formatResponseTime = (minutes) => {
@@ -41,7 +42,7 @@ export default function ProfileTrustStrip({ completedSales = 0, folders, memberS
           const body = (
             <>
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: item.star ? '#fef3c7' : `${publicTheme.primary}14`, color: item.star ? '#d97706' : publicTheme.primary }}>
-                <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px]" style={item.filled ? { fontVariationSettings: "'FILL' 1" } : undefined}>{item.icon}</span>
+                <SvgIcon name={item.icon} translate="no" aria-hidden="true" className="text-[22px]" style={item.filled ? { fontVariationSettings: "'FILL' 1" } : undefined} />
               </span>
               <span className="min-w-0">
                 <strong className="block text-xl font-black leading-none tabular-nums" style={{ color: publicTheme.text, fontFamily: 'var(--seller-data)' }}>{item.value}</strong>
@@ -63,7 +64,7 @@ export default function ProfileTrustStrip({ completedSales = 0, folders, memberS
         <ul className="mt-3 flex flex-wrap gap-2">
           {chips.map((chip) => (
             <li key={chip.icon} title={chip.hint} className="inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-bold ring-1" style={{ backgroundColor: `${publicTheme.primary}14`, color: publicTheme.text, '--tw-ring-color': `${publicTheme.primary}2e` }}>
-              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]" style={{ color: publicTheme.primary, ...(chip.filled ? { fontVariationSettings: "'FILL' 1" } : {}) }}>{chip.icon}</span>
+              <SvgIcon name={chip.icon} translate="no" aria-hidden="true" className="text-[18px]" style={{ color: publicTheme.primary, ...(chip.filled ? { fontVariationSettings: "'FILL' 1" } : {}) }} />
               {chip.label}
             </li>
           ))}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import SvgIcon from '../ui/SvgIcon';
 
 export default function Footer() {
   const location = useLocation();
@@ -38,7 +39,7 @@ export default function Footer() {
       style={themedFooterStyle}
     >
       <a href="mailto:carpetazo.soporte@gmail.com" className="inline-flex min-h-11 max-w-full items-center gap-2 break-all rounded-lg px-3 text-sm font-medium transition-colors duration-150 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
-        <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">mail</span>
+        <SvgIcon name="mail" translate="no" aria-hidden="true" className="text-[18px]" />
         carpetazo.soporte@gmail.com
       </a>
       <nav aria-label="Información legal" className="flex flex-wrap items-center justify-center gap-x-2 text-xs font-semibold">

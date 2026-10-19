@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import SvgIcon from './SvgIcon';
 
 const number = (value) => Number(value).toLocaleString('es-CL');
 
@@ -114,7 +115,7 @@ export default function ValidationBubble() {
       className={`validation-bubble pointer-events-none fixed z-[300] flex w-max max-w-[calc(100vw-1.5rem)] items-center gap-2.5 rounded-xl bg-[#12315f] px-3 py-2.5 text-sm font-bold leading-snug text-white shadow-[0_14px_30px_-12px_rgba(18,49,95,0.75)] ring-1 ring-[#facc15]/60 ${place?.above ? 'is-above' : ''}`}
     >
       <span aria-hidden="true" className="absolute h-3 w-3 rotate-45 bg-[#12315f]" style={{ left: (place?.arrow ?? 24) - 6, [place?.above ? 'bottom' : 'top']: -5 }} />
-      <span aria-hidden="true" className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#facc15] text-[#12315f]"><span translate="no" className="material-symbols-outlined text-[16px]">priority_high</span></span>
+      <span aria-hidden="true" className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#facc15] text-[#12315f]"><SvgIcon name="priority_high" translate="no" className="text-[16px]" /></span>
       <span className="relative">{state.message}</span>
     </div>,
     document.body

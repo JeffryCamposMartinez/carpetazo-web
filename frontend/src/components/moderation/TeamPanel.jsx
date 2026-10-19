@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../services/api';
 import { EmptyState, ErrorBox, Pills, Spinner, relativeTime } from './shared';
 import { ACTIONS, ActionDialog, Avatar, RANKS, RankBadge, RestrictionBadge, since } from './team/TeamParts';
+import SvgIcon from '../ui/SvgIcon';
 
 const ACTION_TEXT = {
   'role.admin_granted': 'dio el rol de administrador a',
@@ -31,7 +32,7 @@ function MemberCard({ person, me, onAction }) {
         </div>
         {mayManage && <button type="button" onClick={() => onAction(person)} className="h-11 w-full shrink-0 rounded-full bg-[#12315f] px-5 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 active:scale-[0.97] hover:bg-[#1e40af] sm:w-auto">Gestionar</button>}
       </div>
-      {person.isOwner && <p className="mt-3 flex items-start gap-2 rounded-xl bg-[#fffbeb] p-3 text-xs leading-relaxed text-amber-900"><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">lock</span>Cuenta original de Carpetazo. Está protegida: nadie puede cambiar su rol, suspenderla, cerrarla ni ocultar su contenido.</p>}
+      {person.isOwner && <p className="mt-3 flex items-start gap-2 rounded-xl bg-[#fffbeb] p-3 text-xs leading-relaxed text-amber-900"><SvgIcon name="lock" translate="no" aria-hidden="true" className="text-[18px]" />Cuenta original de Carpetazo. Está protegida: nadie puede cambiar su rol, suspenderla, cerrarla ni ocultar su contenido.</p>}
     </li>
   );
 }
@@ -54,7 +55,7 @@ function ManageSheet({ person, onClose, onChoose }) {
           {options.map((option) => (
             <li key={option.action}>
               <button type="button" onClick={() => onChoose(option.action)} className={`flex w-full items-center gap-3 rounded-xl border-2 p-3 text-left transition-colors ${option.danger ? 'border-red-200 hover:bg-red-50' : 'border-[#dbe3f0] hover:bg-[#f3f7ff]'}`}>
-                <span translate="no" aria-hidden="true" className={`material-symbols-outlined text-[24px] ${option.danger ? 'text-red-600' : 'text-[#1e40af]'}`}>{ACTIONS[option.action].icon}</span>
+                <SvgIcon name={ACTIONS[option.action].icon} translate="no" aria-hidden="true" className={`text-[24px] ${option.danger ? 'text-red-600' : 'text-[#1e40af]'}`} />
                 <span className="min-w-0"><span className={`block text-sm font-extrabold ${option.danger ? 'text-red-700' : 'text-[#12315f]'}`}>{option.label}</span><span className="block text-xs text-slate-600">{option.help}</span></span>
               </button>
             </li>
@@ -113,7 +114,7 @@ export default function TeamPanel() {
     <div className="mx-auto max-w-3xl space-y-4">
       <Pills options={TABS} value={tab} onChange={(value) => { setTab(value); setDone(''); }} label="Secciones del equipo" />
       <ErrorBox>{message}</ErrorBox>
-      {done && <p role="status" className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800"><span translate="no" aria-hidden="true" className="material-symbols-outlined mt-px text-[20px]">check_circle</span>{done}</p>}
+      {done && <p role="status" className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800"><SvgIcon name="check_circle" translate="no" aria-hidden="true" className="mt-px text-[20px]" />{done}</p>}
 
       {tab === 'hierarchy' && (!data ? <Spinner label="Cargando el equipo" /> : (
         <>
@@ -132,7 +133,7 @@ export default function TeamPanel() {
           <h3 className="text-lg font-extrabold text-[#12315f]">Buscar una persona</h3>
           <p className="mt-1 text-sm leading-relaxed text-slate-600">Busca por usuario o nombre. Verás su foto para no equivocarte. Desde aquí puedes darle un rol de equipo o, si su cuenta está suspendida o cerrada, restaurarla.</p>
           <div className="relative mt-3">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[22px] text-slate-400">search</span>
+            <SvgIcon name="search" translate="no" aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[22px] text-slate-400" />
             <input type="search" value={query} onChange={(event) => { setQuery(event.target.value); setDone(''); }} placeholder="Escribe un usuario o nombre…" aria-label="Buscar personas" autoComplete="off" className="h-12 w-full rounded-full border-2 border-[#dbe3f0] bg-white pl-12 pr-4 text-base font-medium text-[#12315f] focus:border-[#1e40af] focus:outline-none" />
           </div>
           <div className="mt-3" aria-live="polite">
@@ -169,7 +170,7 @@ export default function TeamPanel() {
           {history.map((event) => (
             <li key={event.id} className="rounded-xl border border-[#dbe3f0] bg-white p-3.5">
               <div className="flex items-start gap-3">
-                <span translate="no" aria-hidden="true" className="material-symbols-outlined mt-0.5 text-[22px] text-[#1e40af]">{ACTION_ICON[event.action] || 'history'}</span>
+                <SvgIcon name={ACTION_ICON[event.action] || 'history'} translate="no" aria-hidden="true" className="mt-0.5 text-[22px] text-[#1e40af]" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm leading-snug text-slate-700"><strong className="text-[#12315f]">@{event.actor?.username || 'el sistema'}</strong> {ACTION_TEXT[event.action] || 'hizo un cambio en'} <strong className="text-[#12315f]">@{event.target?.username || 'una cuenta'}</strong></p>
                   {event.note && <p className="mt-1 break-words text-xs text-slate-500">{event.note}</p>}

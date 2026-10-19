@@ -1,5 +1,6 @@
 import ComunaSelect from '../ui/ComunaSelect';
 import { formatCardSearchQuery } from '../../utils/cardCodeSearch';
+import SvgIcon from '../ui/SvgIcon';
 
 // Juegos del sitio con su logo. Solo Pokémon y Mitos y Leyendas tienen catálogo cargado; el resto se verá vacío hasta que haya cartas.
 export const GAMES = [
@@ -21,7 +22,7 @@ export default function CardsFilters({ comuna, onComuna, onQuery, onTcg, query, 
   return (
     <div className="lg:sticky lg:top-32 lg:self-start">
       <div className="relative">
-        <span translate="no" aria-hidden="true" className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[22px] text-slate-400">search</span>
+        <SvgIcon name="search" translate="no" aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[22px] text-slate-400" />
         <input
           type="search"
           value={query}
@@ -33,7 +34,7 @@ export default function CardsFilters({ comuna, onComuna, onQuery, onTcg, query, 
         />
         {query && (
           <button type="button" onClick={() => onQuery('')} aria-label="Borrar búsqueda" className="absolute right-1.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition-[background-color,transform] duration-150 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] [@media(hover:hover)]:hover:bg-slate-100">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">close</span>
+            <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[20px]" />
           </button>
         )}
       </div>

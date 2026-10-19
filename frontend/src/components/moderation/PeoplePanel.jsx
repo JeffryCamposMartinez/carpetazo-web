@@ -7,6 +7,7 @@ import PlanManager from './PlanManager';
 import Select from '../ui/Select';
 import ConfirmModal from '../ui/ConfirmModal';
 import { useToast } from '../ui/ToastProvider';
+import SvgIcon from '../ui/SvgIcon';
 
 const STATUS = {
   active: { label: 'Vigente', bar: 'bg-red-600', text: 'text-red-700' },
@@ -211,7 +212,7 @@ export default function PeoplePanel({ level, focusUsername, focusReportId, onFoc
         <h2 className="mb-2 px-1 text-base font-extrabold text-[#12315f]">Buscar a una persona</h2>
         <form className="mb-3 flex gap-2" onSubmit={submitSearch}>
           <div className="relative min-w-0 flex-1">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">person_search</span>
+            <SvgIcon name="person_search" translate="no" aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-slate-400" />
             <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Usuario o nombre, sin la @" aria-label="Usuario o nombre" maxLength={30} className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-base sm:text-[15px] text-slate-800 outline-none focus:border-[#1e40af]" />
           </div>
           <button type="submit" className="h-12 shrink-0 rounded-xl bg-[#1e40af] px-5 text-sm font-bold text-white">Buscar</button>

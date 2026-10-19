@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatDuration } from './messageUtils';
+import SvgIcon from '../ui/SvgIcon';
 
 const CANCEL_DX = 110;
 const LOCK_DY = 80;
-const Icon = ({ name, className = '', fill = false }) => <span translate="no" aria-hidden="true" className={`material-symbols-outlined ${className}`} style={fill ? { fontVariationSettings: "'FILL' 1" } : undefined}>{name}</span>;
+const Icon = ({ name, className = '', fill = false }) => <SvgIcon name={name} translate="no" aria-hidden="true" className={`${className}`} style={fill ? { fontVariationSettings: "'FILL' 1" } : undefined} />;
 
 // Botón del micrófono, como en WhatsApp: en el celular se mantiene presionado para grabar, se desliza a la izquierda para cancelar y hacia arriba para
 // dejar la grabación fija. Con el mouse un clic empieza a grabar (queda fija). Cuando la grabación está fija el botón pasa a ser «Enviar».

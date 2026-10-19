@@ -8,6 +8,7 @@ import usePageMeta from '../hooks/usePageMeta';
 import EmptyState from '../components/ui/EmptyState';
 import VerifiedBadge from '../components/ui/VerifiedBadge';
 import PlanBadge from '../components/ui/PlanBadge';
+import SvgIcon from '../components/ui/SvgIcon';
 
 const SORTS = [
   { value: 'visits', label: 'Más visitados' },
@@ -70,7 +71,7 @@ export default function SellersPage() {
 
         <div className="mb-5 flex flex-col gap-2 rounded-2xl bg-white p-2.5 shadow-sm ring-1 ring-slate-900/5 md:flex-row md:items-center md:p-3">
           <div className="relative min-w-0 flex-1">
-            <span translate="no" className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">search</span>
+            <SvgIcon name="search" translate="no" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-slate-400" />
             <input
               type="search"
               value={query}
@@ -113,7 +114,7 @@ export default function SellersPage() {
                     </p>
                     {seller.tcgs.length > 0 && <p className="mt-0.5 truncate text-xs text-slate-500">{seller.tcgs.join(', ')}</p>}
                   </div>
-                  <span translate="no" className="material-symbols-outlined text-[22px] text-slate-400">chevron_right</span>
+                  <SvgIcon name="chevron_right" translate="no" className="text-[22px] text-slate-400" />
                 </>
               );
               const rowClass = 'flex min-w-0 items-center gap-3 rounded-2xl bg-white p-3 sm:gap-4 sm:p-4 shadow-sm ring-1 ring-slate-900/5';
@@ -133,11 +134,11 @@ export default function SellersPage() {
         {!loading && !failed && result.pages > 1 && (
           <nav aria-label="Paginación" className="mt-6 flex items-center justify-center gap-3">
             <button type="button" disabled={page <= 1} onClick={() => { setPage(page - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex h-10 items-center gap-1 rounded-full bg-white px-4 text-sm font-bold text-[#12315f] shadow-sm ring-1 ring-slate-900/5 disabled:opacity-40">
-              <span translate="no" className="material-symbols-outlined text-[18px]">chevron_left</span> Anterior
+              <SvgIcon name="chevron_left" translate="no" className="text-[18px]" /> Anterior
             </button>
             <span className="text-sm font-semibold tabular-nums text-slate-600">Página {page} de {result.pages}</span>
             <button type="button" disabled={page >= result.pages} onClick={() => { setPage(page + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex h-10 items-center gap-1 rounded-full bg-white px-4 text-sm font-bold text-[#12315f] shadow-sm ring-1 ring-slate-900/5 disabled:opacity-40">
-              Siguiente <span translate="no" className="material-symbols-outlined text-[18px]">chevron_right</span>
+              Siguiente <SvgIcon name="chevron_right" translate="no" className="text-[18px]" />
             </button>
           </nav>
         )}

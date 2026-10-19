@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import useEscape from '../../hooks/useEscape';
+import SvgIcon from '../ui/SvgIcon';
 
 // Hoja del chat: en el celular sube desde abajo (se cierra tocando fuera, con Esc o arrastrando hacia abajo); en pantalla ancha es un cuadro centrado.
 // `full` la abre a pantalla completa en el celular (para listas largas). El foco entra a la hoja y vuelve al cerrar.
@@ -53,7 +54,7 @@ export default function Sheet({ open, onClose, title, children, full = false, la
               <div className="flex items-center justify-between gap-3 px-5 pb-2 pt-3">
                 <h2 id={labelledBy} className="text-lg font-extrabold text-[#12315f]">{title}</h2>
                 <button type="button" onClick={onClose} aria-label="Cerrar" className="-mr-2 flex h-11 w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-                  <span translate="no" aria-hidden="true" className="material-symbols-outlined">close</span>
+                  <SvgIcon name="close" translate="no" aria-hidden="true" />
                 </button>
               </div>
             )}

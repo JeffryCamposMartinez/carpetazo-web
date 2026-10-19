@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../services/api';
 import { Badge, EmptyState, ErrorBox, Pills, ROW, ROW_HOVER, Spinner, dateTime } from './shared';
+import SvgIcon from '../ui/SvgIcon';
 
 const KIND_LABELS = { complaint: 'Reclamo', suggestion: 'Sugerencia' };
 const STATUS_LABELS = { open: 'Pendientes', corrected: 'Corregidas', all: 'Todas' };
@@ -59,7 +60,7 @@ export default function FeedbackPanel({ level = 1 }) {
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">
                   <Badge className={item.status === 'corrected' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}>{item.status === 'corrected' ? 'Corregida' : 'Pendiente'}</Badge>
-                  {item.status === 'open' && level >= 2 && <button type="button" onClick={() => correct(item.id)} disabled={busyId === item.id} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#12315f] px-3.5 text-xs font-extrabold text-white transition-[background-color,transform] hover:bg-[#1e40af] active:scale-[0.97] disabled:cursor-wait disabled:opacity-60">{busyId === item.id ? 'Guardando…' : <><span translate="no" aria-hidden="true" className="material-symbols-outlined text-[17px]">check_circle</span> Marcar corregida</>}</button>}
+                  {item.status === 'open' && level >= 2 && <button type="button" onClick={() => correct(item.id)} disabled={busyId === item.id} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#12315f] px-3.5 text-xs font-extrabold text-white transition-[background-color,transform] hover:bg-[#1e40af] active:scale-[0.97] disabled:cursor-wait disabled:opacity-60">{busyId === item.id ? 'Guardando…' : <><SvgIcon name="check_circle" translate="no" aria-hidden="true" className="text-[17px]" /> Marcar corregida</>}</button>}
                   {item.status === 'open' && level < 2 && <span className="text-xs font-semibold text-slate-500">Solo lectura</span>}
                 </div>
               </div>

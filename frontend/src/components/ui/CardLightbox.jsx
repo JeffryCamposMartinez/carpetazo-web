@@ -4,6 +4,7 @@ import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import useEscape from '../../hooks/useEscape';
 import { LoadingMark } from './LoadableImage';
 import { cardCorners } from '../../utils/cardShape';
+import SvgIcon from './SvgIcon';
 
 const formatCLP = (value) => `$${Number(value || 0).toLocaleString('es-CL')}`;
 const LANGUAGES = { English: 'Inglés', Spanish: 'Español', Japanese: 'Japonés' };
@@ -100,7 +101,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
       <div className="flex shrink-0 items-center justify-between gap-3 px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] text-white" onClick={(event) => event.stopPropagation()}>
         <p className="min-w-0 truncate text-sm font-bold tabular-nums text-white/80">{cards.length > 1 ? `${index + 1} de ${cards.length}` : ''}</p>
         <button ref={closeRef} type="button" onClick={onClose} aria-label="Cerrar" className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 transition-[background-color,transform] duration-150 hover:bg-white/20 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[24px]">close</span>
+          <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[24px]" />
         </button>
       </div>
 
@@ -115,7 +116,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
         {/* Botones a los lados: solo donde hay mouse; en pantallas táctiles se arrastra */}
         {card.imageUrl && loadedId !== card.id && <LoadingMark still={failedId === card.id} className="absolute inset-0 scale-125" />}
         <button type="button" aria-label="Carta anterior" disabled={index <= 0} onClick={() => go(-1)} onPointerDown={(event) => event.stopPropagation()} className={`${nav} left-2 hidden sm:left-6 [@media(hover:hover)]:flex ${cards.length < 2 ? "!hidden" : ""}`}>
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[28px]">chevron_left</span>
+          <SvgIcon name="chevron_left" translate="no" aria-hidden="true" className="text-[28px]" />
         </button>
         <div
           key={card.id}
@@ -138,7 +139,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
             : <span className="rounded-2xl bg-white/10 px-6 py-10 text-sm font-bold text-white/70">Sin imagen</span>}
         </div>
         <button type="button" aria-label="Carta siguiente" disabled={index >= cards.length - 1} onClick={() => go(1)} onPointerDown={(event) => event.stopPropagation()} className={`${nav} right-2 hidden sm:right-6 [@media(hover:hover)]:flex ${cards.length < 2 ? "!hidden" : ""}`}>
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[28px]">chevron_right</span>
+          <SvgIcon name="chevron_right" translate="no" aria-hidden="true" className="text-[28px]" />
         </button>
       </div>
       {cards.length > 1 && <p className="pointer-events-none shrink-0 pb-1 text-center text-[11px] font-semibold text-white/50 [@media(hover:hover)]:hidden" aria-hidden="true">Desliza para ver las demás</p>}

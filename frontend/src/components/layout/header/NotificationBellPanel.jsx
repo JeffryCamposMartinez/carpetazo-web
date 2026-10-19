@@ -1,4 +1,5 @@
 import EmptyState from '../../ui/EmptyState';
+import SvgIcon from '../../ui/SvgIcon';
 
 const decodeMessagePreview = (content = '') => {
   try {
@@ -62,7 +63,7 @@ export default function NotificationBellPanel({
                   className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-blue-50 ${openSnapshot && new Date(order.createdAt) > new Date(openSnapshot.ordersSince || 0) ? 'bg-blue-50/70' : ''}`}
                 >
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#facc15]/25 text-[#12315f] ring-2 ring-[#facc15]/50">
-                    <span translate="no" className="material-symbols-outlined text-[22px]">shopping_bag</span>
+                    <SvgIcon name="shopping_bag" translate="no" className="text-[22px]" />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2 truncate text-sm font-black">
@@ -84,7 +85,7 @@ export default function NotificationBellPanel({
           {wishMatches.items > 0 && (
             <div className="border-b border-slate-100 py-2">
               <button type="button" onClick={openWishlist} className="flex w-full items-center gap-3 px-4 py-2 text-left transition hover:bg-slate-50">
-                <span translate="no" className="material-symbols-outlined text-[22px] text-rose-500">favorite</span>
+                <SvgIcon name="favorite" translate="no" className="text-[22px] text-rose-500" />
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-black text-slate-800">{wishMatches.items === 1 ? '1 carta de tu lista está disponible' : `${wishMatches.items} cartas de tu lista están disponibles`}</span>
                   <span className="block text-xs font-semibold text-slate-500">Ver quién las vende</span>
@@ -100,7 +101,7 @@ export default function NotificationBellPanel({
               </p>
               {reviewPrompts.items.slice(0, 3).map((item) => (
                 <button key={item.orderId} type="button" onClick={() => { setIsNotificationOpen(false); setReviewTarget(item); }} className="flex w-full items-center gap-3 px-4 py-2 text-left transition hover:bg-slate-50">
-                  <span translate="no" className="material-symbols-outlined text-[22px] text-amber-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                  <SvgIcon name="star" translate="no" className="text-[22px] text-amber-500" style={{ fontVariationSettings: "'FILL' 1" }} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-black text-slate-800">Califica a {item.seller?.name || item.seller?.username || 'tu vendedor'}</span>
                     <span className="block truncate text-xs font-semibold text-slate-500">Pedido {item.code} · {item.folderName}</span>

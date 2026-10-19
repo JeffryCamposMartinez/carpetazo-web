@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Dot } from './shared';
+import SvgIcon from '../ui/SvgIcon';
 
 const Thumb = ({ src, name }) => {
   const [failed, setFailed] = useState(false);
@@ -7,7 +8,7 @@ const Thumb = ({ src, name }) => {
     <span className="relative flex h-14 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#e6ecf7]">
       {!failed && src
         ? <img src={src} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} className="h-full w-full object-cover" />
-        : <span translate="no" aria-hidden="true" title={`Sin imagen: ${name}`} className="material-symbols-outlined text-[20px] text-slate-400">image_not_supported</span>}
+        : <SvgIcon name="image_not_supported" translate="no" aria-hidden="true" title={`Sin imagen: ${name}`} className="text-[20px] text-slate-400" />}
     </span>
   );
 };
@@ -39,7 +40,7 @@ export default function CatalogImportReview({ plan, busy = false, onChooseEditio
   return (
     <div className="space-y-4">
       <div role="status" className={`flex items-start gap-3 rounded-2xl border p-4 ${verdict.tone}`}>
-        <span translate="no" aria-hidden="true" className="material-symbols-outlined mt-0.5 text-[26px]">{verdict.icon}</span>
+        <SvgIcon name={verdict.icon} translate="no" aria-hidden="true" className="mt-0.5 text-[26px]" />
         <div className="min-w-0">
           <p className="text-base font-extrabold leading-snug">{verdict.title}</p>
           <p className="mt-0.5 text-sm leading-snug opacity-90">{verdict.text}</p>
@@ -93,7 +94,7 @@ export default function CatalogImportReview({ plan, busy = false, onChooseEditio
 
       {plan.images && !plan.images.skipped && (
         <div role="status" className={`flex items-start gap-3 rounded-2xl border p-4 text-sm ${missingImages ? 'border-amber-300 bg-amber-50 text-amber-950' : 'border-[#dbe3f0] bg-white text-slate-700'}`}>
-          <span translate="no" aria-hidden="true" className={`material-symbols-outlined mt-px text-[22px] ${missingImages ? 'text-amber-600' : 'text-emerald-600'}`}>{missingImages ? 'image_not_supported' : 'imagesmode'}</span>
+          <SvgIcon name={missingImages ? 'image_not_supported' : 'imagesmode'} translate="no" aria-hidden="true" className={`mt-px text-[22px] ${missingImages ? 'text-amber-600' : 'text-emerald-600'}`} />
           <div className="min-w-0">
             {missingImages
               ? <>

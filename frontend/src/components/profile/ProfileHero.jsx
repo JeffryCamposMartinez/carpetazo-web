@@ -7,6 +7,7 @@ import { readableOn } from '../../utils/color';
 import LoadingState from '../ui/LoadingState';
 import PlanBadge from '../ui/PlanBadge';
 import VerifiedBadge from '../ui/VerifiedBadge';
+import SvgIcon from '../ui/SvgIcon';
 
 // Presentación del perfil: portada, avatar, nombre, datos y contacto; la forma cambia según el diseño elegido.
 export default function ProfileHero({
@@ -34,17 +35,17 @@ export default function ProfileHero({
       {isOwner && (
         <div className="absolute right-3 top-3 z-30 flex flex-wrap justify-end gap-2 sm:right-4 sm:top-4">
           <button type="button" onClick={() => setThemePanelOpen((prev) => !prev)} aria-expanded={themePanelOpen} className={ownerButtonClass}>
-            <span translate="no" className="material-symbols-outlined text-[19px]">palette</span>
+            <SvgIcon name="palette" translate="no" className="text-[19px]" />
             <span className="hidden sm:inline">Personalizar</span>
             <span className="sm:hidden">Estilo</span>
           </button>
           <label className={`${ownerButtonClass} cursor-pointer`} title="Imagen de fondo de tu presentación">
-            <span translate="no" className="material-symbols-outlined text-[19px]">panorama</span>
+            <SvgIcon name="panorama" translate="no" className="text-[19px]" />
             <span className="hidden sm:inline">Banner</span>
             <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleImageUpload(event, 'banner')} aria-label="Cambiar banner" />
           </label>
           <label className={`${ownerButtonClass} cursor-pointer`} title="Imagen de fondo de toda la página">
-            <span translate="no" className="material-symbols-outlined text-[19px]">wallpaper</span>
+            <SvgIcon name="wallpaper" translate="no" className="text-[19px]" />
             <span className="hidden sm:inline">Fondo de página</span>
             <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleImageUpload(event, 'wallpaper')} aria-label="Cambiar fondo de página" />
           </label>
@@ -68,7 +69,7 @@ export default function ProfileHero({
                 {seller?.fullName && <p className="text-sm font-medium leading-snug" style={heroMuted}>{seller.fullName}</p>}
                 {seller?.username && (
                   <Link to={`/cartas?seller=${encodeURIComponent(seller.username)}`} className="mt-1 inline-flex min-h-8 items-center gap-1 text-sm font-bold underline-offset-2 hover:underline focus:outline-none focus-visible:underline" style={{ color: heroTheme.primary }}>
-                    <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">style</span>
+                    <SvgIcon name="style" translate="no" aria-hidden="true" className="text-[18px]" />
                     Ver sus cartas en venta
                   </Link>
                 )}
@@ -85,7 +86,7 @@ export default function ProfileHero({
                     className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full px-5 text-sm font-extrabold shadow-md transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:flex-none"
                     style={{ backgroundColor: publicTheme.accent, color: readableOn(publicTheme.accent) }}
                   >
-                    <span translate="no" className="material-symbols-outlined text-[20px]">chat</span>
+                    <SvgIcon name="chat" translate="no" className="text-[20px]" />
                     Enviar mensaje
                   </button>
                 ) : (
@@ -109,7 +110,7 @@ export default function ProfileHero({
           {primaryAddress && (
             <p className={`mt-3 flex ${isCenteredLayout ? 'justify-center' : ''}`}>
               <span className={`inline-flex h-8 max-w-full items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold ${isPosterLayout ? 'backdrop-blur-sm' : ''}`} style={{ backgroundColor: isPosterLayout ? 'rgba(255,255,255,0.14)' : `${heroTheme.primary}14`, color: heroTheme.text, boxShadow: `inset 0 0 0 1px ${isPosterLayout ? 'rgba(255,255,255,0.28)' : `${heroTheme.primary}2e`}` }}>
-                <span translate="no" className="material-symbols-outlined shrink-0 text-[17px]" style={{ color: heroTheme.primary }} aria-hidden="true">location_on</span>
+                <SvgIcon name="location_on" translate="no" className="shrink-0 text-[17px]" style={{ color: heroTheme.primary }} aria-hidden="true" />
                 <span className="truncate">{[primaryAddress.comuna, primaryAddress.region].filter(Boolean).join(', ') || primaryAddress.name}</span>
               </span>
             </p>
@@ -131,7 +132,7 @@ export default function ProfileHero({
                 </p>
                 {isOwner && (
                   <button onClick={() => { setTempBio(seller?.bio || ''); setIsEditingBio(true); }} aria-label="Editar biografía" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full hover:bg-black/5" style={{ color: heroTheme.primary }}>
-                    <span translate="no" className="material-symbols-outlined text-[20px]">edit</span>
+                    <SvgIcon name="edit" translate="no" className="text-[20px]" />
                   </button>
                 )}
               </div>

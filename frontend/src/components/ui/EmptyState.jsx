@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import SvgIcon from './SvgIcon';
 
 // Estados vacíos de Carpetazo: qué pasa, por qué, y qué hacer ahora. Un solo diseño para toda la web.
 //   <EmptyState icon="style" title="..." action={{ label: 'Ver cartas', to: '/cartas' }}>explicación</EmptyState>
@@ -17,7 +18,7 @@ const SECONDARY_DARK = 'inline-flex min-h-11 items-center justify-center gap-1.5
 
 function Action({ item, className }) {
   if (!item) return null;
-  const content = <>{item.icon && <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">{item.icon}</span>}{item.label}</>;
+  const content = <>{item.icon && <SvgIcon name={item.icon} translate="no" aria-hidden="true" className="text-[20px]" />}{item.label}</>;
   return item.to
     ? <Link to={item.to} className={className}>{content}</Link>
     : <button type="button" onClick={item.onClick} disabled={item.disabled} className={`${className} disabled:pointer-events-none disabled:opacity-50`}>{content}</button>;
@@ -28,7 +29,7 @@ export default function EmptyState({ icon = 'search_off', title, children, actio
   if (variant === 'compact') {
     return (
       <Tag role={role} className={`empty-in flex items-center gap-3 rounded-xl p-3 ${className}`}>
-        <span aria-hidden="true" className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${t.icon}`}><span translate="no" className="material-symbols-outlined text-[22px]">{icon}</span></span>
+        <span aria-hidden="true" className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${t.icon}`}><SvgIcon name={icon} translate="no" className="text-[22px]" /></span>
         <div className="min-w-0 flex-1">
           <p className={`text-sm font-extrabold leading-snug ${t.title}`}>{title}</p>
           {children && <p className={`mt-0.5 text-xs leading-relaxed ${t.text}`}>{children}</p>}
@@ -39,7 +40,7 @@ export default function EmptyState({ icon = 'search_off', title, children, actio
   }
   return (
     <Tag role={role} className={`empty-in mx-auto flex w-full flex-col items-center px-6 py-10 text-center sm:py-12 ${variant === 'card' ? `rounded-2xl ${t.box}` : ''} ${className}`}>
-      <span aria-hidden="true" className={`flex h-16 w-16 items-center justify-center rounded-full ${t.icon}`}><span translate="no" className="material-symbols-outlined text-[32px]">{icon}</span></span>
+      <span aria-hidden="true" className={`flex h-16 w-16 items-center justify-center rounded-full ${t.icon}`}><SvgIcon name={icon} translate="no" className="text-[32px]" /></span>
       <h2 className={`mt-4 text-lg font-extrabold leading-snug [text-wrap:balance] ${t.title}`}>{title}</h2>
       {children && <p className={`mt-1.5 max-w-sm text-sm leading-relaxed ${t.text}`}>{children}</p>}
       {(action || secondary) && (

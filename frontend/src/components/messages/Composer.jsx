@@ -3,6 +3,7 @@ import AttachSheet from './AttachSheet';
 import EmojiPicker from './EmojiPicker';
 import { MicButton, RecordingBar } from './VoiceControls';
 import useVoiceRecorder, { voiceSupported } from '../../hooks/useVoiceRecorder';
+import SvgIcon from '../ui/SvgIcon';
 
 const MAX_HEIGHT = 140;
 
@@ -105,13 +106,13 @@ export default function Composer({
       {bar && (
         <div className="flex items-center gap-2 px-3 pt-2 sm:px-5">
           <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-sm ring-1 ring-black/5">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined shrink-0 text-[20px] text-[#1e40af]">{editing ? 'edit' : 'reply'}</span>
+            <SvgIcon name={editing ? 'edit' : 'reply'} translate="no" aria-hidden="true" className="shrink-0 text-[20px] text-[#1e40af]" />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-xs font-extrabold text-[#1e40af]">{editing ? 'Corregir mensaje' : replyAuthor}</span>
               <span className="block truncate text-[13px] text-slate-600">{editing ? editing.text : replyTo.preview}</span>
             </span>
             <button type="button" onClick={editing ? onCancelEdit : onCancelReply} aria-label="Cancelar" className="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">close</span>
+              <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[20px]" />
             </button>
           </div>
         </div>
@@ -126,7 +127,7 @@ export default function Composer({
               {attachedCard.id && <span className="block text-[13px] font-bold tabular-nums text-slate-600">{Number(attachedCard.price) > 0 ? `$${Math.round(Number(attachedCard.price)).toLocaleString('es-CL')}` : 'Consultar'}</span>}
             </span>
             <button type="button" onClick={onRemoveCard} aria-label="Quitar la carta" className="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">close</span>
+              <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[20px]" />
             </button>
           </div>
         </div>
@@ -141,7 +142,7 @@ export default function Composer({
       <div className="flex items-end gap-2 px-2 pb-2 pt-2 sm:px-5 sm:pb-3 [padding-bottom:max(0.5rem,env(safe-area-inset-bottom))]">
         {voice ? <RecordingBar seconds={recorder.seconds} level={recorder.level} locked={voice.mode === 'locked'} slide={voice.slide} onCancel={cancelVoice} /> : <div className="flex min-h-12 min-w-0 flex-1 items-end rounded-[1.65rem] bg-white shadow-sm ring-1 ring-black/5 focus-within:ring-2 focus-within:ring-[#1e40af]/50">
           <button type="button" onPointerDown={(event) => event.preventDefault()} onClick={() => { setEmojiOpen((open) => { if (!open) field.current?.blur(); else field.current?.focus(); return !open; }); }} aria-label={emojiOpen ? 'Mostrar el teclado' : 'Emojis'} aria-pressed={emojiOpen} className="flex h-12 w-11 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:text-[#1e40af] focus:outline-none focus-visible:text-[#1e40af]">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[26px]">{emojiOpen ? 'keyboard' : 'mood'}</span>
+            <SvgIcon name={emojiOpen ? 'keyboard' : 'mood'} translate="no" aria-hidden="true" className="text-[26px]" />
           </button>
           <textarea
             ref={field}
@@ -161,13 +162,13 @@ export default function Composer({
           {!editing && (
             <>
               <button type="button" onClick={() => setAttachOpen(true)} aria-label="Adjuntar" className="flex h-12 w-11 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:text-[#1e40af] focus:outline-none focus-visible:text-[#1e40af]">
-                <span translate="no" aria-hidden="true" className="material-symbols-outlined -rotate-45 text-[26px]">attach_file</span>
+                <SvgIcon name="attach_file" translate="no" aria-hidden="true" className="-rotate-45 text-[26px]" />
               </button>
               {touch && !hasText && (
                 <>
                   <input ref={camera} type="file" accept="image/*" capture="environment" className="hidden" onChange={(event) => { const files = [...(event.target.files || [])]; event.target.value = ''; if (files.length) onFiles(files); }} />
                   <button type="button" onClick={() => camera.current?.click()} aria-label="Cámara" className="flex h-12 w-11 shrink-0 items-center justify-center rounded-full text-slate-500 focus:outline-none focus-visible:text-[#1e40af]">
-                    <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[26px]">photo_camera</span>
+                    <SvgIcon name="photo_camera" translate="no" aria-hidden="true" className="text-[26px]" />
                   </button>
                 </>
               )}
@@ -190,7 +191,7 @@ export default function Composer({
           aria-label={editing ? 'Guardar corrección' : 'Enviar'}
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#facc15] text-[#12315f] shadow-[0_2px_6px_rgba(8,18,42,0.28)] transition-[transform,filter,opacity] duration-150 hover:brightness-95 active:scale-90 disabled:bg-white disabled:text-slate-400 disabled:shadow-sm disabled:hover:brightness-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 focus-visible:ring-offset-[#e6edfa]"
         >
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[24px]">{editing ? 'check' : 'send'}</span>
+          <SvgIcon name={editing ? 'check' : 'send'} translate="no" aria-hidden="true" className="text-[24px]" />
         </button>
         )}
       </div>

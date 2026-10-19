@@ -14,6 +14,7 @@ import usePageMeta from '../hooks/usePageMeta';
 import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 import EmptyState from '../components/ui/EmptyState';
 import { formatCardSearchQuery } from '../utils/cardCodeSearch';
+import SvgIcon from '../components/ui/SvgIcon';
 
 const isLocalhostWithProductionApi = () => {
   if (typeof window === 'undefined') return false;
@@ -613,7 +614,7 @@ function PublicCatalog() {
         onClick={() => setIsCartOpen(true)}
         className="fixed bottom-[80px] right-[max(1rem,env(safe-area-inset-right))] z-30 flex min-h-14 items-center gap-2 rounded-full bg-primary px-4 py-3 text-on-primary shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-transform hover:scale-105 md:bottom-8 md:right-8"
       >
-        <span translate="no" className="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+        <SvgIcon name="shopping_cart" translate="no" data-icon="shopping_cart" />
         {cartItemsCount > 0 ? (
           <>
             <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1 text-xs font-bold text-primary">{cartItemsCount}</span>
@@ -632,7 +633,7 @@ function PublicCatalog() {
           aria-label="Limpiar filtros"
           className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-500 shadow-lg ring-1 ring-slate-100 transition-all hover:-translate-y-0.5 hover:text-[#1e40af] hover:shadow-xl md:h-12 md:w-12"
         >
-          <span translate="no" className="material-symbols-outlined text-[22px] md:text-[24px]">filter_alt_off</span>
+          <SvgIcon name="filter_alt_off" translate="no" className="text-[22px] md:text-[24px]" />
         </button>
 
         <button
@@ -642,7 +643,7 @@ function PublicCatalog() {
           aria-label="Subir al inicio"
           className="flex h-11 w-11 items-center justify-center rounded-full bg-[#1e40af] text-white shadow-lg ring-2 ring-white/30 transition-all hover:-translate-y-0.5 hover:bg-blue-800 hover:shadow-xl md:h-12 md:w-12"
         >
-          <span translate="no" className="material-symbols-outlined text-[25px] md:text-[27px]">arrow_upward</span>
+          <SvgIcon name="arrow_upward" translate="no" className="text-[25px] md:text-[27px]" />
         </button>
       </div>
 

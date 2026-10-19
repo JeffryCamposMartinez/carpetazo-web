@@ -7,9 +7,10 @@ import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 import EmptyState from '../ui/EmptyState';
 import VerifiedBadge from '../ui/VerifiedBadge';
 import { MAX_PINNED, fullStamp, personOf, summaryOf } from './messageUtils';
+import SvgIcon from '../ui/SvgIcon';
 
 const ROW = 'flex min-h-14 w-full items-center gap-4 px-5 text-left text-[15px] font-semibold transition-colors hover:bg-slate-50 focus:outline-none focus-visible:bg-slate-100';
-const Icon = ({ name, className = '' }) => <span translate="no" aria-hidden="true" className={`material-symbols-outlined text-[22px] ${className}`}>{name}</span>;
+const Icon = ({ name, className = '' }) => <SvgIcon name={name} translate="no" aria-hidden="true" className={`text-[22px] ${className}`} />;
 
 // ---------- Reenviar ----------
 export function ForwardSheet({ open, onClose, chats, onSend, busy }) {

@@ -4,6 +4,7 @@ import {
   EMPTY_RB_FILTERS, RB_COLLECTIONS, RB_DOMAINS, RB_DOMAIN_MODES, RB_ENERGY, RB_MIGHT, RB_POWER, RB_RARITIES, RB_TYPES,
   RB_VERSIONS, countRiftboundFilters,
 } from '../../../services/tcgcsvRiftbound';
+import SvgIcon from '../../ui/SvgIcon';
 
 const compact = '!h-10 !min-h-10 !rounded-xl !text-[13px]';
 const any = (label) => ({ value: '', label });
@@ -37,7 +38,7 @@ export default function RiftboundFilters({ searchQuery, setSearchQuery, filters,
     <div className="relative w-full rounded-2xl border-2 border-blue-900/10 bg-white p-2 shadow-[0_8px_30px_rgb(0,0,0,0.08)] sm:p-3">
       <div className="flex flex-col gap-2.5 p-1 sm:gap-3 sm:p-1.5">
         <div className="group relative w-full">
-          <span translate="no" aria-hidden="true" className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-blue-900 transition-colors group-focus-within:text-yellow-500">search</span>
+          <SvgIcon name="search" translate="no" aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-blue-900 transition-colors group-focus-within:text-yellow-500" />
           <input
             type="text"
             value={searchQuery}
@@ -95,11 +96,11 @@ export default function RiftboundFilters({ searchQuery, setSearchQuery, filters,
           className="flex h-10 w-full items-center justify-between rounded-xl border-2 border-blue-900/15 bg-slate-50 px-3 text-[13px] font-extrabold text-blue-900 transition-colors hover:border-blue-900/35"
         >
           <span className="flex items-center gap-2">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">tune</span>
+            <SvgIcon name="tune" translate="no" aria-hidden="true" className="text-[20px]" />
             Más filtros
             {moreActive > 0 && <span className="rounded-full bg-blue-900 px-2 py-0.5 text-[11px] text-yellow-400">{moreActive}</span>}
           </span>
-          <span translate="no" aria-hidden="true" className={`material-symbols-outlined text-[22px] transition-transform ${moreOpen ? 'rotate-180' : ''}`}>expand_more</span>
+          <SvgIcon name="expand_more" translate="no" aria-hidden="true" className={`text-[22px] transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {moreOpen && (
@@ -134,7 +135,7 @@ export default function RiftboundFilters({ searchQuery, setSearchQuery, filters,
             onClick={() => setFilters(EMPTY_RB_FILTERS)}
             className="flex h-9 items-center justify-center gap-1.5 self-start rounded-full border-2 border-red-200 bg-red-50 px-3.5 text-xs font-extrabold text-red-600 transition-colors hover:bg-red-100"
           >
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">filter_alt_off</span>
+            <SvgIcon name="filter_alt_off" translate="no" aria-hidden="true" className="text-[18px]" />
             Quitar {active} {active === 1 ? 'filtro' : 'filtros'}
           </button>
         )}

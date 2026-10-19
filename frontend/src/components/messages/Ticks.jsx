@@ -1,3 +1,4 @@
+import SvgIcon from '../ui/SvgIcon';
 // Estado de un mensaje propio, como en WhatsApp: reloj (enviando), ✓ enviado, ✓✓ entregado y ✓✓ amarillo leído. Falla: aviso rojo.
 export function messageStatus(message) {
   if (message.failed) return 'failed';
@@ -14,7 +15,7 @@ export default function Ticks({ status, className = '' }) {
   const color = status === 'read' ? 'text-[#facc15]' : status === 'failed' ? 'text-red-300' : 'text-white/70';
   return (
     <span title={LABEL[status]} className={`inline-flex ${color} ${className}`}>
-      <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[16px] leading-none" style={{ fontVariationSettings: "'wght' 600" }}>{icon}</span>
+      <SvgIcon name={icon} translate="no" aria-hidden="true" className="text-[16px] leading-none" style={{ fontVariationSettings: "'wght' 600" }} />
       <span className="sr-only">{LABEL[status]}</span>
     </span>
   );

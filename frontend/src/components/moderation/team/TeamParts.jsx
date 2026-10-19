@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useBodyScrollLock from '../../../hooks/useBodyScrollLock';
 import { ErrorBox, dateOnly } from '../shared';
+import SvgIcon from '../../ui/SvgIcon';
 
 export const RANKS = {
   4: { label: 'Propietario', tone: 'bg-[#facc15] text-[#12315f]', blurb: 'La cuenta original de Carpetazo. Está protegida: nadie puede cambiar su rol, suspenderla, cerrarla ni ocultar su contenido.' },
@@ -32,7 +33,7 @@ export const RankBadge = ({ person }) => {
   const rank = RANKS[person.isOwner ? 4 : { admin: 3, coadmin: 2.5, moderator: 2, support: 1 }[person.role] ?? 0];
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${rank.tone}`}>
-      {person.isOwner && <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[14px]">verified_user</span>}
+      {person.isOwner && <SvgIcon name="verified_user" translate="no" aria-hidden="true" className="text-[14px]" />}
       {rank.label}
     </span>
   );
@@ -40,7 +41,7 @@ export const RankBadge = ({ person }) => {
 
 export const RestrictionBadge = ({ restriction }) => (restriction ? (
   <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-extrabold text-red-800">
-    <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[14px]">block</span>
+    <SvgIcon name="block" translate="no" aria-hidden="true" className="text-[14px]" />
     {restriction.type === 'ban' ? 'Cuenta cerrada' : restriction.until ? `Suspendida hasta ${dateOnly(restriction.until)}` : 'Suspendida'}
   </span>
 ) : null);

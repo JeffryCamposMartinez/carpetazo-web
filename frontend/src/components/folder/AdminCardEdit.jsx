@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import LoadableImage from '../ui/LoadableImage';
 import { Link } from 'react-router-dom';
 import Select from '../ui/Select';
+import SvgIcon from '../ui/SvgIcon';
 
 const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, compact = false, detailLevel = 'none', dense = false, showLanguage = false, selectable = false, selected = false, onToggleSelect, onPreview, onDraftChange }) => {
   // 'full': nombre, edición, stock, precio e idioma · 'basic': solo stock y precio · 'none': solo la carta
@@ -50,7 +51,7 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
           className="absolute inset-0 z-20 flex items-start justify-start rounded-2xl p-1.5 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#facc15]"
         >
           <span className={`flex h-7 w-7 items-center justify-center rounded-full border-2 shadow-sm transition-colors ${selected ? 'border-[#1e40af] bg-[#1e40af] text-white' : 'border-white bg-white/80 text-transparent'}`}>
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px] font-bold">check</span>
+            <SvgIcon name="check" translate="no" aria-hidden="true" className="text-[18px] font-bold" />
           </span>
         </button>
       ) : (
@@ -62,7 +63,7 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
               style={{ touchAction: 'none' }}
               title="Mantén y arrastra para ordenar"
             >
-              <span translate="no" className="material-symbols-outlined text-[21px]">drag_indicator</span>
+              <SvgIcon name="drag_indicator" translate="no" className="text-[21px]" />
             </div>
           )}
           {/* En pantallas táctiles no hay «pasar el mouse»: el botón de eliminar queda siempre a la vista */}
@@ -72,7 +73,7 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
             title="Eliminar carta"
             aria-label={`Eliminar ${card.name}`}
           >
-            <span translate="no" className="material-symbols-outlined text-[18px]">delete</span>
+            <SvgIcon name="delete" translate="no" className="text-[18px]" />
           </button>
         </>
       )}
@@ -93,7 +94,7 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
             )}
           {!selectable && Number(card.stock || 0) > 0 && (
             <Link to={`/carta/${card.id}`} aria-label={`Ver ficha pública de ${card.name}`} title="Ver ficha pública" className="absolute left-1 top-1 z-[2] flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[#1e40af] shadow ring-1 ring-black/10 transition active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-              <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">open_in_new</span>
+              <SvgIcon name="open_in_new" translate="no" aria-hidden="true" className="text-[18px]" />
             </Link>
           )}
           {onPreview && !selectable && (
@@ -174,7 +175,7 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
           disabled={saving || !hasChanges}
           className={`w-full ${compact ? 'py-2' : 'py-3'} font-bold text-xs tracking-wide transition-colors border-t border-gray-200 flex items-center justify-center gap-1.5 ` + (hasChanges ? 'bg-[#1e40af] text-white hover:bg-blue-800' : 'bg-gray-100 text-gray-500 opacity-60')}
         >
-          <span translate="no" className="material-symbols-outlined text-[16px]">{saving ? 'hourglass_empty' : 'save'}</span>
+          <SvgIcon name={saving ? 'hourglass_empty' : 'save'} translate="no" className="text-[16px]" />
           {saving ? 'Guardando...' : hasChanges ? 'Guardar' : 'Guardado'}
         </button>
       )}

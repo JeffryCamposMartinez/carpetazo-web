@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { api } from '../../services/api';
 import Select from '../ui/Select';
 import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
+import SvgIcon from '../ui/SvgIcon';
 
 const ACTION_BUTTON = 'inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-bold transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]';
 const FIELD = 'h-12 w-full rounded-xl border border-gray-300 bg-white px-3 text-base text-gray-900 focus:border-[#1e40af] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70';
@@ -130,7 +131,7 @@ export default function InventoryBulkBar({ busy, count, currentFolderId, onAdjus
       <div className="fixed inset-x-0 bottom-0 z-[1250] border-t border-white/10 bg-[#12315f] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 text-white shadow-[0_-12px_30px_-12px_rgba(8,18,42,0.6)]" role="toolbar" aria-label="Acciones sobre las cartas elegidas">
         <div className="mx-auto flex max-w-[1470px] items-center gap-2">
           <button type="button" onClick={onClose} aria-label="Salir de la selección" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white transition-[background-color,transform] duration-150 hover:bg-white/10 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
-            <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[24px]">close</span>
+            <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[24px]" />
           </button>
           <div className="min-w-0 shrink-0 pr-1">
             <p className="text-sm font-extrabold leading-tight" aria-live="polite">{count} {count === 1 ? 'elegida' : 'elegidas'}</p>
@@ -145,7 +146,7 @@ export default function InventoryBulkBar({ busy, count, currentFolderId, onAdjus
                 onClick={() => setDialog(action.key)}
                 className={`${ACTION_BUTTON} ${action.key === 'delete' ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-white/10 text-white hover:bg-white/20'} disabled:opacity-40`}
               >
-                <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[19px]">{action.icon}</span>
+                <SvgIcon name={action.icon} translate="no" aria-hidden="true" className="text-[19px]" />
                 {action.label}
               </button>
             ))}
