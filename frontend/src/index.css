@@ -523,3 +523,22 @@ textarea[aria-label='Escribe un mensaje'] { caret-color: #1e40af; }
 /* En Mensajes los avisos salen arriba: abajo taparían la barra de escribir y sus botones */
 body.chat-screen [role='region'][aria-label='Avisos'] { top: 0.5rem; bottom: auto; padding-bottom: 0; }
 body.chat-screen [role='region'][aria-label='Avisos'] > * { pointer-events: none; } /* los toques pasan a los botones que quedan debajo del aviso */
+
+/* Aviso de campo inválido (components/ui/ValidationBubble.jsx): entra desde el campo y el campo se marca en rojo hasta que se corrige */
+@keyframes validation-bubble-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+.validation-bubble { animation: validation-bubble-in 160ms cubic-bezier(0.23, 1, 0.32, 1); }
+.validation-bubble.is-above { animation-name: validation-bubble-in-above; }
+@keyframes validation-bubble-in-above {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgb(220 38 38 / 0.18) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .validation-bubble, .validation-bubble.is-above { animation: none; }
+}

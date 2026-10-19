@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import MobileMenu from './header/MobileMenu';
 import NotificationBellPanel from './header/NotificationBellPanel';
+import WishlistButton from './header/WishlistButton';
 import { useToast } from '../ui/ToastProvider';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import { formatCardSearchQuery } from '../../utils/cardCodeSearch';
@@ -525,6 +526,7 @@ export default function Header() {
 
             {currentUser ? (
               <div className="relative z-30 flex items-center gap-2 justify-self-end">
+                <WishlistButton />
                 <NotificationBellPanel {...notificationBellPanelProps} />
                 <div className="relative profile-dropdown">
                   <button
@@ -649,9 +651,12 @@ export default function Header() {
             </Link>
 
             {/* Derecha: notificaciones o acceso */}
-            <div className="z-30 flex min-w-[44px] justify-end">
+            <div className="z-30 flex min-w-[44px] items-center justify-end gap-2">
               {currentUser ? (
-                <NotificationBellPanel {...notificationBellPanelProps} />
+                <>
+                  <WishlistButton />
+                  <NotificationBellPanel {...notificationBellPanelProps} />
+                </>
               ) : (
                 <button onClick={handleLogin} className="flex h-11 items-center gap-1.5 rounded-full bg-[#facc15] px-4 text-[13px] font-extrabold text-[#12315f] shadow-[0_1px_2px_rgba(8,18,42,0.35)] transition-[filter,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
                   <img src="/images/logos/google.svg" alt="" className="w-4 h-4 bg-white rounded-full p-[1px]" />

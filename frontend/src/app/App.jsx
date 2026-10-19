@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
 import Header from '../components/layout/Header';
 import ScrollToTop from '../components/layout/ScrollToTop';
+import ValidationBubble from '../components/ui/ValidationBubble';
 import Footer from '../components/layout/Footer';
 import ErrorBoundary from '../components/ui/ErrorBoundary';
 import AcceptTermsGate from '../components/auth/AcceptTermsGate';
@@ -64,6 +65,7 @@ function App() {
       <ToastProvider>
         <BrowserRouter>
           <ScrollToTop />
+          <ValidationBubble />
           <div className="flex flex-col min-h-[100svh] w-full relative">
             <a
               href="#contenido"

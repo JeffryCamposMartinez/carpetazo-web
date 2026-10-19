@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../ui/ToastProvider';
 import LoadableImage, { LoadingMark } from '../ui/LoadableImage';
 import CardLightbox from '../ui/CardLightbox';
+import AddToFolderModal from './AddToFolderModal';
 import CardsPagination from './CardsPagination';
 import useCardInfoSearch, { INFO_PAGE } from '../../hooks/useCardInfoSearch';
 import useReferencePrices from '../../hooks/useReferencePrices';
@@ -27,6 +28,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
   const navigate = useNavigate();
   const [openId, setOpenId] = useState(null);
   const [wished, setWished] = useState({});
+  const [addTarget, setAddTarget] = useState(null);
 
   useEffect(() => { setPage(1); }, [query, game]);
   // Si la última página quedó vacía porque ya no hay más ediciones, se vuelve a la última con cartas
@@ -57,6 +59,12 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
     }
   };
 
+  const addToFolder = (card) => {
+    if (!currentUser) { navigate('/bienvenida'); return; }
+    setAddTarget(card);
+  };
+  const refPriceOf = (card) => (card.groupId ? variantsFor(card) : null)?.[0]?.clp || 0;
+
   return (
     <section id="cartas-informativas" aria-label="Coincidencias del catálogo" className="mt-5 scroll-mt-28">
       <div className="mb-3 flex items-start gap-3 rounded-2xl bg-white p-4 ring-1 ring-slate-900/5">
@@ -71,15 +79,32 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {shown.map((card, index) => (
             <li key={card.id}>
-              <button type="button" onClick={() => setOpenId(card.id)} className="group block w-full rounded-2xl bg-white p-2 text-left ring-1 ring-slate-900/5 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.4)] transition-transform duration-150 active:scale-[0.985] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
+              <div className="block w-full rounded-2xl bg-white p-2 ring-1 ring-slate-900/5 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.4)]">
+              <button type="button" onClick={() => setOpenId(card.id)} className="group block w-full rounded-xl text-left transition-transform duration-150 active:scale-[0.985] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
                 <div className="relative w-full overflow-hidden rounded-xl bg-slate-50" style={{ aspectRatio: cardRatio(card.game) }}>
                   {card.imageUrl || tcgplayerImage(card) ? <LoadableImage loading={index < 10 ? 'eager' : 'lazy'} src={card.imageUrl || tcgplayerImage(card)} fallbackSrc={card.imageUrl ? tcgplayerImage(card) : undefined} alt={card.name} rotateLandscape className="h-full w-full object-contain" style={cardFill(card.game)} /> : <span className="flex h-full items-center justify-center text-xs font-semibold text-slate-400">Sin imagen</span>}
                   <span className="absolute left-1.5 top-1.5 rounded-full bg-[#12315f]/90 px-2 py-0.5 text-[11px] font-extrabold text-white">Catálogo</span>
                 </div>
                 <p className="mt-2 line-clamp-2 text-sm font-extrabold leading-snug text-[#12315f]">{card.name}</p>
                 <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{card.setName}</p>
-                <ReferencePriceLine variants={card.groupId ? variantsFor(card) : null} className="mt-0.5 text-xs" />
               </button>
+              <div className="mt-0.5 flex items-center justify-between gap-2">
+                <ReferencePriceLine variants={card.groupId ? variantsFor(card) : null} className="min-w-0 text-xs" />
+                <button
+                  type="button"
+                  onClick={() => wish(card)}
+                  aria-pressed={Boolean(wished[card.id])}
+                  aria-label={wished[card.id] ? `${card.name} ya está en tus deseadas` : `Agregar ${card.name} a mis deseadas`}
+                  title={wished[card.id] ? 'En tus deseadas' : 'Agregar a mis deseadas'}
+                  className={`-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[background-color,color,transform] duration-150 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${wished[card.id] ? 'bg-red-50 text-red-500' : 'text-[#1e40af] hover:bg-red-50 hover:text-red-500'}`}
+                >
+                  <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[22px]" style={wished[card.id] ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>
+                </button>
+              </div>
+              <button type="button" onClick={() => addToFolder(card)} className="mt-1.5 flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-[#1e40af] px-2 py-1.5 text-[13px] leading-tight font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-[#12315f] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+                <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[18px]">add_circle</span>Agregar a mi carpeta
+              </button>
+              </div>
             </li>
           ))}
         </ul>
@@ -109,7 +134,14 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
             };
           }}
           renderActions={(card) => (
-            <button type="button" onClick={() => wish(card)} disabled={Boolean(wished[card.id])} className="h-11 rounded-full bg-[#facc15] px-6 text-sm font-extrabold text-[#12315f] transition-transform duration-150 active:scale-[0.97] disabled:opacity-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">{wished[card.id] ? 'En tus deseadas' : 'Avísame cuando la vendan'}</button>
+            <div className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:justify-center">
+              <button type="button" onClick={() => addToFolder(card)} className="flex h-11 items-center justify-center gap-1.5 rounded-full bg-[#facc15] px-5 text-sm font-extrabold text-[#12315f] transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">add_circle</span>Agregar a mi carpeta
+              </button>
+              <button type="button" onClick={() => wish(card)} disabled={Boolean(wished[card.id])} className="flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/40 px-5 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-white/10 active:scale-[0.97] disabled:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+                <span translate="no" aria-hidden="true" className={`material-symbols-outlined text-[20px] ${wished[card.id] ? 'text-red-400' : ''}`} style={wished[card.id] ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>{wished[card.id] ? 'En tus deseadas' : 'Avísame cuando la vendan'}
+              </button>
+            </div>
           )}
         />
       )}
