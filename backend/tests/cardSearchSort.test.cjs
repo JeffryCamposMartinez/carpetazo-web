@@ -44,6 +44,31 @@ const { prisma, call, ok } = require('./fixtures.cjs');
     r = await call('GET', '/cards/search?sort=best_selling');
     ok('sin texto de búsqueda también ordena por ventas', r.status === 200 && Array.isArray(r.j.cards), String(r.status));
 
+    // Coincidencias del catálogo (sin oferta): mismo orden por ventas; un orden desconocido se ignora
+    const sold = await prisma.catalogCard.findUnique({ where: { productId: Number(products[0].productId) }, select: { name: true } });
+    r = await call('GET', '/tcg/search-index?q=' + encodeURIComponent(sold.name) + '&sort=best_selling');
+    ok('catálogo «Más vendidos»: la carta con ventas va primero', r.status === 200 && String(r.j.cards?.[0]?.productId) === products[0].productId, JSON.stringify((r.j.cards || []).slice(0, 2).map((c) => c.productId)));
+    r = await call('GET', '/tcg/search-index?q=' + encodeURIComponent(sold.name) + '&sort=latest_edition');
+    ok('catálogo «Última edición» responde con cartas', r.status === 200 && r.j.cards.length > 0, String(r.status));
+    r = await call('GET', '/tcg/search-index?q=' + encodeURIComponent(sold.name) + '&sort=inventado');
+    ok('catálogo con orden desconocido usa el orden por defecto', r.status === 200 && r.j.cards.length > 0, String(r.status));
+
+    // Código de carta con «/» final (así lo deja el buscador al escribir números): encuentra la carta cuyo número no lleva «/»
+    const code = await prisma.catalogCard.findFirst({ where: { kind: 'card', number: { not: null }, NOT: { number: { contains: '/' } }, set: { name: { not: '' } } }, select: { productId: true, number: true } });
+    r = await call('GET', '/tcg/search-index?q=' + encodeURIComponent(code.number + '/'));
+    ok('catálogo: «' + code.number + '/» pone primero el número exacto', r.status === 200 && r.j.cards.length > 0 && r.j.cards[0].number === code.number, JSON.stringify(r.j.cards.slice(0, 2).map((c) => c.number)));
+    r = await call('GET', '/cards/search?q=' + encodeURIComponent('ORDENTEST/'));
+    ok('cartas a la venta: un texto con «/» no rompe la búsqueda', r.status === 200, String(r.status));
+
+    // El apóstrofo no cuenta: «Boss's Orders» se encuentra con y sin él
+    await prisma.card.create({ data: { folderId: folder.id, tcgId: products[0].productId, name: "APOSTEST Boss's Orders", price: 500, stock: 1, data: { language: 'English' } } });
+    for (const text of ["APOSTEST Boss's Orders", 'APOSTEST Bosss Orders', 'APOSTEST Boss Orders', 'APOSTEST Boss’s Orders', "APOSTEST boss's"]) {
+      r = await call('GET', '/cards/search?q=' + encodeURIComponent(text));
+      ok('búsqueda «' + text + '» encuentra Boss Orders', r.status === 200 && r.j.total === 1, String(r.j.total));
+    }
+    r = await call('GET', '/cards/search?q=' + encodeURIComponent("'"));
+    ok('un texto solo de apóstrofos busca ese símbolo y no falla', r.status === 200 && r.j.cards.every((c) => /['’‘´`]/.test(c.name)), String(r.j.total));
+
     // Carpeta del dueño: unidades vendidas y fecha de edición para ordenar su inventario; el público solo recibe la fecha de la edición
     r = await call('GET', '/folders/' + folder.id, 'seller');
     const mine = Object.fromEntries((r.j.folder?.cards || []).map((c) => [c.name, c]));

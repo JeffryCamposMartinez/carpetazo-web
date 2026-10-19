@@ -6,6 +6,7 @@ import { gzip } from 'node:zlib';
 import { prisma } from '../core/db.js';
 import { badRequest, isAllowedProxyImageUrl } from '../core/validation.js';
 import { MYL_ID_PREFIX, rawMylId } from '../core/mylIdentity.js';
+import { nameDistance, nameMatch, searchFragments, similarCardName } from '../core/cardSearch.js';
 
 const router = express.Router();
 const gzipAsync = promisify(gzip);
@@ -547,7 +548,7 @@ router.get('/api/tcg/search', async (req, res) => {
     if (q) {
       const cleanQ = q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, "");
       whereClause.OR = [
-        { name: { contains: q, mode: 'insensitive' } },
+        nameMatch(q), // sin importar los apóstrofos
         { cleanName: { contains: cleanQ, mode: 'insensitive' } }
       ];
     }
@@ -587,8 +588,7 @@ router.get('/api/tcg/search', async (req, res) => {
       whereClause.AND = andConditions;
     }
 
-    const products = await prisma.tcgProduct.findMany({
-      where: whereClause,
+    const productQuery = {
       take: 2000,
       include: { group: true, physicalLinks: { select: { physicalProductId: true } } },
       orderBy: [
@@ -596,7 +596,20 @@ router.get('/api/tcg/search', async (req, res) => {
         { physicalProductId: 'asc' },
         { name: 'asc' }
       ]
-    });
+    };
+    let products = await prisma.tcgProduct.findMany({ where: whereClause, ...productQuery });
+    // Sin coincidencias: nombres parecidos a lo escrito (letras de más o de menos), los más cercanos primero
+    const fragments = q && products.length === 0 ? searchFragments(q) : [];
+    if (fragments.length) {
+      const { OR: _text, ...scope } = whereClause;
+      const candidates = await prisma.tcgProduct.findMany({ where: { ...scope, OR: fragments.map((fragment) => ({ name: { contains: fragment, mode: 'insensitive' } })) }, select: { productId: true, name: true }, take: 5000 });
+      const close = candidates.filter((card) => similarCardName(card.name, q)).sort((a, b) => nameDistance(a.name, q) - nameDistance(b.name, q)).slice(0, 200);
+      if (close.length) {
+        const found = await prisma.tcgProduct.findMany({ where: { productId: { in: close.map((card) => card.productId) } }, include: productQuery.include });
+        const order = new Map(close.map((card, index) => [card.productId, index]));
+        products = found.sort((a, b) => order.get(a.productId) - order.get(b.productId));
+      }
+    }
     res.json({ success: true, data: withPhysicalIds(products) });
   } catch (error) {
     console.error('Error searching TCG products:', error);

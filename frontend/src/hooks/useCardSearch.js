@@ -1,6 +1,6 @@
 import { api } from '../services/api';
 import { catalogJson } from '../services/tcgcsvFetch';
-import { classifyTcgcsvCard, matchesCardQuery } from '../services/tcgcsvPokemon';
+import { classifyTcgcsvCard, matchesCardQuery, withLooseMatch } from '../services/tcgcsvPokemon';
 import { ONE_PIECE_CATEGORY, filterOnePieceCards, onePieceExt, onePieceMatchesQuery } from '../services/tcgcsvOnePiece';
 import { MAGIC_CATEGORY, MAGIC_MARKER, filterMagicCards, loadMagicMeta, magicExt, magicMatchesQuery } from '../services/tcgcsvMagic';
 import { RIFTBOUND_CATEGORY, RIFTBOUND_MARKER, filterRiftboundCards, riftboundExt, riftboundMatchesQuery } from '../services/tcgcsvRiftbound';
@@ -122,7 +122,7 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
   };
 
   // Carga ediciones de la cola hasta juntar `target` cartas que coincidan con el texto buscado
-  const matchesText = (c, q) => (c.catId === ONE_PIECE_CATEGORY ? onePieceMatchesQuery(c, q) : c.catId === MAGIC_CATEGORY ? magicMatchesQuery(c, q) : c.catId === RIFTBOUND_CATEGORY ? riftboundMatchesQuery(c, q) : c.catId === YUGIOH_CATEGORY ? yugiohMatchesQuery(c, q) : matchesCardQuery(q, c.name, c.extData.Number, c.group?.name));
+  const matchesText = (c, q) => (c.catId === ONE_PIECE_CATEGORY ? withLooseMatch(onePieceMatchesQuery)(c, q) : c.catId === MAGIC_CATEGORY ? withLooseMatch(magicMatchesQuery)(c, q) : c.catId === RIFTBOUND_CATEGORY ? withLooseMatch(riftboundMatchesQuery)(c, q) : c.catId === YUGIOH_CATEGORY ? withLooseMatch(yugiohMatchesQuery)(c, q) : matchesCardQuery(q, c.name, c.extData.Number, c.group?.name));
 
   const loadPokemonGroups = async (target, gen, signal, q) => {
     const catId = pokeCatRef.current;

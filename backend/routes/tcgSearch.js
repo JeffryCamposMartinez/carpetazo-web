@@ -2,6 +2,7 @@ import express from 'express';
 import { prisma } from '../core/db.js';
 import { badRequest } from '../core/validation.js';
 import { searchTcgIndex } from '../core/tcgSearchIndex.js';
+import { nameMatch } from '../core/cardSearch.js';
 
 const router = express.Router();
 const r2PublicUrl = (key) => {
@@ -29,15 +30,60 @@ const cacheSet = (key, value) => {
   while (searchCache.size > SEARCH_CACHE_MAX) searchCache.delete(searchCache.keys().next().value);
 };
 
+// Mismo orden que en las cartas a la venta: «Más vendidos» (pedidos confirmados de cualquier vendedor) y «Última edición» (fecha de la edición). Sin orden, por nombre.
+const INDEX_SORTS = new Set(['best_selling', 'latest_edition']);
+const RANKING_POOL = 3000;
+const CARD_SELECT = {
+  productId: true, categoryId: true, groupId: true, kind: true, name: true, cleanName: true,
+  number: true, rarity: true, imageKey: true, sourceImageUrl: true, tcgplayerUrl: true,
+  game: { select: { name: true } }, set: { select: { name: true } },
+};
+// Un código de carta («055», «055/», «055/165»): primero el número exacto, luego los que empiezan igual, y recién después el resto.
+// El «/» final que agrega el buscador al escribir números no cuenta: «055/» también encuentra la carta con número «055».
+const isCodeQuery = (text) => /^\d{1,4}\/?\d{0,4}$/.test(text);
+const codeRankedPage = async (where, code, page, limit) => {
+  const exact = { number: { equals: code, mode: 'insensitive' } };
+  const sameSeries = { number: { startsWith: `${code}/`, mode: 'insensitive' } };
+  const tiers = [{ AND: [where, exact] }, { AND: [where, sameSeries] }, { AND: [where, { OR: [{ number: null }, { NOT: { OR: [exact, sameSeries] } }] }] }];
+  const rows = [];
+  let skip = (page - 1) * limit;
+  for (const tier of tiers) {
+    if (rows.length >= limit) break;
+    const count = await prisma.catalogCard.count({ where: tier });
+    if (skip >= count) { skip -= count; continue; }
+    rows.push(...await prisma.catalogCard.findMany({ where: tier, orderBy: [{ cleanName: 'asc' }, { productId: 'asc' }], skip, take: Math.min(limit - rows.length, count - skip), select: CARD_SELECT }));
+    skip = 0;
+  }
+  return rows;
+};
+const soldRankedPage = async (where, page, limit) => {
+  const pool = await prisma.catalogCard.findMany({ where, orderBy: [{ cleanName: 'asc' }, { productId: 'asc' }], take: RANKING_POOL, select: { productId: true } });
+  const ids = pool.map((card) => String(card.productId));
+  const rows = ids.length ? await prisma.$queryRaw`
+    SELECT elem->>'tcgId' AS "tcgId", SUM(GREATEST(1, COALESCE(NULLIF(elem->>'quantity', '')::numeric, 1)))::int AS "sold"
+    FROM "Order" o, jsonb_array_elements(CASE WHEN jsonb_typeof(o."items") = 'array' THEN o."items" ELSE '[]'::jsonb END) AS elem
+    WHERE o."status" = 'completed' AND elem->>'tcgId' = ANY(${ids}::text[])
+    GROUP BY 1` : [];
+  const sold = new Map(rows.map((row) => [row.tcgId, Number(row.sold)]));
+  const ordered = [...pool].sort((a, b) => (sold.get(String(b.productId)) || 0) - (sold.get(String(a.productId)) || 0));
+  const pageIds = ordered.slice((page - 1) * limit, page * limit).map((card) => card.productId);
+  const found = pageIds.length ? await prisma.catalogCard.findMany({ where: { productId: { in: pageIds } }, select: CARD_SELECT }) : [];
+  const byId = new Map(found.map((card) => [card.productId, card]));
+  return pageIds.map((id) => byId.get(id)).filter(Boolean);
+};
+
 router.get('/api/tcg/search-index', async (req, res) => {
   const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
   const game = typeof req.query.game === 'string' ? req.query.game.trim() : '';
   const page = Number.parseInt(req.query.page, 10) || 1;
+  const sort = typeof req.query.sort === 'string' && INDEX_SORTS.has(req.query.sort) ? req.query.sort : '';
   if (query.length < 2 || query.length > 80 || game.length > 60 || page < 1 || page > 10000) return badRequest(res, 'Búsqueda inválida');
   res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=300');
   const limit = 60;
-  const value = clean(query);
-  const cacheKey = `${value}|${game}|${page}`;
+  const searchText = /^\d+\/$/.test(query) ? query.slice(0, -1) : query; // «055/» se busca como «055»
+  const value = clean(searchText);
+  const byCode = !sort && isCodeQuery(searchText);
+  const cacheKey = `${value}|${game}|${page}|${sort}`;
   const cached = cacheGet(cacheKey);
   if (cached) return res.json(cached);
   if (pendingSearches.has(cacheKey)) return res.json(await pendingSearches.get(cacheKey));
@@ -47,26 +93,26 @@ router.get('/api/tcg/search-index', async (req, res) => {
     ...gameWhere,
     OR: [
       { cleanName: { contains: value } },
-      { name: { contains: query, mode: 'insensitive' } },
-      { number: { contains: query, mode: 'insensitive' } },
+      nameMatch(searchText),
+      { number: { contains: searchText, mode: 'insensitive' } },
     ],
   };
   const run = (async () => {
    try {
-    const [total, rows] = await prisma.$transaction([
-      prisma.catalogCard.count({ where }),
-      prisma.catalogCard.findMany({
+    const total = await prisma.catalogCard.count({ where });
+    const rows = sort === 'best_selling'
+      ? await soldRankedPage(where, page, limit)
+      : byCode
+        ? await codeRankedPage(where, clean(searchText), page, limit)
+        : await prisma.catalogCard.findMany({
         where,
-        orderBy: [{ cleanName: 'asc' }, { productId: 'asc' }],
+        orderBy: sort === 'latest_edition'
+          ? [{ set: { publishedOn: { sort: 'desc', nulls: 'last' } } }, { cleanName: 'asc' }, { productId: 'asc' }]
+          : [{ cleanName: 'asc' }, { productId: 'asc' }],
         skip: (page - 1) * limit,
         take: limit,
-        select: {
-          productId: true, categoryId: true, groupId: true, kind: true, name: true, cleanName: true,
-          number: true, rarity: true, imageKey: true, sourceImageUrl: true, tcgplayerUrl: true,
-          game: { select: { name: true } }, set: { select: { name: true } },
-        },
-      }),
-    ]);
+        select: CARD_SELECT,
+      });
     let source = 'database';
     let hydratedRows = rows;
     let hydratedTotal = total;
@@ -85,6 +131,8 @@ router.get('/api/tcg/search-index', async (req, res) => {
             game: { select: { name: true } }, set: { select: { name: true } },
           },
         });
+        const order = new Map(ids.map((id, index) => [id, index])); // el mismo orden de cercanía que dio el índice
+        hydratedRows.sort((a, b) => order.get(a.productId) - order.get(b.productId));
         hydratedTotal = similar.total || hydratedRows.length;
         source = 'database-similarity';
       }

@@ -1,4 +1,4 @@
-// Coincidencia aproximada de nombres de carta: sin tildes ni mayúsculas, y tolera una o dos letras mal escritas ("lucaro" encuentra "Lucario").
+// Coincidencia aproximada de nombres de carta: sin tildes ni mayúsculas, y tolera hasta tres letras mal escritas ("lucaro" encuentra "Lucario").
 const normalize = (text) => String(text || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const wordsOf = (text) => normalize(text).split(/[^a-z0-9]+/).filter(Boolean);
 
@@ -19,15 +19,15 @@ const distance = (a, b, max) => {
   return previous[b.length];
 };
 
-// Cada palabra buscada debe parecerse a alguna del nombre: igual, comienzo de palabra o con pocas letras distintas (solo desde 4 letras)
+// Cada palabra buscada debe parecerse a alguna del nombre: igual, comienzo de palabra o con pocas letras distintas (solo desde 3 letras)
 export const isSimilarName = (name, query) => {
   const wanted = wordsOf(query);
   if (!wanted.length) return false;
   const have = wordsOf(name);
   return wanted.every((word) => have.some((candidate) => {
     if (candidate === word || candidate.startsWith(word)) return true;
-    if (word.length < 4) return false;
-    const allowed = word.length >= 8 ? 2 : 1;
+    if (word.length < 3) return false;
+    const allowed = word.length >= 8 ? 3 : word.length >= 5 ? 2 : 1;
     return distance(word, candidate, allowed) <= allowed;
   }));
 };

@@ -37,7 +37,7 @@ const fromMyl = (product, game) => ({
 // Cartas de TCGCSV (y de la base de Mitos y Leyendas) que coinciden con un texto o se le parecen, solo para informar: no están a la venta.
 // Busca en un juego o en todos; en cada uno revisa las ediciones de la más nueva a la más vieja y sigue hasta llenar la página pedida.
 // La lista solo crece al final, así las cartas ya vistas no cambian de página.
-export default function useCardInfoSearch({ query, game, enabled, page }) {
+export default function useCardInfoSearch({ query, game, enabled, page, sort = '' }) {
   const term = query.trim();
   const [state, setState] = useState({ results: [], searching: false, exhausted: false, pages: 1, total: 0 });
   const searchId = useRef(0);
@@ -98,7 +98,7 @@ export default function useCardInfoSearch({ query, game, enabled, page }) {
     // Índice local: una sola petición paginada sustituye el recorrido de ediciones externas.
     try {
       const indexGame = game === 'Pokémon' ? 'Pokemon' : game === 'Yu-Gi-Oh!' ? 'YuGiOh' : game === 'One Piece' ? 'One_Piece' : game;
-      const indexed = await api.searchTcgIndex(term, indexGame, wantedRef.current);
+      const indexed = await api.searchTcgIndex(term, indexGame, wantedRef.current, sort);
       if (indexed.available) {
         // El índice nombra los juegos con claves técnicas (Pokemon_Japan, One_Piece...): se muestran y se guardan con el nombre del sitio
         const indexedCards = (indexed.cards || []).map((card) => {
@@ -141,7 +141,7 @@ export default function useCardInfoSearch({ query, game, enabled, page }) {
     listRef.current = [];
     seenRef.current = new Set();
     setState({ results: [], searching: false, exhausted: false, pages: 1, total: 0 });
-  }, [enabled, term, gamesKey]);
+  }, [enabled, term, gamesKey, sort]);
 
   // Página pedida: se completa lo que falte
   useEffect(() => {
@@ -149,7 +149,7 @@ export default function useCardInfoSearch({ query, game, enabled, page }) {
     if (!enabled || term.length < 2 || loopRef.current === searchId.current) return;
     loopRef.current = searchId.current;
     fill(searchId.current, controllerRef.current.signal);
-  }, [enabled, term, gamesKey, page]);
+  }, [enabled, term, gamesKey, page, sort]);
 
   return state;
 }

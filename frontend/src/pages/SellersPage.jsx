@@ -1,9 +1,9 @@
 import React, { startTransition, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
-import ComunaSelect from '../components/ui/ComunaSelect';
+import CardsFilters from '../components/cards/CardsFilters';
+import ListingToolbar from '../components/ui/ListingToolbar';
 import LocationLine from '../components/ui/LocationLine';
-import Select from '../components/ui/Select';
 import usePageMeta from '../hooks/usePageMeta';
 import EmptyState from '../components/ui/EmptyState';
 import VerifiedBadge from '../components/ui/VerifiedBadge';
@@ -62,33 +62,21 @@ export default function SellersPage() {
   const sellers = useMemo(() => result.sellers.map((seller) => ({ ...seller, key: seller.username || seller.name, photoURL: seller.photoURL || '', tcgs: seller.tcgs || [] })), [result.sellers]);
 
   return (
-    <div className="mx-auto min-h-[100svh] w-full max-w-[1470px] px-3 py-3 sm:px-6 sm:py-6 lg:px-8">
-      <div className="rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 p-4 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] md:rounded-[2rem] md:p-8">
+    <div className="mx-auto w-full max-w-[1600px] xl:px-12 2xl:px-16">
+      <div className="relative z-10 min-h-[100svh] w-full bg-blue-100 px-4 pb-8 pt-8 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x md:border-outline-variant/30 md:px-12 md:pt-14">
         <header className="mb-5">
           <h1 className="text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Vendedores</h1>
           <p className="mt-1 max-w-2xl text-sm text-slate-600 md:text-base">Personas y tiendas con carpetas públicas. Las visitas suman todas sus carpetas.</p>
         </header>
 
-        <div className="mb-5 flex flex-col gap-2 rounded-2xl bg-white p-2.5 shadow-sm ring-1 ring-slate-900/5 md:flex-row md:items-center md:p-3">
-          <div className="relative min-w-0 flex-1">
-            <SvgIcon name="search" translate="no" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-slate-400" />
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value.slice(0, 60))}
-              placeholder="Buscar vendedor por nombre o usuario"
-              aria-label="Buscar vendedor"
-              className="h-11 w-full rounded-full border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-medium text-slate-900 transition focus:border-[#1e40af] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#facc15]/70"
-            />
-          </div>
-          <ComunaSelect value={comuna} onChange={(value) => { setComuna(value); setPage(1); }} className="md:w-56" />
-          <Select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} aria-label="Ordenar" className="h-11 rounded-full border border-slate-200 bg-white px-4 text-sm font-bold text-[#12315f] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70">
-            {SORTS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </Select>
-        </div>
+        <div className="lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:items-start lg:gap-8">
+          <CardsFilters query={query} onQuery={(value) => setQuery(value.slice(0, 60))} placeholder="Buscar vendedor por nombre o usuario" format={(value) => value} hideGames />
+
+          <section className="mt-5 min-w-0 lg:mt-0" aria-label="Resultados">
+            <ListingToolbar total={result.total} loading={loading} failed={failed} one="vendedor" many="vendedores" comuna={comuna} onComuna={(value) => { setComuna(value); setPage(1); }} sort={sort} onSort={(value) => { setSort(value); setPage(1); }} sortOptions={SORTS} onClear={comuna || query ? () => { setQuery(''); setComuna(''); setPage(1); } : undefined} />
 
         {loading ? (
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
             {Array.from({ length: 6 }, (_, i) => <li key={i} className="skeleton h-28 rounded-2xl" />)}
           </ul>
         ) : failed ? (
@@ -100,7 +88,7 @@ export default function SellersPage() {
             {comuna ? 'Solo aparecen vendedores que indicaron su comuna. Prueba con otra comuna o quita el filtro.' : 'Prueba con otro nombre.'}
           </EmptyState>
         ) : (
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
             {sellers.map((seller) => {
               const body = (
                 <>
@@ -142,6 +130,8 @@ export default function SellersPage() {
             </button>
           </nav>
         )}
+          </section>
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 // Cartas publicadas: recientes, búsqueda y borrado.
 import express from 'express';
-import { searchFragments, similarCardName } from '../core/cardSearch.js';
+import { nameMatch, searchFragments, similarCardName } from '../core/cardSearch.js';
 import { authenticateToken } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { CARD_SEARCH_TCG_ALIASES, sameCardMatch } from '../core/listing.js';
@@ -305,7 +305,8 @@ const rankedCardPage = async (where, sort, page) => {
 };
 router.get('/api/cards/search', async (req, res) => {
   try {
-    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    // El buscador agrega «/» al escribir números («055/»): «Kangaskhan ex - 055» también debe aparecer
+    const q = (typeof req.query.q === 'string' ? req.query.q.trim() : '').replace(/^(\d+)\/$/, '$1');
     const tcgRaw = typeof req.query.tcg === 'string' ? req.query.tcg.trim() : '';
     const tcg = CARD_SEARCH_TCG_ALIASES[tcgRaw] || tcgRaw;
     const sort = typeof req.query.sort === 'string' ? req.query.sort : 'recent';
@@ -322,19 +323,19 @@ router.get('/api/cards/search', async (req, res) => {
       stock: { gt: 0 },
       moderationState: 'visible',
       folder: { isPublic: true, ...(tcg ? { tcg } : {}), ...(seller || comuna ? { user: { ...(seller ? { username: seller } : {}), ...(comuna ? { publicComuna: comuna } : {}) } } : {}) },
-      ...(q ? { name: { contains: q, mode: 'insensitive' } } : {}),
+      ...(q ? nameMatch(q) : {}),
     };
     const fragments = searchFragments(q);
     if (fragments.length) {
-      const { name: _name, ...publicScope } = where;
+      const { AND: _name, ...publicScope } = where;
       const candidates = await prisma.card.findMany({
         where: { ...publicScope, OR: fragments.map((fragment) => ({ name: { contains: fragment, mode: 'insensitive' } })) },
         distinct: ['name'],
         select: { name: true },
       });
       const similarNames = candidates.filter((card) => similarCardName(card.name, q)).map((card) => card.name);
-      delete where.name;
-      where.OR = [{ name: { contains: q, mode: 'insensitive' } }, { name: { in: similarNames } }];
+      delete where.AND;
+      where.OR = [nameMatch(q), { name: { in: similarNames } }];
     }
     const [total, cards] = RANKED_SORTS.has(sort)
       ? [await prisma.card.count({ where }), await rankedCardPage(where, sort, page)]

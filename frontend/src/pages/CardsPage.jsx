@@ -138,8 +138,8 @@ export default function CardsPage() {
     : 'grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5';
 
   return (
-    <div className="mx-auto min-h-[100svh] w-full max-w-[1470px] px-3 py-3 sm:px-6 sm:py-6 lg:px-8">
-      <div className="rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 p-3 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] sm:p-6 md:rounded-[2rem] lg:p-8">
+    <div className="mx-auto w-full max-w-[1600px] xl:px-12 2xl:px-16">
+      <div className="relative z-10 min-h-[100svh] w-full bg-blue-100 px-4 pb-8 pt-8 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x md:border-outline-variant/30 md:px-12 md:pt-14">
         <header className="mb-4 sm:mb-6">
           <h1 className="text-3xl font-extrabold tracking-tight text-[#12315f] [text-wrap:balance] md:text-4xl">Cartas en venta</h1>
           <p className="mt-1 max-w-xl text-sm text-slate-600 md:text-base">Cartas con stock de las carpetas públicas. Toca una para ver quién más la vende y comparar precios.</p>
@@ -189,7 +189,7 @@ export default function CardsPage() {
               </ul>
             )}
 
-            <CardInfoResults query={urlQuery} game={tcg} hasOffers={result.total > 0} enabled={!loading && !failed && urlQuery.trim().length >= 2 && !seller && !comuna} />
+            <CardInfoResults query={urlQuery} game={tcg} sort={sort} hasOffers={result.total > 0} enabled={!loading && !failed && urlQuery.trim().length >= 2 && !seller && !comuna} />
 
             {!loading && !failed && <CardsPagination page={page} pages={result.pages} onPage={goToPage} />}
           </section>

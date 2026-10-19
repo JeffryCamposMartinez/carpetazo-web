@@ -1,4 +1,5 @@
 import { catalogJson } from './tcgcsvFetch';
+import { withLooseMatch } from './tcgcsvPokemon';
 import { ONE_PIECE_CATEGORY, filterOnePieceCards, onePieceExt, onePieceGroupLabel, onePieceMatchesQuery } from './tcgcsvOnePiece';
 import { MAGIC_CATEGORY, MAGIC_MARKER, filterMagicCards, loadMagicMeta, magicExt, magicGroupLabel, magicMatchesQuery } from './tcgcsvMagic';
 import { YUGIOH_CATEGORY, YUGIOH_MARKER, filterYugiohCards, loadYugiohMeta, yugiohExt, yugiohGroupLabel, yugiohMatchesQuery } from './tcgcsvYugioh';
@@ -18,10 +19,10 @@ export const tcgcsvCategoryId = (searchCategory, lang) => {
 
 // --- Catálogo de cada juego para buscar cartas fuera de una carpeta (lista de deseados) ---
 const GAMES = {
-  'Yu-Gi-Oh!': { catId: YUGIOH_CATEGORY, marker: YUGIOH_MARKER, label: yugiohGroupLabel, meta: loadYugiohMeta, parse: (ext, group, name, meta) => yugiohExt(ext, group, name, meta), matches: yugiohMatchesQuery, filter: filterYugiohCards },
-  'One Piece': { catId: ONE_PIECE_CATEGORY, marker: '68', label: onePieceGroupLabel, parse: (ext, group, name) => onePieceExt(ext, group, name), matches: onePieceMatchesQuery, filter: filterOnePieceCards },
-  Magic: { catId: MAGIC_CATEGORY, marker: MAGIC_MARKER, label: magicGroupLabel, meta: loadMagicMeta, parse: (ext, group, name, meta) => magicExt(ext, group, name, meta), matches: magicMatchesQuery, filter: filterMagicCards },
-  Riftbound: { catId: RIFTBOUND_CATEGORY, marker: RIFTBOUND_MARKER, label: riftboundGroupLabel, parse: (ext, group, name) => riftboundExt(ext, group, name), matches: riftboundMatchesQuery, filter: filterRiftboundCards },
+  'Yu-Gi-Oh!': { catId: YUGIOH_CATEGORY, marker: YUGIOH_MARKER, label: yugiohGroupLabel, meta: loadYugiohMeta, parse: (ext, group, name, meta) => yugiohExt(ext, group, name, meta), matches: withLooseMatch(yugiohMatchesQuery), filter: filterYugiohCards },
+  'One Piece': { catId: ONE_PIECE_CATEGORY, marker: '68', label: onePieceGroupLabel, parse: (ext, group, name) => onePieceExt(ext, group, name), matches: withLooseMatch(onePieceMatchesQuery), filter: filterOnePieceCards },
+  Magic: { catId: MAGIC_CATEGORY, marker: MAGIC_MARKER, label: magicGroupLabel, meta: loadMagicMeta, parse: (ext, group, name, meta) => magicExt(ext, group, name, meta), matches: withLooseMatch(magicMatchesQuery), filter: filterMagicCards },
+  Riftbound: { catId: RIFTBOUND_CATEGORY, marker: RIFTBOUND_MARKER, label: riftboundGroupLabel, parse: (ext, group, name) => riftboundExt(ext, group, name), matches: withLooseMatch(riftboundMatchesQuery), filter: filterRiftboundCards },
 };
 
 export const tcgcsvGameInfo = (game) => GAMES[game] || null;

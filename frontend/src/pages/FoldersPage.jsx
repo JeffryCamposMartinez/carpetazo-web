@@ -2,20 +2,11 @@ import React, { startTransition, useCallback, useEffect, useMemo, useState } fro
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import LazyFolderCard from '../components/folder/LazyFolderCard';
-import ComunaSelect from '../components/ui/ComunaSelect';
-import Select from '../components/ui/Select';
+import CardsFilters, { GAMES } from '../components/cards/CardsFilters';
+import ListingToolbar from '../components/ui/ListingToolbar';
 import usePageMeta from '../hooks/usePageMeta';
 import EmptyState from '../components/ui/EmptyState';
 import SvgIcon from '../components/ui/SvgIcon';
-
-const TCG_CATEGORIES = [
-  { name: 'Pokémon', logo: '/images/logos/pokemon.webp' },
-  { name: 'Mitos y Leyendas', logo: '/images/logos/mitosyleyendas.webp' },
-  { name: 'One Piece', logo: '/images/logos/onepiece.webp' },
-  { name: 'Magic', logo: '/images/logos/magic.webp' },
-  { name: 'Yu-Gi-Oh!', logo: '/images/logos/yugioh.webp' },
-  { name: 'Riftbound', logo: '/images/logos/riftbound.webp' },
-];
 
 const SORT_OPTIONS = [
   { value: 'weekly', label: 'Más visitadas esta semana' },
@@ -89,6 +80,7 @@ export default function FoldersPage() {
   }, [result.counts]);
   const totalFolders = useMemo(() => result.counts.reduce((sum, item) => sum + item.count, 0), [result.counts]);
 
+  const gameCounts = useMemo(() => new Map([['', totalFolders], ...GAMES.map((game) => [game.name, countsByTcg.get(normalize(game.name)) || 0])]), [countsByTcg, totalFolders]);
   const hasFilters = selectedTcg !== 'Todos' || Boolean(urlQuery) || sortBy !== 'weekly' || Boolean(comuna);
   const totalPages = result.pages;
 
@@ -102,82 +94,23 @@ export default function FoldersPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const chipBase = 'flex h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]';
 
   return (
-    <div className="mx-auto min-h-[100svh] w-full max-w-[1470px] flex-1 px-3 py-3 sm:px-6 sm:py-6 lg:px-8">
-      <div className="rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 p-4 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] md:rounded-[2rem] md:p-8">
+    <div className="mx-auto w-full max-w-[1600px] xl:px-12 2xl:px-16">
+      <div className="relative z-10 min-h-[100svh] w-full bg-blue-100 px-4 pb-8 pt-8 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x md:border-outline-variant/30 md:px-12 md:pt-14">
         <header className="mb-5">
           <h1 className="text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Carpetas</h1>
           <p className="mt-1 max-w-2xl text-sm text-slate-600 md:text-base">Catálogos públicos de jugadores y tiendas. Abre una carpeta para ver sus cartas, precios y stock.</p>
         </header>
 
-        <div className="mb-3 flex flex-col gap-2 rounded-2xl bg-white p-2.5 shadow-sm ring-1 ring-slate-900/5 md:flex-row md:items-center md:p-3">
-          <div className="relative min-w-0 flex-1">
-            <SvgIcon name="search" translate="no" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-slate-400" />
-            <input
-              type="search"
-              inputMode="search"
-              enterKeyHint="search"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value.slice(0, 80))}
-              placeholder="Buscar por carpeta o vendedor"
-              aria-label="Buscar carpeta o vendedor"
-              className="h-11 w-full rounded-full border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-medium text-slate-900 transition focus:border-[#1e40af] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#facc15]/70"
-            />
-          </div>
-          <ComunaSelect value={comuna} onChange={(value) => updateParams({ comuna: value })} className="md:w-56" />
-          <Select
-            value={sortBy}
-            onChange={(event) => updateParams({ sort: event.target.value === 'weekly' ? '' : event.target.value })}
-            aria-label="Ordenar carpetas"
-            className="h-11 rounded-full border border-slate-200 bg-white px-4 text-sm font-bold text-[#12315f] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70"
-          >
-            {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </Select>
-        </div>
+        <div className="lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:items-start lg:gap-8">
+          <CardsFilters query={searchQuery} tcg={selectedTcg === 'Todos' ? '' : selectedTcg} onQuery={(value) => setSearchQuery(value.slice(0, 80))} onTcg={(value) => updateParams({ tcg: value })} placeholder="Buscar carpeta o vendedor" format={(value) => value} counts={gameCounts} />
 
-        {/* Juego: una fila de opciones que se desliza en móvil */}
-        <div role="group" aria-label="Juego" className="-mx-1 mb-5 flex gap-2 overflow-x-auto px-1 pb-2 hide-scrollbar">
-          <button
-            type="button"
-            onClick={() => updateParams({ tcg: '' })}
-            aria-pressed={selectedTcg === 'Todos'}
-            className={`${chipBase} ${selectedTcg === 'Todos' ? 'border-[#12315f] bg-[#12315f] text-white' : 'border-slate-200 bg-white text-[#12315f] hover:border-[#12315f]/40'}`}
-          >
-            Todos
-            <span className={`text-xs tabular-nums ${selectedTcg === 'Todos' ? 'text-blue-200' : 'text-slate-400'}`}>{totalFolders}</span>
-          </button>
-          {TCG_CATEGORIES.map((tcg) => {
-            const active = normalize(selectedTcg) === normalize(tcg.name);
-            const count = countsByTcg.get(normalize(tcg.name)) || 0;
-            return (
-              <button
-                key={tcg.name}
-                type="button"
-                onClick={() => updateParams({ tcg: tcg.name })}
-                aria-pressed={active}
-                className={`${chipBase} ${active ? 'border-[#12315f] bg-[#12315f] text-white' : 'border-slate-200 bg-white text-[#12315f] hover:border-[#12315f]/40'}`}
-              >
-                <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded bg-white p-0.5">
-                  <img src={tcg.logo} alt="" className="max-h-full max-w-full object-contain" loading="lazy" />
-                </span>
-                {tcg.name}
-                <span className={`text-xs tabular-nums ${active ? 'text-blue-200' : 'text-slate-400'}`}>{count}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <p className="mb-4 text-sm font-semibold text-slate-600" aria-live="polite">
-          {loading ? 'Cargando carpetas…' : failed ? '' : `${result.total.toLocaleString('es-CL')} ${result.total === 1 ? 'carpeta' : 'carpetas'}`}
-          {!loading && !failed && hasFilters && (
-            <button type="button" onClick={clearFilters} className="ml-3 font-bold text-[#1e40af] underline-offset-2 hover:underline">Quitar filtros</button>
-          )}
-        </p>
+          <section className="mt-5 min-w-0 lg:mt-0" aria-label="Resultados">
+            <ListingToolbar total={result.total} loading={loading} failed={failed} one="carpeta" many="carpetas" comuna={comuna} onComuna={(value) => updateParams({ comuna: value })} sort={sortBy} onSort={(value) => updateParams({ sort: value === 'weekly' ? '' : value })} sortOptions={SORT_OPTIONS} onClear={hasFilters ? clearFilters : undefined} />
 
         {loading ? (
-          <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+          <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {Array.from({ length: 10 }, (_, i) => <li key={i} className="skeleton aspect-[32/37] rounded-xl" />)}
           </ul>
         ) : failed ? (
@@ -189,7 +122,7 @@ export default function FoldersPage() {
             Prueba con otro nombre o cambia el juego.
           </EmptyState>
         ) : (
-          <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 md:grid-cols-4 xl:grid-cols-5">
+          <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 xl:grid-cols-4 2xl:grid-cols-5">
             {foldersToRender.map((folder) => (
               <li key={folder.id} className="min-w-0"><LazyFolderCard folder={folder} /></li>
             ))}
@@ -207,6 +140,8 @@ export default function FoldersPage() {
             </button>
           </nav>
         )}
+          </section>
+        </div>
       </div>
     </div>
   );

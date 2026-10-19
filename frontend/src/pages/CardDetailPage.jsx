@@ -169,7 +169,7 @@ export default function CardDetailPage() {
                 {best && (
                   <Link to={`/c/${best.folder.id}`} className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#facc15] sm:flex-1 px-4 text-[15px] font-extrabold text-[#12315f] transition-[background-color,transform] duration-150 hover:bg-[#eab308] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2">
                     <SvgIcon name="folder_open" translate="no" aria-hidden="true" className="text-[22px]" />
-                    Ver la carpeta del mejor precio
+                    Ver la carpeta con el mejor precio
                   </Link>
                 )}
                 <button type="button" onClick={addToWishlist} aria-pressed={wished} className={`flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl px-4 text-[15px] font-bold ring-1 transition-[background-color,transform] duration-150 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${wished ? 'bg-[#facc15] text-[#12315f] ring-[#facc15]' : 'bg-white text-[#12315f] ring-slate-300 hover:bg-slate-50'}`}>

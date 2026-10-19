@@ -1,5 +1,6 @@
 import { catalogJson } from './tcgcsvFetch';
 import { sortCatalogGroupsNewestFirst } from './catalogOrdering';
+import { isSimilarName } from '../utils/similarName';
 
 // Búsqueda de cartas Pokémon en TCGCSV (inglés = categoría 3, japonés = 85), con los mismos criterios
 // que usa la búsqueda de "agregar cartas" de las carpetas.
@@ -9,15 +10,18 @@ const TYPE_ES = {
   darkness: 'Oscura', dark: 'Oscura', metal: 'Metálica', fairy: 'Hada', dragon: 'Dragón', colorless: 'Incolora',
 };
 
-const fold = (text) => String(text ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const fold = (text) => String(text ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/['’‘´`]/g, ''); // sin tildes ni apóstrofos
 // ¿La carta coincide con lo que se escribió? Cada palabra debe estar en el nombre, el número o la edición, sin importar tildes, mayúsculas ni orden:
 // «30 celebration» encuentra «Basic Grass Energy - 009 (30th Celebration)»
+// «055/» (el buscador agrega la «/» al escribir números) se busca como «055»; y si una palabra no está tal cual, vale un nombre parecido («orderer» → «Orders»).
 export const matchesCardQuery = (query, ...fields) => {
-  const words = fold(query).split(/[\s,]+/).filter(Boolean);
+  const words = fold(query).split(/[\s,]+/).map((word) => word.replace(/^(\d+)\/$/, '$1')).filter(Boolean);
   if (!words.length) return true;
   const haystack = fold(fields.join(' '));
-  return words.every((word) => haystack.includes(word));
+  return words.every((word) => haystack.includes(word) || (!/\d/.test(word) && isSimilarName(fields[0], word)));
 };
+// Para los juegos con su propio criterio de búsqueda: el criterio propio primero y, si no coincide, este (apóstrofos, «/» y parecidos)
+export const withLooseMatch = (match) => (card, q) => match(card, q) || matchesCardQuery(q, card.name, card.extData?.Number || card.number);
 
 // Clasifica una carta (Card Type) en la categoría y los tipos que usan los filtros
 export const classifyTcgcsvCard = (name, ext) => {
