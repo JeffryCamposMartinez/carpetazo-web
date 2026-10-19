@@ -109,7 +109,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
               </button>
               <div className="mt-1 flex items-center justify-between gap-2">
                 <ReferencePriceLine variants={card.groupId ? variantsFor(card) : null} className="shrink-0 text-xs" />
-                <button type="button" onClick={() => addToFolder(card)} title="Agregar a mi carpeta" className="flex h-8 w-8 shrink-0 items-center justify-center gap-0.5 rounded-lg bg-[#1e40af] px-0 text-xs font-extrabold @[10.5rem]:w-auto @[10.5rem]:pl-1.5 @[10.5rem]:pr-2.5 text-white transition-[background-color,transform] duration-150 hover:bg-[#12315f] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+                <button type="button" onClick={() => addToFolder(card)} title="Agregar a mi carpeta" className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center gap-0.5 rounded-lg bg-[#1e40af] px-0 text-xs font-extrabold @[10.5rem]:w-auto @[10.5rem]:pl-1.5 @[10.5rem]:pr-2.5 text-white transition-[background-color,transform] duration-150 hover:bg-[#12315f] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
                   <SvgIcon name="add" translate="no" aria-hidden="true" className="text-[16px]" /><span aria-hidden="true" className="hidden @[10.5rem]:inline">Agregar</span><span className="sr-only">Agregar a mi carpeta</span>
                 </button>
               </div>

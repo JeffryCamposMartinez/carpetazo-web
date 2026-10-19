@@ -35,14 +35,19 @@ export default function Dashboard() {
   const [editingFolder, setEditingFolder] = useState(null);
   const [editFolderName, setEditFolderName] = useState('');
   const [editFolderColor, setEditFolderColor] = useState('red');
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const linkedTab = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(['solicitudes', 'historial', 'deseadas'].includes(linkedTab) ? linkedTab : 'carpetas');
 
-  // Enlaces como /dashboard?tab=solicitudes (por ejemplo desde la campana) abren esa pestaña
+  // La pestaña y la dirección van juntas: un enlace como /dashboard?tab=solicitudes (desde la campana o el menú de la cuenta) abre esa pestaña
+  // aunque ya estés en esta página, y /dashboard sin pestaña vuelve a Carpetas. Al cambiar de pestaña aquí, la dirección se actualiza.
   useEffect(() => {
-    if (['carpetas', 'solicitudes', 'historial', 'deseadas'].includes(linkedTab)) setActiveTab(linkedTab);
+    setActiveTab(['solicitudes', 'historial', 'deseadas'].includes(linkedTab) ? linkedTab : 'carpetas');
   }, [linkedTab]);
+  const changeTab = (tab) => {
+    setActiveTab(tab);
+    setSearchParams(tab === 'carpetas' ? {} : { tab }, { replace: true });
+  };
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersNextCursor, setOrdersNextCursor] = useState(null);
@@ -498,7 +503,7 @@ export default function Dashboard() {
               layout="inline"
               options={TAB_OPTIONS}
               value={activeTab}
-              onChange={setActiveTab}
+              onChange={changeTab}
               className="w-max min-w-full rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-slate-200 sm:min-w-0"
               buttonClassName="h-11 flex-auto shrink-0 whitespace-nowrap rounded-xl px-3 text-sm font-bold sm:h-12 sm:px-6 sm:text-base focus-visible:ring-2 focus-visible:ring-[#1e40af]"
               indicatorClassName="rounded-xl bg-[#1e40af]"
@@ -521,7 +526,7 @@ export default function Dashboard() {
                 <Link to="/planes" className="inline-flex h-10 [@media(pointer:coarse)]:h-11 items-center justify-center rounded-xl bg-[#12315f] px-4 text-sm font-extrabold text-white hover:bg-[#1e40af]">Ver mi plan</Link>
               </div>
             )}
-            {folders.length > 0 && <FolderSummary variant="strip" folderCount={folders.length} publicCount={publicCount} cardCount={totalCards} weeklyVisits={weeklyVisits} pendingCount={pendingCount} onOpenRequests={() => setActiveTab('solicitudes')} />}
+            {folders.length > 0 && <FolderSummary variant="strip" folderCount={folders.length} publicCount={publicCount} cardCount={totalCards} weeklyVisits={weeklyVisits} pendingCount={pendingCount} onOpenRequests={() => changeTab('solicitudes')} />}
           {/* Móvil: la acción primaria es un botón, no un banner; junto al resumen de lo que ya hay */}
             <div className="mb-5 flex items-center justify-between gap-3 sm:hidden">
             <p className="min-w-0 truncate text-sm font-semibold text-slate-600">
@@ -543,7 +548,7 @@ export default function Dashboard() {
 
             <FolderGrid {...folderGridProps} />
           </div>
-          {folders.length > 0 && <FolderSummary variant="aside" folderCount={folders.length} publicCount={publicCount} cardCount={totalCards} weeklyVisits={weeklyVisits} pendingCount={pendingCount} onOpenRequests={() => setActiveTab('solicitudes')} />}
+          {folders.length > 0 && <FolderSummary variant="aside" folderCount={folders.length} publicCount={publicCount} cardCount={totalCards} weeklyVisits={weeklyVisits} pendingCount={pendingCount} onOpenRequests={() => changeTab('solicitudes')} />}
         </div>
       ) : activeTab === 'deseadas' ? (
           <WishlistTab showToast={showToast} />
@@ -554,7 +559,7 @@ export default function Dashboard() {
             orders={orders}
             loading={ordersLoading}
             onOrderUpdated={handleOrderUpdated}
-            onGoToFolders={() => setActiveTab('carpetas')}
+            onGoToFolders={() => changeTab('carpetas')}
             hasMore={ordersHasMore}
             onLoadMore={loadMoreOrders}
             loadingMore={loadingMoreOrders}
