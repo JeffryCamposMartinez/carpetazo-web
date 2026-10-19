@@ -729,14 +729,8 @@ const [isSearching, setIsSearching] = useState(false);
   useEffect(() => {
     let filtered = rawSearchResults;
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.trim().toLowerCase();
-      filtered = filtered.filter(c => 
-        (c.name && c.name.toLowerCase().includes(q)) || 
-        (c.cleanName && c.cleanName.toLowerCase().includes(q)) ||
-        ((getExtDataValue(c.extData, 'Number') || '').toLowerCase().includes(q) || (getExtDataValue(c.extData, 'Card Number / Rarity') || '').toLowerCase().includes(q) || (getExtDataValue(c.extData, 'localId') || '').toLowerCase().includes(q))
-      );
-    }
+    // El texto ya se aplicó al buscar (useCardSearch, o el servidor en Mitos y Leyendas) con tolerancia a apóstrofos, «/» y letras mal escritas;
+    // volver a filtrar aquí por el texto exacto escondía esas coincidencias.
 
     filtered = applyCardFilters(filtered);
 

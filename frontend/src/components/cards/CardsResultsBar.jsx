@@ -14,7 +14,7 @@ const REMOVABLE = 'inline-flex h-9 max-w-full items-center gap-1 rounded-full bg
 
 // Cantidad de cartas, filtros activos (cada uno se quita con un toque), orden y vista (cuadrícula o lista en el celular)
 // Comuna y orden comparten ancho y forma
-const FILTER_WIDTH = 'min-w-0 flex-1 sm:w-52 sm:flex-none';
+const FILTER_WIDTH = 'basis-full sm:w-52 sm:basis-auto';
 const FILTER_BUTTON = '!min-h-10 !rounded-full !text-[13px]';
 
 export default function CardsResultsBar({ failed, loading, comuna, onClearAll, onComuna, onComunaChange, onQuery, onSeller, onSort, onTcg, onView, query, seller, sort, tcg, total, view }) {
@@ -29,7 +29,7 @@ export default function CardsResultsBar({ failed, loading, comuna, onClearAll, o
         </p>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:flex-nowrap">
           <ComunaSelect value={comuna} onChange={onComunaChange} className={FILTER_WIDTH} buttonClassName={FILTER_BUTTON} listMinWidth={260} />
-          <ThemedSelect value={sort} onChange={onSort} options={SORT_OPTIONS} icon="swap_vert" ariaLabel="Ordenar" className={FILTER_WIDTH} buttonClassName={FILTER_BUTTON} />
+          <ThemedSelect value={sort} onChange={onSort} options={SORT_OPTIONS} icon="swap_vert" ariaLabel="Ordenar" className="min-w-0 flex-1 sm:w-52 sm:flex-none" buttonClassName={FILTER_BUTTON} />
           <div role="group" aria-label="Vista" className="flex h-10 items-center rounded-full bg-white p-1 ring-1 ring-slate-900/10 lg:hidden">
             {[{ value: 'grid', icon: 'grid_view', label: 'Cuadrícula' }, { value: 'list', icon: 'view_agenda', label: 'Lista' }].map((option) => (
               <button key={option.value} type="button" aria-pressed={view === option.value} aria-label={option.label} onClick={() => onView(option.value)} className={`flex h-8 w-9 items-center justify-center rounded-full transition-[background-color,color,transform] duration-150 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${view === option.value ? 'bg-[#12315f] text-white' : 'text-slate-500'}`}>
