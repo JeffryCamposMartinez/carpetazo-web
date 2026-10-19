@@ -1,4 +1,4 @@
-// Quejas y sugerencias: cada envío queda visible para quien lo creó y para moderación.
+// Reclamos y sugerencias: cada envío queda visible para quien lo creó y para moderación.
 import express from 'express';
 import { authenticateToken, currentUserId, requireStaff } from '../core/auth.js';
 import { prisma } from '../core/db.js';
@@ -35,7 +35,7 @@ router.post('/api/feedback', authenticateToken, async (req, res) => {
     const kind = req.body?.kind;
     const title = clean(req.body?.title, TITLE_MAX);
     const message = clean(req.body?.message, MESSAGE_MAX);
-    if (!KINDS.includes(kind)) return badRequest(res, 'Selecciona si es una queja o una sugerencia');
+    if (!KINDS.includes(kind)) return badRequest(res, 'Selecciona si es un reclamo o una sugerencia');
     if (!textOk(req.body?.title, TITLE_MAX, 3) || !textOk(req.body?.message, MESSAGE_MAX, 10)) return badRequest(res, 'Completa un asunto y un mensaje válido');
     const userId = await currentUserId(req);
     if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });

@@ -1,4 +1,4 @@
-// Quejas y sugerencias: tipo, asunto y mensaje validados en el servidor; cada persona solo ve las suyas.
+// Reclamos y sugerencias: tipo, asunto y mensaje validados en el servidor; cada persona solo ve las suyas.
 const { prisma, NAMES, call, ok } = require('./fixtures.cjs');
 
 (async () => {

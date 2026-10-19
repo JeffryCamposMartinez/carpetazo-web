@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../services/api';
 import { Badge, EmptyState, ErrorBox, Pills, ROW, ROW_HOVER, Spinner, dateTime } from './shared';
 
-const KIND_LABELS = { complaint: 'Queja', suggestion: 'Sugerencia' };
+const KIND_LABELS = { complaint: 'Reclamo', suggestion: 'Sugerencia' };
 const STATUS_LABELS = { open: 'Pendientes', corrected: 'Corregidas', all: 'Todas' };
 
-// Bandeja de mensajes enviados desde «Quejas y sugerencias». Soporte puede leerla; moderadores y administradores pueden cerrarla.
+// Bandeja de mensajes enviados desde «Reclamos y sugerencias». Soporte puede leerla; moderadores y administradores pueden cerrarla.
 export default function FeedbackPanel({ level = 1 }) {
   const [status, setStatus] = useState('open');
   const [kind, setKind] = useState('all');
@@ -18,7 +18,7 @@ export default function FeedbackPanel({ level = 1 }) {
     setMessage('');
     api.getAdminFeedback({ status, ...(kind !== 'all' ? { kind } : {}) })
       .then(setData)
-      .catch((error) => setMessage(error.message || 'No se pudieron cargar las quejas y sugerencias.'));
+      .catch((error) => setMessage(error.message || 'No se pudieron cargar los reclamos y sugerencias.'));
   }, [kind, status]);
 
   useEffect(() => { load(); }, [load]);
@@ -42,10 +42,10 @@ export default function FeedbackPanel({ level = 1 }) {
       <ErrorBox>{message}</ErrorBox>
       <div className="flex flex-wrap gap-2">
         <Pills label="Estado de las entradas" value={status} onChange={setStatus} options={Object.entries(STATUS_LABELS)} counts={data?.counts} />
-        <Pills label="Tipo de entrada" value={kind} onChange={setKind} options={[['all', 'Todos'], ['complaint', 'Quejas'], ['suggestion', 'Sugerencias']]} />
+        <Pills label="Tipo de entrada" value={kind} onChange={setKind} options={[['all', 'Todos'], ['complaint', 'Reclamos'], ['suggestion', 'Sugerencias']]} />
       </div>
       {!data ? <Spinner label="Cargando mensajes" /> : data.feedback.length === 0 ? (
-        <EmptyState icon="task_alt" title={status === 'open' ? 'No hay entradas pendientes' : 'No hay entradas para mostrar'}>Cuando alguien envíe una queja o sugerencia aparecerá aquí.</EmptyState>
+        <EmptyState icon="task_alt" title={status === 'open' ? 'No hay entradas pendientes' : 'No hay entradas para mostrar'}>Cuando alguien envíe un reclamo o sugerencia aparecerá aquí.</EmptyState>
       ) : (
         <ul className="space-y-2">
           {data.feedback.map((item) => (

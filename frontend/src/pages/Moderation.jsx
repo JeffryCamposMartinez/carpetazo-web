@@ -28,7 +28,7 @@ const TABS = [
   { id: 'reports', group: 'queue', label: 'Reportes', icon: 'flag', min: 1, blurb: 'Contenido reportado por la comunidad y por la detección automática, con lo más grave primero.' },
   { id: 'cases', group: 'queue', label: 'Estafas', shortLabel: 'Estafas', icon: 'security', min: 1, blurb: 'Casos abiertos contra una cuenta, con todos sus reportes reunidos.' },
   { id: 'appeals', group: 'queue', label: 'Apelaciones', icon: 'gavel', min: 1, blurb: 'Personas que piden revisar una medida o una decisión sobre su contenido.' },
-  { id: 'feedback', group: 'queue', label: 'Quejas y sugerencias', shortLabel: 'Sugerencias', icon: 'feedback', min: 1, blurb: 'Mensajes de la comunidad para mejorar el sitio o informar un problema.' },
+  { id: 'feedback', group: 'queue', label: 'Reclamos y sugerencias', shortLabel: 'Sugerencias', icon: 'feedback', min: 1, blurb: 'Mensajes de la comunidad para mejorar el sitio o informar un problema.' },
   { id: 'people', group: 'people', label: 'Personas y medidas', shortLabel: 'Personas', icon: 'groups', min: 1, blurb: 'Busca una cuenta, revisa su historial y aplica o levanta medidas.' },
   { id: 'account', group: 'people', label: 'Cuenta completa', shortLabel: 'Cuenta', icon: 'badge', min: 3, blurb: 'Todos los datos de una persona, sus planes con todas las fechas, y cambiarlos avisándole con un mensaje.' },
   { id: 'team', group: 'people', label: 'Equipo y administradores', shortLabel: 'Equipo', icon: 'admin_panel_settings', min: 3, blurb: 'Quién es del equipo y cómo dar el rol de administrador a otra persona, con doble confirmación.' },
@@ -46,7 +46,7 @@ const QUEUE_LINKS = [
   { tab: 'reports', label: 'Reportes', field: 'reports' },
   { tab: 'cases', label: 'Estafas', field: 'cases' },
   { tab: 'appeals', label: 'Apelaciones', field: 'appeals' },
-  { tab: 'feedback', label: 'Quejas y sugerencias', field: 'feedback' }
+  { tab: 'feedback', label: 'Reclamos y sugerencias', field: 'feedback' }
 ];
 
 export default function Moderation() {

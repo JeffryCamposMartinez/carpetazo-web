@@ -78,7 +78,7 @@ export default function MobileMenu({
             { to: '/mensajes', label: 'Mensajes', icon: 'chat', active: location.pathname === '/mensajes', badge: unreadMessages },
             { to: '/perfil', label: 'Mi cuenta', icon: 'person', active: location.pathname === '/perfil' },
             { to: '/planes', label: 'Mi plan', icon: 'workspace_premium', active: location.pathname === '/planes' },
-            { to: '/sugerencias', label: 'Quejas y sugerencias', icon: 'feedback', active: location.pathname === '/sugerencias' },
+            { to: '/sugerencias', label: 'Reclamos y sugerencias', icon: 'feedback', active: location.pathname === '/sugerencias' },
             ...(userUsername ? [{ to: `/${userUsername}`, label: 'Mi perfil público', icon: 'badge', active: false }] : []),
             ...(['admin', 'moderator', 'support'].includes(appUser?.role) ? [{ to: '/moderacion', label: 'Moderación', icon: 'admin_panel_settings', active: location.pathname === '/moderacion' }] : []),
           ];
