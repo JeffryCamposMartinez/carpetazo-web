@@ -163,6 +163,8 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
           )}
         />
       )}
+
+      {addTarget && <AddToFolderModal card={addTarget} refPrice={refPriceOf(addTarget)} onClose={() => setAddTarget(null)} />}
     </section>
   );
 }
