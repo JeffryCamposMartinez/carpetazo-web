@@ -2,6 +2,7 @@ import React, { startTransition, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import CardsFilters from '../components/cards/CardsFilters';
+import HelpTip from '../components/ui/HelpTip';
 import ListingToolbar from '../components/ui/ListingToolbar';
 import LocationLine from '../components/ui/LocationLine';
 import usePageMeta from '../hooks/usePageMeta';
@@ -65,7 +66,7 @@ export default function SellersPage() {
     <div className="mx-auto w-full max-w-[1600px] xl:px-12 2xl:px-16">
       <div className="relative z-10 min-h-[100svh] w-full bg-blue-100 px-4 pb-8 pt-8 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x md:border-outline-variant/30 md:px-12 md:pt-14">
         <header className="mb-5">
-          <h1 className="text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Vendedores</h1>
+          <div className="flex items-center gap-3"><h1 className="text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Vendedores</h1><HelpTip topic="vendedores" /></div>
           <p className="mt-1 max-w-2xl text-sm text-slate-600 md:text-base">Personas y tiendas con carpetas públicas. Las visitas suman todas sus carpetas.</p>
         </header>
 

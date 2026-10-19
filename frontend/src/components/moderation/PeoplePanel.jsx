@@ -144,6 +144,7 @@ export default function PeoplePanel({ level, focusUsername, focusReportId, onFoc
   const [roleBusy, setRoleBusy] = useState(false);
   const [matches, setMatches] = useState([]);
   const [rolePending, setRolePending] = useState(null);
+  const [coAdminTyped, setCoAdminTyped] = useState(null); // null = cerrado; texto = confirmación escribiendo el usuario
   const { showToast } = useToast();
   const [searching, setSearching] = useState(false);
 
@@ -201,6 +202,21 @@ export default function PeoplePanel({ level, focusUsername, focusReportId, onFoc
     setRoleBusy(true);
     setError('');
     try { await api.setStaffRole(username, role); loadProfile(username); showToast(`@${username}: ${ROLE_LABELS[role] || role}`, 'success'); } catch (err) { setError(err.message || 'No se pudo cambiar el rol.'); } finally { setRoleBusy(false); }
+  };
+
+  // El rol de co-administrador (poderes de administrador) pide escribir el usuario, igual que en la pestaña Equipo
+  const grantCoAdmin = async () => {
+    const typed = coAdminTyped;
+    setCoAdminTyped(null);
+    setRoleBusy(true);
+    setError('');
+    try {
+      const found = (await api.searchTeamPeople(username)).people?.find((person) => person.username?.toLowerCase() === username.toLowerCase());
+      if (!found) throw new Error('No se encontró a la persona.');
+      await api.setTeamRole(found.id, 'coadmin', typed);
+      loadProfile(username);
+      showToast(`@${username}: Co-administrador`, 'success');
+    } catch (err) { setError(err.message || 'No se pudo dar el rol de co-administrador.'); } finally { setRoleBusy(false); }
   };
 
   const counts = (group) => Object.entries(group || {}).map(([key, value]) => `${value} ${COUNT_LABELS[key] || key}`).join(', ') || 'ninguno';
@@ -262,9 +278,9 @@ export default function PeoplePanel({ level, focusUsername, focusReportId, onFoc
               {level >= 3 && !['admin', 'coadmin'].includes(profile.user.role) && (
                 <fieldset className="mt-4">
                   <legend className="mb-1.5 text-sm font-bold text-slate-500">Rol en el equipo</legend>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {[['user', 'Ninguno'], ['support', 'Soporte'], ['moderator', 'Moderador']].map(([key, label]) => (
-                      <button key={key} type="button" disabled={roleBusy || profile.user.role === key} aria-pressed={profile.user.role === key} onClick={() => setRolePending(key)} className={`h-10 rounded-full text-sm font-bold ${profile.user.role === key ? 'bg-[#12315f] text-white' : 'bg-white text-[#12315f] ring-1 ring-slate-300'} disabled:opacity-100`}>{label}</button>
+                  <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                    {[['user', 'Ninguno'], ['support', 'Soporte'], ['moderator', 'Moderador'], ['coadmin', 'Co-administrador']].map(([key, label]) => (
+                      <button key={key} type="button" disabled={roleBusy || profile.user.role === key} aria-pressed={profile.user.role === key} onClick={() => (key === 'coadmin' ? setCoAdminTyped('') : setRolePending(key))} className={`h-10 rounded-full text-sm font-bold ${profile.user.role === key ? 'bg-[#12315f] text-white' : 'bg-white text-[#12315f] ring-1 ring-slate-300'} disabled:opacity-100`}>{label}</button>
                     ))}
                   </div>
                 </fieldset>
@@ -298,6 +314,22 @@ export default function PeoplePanel({ level, focusUsername, focusReportId, onFoc
       </section>
 
       {level >= 3 && <TermsEvidence key={username} initialUsername={username} />}
+
+      {coAdminTyped !== null && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) setCoAdminTyped(null); }}>
+          <form role="dialog" aria-modal="true" aria-labelledby="coadmin-title" onSubmit={(event) => { event.preventDefault(); if (coAdminTyped.trim().replace(/^@/, '').toLowerCase() === username.toLowerCase()) grantCoAdmin(); }} className="w-full max-w-sm rounded-2xl border border-[#285896] bg-[#142e55] p-6 shadow-2xl">
+            <h3 id="coadmin-title" className="text-xl font-bold text-white">Dar rol de co-administrador</h3>
+            <p className="mt-2 text-sm text-[#e0e7ff]/90">@{username} tendrá los poderes de un administrador, pero no podrá actuar sobre administradores, otros co-administradores ni la cuenta propietaria. Queda en la auditoría y se le avisa.</p>
+            <label className="mt-4 block text-sm font-bold text-[#e0e7ff]">Para confirmar, escribe <span className="text-[#ffcb05]">@{username}</span>
+              <input autoFocus value={coAdminTyped} onChange={(event) => setCoAdminTyped(event.target.value)} autoComplete="off" className="mt-1.5 h-11 w-full rounded-lg border border-[#285896] bg-white px-3 text-base font-semibold text-[#12315f] outline-none focus:border-[#ffcb05]" />
+            </label>
+            <div className="mt-5 flex justify-end gap-3">
+              <button type="button" onClick={() => setCoAdminTyped(null)} className="rounded-lg px-4 py-2 text-sm font-bold text-[#e0e7ff] hover:bg-[#1a3b68]">Volver</button>
+              <button type="submit" disabled={coAdminTyped.trim().replace(/^@/, '').toLowerCase() !== username.toLowerCase()} className="rounded-lg bg-[#ffcb05] px-4 py-2 text-sm font-bold text-[#001a4d] disabled:opacity-40">Dar el rol</button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <ConfirmModal
         isOpen={Boolean(rolePending)}

@@ -133,9 +133,9 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
         {showDetails && <div className={`${dense ? 'gap-1' : compact ? 'gap-1.5' : 'gap-2'} flex flex-col w-full mt-auto`}>
           <div className={`w-full bg-gray-50 ${dense ? 'px-1.5 py-1' : 'px-2 py-1.5'} rounded-lg border border-gray-200 shadow-sm ${compact ? 'flex flex-col gap-1' : 'flex justify-between items-center'}`}>
             <label className={`${dense ? 'text-[9px]' : 'text-[10px]'} text-gray-500 uppercase tracking-wider font-bold`}>Stock</label>
-            <div className={`${dense ? 'grid grid-cols-[1.35rem_minmax(2rem,1fr)_1.35rem]' : `${compact ? 'w-full' : ''} flex items-center`} shadow-sm rounded-md overflow-hidden border border-gray-300`}>
+            <div className={`${dense ? 'grid grid-cols-[1rem_minmax(1.4rem,1fr)_1rem]' : `${compact ? 'w-full' : ''} flex items-center`} shadow-sm rounded-md overflow-hidden border border-gray-300`}>
               <button type="button" onClick={() => setStock(Math.max(0, parseInt(stock) - 1))} className={`${dense ? 'w-full text-xs' : compact ? 'w-8 text-sm' : 'w-6 text-sm'} h-7 flex items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors font-black text-gray-700`}>-</button>
-              <input type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} onKeyDown={saveOnEnter} className={`${dense ? 'w-full min-w-[32px] text-[11px]' : compact ? 'flex-1 min-w-0 text-xs' : 'w-10 text-xs'} h-7 text-center bg-white focus:outline-none px-0 font-black border-x border-gray-300 text-gray-950 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`} />
+              <input type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} onKeyDown={saveOnEnter} className={`${dense ? 'w-full min-w-0 text-[11px]' : compact ? 'flex-1 min-w-0 text-xs' : 'w-10 text-xs'} h-7 text-center bg-white focus:outline-none px-0 font-black border-x border-gray-300 text-gray-950 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`} />
               <button type="button" onClick={() => setStock(parseInt(stock) + 1)} className={`${dense ? 'w-full text-xs' : compact ? 'w-8 text-sm' : 'w-6 text-sm'} h-7 flex items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors font-black text-gray-700`}>+</button>
             </div>
           </div>
@@ -153,6 +153,7 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
                 <Select
                   value={language}
                   onChange={e => setLanguage(e.target.value)}
+                  buttonClassName={dense ? '!h-7 !min-h-7 !gap-0 !rounded-md !border !px-1.5 !text-[11px] [&_svg]:!text-[16px]' : undefined}
                   style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none', backgroundImage: 'none', padding: 0, paddingLeft: dense ? '0.375rem' : '0.5rem', paddingRight: '1.25rem', lineHeight: '1.625rem' }}
                   className={`block w-full h-7 ${dense ? 'text-[11px]' : 'text-xs'} bg-white focus:outline-none focus:border-[#1e40af] font-bold rounded-md border border-gray-300 shadow-sm text-gray-900 cursor-pointer truncate`}
                 >

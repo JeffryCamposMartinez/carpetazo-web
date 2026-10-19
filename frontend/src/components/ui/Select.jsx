@@ -24,7 +24,7 @@ const collect = (children, group, out) => {
 // Del className del <select> original solo se conserva lo que pone la lista en su sitio (ancho, márgenes, posición en la cuadrícula)
 const LAYOUT = /^(?:[a-z0-9-]+:)*(?:w|min-w|max-w|flex|shrink|grow|basis|mt|mb|ml|mr|mx|my|col-span|row-span|self|justify-self|order|hidden|block|sm:hidden)(?:-|$)/;
 
-export default function Select({ value, onChange, children, className = '', disabled, 'aria-label': ariaLabel, innerRef, ref, placeholder }) {
+export default function Select({ value, onChange, children, className = '', buttonClassName, disabled, 'aria-label': ariaLabel, innerRef, ref, placeholder }) {
   const options = useMemo(() => collect(children, undefined, []), [children]);
   const layout = String(className).split(/\s+/).filter((token) => LAYOUT.test(token)).join(' ');
   const compact = /(?:^|\s)h-(?:8|9)(?:\s|$)|(?:^|\s)text-xs(?:\s|$)/.test(String(className));
@@ -42,7 +42,7 @@ export default function Select({ value, onChange, children, className = '', disa
       innerRef={innerRef || ref}
       listMinWidth={Math.min(420, Math.max(0, ...options.map((option) => option.label.length)) * 9 + 64)}
       className={layout || 'w-full'}
-      buttonClassName={compact ? '!h-9 !min-h-9 !gap-1.5 !rounded-full !px-3 !text-xs' : '!min-h-11'}
+      buttonClassName={buttonClassName ?? (compact ? '!h-9 !min-h-9 !gap-1.5 !rounded-full !px-3 !text-xs' : '!min-h-11')}
     />
   );
 }

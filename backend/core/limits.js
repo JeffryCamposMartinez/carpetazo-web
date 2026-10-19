@@ -76,6 +76,9 @@ export const applyRouteLimits = (app) => {
   app.put('/api/folders/:id/order', routeLimiter(15 * 60 * 1000, 60));
   app.delete('/api/folders/:id', routeLimiter(15 * 60 * 1000, 60));
   app.post('/api/folders/:id/cards', routeLimiter(15 * 60 * 1000, 600));
+  app.post('/api/folders/:id/in-person-sales', routeLimiter(15 * 60 * 1000, 120));
+  app.get('/api/folders/:id/in-person-sales', routeLimiter(15 * 60 * 1000, 300));
+  app.get('/api/in-person-sales/mine', routeLimiter(15 * 60 * 1000, 300));
   app.put('/api/folders/:id/cards/:cardId', routeLimiter(15 * 60 * 1000, 600));
   app.delete('/api/folders/:id/cards/:cardId', routeLimiter(15 * 60 * 1000, 600));
   app.delete('/api/cards/:id', routeLimiter(15 * 60 * 1000, 600));
@@ -116,6 +119,8 @@ export const applyRouteLimits = (app) => {
   app.post('/api/users/me/accept-terms', routeLimiter(15 * 60 * 1000, 30));
   app.delete('/api/users/me/unaccepted', routeLimiter(15 * 60 * 1000, 10));
   app.post('/api/admin/test-email', routeLimiter(15 * 60 * 1000, 10));
+  app.post('/api/admin/backup', routeLimiter(60 * 60 * 1000, 5));
+  app.get('/api/admin/backup/status', routeLimiter(15 * 60 * 1000, 60));
   app.post('/api/admin/terms/evidence', routeLimiter(15 * 60 * 1000, 60));
   app.post('/api/reports', routeLimiter(15 * 60 * 1000, 80));
   app.post('/api/feedback', routeLimiter(15 * 60 * 1000, 10));

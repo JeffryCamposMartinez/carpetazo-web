@@ -10,6 +10,7 @@ import CardsFilters from '../components/cards/CardsFilters';
 import { scrollToTopThen } from '../utils/scrollToTopThen';
 import FloatingTools from '../components/ui/FloatingTools';
 import CardsPagination from '../components/cards/CardsPagination';
+import HelpTip from '../components/ui/HelpTip';
 import DidYouMean from '../components/ui/DidYouMean';
 import CardInfoResults from '../components/cards/CardInfoResults';
 import CardsResultsBar, { SORT_VALUES } from '../components/cards/CardsResultsBar';
@@ -142,7 +143,7 @@ export default function CardsPage() {
     <div className="mx-auto w-full max-w-[1600px] xl:px-12 2xl:px-16">
       <div className="relative z-10 min-h-[100svh] w-full bg-blue-100 px-4 pb-8 pt-8 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x md:border-outline-variant/30 md:px-12 md:pt-14">
         <header className="mb-4 sm:mb-6">
-          <h1 className="text-3xl font-extrabold tracking-tight text-[#12315f] [text-wrap:balance] md:text-4xl">Cartas en venta</h1>
+          <div className="flex items-center gap-3"><h1 className="text-3xl font-extrabold tracking-tight text-[#12315f] [text-wrap:balance] md:text-4xl">Cartas en venta</h1><HelpTip topic="cartas" /></div>
           <p className="mt-1 max-w-xl text-sm text-slate-600 md:text-base">Cartas con stock de las carpetas públicas. Toca una para ver quién más la vende y comparar precios.</p>
         </header>
 

@@ -130,7 +130,7 @@ function OrderSlip({ order, busy, onDecide, showToast }) {
                 </div>
                 <div className="shrink-0 text-right">
                   <p className={`${NUM} font-bold text-[#1a2b4b]`}>{clp(item.price * item.quantity)}</p>
-                  <p className={`${NUM} text-xs text-slate-500`}>{item.quantity} × {clp(item.price)}</p>
+                  <p className={`${NUM} text-xs text-slate-500`}>{item.quantity} × {clp(item.price)} c/u</p>
                 </div>
               </li>
             );
@@ -317,47 +317,67 @@ const RANGES = [
 const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 const monthLabel = (key) => new Intl.DateTimeFormat('es-CL', { month: 'short' }).format(new Date(`${key}-15T12:00:00`)).replace('.', '');
 
+const CHART_VIEWS = [
+  { id: 'dia', label: 'Día', unit: 'por día' },
+  { id: 'semana', label: 'Semana', unit: 'por semana' },
+  { id: 'mes', label: 'Mes', unit: 'por mes' }
+];
+
 function RevenueChart({ sales, rangeDays }) {
-  // 30 días: barras diarias; resto: barras mensuales (máximo 12)
+  // Por defecto: 30 días en barras diarias, 3 meses en semanas y el resto en meses; se puede cambiar a día, semana o mes
+  const defaultView = rangeDays === 30 ? 'dia' : rangeDays === 90 ? 'semana' : 'mes';
+  const [pickedView, setPickedView] = useState(null);
+  useEffect(() => { setPickedView(null); }, [rangeDays]);
+  const view = pickedView || defaultView;
+  // shortcut: por día se muestran como máximo los últimos 90 días (más barras no se leen), cambiar si hace falta un detalle mayor
+  const dayCount = Math.min(rangeDays, 90);
+  const weekCount = rangeDays === 30 ? 5 : rangeDays === 90 ? 13 : 26;
+  const monthCount = rangeDays === 30 ? 2 : rangeDays === 90 ? 4 : 12;
+
   const bars = useMemo(() => {
     const now = new Date();
-    if (rangeDays === 30) {
-      return Array.from({ length: 30 }, (_, i) => {
-        const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (29 - i));
+    if (view === 'dia') {
+      return Array.from({ length: dayCount }, (_, i) => {
+        const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (dayCount - 1 - i));
         const key = day.toDateString();
         const total = sales.filter((o) => new Date(o.updatedAt).toDateString() === key).reduce((s, o) => s + o.total, 0);
-        return { key, label: String(day.getDate()), title: shortDate(day.toISOString()), total, current: i === 29 };
+        return { key, label: shortDate(day.toISOString()), title: shortDate(day.toISOString()), total, current: i === dayCount - 1 };
       });
     }
-    if (rangeDays === 90) {
-      // 13 semanas, terminando hoy
+    if (view === 'semana') {
+      // semanas terminando hoy
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
-      return Array.from({ length: 13 }, (_, i) => {
-        const end = today - (12 - i) * 7 * 86400000;
+      return Array.from({ length: weekCount }, (_, i) => {
+        const end = today - (weekCount - 1 - i) * 7 * 86400000;
         const start = end - 7 * 86400000;
         const total = sales.filter((o) => { const t = new Date(o.updatedAt).getTime(); return t >= start && t < end; }).reduce((s, o) => s + o.total, 0);
         const label = shortDate(new Date(start).toISOString());
-        return { key: String(start), label, title: `Semana del ${label}`, total, current: i === 12 };
+        return { key: String(start), label, title: `Semana del ${label}`, total, current: i === weekCount - 1 };
       });
     }
-    const months = 12;
-    return Array.from({ length: months }, (_, i) => {
-      const date = new Date(now.getFullYear(), now.getMonth() - (months - 1 - i), 1);
+    return Array.from({ length: monthCount }, (_, i) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - (monthCount - 1 - i), 1);
       const key = monthKey(date);
       const total = sales.filter((o) => monthKey(new Date(o.updatedAt)) === key).reduce((s, o) => s + o.total, 0);
-      return { key, label: monthLabel(key), title: `${monthLabel(key)} ${date.getFullYear()}`, total, current: i === months - 1 };
+      return { key, label: monthLabel(key), title: `${monthLabel(key)} ${date.getFullYear()}`, total, current: i === monthCount - 1 };
     });
-  }, [sales, rangeDays]);
+  }, [sales, view, dayCount, weekCount, monthCount]);
 
   const max = Math.max(1, ...bars.map((b) => b.total));
   const dense = bars.length > 13;
-  const unit = rangeDays === 30 ? 'por día' : rangeDays === 90 ? 'por semana' : 'por mes';
+  const labelStep = view === 'mes' || bars.length <= 8 ? 1 : Math.ceil(bars.length / 6);
+  const unit = CHART_VIEWS.find((v) => v.id === view).unit;
 
   return (
     <div className={`flex flex-col ${SURFACE} p-5 sm:p-6`}>
-      <div className="mb-6 flex items-baseline justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <h3 className="text-lg font-extrabold text-[#1a2b4b]">Ingresos {unit}</h3>
-        <span className="text-sm text-slate-500">Mejor periodo: <span className={`${NUM} font-bold text-[#1a2b4b]`}>{clp(max === 1 ? 0 : max)}</span></span>
+        <div role="group" aria-label="Agrupar ingresos" className="flex rounded-full bg-slate-100 p-0.5">
+          {CHART_VIEWS.map((option) => (
+            <button key={option.id} type="button" aria-pressed={view === option.id} onClick={() => setPickedView(option.id)} className={`h-8 rounded-full px-3.5 text-xs font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${view === option.id ? 'bg-[#1e40af] text-white' : 'text-slate-600 hover:bg-white'}`}>{option.label}</button>
+          ))}
+        </div>
+        <span className="basis-full text-sm text-slate-500">Mejor periodo: <span className={`${NUM} font-bold text-[#1a2b4b]`}>{clp(max === 1 ? 0 : max)}</span>{view === 'dia' && rangeDays > 90 ? ' · últimos 90 días' : ''}</span>
       </div>
       <div className={`flex min-h-[12rem] flex-1 items-end ${dense ? 'gap-[3px]' : 'gap-2 sm:gap-3'}`} role="img" aria-label={`Gráfico de ingresos ${unit}`}>
         {bars.map((bar) => (
@@ -375,7 +395,7 @@ function RevenueChart({ sales, rangeDays }) {
       <div className={`mt-2 flex ${dense ? 'gap-[3px]' : 'gap-2 sm:gap-3'}`}>
         {bars.map((bar, i) => (
           <span key={bar.key} className="flex min-w-0 flex-1 justify-center overflow-visible whitespace-nowrap text-[11px] text-slate-500">
-            {dense ? (i % 5 === 4 ? bar.label : '') : bars.length === 13 ? (i % 3 === 0 ? bar.label : '') : bar.label}
+            {(bars.length - 1 - i) % labelStep === 0 ? bar.label : ''}
           </span>
         ))}
       </div>
@@ -394,7 +414,9 @@ function HistoryRow({ order, open, onToggle }) {
         className="grid w-full grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 px-4 py-4 text-left hover:bg-slate-50 focus:outline-none focus-visible:bg-slate-50 sm:px-6 md:grid-cols-[110px_90px_1fr_90px_130px_120px_24px]"
       >
         <span className="text-sm text-slate-600 md:order-none">{shortDate(order.updatedAt)}</span>
-        <span className={`${NUM} font-bold tracking-[0.08em] text-[#1a2b4b] max-md:row-start-1 max-md:col-start-1 max-md:text-lg`}>{order.code}</span>
+        {order.inPerson
+          ? <span className="max-md:row-start-1 max-md:col-start-1"><span className="inline-flex items-center gap-1 rounded-full bg-[#ffcb05] px-2.5 py-1 text-xs font-extrabold text-[#1a2b4b]"><Icon name="payments" className="text-sm" /> Presencial</span></span>
+          : <span className={`${NUM} font-bold tracking-[0.08em] text-[#1a2b4b] max-md:row-start-1 max-md:col-start-1 max-md:text-lg`}>{order.code}</span>}
         <span className="truncate text-sm text-slate-600 max-md:col-span-2">{order.folderName}</span>
         <span className="hidden text-sm text-slate-600 md:block">{plural(cardCount(order), 'carta', 'cartas')}</span>
         <span className={`${NUM} text-right font-bold max-md:row-start-1 max-md:col-start-2 ${done ? 'text-[#1a2b4b]' : 'text-slate-400 line-through'}`}>{clp(order.total)}</span>
@@ -408,8 +430,9 @@ function HistoryRow({ order, open, onToggle }) {
       {open && (
         <div className="border-t border-slate-100 bg-[#F8FAFC] px-4 py-4 sm:px-6">
           <div className="mb-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-500">
-            <span>Recibido: {fullDate(order.createdAt)}</span>
-            <span>{done ? 'Venta confirmada' : 'Rechazado'}: {fullDate(order.updatedAt)}</span>
+            {order.inPerson
+              ? <span>Venta presencial registrada: {fullDate(order.createdAt)}</span>
+              : <><span>Recibido: {fullDate(order.createdAt)}</span><span>{done ? 'Venta confirmada' : 'Rechazado'}: {fullDate(order.updatedAt)}</span></>}
           </div>
           <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {(order.items || []).map((item, index) => (
@@ -420,7 +443,7 @@ function HistoryRow({ order, open, onToggle }) {
                   <p className="truncate text-xs text-slate-500">{[item.set, item.number, langCode(item.language)].filter(Boolean).join(' / ')}</p>
                 </div>
                 <p className={`${NUM} shrink-0 text-right text-sm font-bold text-[#1a2b4b]`}>
-                  {item.quantity} × {clp(item.price)}
+                  {item.quantity} × {clp(item.price)} c/u
                 </p>
               </li>
             ))}
@@ -677,8 +700,24 @@ function History({ orders, hasMore = false, onLoadMore, loadingMore = false }) {
 
 /* ----------------------------------- Contenedor ----------------------------------- */
 
-export default function OrdersTab({ showToast, filter = 'solicitudes', orders = [], loading = false, onOrderUpdated, onGoToFolders, emptyActionLabel, hasMore = false, onLoadMore, loadingMore = false }) {
+// Una venta presencial se muestra en el historial como una venta cerrada más (con la etiqueta «Presencial»)
+const inPersonAsOrder = (sale) => ({
+  id: `presencial-${sale.id}`, inPerson: true, code: 'Presencial', status: 'completed', folderId: sale.folderId, folderName: sale.folderName,
+  createdAt: sale.createdAt, updatedAt: sale.createdAt, total: sale.total,
+  items: (sale.items || []).map((line) => ({ id: line.cardId, name: line.name, language: line.language, imageUrl: line.imageUrl, quantity: line.quantity, price: line.unitPrice }))
+});
+
+// Pedidos y ventas presenciales juntos, de lo más nuevo a lo más viejo. Si quedan pedidos por cargar, solo entran las presenciales
+// posteriores al pedido más viejo ya cargado: así el historial no mezcla períodos que aún no se cargaron.
+const mergeHistory = (orders, inPersonSales, hasMore) => {
+  const oldest = orders.length ? Math.min(...orders.map((order) => new Date(order.updatedAt).getTime())) : null;
+  const extra = inPersonSales.map(inPersonAsOrder).filter((sale) => !hasMore || oldest === null || new Date(sale.updatedAt).getTime() >= oldest);
+  return extra.length ? [...orders, ...extra].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)) : orders;
+};
+
+export default function OrdersTab({ showToast, filter = 'solicitudes', orders = [], inPersonSales = [], loading = false, onOrderUpdated, onGoToFolders, emptyActionLabel, hasMore = false, onLoadMore, loadingMore = false }) {
   const [busyId, setBusyId] = useState(null);
+  const historyOrders = useMemo(() => mergeHistory(orders, inPersonSales, hasMore), [orders, inPersonSales, hasMore]);
 
   const decide = async (order, status) => {
     setBusyId(order.id);
@@ -702,6 +741,6 @@ export default function OrdersTab({ showToast, filter = 'solicitudes', orders = 
   }
 
   return filter === 'historial'
-    ? <History orders={orders} hasMore={hasMore} onLoadMore={onLoadMore} loadingMore={loadingMore} />
+    ? <History orders={historyOrders} hasMore={hasMore} onLoadMore={onLoadMore} loadingMore={loadingMore} />
     : <Requests orders={orders} onDecide={decide} busyId={busyId} showToast={showToast} onGoToFolders={onGoToFolders} emptyActionLabel={emptyActionLabel} />;
 }

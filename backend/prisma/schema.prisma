@@ -49,6 +49,7 @@ model User {
   reviewReports            ReviewReport[]
   reportsMade              Report[]
   feedback                 Feedback[]
+  inPersonSales            InPersonSale[]
   subscriptions            Subscription[]
   planGrants               PlanGrant[]        @relation("PlanGrantUser")
   planGrantsIssued         PlanGrant[]        @relation("PlanGrantIssuer")
@@ -672,6 +673,26 @@ model Feedback {
 
   @@index([status, createdAt])
   @@index([userId, createdAt])
+}
+
+// Venta presencial que el dueño registra de su carpeta: baja el stock y queda en su historial.
+// Es una declaración propia: nunca entra al precio de mercado ni a «Últimas ventas» (esas leen solo pedidos completados).
+// folderId sin relación para conservar el historial aunque se borre la carpeta; requestId evita registrar dos veces el mismo envío.
+model InPersonSale {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId   String
+  folderName String
+  requestId  String
+  items      Json
+  units      Int
+  total      Float
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, requestId])
+  @@index([userId, createdAt])
+  @@index([folderId, createdAt])
 }
 
 // Suscripción comercial. El precio se copia al contratar para conservar el historial aunque cambie el catálogo.

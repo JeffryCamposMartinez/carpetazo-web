@@ -38,7 +38,7 @@ const TABS = [
   { id: 'audit', group: 'system', label: 'Auditoría', icon: 'history', min: 3, blurb: 'Todo lo que se decide queda registrado, con quién lo hizo.' },
   { id: 'catalog', group: 'system', label: 'Catálogo de cartas', shortLabel: 'Catálogo', icon: 'library_add', min: 3, blurb: 'Agrega cartas nuevas a la base cargando el archivo que genera Carpetazo Update.' },
   { id: 'operations', group: 'system', label: 'Operación', icon: 'ecg_heart', min: 3, blurb: 'Estado del sitio, errores del servidor y de la web, y embudo de actividad.' },
-  { id: 'tools', group: 'system', label: 'Herramientas', icon: 'build', min: 3, blurb: 'Retención de datos y prueba del envío de correos.' }
+  { id: 'tools', group: 'system', label: 'Herramientas', icon: 'build', min: 3, blurb: 'Respaldo de la base, retención de datos y prueba del envío de correos.' }
 ];
 const ROLE_LABELS = { 1: 'Soporte (solo lectura)', 2: 'Moderador', 3: 'Administrador' };
 

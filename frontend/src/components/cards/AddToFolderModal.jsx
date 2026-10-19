@@ -13,6 +13,7 @@ import { ReferencePriceBox } from '../folder/ReferencePrice';
 // Juego de la ficha del catálogo (nombre que se muestra) → clave de la carpeta
 const FOLDER_TCG = { 'Pokémon': 'Pokemon', 'Mitos y Leyendas': 'Mitos y Leyendas', 'One Piece': 'OnePiece', Magic: 'Magic', 'Yu-Gi-Oh!': 'YuGiOh', Riftbound: 'Riftbound' };
 const NEW_FOLDER = '__new__';
+const LANGUAGE_OPTIONS = [{ value: 'English', label: 'Inglés' }, { value: 'Spanish', label: 'Español' }, { value: 'Japanese', label: 'Japonés' }];
 const label = 'mb-1 block text-sm font-extrabold text-[#12315f]';
 const box = 'flex h-12 w-full items-center rounded-xl border-2 border-[#12315f]/15 bg-white shadow-sm transition-[border-color,box-shadow] duration-150 focus-within:border-[#1e40af] focus-within:shadow-[0_0_0_3px_rgba(30,64,175,0.15)]';
 const bare = 'min-w-0 flex-1 border-0 bg-transparent px-3 shadow-none focus:border-0 focus:shadow-none focus:ring-0 focus:ring-offset-0 text-base font-bold text-[#12315f] outline-none placeholder:font-medium placeholder:text-slate-500 sm:text-[15px]';
@@ -44,6 +45,7 @@ export default function AddToFolderModal({ card, variants = [], onClose }) {
   const [alias, setAlias] = useState('');
   const [price, setPrice] = useState(''); // empieza vacío: el precio de referencia se aplica solo al pulsar «Usar»
   const [stock, setStock] = useState('1');
+  const [cardLanguage, setCardLanguage] = useState(() => (LANGUAGE_OPTIONS.some((option) => option.value === normalizeCardLanguage(card.language)) ? normalizeCardLanguage(card.language) : 'English'));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const firstField = useRef(null);
@@ -68,8 +70,7 @@ export default function AddToFolderModal({ card, variants = [], onClose }) {
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const language = normalizeCardLanguage(card.language);
-  const languageName = language === 'English' ? 'Inglés' : language === 'Spanish' ? 'Español' : language === 'Japanese' ? 'Japonés' : language;
+  const languageName = LANGUAGE_OPTIONS.find((option) => option.value === cardLanguage)?.label || cardLanguage;
   const creating = folderId === NEW_FOLDER;
   const noRoom = folders && folders.length === 0 && !mayCreate;
   const options = [
@@ -104,7 +105,7 @@ export default function AddToFolderModal({ card, variants = [], onClose }) {
         price: Number(price),
         stock: Number(stock),
         imageUrl: card.imageUrl || '',
-        data: { pseudoName: alias.trim(), set: card.setName || 'Unknown', rarity: 'Unknown', language, number: '' }
+        data: { pseudoName: alias.trim(), set: card.setName || 'Unknown', rarity: 'Unknown', language: folderTcg === 'Mitos y Leyendas' ? 'Spanish' : cardLanguage, number: '' }
       });
       showToast(`${card.name} agregada a «${targetName || 'tu carpeta'}»${created ? ' (carpeta nueva)' : ''}`, { type: 'success', action: { label: 'Ver carpeta', run: () => navigate(`/carpeta/${targetId}`) } });
       onClose();
@@ -171,6 +172,13 @@ export default function AddToFolderModal({ card, variants = [], onClose }) {
                 <span className={label}>Alias o apodo <span className="font-medium text-slate-500">(opcional)</span></span>
                 <span className={box}><input value={alias} onChange={(event) => setAlias(event.target.value)} maxLength={60} placeholder="Ej: Charizard de Ash" className={bare} /></span>
               </label>
+
+              {folderTcg !== 'Mitos y Leyendas' && (
+                <div>
+                  <span className={label}>Idioma de la carta</span>
+                  <ThemedSelect value={cardLanguage} onChange={setCardLanguage} options={LANGUAGE_OPTIONS} ariaLabel="Idioma de la carta" />
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">

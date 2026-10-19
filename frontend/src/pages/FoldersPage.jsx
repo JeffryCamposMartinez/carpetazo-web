@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import LazyFolderCard from '../components/folder/LazyFolderCard';
 import CardsFilters, { GAMES } from '../components/cards/CardsFilters';
+import HelpTip from '../components/ui/HelpTip';
 import ListingToolbar from '../components/ui/ListingToolbar';
 import usePageMeta from '../hooks/usePageMeta';
 import EmptyState from '../components/ui/EmptyState';
@@ -99,7 +100,7 @@ export default function FoldersPage() {
     <div className="mx-auto w-full max-w-[1600px] xl:px-12 2xl:px-16">
       <div className="relative z-10 min-h-[100svh] w-full bg-blue-100 px-4 pb-8 pt-8 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x md:border-outline-variant/30 md:px-12 md:pt-14">
         <header className="mb-5">
-          <h1 className="text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Carpetas</h1>
+          <div className="flex items-center gap-3"><h1 className="text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Carpetas</h1><HelpTip topic="carpetas" /></div>
           <p className="mt-1 max-w-2xl text-sm text-slate-600 md:text-base">Catálogos públicos de jugadores y tiendas. Abre una carpeta para ver sus cartas, precios y stock.</p>
         </header>
 

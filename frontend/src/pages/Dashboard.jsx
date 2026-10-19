@@ -15,6 +15,7 @@ import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 import { LoadingMark } from '../components/ui/LoadableImage';
 import { siteUrl } from '../utils/siteUrl';
 import { Link } from 'react-router-dom';
+import HelpTip from '../components/ui/HelpTip';
 import SvgIcon from '../components/ui/SvgIcon';
 // html2canvas + jsPDF pesan mucho: se descargan solo al generar un PDF
 const HiddenPDFGenerator = lazy(() => import('../components/folder/HiddenPDFGenerator'));
@@ -233,6 +234,13 @@ export default function Dashboard() {
         }
       })
       .catch(() => {});
+  }, [activeTab, currentUser]);
+
+  // Ventas presenciales para el historial de ventas (se cargan al abrir el Historial)
+  const [inPersonSales, setInPersonSales] = useState([]);
+  useEffect(() => {
+    if (!currentUser || activeTab !== 'historial') return;
+    api.getMyInPersonSales().then((response) => setInPersonSales(response.sales || [])).catch(() => {});
   }, [activeTab, currentUser]);
 
   const loadMoreOrders = async () => {
@@ -485,7 +493,7 @@ export default function Dashboard() {
 
           {/* Encabezado: la sección se llama «Mis carpetas»; «Carpetas» es solo su primera pestaña */}
           <header className="mb-5 md:mb-6">
-            <h1 className="text-[1.75rem] font-extrabold leading-tight tracking-tight text-[#1a2b4b] md:text-4xl lg:text-[2.75rem]">Mis carpetas</h1>
+            <div className="flex items-center gap-3"><h1 className="text-[1.75rem] font-extrabold leading-tight tracking-tight text-[#1a2b4b] md:text-4xl lg:text-[2.75rem]">Mis carpetas</h1><HelpTip topic={{ carpetas: 'misCarpetas', deseadas: 'deseadas', solicitudes: 'solicitudes', historial: 'historial' }[activeTab]} /></div>
             <p className="mt-1 hidden max-w-2xl text-base leading-relaxed text-slate-600 md:block md:min-h-[1.5rem]">
               {activeTab === 'carpetas' && 'Arma catálogos con tus cartas, publícalos y comparte el enlace para vender.'}
               {activeTab === 'solicitudes' && 'Pedidos de tus carpetas públicas. Al confirmar una venta, el stock se descuenta solo.'}
@@ -557,6 +565,7 @@ export default function Dashboard() {
             showToast={showToast}
             filter={activeTab}
             orders={orders}
+            inPersonSales={inPersonSales}
             loading={ordersLoading}
             onOrderUpdated={handleOrderUpdated}
             onGoToFolders={() => changeTab('carpetas')}

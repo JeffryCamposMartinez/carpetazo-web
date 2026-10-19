@@ -1,9 +1,9 @@
 ﻿import LiquidTabs from '../components/ui/LiquidTabs';
-import { useState, useEffect, useRef } from 'react';
+import { memo, useState, useEffect, useRef, startTransition } from 'react';
 
 import React from 'react';
 
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { api, apiUrl } from '../services/api';
 import { getTcgConfig } from '../config/tcgConfig';
 import { useAuth } from '../contexts/AuthContext';
@@ -33,10 +33,18 @@ import EmptyState from '../components/ui/EmptyState';
 import { siteUrl } from '../utils/siteUrl';
 import { formatCardSearchQuery } from '../utils/cardCodeSearch';
 import { cardLanguageOf, normalizeCardLanguage } from '../utils/cardLanguage';
+import HelpTip from '../components/ui/HelpTip';
 import SvgIcon from '../components/ui/SvgIcon';
 
 
 const PAGE_SIZE = 20;
+
+// Una pestaña oculta no se vuelve a dibujar cuando cambia algo de la página (el álbum con todas sus cartas tarda ~200 ms en dibujarse):
+// solo se actualiza al volver a mostrarla, con los datos del momento. Ocultarla no cuesta nada.
+const Frozen = memo(function Frozen({ children }) { return children; }, (previous, next) => next.frozen);
+function KeepAlive({ active, children }) {
+  return <div className={active ? '' : 'hidden'}><Frozen frozen={!active}>{children}</Frozen></div>;
+}
 
 export default function FolderPage() {
 
@@ -53,6 +61,7 @@ export default function FolderPage() {
   };
 
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const [folderData, setFolderData] = useState(null);
@@ -60,6 +69,17 @@ export default function FolderPage() {
   const [loadingFolder, setLoadingFolder] = useState(true);
   
   const [activeTab, setActiveTab] = useState('add'); // 'add', 'catalog', 'sales'
+  // Las pestañas se dibujan una vez y luego solo se ocultan: cambiar de pestaña es instantáneo (antes se volvía a armar todo el álbum o la búsqueda).
+  // Con la carpeta ya cargada, las otras se preparan en un momento libre para que ni el primer cambio espere.
+  const [mountedTabs, setMountedTabs] = useState({ add: true });
+  useEffect(() => { setMountedTabs((previous) => (previous[activeTab] ? previous : { ...previous, [activeTab]: true })); }, [activeTab]);
+  useEffect(() => {
+    if (loadingFolder) return undefined;
+    const warm = () => startTransition(() => setMountedTabs({ add: true, catalog: true, sales: true }));
+    if (typeof requestIdleCallback === 'function') { const id = requestIdleCallback(warm, { timeout: 2500 }); return () => cancelIdleCallback(id); }
+    const id = setTimeout(warm, 1500);
+    return () => clearTimeout(id);
+  }, [loadingFolder]);
 
   // --- ADD TO CATALOG STATE ---
   const [searchQuery, setSearchQuery] = useState('');
@@ -392,7 +412,14 @@ const [isSearching, setIsSearching] = useState(false);
   // Pedidos de esta carpeta: misma fuente y acciones que Solicitudes/Historial del panel
   const [folderOrders, setFolderOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
-  const [salesView, setSalesView] = useState('solicitudes');
+  const [salesView, setSalesView] = useState('presencial');
+  // Enlace directo desde el menú de la cuenta: /carpeta/:id?tab=sales&view=presencial abre la venta presencial de esta carpeta
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('tab') !== 'sales') return;
+    setActiveTab('sales');
+    if (params.get('view') === 'presencial') setSalesView('presencial');
+  }, [location.search, id]);
   const [cards, setCards] = useState([]);
 
   useEffect(() => {
@@ -939,8 +966,8 @@ const [isSearching, setIsSearching] = useState(false);
     </div>
   );
 
-  const folderSalesTabProps = { copyBuyerLink, folderOrders, handleOrderUpdated, ordersLoading, salesView,
-    setSalesView, showToast };
+  const folderSalesTabProps = { cards, copyBuyerLink, folderId: id, folderOrders, handleOrderUpdated, ordersLoading, salesView,
+    setCards, setSalesView, showToast };
 
   const folderCatalogTabProps = { availableSets, cards, catQuery, catSet, catalogDragFloatingPreview,
     catalogDragFloatingPreviewRef, cardDetailsMode, catalogGridClass, catalogGridColumns, catalogGridDense, catalogViewMode,
@@ -979,6 +1006,7 @@ const [isSearching, setIsSearching] = useState(false);
           <SvgIcon name="arrow_back" translate="no" className="text-xl" />
         </button>
         <h1 className="m-0 truncate text-2xl font-black leading-tight text-[#1a2b4b] sm:text-4xl">Carpeta: {folderData.name}</h1>
+        <HelpTip topic={activeTab === 'add' ? 'folderAdd' : activeTab === 'catalog' ? 'folderCatalog' : { presencial: 'folderPresencial', solicitudes: 'folderSolicitudes', historial: 'folderHistorial' }[salesView]} />
       </div>
 
       {/* Tabs */}
@@ -1010,9 +1038,9 @@ const [isSearching, setIsSearching] = useState(false);
 
       {/* Tab Content */}
       <div>
-        {activeTab === 'catalog' && <FolderCatalogTab {...folderCatalogTabProps} />}
-        {activeTab === 'add' && <FolderAddTab {...folderAddTabProps} />}
-        {activeTab === 'sales' && <FolderSalesTab {...folderSalesTabProps} />}
+        {mountedTabs.catalog && <KeepAlive active={activeTab === 'catalog'}><FolderCatalogTab {...folderCatalogTabProps} /></KeepAlive>}
+        {mountedTabs.add && <KeepAlive active={activeTab === 'add'}><FolderAddTab {...folderAddTabProps} /></KeepAlive>}
+        {mountedTabs.sales && <KeepAlive active={activeTab === 'sales'}><FolderSalesTab {...folderSalesTabProps} /></KeepAlive>}
         
       </div>
 

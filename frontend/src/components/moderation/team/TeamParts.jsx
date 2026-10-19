@@ -13,8 +13,8 @@ export const RANKS = {
   0: { label: 'Sin rol de equipo', tone: 'bg-slate-100 text-slate-600', blurb: '' }
 };
 export const ROLE_OPTIONS = [
-  { value: 'admin', label: 'Administrador', help: 'Acceso total a Moderación y a los datos de las personas.' },
-  { value: 'coadmin', label: 'Co-administrador', help: 'Poderes de administrador, sin poder actuar sobre administradores ni sobre el propietario.' },
+  { value: 'admin', label: 'Administrador', help: 'Acceso total a Moderación y a los datos de las personas. Puede dar y quitar roles.' },
+  { value: 'coadmin', label: 'Co-administrador', help: 'Los poderes de un administrador, pero no puede actuar sobre administradores, otros co-administradores ni el propietario.' },
   { value: 'moderator', label: 'Moderador', help: 'Decide sobre reportes y aplica medidas.' },
   { value: 'support', label: 'Soporte', help: 'Solo lectura.' },
   { value: 'user', label: 'Sin rol de equipo', help: 'Deja de ser parte del equipo y pierde el acceso a Moderación.' }
@@ -104,6 +104,16 @@ export function ActionDialog({ person, action, initialRole = '', viewerRank = 3,
 
         {step === 1 ? (
           <>
+            {action === 'role' && (
+              <div className="mt-4 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200">
+                <p className="text-sm font-extrabold text-[#12315f]">Qué hace cada rol</p>
+                <dl className="mt-1.5 space-y-1.5">
+                  {ROLE_OPTIONS.filter((option) => option.value !== 'user').map((option) => (
+                    <div key={option.value} className="text-xs leading-relaxed text-slate-600"><dt className="inline font-extrabold text-[#12315f]">{option.label}: </dt><dd className="inline">{option.help}</dd></div>
+                  ))}
+                </dl>
+              </div>
+            )}
             {action === 'role' && (
               <fieldset className="mt-4 space-y-2">
                 <legend className="mb-1 text-sm font-extrabold text-[#12315f]">¿Qué rol tendrá?</legend>

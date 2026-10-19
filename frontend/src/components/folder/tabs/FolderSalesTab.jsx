@@ -1,10 +1,19 @@
+import { useEffect, useState } from 'react';
+import { api } from '../../../services/api';
 import LiquidTabs from '../../ui/LiquidTabs';
 import OrdersTab from '../../orders/OrdersTab';
+import InPersonSale from './InPersonSale';
 
 export default function FolderSalesTab({
-  copyBuyerLink, folderOrders, handleOrderUpdated, ordersLoading, salesView, setSalesView, showToast
+  cards, copyBuyerLink, folderId, folderOrders, handleOrderUpdated, ordersLoading, salesView, setCards, setSalesView, showToast
 }) {
     const pendingCount = folderOrders.filter(o => o.status === 'pending').length;
+    // Ventas presenciales de esta carpeta: se suman al historial
+    const [inPersonSales, setInPersonSales] = useState([]);
+    useEffect(() => {
+      if (salesView !== 'historial') return;
+      api.getInPersonSales(folderId).then((response) => setInPersonSales(response.sales || [])).catch(() => {});
+    }, [salesView, folderId]);
     return (
       <div className="flex flex-col gap-6">
         <LiquidTabs
@@ -18,6 +27,7 @@ export default function FolderSalesTab({
           activeTextClassName="text-white"
           inactiveTextClassName="text-slate-600 hover:text-[#1a2b4b]"
           options={[
+            { value: 'presencial', label: 'Presencial' },
             {
               value: 'solicitudes',
               label: (
@@ -32,15 +42,20 @@ export default function FolderSalesTab({
             { value: 'historial', label: 'Historial' }
           ]}
         />
-        <OrdersTab
-          showToast={showToast}
-          filter={salesView}
-          orders={folderOrders}
-          loading={ordersLoading}
-          onOrderUpdated={handleOrderUpdated}
-          onGoToFolders={copyBuyerLink}
-          emptyActionLabel="Copiar enlace de esta carpeta"
-        />
+        {salesView === 'presencial' ? (
+          <InPersonSale folderId={folderId} cards={cards} setCards={setCards} showToast={showToast} />
+        ) : (
+          <OrdersTab
+            showToast={showToast}
+            filter={salesView}
+            orders={folderOrders}
+            inPersonSales={inPersonSales}
+            loading={ordersLoading}
+            onOrderUpdated={handleOrderUpdated}
+            onGoToFolders={copyBuyerLink}
+            emptyActionLabel="Copiar enlace de esta carpeta"
+          />
+        )}
       </div>
     );
 }

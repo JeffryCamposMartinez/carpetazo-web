@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, startTransition, lazy, Suspense } from 're
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import MobileMenu from './header/MobileMenu';
+import InPersonFolderPicker from '../folder/InPersonFolderPicker';
 import NotificationBellPanel from './header/NotificationBellPanel';
 import WishlistButton from './header/WishlistButton';
 import { useToast } from '../ui/ToastProvider';
@@ -24,6 +25,19 @@ export default function Header() {
   const [userUsername, setUserUsername] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isInPersonPickerOpen, setIsInPersonPickerOpen] = useState(false);
+  // Mis carpetas para «Venta presencial»: se piden al abrir el menú de la cuenta, así al tocar la opción se entra sin esperar
+  const foldersCache = useRef(null);
+  const loadMyFolders = () => {
+    const cached = foldersCache.current;
+    if (cached && Date.now() - cached.at < 60000) return Promise.resolve(cached.list);
+    return api.getMyFolders().then((response) => { const list = response.folders || []; foldersCache.current = { at: Date.now(), list }; return list; });
+  };
+  const startInPersonSale = () => {
+    const cached = foldersCache.current;
+    if (cached && Date.now() - cached.at < 60000 && cached.list.length === 1) navigate(`/carpeta/${cached.list[0].id}?tab=sales&view=presencial`); // una sola carpeta: directo
+    else setIsInPersonPickerOpen(true);
+  };
   const [isMobileMenuClosing, setIsMobileMenuClosing] = useState(false);
   const drawerRef = useRef(null);
   const desktopHeaderRef = useRef(null);
@@ -130,6 +144,7 @@ export default function Header() {
   // La banda de secciones tiene su propio estado: se mueve en cuanto se toca y no espera a la pantalla ni a sus datos
   const [pendingNav, setPendingNav] = useState(null);
   useEffect(() => { setPendingNav(null); }, [location.pathname]);
+  useEffect(() => { if (currentUser && (isDropdownOpen || isMobileMenuOpen)) loadMyFolders().catch(() => {}); }, [currentUser, isDropdownOpen, isMobileMenuOpen]);
   // Cualquier cambio de ruta (incluido el gesto "Atrás") cierra el menú lateral
   useEffect(() => { setIsMobileMenuOpen(false); setIsMobileMenuClosing(false); }, [location.pathname]);
   const goToSection = (route) => {
@@ -506,7 +521,7 @@ export default function Header() {
 
   const mobileMenuProps = { appUser, closeMobileMenu, currentUser, drawerRef, handleLogin, handleLogout,
     isMobileMenuClosing, location, onDrawerTouchEnd, onDrawerTouchMove, onDrawerTouchStart, pendingOrders,
-    unreadMessages, userAvatar, userUsername };
+    onInPersonSale: startInPersonSale, unreadMessages, userAvatar, userUsername };
 
   const notificationBellPanelProps = { chatKey, formatOrderTotal, getChatPartner, isNotificationOpen, navigate,
     notificationChats, openNotificationChat, openNotifications, openPendingOrders, openSnapshot, openWishlist,
@@ -543,45 +558,51 @@ export default function Header() {
                   </button>
 
                   {isDropdownOpen && (
-                    <div role="menu" className="menu-pop [--menu-origin:top_right] absolute right-0 top-full z-50 mt-2 flex w-56 flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white py-2 shadow-xl">
+                    <div role="menu" className="menu-pop [--menu-origin:top_right] absolute right-0 top-full z-50 mt-2 flex max-h-[calc(100svh-6.5rem)] w-72 flex-col overflow-y-auto rounded-2xl border border-gray-100 bg-white py-2 shadow-xl">
                       <div className="px-4 pb-2 pt-1 border-b border-gray-100 mb-1">
                         <p className="text-[11px] font-black uppercase tracking-[0.16em] text-gray-400">Tu cuenta</p>
                         <p className="mt-1 truncate text-sm font-extrabold text-[#1a2b4b]">{userUsername || currentUser.displayName || 'Usuario'}</p>
                       </div>
-                      <Link role="menuitem" to="/dashboard" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
-                        <SvgIcon name="folder" translate="no" className="text-[20px]" /> Mis carpetas
+                      <div className="grid grid-cols-2 gap-2 px-3 pb-1 pt-1">
+                        <Link role="menuitem" to="/dashboard" onClick={() => setIsDropdownOpen(false)} className="relative flex min-h-[4.5rem] flex-col items-start justify-between gap-1.5 rounded-xl bg-white p-3 text-left text-[13px] font-extrabold leading-tight text-[#12315f] ring-1 ring-slate-900/10 transition-[background-color,transform] duration-150 hover:bg-blue-50 hover:ring-[#1e40af]/30 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ffcb05] text-[#1a2b4b]"><SvgIcon name="folder" translate="no" aria-hidden="true" className="text-[20px]" /></span>Mis carpetas</Link>
+                        <button type="button" role="menuitem" onClick={() => { setIsDropdownOpen(false); startInPersonSale(); }} className="relative flex min-h-[4.5rem] flex-col items-start justify-between gap-1.5 rounded-xl bg-white p-3 text-left text-[13px] font-extrabold leading-tight text-[#12315f] ring-1 ring-slate-900/10 transition-[background-color,transform] duration-150 hover:bg-blue-50 hover:ring-[#1e40af]/30 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ffcb05] text-[#1a2b4b]"><SvgIcon name="payments" translate="no" aria-hidden="true" className="text-[20px]" /></span>Venta presencial</button>
+                        <Link role="menuitem" to="/dashboard?tab=solicitudes" onClick={() => setIsDropdownOpen(false)} className="relative flex min-h-[4.5rem] flex-col items-start justify-between gap-1.5 rounded-xl bg-white p-3 text-left text-[13px] font-extrabold leading-tight text-[#12315f] ring-1 ring-slate-900/10 transition-[background-color,transform] duration-150 hover:bg-blue-50 hover:ring-[#1e40af]/30 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ffcb05] text-[#1a2b4b]"><SvgIcon name="inbox" translate="no" aria-hidden="true" className="text-[20px]" /></span>Solicitudes{pendingOrders.count > 0 && <span className="absolute right-2 top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ef233c] px-1 text-[10px] font-black text-white">{pendingOrders.count > 99 ? '99+' : pendingOrders.count}</span>}</Link>
+                        <Link role="menuitem" to="/mensajes" onClick={() => setIsDropdownOpen(false)} className="relative flex min-h-[4.5rem] flex-col items-start justify-between gap-1.5 rounded-xl bg-white p-3 text-left text-[13px] font-extrabold leading-tight text-[#12315f] ring-1 ring-slate-900/10 transition-[background-color,transform] duration-150 hover:bg-blue-50 hover:ring-[#1e40af]/30 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ffcb05] text-[#1a2b4b]"><SvgIcon name="chat" translate="no" aria-hidden="true" className="text-[20px]" /></span>Mensajes{unreadMessages > 0 && <span className="absolute right-2 top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ef233c] px-1 text-[10px] font-black text-white">{unreadMessages > 99 ? '99+' : unreadMessages}</span>}</Link>
+                      </div>
+                      <div className="my-1 mx-2 h-px bg-gray-100"></div>
+                      <p className="px-4 pb-0.5 pt-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-gray-400">Mi actividad</p>
+                      <Link role="menuitem" to="/dashboard?tab=historial" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
+                        <SvgIcon name="receipt_long" translate="no" className="text-[20px]" /> Historial de ventas
                       </Link>
                       <Link role="menuitem" to="/dashboard?tab=deseadas" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
                         <SvgIcon name="favorite" translate="no" className="text-[20px]" /> Mi lista de deseos
                       </Link>
-                      <Link role="menuitem" to="/dashboard?tab=solicitudes" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
-                        <SvgIcon name="inbox" translate="no" className="text-[20px]" /> Solicitudes
-                        {pendingOrders.count > 0 && <span className="ml-auto rounded-full bg-[#facc15] px-2 py-0.5 text-[11px] font-black tabular-nums text-[#12315f]">{pendingOrders.count}</span>}
-                      </Link>
-                      <Link role="menuitem" to="/dashboard?tab=historial" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
-                        <SvgIcon name="receipt_long" translate="no" className="text-[20px]" /> Historial de ventas
-                      </Link>
-                      <Link role="menuitem" to="/mensajes" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
-                        <SvgIcon name="chat" translate="no" className="text-[20px]" /> Mensajes
-                      </Link>
+                      <div className="my-1 mx-2 h-px bg-gray-100"></div>
+                      <p className="px-4 pb-0.5 pt-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-gray-400">Cuenta</p>
                       <Link role="menuitem" to="/perfil" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
                         <SvgIcon name="person" translate="no" className="text-[20px]" /> Mi cuenta
                       </Link>
                       <Link role="menuitem" to="/planes" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
                         <SvgIcon name="workspace_premium" translate="no" className="text-[20px]" /> Mi plan
                       </Link>
-                      <Link role="menuitem" to="/sugerencias" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
-                        <SvgIcon name="feedback" translate="no" className="text-[20px]" /> Reclamos y sugerencias
-                      </Link>
                       {userUsername && (
                         <Link role="menuitem" to={`/${userUsername}`} onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
                           <SvgIcon name="storefront" translate="no" className="text-[20px]" /> Ver perfil público
                         </Link>
                       )}
+                      <div className="my-1 mx-2 h-px bg-gray-100"></div>
+                      <p className="px-4 pb-0.5 pt-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-gray-400">Ayuda</p>
+                      <Link role="menuitem" to="/sugerencias" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
+                        <SvgIcon name="feedback" translate="no" className="text-[20px]" /> Reclamos y sugerencias
+                      </Link>
                       {['admin', 'coadmin', 'moderator', 'support'].includes(appUser?.role) && (
+                        <>
+                        <div className="my-1 mx-2 h-px bg-gray-100"></div>
+                        <p className="px-4 pb-0.5 pt-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-gray-400">Equipo</p>
                         <Link role="menuitem" to="/moderacion" onClick={() => setIsDropdownOpen(false)} className="px-4 py-2 text-sm text-[#12315f] hover:bg-blue-50 hover:text-[#1e40af] font-semibold flex items-center gap-3">
                           <SvgIcon name="admin_panel_settings" translate="no" className="text-[20px]" /> Moderación
                         </Link>
+                                              </>
                       )}
                       <div className="h-px bg-gray-100 my-1 mx-2"></div>
                       <button role="menuitem" onClick={() => { setIsDropdownOpen(false); handleLogout(); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-bold flex items-center gap-3">
@@ -693,6 +714,13 @@ export default function Header() {
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
         <MobileMenu {...mobileMenuProps} />
+      )}
+      {isInPersonPickerOpen && (
+        <InPersonFolderPicker
+          loadFolders={loadMyFolders}
+          onClose={() => setIsInPersonPickerOpen(false)}
+          onPick={(folder) => { setIsInPersonPickerOpen(false); navigate(`/carpeta/${folder.id}?tab=sales&view=presencial`); }}
+        />
       )}
       {/* Authentication Modal */}
       {isAuthModalOpen && (

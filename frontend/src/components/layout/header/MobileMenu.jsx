@@ -5,7 +5,7 @@ import SvgIcon from '../../ui/SvgIcon';
 // Menú lateral del celular: cuenta, secciones y salida; se cierra deslizando hacia la izquierda.
 export default function MobileMenu({
   appUser, closeMobileMenu, currentUser, drawerRef, handleLogin, handleLogout, isMobileMenuClosing, location,
-  onDrawerTouchEnd, onDrawerTouchMove, onDrawerTouchStart, pendingOrders, unreadMessages, userAvatar,
+  onDrawerTouchEnd, onDrawerTouchMove, onDrawerTouchStart, onInPersonSale, pendingOrders, unreadMessages, userAvatar,
   userUsername
 }) {
   const closeRef = useRef(closeMobileMenu);
@@ -71,11 +71,12 @@ export default function MobileMenu({
 
         {(() => {
           const rowBase = 'relative flex min-h-12 items-center gap-3.5 rounded-xl px-3 text-[15px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]/50';
-          const accountItems = [
+          const allItems = [
             { to: '/dashboard', label: 'Mis carpetas', icon: 'folder', active: location.pathname === '/dashboard' && !/tab=(solicitudes|historial|deseadas)/.test(location.search) },
             { to: '/dashboard?tab=deseadas', label: 'Mi lista de deseos', icon: 'favorite', active: location.pathname === '/dashboard' && location.search.includes('tab=deseadas') },
             { to: '/dashboard?tab=solicitudes', label: 'Solicitudes de compra', icon: 'inbox', active: location.pathname === '/dashboard' && location.search.includes('tab=solicitudes'), badge: pendingOrders.count > 0 ? pendingOrders.count : undefined },
             { to: '/dashboard?tab=historial', label: 'Historial de ventas', icon: 'receipt_long', active: location.pathname === '/dashboard' && location.search.includes('tab=historial') },
+            { action: onInPersonSale, label: 'Venta presencial', icon: 'payments' },
             { to: '/mensajes', label: 'Mensajes', icon: 'chat', active: location.pathname === '/mensajes', badge: unreadMessages },
             { to: '/perfil', label: 'Mi cuenta', icon: 'person', active: location.pathname === '/perfil' },
             { to: '/planes', label: 'Mi plan', icon: 'workspace_premium', active: location.pathname === '/planes' },
@@ -83,7 +84,26 @@ export default function MobileMenu({
             ...(userUsername ? [{ to: `/${userUsername}`, label: 'Mi perfil público', icon: 'badge', active: false }] : []),
             ...(['admin', 'coadmin', 'moderator', 'support'].includes(appUser?.role) ? [{ to: '/moderacion', label: 'Moderación', icon: 'admin_panel_settings', active: location.pathname === '/moderacion' }] : []),
           ];
-          const renderItem = (item) => (
+          const pick = (...labels) => labels.map((label) => allItems.find((item) => item.label === label)).filter(Boolean);
+          // Lo de uso diario va solo, en mosaicos; el resto, agrupado por tema
+          const quick = pick('Mis carpetas', 'Venta presencial', 'Solicitudes de compra', 'Mensajes');
+          const groups = [
+            { title: 'Mi actividad', items: pick('Historial de ventas', 'Mi lista de deseos') },
+            { title: 'Cuenta', items: pick('Mi cuenta', 'Mi plan', 'Mi perfil público') },
+            { title: 'Ayuda', items: pick('Reclamos y sugerencias') },
+            { title: 'Equipo', items: pick('Moderación') }
+          ].filter((group) => group.items.length);
+          const renderItem = (item) => (item.action ? (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => { closeMobileMenu(); item.action(); }}
+              className={`${rowBase} w-full text-left text-slate-700 active:bg-slate-100`}
+            >
+              <SvgIcon name={item.icon} translate="no" className="text-[22px] text-slate-400" />
+              <span className="flex-1">{item.label}</span>
+            </button>
+          ) : (
             <Link
               key={item.to + item.label}
               to={item.to}
@@ -98,15 +118,34 @@ export default function MobileMenu({
                 <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#ef233c] px-1.5 text-[11px] font-black text-white">{item.badge > 99 ? '99+' : item.badge}</span>
               )}
             </Link>
-          );
+          ));
+          const tileBase = 'relative flex min-h-[5.5rem] flex-col items-start justify-between gap-2 rounded-2xl p-3.5 text-left text-[14px] font-extrabold leading-tight ring-1 transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]/50';
+          const renderTile = (item) => {
+            const tone = item.active ? 'bg-blue-50 text-[#12315f] ring-[#1e40af]/40' : 'bg-white text-[#12315f] ring-slate-900/10';
+            const inner = (
+              <>
+                <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${item.active ? 'bg-[#1e40af] text-white' : 'bg-[#ffcb05] text-[#1a2b4b]'}`}><SvgIcon name={item.icon} translate="no" aria-hidden="true" className="text-[22px]" /></span>
+                <span>{item.label}</span>
+                {item.badge > 0 && <span className="absolute right-2.5 top-2.5 flex h-6 min-w-6 items-center justify-center rounded-full bg-[#ef233c] px-1.5 text-[11px] font-black text-white">{item.badge > 99 ? '99+' : item.badge}</span>}
+              </>
+            );
+            return item.action
+              ? <button key={item.label} type="button" onClick={() => { closeMobileMenu(); item.action(); }} className={`${tileBase} ${tone}`}>{inner}</button>
+              : <Link key={item.to + item.label} to={item.to} onClick={closeMobileMenu} aria-current={item.active ? 'page' : undefined} className={`${tileBase} ${tone}`}>{inner}</Link>;
+          };
           return (
             <div className="flex flex-1 flex-col px-3 pb-4 pt-3">
               {currentUser ? (
                 <>
-                  <p className="mb-1 px-3 text-xs font-bold text-slate-400">Tu cuenta</p>
-                  <nav aria-label="Tu cuenta" className="flex flex-col gap-0.5">
-                    {accountItems.map(renderItem)}
+                  <nav aria-label="Acceso rápido" className="grid grid-cols-2 gap-2">
+                    {quick.map(renderTile)}
                   </nav>
+                  {groups.map((group) => (
+                    <nav key={group.title} aria-label={group.title} className="mt-4 flex flex-col gap-0.5">
+                      <p className="mb-1 px-3 text-xs font-bold text-slate-400">{group.title}</p>
+                      {group.items.map(renderItem)}
+                    </nav>
+                  ))}
                   <div className="mt-auto pt-6">
                     <button
                       onClick={() => { closeMobileMenu(); handleLogout(); }}

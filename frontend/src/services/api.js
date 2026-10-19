@@ -305,6 +305,20 @@ export const api = {
 
   // Orders
   createOrder: (data) => apiFetch('/orders/create', { method: 'POST', body: JSON.stringify(data) }),
+  createInPersonSale: (folderId, data) => apiFetch(`/folders/${encodeURIComponent(folderId)}/in-person-sales`, { method: 'POST', body: JSON.stringify(data) }),
+  getBackupStatus: () => apiFetch('/admin/backup/status'),
+  // Descarga del respaldo: la respuesta es un archivo, no JSON
+  downloadBackup: async () => {
+    const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+    const response = await fetch(apiUrl('/admin/backup'), { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: JSON.stringify({ confirm: true }) });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.message || 'No se pudo crear el respaldo');
+    }
+    return { blob: await response.blob(), name: /filename="([^"]+)"/.exec(response.headers.get('Content-Disposition') || '')?.[1] || 'respaldo-carpetazo.ndjson.gz' };
+  },
+  getMyInPersonSales: () => apiFetch('/in-person-sales/mine'),
+  getInPersonSales: (folderId) => apiFetch(`/folders/${encodeURIComponent(folderId)}/in-person-sales`),
   getMyOrders: (cursor) => apiFetch('/orders/mine' + (cursor ? `?cursor=${encodeURIComponent(cursor)}` : '')),
   getMyPendingOrders: (since) => apiFetch('/orders/mine/pending' + (since ? `?since=${encodeURIComponent(since)}` : '')),
   setMyOrderStatus: (id, status) => apiFetch('/orders/mine/' + encodeURIComponent(id) + '/status', { method: 'POST', body: JSON.stringify({ status }) }),
