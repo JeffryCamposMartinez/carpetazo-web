@@ -86,7 +86,7 @@ export const loadSales = async ({ tcg = null, tcgIds = null, days = 180 } = {}) 
   const rows = await prisma.$queryRaw`
     SELECT s.*
     FROM (
-      SELECT o."id" AS "orderId", o."sellerId", o."buyerId", o."buyerName", o."createdIpHash", o."updatedAt" AS "at",
+      SELECT o."id" AS "orderId", o."sellerId", o."buyerId", o."buyerName", o."createdIpHash", o."completedIpHash", o."updatedAt" AS "at",
              (line->>'price')::float AS "unit",
              CASE WHEN line->>'quantity' ~ '^[0-9]{1,4}$' THEN (line->>'quantity')::int ELSE 1 END AS "quantity",
              COALESCE(line->>'tcgId', c."tcgId") AS "tcgId", f."tcg",
@@ -103,11 +103,18 @@ export const loadSales = async ({ tcg = null, tcgIds = null, days = 180 } = {}) 
   return rows.map((row) => ({ ...row, unit: Number(row.unit), buyerKey: row.buyerId || (row.createdIpHash ? `ip:${row.createdIpHash}` : `name:${String(row.buyerName || '').toLowerCase()}`) }));
 };
 
-// Ventas que cuentan para las estadísticas: nunca la propia, y con anclaje solo las que están en un rango razonable
+// Pedido creado (comprador) y confirmado (vendedor) desde la misma conexión: es una señal de autoventa, no una prueba (en una feria
+// ambos pueden compartir WiFi). Solo se usa para el precio de referencia; el pedido, el stock y «Últimas ventas» no cambian.
+export const sameConnection = (sale) => Boolean(sale.createdIpHash && sale.completedIpHash && sale.createdIpHash === sale.completedIpHash);
+
+// Ventas visibles: nunca la propia, y con anclaje solo las que están en un rango razonable
 export const eligibleSales = (sales, anchor) => {
   const others = sales.filter((sale) => !sale.buyerId || sale.buyerId !== sale.sellerId);
   return anchor ? others.filter((sale) => sale.unit >= anchor * LOW_RATIO && sale.unit <= anchor * HIGH_RATIO) : others;
 };
+
+// Ventas que pueden fijar el precio de referencia: las visibles, menos las de la misma conexión
+export const referenceSales = (sales, anchor) => eligibleSales(sales.filter((sale) => !sameConnection(sale)), anchor);
 
 // Precio de referencia a partir de ventas: un valor por vendedor, mínimo MIN_SELLERS vendedores y MIN_BUYERS compradores distintos
 export const referenceFromSales = (sales) => {

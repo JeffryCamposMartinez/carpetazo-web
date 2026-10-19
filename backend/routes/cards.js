@@ -8,7 +8,7 @@ import { isValidComuna } from '../core/chileData.js';
 import { PUBLIC_PLAN_RELATIONS_SELECT, withPublicPlanBadge } from '../core/publicSeller.js';
 import { isVerifiedSeller } from '../core/sellerTrust.js';
 import { badRequest } from '../core/validation.js';
-import { eligibleSales, loadLiveOffers, loadSales, marketAnchors, offersAnchor, referenceFromSales, suspiciousOffers } from '../core/priceIntegrity.js';
+import { eligibleSales, loadLiveOffers, loadSales, marketAnchors, offersAnchor, referenceFromSales, referenceSales, suspiciousOffers } from '../core/priceIntegrity.js';
 
 const router = express.Router();
 
@@ -133,7 +133,7 @@ const mylReferencePrices = async (ids) => {
   const prices = {};
   for (const id of ids) {
     const cardOffers = offers.filter((offer) => offer.tcgId === id);
-    const bySales = referenceFromSales(eligibleSales(sales.filter((sale) => sale.tcgId === id), offersAnchor(cardOffers)));
+    const bySales = referenceFromSales(referenceSales(sales.filter((sale) => sale.tcgId === id), offersAnchor(cardOffers)));
     if (bySales) { prices[id] = { clp: roundClp(bySales.value), sales: bySales.sales }; continue; }
     const flagged = suspiciousOffers(cardOffers);
     const fair = cardOffers.filter((offer) => !flagged.has(offer.cardId));
