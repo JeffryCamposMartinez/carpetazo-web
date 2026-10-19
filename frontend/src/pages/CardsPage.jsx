@@ -146,7 +146,7 @@ export default function CardsPage() {
         </header>
 
         <div className="lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:items-start lg:gap-8">
-          <CardsFilters comuna={comuna} onComuna={(value) => updateParams({ comuna: value })} query={queryInput} tcg={tcg} onQuery={setQueryInput} onTcg={changeTcg} />
+          <CardsFilters query={queryInput} tcg={tcg} onQuery={setQueryInput} onTcg={changeTcg} />
 
           <section className="mt-5 min-w-0 lg:mt-0" aria-label="Resultados">
             <CardsResultsBar
@@ -158,6 +158,7 @@ export default function CardsPage() {
               onTcg={changeTcg}
               comuna={comuna}
               onComuna={() => updateParams({ comuna: '' })}
+              onComunaChange={(value) => updateParams({ comuna: value })}
               onSeller={() => updateParams({ seller: '' })}
               seller={seller}
               onView={chooseView}

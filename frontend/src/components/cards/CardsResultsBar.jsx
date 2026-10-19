@@ -1,7 +1,10 @@
+import ComunaSelect from '../ui/ComunaSelect';
 import Select from '../ui/Select';
 import SvgIcon from '../ui/SvgIcon';
 const SORT_OPTIONS = [
   { value: 'recent', label: 'Más recientes' },
+  { value: 'best_selling', label: 'Más vendidos' },
+  { value: 'latest_edition', label: 'Última edición' },
   { value: 'price_asc', label: 'Precio: menor a mayor' },
   { value: 'price_desc', label: 'Precio: mayor a menor' },
 ];
@@ -10,7 +13,7 @@ export const SORT_VALUES = SORT_OPTIONS.map((option) => option.value);
 const REMOVABLE = 'inline-flex h-9 max-w-full items-center gap-1 rounded-full bg-white pl-3 pr-1.5 text-xs font-bold text-[#12315f] ring-1 ring-slate-900/10 transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] [@media(hover:hover)]:hover:bg-blue-50';
 
 // Cantidad de cartas, filtros activos (cada uno se quita con un toque), orden y vista (cuadrícula o lista en el celular)
-export default function CardsResultsBar({ failed, loading, comuna, onClearAll, onComuna, onQuery, onSeller, onSort, onTcg, onView, query, seller, sort, tcg, total, view }) {
+export default function CardsResultsBar({ failed, loading, comuna, onClearAll, onComuna, onComunaChange, onQuery, onSeller, onSort, onTcg, onView, query, seller, sort, tcg, total, view }) {
   const hasFilters = Boolean(query || tcg || seller || comuna);
   return (
     <div className="mb-4 space-y-3">
@@ -20,7 +23,8 @@ export default function CardsResultsBar({ failed, loading, comuna, onClearAll, o
             <><span className="tabular-nums">{total.toLocaleString('es-CL')}</span> {total === 1 ? 'carta a la venta' : 'cartas a la venta'}</>
           )}
         </p>
-        <div className="flex w-full items-center gap-2 sm:w-auto sm:shrink-0">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:flex-nowrap">
+          <ComunaSelect value={comuna} onChange={onComunaChange} className="basis-full sm:w-52 sm:basis-auto" buttonClassName="!min-h-10 !rounded-full !text-[13px]" listMinWidth={260} />
           <label className="relative flex min-w-0 flex-1 items-center sm:flex-none">
             <span className="sr-only">Ordenar</span>
             <Select value={sort} onChange={(event) => onSort(event.target.value)} className="h-10 w-full appearance-none rounded-full border-0 bg-white pl-3.5 pr-9 text-[13px] font-bold text-[#12315f] ring-1 ring-slate-900/10 focus:outline-none focus:ring-2 focus:ring-[#1e40af]">

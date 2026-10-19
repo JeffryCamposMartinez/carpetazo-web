@@ -5,6 +5,8 @@ import { rarityRank } from '../utils/rarityRank';
 export const SORT_OPTIONS = [
   { value: 'manual', label: 'Mi orden' },
   { value: 'recent', label: 'Más recientes' },
+  { value: 'bestSelling', label: 'Más vendidos' },
+  { value: 'latestEdition', label: 'Última edición' },
   { value: 'name', label: 'Nombre (A-Z)' },
   { value: 'priceDesc', label: 'Precio: mayor a menor' },
   { value: 'priceAsc', label: 'Precio: menor a mayor' },
@@ -19,6 +21,9 @@ export const SORT_OPTIONS = [
 const byText = (a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'es', { sensitivity: 'base' });
 const SORTERS = {
   recent: (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
+  // Unidades vendidas en pedidos confirmados (solo el dueño las recibe) y fecha de la edición de la carta; las que no tienen, al final
+  bestSelling: (a, b) => Number(b.soldUnits || 0) - Number(a.soldUnits || 0) || byText(a, b),
+  latestEdition: (a, b) => (b.editionDate ? new Date(b.editionDate).getTime() : -Infinity) - (a.editionDate ? new Date(a.editionDate).getTime() : -Infinity) || byText(a, b),
   name: byText,
   priceDesc: (a, b) => Number(b.price || 0) - Number(a.price || 0) || byText(a, b),
   priceAsc: (a, b) => Number(a.price || 0) - Number(b.price || 0) || byText(a, b),

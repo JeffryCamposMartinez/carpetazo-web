@@ -439,13 +439,33 @@ router.get('/api/folders/:id', optionalAuth, optionalStaff, async (req, res) => 
     const productIds = isMylTcg(folder.tcg)
       ? []
       : [...new Set(visibleCards.map((card) => Number(card.tcgId)).filter((id) => Number.isInteger(id) && id > 0))];
-    const localImages = productIds.length
-      ? await prisma.catalogCard.findMany({ where: { productId: { in: productIds }, kind: 'card', imageKey: { not: null } }, select: { productId: true, imageKey: true } })
+    const catalogRows = productIds.length
+      ? await prisma.catalogCard.findMany({ where: { productId: { in: productIds }, kind: 'card' }, select: { productId: true, imageKey: true, set: { select: { publishedOn: true } } } })
       : [];
-    const imageByProductId = new Map(localImages.map((card) => [card.productId, r2PublicUrl(card.imageKey)]));
+    const imageByProductId = new Map(catalogRows.filter((row) => row.imageKey).map((row) => [row.productId, r2PublicUrl(row.imageKey)]));
+    // Fecha de la edición de cada carta (para ordenar por «Última edición»): el catálogo importado, o TcgProduct en Mitos y Leyendas
+    const editionByTcgId = new Map(catalogRows.filter((row) => row.set?.publishedOn).map((row) => [String(row.productId), row.set.publishedOn]));
+    if (isMylTcg(folder.tcg)) {
+      const mylIds = [...new Set(visibleCards.map((card) => String(card.tcgId || '')).filter((id) => id.startsWith('myl:')))];
+      const mylProducts = mylIds.length ? await prisma.tcgProduct.findMany({ where: { productId: { in: mylIds.map((id) => id.slice(4)) } }, select: { productId: true, group: { select: { publishedOn: true } } } }) : [];
+      mylProducts.filter((row) => row.group?.publishedOn).forEach((row) => editionByTcgId.set(`myl:${row.productId}`, row.group.publishedOn));
+    }
+    // Unidades vendidas de cada carta (pedidos confirmados de este vendedor): solo las ve el dueño, para ordenar por «Más vendidos»
+    const soldByTcgId = new Map();
+    if (isFolderOwner) {
+      const tcgIds = [...new Set(visibleCards.map((card) => card.tcgId).filter(Boolean))];
+      const rows = tcgIds.length ? await prisma.$queryRaw`
+        SELECT elem->>'tcgId' AS "tcgId", SUM(GREATEST(1, COALESCE(NULLIF(elem->>'quantity', '')::numeric, 1)))::int AS "sold"
+        FROM "Order" o, jsonb_array_elements(CASE WHEN jsonb_typeof(o."items") = 'array' THEN o."items" ELSE '[]'::jsonb END) AS elem
+        WHERE o."sellerId" = ${folder.userId} AND o."status" = 'completed' AND elem->>'tcgId' = ANY(${tcgIds}::text[])
+        GROUP BY 1` : [];
+      rows.forEach((row) => soldByTcgId.set(row.tcgId, Number(row.sold)));
+    }
     const cards = visibleCards.map((card) => ({
       ...card,
       imageUrl: imageByProductId.get(Number(card.tcgId)) || card.imageUrl,
+      editionDate: editionByTcgId.get(String(card.tcgId)) || null,
+      ...(isFolderOwner ? { soldUnits: soldByTcgId.get(card.tcgId) || 0 } : {}),
       data: cleanCardData(card.data),
     }));
     // `isOwner` deja que la pantalla de edición no se muestre a quien no es el dueño (la API ya rechaza sus cambios)

@@ -257,6 +257,52 @@ const CARD_SEARCH_SORTS = {
   price_asc: [{ price: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
   price_desc: [{ price: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
 };
+// «Más vendidos» y «Última edición» dependen de las ventas y del catálogo, no de una columna: se ordenan en memoria
+// sobre las cartas que coinciden (las RANKING_POOL más nuevas) y se entrega solo la página pedida.
+const RANKED_SORTS = new Set(['best_selling', 'latest_edition']);
+const RANKING_POOL = 3000;
+const CARD_SEARCH_SELECT = {
+  id: true,
+  name: true,
+  tcgId: true,
+  imageUrl: true,
+  price: true,
+  stock: true,
+  createdAt: true,
+  data: true,
+  folder: { select: { id: true, name: true, tcg: true, user: { select: { name: true, username: true, photoURL: true, publicComuna: true } } } },
+};
+const rankedCardPage = async (where, sort, page) => {
+  const pool = await prisma.card.findMany({ where, orderBy: [{ createdAt: 'desc' }], take: RANKING_POOL, select: { id: true, tcgId: true, createdAt: true } });
+  const score = new Map(); // id de la carta → puntaje (mayor = antes)
+  if (sort === 'best_selling') {
+    // Unidades vendidas de esa carta del catálogo en pedidos confirmados (el pedido guarda el tcgId de cada línea)
+    const tcgIds = [...new Set(pool.map((card) => card.tcgId).filter(Boolean))];
+    const rows = tcgIds.length ? await prisma.$queryRaw`
+      SELECT elem->>'tcgId' AS "tcgId", SUM(GREATEST(1, COALESCE(NULLIF(elem->>'quantity', '')::numeric, 1)))::int AS "sold"
+      FROM "Order" o, jsonb_array_elements(CASE WHEN jsonb_typeof(o."items") = 'array' THEN o."items" ELSE '[]'::jsonb END) AS elem
+      WHERE o."status" = 'completed' AND elem->>'tcgId' = ANY(${tcgIds}::text[])
+      GROUP BY 1` : [];
+    const sold = new Map(rows.map((row) => [row.tcgId, Number(row.sold)]));
+    pool.forEach((card) => score.set(card.id, sold.get(card.tcgId) || 0));
+  } else {
+    // Fecha de publicación de la edición del catálogo a la que pertenece la carta: Pokémon, One Piece, Magic, etc. están en el catálogo importado (CatalogCard);
+    // Mitos y Leyendas guarda su id con «myl:» y sus ediciones en TcgProduct
+    const published = new Map(); // tcgId de la carta → fecha de su edición
+    const numeric = [...new Set(pool.map((card) => card.tcgId).filter((id) => /^\d{1,12}$/.test(String(id || ''))))];
+    const catalog = numeric.length ? await prisma.catalogCard.findMany({ where: { productId: { in: numeric.map(Number) } }, select: { productId: true, set: { select: { publishedOn: true } } } }) : [];
+    catalog.forEach((row) => published.set(String(row.productId), row.set?.publishedOn ? row.set.publishedOn.getTime() : -Infinity));
+    const myl = [...new Set(pool.map((card) => card.tcgId).filter((id) => String(id || '').startsWith('myl:')))];
+    const products = myl.length ? await prisma.tcgProduct.findMany({ where: { productId: { in: myl.map((id) => id.slice(4)) } }, select: { productId: true, group: { select: { publishedOn: true } } } }) : [];
+    products.forEach((row) => published.set(`myl:${row.productId}`, row.group?.publishedOn ? row.group.publishedOn.getTime() : -Infinity));
+    pool.forEach((card) => score.set(card.id, published.get(String(card.tcgId)) ?? -Infinity));
+  }
+  const ordered = [...pool].sort((a, b) => (score.get(b.id) - score.get(a.id)) || (b.createdAt - a.createdAt));
+  const pageIds = ordered.slice((page - 1) * CARD_SEARCH_PAGE_SIZE, page * CARD_SEARCH_PAGE_SIZE).map((card) => card.id);
+  const rows = pageIds.length ? await prisma.card.findMany({ where: { id: { in: pageIds } }, select: CARD_SEARCH_SELECT }) : [];
+  const byId = new Map(rows.map((card) => [card.id, card]));
+  return pageIds.map((id) => byId.get(id)).filter(Boolean);
+};
 router.get('/api/cards/search', async (req, res) => {
   try {
     const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
@@ -268,7 +314,7 @@ router.get('/api/cards/search', async (req, res) => {
     const comuna = typeof req.query.comuna === 'string' ? req.query.comuna.trim() : '';
     if (comuna && !isValidComuna(comuna)) return badRequest(res, 'Búsqueda inválida');
     if (seller && !/^[a-z0-9_]{3,40}$/.test(seller)) return badRequest(res, 'Búsqueda inválida');
-    if (q.length > 80 || tcg.length > 60 || /[\u0000-\u001f]/.test(q + tcg) || !Object.hasOwn(CARD_SEARCH_SORTS, sort) || page < 1 || page > 1000) {
+    if (q.length > 80 || tcg.length > 60 || /[\u0000-\u001f]/.test(q + tcg) || !(Object.hasOwn(CARD_SEARCH_SORTS, sort) || RANKED_SORTS.has(sort)) || page < 1 || page > 1000) {
       return badRequest(res, 'Búsqueda inválida');
     }
 
@@ -290,26 +336,18 @@ router.get('/api/cards/search', async (req, res) => {
       delete where.name;
       where.OR = [{ name: { contains: q, mode: 'insensitive' } }, { name: { in: similarNames } }];
     }
-    const [total, cards] = await prisma.$transaction([
-      prisma.card.count({ where }),
-      prisma.card.findMany({
-        where,
-        orderBy: CARD_SEARCH_SORTS[sort],
-        skip: (page - 1) * CARD_SEARCH_PAGE_SIZE,
-        take: CARD_SEARCH_PAGE_SIZE,
-        select: {
-          id: true,
-          name: true,
-          tcgId: true,
-          imageUrl: true,
-          price: true,
-          stock: true,
-          createdAt: true,
-          data: true,
-          folder: { select: { id: true, name: true, tcg: true, user: { select: { name: true, username: true, photoURL: true, publicComuna: true } } } },
-        },
-      }),
-    ]);
+    const [total, cards] = RANKED_SORTS.has(sort)
+      ? [await prisma.card.count({ where }), await rankedCardPage(where, sort, page)]
+      : await prisma.$transaction([
+        prisma.card.count({ where }),
+        prisma.card.findMany({
+          where,
+          orderBy: CARD_SEARCH_SORTS[sort],
+          skip: (page - 1) * CARD_SEARCH_PAGE_SIZE,
+          take: CARD_SEARCH_PAGE_SIZE,
+          select: CARD_SEARCH_SELECT,
+        }),
+      ]);
 
     // Solo campos públicos: el JSON `data` de la carta puede traer más cosas
     res.json({

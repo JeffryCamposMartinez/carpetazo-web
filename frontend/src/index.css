@@ -16,11 +16,11 @@
       display: none;
     }
   }
-  /* Computador: barra de la página visible y con los colores de la marca (amarillo sobre azul), para arrastrarla en vez de usar solo la rueda del mouse */
+  /* Computador: barra de la página visible y discreta (azul claro translúcido sobre el azul de la marca), para arrastrarla en vez de usar solo la rueda del mouse */
   @media (hover: hover) and (pointer: fine) {
     html {
       scrollbar-width: auto;
-      scrollbar-color: #facc15 rgba(8, 18, 42, 0.6);
+      scrollbar-color: rgba(147, 197, 253, 0.5) rgba(8, 18, 42, 0.35);
     }
   }
   .hide-scrollbar {

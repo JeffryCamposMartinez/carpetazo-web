@@ -3,7 +3,7 @@ import { chileData } from '../../config/chileData';
 import ThemedSelect from './ThemedSelect';
 
 // Filtro por comuna con búsqueda, agrupado por región
-export default function ComunaSelect({ value, onChange, className = '' }) {
+export default function ComunaSelect({ value, onChange, className = '', buttonClassName = '!min-h-11 !rounded-full', listMinWidth = 0 }) {
   const options = useMemo(() => [
     { value: '', label: 'Todas las comunas' },
     ...chileData.flatMap(({ region, comunas }) => comunas.map((comuna) => ({ value: comuna, label: comuna, group: region }))),
@@ -18,7 +18,8 @@ export default function ComunaSelect({ value, onChange, className = '' }) {
       icon="location_on"
       ariaLabel="Comuna"
       className={className}
-      buttonClassName="!min-h-11 !rounded-full"
+      buttonClassName={buttonClassName}
+      listMinWidth={listMinWidth}
     />
   );
 }
