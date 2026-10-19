@@ -12,6 +12,7 @@ import { applyRouteLimits, limiter } from './core/limits.js';
 import { termsGate } from './core/legal.js';
 import { hashConnection } from './core/hashing.js';
 import { escapeHtml, sendUserEmail } from './core/mail.js';
+import { cleanNotice, notifyUser } from './core/staffNotice.js';
 import { badRequest, isUuid } from './core/validation.js';
 import { REPORT_TARGETS, findReason } from './moderation/reportReasons.js';
 import { registerReports } from './moderation/reports.js';
@@ -138,7 +139,7 @@ app.use(messageRoutes);
 
 const moderation = registerReports(app, { prisma, authenticateToken, requireStaff, hooks: moderationHooks, badRequest, isUuid, currentUserId, hashConnection, sendUserEmail, escapeHtml, reviewHideReports: REVIEW_HIDE_REPORTS });
 registerAutomation(app, { prisma, authenticateToken, requireStaff, hooks: moderationHooks, moderation, badRequest, isUuid, currentUserId, escapeHtml, hashBank, imageScanner });
-registerSanctions(app, { prisma, authenticateToken, requireStaff, hooks: moderationHooks, restrictions, moderation, badRequest, isUuid, currentUserId, sendUserEmail, escapeHtml, targetLabel: (type) => REPORT_TARGETS[type]?.label || 'contenido', reasonLabel: (type, code) => findReason(type, code)?.label || 'Otro motivo' });
+registerSanctions(app, { cleanNotice, notifyUser, prisma, authenticateToken, requireStaff, hooks: moderationHooks, restrictions, moderation, badRequest, isUuid, currentUserId, sendUserEmail, escapeHtml, targetLabel: (type) => REPORT_TARGETS[type]?.label || 'contenido', reasonLabel: (type, code) => findReason(type, code)?.label || 'Otro motivo' });
 
 app.use(legalRoutes);
 

@@ -92,7 +92,7 @@ export const createRestrictions = ({ prisma, getAuth }) => {
 };
 
 export const registerSanctions = (app, deps) => {
-  const { prisma, authenticateToken, requireStaff, hooks, restrictions, moderation, badRequest, isUuid, currentUserId, sendUserEmail, escapeHtml } = deps;
+  const { prisma, authenticateToken, requireStaff, hooks, restrictions, moderation, badRequest, isUuid, currentUserId, sendUserEmail, escapeHtml, cleanNotice, notifyUser } = deps; // los avisos llegan por deps: importar staffNotice aquí crearía un ciclo con services.js
   const { applyRestore, cleanText, hasBadControlChars, notifyAdminsOfCritical } = moderation;
 
   const idsOf = async (userIds) => {
@@ -587,11 +587,15 @@ export const registerSanctions = (app, deps) => {
       if (!['moderator', 'support', 'user'].includes(role)) return badRequest(res, 'Rol inválido');
       if (target.role === 'admin') return res.status(403).json({ success: false, message: 'El rol de un administrador no se cambia desde aquí' });
       const actorId = await currentUserId(req);
+      const message = cleanNotice(req.body?.message);
+      if (message === null) return badRequest(res, 'El mensaje para la persona admite hasta 600 caracteres');
       await prisma.$transaction([
         prisma.user.update({ where: { id: target.id }, data: { role } }),
         prisma.moderationAudit.create({ data: { actorId, action: 'role.changed', targetType: 'user', targetId: target.id, note: `Rol de @${target.username}: ${target.role} → ${role}` } })
       ]);
-      res.json({ success: true });
+      const roleName = { moderator: 'Moderador', support: 'Soporte', user: 'sin rol de equipo' }[role];
+      const notified = req.body?.notify === false ? null : await notifyUser({ actorId, targetId: target.id, title: 'Cambió tu rol en Carpetazo', summary: `Tu rol en el equipo ahora es: ${roleName}.`, message });
+      res.json({ success: true, notified });
     } catch (error) {
       console.error('Error changing role:', error);
       res.status(500).json({ success: false, message: 'Error interno' });

@@ -6,6 +6,7 @@ import ReportsPanel from '../components/moderation/ReportsPanel';
 import AuditPanel from '../components/moderation/AuditPanel';
 import CasesPanel from '../components/moderation/CasesPanel';
 import PeoplePanel from '../components/moderation/PeoplePanel';
+import AccountDetail from '../components/moderation/AccountDetail';
 import AppealsPanel from '../components/moderation/AppealsPanel';
 import MetricsPanel from '../components/moderation/MetricsPanel';
 import ReviewsPanel from '../components/moderation/ReviewsPanel';
@@ -29,6 +30,7 @@ const TABS = [
   { id: 'appeals', group: 'queue', label: 'Apelaciones', icon: 'gavel', min: 1, blurb: 'Personas que piden revisar una medida o una decisión sobre su contenido.' },
   { id: 'feedback', group: 'queue', label: 'Quejas y sugerencias', shortLabel: 'Sugerencias', icon: 'feedback', min: 1, blurb: 'Mensajes de la comunidad para mejorar el sitio o informar un problema.' },
   { id: 'people', group: 'people', label: 'Personas y medidas', shortLabel: 'Personas', icon: 'groups', min: 1, blurb: 'Busca una cuenta, revisa su historial y aplica o levanta medidas.' },
+  { id: 'account', group: 'people', label: 'Cuenta completa', shortLabel: 'Cuenta', icon: 'badge', min: 3, blurb: 'Todos los datos de una persona, sus planes con todas las fechas, y cambiarlos avisándole con un mensaje.' },
   { id: 'team', group: 'people', label: 'Equipo y administradores', shortLabel: 'Equipo', icon: 'admin_panel_settings', min: 3, blurb: 'Quién es del equipo y cómo dar el rol de administrador a otra persona, con doble confirmación.' },
   { id: 'reviews', group: 'people', label: 'Reseñas marcadas', shortLabel: 'Reseñas', icon: 'reviews', min: 3, blurb: 'Reseñas reportadas o sospechosas, para aprobarlas o eliminarlas.' },
   { id: 'metrics', group: 'system', label: 'Métricas', icon: 'monitoring', min: 3, blurb: 'Cómo está funcionando la moderación: volumen, tiempos y resultados.' },
@@ -138,7 +140,8 @@ export default function Moderation() {
             <div key={tab} className="tab-panel">
               {tab === 'reports' && <ReportsPanel level={level} onOpenPerson={openPerson} initialReportId={focusReportId} onInitialUsed={() => setFocusReportId('')} />}
               {tab === 'cases' && <CasesPanel level={level} onOpenPerson={openPerson} onOpenReport={openReport} />}
-              {tab === 'people' && <PeoplePanel level={level} focusUsername={focusUsername} focusReportId={sanctionReportId || undefined} onFocusUsed={() => setFocusUsername('')} />}
+              {tab === 'people' && <PeoplePanel level={level} focusUsername={focusUsername} focusReportId={sanctionReportId || undefined} onFocusUsed={() => setFocusUsername('')} onOpenAccount={(username) => { setFocusUsername(username); setTab('account'); }} />}
+              {tab === 'account' && level >= 3 && <AccountDetail focusUsername={focusUsername} onFocusUsed={() => setFocusUsername('')} />}
               {tab === 'appeals' && <AppealsPanel level={level} />}
               {tab === 'feedback' && <FeedbackPanel level={level} />}
               {tab === 'team' && level >= 3 && <TeamPanel />}

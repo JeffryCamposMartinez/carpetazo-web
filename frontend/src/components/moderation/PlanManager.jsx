@@ -4,17 +4,20 @@ import Select from '../ui/Select';
 import ConfirmModal from '../ui/ConfirmModal';
 import { useToast } from '../ui/ToastProvider';
 import { dateOnly } from './shared';
+import NoticeField, { EMPTY_NOTICE, noticePayload } from './NoticeField';
 
 const SOURCE_TEXT = { grant: 'Plan asignado por el equipo', subscription: 'Suscripción pagada', default: 'Plan gratuito por defecto' };
 const money = (value) => (value ? `$${value.toLocaleString('es-CL')}` : 'Gratis');
 const field = 'mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 text-base sm:text-[15px] font-normal text-slate-800 outline-none focus:border-[#1e40af]';
 
 // Plan de una persona dentro de la ficha (solo administradores). Una concesión manual manda sobre la suscripción.
-export default function PlanManager({ username, setError }) {
+export default function PlanManager({ username, setError, onChanged }) {
   const [state, setState] = useState(null);
   const [plans, setPlans] = useState([]);
   const [planKey, setPlanKey] = useState('premium');
   const [days, setDays] = useState('');
+  const [startsAt, setStartsAt] = useState('');
+  const [notice, setNotice] = useState(EMPTY_NOTICE);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState(null);
@@ -30,10 +33,12 @@ export default function PlanManager({ username, setError }) {
     setBusy(true);
     setError('');
     try {
-      await api.setUserPlan(username, { planKey: key, reason: reason.trim(), days: key !== 'auto' && days ? Number(days) : undefined });
+      await api.setUserPlan(username, { planKey: key, reason: reason.trim(), days: key !== 'auto' && days ? Number(days) : undefined, startsAt: key !== 'auto' && startsAt ? new Date(startsAt).toISOString() : undefined, ...noticePayload(notice) });
       setReason('');
       setDays('');
+      setStartsAt('');
       load();
+      onChanged?.();
       showToast(key === 'auto' ? `Plan asignado quitado a @${username}` : `Plan ${plans.find((plan) => plan.key === key)?.name || key} asignado a @${username}`, 'success');
     } catch (err) {
       setError(err.message || 'No se pudo cambiar el plan.');
@@ -65,9 +70,13 @@ export default function PlanManager({ username, setError }) {
           <input type="number" inputMode="numeric" min="1" max="3650" value={days} onChange={(event) => setDays(event.target.value)} className={`${field} h-12`} />
         </label>
       </div>
+      <label className="block text-sm font-bold text-slate-700">Inicio (vacío: ahora)
+        <input type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} className={`${field} h-12`} />
+      </label>
       <label className="block text-sm font-bold text-slate-700">Motivo (queda en la auditoría)
         <textarea rows={2} maxLength={300} value={reason} onChange={(event) => setReason(event.target.value)} className={`${field} resize-none py-2`} />
       </label>
+      <NoticeField id="plan" value={notice} onChange={setNotice} />
       <div className="grid gap-2 sm:grid-cols-2">
         <button type="button" disabled={!ready} onClick={() => setPending(planKey)} className="h-12 rounded-full bg-[#12315f] px-5 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 active:scale-[0.97] hover:bg-[#1e40af] disabled:opacity-50">{busy ? 'Guardando…' : 'Asignar plan'}</button>
         <button type="button" disabled={!ready || !grant} onClick={() => setPending('auto')} className="h-12 rounded-full border-2 border-slate-300 px-5 text-sm font-extrabold text-slate-700 transition-[background-color,transform] duration-150 active:scale-[0.97] hover:bg-slate-50 disabled:opacity-50">Quitar plan asignado</button>

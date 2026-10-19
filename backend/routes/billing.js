@@ -5,41 +5,14 @@ import { authenticateToken, isAdminEmail } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { getPlanState, lockPlanUser } from '../core/entitlements.js';
 import { adminOnlyPlans, paidPlan, publicPlans, validPlanKey } from '../core/plans.js';
+import { cancelSubscriptionRecord, mpFetch } from '../core/mercadopago.js';
 
 const router = express.Router();
 // Incluso si la bandera se configurara por error, producción nunca expone el selector sin cobro.
 const TEST_MODE = process.env.BILLING_TEST_MODE === '1' && process.env.NODE_ENV !== 'production';
-// Solo en pruebas locales se puede apuntar a un Mercado Pago simulado (tests/run.cjs)
-const MP_API = (TEST_MODE && process.env.MERCADOPAGO_TEST_API) || 'https://api.mercadopago.com';
 const WEB_URL = (process.env.APP_WEB_URL || (TEST_MODE ? 'http://localhost:5173' : 'https://carpetazo.cl')).replace(/\/$/, '');
 
 const planEnvKey = (key) => `MERCADOPAGO_PLAN_${key.toUpperCase()}_ID`;
-const mpToken = () => String(process.env.MERCADOPAGO_ACCESS_TOKEN || '').trim();
-
-const mpFetch = async (path, options = {}) => {
-  const token = mpToken();
-  if (!token) {
-    const error = new Error('Mercado Pago todavía no está configurado en este entorno.');
-    error.code = 'billing_not_configured';
-    error.status = 503;
-    throw error;
-  }
-  const response = await fetch(MP_API + path, {
-    ...options,
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(options.headers || {}) }
-  });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error('Mercado Pago rechazó la operación. Intenta nuevamente.');
-    error.code = 'mercadopago_error';
-    error.status = response.status >= 500 ? 502 : 400;
-    error.providerStatus = response.status;
-    error.providerMessage = typeof body?.message === 'string' ? body.message.slice(0, 200) : '';
-    error.providerCause = Array.isArray(body?.cause) ? body.cause.map((item) => item?.code).filter(Boolean).slice(0, 4) : [];
-    throw error;
-  }
-  return body;
-};
 
 // Mismos criterios que requireAdmin (core/auth.js): claim de Firebase, rol en la base o correo verificado de ADMIN_EMAILS
 const isAdminRequest = (req, user) => req.user?.admin === true || req.user?.role === 'admin' || user?.role === 'admin' || (req.user?.email_verified === true && isAdminEmail(req.user?.email));
@@ -195,21 +168,8 @@ router.post('/api/billing/cancel', authenticateToken, async (req, res) => {
     if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     const subscription = await prisma.subscription.findFirst({ where: { userId: user.id, status: { in: ['active', 'past_due', 'paused', 'pending'] }, cancelAtPeriodEnd: false }, orderBy: { createdAt: 'desc' } });
     if (!subscription) return res.status(404).json({ success: false, message: 'No tienes una suscripción activa' });
-    if (subscription.providerSubscriptionId) {
-      await mpFetch(`/preapproval/${encodeURIComponent(subscription.providerSubscriptionId)}`, { method: 'PUT', body: JSON.stringify({ status: 'cancelled' }) });
-    }
-    const paidUntil = subscription.currentPeriodEnd || subscription.nextPaymentAt;
-    const keepsAccess = subscription.status === 'active' && paidUntil && paidUntil > new Date();
-    await prisma.$transaction(async (tx) => {
-      await tx.subscription.deleteMany({ where: { userId: user.id, status: 'scheduled' } });
-      await tx.subscription.update({
-        where: { id: subscription.id },
-        data: keepsAccess
-          ? { cancelAtPeriodEnd: true, canceledAt: new Date(), currentPeriodEnd: paidUntil, nextPaymentAt: null }
-          : { status: 'canceled', canceledAt: new Date(), cancelAtPeriodEnd: false }
-      });
-    });
-    res.json({ success: true, endsAt: keepsAccess ? paidUntil : null, ...(await getPlanState(prisma, user.id)) });
+    const { endsAt } = await cancelSubscriptionRecord(subscription);
+    res.json({ success: true, endsAt, ...(await getPlanState(prisma, user.id)) });
   } catch (error) {
     console.error('Error canceling subscription:', error.code || error.message, error.providerStatus || '');
     sendBillingError(res, error, 'No se pudo cancelar la suscripción');

@@ -4,10 +4,12 @@ import { authenticateToken, currentUserId, requireAdmin, requireStaff } from '..
 import { prisma } from '../core/db.js';
 import { getPlanState, lockPlanUser } from '../core/entitlements.js';
 import { PLANS, validPlanKey } from '../core/plans.js';
+import { cancelSubscriptionRecord } from '../core/mercadopago.js';
+import { NOTICE_MAX, cleanNotice, notifyUser } from '../core/staffNotice.js';
 import { hashEmail, hashIp } from '../core/hashing.js';
 import { LEGAL_CURRENT } from '../core/legal.js';
 import { escapeHtml, sendUserEmail } from '../core/mail.js';
-import { badRequest, isShortText, validUsername } from '../core/validation.js';
+import { badRequest, isOptionalText, isShortText, isUuid, validUsername } from '../core/validation.js';
 
 const router = express.Router();
 
@@ -109,6 +111,10 @@ router.get('/api/admin/users/:username/plan', authenticateToken, requireStaff(3)
 router.post('/api/admin/users/:username/plan', authenticateToken, requireStaff(3), async (req, res) => {
   try {
     const { planKey, reason } = req.body || {};
+    const message = cleanNotice(req.body?.message);
+    if (message === null) return badRequest(res, `El mensaje para la persona admite hasta ${NOTICE_MAX} caracteres`);
+    const startsAt = req.body?.startsAt ? new Date(req.body.startsAt) : null;
+    if (startsAt && (Number.isNaN(startsAt.getTime()) || startsAt.getTime() > Date.now() + 366 * 86400000)) return badRequest(res, 'La fecha de inicio no es válida (máximo un año hacia adelante)');
     const days = req.body?.days === undefined || req.body?.days === null || req.body?.days === '' ? null : Number(req.body.days);
     if (planKey !== 'auto' && !validPlanKey(planKey)) return badRequest(res, 'Plan inválido');
     if (planKey === 'free') return badRequest(res, 'Para volver al plan automático usa «Quitar plan asignado»');
@@ -122,7 +128,7 @@ router.post('/api/admin/users/:username/plan', authenticateToken, requireStaff(3
       await lockPlanUser(tx, target.id);
       await tx.planGrant.updateMany({ where: { userId: target.id, revokedAt: null }, data: { revokedAt: new Date() } });
       if (planKey !== 'auto') {
-        await tx.planGrant.create({ data: { userId: target.id, planKey, reason: clean, grantedById: actorId, endsAt: days ? new Date(Date.now() + days * 86400000) : null } });
+        await tx.planGrant.create({ data: { userId: target.id, planKey, reason: clean, grantedById: actorId, ...(startsAt ? { startsAt } : {}), endsAt: days ? new Date((startsAt ? startsAt.getTime() : Date.now()) + days * 86400000) : null } });
       }
       await tx.moderationAudit.create({
         data: {
@@ -135,9 +141,197 @@ router.post('/api/admin/users/:username/plan', authenticateToken, requireStaff(3
         }
       });
     });
-    res.json({ success: true, ...(await getPlanState(prisma, target.id)) });
+    const notified = req.body?.notify === false ? null : await notifyUser({ actorId, targetId: target.id, title: planKey === 'auto' ? 'Quitamos tu plan asignado' : `Tu plan ahora es ${PLANS[planKey].name}`, summary: planKey === 'auto' ? 'El equipo de Carpetazo quitó el plan que te había asignado: vuelves a tu plan automático. No se borró nada de lo que ya tenías.' : `El equipo de Carpetazo te asignó el plan ${PLANS[planKey].name}${days ? ` por ${days} días` : ' sin fecha de término'}.`, message });
+    res.json({ success: true, notified, ...(await getPlanState(prisma, target.id)) });
   } catch (error) {
     console.error('Error changing user plan:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// ============ Ficha completa de una cuenta (solo administradores) ============
+const fullTarget = (raw) => {
+  const username = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+  if (!validUsername(username)) return null;
+  return prisma.user.findUnique({ where: { username } });
+};
+const dayText = (date) => date ? new Date(date).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+const asDate = (value) => (value === null || value === '' ? null : new Date(value));
+const validDate = (date) => date instanceof Date && !Number.isNaN(date.getTime());
+
+router.get('/api/admin/users/:username/details', authenticateToken, requireStaff(3), async (req, res) => {
+  try {
+    const user = await fullTarget(req.params.username);
+    if (!user) return res.status(404).json({ success: false, message: 'Persona no encontrada' });
+    const [state, grants, subscriptions, sanctions, audit, folders, cards, salesDone, salesAll, purchases, reviews, reportsOpen, pushDevices] = await Promise.all([
+      getPlanState(prisma, user.id),
+      prisma.planGrant.findMany({ where: { userId: user.id }, orderBy: { createdAt: 'desc' }, take: 50, select: { id: true, planKey: true, reason: true, startsAt: true, endsAt: true, revokedAt: true, createdAt: true, grantedBy: { select: { username: true, name: true } } } }),
+      prisma.subscription.findMany({ where: { userId: user.id, status: { not: 'scheduled' } }, orderBy: { createdAt: 'desc' }, take: 20, include: { payments: { orderBy: { createdAt: 'desc' }, take: 12, select: { id: true, status: true, amountClp: true, paidAt: true, createdAt: true } } } }),
+      prisma.sanction.findMany({ where: { userId: user.id }, orderBy: { createdAt: 'desc' }, take: 20, select: { id: true, type: true, status: true, reason: true, expiresAt: true, createdAt: true } }),
+      prisma.moderationAudit.findMany({ where: { targetType: 'user', targetId: user.id }, orderBy: { createdAt: 'desc' }, take: 40, select: { id: true, action: true, note: true, createdAt: true, actorId: true } }),
+      prisma.folder.count({ where: { userId: user.id } }),
+      prisma.card.count({ where: { folder: { userId: user.id } } }),
+      prisma.order.count({ where: { sellerId: user.id, status: 'completed' } }),
+      prisma.order.count({ where: { sellerId: user.id } }),
+      prisma.order.count({ where: { buyerId: user.id } }),
+      prisma.sellerReview.count({ where: { sellerId: user.id } }),
+      prisma.report.count({ where: { targetOwnerId: user.id, status: 'open' } }),
+      prisma.pushSubscription.count({ where: { userId: user.id } })
+    ]);
+    const actors = await prisma.user.findMany({ where: { id: { in: [...new Set(audit.map((row) => row.actorId).filter(Boolean))] } }, select: { id: true, username: true, name: true } });
+    const actorName = new Map(actors.map((row) => [row.id, row.name || row.username]));
+    const planLabel = (key) => PLANS[key]?.name || key;
+    const now = new Date();
+    res.set('Cache-Control', 'private, no-store');
+    res.json({
+      success: true,
+      account: {
+        username: user.username, name: user.name, email: user.email, role: user.role, isOwner: user.isOwner, emailVerified: user.emailVerified, bio: user.bio,
+        region: user.publicRegion, comuna: user.publicComuna, createdAt: user.createdAt, updatedAt: user.updatedAt, lastSeenAt: user.lastSeenAt, pushDevices, moderationHidden: user.moderationHidden
+      },
+      activity: { folders, cards, completedSales: salesDone, totalSales: salesAll, purchases, reviewsReceived: reviews, openReportsAgainstThem: reportsOpen },
+      plan: { ...state.plan, source: state.source, grant: state.grant, subscription: state.subscription },
+      grants: grants.map((row) => ({ ...row, planName: planLabel(row.planKey), active: !row.revokedAt && row.startsAt <= now && (!row.endsAt || row.endsAt > now), grantedBy: row.grantedBy ? (row.grantedBy.name || row.grantedBy.username) : null })),
+      subscriptions: subscriptions.map((row) => ({
+        id: row.id, planKey: row.planKey, planName: planLabel(row.planKey), status: row.status, priceClp: row.priceClp, provider: row.provider, cancelAtPeriodEnd: row.cancelAtPeriodEnd,
+        currentPeriodStart: row.currentPeriodStart, currentPeriodEnd: row.currentPeriodEnd, nextPaymentAt: row.nextPaymentAt, canceledAt: row.canceledAt, createdAt: row.createdAt,
+        providerReference: row.providerSubscriptionId ? `${row.providerSubscriptionId.slice(0, 6)}…${row.providerSubscriptionId.slice(-4)}` : null,
+        payments: row.payments
+      })),
+      sanctions,
+      history: audit.map((row) => ({ id: row.id, action: row.action, note: row.note, createdAt: row.createdAt, by: row.actorId ? actorName.get(row.actorId) || null : null }))
+    });
+  } catch (error) {
+    console.error('Error loading user details:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Datos de la cuenta que el equipo puede corregir: nombre, usuario y presentación
+router.put('/api/admin/users/:username/profile', authenticateToken, requireStaff(3), async (req, res) => {
+  try {
+    const { name, username, bio, reason } = req.body || {};
+    const message = cleanNotice(req.body?.message);
+    if (message === null) return badRequest(res, `El mensaje para la persona admite hasta ${NOTICE_MAX} caracteres`);
+    if (!isShortText(reason, 300) || reason.trim().length < 5) return badRequest(res, 'Escribe el motivo (mínimo 5 caracteres)');
+    const user = await fullTarget(req.params.username);
+    if (!user) return res.status(404).json({ success: false, message: 'Persona no encontrada' });
+    const data = {};
+    const changes = [];
+    if (name !== undefined && name !== user.name) {
+      if (!isShortText(name, 60)) return badRequest(res, 'Nombre inválido (hasta 60 caracteres)');
+      data.name = name.trim();
+      changes.push(`nombre «${user.name || '—'}» → «${data.name}»`);
+    }
+    if (username !== undefined && username !== user.username) {
+      const clean = validUsername(username);
+      if (!clean) return badRequest(res, 'Usuario inválido o reservado');
+      if (await prisma.user.findUnique({ where: { username: clean }, select: { id: true } })) return res.status(409).json({ success: false, message: 'Ese usuario ya está en uso' });
+      data.username = clean;
+      changes.push(`usuario @${user.username} → @${clean}`);
+    }
+    if (bio !== undefined && bio !== user.bio) {
+      if (!isOptionalText(bio, 500)) return badRequest(res, 'Presentación inválida (hasta 500 caracteres)');
+      data.bio = bio ? bio.trim() : null;
+      changes.push('presentación');
+    }
+    if (!changes.length) return badRequest(res, 'No hay cambios que guardar');
+    const actorId = await currentUserId(req);
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: user.id }, data }),
+      prisma.moderationAudit.create({ data: { actorId, action: 'user.profile_edited', targetType: 'user', targetId: user.id, note: `@${user.username}: ${changes.join(', ')}. ${reason.trim()}`, meta: { fields: Object.keys(data) } } })
+    ]);
+    const notified = req.body?.notify === false ? null : await notifyUser({ actorId, targetId: user.id, title: 'Actualizamos los datos de tu cuenta', summary: `El equipo de Carpetazo cambió: ${changes.join(', ')}.`, message });
+    res.json({ success: true, notified, username: data.username || user.username });
+  } catch (error) {
+    console.error('Error editing user profile:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Editar una concesión de plan: plan, fecha de inicio y de término
+router.put('/api/admin/users/:username/grants/:id', authenticateToken, requireStaff(3), async (req, res) => {
+  try {
+    const { planKey, reason } = req.body || {};
+    const message = cleanNotice(req.body?.message);
+    if (message === null) return badRequest(res, `El mensaje para la persona admite hasta ${NOTICE_MAX} caracteres`);
+    if (!isShortText(reason, 300) || reason.trim().length < 5) return badRequest(res, 'Escribe el motivo (mínimo 5 caracteres)');
+    if (!isUuid(req.params.id)) return res.status(404).json({ success: false, message: 'Concesión no encontrada' });
+    const user = await fullTarget(req.params.username);
+    const grant = user && await prisma.planGrant.findFirst({ where: { id: req.params.id, userId: user.id } });
+    if (!grant) return res.status(404).json({ success: false, message: 'Concesión no encontrada' });
+    if (grant.revokedAt) return res.status(409).json({ success: false, message: 'Esa concesión ya fue quitada' });
+    const data = {};
+    if (planKey !== undefined) {
+      if (!validPlanKey(planKey) || planKey === 'free') return badRequest(res, 'Plan inválido');
+      data.planKey = planKey;
+    }
+    if (req.body?.startsAt !== undefined) {
+      const startsAt = asDate(req.body.startsAt);
+      if (!startsAt || !validDate(startsAt)) return badRequest(res, 'La fecha de inicio no es válida');
+      data.startsAt = startsAt;
+    }
+    if (req.body?.endsAt !== undefined) {
+      const endsAt = asDate(req.body.endsAt);
+      if (endsAt !== null && !validDate(endsAt)) return badRequest(res, 'La fecha de término no es válida');
+      data.endsAt = endsAt;
+    }
+    const startsAt = data.startsAt || grant.startsAt;
+    const endsAt = data.endsAt === undefined ? grant.endsAt : data.endsAt;
+    if (endsAt && endsAt <= startsAt) return badRequest(res, 'La fecha de término debe ser posterior a la de inicio');
+    if (endsAt && endsAt.getFullYear() > new Date().getFullYear() + 10) return badRequest(res, 'La fecha de término está demasiado lejos');
+    if (!Object.keys(data).length) return badRequest(res, 'No hay cambios que guardar');
+    const actorId = await currentUserId(req);
+    const finalPlan = data.planKey || grant.planKey;
+    await prisma.$transaction(async (tx) => {
+      await lockPlanUser(tx, user.id);
+      await tx.planGrant.update({ where: { id: grant.id }, data });
+      await tx.moderationAudit.create({ data: { actorId, action: 'plan.grant_edited', targetType: 'user', targetId: user.id, note: `Plan asignado a @${user.username}: ${PLANS[finalPlan].name}, ${dayText(startsAt)} → ${endsAt ? dayText(endsAt) : 'sin fecha de término'}. ${reason.trim()}`, meta: { grantId: grant.id, fields: Object.keys(data) } } });
+    });
+    const notified = req.body?.notify === false ? null : await notifyUser({ actorId, targetId: user.id, title: 'Actualizamos tu plan asignado', summary: `Tu plan ${PLANS[finalPlan].name} ahora ${endsAt ? `termina el ${dayText(endsAt)}` : 'no tiene fecha de término'}.`, message });
+    res.json({ success: true, notified, ...(await getPlanState(prisma, user.id)) });
+  } catch (error) {
+    console.error('Error editing plan grant:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Cancelar la suscripción pagada de una persona (corta los cobros; conserva lo ya pagado)
+router.post('/api/admin/users/:username/subscription/cancel', authenticateToken, requireStaff(3), async (req, res) => {
+  try {
+    const { reason } = req.body || {};
+    const message = cleanNotice(req.body?.message);
+    if (message === null) return badRequest(res, `El mensaje para la persona admite hasta ${NOTICE_MAX} caracteres`);
+    if (!isShortText(reason, 300) || reason.trim().length < 5) return badRequest(res, 'Escribe el motivo (mínimo 5 caracteres)');
+    const user = await fullTarget(req.params.username);
+    if (!user) return res.status(404).json({ success: false, message: 'Persona no encontrada' });
+    const subscription = await prisma.subscription.findFirst({ where: { userId: user.id, status: { in: ['active', 'past_due', 'paused', 'pending'] }, cancelAtPeriodEnd: false }, orderBy: { createdAt: 'desc' } });
+    if (!subscription) return res.status(404).json({ success: false, message: 'Esa persona no tiene una suscripción activa' });
+    const actorId = await currentUserId(req);
+    const { endsAt } = await cancelSubscriptionRecord(subscription);
+    await prisma.moderationAudit.create({ data: { actorId, action: 'subscription.canceled_by_staff', targetType: 'user', targetId: user.id, note: `Suscripción ${PLANS[subscription.planKey]?.name || subscription.planKey} de @${user.username} cancelada por el equipo. ${reason.trim()}`, meta: { subscriptionId: subscription.id } } });
+    const notified = req.body?.notify === false ? null : await notifyUser({ actorId, targetId: user.id, title: 'Cancelamos tu suscripción', summary: `El equipo de Carpetazo canceló tu suscripción: no se te volverá a cobrar.${endsAt ? ` Conservas tu plan hasta el ${dayText(endsAt)}.` : ''}`, message });
+    res.json({ success: true, endsAt, notified });
+  } catch (error) {
+    console.error('Error canceling subscription by staff:', error.code || error.message, error.providerStatus || '');
+    const own = ['billing_not_configured', 'mercadopago_error'].includes(error.code);
+    res.status(own ? error.status || 500 : 500).json({ success: false, message: own ? error.message : 'Error interno' });
+  }
+});
+
+// Un aviso suelto, sin cambiar nada en la cuenta
+router.post('/api/admin/users/:username/notify', authenticateToken, requireStaff(3), async (req, res) => {
+  try {
+    const message = cleanNotice(req.body?.message);
+    if (!message || message.length < 5) return badRequest(res, `Escribe el mensaje para la persona (entre 5 y ${NOTICE_MAX} caracteres)`);
+    const user = await fullTarget(req.params.username);
+    if (!user || user.role === 'deleted') return res.status(404).json({ success: false, message: 'Persona no encontrada' });
+    const actorId = await currentUserId(req);
+    await prisma.moderationAudit.create({ data: { actorId, action: 'user.notice_sent', targetType: 'user', targetId: user.id, note: `Aviso a @${user.username}: ${message.slice(0, 200)}` } });
+    const notified = await notifyUser({ actorId, targetId: user.id, title: 'Un mensaje del equipo de Carpetazo', summary: message, message: '' });
+    res.json({ success: true, notified });
+  } catch (error) {
+    console.error('Error sending staff notice:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
   }
 });

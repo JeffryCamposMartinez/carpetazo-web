@@ -191,7 +191,12 @@ export const api = {
   getTermsEvidence: (body) => apiFetch('/admin/terms/evidence', { method: 'POST', body: JSON.stringify(body) }),
   getUserPlan: (username) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/plan'),
   setUserPlan: (username, payload) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/plan', { method: 'POST', body: JSON.stringify(payload) }),
-  setStaffRole: (username, role) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/role', { method: 'POST', body: JSON.stringify({ role }) }),
+  setStaffRole: (username, role, notice = {}) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/role', { method: 'POST', body: JSON.stringify({ role, ...notice }) }),
+  getUserDetails: (username) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/details'),
+  updateUserProfile: (username, payload) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/profile', { method: 'PUT', body: JSON.stringify(payload) }),
+  editUserGrant: (username, grantId, payload) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/grants/' + encodeURIComponent(grantId), { method: 'PUT', body: JSON.stringify(payload) }),
+  cancelUserSubscription: (username, payload) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/subscription/cancel', { method: 'POST', body: JSON.stringify(payload) }),
+  notifyUser: (username, message) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/notify', { method: 'POST', body: JSON.stringify({ message }) }),
   getAdminAppeals: (status) => apiFetch('/admin/appeals?status=' + (status || 'open')),
   decideAppeal: (id, action, note) => apiFetch('/admin/appeals/' + encodeURIComponent(id) + '/decision', { method: 'POST', body: JSON.stringify({ action, note }) }),
   // Carga de cartas nuevas desde cartas_incrementales.json (solo administradores): primero se revisa, después se carga lo revisado

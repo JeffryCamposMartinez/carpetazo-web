@@ -132,7 +132,7 @@ const Stat = ({ value, label }) => (
 );
 
 // Ficha de una persona (historial, medidas, roles) y lista de medidas del sitio
-export default function PeoplePanel({ level, focusUsername, focusReportId, onFocusUsed }) {
+export default function PeoplePanel({ level, focusUsername, focusReportId, onFocusUsed, onOpenAccount }) {
   const [search, setSearch] = useState('');
   const [username, setUsername] = useState('');
   const [profile, setProfile] = useState(null);
@@ -244,6 +244,7 @@ export default function PeoplePanel({ level, focusUsername, focusReportId, onFoc
                 <div className="min-w-0">
                   <p className="truncate text-lg font-extrabold leading-tight text-[#12315f]">{profile.user.name || profile.user.username}</p>
                   <Link to={`/${profile.user.username}`} className="text-sm font-bold text-[#1e40af] underline-offset-2 hover:underline">@{profile.user.username}</Link>
+                  {level >= 3 && onOpenAccount && <button type="button" onClick={() => onOpenAccount(profile.user.username)} className="ml-3 text-sm font-bold text-slate-600 underline-offset-2 hover:text-[#1e40af] hover:underline">Ver cuenta completa</button>}
                 </div>
               </div>
               <p className="mt-3 text-sm text-slate-600">{ROLE_LABELS[profile.user.role] || profile.user.role}. Cuenta creada hace {profile.user.ageDays} días.</p>
