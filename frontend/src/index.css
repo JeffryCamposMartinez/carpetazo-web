@@ -5,8 +5,23 @@
 @layer base {
   html {
     overflow-y: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+  }
+  /* Celulares y pantallas táctiles: sin barra (el sistema ya muestra una que aparece al desplazar) */
+  @media (hover: none), (pointer: coarse) {
+    html {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    html::-webkit-scrollbar {
+      display: none;
+    }
+  }
+  /* Computador: barra de la página visible y con los colores de la marca (amarillo sobre azul), para arrastrarla en vez de usar solo la rueda del mouse */
+  @media (hover: hover) and (pointer: fine) {
+    html {
+      scrollbar-width: auto;
+      scrollbar-color: #facc15 rgba(8, 18, 42, 0.6);
+    }
   }
   .hide-scrollbar {
     -ms-overflow-style: none;
@@ -14,9 +29,6 @@
   }
   .hide-scrollbar::-webkit-scrollbar {
     display: none !important;
-  }
-  html::-webkit-scrollbar {
-    display: none;
   }
 
   body {
