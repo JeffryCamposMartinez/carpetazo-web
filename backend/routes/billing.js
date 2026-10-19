@@ -33,6 +33,7 @@ const mpFetch = async (path, options = {}) => {
     error.code = 'mercadopago_error';
     error.status = response.status >= 500 ? 502 : 400;
     error.providerStatus = response.status;
+    error.providerMessage = typeof body?.message === 'string' ? body.message.slice(0, 200) : '';
     error.providerCause = Array.isArray(body?.cause) ? body.cause.map((item) => item?.code).filter(Boolean).slice(0, 4) : [];
     throw error;
   }
@@ -161,7 +162,8 @@ router.post('/api/billing/checkout', authenticateToken, async (req, res) => {
     res.json({ success: true, checkoutUrl: created.init_point, subscriptionId: id });
   } catch (error) {
     if (localSubscriptionId) await prisma.subscription.updateMany({ where: { id: localSubscriptionId, status: 'pending' }, data: { status: 'failed' } }).catch(() => {});
-    console.error('Error creating Mercado Pago subscription:', error.code || error.message);
+    // Con el detalle de Mercado Pago (código HTTP, causas y su mensaje: nunca el token) se ve por qué rechazó, p. ej. un monto bajo el mínimo
+    console.error('Error creating Mercado Pago subscription:', error.code || error.message, error.providerStatus || '', (error.providerCause || []).join(','), error.providerMessage || '');
     sendBillingError(res, error, 'No se pudo iniciar la suscripción');
   }
 });
