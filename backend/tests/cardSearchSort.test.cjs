@@ -71,9 +71,18 @@ const { prisma, call, ok } = require('./fixtures.cjs');
 
     // «¿Quisiste decir…?»: corrige palabras mal escritas y calla cuando el texto ya existe
     r = await call('GET', '/tcg/suggest?q=lucaro');
-    ok('sugerencia: «lucaro» → «lucario»', r.status === 200 && r.j.suggestion === 'lucario', JSON.stringify(r.j));
+    ok('sugerencia: «lucaro» → un nombre de carta («Lucario»)', r.status === 200 && r.j.suggestion === 'Lucario', JSON.stringify(r.j));
     r = await call('GET', '/tcg/suggest?q=' + encodeURIComponent('boss orderer'));
-    ok('sugerencia: «boss orderer» → «boss orders»', r.status === 200 && r.j.suggestion === 'boss orders', JSON.stringify(r.j));
+    ok("sugerencia: «boss orderer» → Boss Orders", r.status === 200 && r.j.suggestion === "Boss's Orders", JSON.stringify(r.j));
+    for (const nonsense of ['zzqqxx', 'asdfgh', 'qwertyuiop']) {
+      r = await call('GET', '/tcg/suggest?q=' + nonsense);
+      ok('texto sin parecido («' + nonsense + '») no sugiere nada', r.status === 200 && r.j.suggestion === null, JSON.stringify(r.j));
+    }
+    for (const typo of ['charizrd', 'mewtoo', 'bulbasur', 'miraidom', 'professor reserch']) {
+      r = await call('GET', '/tcg/suggest?q=' + encodeURIComponent(typo));
+      const found = r.j.suggestion ? await call('GET', '/tcg/search-index?q=' + encodeURIComponent(r.j.suggestion)) : null;
+      ok('«' + typo + '» sugiere un nombre que existe en el catálogo (' + r.j.suggestion + ')', Boolean(r.j.suggestion) && found.j.cards.some((c) => c.name.toLowerCase().replace(/['’]/g, '').startsWith(r.j.suggestion.toLowerCase().replace(/['’]/g, ''))), JSON.stringify(r.j));
+    }
     r = await call('GET', '/tcg/suggest?q=' + encodeURIComponent("boss's orders"));
     ok('sin sugerencia cuando el texto ya existe', r.status === 200 && r.j.suggestion === null, JSON.stringify(r.j));
     r = await call('GET', '/tcg/suggest?q=ab');

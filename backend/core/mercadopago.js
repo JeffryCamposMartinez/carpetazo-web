@@ -7,6 +7,15 @@ const TEST_MODE = process.env.BILLING_TEST_MODE === '1' && process.env.NODE_ENV 
 const MP_API = (TEST_MODE && process.env.MERCADOPAGO_TEST_API) || 'https://api.mercadopago.com';
 const mpToken = () => String(process.env.MERCADOPAGO_ACCESS_TOKEN || '').trim();
 
+// El enlace de pago que se entrega al navegador debe ser https y de Mercado Pago (en pruebas locales, el simulado)
+export const isMercadoPagoCheckoutUrl = (value) => {
+  try {
+    const url = new URL(String(value));
+    if (TEST_MODE) return url.protocol === 'http:' || url.protocol === 'https:';
+    return url.protocol === 'https:' && !url.username && !url.password && /(^|\.)mercadopago\.(com|cl|com\.ar|com\.br|com\.co|com\.mx|com\.pe|com\.uy)$/i.test(url.hostname);
+  } catch { return false; }
+};
+
 export const mpFetch = async (path, options = {}) => {
   const token = mpToken();
   if (!token) {

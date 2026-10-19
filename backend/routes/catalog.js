@@ -6,7 +6,7 @@ import { gzip } from 'node:zlib';
 import { prisma } from '../core/db.js';
 import { badRequest, isAllowedProxyImageUrl } from '../core/validation.js';
 import { MYL_ID_PREFIX, rawMylId } from '../core/mylIdentity.js';
-import { nameDistance, nameMatch, searchFragments, similarCardName } from '../core/cardSearch.js';
+import { likeEscape, nameDistance, nameMatch, searchFragments, similarCardName } from '../core/cardSearch.js';
 
 const router = express.Router();
 const gzipAsync = promisify(gzip);
@@ -549,7 +549,7 @@ router.get('/api/tcg/search', async (req, res) => {
       const cleanQ = q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, "");
       whereClause.OR = [
         nameMatch(q), // sin importar los apóstrofos
-        { cleanName: { contains: cleanQ, mode: 'insensitive' } }
+        { cleanName: { contains: likeEscape(cleanQ), mode: 'insensitive' } }
       ];
     }
     if (categoryId) whereClause.categoryId = parseInt(categoryId);

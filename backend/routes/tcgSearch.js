@@ -3,7 +3,7 @@ import { prisma } from '../core/db.js';
 import { badRequest } from '../core/validation.js';
 import { indexedNames, searchTcgIndex } from '../core/tcgSearchIndex.js';
 import { buildVocabulary, hasVocabulary, suggestQuery } from '../core/cardSuggest.js';
-import { nameMatch } from '../core/cardSearch.js';
+import { likeEscape, nameMatch } from '../core/cardSearch.js';
 
 const router = express.Router();
 const r2PublicUrl = (key) => {
@@ -110,9 +110,9 @@ router.get('/api/tcg/search-index', async (req, res) => {
     kind: 'card',
     ...gameWhere,
     OR: [
-      { cleanName: { contains: value } },
+      { cleanName: { contains: likeEscape(value) } },
       nameMatch(searchText),
-      { number: { contains: searchText, mode: 'insensitive' } },
+      { number: { contains: likeEscape(searchText), mode: 'insensitive' } },
     ],
   };
   const run = (async () => {

@@ -5,7 +5,7 @@ import { authenticateToken, isAdminEmail } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { getPlanState, lockPlanUser } from '../core/entitlements.js';
 import { adminOnlyPlans, paidPlan, publicPlans, validPlanKey } from '../core/plans.js';
-import { cancelSubscriptionRecord, mpFetch } from '../core/mercadopago.js';
+import { cancelSubscriptionRecord, isMercadoPagoCheckoutUrl, mpFetch } from '../core/mercadopago.js';
 
 const router = express.Router();
 // Incluso si la bandera se configurara por error, producción nunca expone el selector sin cobro.
@@ -145,7 +145,7 @@ router.post('/api/billing/checkout', authenticateToken, async (req, res) => {
         : { auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: plan.priceClp, currency_id: 'CLP' } })
     };
     const created = await mpFetch('/preapproval', { method: 'POST', body: JSON.stringify(payload), headers: { 'X-Idempotency-Key': id } });
-    if (!created?.id || !created?.init_point) throw Object.assign(new Error('Mercado Pago no devolvió un enlace de pago.'), { code: 'mercadopago_invalid_response', status: 502 });
+    if (!created?.id || !isMercadoPagoCheckoutUrl(created?.init_point)) throw Object.assign(new Error('Mercado Pago no devolvió un enlace de pago.'), { code: 'mercadopago_invalid_response', status: 502 });
 
     await prisma.subscription.update({
       where: { id },
