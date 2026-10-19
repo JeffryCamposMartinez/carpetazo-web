@@ -115,8 +115,11 @@ export const checkSocialField = (field, value) => {
 };
 
 // Validación simple de entradas: tipos y tamaños razonables
-export const isShortText = (value, max) => typeof value === 'string' && value.trim().length > 0 && value.length <= max;
-export const isOptionalText = (value, max) => value === undefined || value === null || (typeof value === 'string' && value.length <= max);
+// Caracteres que no se ven pero cambian lo que se lee (dirección de texto y ancho cero): permiten hacerse pasar por otra persona o por el personal.
+// El unificador de emojis (U+200D) y los selectores de variante se permiten.
+export const hasDeceptiveChars = (text) => typeof text === 'string' && /[\u200B\u200C\u200E\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF\u2028\u2029]/.test(text);
+export const isShortText = (value, max) => typeof value === 'string' && value.trim().length > 0 && value.length <= max && !hasDeceptiveChars(value);
+export const isOptionalText = (value, max) => value === undefined || value === null || (typeof value === 'string' && value.length <= max && !hasDeceptiveChars(value));
 export const isValidPrice = (value) => value === undefined || value === null || value === '' || (Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 100000000);
 export const isValidStock = (value) => value === undefined || (Number.isInteger(Number(value)) && Number(value) >= 0 && Number(value) <= 100000);
 export const isSmallObject = (value, maxBytes = 20000) => value === undefined || value === null

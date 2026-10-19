@@ -431,7 +431,8 @@ function HistoryRow({ order, open, onToggle }) {
 }
 
 const downloadCsv = (orders) => {
-  const escape = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+  // Una celda que empieza con = + - @ se ejecutaría como fórmula en Excel: se antepone una comilla simple
+  const escape = (value) => { const text = String(value ?? ''); return `"${(/^[=+\-@\t\r]/.test(text) ? `'${text}` : text).replace(/"/g, '""')}"`; };
   const rows = [['Fecha', 'Código', 'Estado', 'Carpeta', 'Carta', 'Edición', 'Número', 'Idioma', 'Cantidad', 'Precio unitario', 'Subtotal']];
   for (const order of orders) {
     for (const item of order.items || []) {

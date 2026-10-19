@@ -77,7 +77,7 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.get('/api/health', cors(corsOptions), async (_req, res) => {
   try {
     await Promise.race([prisma.$queryRaw`SELECT 1`, new Promise((_resolve, reject) => setTimeout(() => reject(new Error('timeout')), 3000))]);
-    res.json({ success: true, status: 'ok', db: 'ok', uptime: Math.round(process.uptime()) });
+    res.json({ success: true, status: 'ok', db: 'ok' });
   } catch (_error) {
     res.status(503).json({ success: false, status: 'degraded', db: 'down' });
   }
@@ -93,7 +93,18 @@ applyRouteLimits(app);
 app.use('/api/admin/catalog-import', express.json({ limit: '12mb' }));
 app.use('/api/admin/tcg-catalog-import', express.json({ limit: '12mb' }));
 app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ limit: '2mb', extended: true }));
+
+// PostgreSQL no admite el byte nulo en textos: llegaba a la base y terminaba en un error 500 (en la URL, el cuerpo o las cadenas JSON)
+app.use('/api', (req, res, next) => {
+  try {
+    if (/%00/i.test(req.url) || (req.body && typeof req.body === 'object' && JSON.stringify(req.body).includes('\\u0000'))) {
+      return res.status(400).json({ success: false, message: 'Solicitud inválida' });
+    }
+  } catch (_error) {
+    return res.status(400).json({ success: false, message: 'Solicitud inválida' }); // cuerpo tan anidado que no se puede recorrer
+  }
+  return next();
+});
 
 // Sin aceptación vigente de los Términos no se puede escribir nada (core/legal.js)
 app.use('/api', termsGate);
