@@ -1,4 +1,5 @@
 import PokemonFilters from './PokemonFilters';
+import DidYouMean from '../../ui/DidYouMean';
 import OnePieceFilters from './OnePieceFilters';
 import MagicFilters from './MagicFilters';
 import RiftboundFilters from './RiftboundFilters';
@@ -355,6 +356,7 @@ export default function FolderAddSearchFilters({
           onLangChange={(l) => { setSearchLang(l); setSearchSet(''); }}
         />
       )}
+      <DidYouMean query={searchQuery} onPick={setSearchQuery} className="px-2 pb-1" />
     </div>
   );
 }

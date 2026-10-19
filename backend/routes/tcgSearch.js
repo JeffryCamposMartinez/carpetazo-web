@@ -1,7 +1,8 @@
 import express from 'express';
 import { prisma } from '../core/db.js';
 import { badRequest } from '../core/validation.js';
-import { searchTcgIndex } from '../core/tcgSearchIndex.js';
+import { indexedNames, searchTcgIndex } from '../core/tcgSearchIndex.js';
+import { buildVocabulary, hasVocabulary, suggestQuery } from '../core/cardSuggest.js';
 import { nameMatch } from '../core/cardSearch.js';
 
 const router = express.Router();
@@ -71,6 +72,23 @@ const soldRankedPage = async (where, page, limit) => {
   const byId = new Map(found.map((card) => [card.productId, card]));
   return pageIds.map((id) => byId.get(id)).filter(Boolean);
 };
+
+// «¿Quisiste decir…?» para los buscadores de cartas
+router.get('/api/tcg/suggest', async (req, res) => {
+  const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  if (query.length < 3 || query.length > 80) return badRequest(res, 'Búsqueda inválida');
+  try {
+    if (!hasVocabulary()) {
+      const mylNames = await prisma.tcgProduct.findMany({ distinct: ['name'], select: { name: true } }).catch(() => []);
+      buildVocabulary([...indexedNames(), ...mylNames.map((card) => card.name)]);
+    }
+    res.set('Cache-Control', 'public, max-age=300');
+    return res.json({ success: true, suggestion: suggestQuery(query) });
+  } catch (error) {
+    console.error('Error sugeriendo búsqueda:', error.message);
+    return res.json({ success: true, suggestion: null });
+  }
+});
 
 router.get('/api/tcg/search-index', async (req, res) => {
   const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';

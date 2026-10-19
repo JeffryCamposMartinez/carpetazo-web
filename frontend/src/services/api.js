@@ -140,6 +140,7 @@ export const api = {
   getCardOffers: (id) => apiFetch('/cards/' + encodeURIComponent(id) + '/offers'),
   getRecentCards: (limit = 12) => apiFetch('/cards/recent?limit=' + limit),
   searchCards: (queryString = '') => searchCardsShared(queryString),
+  suggestCardQuery: (query) => apiFetch(`/tcg/suggest?q=${encodeURIComponent(query)}`),
   searchTcgIndex: (query, game, page = 1, sort = '') => apiFetch(`/tcg/search-index?q=${encodeURIComponent(query)}${game ? `&game=${encodeURIComponent(game)}` : ''}${sort ? `&sort=${encodeURIComponent(sort)}` : ''}&page=${page}`),
   getMyCards: (queryString = '') => apiFetch(`/cards/mine?${queryString}`),
   getSellerReviews: (username, page = 1) => apiFetch('/users/' + encodeURIComponent(username) + '/reviews?page=' + page),

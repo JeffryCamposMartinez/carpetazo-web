@@ -14,6 +14,8 @@ const load = () => {
   try { cached = JSON.parse(zlib.gunzipSync(fs.readFileSync(indexPath), { maxOutputLength: 900 * 1024 * 1024 })); return cached; } catch (error) { console.error('No se pudo cargar índice TCG:', error.message); return null; }
 };
 
+export const indexedNames = () => load()?.cards.map((card) => card.name) || [];
+
 export const searchTcgIndex = ({ query, game, page = 1, limit = 60 }) => {
   const index = load();
   if (!index) return { available: false, total: 0, page, pages: 0, cards: [] };

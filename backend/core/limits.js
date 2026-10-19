@@ -90,6 +90,7 @@ export const applyRouteLimits = (app) => {
   app.post('/api/users/upload-audio', routeLimiter(15 * 60 * 1000, 60)); // mensajes de voz
   app.get('/api/tcg/search', routeLimiter(15 * 60 * 1000, 300));
   app.get('/api/tcg/search-index', routeLimiter(15 * 60 * 1000, 600));
+  app.get('/api/tcg/suggest', routeLimiter(15 * 60 * 1000, 600));
   app.post('/api/tcg/products/metadata', routeLimiter(15 * 60 * 1000, 300));
   app.get('/api/cards/search', routeLimiter(15 * 60 * 1000, 300));
   app.get('/api/cards/:id/offers', routeLimiter(15 * 60 * 1000, 300));

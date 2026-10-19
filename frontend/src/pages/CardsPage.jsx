@@ -10,6 +10,7 @@ import CardsFilters from '../components/cards/CardsFilters';
 import { scrollToTopThen } from '../utils/scrollToTopThen';
 import FloatingTools from '../components/ui/FloatingTools';
 import CardsPagination from '../components/cards/CardsPagination';
+import DidYouMean from '../components/ui/DidYouMean';
 import CardInfoResults from '../components/cards/CardInfoResults';
 import CardsResultsBar, { SORT_VALUES } from '../components/cards/CardsResultsBar';
 import usePageMeta from '../hooks/usePageMeta';
@@ -168,6 +169,8 @@ export default function CardsPage() {
               total={result.total}
               view={effectiveView}
             />
+
+            <DidYouMean query={urlQuery} onPick={(value) => { setQueryInput(value); updateParams({ q: value }); }} className="mb-3" />
 
             {failed ? (
               <EmptyState icon="cloud_off" title="No pudimos cargar las cartas" action={{ label: 'Reintentar', icon: 'refresh', onClick: () => setSearchParams(new URLSearchParams(searchParams), { replace: true }) }} role="alert">

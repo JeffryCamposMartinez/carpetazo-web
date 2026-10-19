@@ -69,6 +69,16 @@ const { prisma, call, ok } = require('./fixtures.cjs');
     r = await call('GET', '/cards/search?q=' + encodeURIComponent("'"));
     ok('un texto solo de apóstrofos busca ese símbolo y no falla', r.status === 200 && r.j.cards.every((c) => /['’‘´`]/.test(c.name)), String(r.j.total));
 
+    // «¿Quisiste decir…?»: corrige palabras mal escritas y calla cuando el texto ya existe
+    r = await call('GET', '/tcg/suggest?q=lucaro');
+    ok('sugerencia: «lucaro» → «lucario»', r.status === 200 && r.j.suggestion === 'lucario', JSON.stringify(r.j));
+    r = await call('GET', '/tcg/suggest?q=' + encodeURIComponent('boss orderer'));
+    ok('sugerencia: «boss orderer» → «boss orders»', r.status === 200 && r.j.suggestion === 'boss orders', JSON.stringify(r.j));
+    r = await call('GET', '/tcg/suggest?q=' + encodeURIComponent("boss's orders"));
+    ok('sin sugerencia cuando el texto ya existe', r.status === 200 && r.j.suggestion === null, JSON.stringify(r.j));
+    r = await call('GET', '/tcg/suggest?q=ab');
+    ok('sugerencia con texto muy corto → 400', r.status === 400, String(r.status));
+
     // Carpeta del dueño: unidades vendidas y fecha de edición para ordenar su inventario; el público solo recibe la fecha de la edición
     r = await call('GET', '/folders/' + folder.id, 'seller');
     const mine = Object.fromEntries((r.j.folder?.cards || []).map((c) => [c.name, c]));
