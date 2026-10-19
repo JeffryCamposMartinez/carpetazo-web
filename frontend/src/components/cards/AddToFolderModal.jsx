@@ -21,13 +21,12 @@ const stepButton = 'flex h-full w-10 shrink-0 items-center justify-center text-[
 
 const productIdOf = (card) => String(card.tcgProductId || card.payload?.productId || card.payload?.external?.productId || '').replace(/^(tcgcsv|myl):/, '');
 
-// Con el plan de la persona: ¿le queda espacio para crear una carpeta más de este juego? (si no se sabe, se deja intentar: el servidor decide)
-const canCreateFolder = (planState, tcg) => {
+// Con el plan de la persona: ¿le queda espacio para crear una carpeta más? (si no se sabe, se deja intentar: el servidor decide)
+const canCreateFolder = (planState) => {
   const plan = planState?.plan;
   if (!plan) return true;
   const usage = planState.usage || {};
   if (plan.folders !== null && plan.folders !== undefined && (usage.folders || 0) >= plan.folders) return false;
-  if (plan.foldersPerTcg !== null && plan.foldersPerTcg !== undefined && (usage.byTcg?.[tcg] || 0) >= plan.foldersPerTcg) return false;
   return true;
 };
 
@@ -56,7 +55,7 @@ export default function AddToFolderModal({ card, variants = [], onClose }) {
     api.getMyFolders().then((res) => {
       if (cancelled) return;
       const mine = (res.folders || []).filter((folder) => folder.tcg === folderTcg || (folderTcg === 'Pokemon' && folder.tcg === 'Pokemon_Japan'));
-      const allowed = canCreateFolder(res.planState, folderTcg);
+      const allowed = canCreateFolder(res.planState);
       setMayCreate(allowed);
       setFolders(mine);
       setFolderId(mine[0]?.id || (allowed ? NEW_FOLDER : ''));

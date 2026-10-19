@@ -282,7 +282,7 @@ export default function Dashboard() {
       });
       
       setFolders([...folders, response.folder]);
-      setPlanState(previous => previous ? { ...previous, usage: { ...previous.usage, folders: (previous.usage?.folders || 0) + 1, byTcg: { ...(previous.usage?.byTcg || {}), [response.folder.tcg]: (previous.usage?.byTcg?.[response.folder.tcg] || 0) + 1 } } } : previous);
+      setPlanState(previous => previous ? { ...previous, usage: { ...previous.usage, folders: (previous.usage?.folders || 0) + 1 } } : previous);
       setNewFolderName('');
       setNewFolderPublic(false);
       setIsCreateModalOpen(false);
@@ -306,8 +306,7 @@ export default function Dashboard() {
     try {
       await api.deleteFolder(folderToDelete.id);
       setFolders(folders.filter(f => f.id !== folderToDelete.id));
-      const removed = folders.find(f => f.id === folderToDelete.id);
-      setPlanState(previous => previous ? { ...previous, usage: { ...previous.usage, folders: Math.max(0, (previous.usage?.folders || 0) - 1), byTcg: removed ? { ...(previous.usage?.byTcg || {}), [removed.tcg]: Math.max(0, (previous.usage?.byTcg?.[removed.tcg] || 0) - 1) } : previous.usage?.byTcg } } : previous);
+      setPlanState(previous => previous ? { ...previous, usage: { ...previous.usage, folders: Math.max(0, (previous.usage?.folders || 0) - 1) } } : previous);
       showToast("Carpeta eliminada", "success");
       setIsCreateModalOpen(false);
     } catch (error) {

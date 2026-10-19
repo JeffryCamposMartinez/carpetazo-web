@@ -362,7 +362,7 @@ router.post('/api/folders', authenticateToken, async (req, res) => {
     const folderTcg = tcg || 'Pokemon';
     const folder = await prisma.$transaction(async (tx) => {
       await lockPlanUser(tx, user.id);
-      await assertCanCreateFolder(tx, user.id, folderTcg);
+      await assertCanCreateFolder(tx, user.id);
       return tx.folder.create({
         data: {
           name,

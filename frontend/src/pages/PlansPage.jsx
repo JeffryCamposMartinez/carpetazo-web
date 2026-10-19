@@ -27,7 +27,6 @@ function PlanCard({ plan, current, busy, testMode, cta, onChoose }) {
     `${number(plan.folders)} ${plan.folders === 1 ? 'carpeta' : 'carpetas'}`,
     `${number(plan.uniqueCardsPerFolder)} cartas únicas por carpeta`,
     `${number(plan.copiesPerCard)} copias por carta`,
-    plan.foldersPerTcg === null ? 'Varias carpetas del mismo TCG' : `${plan.foldersPerTcg} ${plan.foldersPerTcg === 1 ? 'carpeta' : 'carpetas'} por TCG`,
     ...(plan.key === 'free' || plan.adminOnly ? [] : [`Insignia pública ${plan.name}`])
   ];
   return (

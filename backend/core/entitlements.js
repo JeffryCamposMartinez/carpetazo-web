@@ -4,7 +4,6 @@ const ACTIVE_SUBSCRIPTION_STATES = ['active', 'past_due'];
 const PAST_DUE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
 const QUOTA_MESSAGES = {
   plan_folder_limit: 'Alcanzaste el máximo de carpetas de tu plan.',
-  plan_tcg_folder_limit: 'Alcanzaste el máximo de carpetas de este juego para tu plan.',
   plan_unique_card_limit: 'Esta carpeta alcanzó el máximo de cartas únicas de tu plan.',
   plan_copy_limit: 'Alcanzaste el máximo de copias de esta carta para tu plan.',
   card_identity_conflict: 'Esta carta ya existe en la carpeta con el mismo idioma.'
@@ -72,15 +71,13 @@ export const getEffectivePlan = async (db, userId, now = new Date()) => {
 export const getPlanUsage = async (db, userId) => {
   const folders = await db.folder.findMany({
     where: { userId },
-    select: { id: true, tcg: true, _count: { select: { cards: true } }, cards: { select: { stock: true }, orderBy: { stock: 'desc' }, take: 1 } }
+    select: { id: true, _count: { select: { cards: true } }, cards: { select: { stock: true }, orderBy: { stock: 'desc' }, take: 1 } }
   });
-  const byTcg = {};
   const byFolder = {};
   for (const folder of folders) {
-    byTcg[folder.tcg] = (byTcg[folder.tcg] || 0) + 1;
     byFolder[folder.id] = { uniqueCards: folder._count.cards, highestCopies: folder.cards[0]?.stock || 0 };
   }
-  return { folders: folders.length, byTcg, byFolder };
+  return { folders: folders.length, byFolder };
 };
 
 export const getPlanState = async (db, userId) => {
@@ -90,14 +87,10 @@ export const getPlanState = async (db, userId) => {
 
 export const lockPlanUser = (tx, userId) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'plan:' + userId}))`;
 
-export const assertCanCreateFolder = async (tx, userId, tcg) => {
+export const assertCanCreateFolder = async (tx, userId) => {
   const { plan } = await getEffectivePlan(tx, userId);
-  const [folders, sameTcg] = await Promise.all([
-    tx.folder.count({ where: { userId } }),
-    tx.folder.count({ where: { userId, tcg } })
-  ]);
+  const folders = await tx.folder.count({ where: { userId } });
   if (limitReached(folders, plan.folders)) throw new PlanLimitError('plan_folder_limit', { current: folders, limit: plan.folders, planKey: plan.key });
-  if (limitReached(sameTcg, plan.foldersPerTcg)) throw new PlanLimitError('plan_tcg_folder_limit', { current: sameTcg, limit: plan.foldersPerTcg, planKey: plan.key, details: { tcg } });
   return plan;
 };
 

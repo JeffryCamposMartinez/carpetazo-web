@@ -34,13 +34,11 @@ const { prisma, call, ok } = require('./fixtures.cjs');
     ok('Free bloquea 26 copias', r.status === 409 && r.j.code === 'plan_copy_limit', JSON.stringify(r.j));
 
     r = await call('POST', '/billing/test-plan', 'nobuyer', { planKey: 'enthusiast' });
-    ok('activar Entusiasta', r.status === 200 && r.j.plan?.folders === 3 && r.j.plan?.foldersPerTcg === 2);
+    ok('activar Entusiasta', r.status === 200 && r.j.plan?.folders === 3 && !('foldersPerTcg' in r.j.plan));
     r = await mkFolder('TEST Entusiasta Pokemon 2', 'Pokemon');
-    ok('Entusiasta permite segunda carpeta del mismo TCG', r.status === 200, JSON.stringify(r.j));
-    r = await mkFolder('TEST Entusiasta Pokemon 3', 'Pokemon');
-    ok('Entusiasta bloquea una tercera carpeta del mismo TCG', r.status === 409 && r.j.code === 'plan_tcg_folder_limit', JSON.stringify(r.j));
-    const magic = await mkFolder('TEST Entusiasta Magic', 'Magic');
-    ok('Entusiasta permite tres carpetas totales', magic.status === 200, JSON.stringify(magic.j));
+    ok('Entusiasta permite una segunda carpeta del mismo TCG', r.status === 200, JSON.stringify(r.j));
+    const third = await mkFolder('TEST Entusiasta Pokemon 3', 'Pokemon');
+    ok('Entusiasta permite tres carpetas totales aunque sean del mismo TCG (sin límite por TCG)', third.status === 200, JSON.stringify(third.j));
     r = await mkFolder('TEST Entusiasta One Piece', 'OnePiece');
     ok('Entusiasta bloquea la cuarta carpeta total', r.status === 409 && r.j.code === 'plan_folder_limit', JSON.stringify(r.j));
 
@@ -64,7 +62,7 @@ const { prisma, call, ok } = require('./fixtures.cjs');
     r = await call('PUT', `/folders/${fid}/cards/${lastCardId}`, 'nobuyer', { stock: 901 });
     ok('al bajar de plan no se puede aumentar sobre el tope', r.status === 409 && r.j.code === 'plan_copy_limit', JSON.stringify(r.j));
 
-    const languageFolder = magic.j.folder.id;
+    const languageFolder = third.j.folder.id;
     const english = await add(languageFolder, 'same-card', 1, 'English');
     const spanish = await add(languageFolder, 'same-card', 1, 'Spanish');
     ok('idiomas distintos se guardan como cartas separadas', english.status === 200 && spanish.status === 200 && english.j.card.id !== spanish.j.card.id);

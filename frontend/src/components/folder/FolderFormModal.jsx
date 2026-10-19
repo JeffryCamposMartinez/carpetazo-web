@@ -15,10 +15,8 @@ export default function FolderFormModal({
   const close = () => (isEdit ? setEditingFolder(null) : setIsCreateModalOpen(false));
   const plan = planState?.plan;
   const totalUsed = planState?.usage?.folders || 0;
-  const tcgUsed = planState?.usage?.byTcg?.[newFolderTcg] || 0;
   const totalReached = !isEdit && plan?.folders !== null && totalUsed >= plan?.folders;
-  const tcgReached = !isEdit && plan?.foldersPerTcg !== null && tcgUsed >= plan?.foldersPerTcg;
-  const quotaReached = Boolean(totalReached || tcgReached);
+  const quotaReached = Boolean(totalReached);
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1a2b4b]/60 p-4 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]" onClick={close}>
       <div
@@ -87,7 +85,7 @@ export default function FolderFormModal({
                 })}
               </div>
               <p className="text-xs text-slate-500">El juego no se puede cambiar después.</p>
-              {plan && <p className={`rounded-lg px-3 py-2 text-xs font-bold ${tcgReached ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-[#1e40af]'}`}>{tcgUsed} de {plan.foldersPerTcg === null ? '∞' : plan.foldersPerTcg} carpetas de este TCG · {totalUsed} de {plan.folders === null ? '∞' : plan.folders} totales</p>}
+              {plan && <p className={`rounded-lg px-3 py-2 text-xs font-bold ${totalReached ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-[#1e40af]'}`}>{totalUsed} de {plan.folders === null ? '∞' : plan.folders} carpetas</p>}
             </fieldset>
           )}
 
