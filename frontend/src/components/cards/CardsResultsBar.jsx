@@ -1,5 +1,5 @@
 import ComunaSelect from '../ui/ComunaSelect';
-import Select from '../ui/Select';
+import ThemedSelect from '../ui/ThemedSelect';
 import SvgIcon from '../ui/SvgIcon';
 const SORT_OPTIONS = [
   { value: 'recent', label: 'Más recientes' },
@@ -13,6 +13,10 @@ export const SORT_VALUES = SORT_OPTIONS.map((option) => option.value);
 const REMOVABLE = 'inline-flex h-9 max-w-full items-center gap-1 rounded-full bg-white pl-3 pr-1.5 text-xs font-bold text-[#12315f] ring-1 ring-slate-900/10 transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] [@media(hover:hover)]:hover:bg-blue-50';
 
 // Cantidad de cartas, filtros activos (cada uno se quita con un toque), orden y vista (cuadrícula o lista en el celular)
+// Comuna y orden comparten ancho y forma
+const FILTER_WIDTH = 'min-w-0 flex-1 sm:w-52 sm:flex-none';
+const FILTER_BUTTON = '!min-h-10 !rounded-full !text-[13px]';
+
 export default function CardsResultsBar({ failed, loading, comuna, onClearAll, onComuna, onComunaChange, onQuery, onSeller, onSort, onTcg, onView, query, seller, sort, tcg, total, view }) {
   const hasFilters = Boolean(query || tcg || seller || comuna);
   return (
@@ -24,13 +28,8 @@ export default function CardsResultsBar({ failed, loading, comuna, onClearAll, o
           )}
         </p>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:flex-nowrap">
-          <ComunaSelect value={comuna} onChange={onComunaChange} className="basis-full sm:w-52 sm:basis-auto" buttonClassName="!min-h-10 !rounded-full !text-[13px]" listMinWidth={260} />
-          <label className="relative flex min-w-0 flex-1 items-center sm:flex-none">
-            <span className="sr-only">Ordenar</span>
-            <Select value={sort} onChange={(event) => onSort(event.target.value)} className="h-10 w-full appearance-none rounded-full border-0 bg-white pl-3.5 pr-9 text-[13px] font-bold text-[#12315f] ring-1 ring-slate-900/10 focus:outline-none focus:ring-2 focus:ring-[#1e40af]">
-              {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </Select>
-          </label>
+          <ComunaSelect value={comuna} onChange={onComunaChange} className={FILTER_WIDTH} buttonClassName={FILTER_BUTTON} listMinWidth={260} />
+          <ThemedSelect value={sort} onChange={onSort} options={SORT_OPTIONS} icon="swap_vert" ariaLabel="Ordenar" className={FILTER_WIDTH} buttonClassName={FILTER_BUTTON} />
           <div role="group" aria-label="Vista" className="flex h-10 items-center rounded-full bg-white p-1 ring-1 ring-slate-900/10 lg:hidden">
             {[{ value: 'grid', icon: 'grid_view', label: 'Cuadrícula' }, { value: 'list', icon: 'view_agenda', label: 'Lista' }].map((option) => (
               <button key={option.value} type="button" aria-pressed={view === option.value} aria-label={option.label} onClick={() => onView(option.value)} className={`flex h-8 w-9 items-center justify-center rounded-full transition-[background-color,color,transform] duration-150 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${view === option.value ? 'bg-[#12315f] text-white' : 'text-slate-500'}`}>

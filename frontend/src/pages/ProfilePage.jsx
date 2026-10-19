@@ -101,7 +101,9 @@ const validateRut = (rut = '') => {
   return dv === expectedDv;
 };
 
-const validatePhone = (phone = '') => !phone.trim() || /^\+?[0-9][0-9 ()-]{6,19}$/.test(phone.trim());
+// +569 viene escrito por defecto (celulares de Chile); solo ese prefijo cuenta como vacío
+const PHONE_PREFIX = '+569';
+const validatePhone = (phone = '') => !phone.trim() || phone.trim() === PHONE_PREFIX || /^\+?[0-9][0-9 ()-]{6,19}$/.test(phone.trim());
 
 const mapUserToProfile = (user = {}, currentUser = null) => ({
   ...emptyProfile,
@@ -111,7 +113,7 @@ const mapUserToProfile = (user = {}, currentUser = null) => ({
   email: user.email || currentUser?.email || '',
   photoURL: user.photoURL || currentUser?.photoURL || '',
   bio: user.bio || '',
-  phone: user.phone || '',
+  phone: user.phone || PHONE_PREFIX,
   rut: user.rut || '',
   facebookUrl: user.facebookUrl || '',
   instagramUrl: user.instagramUrl || '',
@@ -133,7 +135,7 @@ const compactProfilePayload = (profile) => ({
   username: normalizeUsername(profile.username),
   photoURL: profile.photoURL || null,
   bio: profile.bio?.trim() || null,
-  phone: profile.phone?.trim() || null,
+  phone: profile.phone?.trim() && profile.phone.trim() !== PHONE_PREFIX ? profile.phone.trim() : null,
   rut: profile.rut?.trim() || null,
   facebookUrl: profile.facebookUrl?.trim() || null,
   instagramUrl: profile.instagramUrl?.trim() || null,
