@@ -9,13 +9,23 @@ const TYPE_ES = {
   darkness: 'Oscura', dark: 'Oscura', metal: 'Metálica', fairy: 'Hada', dragon: 'Dragón', colorless: 'Incolora',
 };
 
+const fold = (text) => String(text ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+// ¿La carta coincide con lo que se escribió? Cada palabra debe estar en el nombre, el número o la edición, sin importar tildes, mayúsculas ni orden:
+// «30 celebration» encuentra «Basic Grass Energy - 009 (30th Celebration)»
+export const matchesCardQuery = (query, ...fields) => {
+  const words = fold(query).split(/[\s,]+/).filter(Boolean);
+  if (!words.length) return true;
+  const haystack = fold(fields.join(' '));
+  return words.every((word) => haystack.includes(word));
+};
+
 // Clasifica una carta (Card Type) en la categoría y los tipos que usan los filtros
 export const classifyTcgcsvCard = (name, ext) => {
   const cardType = String(ext['Card Type'] || ext.CardType || '');
   const types = [...new Set((cardType.match(/[A-Za-z]+/g) || []).map((w) => TYPE_ES[w.toLowerCase()]).filter(Boolean))];
   let category;
   if (/energy|^special$/i.test(cardType)) category = 'Energía';
-  else if (/trainer|supporter|item|stadium|tool|machine/i.test(cardType)) category = 'Entrenador';
+  else if (/trainer|support|item|stadium|tool|machine|^tm$/i.test(cardType)) category = 'Entrenador';
   else if (cardType || ext.HP || ext.Stage) category = 'Pokémon';
   else if (/\bEnergy\b/i.test(name)) category = 'Energía';
   const nameTypes = category === 'Energía' && types.length === 0
@@ -103,7 +113,7 @@ const CATEGORY_BY_SUPERTYPE = { 'Pokémon': 'Pokémon', Trainer: 'Entrenador', E
 export const filterPokemonCards = (cards, { query = '', supertype = '', type = '' }) => {
   let list = cards;
   const q = query.trim().toLowerCase();
-  if (q) list = list.filter((c) => c.name.toLowerCase().includes(q) || String(c.number).toLowerCase().includes(q));
+  if (q) list = list.filter((c) => matchesCardQuery(q, c.name, c.number, c.setName));
   if (supertype) list = list.filter((c) => c.category === CATEGORY_BY_SUPERTYPE[supertype]);
   if (type) {
     const target = TYPE_LABEL[type] || type;

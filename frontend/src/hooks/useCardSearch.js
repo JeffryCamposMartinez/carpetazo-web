@@ -1,6 +1,6 @@
 import { api } from '../services/api';
 import { catalogJson } from '../services/tcgcsvFetch';
-import { classifyTcgcsvCard } from '../services/tcgcsvPokemon';
+import { classifyTcgcsvCard, matchesCardQuery } from '../services/tcgcsvPokemon';
 import { ONE_PIECE_CATEGORY, filterOnePieceCards, onePieceExt, onePieceMatchesQuery } from '../services/tcgcsvOnePiece';
 import { MAGIC_CATEGORY, MAGIC_MARKER, filterMagicCards, loadMagicMeta, magicExt, magicMatchesQuery } from '../services/tcgcsvMagic';
 import { RIFTBOUND_CATEGORY, RIFTBOUND_MARKER, filterRiftboundCards, riftboundExt, riftboundMatchesQuery } from '../services/tcgcsvRiftbound';
@@ -65,6 +65,17 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
     return list;
   };
 
+  // Al elegir una edición también se muestran las cartas de las ediciones de energías que la nombran entre paréntesis, p. ej. «Basic Grass Energy - 009 (30th Celebration)»
+  // (TCGplayer las guarda en «MEE: Mega Evolution Energies»). Se marcan con `related` para listarlas al final; no se toca ningún dato del catálogo.
+  const relatedEditionCards = async (group, catId, signal, q) => {
+    const name = String(group?.name || '');
+    const tag = (name.includes(': ') ? name.split(': ').slice(1).join(': ') : name).trim().toLowerCase();
+    if (tag.length < 4) return [];
+    const energySets = availableSets.filter((set) => /energies$/i.test(String(set.name || '').trim()) && set.groupId != group.groupId);
+    const lists = await Promise.all(energySets.map((set) => fetchPokemonGroup(set, catId, signal).catch((err) => { if (err.name === 'AbortError') throw err; return []; })));
+    return lists.flat().filter((c) => String(c.name || '').toLowerCase().includes(`(${tag})`) && matchesText(c, q)).map((c) => ({ ...c, related: true }));
+  };
+
   // Filtros de categoría, tipo y rareza (también los usa la carga por ediciones para saber cuándo hay suficientes resultados)
   const applyCardFilters = (list) => {
     if (searchCategory === String(ONE_PIECE_CATEGORY)) return filterOnePieceCards(list, opFilters);
@@ -111,7 +122,7 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
   };
 
   // Carga ediciones de la cola hasta juntar `target` cartas que coincidan con el texto buscado
-  const matchesText = (c, q) => (c.catId === ONE_PIECE_CATEGORY ? onePieceMatchesQuery(c, q) : c.catId === MAGIC_CATEGORY ? magicMatchesQuery(c, q) : c.catId === RIFTBOUND_CATEGORY ? riftboundMatchesQuery(c, q) : c.catId === YUGIOH_CATEGORY ? yugiohMatchesQuery(c, q) : !q || c.name.toLowerCase().includes(q) || String(c.extData.Number).toLowerCase().includes(q));
+  const matchesText = (c, q) => (c.catId === ONE_PIECE_CATEGORY ? onePieceMatchesQuery(c, q) : c.catId === MAGIC_CATEGORY ? magicMatchesQuery(c, q) : c.catId === RIFTBOUND_CATEGORY ? riftboundMatchesQuery(c, q) : c.catId === YUGIOH_CATEGORY ? yugiohMatchesQuery(c, q) : matchesCardQuery(q, c.name, c.extData.Number, c.group?.name));
 
   const loadPokemonGroups = async (target, gen, signal, q) => {
     const catId = pokeCatRef.current;
@@ -172,8 +183,9 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
           if (searchSet) {
             pokeQueueRef.current = [];
             const group = availableSets.find(s => s.groupId == searchSet) || { groupId: searchSet };
-            cards = (await fetchPokemonGroup(group, catId, abortControllerRef.current.signal))
-              .filter(c => matchesText(c, q));
+            const signal = abortControllerRef.current.signal;
+            cards = (await fetchPokemonGroup(group, catId, signal)).filter(c => matchesText(c, q));
+            if (catId === 3 || catId === 85) cards = [...cards, ...(await relatedEditionCards(group, catId, signal, q))];
           } else {
             // Todas las ediciones: esperar a que cargue la lista de ediciones (la búsqueda se relanza sola)
             if (availableSets.length === 0) {
@@ -211,6 +223,7 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
         };
 
         cards.sort((a, b) => {
+          if (Boolean(a.related) !== Boolean(b.related)) return a.related ? 1 : -1; // las de otras ediciones, al final
           if (!searchSet) {
             // Intentar alinear exactamente con el orden visual del dropdown (availableSets)
             let indexA = availableSets.findIndex(s => s.groupId === a.groupId);
@@ -251,6 +264,14 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
   };
 
   
+    // Al cambiar Entrenadores / Energía / tipo / rareza con «Todas las ediciones», se siguen cargando ediciones hasta juntar coincidencias
+    // (antes, si las ediciones ya cargadas no tenían ninguna, la lista quedaba vacía aunque hubiera cartas en ediciones más antiguas)
+    const firstRenderCategory = useRef(true);
+    useEffect(() => {
+      if (firstRenderCategory.current) { firstRenderCategory.current = false; return; }
+      if (activeTab === 'add' && !loadingFolder && searchCategory && !searchSet && pokeQueueRef.current.length > 0) loadMorePokemonRef.current?.();
+    }, [selectedSupertype, selectedType, filterRarity]);
+
     const firstRenderFilters = useRef(true);
     useEffect(() => {
       if (firstRenderFilters.current) {
