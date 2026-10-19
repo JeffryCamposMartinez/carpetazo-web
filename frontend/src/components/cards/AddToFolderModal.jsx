@@ -124,7 +124,7 @@ export default function AddToFolderModal({ card, variants = [], onClose }) {
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[260] flex items-end justify-center bg-[#08122a]/70 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[1400] flex items-end justify-center bg-[#08122a]/70 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-labelledby="add-folder-title" onClick={(event) => event.stopPropagation()} className="flex max-h-[92svh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-[0_30px_60px_-15px_rgba(8,18,42,0.7)] sm:rounded-3xl">
         <div className="relative shrink-0 border-b-4 border-[#facc15] bg-[#12315f] px-5 pb-4 pt-5 text-white">
           <button type="button" onClick={onClose} aria-label="Cerrar" className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"><SvgIcon name="close" className="text-[22px]" /></button>

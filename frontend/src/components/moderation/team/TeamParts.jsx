@@ -16,7 +16,6 @@ export const ROLE_OPTIONS = [
   { value: 'admin', label: 'Administrador', help: 'Acceso total a Moderación y a los datos de las personas. Puede dar y quitar roles.' },
   { value: 'coadmin', label: 'Co-administrador', help: 'Los poderes de un administrador, pero no puede actuar sobre administradores, otros co-administradores ni el propietario.' },
   { value: 'moderator', label: 'Moderador', help: 'Decide sobre reportes y aplica medidas.' },
-  { value: 'support', label: 'Soporte', help: 'Solo lectura.' },
   { value: 'user', label: 'Sin rol de equipo', help: 'Deja de ser parte del equipo y pierde el acceso a Moderación.' }
 ];
 

@@ -279,7 +279,7 @@ export default function PeoplePanel({ level, focusUsername, focusReportId, onFoc
                 <fieldset className="mt-4">
                   <legend className="mb-1.5 text-sm font-bold text-slate-500">Rol en el equipo</legend>
                   <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-                    {[['user', 'Ninguno'], ['support', 'Soporte'], ['moderator', 'Moderador'], ['coadmin', 'Co-administrador']].map(([key, label]) => (
+                    {[['user', 'Ninguno'], ['moderator', 'Moderador'], ['coadmin', 'Co-administrador']].map(([key, label]) => (
                       <button key={key} type="button" disabled={roleBusy || profile.user.role === key} aria-pressed={profile.user.role === key} onClick={() => (key === 'coadmin' ? setCoAdminTyped('') : setRolePending(key))} className={`h-10 rounded-full text-sm font-bold ${profile.user.role === key ? 'bg-[#12315f] text-white' : 'bg-white text-[#12315f] ring-1 ring-slate-300'} disabled:opacity-100`}>{label}</button>
                     ))}
                   </div>
