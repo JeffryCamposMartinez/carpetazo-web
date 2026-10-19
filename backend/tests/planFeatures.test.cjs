@@ -268,6 +268,10 @@ const feature = (r) => r.j?.feature;
     // La detección automática puede abrir reportes por las cartas baratas de estas cuentas nuevas: no deben quedar en la cola de otras pruebas
     const owners = (await prisma.user.findMany({ where: { firebaseUid: { in: ['cztest-nobuyer', 'cztest-ignacio'] } }, select: { id: true } })).map((user) => user.id);
     await prisma.report.deleteMany({ where: { createdAt: { gte: startedAt }, targetOwnerId: { in: owners } } }).catch(() => {});
+    // Las cartas y listas de deseos que se crearon para probar los topes no deben quedar en estas cuentas compartidas
+    await prisma.wishlistItem.deleteMany({ where: { user: { firebaseUid: { in: ['cztest-nobuyer', 'cztest-ignacio'] } }, name: { startsWith: 'Carta deseada' } } }).catch(() => {});
+    await prisma.wishlist.deleteMany({ where: { user: { firebaseUid: { in: ['cztest-nobuyer', 'cztest-ignacio'] } }, name: { in: ['Otra lista', 'Lista cuarta', 'No entra'] } } }).catch(() => {});
+    await prisma.wishlist.deleteMany({ where: { user: { firebaseUid: { in: ['cztest-nobuyer', 'cztest-ignacio'] } }, name: { startsWith: 'Lista extra' } } }).catch(() => {});
     await restorePlans().catch(() => {});
     await prisma.$disconnect();
   }
