@@ -116,9 +116,10 @@ function PublicCatalog() {
                 // Track folder visits
         if (!folder.user?.isOwner) {
           const currentWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
-          // De dónde llega la visita (para el detalle de visitas): sin referente = directo; de la propia web = interno; otro sitio = externo
+          // De dónde llega la visita (para el detalle de visitas): otro sitio = externo; navegando dentro de Carpetazo = interno
+          // (`document.referrer` solo recuerda cómo se abrió la página, no los cambios de ruta de la app: ahí manda el historial de la app); si no, directo
           const referrerHost = (() => { try { return document.referrer ? new URL(document.referrer).hostname : ''; } catch { return ''; } })();
-          const source = !referrerHost ? 'direct' : referrerHost === window.location.hostname ? 'internal' : 'external';
+          const source = Number(window.history.state?.idx) > 0 || referrerHost === window.location.hostname ? 'internal' : referrerHost ? 'external' : 'direct';
           apiFetch('/folders/' + encodeURIComponent(folderId) + '/visit', { method: 'POST', body: JSON.stringify({ currentWeek, source }) }).catch(err => console.error("Error updating visits", err));
         }
 
