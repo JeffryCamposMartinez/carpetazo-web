@@ -127,7 +127,8 @@ export const api = {
   getBillingMe: () => apiFetch('/billing/me'),
   setLocalTestPlan: (planKey) => apiFetch('/billing/test-plan', { method: 'POST', body: JSON.stringify({ planKey }) }),
   createSubscriptionCheckout: (planKey) => apiFetch('/billing/checkout', { method: 'POST', body: JSON.stringify({ planKey }) }),
-  cancelSubscription: () => apiFetch('/billing/cancel', { method: 'POST', body: JSON.stringify({}) }),
+  cancelSubscription: () => apiFetch('/billing/cancel', { method: 'POST', body: JSON.stringify({ confirm: true }) }),
+  changeSubscriptionPlan: (planKey) => apiFetch('/billing/change-plan', { method: 'POST', body: JSON.stringify({ planKey }) }),
   
   // Folders
   getPublicFolders: () => getPublicFoldersShared(),

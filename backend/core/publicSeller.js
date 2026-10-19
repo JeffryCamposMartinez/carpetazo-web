@@ -15,7 +15,7 @@ export const PUBLIC_PLAN_RELATIONS_SELECT = {
     where: { status: { in: ['active', 'past_due'] } },
     orderBy: { updatedAt: 'desc' },
     take: 10,
-    select: { planKey: true, status: true, currentPeriodEnd: true, updatedAt: true }
+    select: { planKey: true, status: true, currentPeriodEnd: true, cancelAtPeriodEnd: true, updatedAt: true }
   }
 };
 
@@ -49,7 +49,7 @@ export const publicPlanBadgeOf = (user, now = new Date()) => {
   if (grant) return publicPlanBadge(grant.planKey);
   const subscription = (user?.subscriptions || []).find((row) => {
     if (!validPlanKey(row.planKey)) return false;
-    if (row.status === 'active') return true;
+    if (row.status === 'active') return !(row.cancelAtPeriodEnd && row.currentPeriodEnd && new Date(row.currentPeriodEnd) <= now); // una cancelación programada conserva el plan hasta el fin del período pagado
     const graceBase = row.currentPeriodEnd || row.updatedAt;
     return row.status === 'past_due' && new Date(graceBase).getTime() + PAST_DUE_GRACE_MS > now.getTime();
   });

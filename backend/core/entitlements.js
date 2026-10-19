@@ -48,16 +48,21 @@ export const getEffectivePlan = async (db, userId, now = new Date()) => {
   });
   if (grant && validPlanKey(grant.planKey)) return { plan: PLANS[grant.planKey], source: 'grant', grant };
 
-  const subscription = await db.subscription.findFirst({
+  // Una cancelación programada conserva el plan hasta el fin del período pagado; después vuelve a Free
+  const subscriptions = await db.subscription.findMany({
     where: { userId, status: { in: ACTIVE_SUBSCRIPTION_STATES } },
     orderBy: { updatedAt: 'desc' },
-    select: { id: true, planKey: true, status: true, provider: true, currentPeriodEnd: true, nextPaymentAt: true, cancelAtPeriodEnd: true, updatedAt: true }
+    select: { id: true, planKey: true, status: true, provider: true, priceClp: true, currentPeriodEnd: true, nextPaymentAt: true, cancelAtPeriodEnd: true, updatedAt: true }
   });
+  const subscription = subscriptions.find((row) => !(row.cancelAtPeriodEnd && row.currentPeriodEnd && row.currentPeriodEnd <= now));
   if (subscription && validPlanKey(subscription.planKey)) {
     const graceBase = subscription.currentPeriodEnd || subscription.updatedAt;
     const graceUntil = subscription.status === 'past_due' ? new Date(graceBase.getTime() + PAST_DUE_GRACE_MS) : null;
     if (subscription.status !== 'past_due' || graceUntil > now) {
-      return { plan: PLANS[subscription.planKey], source: 'subscription', subscription: { ...subscription, graceUntil } };
+      // Cambio de plan programado (fila 'scheduled'): rige desde el fin del período ya pagado, sin esperar al aviso de Mercado Pago
+      const scheduled = await db.subscription.findFirst({ where: { userId, status: 'scheduled' }, orderBy: { createdAt: 'desc' }, select: { planKey: true } });
+      const due = scheduled && validPlanKey(scheduled.planKey) && subscription.currentPeriodEnd && subscription.currentPeriodEnd <= now;
+      return { plan: PLANS[due ? scheduled.planKey : subscription.planKey], source: 'subscription', subscription: { ...subscription, graceUntil, scheduledPlanKey: scheduled?.planKey || null } };
     }
   }
   return { plan: PLANS.free, source: 'default' };

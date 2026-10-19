@@ -7,9 +7,10 @@ import { getPlanState, lockPlanUser } from '../core/entitlements.js';
 import { adminOnlyPlans, paidPlan, publicPlans, validPlanKey } from '../core/plans.js';
 
 const router = express.Router();
-const MP_API = 'https://api.mercadopago.com';
 // Incluso si la bandera se configurara por error, producción nunca expone el selector sin cobro.
 const TEST_MODE = process.env.BILLING_TEST_MODE === '1' && process.env.NODE_ENV !== 'production';
+// Solo en pruebas locales se puede apuntar a un Mercado Pago simulado (tests/run.cjs)
+const MP_API = (TEST_MODE && process.env.MERCADOPAGO_TEST_API) || 'https://api.mercadopago.com';
 const WEB_URL = (process.env.APP_WEB_URL || (TEST_MODE ? 'http://localhost:5173' : 'https://carpetazo.cl')).replace(/\/$/, '');
 
 const planEnvKey = (key) => `MERCADOPAGO_PLAN_${key.toUpperCase()}_ID`;
@@ -81,8 +82,9 @@ router.get('/api/billing/me', authenticateToken, async (req, res) => {
       getPlanState(prisma, user.id),
       prisma.subscription.findMany({ where: { userId: user.id }, orderBy: { createdAt: 'desc' }, take: 12 })
     ]);
+    const scheduled = subscriptions.find((row) => row.status === 'scheduled');
     res.set('Cache-Control', 'private, no-store');
-    res.json({ success: true, ...state, subscriptions: subscriptions.map(safeSubscription), testMode: TEST_MODE, ...(isAdminRequest(req, user) ? { adminPlans: adminOnlyPlans() } : {}) });
+    res.json({ success: true, ...state, scheduledChange: scheduled && state.subscription ? { planKey: scheduled.planKey, priceClp: scheduled.priceClp, effectiveAt: state.subscription.currentPeriodEnd || state.subscription.nextPaymentAt } : null, subscriptions: subscriptions.filter((row) => row.status !== 'scheduled').map(safeSubscription), testMode: TEST_MODE, ...(isAdminRequest(req, user) ? { adminPlans: adminOnlyPlans() } : {}) });
   } catch (error) {
     console.error('Error loading billing state:', error);
     res.status(500).json({ success: false, message: 'No se pudo cargar tu plan' });
@@ -137,7 +139,7 @@ router.post('/api/billing/checkout', authenticateToken, async (req, res) => {
     const existing = await prisma.$transaction(async (tx) => {
       await lockPlanUser(tx, user.id);
       const found = await tx.subscription.findFirst({
-        where: { userId: user.id, status: { in: ['pending', 'active', 'past_due', 'paused'] } },
+        where: { userId: user.id, status: { in: ['pending', 'active', 'past_due', 'paused'] }, cancelAtPeriodEnd: false },
         orderBy: { createdAt: 'desc' },
         select: { id: true, planKey: true, status: true }
       });
@@ -153,7 +155,7 @@ router.post('/api/billing/checkout', authenticateToken, async (req, res) => {
         code: 'subscription_exists',
         message: existing.status === 'pending'
           ? 'Ya tienes una suscripción en verificación.'
-          : 'Ya tienes una suscripción. Cancélala antes de contratar otro plan.'
+          : 'Ya tienes una suscripción. Para cambiar de plan usa «Cambiar de plan» en Tu suscripción.'
       });
     }
     localSubscriptionId = id;
@@ -184,20 +186,61 @@ router.post('/api/billing/checkout', authenticateToken, async (req, res) => {
   }
 });
 
+// Cancelar exige confirmación explícita. Mercado Pago deja de cobrar al instante, pero el plan sigue hasta el fin del período ya pagado.
 router.post('/api/billing/cancel', authenticateToken, async (req, res) => {
   try {
+    if (req.body?.confirm !== true) return res.status(400).json({ success: false, code: 'confirm_required', message: 'Confirma que quieres cancelar tu suscripción.' });
     const user = await ownUser(req.user.sub);
     if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-    const subscription = await prisma.subscription.findFirst({ where: { userId: user.id, status: { in: ['active', 'past_due', 'paused', 'pending'] } }, orderBy: { createdAt: 'desc' } });
+    const subscription = await prisma.subscription.findFirst({ where: { userId: user.id, status: { in: ['active', 'past_due', 'paused', 'pending'] }, cancelAtPeriodEnd: false }, orderBy: { createdAt: 'desc' } });
     if (!subscription) return res.status(404).json({ success: false, message: 'No tienes una suscripción activa' });
     if (subscription.providerSubscriptionId) {
       await mpFetch(`/preapproval/${encodeURIComponent(subscription.providerSubscriptionId)}`, { method: 'PUT', body: JSON.stringify({ status: 'cancelled' }) });
     }
-    const updated = await prisma.subscription.update({ where: { id: subscription.id }, data: { status: 'canceled', canceledAt: new Date(), cancelAtPeriodEnd: false } });
-    res.json({ success: true, subscription: safeSubscription(updated), ...(await getPlanState(prisma, user.id)) });
+    const paidUntil = subscription.currentPeriodEnd || subscription.nextPaymentAt;
+    const keepsAccess = subscription.status === 'active' && paidUntil && paidUntil > new Date();
+    await prisma.$transaction(async (tx) => {
+      await tx.subscription.deleteMany({ where: { userId: user.id, status: 'scheduled' } });
+      await tx.subscription.update({
+        where: { id: subscription.id },
+        data: keepsAccess
+          ? { cancelAtPeriodEnd: true, canceledAt: new Date(), currentPeriodEnd: paidUntil, nextPaymentAt: null }
+          : { status: 'canceled', canceledAt: new Date(), cancelAtPeriodEnd: false }
+      });
+    });
+    res.json({ success: true, endsAt: keepsAccess ? paidUntil : null, ...(await getPlanState(prisma, user.id)) });
   } catch (error) {
-    console.error('Error canceling subscription:', error.code || error.message);
+    console.error('Error canceling subscription:', error.code || error.message, error.providerStatus || '');
     sendBillingError(res, error, 'No se pudo cancelar la suscripción');
+  }
+});
+
+// Cambiar de plan con una suscripción activa: el nuevo precio se cobra desde el próximo cobro y el plan cambia ese mismo día
+// (nadie paga dos veces ni pierde lo ya pagado). Elegir el plan actual deshace un cambio programado.
+router.post('/api/billing/change-plan', authenticateToken, async (req, res) => {
+  try {
+    const plan = paidPlan(req.body?.planKey);
+    if (!plan) return res.status(400).json({ success: false, message: 'Selecciona un plan pagado válido' });
+    const user = await ownUser(req.user.sub);
+    if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    if (plan.adminOnly && !isAdminRequest(req, user)) return res.status(404).json({ success: false, message: 'Selecciona un plan pagado válido' });
+    const subscription = await prisma.subscription.findFirst({ where: { userId: user.id, status: { in: ['active', 'past_due', 'paused', 'pending'] }, cancelAtPeriodEnd: false }, orderBy: { createdAt: 'desc' } });
+    if (!subscription || subscription.status !== 'active' || !subscription.providerSubscriptionId) {
+      return res.status(409).json({ success: false, code: 'no_active_subscription', message: subscription ? 'Tu suscripción aún no está activa o tiene un pago pendiente.' : 'No tienes una suscripción activa para cambiar.' });
+    }
+    if (subscription.providerPlanId) return res.status(409).json({ success: false, message: 'Esta suscripción no admite cambio de plan. Cancélala y contrata de nuevo.' });
+    const revert = plan.key === subscription.planKey;
+    const price = revert ? subscription.priceClp : plan.priceClp;
+    await mpFetch(`/preapproval/${encodeURIComponent(subscription.providerSubscriptionId)}`, { method: 'PUT', body: JSON.stringify({ auto_recurring: { transaction_amount: price, currency_id: 'CLP' } }) });
+    await prisma.$transaction(async (tx) => {
+      await lockPlanUser(tx, user.id);
+      await tx.subscription.deleteMany({ where: { userId: user.id, status: 'scheduled' } });
+      if (!revert) await tx.subscription.create({ data: { userId: user.id, planKey: plan.key, status: 'scheduled', provider: 'mercadopago', priceClp: plan.priceClp } });
+    });
+    res.json({ success: true, effectiveAt: subscription.currentPeriodEnd || subscription.nextPaymentAt, ...(await getPlanState(prisma, user.id)) });
+  } catch (error) {
+    console.error('Error changing subscription plan:', error.code || error.message, error.providerStatus || '', error.providerMessage || '');
+    sendBillingError(res, error, 'No se pudo cambiar el plan');
   }
 });
 
@@ -224,15 +267,35 @@ const syncPreapproval = async (resourceId) => {
     where: { OR: [{ providerSubscriptionId: String(resourceId) }, ...(remote.external_reference ? [{ id: String(remote.external_reference) }] : [])] }
   });
   if (!subscription) return null;
-  return prisma.subscription.update({
-    where: { id: subscription.id },
-    data: {
-      providerSubscriptionId: String(remote.id || resourceId),
-      status: providerStatus(remote.status),
-      nextPaymentAt: remote.next_payment_date ? new Date(remote.next_payment_date) : null,
-      canceledAt: ['cancelled', 'canceled'].includes(remote.status) ? new Date() : subscription.canceledAt
+  const now = new Date();
+  const status = providerStatus(remote.status);
+  const nextDate = remote.next_payment_date ? new Date(remote.next_payment_date) : null;
+  const data = { providerSubscriptionId: String(remote.id || resourceId), status, nextPaymentAt: nextDate };
+  if (status === 'canceled') {
+    // Cancelada desde Mercado Pago: lo pagado sigue vigente hasta el fin del período
+    const paidUntil = subscription.currentPeriodEnd || subscription.nextPaymentAt;
+    data.canceledAt = subscription.canceledAt || now;
+    if (subscription.status === 'active' && paidUntil && paidUntil > now) Object.assign(data, { status: 'active', cancelAtPeriodEnd: true, currentPeriodEnd: paidUntil, nextPaymentAt: null });
+  } else if (status === 'active') {
+    data.cancelAtPeriodEnd = false;
+    if (nextDate) data.currentPeriodEnd = nextDate;
+    data.currentPeriodStart = subscription.currentPeriodStart || now;
+    // Un cobro nuevo (el próximo cobro avanzó): rige el plan programado, si lo hay
+    if (subscription.status === 'active' && nextDate && subscription.currentPeriodEnd && nextDate > subscription.currentPeriodEnd) {
+      data.currentPeriodStart = subscription.currentPeriodEnd;
+      const scheduled = await prisma.subscription.findFirst({ where: { userId: subscription.userId, status: 'scheduled' }, orderBy: { createdAt: 'desc' } });
+      if (scheduled) {
+        Object.assign(data, { planKey: scheduled.planKey, priceClp: scheduled.priceClp });
+        await prisma.subscription.delete({ where: { id: scheduled.id } }).catch(() => {});
+      }
     }
-  });
+  }
+  const updated = await prisma.subscription.update({ where: { id: subscription.id }, data });
+  if (data.status === 'active' && subscription.status !== 'active') {
+    // La suscripción nueva reemplaza a una anterior que solo esperaba su fecha de término
+    await prisma.subscription.updateMany({ where: { userId: subscription.userId, id: { not: subscription.id }, status: { in: ['active', 'past_due', 'paused'] }, cancelAtPeriodEnd: true }, data: { status: 'expired' } });
+  }
+  return updated;
 };
 
 router.post('/api/billing/mercadopago/webhook', async (req, res) => {

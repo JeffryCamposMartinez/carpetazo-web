@@ -5,6 +5,8 @@ import { api } from '../services/api';
 import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 import { useToast } from '../components/ui/ToastProvider';
 import usePageMeta from '../hooks/usePageMeta';
+import ConfirmModal from '../components/ui/ConfirmModal';
+import SubscriptionPanel, { formatDate } from '../components/plans/SubscriptionPanel';
 
 const ICONS = { free: 'style', enthusiast: 'local_fire_department', premium: 'workspace_premium', pro: 'diamond', store: 'storefront', test: 'science' };
 const STYLES = {
@@ -18,7 +20,7 @@ const STYLES = {
 const number = (value) => value === null ? 'Ilimitadas' : Number(value).toLocaleString('es-CL');
 const price = (value) => value === 0 ? 'Gratis' : `$${Number(value).toLocaleString('es-CL')}`;
 
-function PlanCard({ plan, current, busy, testMode, onChoose }) {
+function PlanCard({ plan, current, busy, testMode, cta, onChoose }) {
   const active = current === plan.key;
   const features = [
     `${number(plan.folders)} ${plan.folders === 1 ? 'carpeta' : 'carpetas'}`,
@@ -37,8 +39,8 @@ function PlanCard({ plan, current, busy, testMode, onChoose }) {
       <ul className="my-7 flex flex-1 flex-col gap-3">
         {features.map((feature) => <li key={feature} className="flex gap-2 text-sm font-semibold text-slate-700"><span translate="no" className="material-symbols-outlined text-[20px] text-emerald-600">check_circle</span><span>{feature}</span></li>)}
       </ul>
-      <button type="button" disabled={busy || active} onClick={() => onChoose(plan)} className="flex h-12 items-center justify-center rounded-xl bg-[#1e40af] px-4 font-extrabold text-white shadow-md transition hover:bg-[#1e3a8a] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
-        {busy ? <><ButtonSpinner /><span className="ml-2">Procesando…</span></> : active ? 'Plan activo' : testMode ? 'Probar este plan' : plan.priceClp === 0 ? 'Usar Free' : 'Elegir plan'}
+      <button type="button" disabled={busy || (cta ? cta.disabled : active)} onClick={() => onChoose(plan)} className="flex h-12 items-center justify-center rounded-xl bg-[#1e40af] px-4 font-extrabold text-white shadow-md transition hover:bg-[#1e3a8a] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
+        {busy ? <><ButtonSpinner /><span className="ml-2">Procesando…</span></> : cta ? cta.label : active ? 'Plan activo' : testMode ? 'Probar este plan' : plan.priceClp === 0 ? 'Usar Free' : 'Elegir plan'}
       </button>
     </article>
   );
@@ -57,6 +59,7 @@ export default function PlansPage() {
   const [billing, setBilling] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
+  const [changeTarget, setChangeTarget] = useState(null);
 
   const load = useCallback(async () => {
     const catalog = await api.getPlans();
@@ -98,10 +101,49 @@ export default function PlansPage() {
     };
   }, [currentUser, searchParams, setSearchParams, showToast]);
 
+  const sub = billing?.source === 'subscription' && !billing?.testMode ? billing.subscription : null;
+  const managing = Boolean(sub) && !sub.cancelAtPeriodEnd;
+  const scheduled = managing ? billing.scheduledChange : null;
+
+  const goToSubscription = () => document.getElementById('tu-suscripcion')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  const refresh = async () => setBilling(await api.getBillingMe());
+
+  const applyChange = async (plan) => {
+    setBusy(plan.key);
+    try {
+      const result = await api.changeSubscriptionPlan(plan.key);
+      await refresh();
+      showToast(plan.key === sub?.planKey ? 'Cambio de plan deshecho' : `Listo: pasas a ${plan.name} el ${formatDate(result.effectiveAt)}`, 'success');
+    } catch (error) {
+      showToast(error.message || 'No se pudo cambiar el plan', 'error');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const cancelSubscription = async () => {
+    setBusy('cancel');
+    try {
+      const result = await api.cancelSubscription();
+      await refresh();
+      showToast(result.endsAt ? `Suscripción cancelada. Conservas tu plan hasta el ${formatDate(result.endsAt)}` : 'Suscripción cancelada', 'success');
+    } catch (error) {
+      showToast(error.message || 'No se pudo cancelar la suscripción', 'error');
+    } finally {
+      setBusy('');
+    }
+  };
+
   const choose = async (plan) => {
     if (!currentUser) {
       window.dispatchEvent(new Event('carpetazo:open-auth'));
       return;
+    }
+    if (managing && !billing?.testMode) {
+      if (plan.key === 'free') return goToSubscription(); // volver a Free es cancelar, y eso se hace solo desde «Tu suscripción»
+      if (plan.key === sub.planKey) return applyChange(plan); // deshace un cambio programado
+      return setChangeTarget(plan);
     }
     setBusy(plan.key);
     try {
@@ -109,13 +151,7 @@ export default function PlansPage() {
         const next = await api.setLocalTestPlan(plan.key);
         setBilling(previous => ({ ...previous, ...next }));
         showToast(`Plan ${plan.name} activado para pruebas locales`, 'success');
-      } else if (plan.key === 'free') {
-        if (billing?.source === 'subscription') {
-          const next = await api.cancelSubscription();
-          setBilling(previous => ({ ...previous, ...next }));
-          showToast('Suscripción cancelada', 'success');
-        }
-      } else {
+      } else if (plan.key !== 'free') {
         const response = await api.createSubscriptionCheckout(plan.key);
         window.location.assign(response.checkoutUrl);
       }
@@ -124,6 +160,14 @@ export default function PlansPage() {
     } finally {
       setBusy('');
     }
+  };
+
+  const ctaFor = (item) => {
+    if (!managing) return undefined;
+    if (item.key === 'free') return { label: 'Se cancela en Tu suscripción', disabled: false };
+    if (scheduled?.planKey === item.key) return { label: 'Cambio programado', disabled: true };
+    if (item.key === sub.planKey) return scheduled ? { label: 'Mantener este plan', disabled: false } : { label: 'Plan activo', disabled: true };
+    return { label: 'Cambiar a este plan', disabled: false };
   };
 
   if (loading) return <div className="mx-auto flex min-h-[60vh] w-full max-w-[1500px] items-center justify-center bg-[#DBEAFE]"><LoadingState variant="page" label="Cargando planes…" /></div>;
@@ -147,10 +191,12 @@ export default function PlansPage() {
         </section>
       )}
 
+      {sub && <SubscriptionPanel billing={billing} plans={plans} busy={busy === 'cancel'} onCancel={cancelSubscription} onUndoChange={() => applyChange(plans.find((item) => item.key === sub.planKey))} />}
+
       {billing?.testMode && <div className="mx-auto mt-5 max-w-4xl rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900"><strong>Modo de prueba local:</strong> cambiar de plan aquí no realiza cobros y permite comprobar inmediatamente todos los límites.</div>}
 
       <section className="mt-9 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-5">
-        {[...plans, ...(billing?.adminPlans || [])].map((item) => <PlanCard key={item.key} plan={item} current={plan?.key || (currentUser ? 'free' : '')} busy={busy === item.key} testMode={Boolean(billing?.testMode)} onChoose={choose} />)}
+        {[...plans, ...(billing?.adminPlans || [])].map((item) => <PlanCard key={item.key} plan={item} current={plan?.key || (currentUser ? 'free' : '')} busy={busy === item.key} testMode={Boolean(billing?.testMode)} cta={ctaFor(item)} onChoose={choose} />)}
       </section>
 
       <section className="mx-auto mt-10 max-w-4xl rounded-3xl bg-[#12315f] p-6 text-white sm:p-8">
@@ -158,6 +204,16 @@ export default function PlansPage() {
         <p className="mt-2 text-sm font-medium leading-6 text-blue-100">Cada combinación de carta e idioma ocupa un espacio. La misma carta en español y en inglés se conserva por separado. Reducir stock o eliminar una carta siempre está permitido, incluso si cambias a un plan menor.</p>
         {!currentUser && <Link to="/bienvenida" className="mt-5 inline-flex h-11 items-center rounded-xl bg-[#facc15] px-5 font-black text-[#12315f]">Conocer Carpetazo</Link>}
       </section>
+      <ConfirmModal
+        isOpen={Boolean(changeTarget)}
+        title={`Cambiar a ${changeTarget?.name || ''}`}
+        message={changeTarget ? `Mantienes ${billing.plan.name} hasta el ${formatDate(sub.currentPeriodEnd || sub.nextPaymentAt)}. Desde ese día pasas a ${changeTarget.name} y se te cobra $${Number(changeTarget.priceClp).toLocaleString('es-CL')} al mes. No pagas nada ahora y puedes deshacer el cambio antes de esa fecha.` : ''}
+        confirmText="Programar cambio"
+        cancelText="Volver"
+        isDestructive={false}
+        onCancel={() => setChangeTarget(null)}
+        onConfirm={() => { const plan = changeTarget; setChangeTarget(null); applyChange(plan); }}
+      />
     </div>
   );
 }
