@@ -3,11 +3,14 @@ const { prisma, call, ok } = require('./fixtures.cjs');
 
 (async () => {
   let folder = null;
+  let editionFolder = null;
   const orders = [];
   try {
     const seller = await prisma.user.findFirst({ where: { firebaseUid: 'cztest-seller' }, select: { id: true } });
     // Tres cartas reales del catálogo de Pokémon, de tres ediciones con fechas distintas: vieja, media y nueva
-    const groups = await prisma.catalogSet.findMany({ where: { categoryId: 3, publishedOn: { not: null }, cards: { some: { kind: 'card' } } }, orderBy: { publishedOn: 'asc' }, select: { groupId: true, publishedOn: true } });
+    // Las ediciones con la fecha de carga masiva de TCGplayer no cuentan como «la más nueva»: se parte de ediciones con fecha real
+    const bulkDays = (await prisma.$queryRaw`SELECT to_char("publishedOn", 'YYYY-MM-DD') AS day FROM "CatalogSet" WHERE "publishedOn" IS NOT NULL GROUP BY 1 HAVING count(*) >= 20`).map((row) => row.day);
+    const groups = await prisma.catalogSet.findMany({ where: { categoryId: 3, publishedOn: { not: null }, cards: { some: { kind: 'card' } } }, orderBy: { publishedOn: 'asc' }, select: { groupId: true, publishedOn: true } }).then((rows) => rows.filter((group) => !bulkDays.includes(group.publishedOn.toISOString().slice(0, 10))));
     const picks = [groups[0], groups[Math.floor(groups.length / 2)], groups[groups.length - 1]];
     ok('hay ediciones con fechas distintas en el catálogo para probar', picks[0].publishedOn < picks[1].publishedOn && picks[1].publishedOn < picks[2].publishedOn, JSON.stringify(picks.map((g) => g.publishedOn)));
     const products = [];
@@ -53,6 +56,17 @@ const { prisma, call, ok } = require('./fixtures.cjs');
     r = await call('GET', '/tcg/search-index?q=' + encodeURIComponent(sold.name) + '&sort=inventado');
     ok('catálogo con orden desconocido usa el orden por defecto', r.status === 200 && r.j.cards.length > 0, String(r.status));
 
+    // Filtro de juego del catálogo: uno o varios nombres separados por coma (así «Pokémon» incluye inglés y japonés); nada raro pasa
+    const soldGame = (await prisma.catalogCard.findUnique({ where: { productId: Number(products[0].productId) }, select: { game: { select: { name: true } } } })).game.name;
+    r = await call('GET', '/tcg/search-index?q=' + encodeURIComponent(sold.name) + '&game=' + encodeURIComponent(soldGame + ',NoExiste'));
+    ok('catálogo: varios juegos separados por coma → trae los de esos juegos', r.status === 200 && r.j.cards.length > 0 && r.j.cards.every((c) => c.game === soldGame), String(r.status));
+    r = await call('GET', '/tcg/search-index?q=' + encodeURIComponent(sold.name) + '&game=NoExiste');
+    ok('catálogo: un juego sin cartas no mezcla otros', r.status === 200 && r.j.cards.length === 0, JSON.stringify(r.j.cards?.length));
+    for (const bad of ["Magic,';--", 'a,b,c,d,e', 'Magic,<img src=x>', 'Magic,%00', ',,,,,,']) {
+      r = await call('GET', '/tcg/search-index?q=' + encodeURIComponent(sold.name) + '&game=' + encodeURIComponent(bad));
+      ok('catálogo: filtro de juego inválido (' + bad.slice(0, 20) + ') → 400', r.status === 400, String(r.status));
+    }
+
     // Código de carta con «/» final (así lo deja el buscador al escribir números): encuentra la carta cuyo número no lleva «/»
     const code = await prisma.catalogCard.findFirst({ where: { kind: 'card', number: { not: null }, NOT: { number: { contains: '/' } }, set: { name: { not: '' } } }, select: { productId: true, number: true } });
     r = await call('GET', '/tcg/search-index?q=' + encodeURIComponent(code.number + '/'));
@@ -97,7 +111,34 @@ const { prisma, call, ok } = require('./fixtures.cjs');
       r = await call('GET', '/folders/' + folder.id, who);
       ok('quien no es el dueño no recibe las ventas de las cartas' + (who ? ' (' + who + ')' : ' (visitante)'), r.status === 200 && r.j.folder.cards.every((c) => !('soldUnits' in c)) && r.j.folder.cards.every((c) => 'editionDate' in c), JSON.stringify(Object.keys(r.j.folder.cards[0] || {})));
     }
+
+    // Fechas de carga masiva: TCGplayer pone el mismo día a decenas de ediciones sueltas (promos…). Esas cartas no deben quedar como «las más nuevas».
+    const EDITION_GAME = 98077;
+    await prisma.catalogGame.deleteMany({ where: { categoryId: EDITION_GAME } });
+    await prisma.catalogGame.create({ data: { categoryId: EDITION_GAME, name: 'CZTEST Edicion', folder: 'CZTEST_EDICION' } });
+    const bulkDay = new Date('2031-01-01T00:00:00Z');
+    await prisma.catalogSet.createMany({ data: Array.from({ length: 22 }, (_, i) => ({ groupId: 98077000 + i, categoryId: EDITION_GAME, name: 'CZTEST masiva ' + i, folder: 'masiva' + i, publishedOn: bulkDay })) });
+    await prisma.catalogSet.create({ data: { groupId: 98077100, categoryId: EDITION_GAME, name: 'CZTEST real', folder: 'real', publishedOn: new Date('2020-05-05T00:00:00Z') } });
+    const cardData = (productId, groupId, name) => ({ productId, categoryId: EDITION_GAME, groupId, kind: 'card', name, cleanName: name.toLowerCase(), folder: 'x' });
+    await prisma.catalogCard.createMany({ data: [cardData(98077001, 98077100, 'EDICIONTEST real'), cardData(98077002, 98077000, 'EDICIONTEST masiva'), cardData(98077003, 98077100, 'EDICIONTEST real dos')] });
+    r = await call('GET', '/tcg/search-index?q=EDICIONTEST&game=CZTEST%20Edicion&sort=latest_edition');
+    ok('catálogo «Última edición»: la edición con fecha real va antes que la de carga masiva (aunque esta tenga fecha más nueva)', r.status === 200 && r.j.cards.length === 3 && r.j.cards.slice(0, 2).every((c) => c.name.startsWith('EDICIONTEST real')) && r.j.cards[2].name === 'EDICIONTEST masiva', JSON.stringify((r.j.cards || []).map((c) => c.name)));
+    r = await call('GET', '/tcg/search-index?q=EDICIONTEST&game=CZTEST%20Edicion&sort=latest_edition&page=2');
+    ok('catálogo «Última edición»: una página más allá del final viene vacía', r.status === 200 && r.j.cards.length === 0, String(r.status));
+    r = await call('GET', '/tcg/search-index?q=EDICIONTEST&game=CZTEST%20Edicion');
+    ok('catálogo sin orden: sigue por nombre', r.status === 200 && r.j.cards.length === 3, String(r.status));
+    // Lo mismo en las cartas a la venta y en el inventario del dueño
+    editionFolder = await prisma.folder.create({ data: { name: 'TEST edición masiva', userId: seller.id, tcg: 'Pokemon', isPublic: true } });
+    const sellerCard = (tcgId, name, ageHours) => prisma.card.create({ data: { folderId: editionFolder.id, tcgId, name, price: 1000, stock: 1, createdAt: new Date(Date.now() - ageHours * 3600 * 1000), data: { language: 'English' } } });
+    await sellerCard('98077002', 'EDICIONVENTA masiva', 1); await sellerCard('98077001', 'EDICIONVENTA real', 5);
+    r = await call('GET', '/cards/search?q=EDICIONVENTA&sort=latest_edition');
+    ok('cartas a la venta «Última edición»: la de edición con fecha real va primero', r.status === 200 && JSON.stringify(names2(r)) === JSON.stringify(['EDICIONVENTA real', 'EDICIONVENTA masiva']), JSON.stringify(names2(r)));
+    r = await call('GET', '/folders/' + editionFolder.id, 'seller');
+    const ed = Object.fromEntries((r.j.folder?.cards || []).map((c) => [c.name, c]));
+    ok('inventario del dueño: la fecha de la edición de carga masiva no se entrega (queda sin fecha)', ed['EDICIONVENTA masiva']?.editionDate === null && Boolean(ed['EDICIONVENTA real']?.editionDate), JSON.stringify(Object.values(ed).map((c) => [c.name, c.editionDate])));
   } finally {
+    await prisma.catalogGame.deleteMany({ where: { categoryId: 98077 } }).catch(() => {});
+    if (editionFolder) await prisma.folder.delete({ where: { id: editionFolder.id } }).catch(() => {});
     if (orders.length) await prisma.order.deleteMany({ where: { id: { in: orders } } }).catch(() => {});
     if (folder) await prisma.folder.delete({ where: { id: folder.id } }).catch(() => {});
     await prisma.$disconnect();

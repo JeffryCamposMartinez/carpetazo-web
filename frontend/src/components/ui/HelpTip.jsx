@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { HELP_TOPICS } from '../../config/helpTopics';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 
-// Botón «?» junto al título de una sección: abre una ayuda corta con los pasos (textos en config/helpTopics.js)
+// Botón «Ayuda» (con el «?» amarillo) a la derecha del título de una sección: abre una ayuda corta con los pasos (textos en config/helpTopics.js)
 export default function HelpTip({ topic, className = '' }) {
   const help = HELP_TOPICS[topic];
   const [open, setOpen] = useState(false);
@@ -21,7 +21,7 @@ export default function HelpTip({ topic, className = '' }) {
   if (!help) return null;
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} aria-label={`Ayuda: ${help.title}`} title="¿Cómo funciona?" className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white font-['Space_Grotesk'] text-base font-bold text-[#1e40af] shadow-sm ring-1 ring-slate-900/10 transition-[background-color,transform] duration-150 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] [@media(hover:hover)]:hover:bg-blue-50 ${className}`}>?</button>
+      <button type="button" onClick={() => setOpen(true)} aria-label={`Ayuda: ${help.title}`} title="¿Cómo funciona?" className={`ml-auto inline-flex h-10 [@media(pointer:coarse)]:h-11 shrink-0 items-center gap-2 rounded-full bg-[#12315f] py-1 pl-1.5 pr-1.5 text-sm min-[440px]:pr-4 font-extrabold text-white shadow-[0_6px_14px_-6px_rgba(18,49,95,0.65)] transition-[background-color,transform] duration-150 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] focus-visible:ring-offset-2 [@media(hover:hover)]:hover:bg-[#1e40af] ${className}`}><span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-full bg-[#facc15] font-['Space_Grotesk'] text-base font-black leading-none text-[#12315f]">?</span><span className="hidden min-[440px]:inline">Ayuda</span></button>
       {open && createPortal(
         <div className="fixed inset-0 z-[300] flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
           <div role="dialog" aria-modal="true" aria-labelledby="help-title" className="flex max-h-[88svh] w-full max-w-md flex-col rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl">

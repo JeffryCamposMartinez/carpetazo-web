@@ -44,6 +44,7 @@ export default function useCardInfoSearch({ query, game, enabled, page, sort = '
   const loopRef = useRef(null);
   const wantedRef = useRef(1);
   const cursors = useRef({});
+  const mylRef = useRef(null); // Mitos y Leyendas no está en el índice: se busca aparte en su catálogo, una vez por búsqueda
   const listRef = useRef([]);
   const seenRef = useRef(new Set());
   const controllerRef = useRef(null);
@@ -97,7 +98,20 @@ export default function useCardInfoSearch({ query, game, enabled, page, sort = '
     setState((previous) => ({ ...previous, searching: true }));
     // Índice local: una sola petición paginada sustituye el recorrido de ediciones externas.
     try {
-      const indexGame = game === 'Pokémon' ? 'Pokemon' : game === 'Yu-Gi-Oh!' ? 'YuGiOh' : game === 'One Piece' ? 'One_Piece' : game;
+      // Mitos y Leyendas (solo o dentro de «Todos») sale de su propio catálogo; el índice no lo tiene
+      if (!mylRef.current && (!game || game === 'Mitos y Leyendas')) {
+        const found = await scanGame('Mitos y Leyendas', signal).catch(() => ({ exact: [], similar: [] }));
+        if (id !== searchId.current || signal.aborted) return;
+        mylRef.current = [...found.exact, ...found.similar];
+      }
+      const myl = mylRef.current || [];
+      if (game === 'Mitos y Leyendas') {
+        listRef.current = myl;
+        setState({ results: myl, searching: false, exhausted: true, pages: 1, total: myl.length });
+        loopRef.current = null;
+        return;
+      }
+      const indexGame = game === 'Pokémon' ? 'Pokemon,Pokemon_Japan' : game === 'Yu-Gi-Oh!' ? 'YuGiOh' : game === 'One Piece' ? 'One_Piece' : game;
       const indexed = await api.searchTcgIndex(term, indexGame, wantedRef.current, sort);
       if (indexed.available) {
         // El índice nombra los juegos con claves técnicas (Pokemon_Japan, One_Piece...): se muestran y se guardan con el nombre del sitio
@@ -111,7 +125,9 @@ export default function useCardInfoSearch({ query, game, enabled, page, sort = '
             payload: { external: { categoryId: card.categoryId, productId: String(card.productId) }, productId: String(card.productId), name: card.name, imageUrl: card.imageUrl, detail: card.setName || 'Catálogo', game: gameName },
           };
         });
-        setState({ results: indexedCards, searching: false, exhausted: wantedRef.current >= indexed.pages, pages: indexed.pages || 1, total: indexed.total || indexedCards.length });
+        // En «Todos», las de Mitos y Leyendas van al comienzo de la primera página
+        const shownCards = wantedRef.current === 1 ? [...myl, ...indexedCards] : indexedCards;
+        setState({ results: shownCards, searching: false, exhausted: wantedRef.current >= indexed.pages, pages: indexed.pages || 1, total: (indexed.total || indexedCards.length) + myl.length });
         loopRef.current = null;
         return;
       }
@@ -138,6 +154,7 @@ export default function useCardInfoSearch({ query, game, enabled, page, sort = '
     controllerRef.current = new AbortController();
     loopRef.current = null;
     cursors.current = {};
+    mylRef.current = null;
     listRef.current = [];
     seenRef.current = new Set();
     setState({ results: [], searching: false, exhausted: false, pages: 1, total: 0 });

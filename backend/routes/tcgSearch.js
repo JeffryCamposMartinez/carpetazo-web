@@ -4,6 +4,7 @@ import { badRequest } from '../core/validation.js';
 import { indexedNames, searchTcgIndex } from '../core/tcgSearchIndex.js';
 import { buildVocabulary, hasVocabulary, suggestQuery } from '../core/cardSuggest.js';
 import { likeEscape, nameMatch } from '../core/cardSearch.js';
+import { bulkPublishedRanges } from '../core/editionDates.js';
 
 const router = express.Router();
 const r2PublicUrl = (key) => {
@@ -57,6 +58,27 @@ const codeRankedPage = async (where, code, page, limit) => {
   }
   return rows;
 };
+// «Última edición»: primero las cartas de ediciones con fecha confiable (de la más nueva a la más vieja) y al final las de fecha dudosa o sin fecha
+const editionRankedPage = async (where, page, limit) => {
+  const bulk = await bulkPublishedRanges();
+  const inBulk = (range) => ({ set: { publishedOn: { gte: range.from, lt: range.to } } });
+  const dated = { AND: [{ set: { publishedOn: { not: null } } }, ...bulk.map((range) => ({ NOT: inBulk(range) }))] };
+  const rest = { OR: [{ set: { publishedOn: null } }, ...bulk.map(inBulk)] };
+  const tiers = [
+    { where: { AND: [where, dated] }, orderBy: [{ set: { publishedOn: 'desc' } }, { cleanName: 'asc' }, { productId: 'asc' }] },
+    { where: { AND: [where, rest] }, orderBy: [{ cleanName: 'asc' }, { productId: 'asc' }] }
+  ];
+  const rows = [];
+  let skip = (page - 1) * limit;
+  for (const tier of tiers) {
+    if (rows.length >= limit) break;
+    const count = await prisma.catalogCard.count({ where: tier.where });
+    if (skip >= count) { skip -= count; continue; }
+    rows.push(...await prisma.catalogCard.findMany({ where: tier.where, orderBy: tier.orderBy, skip, take: Math.min(limit - rows.length, count - skip), select: CARD_SELECT }));
+    skip = 0;
+  }
+  return rows;
+};
 const soldRankedPage = async (where, page, limit) => {
   const pool = await prisma.catalogCard.findMany({ where, orderBy: [{ cleanName: 'asc' }, { productId: 'asc' }], take: RANKING_POOL, select: { productId: true } });
   const ids = pool.map((card) => String(card.productId));
@@ -105,7 +127,10 @@ router.get('/api/tcg/search-index', async (req, res) => {
   const cached = cacheGet(cacheKey);
   if (cached) return res.json(cached);
   if (pendingSearches.has(cacheKey)) return res.json(await pendingSearches.get(cacheKey));
-  const gameWhere = game ? { game: { name: game } } : {};
+  // Uno o varios juegos separados por coma (por ejemplo «Pokemon,Pokemon_Japan»): solo nombres simples, para no armar filtros a partir de texto libre
+  const games = game ? game.split(',').map((name) => name.trim()).filter(Boolean) : [];
+  if ((game && !games.length) || games.length > 4 || games.some((name) => !/^[A-Za-z_ ]{1,40}$/.test(name))) return badRequest(res, 'Búsqueda inválida');
+  const gameWhere = games.length ? { game: { name: { in: games } } } : {};
   const where = {
     kind: 'card',
     ...gameWhere,
@@ -120,7 +145,9 @@ router.get('/api/tcg/search-index', async (req, res) => {
     const total = await prisma.catalogCard.count({ where });
     const rows = sort === 'best_selling'
       ? await soldRankedPage(where, page, limit)
-      : byCode
+      : sort === 'latest_edition'
+        ? await editionRankedPage(where, page, limit)
+        : byCode
         ? await codeRankedPage(where, clean(searchText), page, limit)
         : await prisma.catalogCard.findMany({
         where,

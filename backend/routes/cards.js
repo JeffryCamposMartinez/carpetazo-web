@@ -4,6 +4,7 @@ import { nameMatch, searchFragments, similarCardName } from '../core/cardSearch.
 import { authenticateToken } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { userBoostLevels } from '../core/entitlements.js';
+import { bulkPublishedRanges, reliablePublishedOn } from '../core/editionDates.js';
 import { CARD_SEARCH_TCG_ALIASES, sameCardMatch } from '../core/listing.js';
 import { isValidComuna } from '../core/chileData.js';
 import { PUBLIC_PLAN_RELATIONS_SELECT, withPublicPlanBadge } from '../core/publicSeller.js';
@@ -305,7 +306,8 @@ const rankedCardPage = async (where, sort, page) => {
     const published = new Map(); // tcgId de la carta → fecha de su edición
     const numeric = [...new Set(pool.map((card) => card.tcgId).filter((id) => /^\d{1,12}$/.test(String(id || ''))))];
     const catalog = numeric.length ? await prisma.catalogCard.findMany({ where: { productId: { in: numeric.map(Number) } }, select: { productId: true, set: { select: { publishedOn: true } } } }) : [];
-    catalog.forEach((row) => published.set(String(row.productId), row.set?.publishedOn ? row.set.publishedOn.getTime() : -Infinity));
+    const bulk = await bulkPublishedRanges(); // las fechas de carga masiva no son la fecha de la edición: esas cartas van al final
+    catalog.forEach((row) => { const date = reliablePublishedOn(row.set?.publishedOn, bulk); published.set(String(row.productId), date ? date.getTime() : -Infinity); });
     const myl = [...new Set(pool.map((card) => card.tcgId).filter((id) => String(id || '').startsWith('myl:')))];
     const products = myl.length ? await prisma.tcgProduct.findMany({ where: { productId: { in: myl.map((id) => id.slice(4)) } }, select: { productId: true, group: { select: { publishedOn: true } } } }) : [];
     products.forEach((row) => published.set(`myl:${row.productId}`, row.group?.publishedOn ? row.group.publishedOn.getTime() : -Infinity));

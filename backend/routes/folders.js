@@ -8,6 +8,7 @@ import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/
 import { badRequest, cleanCardData, isAllowedStoredImageUrl, isOptionalText, isShortText, isSmallObject, isUuid, isValidPrice, isValidStock } from '../core/validation.js';
 import { r2PublicUrl } from '../core/tcgCatalogImport.js';
 import { isMylTcg, storedCardId } from '../core/mylIdentity.js';
+import { bulkPublishedRanges, reliablePublishedOn } from '../core/editionDates.js';
 import { PlanLimitError, assertFeature, assertCanAddUniqueCard, assertCanCreateFolder, assertStockChange, getEffectivePlan, getPlanState, lockPlanUser, sendPlanError } from '../core/entitlements.js';
 
 const router = express.Router();
@@ -444,7 +445,8 @@ router.get('/api/folders/:id', optionalAuth, optionalStaff, async (req, res) => 
       : [];
     const imageByProductId = new Map(catalogRows.filter((row) => row.imageKey).map((row) => [row.productId, r2PublicUrl(row.imageKey)]));
     // Fecha de la edición de cada carta (para ordenar por «Última edición»): el catálogo importado, o TcgProduct en Mitos y Leyendas
-    const editionByTcgId = new Map(catalogRows.filter((row) => row.set?.publishedOn).map((row) => [String(row.productId), row.set.publishedOn]));
+    const bulkDates = await bulkPublishedRanges(); // las fechas de carga masiva no son la fecha de la edición
+    const editionByTcgId = new Map(catalogRows.map((row) => [String(row.productId), reliablePublishedOn(row.set?.publishedOn, bulkDates)]).filter(([, date]) => date));
     if (isMylTcg(folder.tcg)) {
       const mylIds = [...new Set(visibleCards.map((card) => String(card.tcgId || '')).filter((id) => id.startsWith('myl:')))];
       const mylProducts = mylIds.length ? await prisma.tcgProduct.findMany({ where: { productId: { in: mylIds.map((id) => id.slice(4)) } }, select: { productId: true, group: { select: { publishedOn: true } } } }) : [];
