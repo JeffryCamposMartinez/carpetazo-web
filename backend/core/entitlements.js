@@ -41,8 +41,9 @@ const activeGrantWhere = (userId, now) => ({
 });
 
 export const getEffectivePlan = async (db, userId, now = new Date()) => {
+  // Una concesión «Free» no manda sobre nada: quitar un plan asignado vuelve al plan automático, y una suscripción pagada siempre cuenta
   const grant = await db.planGrant.findFirst({
-    where: activeGrantWhere(userId, now),
+    where: { ...activeGrantWhere(userId, now), planKey: { not: 'free' } },
     orderBy: { createdAt: 'desc' },
     select: { id: true, planKey: true, endsAt: true, reason: true }
   });

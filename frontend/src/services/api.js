@@ -128,6 +128,7 @@ export const api = {
   setLocalTestPlan: (planKey) => apiFetch('/billing/test-plan', { method: 'POST', body: JSON.stringify({ planKey }) }),
   createSubscriptionCheckout: (planKey) => apiFetch('/billing/checkout', { method: 'POST', body: JSON.stringify({ planKey }) }),
   cancelSubscription: () => apiFetch('/billing/cancel', { method: 'POST', body: JSON.stringify({ confirm: true }) }),
+  syncSubscription: () => apiFetch('/billing/sync', { method: 'POST', body: JSON.stringify({}) }),
   changeSubscriptionPlan: (planKey) => apiFetch('/billing/change-plan', { method: 'POST', body: JSON.stringify({ planKey }) }),
   
   // Folders

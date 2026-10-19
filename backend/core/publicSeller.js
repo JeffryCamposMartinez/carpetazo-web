@@ -45,7 +45,7 @@ export const PUBLIC_SELLER_SELECT = {
 
 const PAST_DUE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
 export const publicPlanBadgeOf = (user, now = new Date()) => {
-  const grant = (user?.planGrants || []).find((row) => validPlanKey(row.planKey) && new Date(row.startsAt).getTime() <= now.getTime() + 2000 && (!row.endsAt || new Date(row.endsAt) > now));
+  const grant = (user?.planGrants || []).find((row) => validPlanKey(row.planKey) && row.planKey !== 'free' && new Date(row.startsAt).getTime() <= now.getTime() + 2000 && (!row.endsAt || new Date(row.endsAt) > now));
   if (grant) return publicPlanBadge(grant.planKey);
   const subscription = (user?.subscriptions || []).find((row) => {
     if (!validPlanKey(row.planKey)) return false;

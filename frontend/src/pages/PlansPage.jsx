@@ -83,6 +83,7 @@ export default function PlansPage() {
       if (cancelled) return;
       attempts += 1;
       try {
+        await api.syncSubscription().catch(() => {}); // pide a Mercado Pago el estado real, sin esperar el aviso
         const next = await api.getBillingMe();
         if (cancelled) return;
         setBilling(next);

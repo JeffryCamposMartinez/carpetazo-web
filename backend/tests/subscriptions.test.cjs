@@ -106,6 +106,26 @@ const webhook = (id) => fetch(`${B}/billing/mercadopago/webhook`, { method: 'POS
     ok('al autorizarse la nueva, la anterior (ya cancelada) caduca', r.status === 200 && (await prisma.subscription.findUnique({ where: { id: fresh.id } })).status === 'active' && (await prisma.subscription.findUnique({ where: { id: old.id } })).status === 'expired');
     r = await call('GET', '/billing/me', 'nobuyer');
     ok('el plan vigente es el de la suscripción nueva', r.j.plan?.key === 'premium');
+
+    // Una concesión «Free» del equipo no tapa una suscripción pagada
+    await reset();
+    await sub();
+    await prisma.planGrant.create({ data: { userId, planKey: 'free', reason: 'Plan Free asignado por error' } });
+    r = await call('GET', '/billing/me', 'nobuyer');
+    ok('una concesión Free no tapa la suscripción pagada', r.status === 200 && r.j.plan?.key === 'enthusiast' && r.j.source === 'subscription', JSON.stringify({ k: r.j.plan?.key, s: r.j.source }));
+    r = await call('POST', '/admin/users/cztest_nobuyer/plan', 'admin', { planKey: 'free', reason: 'intento de dejar en Free' });
+    ok('el equipo no puede asignar «Free» (se usa «Quitar plan asignado») → 400', r.status === 400, String(r.status));
+
+    // Al volver de Mercado Pago el plan se activa aunque el aviso no llegue
+    await reset();
+    const waiting = await sub({ status: 'pending', currentPeriodEnd: null, nextPaymentAt: null });
+    await mpSet(waiting.providerSubscriptionId, { status: 'authorized', next_payment_date: new Date(Date.now() + 30 * DAY).toISOString() });
+    r = await call('GET', '/billing/me', 'nobuyer');
+    ok('antes de sincronizar sigue en Free', r.j.plan?.key === 'free');
+    r = await call('POST', '/billing/sync', 'nobuyer', {});
+    ok('sincronizar activa la suscripción sin esperar el aviso', r.status === 200 && r.j.plan?.key === 'enthusiast' && r.j.source === 'subscription', JSON.stringify({ k: r.j.plan?.key, s: r.j.source }));
+    r = await call('POST', '/billing/sync', 'jerry', {});
+    ok('sincronizar sin suscripción propia no falla ni toca la de otra persona', r.status === 200, String(r.status));
   } finally {
     await prisma.subscription.deleteMany({ where: { userId } }).catch(() => {});
     await prisma.$disconnect();

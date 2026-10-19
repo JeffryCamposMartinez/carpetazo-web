@@ -58,7 +58,7 @@ export default function PlanManager({ username, setError }) {
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-sm font-bold text-slate-700">Plan
           <Select value={planKey} onChange={(event) => setPlanKey(event.target.value)} className={`${field} h-12`}>
-            {(plans.length ? plans : [{ key: 'premium', name: 'Premium' }]).map((plan) => <option key={plan.key} value={plan.key}>{plan.name} · {money(plan.priceClp)}</option>)}
+            {(plans.length ? plans : [{ key: 'premium', name: 'Premium' }]).filter((plan) => plan.key !== 'free').map((plan) => <option key={plan.key} value={plan.key}>{plan.name} · {money(plan.priceClp)}</option>)}
           </Select>
         </label>
         <label className="block text-sm font-bold text-slate-700">Días (vacío: sin fecha de término)

@@ -111,6 +111,7 @@ router.post('/api/admin/users/:username/plan', authenticateToken, requireStaff(3
     const { planKey, reason } = req.body || {};
     const days = req.body?.days === undefined || req.body?.days === null || req.body?.days === '' ? null : Number(req.body.days);
     if (planKey !== 'auto' && !validPlanKey(planKey)) return badRequest(res, 'Plan inválido');
+    if (planKey === 'free') return badRequest(res, 'Para volver al plan automático usa «Quitar plan asignado»');
     if (!isShortText(reason, 300) || reason.trim().length < 5) return badRequest(res, 'Escribe el motivo (mínimo 5 caracteres)');
     if (days !== null && (!Number.isInteger(days) || days < 1 || days > 3650)) return badRequest(res, 'Los días deben ser un número entre 1 y 3650');
     const target = await planTarget(req.params.username);

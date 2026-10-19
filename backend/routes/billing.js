@@ -100,8 +100,9 @@ router.post('/api/billing/test-plan', authenticateToken, async (req, res) => {
     const user = await ownUser(req.user.sub);
     if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     await prisma.$transaction(async (tx) => {
-      await tx.planGrant.updateMany({ where: { userId: user.id, revokedAt: null, reason: 'Prueba local de planes' }, data: { revokedAt: new Date() } });
-      await tx.planGrant.create({ data: { userId: user.id, planKey, reason: 'Prueba local de planes' } });
+      // «Free» ya no se guarda como concesión (no manda sobre nada): se quitan las concesiones vigentes y rige el plan automático
+      await tx.planGrant.updateMany({ where: { userId: user.id, revokedAt: null, ...(planKey === 'free' ? {} : { reason: 'Prueba local de planes' }) }, data: { revokedAt: new Date() } });
+      if (planKey !== 'free') await tx.planGrant.create({ data: { userId: user.id, planKey, reason: 'Prueba local de planes' } });
     });
     res.json({ success: true, ...(await getPlanState(prisma, user.id)) });
   } catch (error) {
@@ -241,6 +242,20 @@ router.post('/api/billing/change-plan', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error changing subscription plan:', error.code || error.message, error.providerStatus || '', error.providerMessage || '');
     sendBillingError(res, error, 'No se pudo cambiar el plan');
+  }
+});
+
+// Al volver de Mercado Pago la web pide revisar la suscripción de la persona: el plan se activa aunque el aviso se demore o no llegue
+router.post('/api/billing/sync', authenticateToken, async (req, res) => {
+  try {
+    const user = await ownUser(req.user.sub);
+    if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const subscription = await prisma.subscription.findFirst({ where: { userId: user.id, status: { in: ['pending', 'active', 'past_due', 'paused'] }, providerSubscriptionId: { not: null } }, orderBy: { createdAt: 'desc' }, select: { providerSubscriptionId: true } });
+    if (subscription) await syncPreapproval(subscription.providerSubscriptionId).catch((error) => console.error('Error sincronizando la suscripción:', error.code || error.message, error.providerStatus || ''));
+    res.json({ success: true, ...(await getPlanState(prisma, user.id)) });
+  } catch (error) {
+    console.error('Error en la sincronización de suscripción:', error.code || error.message);
+    res.status(500).json({ success: false, message: 'No se pudo revisar tu suscripción' });
   }
 });
 

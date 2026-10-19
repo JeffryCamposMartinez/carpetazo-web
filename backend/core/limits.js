@@ -52,6 +52,7 @@ export const applyRouteLimits = (app) => {
   app.use('/api/admin/users/search', routeLimiter(15 * 60 * 1000, 300));
   app.use('/api/admin/users/:username/plan', routeLimiter(15 * 60 * 1000, 60));
   app.use('/api/billing/checkout', routeLimiter(15 * 60 * 1000, 10));
+  app.use('/api/billing/sync', routeLimiter(15 * 60 * 1000, 60));
   app.use('/api/billing/cancel', routeLimiter(15 * 60 * 1000, 10));
   app.use('/api/billing/mercadopago/webhook', routeLimiter(15 * 60 * 1000, 600));
   app.use('/api/orders/create', routeLimiter(15 * 60 * 1000, 20));
