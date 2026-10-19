@@ -6,6 +6,7 @@ import multer from 'multer';
 import sharp from 'sharp';
 import { authenticateToken } from '../core/auth.js';
 import { prisma } from '../core/db.js';
+import { PlanLimitError, assertFeature, getEffectivePlan, sendPlanError } from '../core/entitlements.js';
 import { deleteR2ObjectByPublicUrl, hasR2Config, r2Client, r2TestLog, userR2Prefix } from '../core/r2.js';
 import { isTrustedUploader, prepareImage } from '../moderation/imageScan.js';
 import { hashBank, imageScanner, moderationHooks } from '../moderation/services.js';
@@ -51,6 +52,11 @@ router.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
     const isWallpaper = type === 'wallpaper';
     const isMessageImage = type === 'message';
     const isCardImage = type === 'card';
+    // El banner y el fondo del perfil dependen del plan (el banner desde Entusiasta; el fondo, parte del Estudio, desde Premium)
+    if (isBanner || isWallpaper) {
+      const owner = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
+      if (owner) assertFeature((await getEffectivePlan(prisma, owner.id)).plan, isBanner ? 'profileBanner' : 'profileStudio');
+    }
     // Las imágenes del chat son privadas entre dos personas: nunca se envían a servicios externos
     const scanKind = isCardImage ? 'card' : 'profile';
     const shouldScan = !isMessageImage && imageScanner.enabled;
@@ -207,6 +213,7 @@ router.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
       throw error;
     }
   } catch (error) {
+    if (error instanceof PlanLimitError) return sendPlanError(res, error);
     console.error('Upload Error:', error);
     res.status(500).json({ success: false, message: 'Error procesando o subiendo la imagen' });
   }

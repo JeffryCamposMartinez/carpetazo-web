@@ -16,6 +16,7 @@ import { LoadingMark } from '../components/ui/LoadableImage';
 import { siteUrl } from '../utils/siteUrl';
 import { Link } from 'react-router-dom';
 import HelpTip from '../components/ui/HelpTip';
+import PlanTools from '../components/folder/PlanTools';
 import SvgIcon from '../components/ui/SvgIcon';
 // html2canvas + jsPDF pesan mucho: se descargan solo al generar un PDF
 const HiddenPDFGenerator = lazy(() => import('../components/folder/HiddenPDFGenerator'));
@@ -533,6 +534,7 @@ export default function Dashboard() {
                 <Link to="/planes" className="inline-flex h-10 [@media(pointer:coarse)]:h-11 items-center justify-center rounded-xl bg-[#12315f] px-4 text-sm font-extrabold text-white hover:bg-[#1e40af]">Ver mi plan</Link>
               </div>
             )}
+            {planState?.plan && folders.length > 0 && <PlanTools plan={planState.plan} />}
             {folders.length > 0 && <FolderSummary variant="strip" folderCount={folders.length} publicCount={publicCount} cardCount={totalCards} weeklyVisits={weeklyVisits} pendingCount={pendingCount} onOpenRequests={() => changeTab('solicitudes')} />}
           {/* Móvil: la acción primaria es un botón, no un banner; junto al resumen de lo que ya hay */}
             <div className="mb-5 flex items-center justify-between gap-3 sm:hidden">

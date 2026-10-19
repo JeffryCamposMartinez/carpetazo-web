@@ -21,6 +21,33 @@ export class PlanLimitError extends Error {
   }
 }
 
+// Función que el plan de la persona no incluye (403): se valida en el servidor, no solo se oculta en pantalla
+const FEATURE_MESSAGES = {
+  wishlistLists: 'Alcanzaste el máximo de listas de deseos de tu plan.',
+  wishlistItems: 'Esta lista alcanzó el máximo de cartas de tu plan.',
+  profileBanner: 'El banner del perfil está disponible desde el plan Entusiasta.',
+  profileStudio: 'El Estudio de perfil (estilos y fondo) está disponible desde el plan Premium.',
+  socialLinks: 'Alcanzaste el máximo de redes sociales de tu plan.',
+  featuredCards: 'Alcanzaste el máximo de cartas destacadas de tu plan.',
+  visitsDetail: 'El detalle de visitas está disponible desde el plan Premium.',
+  inventoryExport: 'Exportar tu inventario está disponible desde el plan Entusiasta.'
+};
+export class PlanFeatureError extends PlanLimitError {
+  constructor(feature, planKey, { current = null, limit = null } = {}) {
+    super('plan_feature_locked', { planKey, current, limit, details: { feature } });
+    this.message = FEATURE_MESSAGES[feature] || 'Esta función no está incluida en tu plan.';
+    this.status = 403;
+  }
+}
+// Función sí/no del plan (por ejemplo `profileBanner`)
+export const assertFeature = (plan, feature) => {
+  if (!plan[feature]) throw new PlanFeatureError(feature, plan.key);
+};
+// Función con tope numérico (`null` = sin límite): falla si agregar `increase` supera el tope
+export const assertFeatureRoom = (plan, feature, current, increase = 1) => {
+  if (limitReached(current, plan[feature], increase)) throw new PlanFeatureError(feature, plan.key, { current, limit: plan[feature] });
+};
+
 export const sendPlanError = (res, error) => res.status(error.status || 409).json({
   success: false,
   code: error.code || 'plan_limit',
@@ -66,6 +93,31 @@ export const getEffectivePlan = async (db, userId, now = new Date()) => {
     }
   }
   return { plan: PLANS.free, source: 'default' };
+};
+
+// Personas cuyo plan vigente incluye una función sí/no (por ejemplo `prioritySupport`), para ordenar bandejas sin consultar el plan de cada una.
+// shortcut: no mira cancelaciones programadas ni períodos de gracia; sirve para priorizar, no para dar acceso. Si hiciera falta exactitud, usar getEffectivePlan.
+export const userIdsWithFeature = async (db, feature, now = new Date()) => {
+  const keys = Object.values(PLANS).filter((plan) => plan[feature] && !plan.adminOnly).map((plan) => plan.key);
+  const [grants, subscriptions] = await Promise.all([
+    db.planGrant.findMany({ where: { revokedAt: null, planKey: { in: keys }, startsAt: { lte: now }, OR: [{ endsAt: null }, { endsAt: { gt: now } }] }, select: { userId: true } }),
+    db.subscription.findMany({ where: { status: { in: ACTIVE_SUBSCRIPTION_STATES }, planKey: { in: keys } }, select: { userId: true } })
+  ]);
+  return [...new Set([...grants, ...subscriptions].map((row) => row.userId))];
+};
+
+// Nivel de prioridad en los listados de cada vendedor (`listingBoost` de su plan): Map idPersona → nivel. Mismo atajo que userIdsWithFeature.
+export const userBoostLevels = async (db, now = new Date()) => {
+  const levels = Object.values(PLANS).filter((plan) => plan.listingBoost > 0 && !plan.adminOnly);
+  const boostOf = (planKey) => levels.find((plan) => plan.key === planKey)?.listingBoost || 0;
+  const keys = levels.map((plan) => plan.key);
+  const [grants, subscriptions] = await Promise.all([
+    db.planGrant.findMany({ where: { revokedAt: null, planKey: { in: keys }, startsAt: { lte: now }, OR: [{ endsAt: null }, { endsAt: { gt: now } }] }, select: { userId: true, planKey: true } }),
+    db.subscription.findMany({ where: { status: { in: ACTIVE_SUBSCRIPTION_STATES }, planKey: { in: keys } }, select: { userId: true, planKey: true } })
+  ]);
+  const map = new Map();
+  for (const row of [...grants, ...subscriptions]) map.set(row.userId, Math.max(map.get(row.userId) || 0, boostOf(row.planKey)));
+  return map;
 };
 
 export const getPlanUsage = async (db, userId) => {

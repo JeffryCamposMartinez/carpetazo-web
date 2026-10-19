@@ -599,6 +599,17 @@ const [isSearching, setIsSearching] = useState(false);
     }
   };
 
+  // Destacar una carta en el perfil público (el máximo lo fija el plan; el servidor responde con el motivo si no se puede)
+  const handleToggleFeatured = async (cardId, featured) => {
+    try {
+      await api.setCardFeatured(id, cardId, featured);
+      setCards(prev => prev.map(c => c.id === cardId ? { ...c, featuredAt: featured ? new Date().toISOString() : null } : c));
+      showToast(featured ? 'Carta destacada en tu perfil' : 'Carta quitada de tus destacadas', 'success');
+    } catch (error) {
+      showToast(error.message || 'No se pudo destacar la carta.', 'error');
+    }
+  };
+
   const handleDeleteRequest = (id) => {
     setConfirmDialog({ show: true, message: '¿Estás seguro de eliminar esta carta del catálogo?', targetId: id });
   };
@@ -973,7 +984,7 @@ const [isSearching, setIsSearching] = useState(false);
     catalogDragFloatingPreviewRef, cardDetailsMode, catalogGridClass, catalogGridColumns, catalogGridDense, catalogViewMode,
     clearCatalogFilters, currentFolderId: id, inventory, copyBuyerLink, cycleCardDetailsMode, cycleCatalogGridDensity, draggedCatalogCardId, dropCatalogIndex,
     filteredCatSets, filteredCatalog, folderData, getCatalogDragHandleProps, getCatalogDropProps,
-    handleCatalogReorder, handleDeleteRequest, handleUpdateCard, hasCatalogFilters, hasUnsavedCatalogOrder,
+    handleCatalogReorder, handleDeleteRequest, handleToggleFeatured, handleUpdateCard, hasCatalogFilters, hasUnsavedCatalogOrder,
     isCatSetDropdownOpen, isMylFolder, openBuyerPreview, previewCatalog, saveCatalogOrder, savingCatalogOrder,
     scrollToTopIfNeeded, setActiveTab, setCatQuery, setCatSet, setCatalogViewMode, setIsCatSetDropdownOpen,
     showScrollTop };

@@ -69,6 +69,7 @@ model Folder {
   totalVisits     Int      @default(0)
   weeklyVisits    Int      @default(0)
   lastVisitWeek   Int      @default(0)
+  visitDays       FolderVisitDay[]
   id              String   @id @default(uuid())
   name            String
   description     String?
@@ -96,6 +97,7 @@ model Card {
   language        String   @default("English")
   data            Json?
   moderationState String   @default("visible") // visible | image_hidden | hidden | removed
+  featuredAt      DateTime? // carta destacada en el perfil público (el máximo lo fija el plan)
   folderId        String
   folder          Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
   createdAt       DateTime @default(now())
@@ -105,6 +107,7 @@ model Card {
   @@index([createdAt])
   @@index([tcgId])
   @@index([folderId, tcgId, language])
+  @@index([featuredAt])
 }
 
 model Message {
@@ -771,4 +774,17 @@ model PlanGrant {
   createdAt   DateTime  @default(now())
 
   @@index([userId, startsAt, endsAt])
+}
+
+// Visitas de cada carpeta pública por día (hora de Chile) y origen: es el «detalle de visitas» de los planes Premium en adelante.
+// Se guarda siempre; el plan solo decide quién lo puede ver. Se borra pasados los días de retención.
+model FolderVisitDay {
+  folderId String
+  folder   Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  day      DateTime @db.Date
+  source   String // direct | internal | external
+  count    Int      @default(0)
+
+  @@id([folderId, day, source])
+  @@index([day])
 }

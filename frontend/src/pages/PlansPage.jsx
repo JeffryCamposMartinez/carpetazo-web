@@ -27,7 +27,17 @@ function PlanCard({ plan, current, busy, testMode, cta, onChoose }) {
     `${number(plan.folders)} ${plan.folders === 1 ? 'carpeta' : 'carpetas'}`,
     `${number(plan.uniqueCardsPerFolder)} cartas únicas por carpeta`,
     `${number(plan.copiesPerCard)} copias por carta`,
-    ...(plan.key === 'free' || plan.adminOnly ? [] : [`Insignia pública ${plan.name}`])
+    ...(plan.key === 'free' || plan.adminOnly ? [] : [`Insignia pública ${plan.name}`]),
+    `${plan.wishlistLists} ${plan.wishlistLists === 1 ? 'lista' : 'listas'} de deseos`,
+    `${plan.wishlistItems} cartas por lista de deseos`,
+    `${plan.socialLinks} ${plan.socialLinks === 1 ? 'red social' : 'redes sociales'} en el perfil`,
+    `${plan.featuredCards} cartas destacadas en tu perfil`,
+    ...(plan.profileBanner ? ['Banner del perfil'] : []),
+    ...(plan.profileStudio ? ['Estudio de perfil (estilos y fondo)'] : []),
+    ...(plan.visitsDetail ? ['Detalle de visitas'] : []),
+    ...(plan.inventoryExport ? ['Exportar tu inventario (CSV)'] : []),
+    ...(plan.listingBoost ? [plan.listingBoost > 1 ? 'Mayor prioridad en los listados' : 'Prioridad en los listados'] : []),
+    ...(plan.prioritySupport ? ['Soporte prioritario'] : [])
   ];
   return (
     <article className={`relative flex min-h-[30rem] flex-col rounded-3xl border-2 p-6 shadow-[0_16px_38px_-24px_rgba(15,39,80,0.55)] ${STYLES[plan.key]} ${active ? 'ring-4 ring-[#1e40af]/15' : ''}`}>

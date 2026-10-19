@@ -90,6 +90,7 @@ export default function CardTile({ card, index, view, wanted, onWish }) {
             <span className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 pt-1">
               <PriceTag price={card.price} />
               {isNew && <span className="rounded-full bg-[#12315f] px-2 py-0.5 text-xs font-extrabold text-white">Nueva</span>}
+              {card.featured && <span className="rounded-full bg-[#facc15] px-2 py-0.5 text-xs font-extrabold text-[#12315f]">Destacado</span>}
               <span className="flex flex-wrap items-center gap-1.5"><Availability stock={card.stock} /><LanguageChip language={card.language} /></span>
             </span>
           </span>
@@ -104,7 +105,12 @@ export default function CardTile({ card, index, view, wanted, onWish }) {
       <Link to={`/carta/${card.id}`} className={`group flex h-full flex-col overflow-hidden rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${SURFACE} ${LIFT}`}>
         <span className="relative block w-full overflow-hidden bg-slate-100" style={{ aspectRatio: cardRatio(card.folder?.tcg) }}>
           <CardImage card={card} className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-md object-contain" />
-          {isNew && <span className="absolute left-2 top-2 rounded-full bg-[#12315f] px-2 py-0.5 text-xs font-extrabold text-white shadow">Nueva</span>}
+          {(isNew || card.featured) && (
+            <span className="absolute left-2 top-2 flex flex-wrap gap-1">
+              {isNew && <span className="rounded-full bg-[#12315f] px-2 py-0.5 text-xs font-extrabold text-white shadow">Nueva</span>}
+              {card.featured && <span className="rounded-full bg-[#facc15] px-2 py-0.5 text-xs font-extrabold text-[#12315f] shadow">Destacado</span>}
+            </span>
+          )}
           <span className="absolute bottom-2 left-2 -rotate-1"><PriceTag price={card.price} /></span>
         </span>
         <span className="flex flex-1 flex-col gap-1 p-3">

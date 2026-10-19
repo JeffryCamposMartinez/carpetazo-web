@@ -12,9 +12,10 @@ const POLICY_LABELS = {
   caseDays: 'Casos de estafa resueltos',
   auditDays: 'Auditoría',
   imageHashDays: 'Huellas de imágenes no prohibidas',
-  scanEventDays: 'Registro de escaneos de imágenes'
+  scanEventDays: 'Registro de escaneos de imágenes',
+  visitDayDays: 'Detalle de visitas de las carpetas'
 };
-const COUNT_LABELS = { evidenceDismissed: 'evidencias (descartados)', evidenceActioned: 'evidencias (con medida)', reportsDismissed: 'reportes descartados', reportsActioned: 'reportes con medida', appeals: 'apelaciones', sanctions: 'medidas', cases: 'casos', imageHashes: 'huellas', scanEvents: 'registros de escaneo', audit: 'auditoría' };
+const COUNT_LABELS = { evidenceDismissed: 'evidencias (descartados)', evidenceActioned: 'evidencias (con medida)', reportsDismissed: 'reportes descartados', reportsActioned: 'reportes con medida', appeals: 'apelaciones', sanctions: 'medidas', cases: 'casos', imageHashes: 'huellas', scanEvents: 'registros de escaneo', visitDays: 'visitas por día', audit: 'auditoría' };
 
 // Cuánto tiempo se conserva cada cosa y cuándo se limpió por última vez (corre sola una vez al día)
 export default function RetentionPanel() {

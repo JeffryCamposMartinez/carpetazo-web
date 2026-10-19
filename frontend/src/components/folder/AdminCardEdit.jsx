@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import Select from '../ui/Select';
 import SvgIcon from '../ui/SvgIcon';
 
-const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, compact = false, detailLevel = 'none', dense = false, showLanguage = false, selectable = false, selected = false, onToggleSelect, onPreview, onDraftChange }) => {
+const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, onToggleFeatured, compact = false, detailLevel = 'none', dense = false, showLanguage = false, selectable = false, selected = false, onToggleSelect, onPreview, onDraftChange }) => {
   // 'full': nombre, edición, stock, precio e idioma · 'basic': solo stock y precio · 'none': solo la carta
   const showDetails = detailLevel !== 'none';
   const showInfo = detailLevel === 'full';
@@ -96,6 +96,18 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
             <Link to={`/carta/${card.id}`} aria-label={`Ver ficha pública de ${card.name}`} title="Ver ficha pública" className="absolute left-1 top-1 z-[2] flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[#1e40af] shadow ring-1 ring-black/10 transition active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
               <SvgIcon name="open_in_new" translate="no" aria-hidden="true" className="text-[18px]" />
             </Link>
+          )}
+          {onToggleFeatured && !selectable && (
+            <button
+              type="button"
+              onClick={() => onToggleFeatured(card.id, !card.featuredAt)}
+              aria-pressed={Boolean(card.featuredAt)}
+              aria-label={card.featuredAt ? `Quitar ${card.name} de tus destacadas` : `Destacar ${card.name} en tu perfil`}
+              title={card.featuredAt ? 'Destacada en tu perfil: toca para quitarla' : 'Destacar en tu perfil'}
+              className="absolute bottom-1 right-1 z-[3] flex h-8 w-8 items-center justify-center rounded-full bg-white/95 shadow-sm ring-1 ring-slate-900/10 transition-transform duration-150 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"
+            >
+              <SvgIcon name="star" translate="no" aria-hidden="true" className={`text-[19px] ${card.featuredAt ? 'text-[#d97706]' : 'text-slate-400'}`} style={card.featuredAt ? { fontVariationSettings: "'FILL' 1" } : undefined} />
+            </button>
           )}
           {onPreview && !selectable && (
             <button type="button" onClick={() => onPreview(card.id)} aria-label={`Ver ${card.name} en grande`} className="absolute inset-0 z-[1] cursor-zoom-in rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]" />

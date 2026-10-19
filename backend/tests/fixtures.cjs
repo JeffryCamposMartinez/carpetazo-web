@@ -77,4 +77,18 @@ const setup = async () => {
 
 const fixtures = () => JSON.parse(process.env.CZ_FIXTURES || '{}');
 
-module.exports = { prisma, B, U, NAMES, ADMIN_EMAIL, call, ok, acceptTerms, cleanup, setup, fixtures };
+// Las pruebas comparten cuentas y se ejecutan una tras otra: una que cambia planes debe devolverlos como estaban.
+// Guarda las concesiones y suscripciones de unas cuentas y devuelve la función que las restaura.
+const snapshotPlans = async (who) => {
+  const ids = (await prisma.user.findMany({ where: { firebaseUid: { in: who.map((name) => UID_PREFIX + name) } }, select: { id: true } })).map((user) => user.id);
+  const grants = await prisma.planGrant.findMany({ where: { userId: { in: ids }, revokedAt: null }, select: { id: true } });
+  const subscriptions = await prisma.subscription.findMany({ where: { userId: { in: ids } } });
+  return async () => {
+    await prisma.planGrant.updateMany({ where: { userId: { in: ids }, revokedAt: null }, data: { revokedAt: new Date() } });
+    if (grants.length) await prisma.planGrant.updateMany({ where: { id: { in: grants.map((grant) => grant.id) } }, data: { revokedAt: null } });
+    await prisma.subscription.deleteMany({ where: { userId: { in: ids } } });
+    if (subscriptions.length) await prisma.subscription.createMany({ data: subscriptions });
+  };
+};
+
+module.exports = { prisma, B, U, NAMES, ADMIN_EMAIL, call, ok, acceptTerms, cleanup, setup, fixtures, snapshotPlans };

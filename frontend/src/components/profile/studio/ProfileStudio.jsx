@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
+import usePlan from '../../../hooks/usePlan';
 import useBodyScrollLock from '../../../hooks/useBodyScrollLock';
 import { loadThemeFonts } from '../../../utils/themeFonts';
 import { ALL_FONTS } from '../profileFonts';
@@ -16,6 +18,8 @@ export default function ProfileStudio({
   messageButtonEnabled, resetPublicTheme, saveCurrentTheme, savedTheme, savingTheme, setThemePanelOpen,
   setThemePanelTab, socialLinks, themeDirty, themePanelTab, totalCards
 }) {
+  const { plan } = usePlan();
+  const studioLocked = Boolean(plan) && !plan.profileStudio; // estilos y fondo son de Premium en adelante; los interruptores de contacto («Redes») son libres
   const panelRef = useRef(null);
   const bodyRef = useRef(null);
   const closeRef = useRef(() => setThemePanelOpen(false));
@@ -99,16 +103,24 @@ export default function ProfileStudio({
         </nav>
 
         <div ref={bodyRef} className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-4 pb-8 pt-6 [scrollbar-color:#c8d3e1_transparent] [scrollbar-width:thin] sm:px-7 sm:pt-7">
-          {themePanelTab === 'theme' && <StudioThemeTab applyThemePalette={applyThemePalette} avatarUrl={avatarUrl} handleThemeFieldChange={handleThemeFieldChange} initial={initial} publicTheme={savedTheme} />}
-          {themePanelTab === 'font' && <StudioTypeTab displayName={displayName} onFields={handleThemeFieldsChange} publicTheme={savedTheme} totalCards={totalCards} />}
-          {themePanelTab === 'cards' && <StudioCardsTab {...tabProps} />}
-          {themePanelTab === 'scene' && <StudioSceneTab {...tabProps} />}
-          {themePanelTab === 'layout' && <StudioLayoutTab {...tabProps} />}
+          {studioLocked && themePanelTab !== 'social' && (
+            <div className="rounded-2xl border border-dashed p-6 text-center" style={{ borderColor: STUDIO.line }}>
+              <Symbol name="lock" className="text-[30px]" />
+              <h3 className="mt-2 text-lg font-bold" style={{ fontFamily: STUDIO.heading }}>El Estudio de perfil es de Premium</h3>
+              <p className="mx-auto mt-1 max-w-sm text-sm" style={{ color: STUDIO.muted }}>Con el plan Premium eliges colores, letra, tarjetas, escena y orden de tu perfil. En «Redes» puedes elegir qué contactos se muestran, en cualquier plan.</p>
+              <Link to="/planes" className="mt-4 inline-flex min-h-11 items-center rounded-[10px] bg-[#12283f] px-5 text-sm font-bold text-white">Ver planes</Link>
+            </div>
+          )}
+          {!studioLocked && themePanelTab === 'theme' && <StudioThemeTab applyThemePalette={applyThemePalette} avatarUrl={avatarUrl} handleThemeFieldChange={handleThemeFieldChange} initial={initial} publicTheme={savedTheme} />}
+          {!studioLocked && themePanelTab === 'font' && <StudioTypeTab displayName={displayName} onFields={handleThemeFieldsChange} publicTheme={savedTheme} totalCards={totalCards} />}
+          {!studioLocked && themePanelTab === 'cards' && <StudioCardsTab {...tabProps} />}
+          {!studioLocked && themePanelTab === 'scene' && <StudioSceneTab {...tabProps} />}
+          {!studioLocked && themePanelTab === 'layout' && <StudioLayoutTab {...tabProps} />}
           {themePanelTab === 'social' && <StudioSocialTab getSocialEnabled={getSocialEnabled} messageButtonEnabled={messageButtonEnabled} onField={handleThemeFieldChange} socialLinks={socialLinks} />}
         </div>
 
         <footer className="grid shrink-0 grid-cols-[1fr_1.5fr] gap-2.5 border-t bg-white px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_24px_rgba(23,41,64,0.02)] sm:px-7 sm:pt-4" style={{ borderColor: STUDIO.line }}>
-          <button type="button" onClick={resetPublicTheme} disabled={savingTheme} className="flex min-h-12 items-center justify-center gap-2 rounded-[10px] border bg-white px-2 text-[13px] font-semibold transition-[background-color,transform] duration-150 active:scale-[0.98] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2b63d8] disabled:opacity-50 [@media(hover:hover)]:hover:bg-[#f5f7fa]" style={{ borderColor: STUDIO.line, color: STUDIO.ink }}>
+          <button type="button" onClick={resetPublicTheme} disabled={savingTheme || studioLocked} className="flex min-h-12 items-center justify-center gap-2 rounded-[10px] border bg-white px-2 text-[13px] font-semibold transition-[background-color,transform] duration-150 active:scale-[0.98] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2b63d8] disabled:opacity-50 [@media(hover:hover)]:hover:bg-[#f5f7fa]" style={{ borderColor: STUDIO.line, color: STUDIO.ink }}>
             <Symbol name="restart_alt" className="text-[19px]" />Restablecer
           </button>
           <button type="button" onClick={saveCurrentTheme} disabled={savingTheme || !themeDirty} className={`flex min-h-12 items-center justify-center gap-2 rounded-[10px] border px-2 text-[13px] font-bold transition-[background-color,transform] duration-150 active:scale-[0.98] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2b63d8] focus-visible:ring-offset-2 ${themeDirty || savingTheme ? 'border-[#173a64] bg-[#173a64] text-white shadow-[0_4px_8px_rgba(23,58,100,0.1)] [@media(hover:hover)]:hover:bg-[#2454c6]' : 'cursor-default border-[#d7e8df] bg-[#edf4f1] text-[#3d7159]'}`}>

@@ -19,6 +19,7 @@ export const RETENTION = {
   auditDays: 1095,             // auditoría: responsabilidad del equipo
   imageHashDays: 180,          // huellas de imágenes que nunca se prohibieron
   scanEventDays: 90,           // registro de escaneos de imágenes (métricas)
+  visitDayDays: 120,           // detalle de visitas por día de las carpetas (se muestran hasta 90 días)
   termsAfterDeletionDays: 1825 // aceptaciones de Términos de una cuenta borrada: 5 años desde que se borró
 };
 
@@ -162,6 +163,7 @@ export const registerAutomation = (app, deps) => {
     counts.cases = (await prisma.fraudCase.deleteMany({ where: { status: 'resolved', resolvedAt: { lt: before(RETENTION.caseDays) } } })).count;
     counts.imageHashes = (await prisma.imageHash.deleteMany({ where: { banned: false, createdAt: { lt: before(RETENTION.imageHashDays) } } })).count;
     counts.scanEvents = (await prisma.scanEvent.deleteMany({ where: { createdAt: { lt: before(RETENTION.scanEventDays) } } })).count;
+    counts.visitDays = (await prisma.folderVisitDay.deleteMany({ where: { day: { lt: before(RETENTION.visitDayDays) } } })).count;
     // La cuenta borrada queda con rol 'deleted'; su updatedAt es el momento del borrado (si vuelve, deja de estar borrada y no se toca)
     counts.termsAcceptances = (await prisma.termsAcceptance.deleteMany({ where: { user: { role: 'deleted', updatedAt: { lt: before(RETENTION.termsAfterDeletionDays) } } } })).count;
     counts.audit = (await prisma.moderationAudit.deleteMany({ where: { createdAt: { lt: before(RETENTION.auditDays) }, action: { not: 'retention.run' } } })).count;

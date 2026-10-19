@@ -8,7 +8,7 @@ import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/
 import { badRequest, cleanCardData, isAllowedStoredImageUrl, isOptionalText, isShortText, isSmallObject, isUuid, isValidPrice, isValidStock } from '../core/validation.js';
 import { r2PublicUrl } from '../core/tcgCatalogImport.js';
 import { isMylTcg, storedCardId } from '../core/mylIdentity.js';
-import { PlanLimitError, assertCanAddUniqueCard, assertCanCreateFolder, assertStockChange, getEffectivePlan, getPlanState, lockPlanUser, sendPlanError } from '../core/entitlements.js';
+import { PlanLimitError, assertFeature, assertCanAddUniqueCard, assertCanCreateFolder, assertStockChange, getEffectivePlan, getPlanState, lockPlanUser, sendPlanError } from '../core/entitlements.js';
 
 const router = express.Router();
 const CARD_LANGUAGES = ['English', 'Spanish', 'Japanese'];
@@ -433,7 +433,7 @@ router.get('/api/folders/:id', optionalAuth, optionalStaff, async (req, res) => 
     if (!folder || (!folder.isPublic && !isFolderOwner && !isStaffViewer)) return res.status(404).json({ success: false, message: 'Folder not found' });
     // El estado de moderación solo lo ve el dueño; para los demás no se serializa
     const { moderationState: _folderState, ...publicFolder } = folder;
-    const visibleCards = isFolderOwner ? folder.cards : folder.cards.map(({ moderationState: _cardState, ...card }) => card);
+    const visibleCards = isFolderOwner ? folder.cards : folder.cards.map(({ moderationState: _cardState, featuredAt: _featured, ...card }) => card);
     // Los ids de Mitos son propios del catálogo de Mitos. No deben buscarse
     // en CatalogCard, porque allí viven los ids de TCGplayer y pueden coincidir.
     const productIds = isMylTcg(folder.tcg)
@@ -499,6 +499,11 @@ router.get('/api/folders/:id', optionalAuth, optionalStaff, async (req, res) => 
         for (const [key, time] of recentVisits) if (time < now - VISIT_WINDOW_MS) recentVisits.delete(key);
       }
 
+      // Detalle por día y origen (se guarda siempre; el plan decide quién lo ve). El origen lo informa el navegador: solo se aceptan los tres valores conocidos.
+      const source = ['direct', 'internal', 'external'].includes(req.body?.source) ? req.body.source : 'direct';
+      const day = new Date(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' }) + 'T00:00:00Z');
+      await prisma.folderVisitDay.upsert({ where: { folderId_day_source: { folderId, day, source } }, create: { folderId, day, source, count: 1 }, update: { count: { increment: 1 } } });
+
       if (folder.lastVisitWeek !== currentWeek) {
         await prisma.folder.update({
           where: { id: folderId },
@@ -514,6 +519,40 @@ router.get('/api/folders/:id', optionalAuth, optionalStaff, async (req, res) => 
     } catch (error) {
       console.error('Error registering visit:', error);
       res.status(500).json({ success: false });
+    }
+  });
+
+  // Detalle de visitas de mis carpetas (planes Premium en adelante): por carpeta, por día y por origen
+  router.get('/api/visits/mine', authenticateToken, async (req, res) => {
+    try {
+      const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
+      if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+      assertFeature((await getEffectivePlan(prisma, user.id)).plan, 'visitsDetail');
+      const days = [7, 30, 90].includes(Number(req.query.days)) ? Number(req.query.days) : 30;
+      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const folders = await prisma.folder.findMany({ where: { userId: user.id }, select: { id: true, name: true, tcg: true, isPublic: true, totalVisits: true }, orderBy: { totalVisits: 'desc' } });
+      const rows = await prisma.folderVisitDay.findMany({ where: { folderId: { in: folders.map((folder) => folder.id) }, day: { gte: since } }, select: { folderId: true, day: true, source: true, count: true } });
+      const byFolder = new Map(folders.map((folder) => [folder.id, { total: 0, sources: { direct: 0, internal: 0, external: 0 }, byDay: new Map() }]));
+      const daily = new Map();
+      for (const row of rows) {
+        const stat = byFolder.get(row.folderId);
+        const key = row.day.toISOString().slice(0, 10);
+        stat.total += row.count;
+        stat.sources[row.source] = (stat.sources[row.source] || 0) + row.count;
+        daily.set(key, (daily.get(key) || 0) + row.count);
+      }
+      res.set('Cache-Control', 'private, no-store');
+      res.json({
+        success: true,
+        days,
+        total: [...byFolder.values()].reduce((sum, stat) => sum + stat.total, 0),
+        daily: [...daily].sort(([a], [b]) => (a < b ? -1 : 1)).map(([day, count]) => ({ day, count })),
+        folders: folders.map((folder) => ({ id: folder.id, name: folder.name, tcg: folder.tcg, isPublic: folder.isPublic, allTime: folder.totalVisits, total: byFolder.get(folder.id).total, sources: byFolder.get(folder.id).sources }))
+      });
+    } catch (error) {
+      if (error instanceof PlanLimitError) return sendPlanError(res, error);
+      console.error('Error loading visits detail:', error.message);
+      res.status(500).json({ success: false, message: 'Error interno' });
     }
   });
 

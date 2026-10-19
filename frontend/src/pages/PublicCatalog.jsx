@@ -116,7 +116,10 @@ function PublicCatalog() {
                 // Track folder visits
         if (!folder.user?.isOwner) {
           const currentWeek = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
-          apiFetch('/folders/' + encodeURIComponent(folderId) + '/visit', { method: 'POST', body: JSON.stringify({ currentWeek }) }).catch(err => console.error("Error updating visits", err));
+          // De dónde llega la visita (para el detalle de visitas): sin referente = directo; de la propia web = interno; otro sitio = externo
+          const referrerHost = (() => { try { return document.referrer ? new URL(document.referrer).hostname : ''; } catch { return ''; } })();
+          const source = !referrerHost ? 'direct' : referrerHost === window.location.hostname ? 'internal' : 'external';
+          apiFetch('/folders/' + encodeURIComponent(folderId) + '/visit', { method: 'POST', body: JSON.stringify({ currentWeek, source }) }).catch(err => console.error("Error updating visits", err));
         }
 
                         if (folder.user) {

@@ -12,7 +12,7 @@ export default function FolderCatalogTab({
   cardDetailsMode, currentFolderId, inventory, catalogGridClass, catalogGridColumns, catalogGridDense, catalogViewMode, clearCatalogFilters, copyBuyerLink,
   cycleCardDetailsMode, cycleCatalogGridDensity, draggedCatalogCardId, dropCatalogIndex, filteredCatSets, filteredCatalog,
   folderData, getCatalogDragHandleProps, getCatalogDropProps, handleCatalogReorder, handleDeleteRequest,
-  handleUpdateCard, hasCatalogFilters, hasUnsavedCatalogOrder, isCatSetDropdownOpen, isMylFolder,
+  handleToggleFeatured, handleUpdateCard, hasCatalogFilters, hasUnsavedCatalogOrder, isCatSetDropdownOpen, isMylFolder,
   openBuyerPreview, previewCatalog, saveCatalogOrder, savingCatalogOrder, scrollToTopIfNeeded, setActiveTab,
   setCatQuery, setCatSet, setCatalogViewMode, setIsCatSetDropdownOpen,
   showScrollTop
@@ -231,6 +231,7 @@ export default function FolderCatalogTab({
                       <AdminCardEdit
                         card={card}
                         onUpdate={handleUpdateCard}
+                        onToggleFeatured={handleToggleFeatured}
                         onDelete={handleDeleteRequest}
                         dragHandleProps={inventory.dragEnabled ? getCatalogDragHandleProps(card, visibleIndex) : null}
                         selectable={inventory.selecting}

@@ -73,6 +73,7 @@ export const apiFetch = async (endpoint, options = {}) => {
     error.requested = errorData.requested;
     error.tcg = errorData.tcg;
     error.existingCardId = errorData.existingCardId;
+    error.feature = errorData.feature;
     // El servidor exige aceptar los Términos para escribir: la pantalla de aceptación se muestra sola
     if (errorData.code === 'terms_required') window.dispatchEvent(new Event('carpetazo:terms-required'));
     throw error;
@@ -318,6 +319,19 @@ export const api = {
     return { blob: await response.blob(), name: /filename="([^"]+)"/.exec(response.headers.get('Content-Disposition') || '')?.[1] || 'respaldo-carpetazo.ndjson.gz' };
   },
   getMyInPersonSales: () => apiFetch('/in-person-sales/mine'),
+  // Funciones por plan: detalle de visitas, cartas destacadas del perfil y exportar el inventario (CSV)
+  getVisitsDetail: (days = 30) => apiFetch('/visits/mine?days=' + encodeURIComponent(days)),
+  getFeaturedCardsUsage: () => apiFetch('/featured-cards/mine'),
+  setCardFeatured: (folderId, cardId, featured) => apiFetch(`/folders/${encodeURIComponent(folderId)}/cards/${encodeURIComponent(cardId)}/featured`, { method: 'PUT', body: JSON.stringify({ featured }) }),
+  downloadInventory: async (folderId) => {
+    const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+    const response = await fetch(apiUrl('/inventory/export' + (folderId ? '?folderId=' + encodeURIComponent(folderId) : '')), { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw Object.assign(new Error(data.message || 'No se pudo exportar el inventario'), { status: response.status, code: data.code, feature: data.feature });
+    }
+    return { blob: await response.blob(), name: /filename="([^"]+)"/.exec(response.headers.get('Content-Disposition') || '')?.[1] || 'carpetazo-inventario.csv' };
+  },
   getInPersonSales: (folderId) => apiFetch(`/folders/${encodeURIComponent(folderId)}/in-person-sales`),
   getMyOrders: (cursor) => apiFetch('/orders/mine' + (cursor ? `?cursor=${encodeURIComponent(cursor)}` : '')),
   getMyPendingOrders: (since) => apiFetch('/orders/mine/pending' + (since ? `?since=${encodeURIComponent(since)}` : '')),

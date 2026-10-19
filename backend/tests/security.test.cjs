@@ -1,7 +1,7 @@
 // Revisión de seguridad: borrado de archivos ajenos en R2, datos libres de la carta, huella de conexión en pedidos,
 // cartas ocultadas por moderación y campos internos en el perfil público.
 const sharp = require('sharp');
-const { prisma, NAMES, B, U, call, ok, acceptTerms } = require('./fixtures.cjs');
+const { prisma, NAMES, B, U, call, ok, acceptTerms, snapshotPlans } = require('./fixtures.cjs');
 
 const picture = (seed) => sharp({ create: { width: 64, height: 48, channels: 3, background: { r: (seed * 53) % 256, g: (seed * 97) % 256, b: (seed * 151) % 256 } } }).png().toBuffer();
 const upload = async (who, buffer, type = 'avatar') => {
@@ -15,6 +15,7 @@ const r2Log = async () => (await (await fetch(B + '/__test/r2-log')).json()).log
 const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
 
 (async () => {
+  const restorePlans = await snapshotPlans(['ignacio']);
   try {
     // 1) R2: una URL del perfil que apunta al archivo de otra persona no se borra al cambiar la foto
     const victimKey = 'Carpetazo.cl/Usuarios/' + U.seller + '/avatar/' + 'a'.repeat(32) + '.webp';
@@ -28,7 +29,8 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     ok('cambiar otra vez la foto → 200', r.status === 200, String(r.status));
     ok('...y SÍ se borra la foto anterior propia', (await r2Log()).some((entry) => entry.op === 'delete' && entry.key === firstOwn));
 
-    // 1b) Portada: se guarda también su copia para celular (_m) y al cambiarla se borran las dos
+    // 1b) Portada: se guarda también su copia para celular (_m) y al cambiarla se borran las dos (el banner es de Entusiasta en adelante)
+    await call('POST', '/billing/test-plan', 'ignacio', { planKey: 'enthusiast' }, '10.72.0.1');
     r = await upload('ignacio', await picture(203), 'banner');
     ok('subir una portada → 200', r.status === 200, String(r.status));
     const bannerKey = keyOf(r.j.url);
@@ -160,6 +162,7 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     const noSalt = spawnSync(process.execPath, ['--import', './tests/register.mjs', 'server.js'], { cwd: path.join(__dirname, '..'), env: { ...process.env, IP_HASH_SALT: '', PORT: '0', TEST_AUTH_STUB: '1' }, timeout: 20000, encoding: 'utf8' });
     ok('sin IP_HASH_SALT el servidor no arranca', noSalt.status === 1 && /IP_HASH_SALT/.test(noSalt.stderr || ''), `salida=${noSalt.status}`);
   } finally {
+    await restorePlans().catch(() => {});
     await prisma.$disconnect();
   }
 })();

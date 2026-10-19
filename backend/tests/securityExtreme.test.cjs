@@ -12,6 +12,7 @@ const raw = async (method, path, who, rawBody, headers = {}) => {
 };
 
 (async () => {
+  const startedAt = new Date();
   const touched = [];
   try {
     const user = (who) => prisma.user.findFirst({ where: { firebaseUid: 'cztest-' + who }, select: { id: true, role: true, isOwner: true, username: true } });
@@ -207,6 +208,9 @@ const raw = async (method, path, who, rawBody, headers = {}) => {
     await prisma.card.deleteMany({ where: { tcgId: 'tst-sx' } });
     await prisma.inPersonSale.deleteMany({ where: { folderName: { in: ['SX presencial', 'SX de jerry'] } } });
     await prisma.folder.deleteMany({ where: { name: { in: ['SX presencial', 'SX de jerry'] } } });
+    // La detección automática puede abrir reportes por las cartas baratas de cuentas nuevas: no deben quedar en la cola de otras pruebas
+    const owners = (await prisma.user.findMany({ where: { firebaseUid: { in: ['cztest-seller', 'cztest-jerry'] } }, select: { id: true } })).map((user) => user.id);
+    await prisma.report.deleteMany({ where: { createdAt: { gte: startedAt }, targetOwnerId: { in: owners } } }).catch(() => {});
     await prisma.$disconnect();
   }
 })();

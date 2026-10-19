@@ -1,8 +1,10 @@
 // Tema del perfil público: solo colores hexadecimales, fuentes de la lista del editor y opciones con forma de id.
-const { prisma, NAMES, call, ok } = require('./fixtures.cjs');
+const { prisma, NAMES, call, ok, snapshotPlans } = require('./fixtures.cjs');
 
 (async () => {
+  const restorePlans = await snapshotPlans(['seller']);
   try {
+    await call('POST', '/billing/test-plan', 'seller', { planKey: 'premium' }, '10.71.1.1'); // cambiar el estilo del perfil (Estudio) es de Premium en adelante
     let r = await call('PUT', '/users/me', 'seller', { publicTheme: {
       id: 'custom', primary: 'url(https://evil.test/pixel.png)', accent: '#facc15', card: 'transparent',
       font: 'Comic Sans MS', bodyFont: 'Lora', dataFont: 'DM Mono',
@@ -29,6 +31,7 @@ const { prisma, NAMES, call, ok } = require('./fixtures.cjs');
     ok('un tema que no es objeto → 400', r.status === 400, String(r.status));
     await call('PUT', '/users/me', 'seller', { publicTheme: {} });
   } finally {
+    await restorePlans().catch(() => {});
     await prisma.$disconnect();
   }
 })();

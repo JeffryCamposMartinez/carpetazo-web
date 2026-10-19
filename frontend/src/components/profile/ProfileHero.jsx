@@ -8,6 +8,7 @@ import LoadingState from '../ui/LoadingState';
 import PlanBadge from '../ui/PlanBadge';
 import VerifiedBadge from '../ui/VerifiedBadge';
 import SvgIcon from '../ui/SvgIcon';
+import usePlan from '../../hooks/usePlan';
 
 // Presentación del perfil: portada, avatar, nombre, datos y contacto; la forma cambia según el diseño elegido.
 export default function ProfileHero({
@@ -17,6 +18,10 @@ export default function ProfileHero({
   ownerButtonClass, primaryAddress, publicTheme, savingBio, savingImage, seller, setIsEditingBio, setTempBio,
   setThemePanelOpen, tempBio, themePanelOpen
 }) {
+  // El banner es de Entusiasta en adelante y el fondo de página (Estudio) de Premium; mientras no se conozca el plan se deja intentar y decide el servidor
+  const { plan } = usePlan();
+  const bannerLocked = Boolean(plan) && !plan.profileBanner;
+  const wallpaperLocked = Boolean(plan) && !plan.profileStudio;
   return (
     <section className="relative overflow-visible" style={{ backgroundColor: isPosterLayout ? '#05070d' : publicTheme.card }}>
       {seller?.bannerBase64 ? (
@@ -39,16 +44,30 @@ export default function ProfileHero({
             <span className="hidden sm:inline">Personalizar</span>
             <span className="sm:hidden">Estilo</span>
           </button>
-          <label className={`${ownerButtonClass} cursor-pointer`} title="Imagen de fondo de tu presentación">
-            <SvgIcon name="panorama" translate="no" className="text-[19px]" />
-            <span className="hidden sm:inline">Banner</span>
-            <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleImageUpload(event, 'banner')} aria-label="Cambiar banner" />
-          </label>
-          <label className={`${ownerButtonClass} cursor-pointer`} title="Imagen de fondo de toda la página">
-            <SvgIcon name="wallpaper" translate="no" className="text-[19px]" />
-            <span className="hidden sm:inline">Fondo de página</span>
-            <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleImageUpload(event, 'wallpaper')} aria-label="Cambiar fondo de página" />
-          </label>
+          {bannerLocked ? (
+            <Link to="/planes" className={ownerButtonClass} title="El banner está disponible desde el plan Entusiasta" aria-label="Banner: disponible desde el plan Entusiasta">
+              <SvgIcon name="lock" translate="no" className="text-[19px]" />
+              <span className="hidden sm:inline">Banner · Entusiasta</span>
+            </Link>
+          ) : (
+            <label className={`${ownerButtonClass} cursor-pointer`} title="Imagen de fondo de tu presentación">
+              <SvgIcon name="panorama" translate="no" className="text-[19px]" />
+              <span className="hidden sm:inline">Banner</span>
+              <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleImageUpload(event, 'banner')} aria-label="Cambiar banner" />
+            </label>
+          )}
+          {wallpaperLocked ? (
+            <Link to="/planes" className={ownerButtonClass} title="El fondo de página está disponible desde el plan Premium" aria-label="Fondo de página: disponible desde el plan Premium">
+              <SvgIcon name="lock" translate="no" className="text-[19px]" />
+              <span className="hidden sm:inline">Fondo · Premium</span>
+            </Link>
+          ) : (
+            <label className={`${ownerButtonClass} cursor-pointer`} title="Imagen de fondo de toda la página">
+              <SvgIcon name="wallpaper" translate="no" className="text-[19px]" />
+              <span className="hidden sm:inline">Fondo de página</span>
+              <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleImageUpload(event, 'wallpaper')} aria-label="Cambiar fondo de página" />
+            </label>
+          )}
         </div>
       )}
 

@@ -3,6 +3,7 @@ import express from 'express';
 import { nameMatch, searchFragments, similarCardName } from '../core/cardSearch.js';
 import { authenticateToken } from '../core/auth.js';
 import { prisma } from '../core/db.js';
+import { userBoostLevels } from '../core/entitlements.js';
 import { CARD_SEARCH_TCG_ALIASES, sameCardMatch } from '../core/listing.js';
 import { isValidComuna } from '../core/chileData.js';
 import { PUBLIC_PLAN_RELATIONS_SELECT, withPublicPlanBadge } from '../core/publicSeller.js';
@@ -272,6 +273,19 @@ const CARD_SEARCH_SELECT = {
   data: true,
   folder: { select: { id: true, name: true, tcg: true, user: { select: { name: true, username: true, photoURL: true, publicComuna: true } } } },
 };
+// «Más reciente» con prioridad en los listados: las cartas de planes Pro y Tienda se ordenan como si se hubieran publicado antes (BOOST_HOURS por nivel).
+// Solo cambia el orden dentro de las RANKING_POOL más nuevas y no oculta nada; esas cartas se entregan marcadas como destacadas.
+const BOOST_HOURS = { 1: 6, 2: 24 };
+const boostedRecentPage = async (where, page, boosts) => {
+  const pool = await prisma.card.findMany({ where, orderBy: [{ createdAt: 'desc' }], take: RANKING_POOL, select: { id: true, createdAt: true, folder: { select: { userId: true } } } });
+  const level = new Map(pool.map((card) => [card.id, boosts.get(card.folder.userId) || 0]));
+  const effective = (card) => card.createdAt.getTime() + (BOOST_HOURS[level.get(card.id)] || 0) * 3600 * 1000;
+  const ordered = [...pool].sort((a, b) => effective(b) - effective(a));
+  const pageIds = ordered.slice((page - 1) * CARD_SEARCH_PAGE_SIZE, page * CARD_SEARCH_PAGE_SIZE).map((card) => card.id);
+  const rows = pageIds.length ? await prisma.card.findMany({ where: { id: { in: pageIds } }, select: CARD_SEARCH_SELECT }) : [];
+  const byId = new Map(rows.map((card) => [card.id, card]));
+  return pageIds.map((id) => (byId.has(id) ? { ...byId.get(id), _boost: level.get(id) } : null)).filter(Boolean);
+};
 const rankedCardPage = async (where, sort, page) => {
   const pool = await prisma.card.findMany({ where, orderBy: [{ createdAt: 'desc' }], take: RANKING_POOL, select: { id: true, tcgId: true, createdAt: true } });
   const score = new Map(); // id de la carta → puntaje (mayor = antes)
@@ -337,9 +351,12 @@ router.get('/api/cards/search', async (req, res) => {
       delete where.AND;
       where.OR = [nameMatch(q), { name: { in: similarNames } }];
     }
+    const boosts = sort === 'recent' ? await userBoostLevels(prisma) : new Map();
     const [total, cards] = RANKED_SORTS.has(sort)
       ? [await prisma.card.count({ where }), await rankedCardPage(where, sort, page)]
-      : await prisma.$transaction([
+      : boosts.size
+        ? [await prisma.card.count({ where }), await boostedRecentPage(where, page, boosts)]
+        : await prisma.$transaction([
         prisma.card.count({ where }),
         prisma.card.findMany({
           where,
@@ -356,8 +373,9 @@ router.get('/api/cards/search', async (req, res) => {
       total,
       page,
       pages: Math.max(1, Math.ceil(total / CARD_SEARCH_PAGE_SIZE)),
-      cards: cards.map(({ data, ...card }) => ({
+      cards: cards.map(({ data, _boost, ...card }) => ({
         ...card,
+        featured: Boolean(_boost),
         language: data && typeof data === 'object' ? data.language || null : null,
         set: data && typeof data === 'object' ? data.set || null : null,
       })),

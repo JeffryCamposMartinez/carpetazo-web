@@ -1,11 +1,13 @@
 // Varias listas de deseos: una sola activa (la del perfil), cada carta en su lista, propiedad y límites.
-const { prisma, NAMES, call, ok } = require('./fixtures.cjs');
+const { prisma, NAMES, call, ok, snapshotPlans } = require('./fixtures.cjs');
 
 const card = (id, name) => ({ external: { categoryId: 3, productId: id }, name });
 
 (async () => {
+  const restorePlans = await snapshotPlans(['ale']);
   try {
     await prisma.wishlist.deleteMany({ where: { user: { username: NAMES.ale } } }); // otras pruebas también usan a esta persona
+    await call('POST', '/billing/test-plan', 'ale', { planKey: 'pro' }, '10.71.0.1'); // el máximo de listas depende del plan: Pro permite 10
     // La primera consulta crea la lista inicial, activa
     let r = await call('GET', '/wishlist/me', 'ale');
     const first = r.j?.lists?.[0];
@@ -70,7 +72,7 @@ const card = (id, name) => ({ external: { categoryId: 3, productId: id }, name }
     // Máximo de listas
     for (let i = 2; i <= 10; i++) await call('POST', '/wishlists', 'ale', { name: 'Lista ' + i });
     r = await call('POST', '/wishlists', 'ale', { name: 'Lista 11' });
-    ok('más de 10 listas → 400', r.status === 400, String(r.status));
+    ok('más de 10 listas (máximo del plan) → 403 por plan', r.status === 403 && r.j.code === 'plan_feature_locked' && r.j.limit === 10, String(r.status) + JSON.stringify(r.j));
 
     // La lista oculta por la persona sigue sin mostrarse aunque tenga lista activa
     r = await call('GET', '/users/' + NAMES.ale + '/wishlist');
@@ -79,6 +81,7 @@ const card = (id, name) => ({ external: { categoryId: 3, productId: id }, name }
     ok('la prueba terminó sin excepciones', false, error.message);
   } finally {
     await prisma.wishlist.deleteMany({ where: { user: { username: NAMES.ale } } }).catch(() => {});
+    await restorePlans().catch(() => {});
     await prisma.$disconnect();
   }
 })();

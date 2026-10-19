@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { deleteUser, updateProfile as updateFirebaseProfile } from 'firebase/auth';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import usePlan from '../hooks/usePlan';
 import { api } from '../services/api';
 import { chileData } from '../config/chileData';
 import PasswordCard from '../components/auth/PasswordCard';
@@ -188,6 +189,7 @@ const ActionButton = ({ children, variant = 'primary', className = '', ...props 
 const ProfilePage = () => {
   const { showToast } = useToast();
   const { currentUser, appUser, refreshAppUser, logout } = useAuth();
+  const { plan } = usePlan();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('general');
   const [profileData, setProfileData] = useState(emptyProfile);
@@ -542,8 +544,16 @@ const ProfilePage = () => {
 
               {activeTab === 'social' && (
                 <section className="space-y-5">
+                  {plan && (() => {
+                    const used = ['facebookUrl', 'instagramUrl', 'youtubeUrl'].filter((field) => (profileData[field] || '').trim()).length;
+                    return (
+                      <p className={`rounded-2xl px-4 py-3 text-sm font-bold ring-1 ${used >= plan.socialLinks ? 'bg-amber-50 text-amber-900 ring-amber-200' : 'bg-blue-50 text-[#1e40af] ring-blue-100'}`}>
+                        Tu plan permite {plan.socialLinks} {plan.socialLinks === 1 ? 'red social' : 'redes sociales'} en tu perfil ({used} en uso).{used >= plan.socialLinks && plan.socialLinks < 3 && <> <Link to="/planes" className="underline">Sube de plan</Link> para mostrar más.</>}
+                      </p>
+                    );
+                  })()}
                   {[['facebookUrl', 'Facebook', 'facebook.com/'], ['instagramUrl', 'Instagram', 'instagram.com/'], ['youtubeUrl', 'YouTube', 'youtube.com/']].map(([field, label, prefix]) => (
-                    <Field key={field} label={label}><div className="flex overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm focus-within:border-[#1e40af] focus-within:ring-4 focus-within:ring-blue-100"><span className="flex items-center bg-slate-50 px-4 text-sm font-black text-slate-400">{prefix}</span><input value={profileData[field] || ''} onChange={e => updateProfileField(field, e.target.value)} className="min-w-0 flex-1 px-4 py-3 text-sm font-bold text-slate-800 outline-none" placeholder="tu_usuario" /></div></Field>
+                    <Field key={field} label={label}><div className="flex overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm focus-within:border-[#1e40af] focus-within:ring-4 focus-within:ring-blue-100"><span className="flex items-center bg-slate-50 px-4 text-sm font-black text-slate-400">{prefix}</span><input value={profileData[field] || ''} onChange={e => updateProfileField(field, e.target.value)} className="min-w-0 flex-1 px-4 py-3 text-sm font-bold text-slate-800 outline-none disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500" placeholder="tu_usuario" disabled={Boolean(plan) && !(profileData[field] || '').trim() && ['facebookUrl', 'instagramUrl', 'youtubeUrl'].filter((name) => (profileData[name] || '').trim()).length >= plan.socialLinks} /></div></Field>
                   ))}
                   <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('social')} disabled={Boolean(savingKey)}>{savingKey === 'social' ? 'Guardando...' : 'Guardar redes'}</ActionButton></div>
                 </section>

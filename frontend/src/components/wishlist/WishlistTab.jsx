@@ -312,7 +312,7 @@ export default function WishlistTab({ showToast = () => {} }) {
             <div className="h-1.5 overflow-hidden rounded-full bg-white ring-1 ring-slate-900/5">
               <div className={`h-full rounded-full ${items.length >= limit ? 'bg-red-500' : 'bg-amber-400'}`} style={{ width: `${Math.min(100, (items.length / limit) * 100)}%` }} />
             </div>
-            <p className="mt-1 text-xs font-semibold text-slate-600">{items.length >= limit ? 'Llegaste al máximo de cartas. Quita alguna para agregar otra.' : `Te quedan ${limit - items.length} lugares en tu lista.`}</p>
+            <p className="mt-1 text-xs font-semibold text-slate-600">{items.length >= limit ? <>Llegaste al máximo de cartas de tu plan. Quita alguna o <Link to="/planes" className="font-extrabold text-[#1e40af] underline">sube de plan</Link> para agregar más.</> : `Te quedan ${limit - items.length} lugares en tu lista.`}</p>
           </div>
         )}
         <button

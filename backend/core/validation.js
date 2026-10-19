@@ -155,6 +155,12 @@ const THEME_COLOR_FIELDS = ['primary', 'secondary', 'accent', 'surface', 'card',
 const THEME_FONT_FIELDS = ['font', 'bodyFont', 'dataFont'];
 const THEME_OPTION_FIELDS = ['cardStyle', 'backgroundStyle', 'sideBackgroundStyle', 'avatarFrame', 'profileLayout', 'profileEffect', 'showcaseStyle', 'profileDistribution'];
 const THEME_SWITCH_FIELDS = ['showWhatsApp', 'showInstagram', 'showFacebook', 'showMessageButton', 'showYoutube', 'showWishlist', 'shareBankInOrders'];
+// ¿El tema nuevo cambia el estilo (colores, fuentes, opciones, nombre) respecto al guardado? Los interruptores (mostrar WhatsApp, etc.) no cuentan:
+// son ajustes de contacto, no parte del Estudio de perfil. Un estilo que se omite (volver al de fábrica) tampoco cuenta como cambio.
+export const publicThemeStyleChanged = (next, stored) => {
+  const base = sanitizePublicTheme(stored && typeof stored === 'object' ? stored : {});
+  return Object.entries(sanitizePublicTheme(next)).some(([key, value]) => !THEME_SWITCH_FIELDS.includes(key) && base[key] !== value);
+};
 export const sanitizePublicTheme = (theme) => {
   const out = {};
   for (const [key, value] of Object.entries(theme)) {

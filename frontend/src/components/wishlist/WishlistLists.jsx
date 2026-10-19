@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ButtonSpinner } from '../ui/LoadingState';
 import SvgIcon from '../ui/SvgIcon';
 
@@ -38,10 +39,14 @@ export default function WishlistLists({ lists, selectedId, onSelect, onCreate, o
             <span className={`text-xs tabular-nums ${list.id === current.id ? 'text-[#facc15]' : 'text-slate-500'}`}>{list.count}</span>
           </button>
         ))}
-        {lists.length < maxLists && (
+        {lists.length < maxLists ? (
           <button type="button" onClick={() => open('new')} disabled={busy} className={`${chip} border border-dashed border-[#1e40af]/40 bg-transparent text-[#1e40af] hover:bg-blue-50`}>
             <Icon name="add" />Nueva lista
           </button>
+        ) : (
+          <Link to="/planes" className={`${chip} border border-dashed border-slate-300 bg-transparent text-slate-600 hover:bg-slate-50`}>
+            <Icon name="lock" />Más listas con otro plan
+          </Link>
         )}
       </div>
 

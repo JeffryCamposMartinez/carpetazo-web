@@ -2,6 +2,7 @@
 import express from 'express';
 import { authenticateToken, currentUserId, requireStaff } from '../core/auth.js';
 import { prisma } from '../core/db.js';
+import { userIdsWithFeature } from '../core/entitlements.js';
 import { badRequest, hasControlChars, isUuid } from '../core/validation.js';
 
 const router = express.Router();
@@ -25,8 +26,9 @@ const publicFeedback = (row) => ({
   createdAt: row.createdAt
 });
 
-const adminFeedback = (row) => ({
+const adminFeedback = (row, priorityIds = new Set()) => ({
   ...publicFeedback(row),
+  priority: priorityIds.has(row.userId),
   user: row.user ? { username: row.user.username, name: row.user.name } : null
 });
 
@@ -65,14 +67,22 @@ router.get('/api/admin/feedback', authenticateToken, requireStaff(1), async (req
     const kind = KINDS.includes(req.query.kind) ? req.query.kind : null;
     const page = Math.max(1, Math.min(100, Number.parseInt(req.query.page, 10) || 1));
     const where = { ...(status !== 'all' ? { status } : {}), ...(kind ? { kind } : {}) };
+    // Soporte prioritario (planes Pro y Tienda): en la bandeja de pendientes, sus mensajes van primero y llevan una marca
+    const priorityIds = new Set(await userIdsWithFeature(prisma, 'prioritySupport'));
+    const listOptions = { orderBy: status === 'open' ? { createdAt: 'asc' } : { createdAt: 'desc' }, include: { user: { select: { username: true, name: true } } } };
+    const offset = (page - 1) * PAGE_SIZE;
+    const listRows = async () => {
+      if (status !== 'open' || !priorityIds.size) return prisma.feedback.findMany({ where, ...listOptions, skip: offset, take: PAGE_SIZE });
+      const ids = [...priorityIds];
+      const first = { ...where, userId: { in: ids } };
+      const rest = { ...where, userId: { notIn: ids } };
+      const firstCount = await prisma.feedback.count({ where: first });
+      if (offset >= firstCount) return prisma.feedback.findMany({ where: rest, ...listOptions, skip: offset - firstCount, take: PAGE_SIZE });
+      const head = await prisma.feedback.findMany({ where: first, ...listOptions, skip: offset, take: PAGE_SIZE });
+      return head.length < PAGE_SIZE ? [...head, ...await prisma.feedback.findMany({ where: rest, ...listOptions, take: PAGE_SIZE - head.length })] : head;
+    };
     const [rows, total, counts] = await Promise.all([
-      prisma.feedback.findMany({
-        where,
-        orderBy: status === 'open' ? { createdAt: 'asc' } : { createdAt: 'desc' },
-        skip: (page - 1) * PAGE_SIZE,
-        take: PAGE_SIZE,
-        include: { user: { select: { username: true, name: true } } }
-      }),
+      listRows(),
       prisma.feedback.count({ where }),
       prisma.feedback.groupBy({ by: ['status'], where: kind ? { kind } : undefined, _count: { _all: true } })
     ]);
@@ -82,7 +92,7 @@ router.get('/api/admin/feedback', authenticateToken, requireStaff(1), async (req
       pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
       total,
       counts: Object.fromEntries(counts.map((row) => [row.status, row._count._all])),
-      feedback: rows.map(adminFeedback)
+      feedback: rows.map((row) => adminFeedback(row, priorityIds))
     });
   } catch (error) {
     console.error('Error loading admin feedback:', error);
