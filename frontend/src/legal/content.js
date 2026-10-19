@@ -12,7 +12,7 @@ export const termsBlocks = [
  },
  {
   "t": "p",
-  "x": "1.2. Carpetazo es operado por su titular, RUT **20.210.529-7**. Correo de contacto: **carpetazo.soporte@gmail.com**."
+  "x": "1.2. Carpetazo es operado por su titular. Correo de contacto: **carpetazo.soporte@gmail.com**."
  },
  {
   "t": "p",
@@ -369,7 +369,7 @@ export const privacyBlocks = [
  },
  {
   "t": "p",
-  "x": "El titular de Carpetazo, RUT **20.210.529-7**. Contacto para temas de datos personales: **carpetazo.soporte@gmail.com**."
+  "x": "El titular de Carpetazo. Contacto para temas de datos personales: **carpetazo.soporte@gmail.com**."
  },
  {
   "t": "h2",
