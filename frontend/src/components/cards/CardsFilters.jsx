@@ -15,7 +15,7 @@ const CHIP = 'flex h-11 shrink-0 items-center justify-center gap-2.5 rounded-ful
 
 // Búsqueda y juego: arriba en el celular (los juegos se deslizan de lado) y en una columna fija a la izquierda en pantallas anchas
 // Se reutiliza en Carpetas y Vendedores: placeholder/label cambian, `format` es opcional, `counts` (Map juego→cantidad, con `total`) muestra cuántos hay y `hideGames` deja solo la búsqueda
-export default function CardsFilters({ onQuery, onTcg, query, tcg, placeholder = 'Buscar carta por nombre', format, counts, hideGames = false }) {
+export default function CardsFilters({ onQuery, onTcg, query, tcg, placeholder = 'Buscar por nombre', format, counts, hideGames = false }) {
   const active = 'bg-[#12315f] text-white shadow-[0_1px_2px_rgba(8,18,42,0.35),0_8px_16px_-8px_rgba(18,49,95,0.7)]';
   const idle = 'bg-white text-[#12315f] ring-1 ring-slate-900/10 [@media(hover:hover)]:hover:bg-blue-50';
 
@@ -30,7 +30,7 @@ export default function CardsFilters({ onQuery, onTcg, query, tcg, placeholder =
           placeholder={placeholder}
           aria-label={placeholder}
           enterKeyHint="search"
-          className="h-12 w-full rounded-full border-0 bg-white pl-12 pr-12 text-base font-medium text-slate-900 shadow-[0_1px_2px_rgba(26,43,75,0.08),0_10px_22px_-14px_rgba(26,43,75,0.5)] ring-1 ring-slate-900/10 transition-shadow placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1e40af] [&::-webkit-search-cancel-button]:appearance-none"
+          className={`h-12 w-full rounded-full border-0 bg-white pl-12 ${query ? 'pr-12' : 'pr-4'} text-base font-medium text-slate-900 shadow-[0_1px_2px_rgba(26,43,75,0.08),0_10px_22px_-14px_rgba(26,43,75,0.5)] ring-1 ring-slate-900/10 transition-shadow placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1e40af] [&::-webkit-search-cancel-button]:appearance-none`}
         />
         {query && (
           <button type="button" onClick={() => onQuery('')} aria-label="Borrar búsqueda" className="absolute right-1.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition-[background-color,transform] duration-150 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] [@media(hover:hover)]:hover:bg-slate-100">

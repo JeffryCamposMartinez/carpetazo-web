@@ -105,7 +105,7 @@ export default function FoldersPage() {
         </header>
 
         <div className="lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:items-start lg:gap-8">
-          <CardsFilters query={searchQuery} tcg={selectedTcg === 'Todos' ? '' : selectedTcg} onQuery={(value) => setSearchQuery(value.slice(0, 80))} onTcg={(value) => updateParams({ tcg: value })} placeholder="Buscar carpeta o vendedor" format={(value) => value} counts={gameCounts} />
+          <CardsFilters query={searchQuery} tcg={selectedTcg === 'Todos' ? '' : selectedTcg} onQuery={(value) => setSearchQuery(value.slice(0, 80))} onTcg={(value) => updateParams({ tcg: value })} placeholder="Buscar carpeta" format={(value) => value} counts={gameCounts} />
 
           <section className="mt-5 min-w-0 lg:mt-0" aria-label="Resultados">
             <ListingToolbar total={result.total} loading={loading} failed={failed} one="carpeta" many="carpetas" comuna={comuna} onComuna={(value) => updateParams({ comuna: value })} sort={sortBy} onSort={(value) => updateParams({ sort: value === 'weekly' ? '' : value })} sortOptions={SORT_OPTIONS} onClear={hasFilters ? clearFilters : undefined} />

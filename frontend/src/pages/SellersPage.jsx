@@ -71,7 +71,7 @@ export default function SellersPage() {
         </header>
 
         <div className="lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:items-start lg:gap-8">
-          <CardsFilters query={query} onQuery={(value) => setQuery(value.slice(0, 60))} placeholder="Buscar vendedor por nombre o usuario" format={(value) => value} hideGames />
+          <CardsFilters query={query} onQuery={(value) => setQuery(value.slice(0, 60))} placeholder="Buscar vendedor" format={(value) => value} hideGames />
 
           <section className="mt-5 min-w-0 lg:mt-0" aria-label="Resultados">
             <ListingToolbar total={result.total} loading={loading} failed={failed} one="vendedor" many="vendedores" comuna={comuna} onComuna={(value) => { setComuna(value); setPage(1); }} sort={sort} onSort={(value) => { setSort(value); setPage(1); }} sortOptions={SORTS} onClear={comuna || query ? () => { setQuery(''); setComuna(''); setPage(1); } : undefined} />
