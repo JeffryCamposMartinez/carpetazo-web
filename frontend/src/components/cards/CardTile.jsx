@@ -58,7 +58,7 @@ function WishButton({ card, wanted, onWish, className }) {
       onClick={() => onWish(card)}
       aria-pressed={wanted}
       aria-label={wanted ? `Quitar ${card.name} de mis deseadas` : `Agregar ${card.name} a mis deseadas`}
-      className={`absolute z-10 flex h-11 w-11 items-center justify-center rounded-full shadow-md ring-1 ring-black/10 transition-[transform,background-color] duration-150 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${wanted ? 'bg-[#facc15] text-[#12315f]' : 'bg-white/95 text-[#12315f]'} ${className}`}
+      className={`absolute z-10 flex h-11 w-11 items-center justify-center rounded-full shadow-md ring-1 ring-black/10 transition-[transform,background-color] duration-150 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${wanted ? 'bg-[#facc15]/90 text-[#12315f]' : 'bg-white/55 text-[#12315f] backdrop-blur-sm'} ${className}`}
     >
       <span key={wanted ? 'on' : 'off'} translate="no" className={`material-symbols-outlined text-[24px] ${wanted ? 'heart-pop' : ''}`} style={wanted ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>
     </button>

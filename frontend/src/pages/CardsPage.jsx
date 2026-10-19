@@ -2,6 +2,7 @@ import React, { startTransition, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { wishlistPayloadFromCard } from '../utils/wishlistPayload';
+import useWishlistIndex, { wishlistKeyOf } from '../hooks/useWishlistIndex';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/ToastProvider';
 import CardTile, { CardTileSkeleton } from '../components/cards/CardTile';
@@ -28,6 +29,7 @@ export default function CardsPage() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const wishlistIndex = useWishlistIndex(Boolean(currentUser));
   const [wanted, setWanted] = useState({}); // cartas ya agregadas a la lista de deseadas en esta visita
   const urlQuery = searchParams.get('q') || '';
   const tcg = searchParams.get('tcg') || '';
@@ -101,10 +103,12 @@ export default function CardsPage() {
 
   const clearAll = () => { setQueryInput(''); setSearchParams(new URLSearchParams(sort !== 'recent' ? { sort } : {}), { replace: true }); };
 
+  // Lo que hizo la persona en esta pantalla manda; si no hizo nada con esa carta, vale lo que ya tenía en sus listas
+  const wantedState = (card) => (wanted[card.id] !== undefined ? wanted[card.id] : (wishlistIndex.get(wishlistKeyOf(wishlistPayloadFromCard(card, card.folder?.tcg))) || false));
   const addToWishlist = async (card) => {
     if (!currentUser) { navigate('/bienvenida'); return; }
     // wanted[id]: id del ítem en la lista, 'pending' mientras se guarda, o vacío. Tocar el corazón otra vez la quita.
-    const current = wanted[card.id];
+    const current = wantedState(card);
     if (current === 'pending') return;
     if (current) {
       setWanted((previous) => ({ ...previous, [card.id]: false })); // el corazón responde al instante
@@ -180,7 +184,7 @@ export default function CardsPage() {
               <ul className={gridClass}>
                 {loading
                   ? Array.from({ length: 12 }, (_, i) => <CardTileSkeleton key={i} view={effectiveView} />)
-                  : result.cards.map((card, index) => <CardTile key={card.id} card={card} index={index} view={effectiveView} wanted={Boolean(wanted[card.id])} onWish={addToWishlist} />)}
+                  : result.cards.map((card, index) => <CardTile key={card.id} card={card} index={index} view={effectiveView} wanted={Boolean(wantedState(card))} onWish={addToWishlist} />)}
               </ul>
             )}
 

@@ -7,6 +7,7 @@ import LoadableImage, { LoadingMark } from '../ui/LoadableImage';
 import CardLightbox from '../ui/CardLightbox';
 import AddToFolderModal from './AddToFolderModal';
 import CardsPagination from './CardsPagination';
+import useWishlistIndex, { wishlistKeyOf } from '../../hooks/useWishlistIndex';
 import useCardInfoSearch, { INFO_PAGE } from '../../hooks/useCardInfoSearch';
 import useReferencePrices from '../../hooks/useReferencePrices';
 import { ReferencePriceLine } from '../folder/ReferencePrice';
@@ -28,6 +29,9 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
   const navigate = useNavigate();
   const [openId, setOpenId] = useState(null);
   const [wished, setWished] = useState({});
+  const wishlistIndex = useWishlistIndex(Boolean(currentUser));
+  // Lo que hizo la persona en esta pantalla manda; si no hizo nada con esa carta, vale lo que ya tenía en sus listas
+  const stateOf = (card) => (wished[card.id] !== undefined ? wished[card.id] : (wishlistIndex.get(wishlistKeyOf(card.payload)) || false));
   const [addTarget, setAddTarget] = useState(null);
 
   useEffect(() => { setPage(1); }, [query, game]);
@@ -49,7 +53,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
   // wished[id]: id del ítem en la lista (ya agregada), 'pending' mientras se guarda, o vacío. Tocar el corazón otra vez la quita.
   const wish = async (card) => {
     if (!currentUser) { navigate('/bienvenida'); return; }
-    const current = wished[card.id];
+    const current = stateOf(card);
     if (current === 'pending') return;
     if (current) {
       setWished((previous) => ({ ...previous, [card.id]: false })); // el corazón responde al instante
@@ -93,7 +97,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {shown.map((card, index) => (
             <li key={card.id}>
-              <div className="relative block w-full rounded-2xl bg-white p-2 ring-1 ring-slate-900/5 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.4)]">
+              <div className="@container relative block w-full rounded-2xl bg-white p-2 ring-1 ring-slate-900/5 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.4)]">
               <button type="button" onClick={() => setOpenId(card.id)} className="group block w-full rounded-xl text-left transition-transform duration-150 active:scale-[0.985] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
                 <div className="relative w-full overflow-hidden rounded-xl bg-slate-50" style={{ aspectRatio: cardRatio(card.game) }}>
                   {card.imageUrl || tcgplayerImage(card) ? <LoadableImage loading={index < 10 ? 'eager' : 'lazy'} src={card.imageUrl || tcgplayerImage(card)} fallbackSrc={card.imageUrl ? tcgplayerImage(card) : undefined} alt={card.name} rotateLandscape className="h-full w-full object-contain" style={cardFill(card.game)} /> : <span className="flex h-full items-center justify-center text-xs font-semibold text-slate-400">Sin imagen</span>}
@@ -102,20 +106,22 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
                 <p className="mt-2 line-clamp-2 text-sm font-extrabold leading-snug text-[#12315f]">{card.name}</p>
                 <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{card.setName}</p>
               </button>
-              <ReferencePriceLine variants={card.groupId ? variantsFor(card) : null} className="mt-0.5 text-xs" />
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <ReferencePriceLine variants={card.groupId ? variantsFor(card) : null} className="shrink-0 text-xs" />
+                <button type="button" onClick={() => addToFolder(card)} title="Agregar a mi carpeta" className="flex h-8 w-8 shrink-0 items-center justify-center gap-0.5 rounded-lg bg-[#1e40af] px-0 text-xs font-extrabold @[10.5rem]:w-auto @[10.5rem]:pl-1.5 @[10.5rem]:pr-2.5 text-white transition-[background-color,transform] duration-150 hover:bg-[#12315f] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+                  <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[16px]">add</span><span aria-hidden="true" className="hidden @[10.5rem]:inline">Agregar</span><span className="sr-only">Agregar a mi carpeta</span>
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => wish(card)}
-                aria-pressed={Boolean(wished[card.id])}
-                aria-label={wished[card.id] ? `Quitar ${card.name} de mis deseadas` : `Agregar ${card.name} a mis deseadas`}
-                className={`absolute right-3.5 top-3.5 z-10 flex h-11 w-11 items-center justify-center rounded-full shadow-md ring-1 ring-black/10 transition-[transform,background-color] duration-150 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${wished[card.id] ? 'bg-[#facc15] text-[#12315f]' : 'bg-white/95 text-[#12315f] hover:bg-white'}`}
+                aria-pressed={Boolean(stateOf(card))}
+                aria-label={stateOf(card) ? `Quitar ${card.name} de mis deseadas` : `Agregar ${card.name} a mis deseadas`}
+                className={`absolute right-3.5 top-3.5 z-10 flex h-11 w-11 items-center justify-center rounded-full shadow-md ring-1 ring-black/10 transition-[transform,background-color] duration-150 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${stateOf(card) ? 'bg-[#facc15]/90 text-[#12315f]' : 'bg-white/55 text-[#12315f] backdrop-blur-sm hover:bg-white/80'}`}
               >
-                <span key={wished[card.id] ? 'on' : 'off'} translate="no" aria-hidden="true" className={`material-symbols-outlined text-[24px] ${wished[card.id] ? 'heart-pop' : ''}`} style={wished[card.id] ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>
+                <span key={stateOf(card) ? 'on' : 'off'} translate="no" aria-hidden="true" className={`material-symbols-outlined text-[24px] ${stateOf(card) ? 'heart-pop' : ''}`} style={stateOf(card) ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>
               </button>
-              <button type="button" onClick={() => addToFolder(card)} className="mt-1.5 flex min-h-8 w-full items-center justify-center gap-1 rounded-lg bg-[#1e40af] px-2 py-1 text-xs leading-tight font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-[#12315f] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
-                <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[16px]">add</span>Agregar a mi carpeta
-              </button>
-              </div>
+                            </div>
             </li>
           ))}
         </ul>
@@ -149,8 +155,8 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
               <button type="button" onClick={() => addToFolder(card)} className="flex h-11 items-center justify-center gap-1.5 rounded-full bg-[#facc15] px-5 text-sm font-extrabold text-[#12315f] transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
                 <span translate="no" aria-hidden="true" className="material-symbols-outlined text-[20px]">add_circle</span>Agregar a mi carpeta
               </button>
-              <button type="button" onClick={() => wish(card)} aria-pressed={Boolean(wished[card.id])} disabled={wished[card.id] === 'pending'} className="flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/40 px-5 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-white/10 active:scale-[0.97] disabled:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
-                <span translate="no" aria-hidden="true" className={`material-symbols-outlined text-[20px] ${wished[card.id] ? 'text-red-400' : ''}`} style={wished[card.id] ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>{wished[card.id] ? 'En tus deseadas · Quitar' : 'Avísame cuando la vendan'}
+              <button type="button" onClick={() => wish(card)} aria-pressed={Boolean(stateOf(card))} disabled={stateOf(card) === 'pending'} className="flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/40 px-5 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-white/10 active:scale-[0.97] disabled:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+                <span translate="no" aria-hidden="true" className={`material-symbols-outlined text-[20px] ${stateOf(card) ? 'text-red-400' : ''}`} style={stateOf(card) ? { fontVariationSettings: "'FILL' 1" } : undefined}>favorite</span>{stateOf(card) ? 'En tus deseadas · Quitar' : 'Avísame cuando la vendan'}
               </button>
             </div>
           )}
