@@ -12,7 +12,7 @@ export const termsBlocks = [
  },
  {
   "t": "p",
-  "x": "1.2. Carpetazo es operado por **Jeffry Marcel Campos Martínez**, RUT **20.210.529-7**, con domicilio en **Virrey Don Ambrosio 664, Chillán Viejo, Región de Ñuble, Chile**. Correo de contacto: **carpetazo.soporte@gmail.com**."
+  "x": "1.2. Carpetazo es operado por su titular, RUT **20.210.529-7**. Correo de contacto: **carpetazo.soporte@gmail.com**."
  },
  {
   "t": "p",
@@ -214,7 +214,7 @@ export const termsBlocks = [
  },
  {
   "t": "p",
-  "x": "10.4. El diseño, el código y la marca Carpetazo pertenecen a **Jeffry Marcel Campos Martínez**."
+  "x": "10.4. El diseño, el código y la marca Carpetazo pertenecen al titular de Carpetazo."
  },
  {
   "t": "h2",
@@ -308,7 +308,7 @@ export const termsBlocks = [
  },
  {
   "t": "p",
-  "x": "16.2. Para cualquier controversia, serán competentes los **tribunales de Chillán**, sin perjuicio del derecho del consumidor de acudir a los tribunales que la ley le reconoce."
+  "x": "16.2. Para cualquier controversia, serán competentes los **tribunales ordinarios de justicia de Chile** que correspondan según la ley, sin perjuicio del derecho del consumidor de acudir a los tribunales que la ley le reconoce."
  },
  {
   "t": "h2",
@@ -330,6 +330,34 @@ export const termsBlocks = [
  {
   "t": "p",
   "x": "17.4. Si contratas un servicio por internet, se aplican los derechos que la **Ley N° 19.496** reconoce a los consumidores, incluido el derecho a retracto en los casos y condiciones que la ley señala. Cuando un servicio tenga condiciones especiales, se te informarán **antes del pago**."
+ },
+ {
+  "t": "p",
+  "x": "17.5. **Suscripciones y renovación.** Los planes pagados son **suscripciones mensuales** que se **renuevan automáticamente** cada mes, al mismo precio informado, hasta que las canceles. El primer cobro se hace al contratar. Mercado Pago puede retener por un momento un monto pequeño para validar tu tarjeta y devolvértelo."
+ },
+ {
+  "t": "p",
+  "x": "17.6. **Cómo cancelar.** Puedes cancelar cuando quieras desde **Mi cuenta → Plan** o desde **Mi plan**, con una confirmación. Al cancelar **no se te vuelve a cobrar** y conservas tu plan **hasta el final del período que ya pagaste**; después tu cuenta vuelve al plan Free. Una suscripción cancelada no se reactiva: para volver a un plan pagado se contrata de nuevo. **No se devuelve el período ya iniciado**, salvo que la ley (por ejemplo, el derecho a retracto) o un error de cobro de Carpetazo lo exijan."
+ },
+ {
+  "t": "p",
+  "x": "17.7. **Cambiar de plan.** Si ya tienes una suscripción puedes cambiar a otro plan sin cancelar ni pagar dos veces. Mantienes tu plan actual hasta tu **próximo cobro**; desde ese día rige el nuevo plan y su precio. Puedes deshacer el cambio antes de esa fecha."
+ },
+ {
+  "t": "p",
+  "x": "17.8. **Pagos rechazados o atrasados.** Si un cobro no se puede realizar, Mercado Pago lo reintenta. Mientras tanto conservas tu plan por un máximo de **7 días**; si el pago no se regulariza, tu cuenta vuelve al plan Free."
+ },
+ {
+  "t": "p",
+  "x": "17.9. **Al bajar de plan no se borra nada.** Tus carpetas, cartas y datos se conservan, aunque superen los límites del nuevo plan. Podrás reducirlos, pero no aumentarlos por sobre esos límites."
+ },
+ {
+  "t": "p",
+  "x": "17.10. **Procesador de pagos.** Los pagos de las suscripciones los procesa **Mercado Pago**. Carpetazo **no recibe ni guarda el número de tu tarjeta**; solo conserva el estado de tu suscripción y de cada cobro (monto y fecha). Las condiciones de Mercado Pago se aplican al pago."
+ },
+ {
+  "t": "p",
+  "x": "17.11. **Planes asignados por el equipo.** El equipo de Carpetazo puede asignar un plan a una cuenta, por un tiempo o sin fecha de término, sin que sea una suscripción ni tenga cobro. Un plan asignado puede cambiarse o quitarse, y el equipo te lo avisará por mensaje, correo o notificación."
  }
 ];
 
@@ -341,7 +369,7 @@ export const privacyBlocks = [
  },
  {
   "t": "p",
-  "x": "**Jeffry Marcel Campos Martínez**, RUT **20.210.529-7**, domicilio **Virrey Don Ambrosio 664, Chillán Viejo, Región de Ñuble, Chile**. Contacto para temas de datos personales: **carpetazo.soporte@gmail.com**."
+  "x": "El titular de Carpetazo, RUT **20.210.529-7**. Contacto para temas de datos personales: **carpetazo.soporte@gmail.com**."
  },
  {
   "t": "h2",
@@ -383,7 +411,7 @@ export const privacyBlocks = [
    ],
    [
     "**Pago**",
-    "Datos bancarios para recibir transferencias (opcional; solo se comparten si tú lo activas). Si contratas un servicio de pago de Carpetazo, el comprobante y datos de facturación",
+    "Datos bancarios para recibir transferencias (opcional; solo se comparten si tú lo activas). Si contratas un servicio de pago de Carpetazo, el comprobante, los datos de facturación y el estado de tu suscripción y de cada cobro (monto y fecha); **nunca el número de tu tarjeta**",
     "De ti"
    ],
    [
@@ -519,6 +547,7 @@ export const privacyBlocks = [
    "**Google (Firebase Authentication):** inicio de sesión.",
    "**Cloudflare (R2):** almacenamiento de imágenes.",
    "**Sightengine y Google (Cloud Vision):** revisión automática de las **imágenes públicas** que subes (foto de perfil, banner, fondo y fotos de cartas) para detectar contenido que incumple las normas. Les enviamos una copia reducida de la imagen, sin tu nombre ni tu cuenta. **Las imágenes de los mensajes privados no se envían** a estos servicios.",
+   "**Mercado Pago:** procesa los pagos de las suscripciones. Ellos reciben los datos de tu tarjeta y tu correo; Carpetazo no guarda el número de la tarjeta.",
    "**Hostinger International:** alojamiento del servidor y de la base de datos (servidor ubicado en **São Paulo, Brasil**).",
    "**Un proveedor de envío de correos electrónicos:** para enviarte los avisos del servicio (pedidos, mensajes, cobros y seguridad).",
    "**Correo de soporte** (Gmail): para atender tus consultas.",
