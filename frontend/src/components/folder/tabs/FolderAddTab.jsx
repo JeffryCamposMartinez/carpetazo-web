@@ -317,7 +317,12 @@ export default function FolderAddTab({
               </div>
 
               <DuplicateCardNotice existingCard={selectedExistingCard} selectedCard={selectedCard} />
-              {referenceGame && <ReferencePriceBox variants={selectedVariants ?? null} source={source}currentPrice={price} onUse={(clp) => setPrice(String(clp))} />}
+              {referenceGame && <ReferencePriceBox variants={selectedVariants ?? null} source={source}currentPrice={price} onUse={(clp, variant) => {
+                setPrice(String(clp));
+                // El acabado del precio (Normal, Reverse Holofoil…) pasa al alias, salvo que la persona ya haya escrito uno propio
+                const known = (selectedVariants || []).map((item) => item.name);
+                if (variant?.name && (!pseudoName.trim() || known.includes(pseudoName.trim()))) setPseudoName(variant.name);
+              }} />}
 
               {!isBatchAdding && (
                 <div className="flex flex-col gap-1">

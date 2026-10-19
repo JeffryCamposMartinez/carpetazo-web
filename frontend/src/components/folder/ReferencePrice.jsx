@@ -32,7 +32,7 @@ export function ReferencePriceBox({ variants, source, currentPrice, onUse }) {
               <span className="min-w-0 truncate text-gray-600">{variant.name}{variant.note && <span className="text-xs text-gray-400"> · {variant.note}</span>}</span>
               <span className="flex shrink-0 items-center gap-2 font-bold text-gray-900 tabular-nums">
                 {formatClp(variant.clp)}
-                <button type="button" onClick={() => onUse(variant.clp)} disabled={used} className="rounded-md bg-white px-2 py-1 text-xs font-bold text-[#1e40af] ring-1 ring-[#1e40af]/30 transition-colors hover:bg-[#1e40af] hover:text-white disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-[#1e40af]">
+                <button type="button" onClick={() => onUse(variant.clp, variant)} disabled={used} className="rounded-md bg-white px-2 py-1 text-xs font-bold text-[#1e40af] ring-1 ring-[#1e40af]/30 transition-colors hover:bg-[#1e40af] hover:text-white disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-[#1e40af]">
                   {used ? 'Usado' : 'Usar'}
                 </button>
               </span>
