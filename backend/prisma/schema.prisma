@@ -317,6 +317,32 @@ model CatalogCard {
   @@index([categoryId, kind, cleanName])
 }
 
+// Corridas de la sincronización nocturna con TCGplayer: sirven de candado (una a la vez) y de historial
+model CatalogSyncRun {
+  id         String    @id @default(uuid())
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  status     String // running | ok | partial | failed
+  dryRun     Boolean   @default(false)
+  summary    Json?
+}
+
+// Correcciones que TCGplayer hizo a una carta que ya está en el catálogo: se guardan para revisarlas a mano, la sincronización no las aplica
+model CatalogChange {
+  id         String   @id @default(uuid())
+  productId  Int
+  categoryId Int
+  groupId    Int
+  digest     String
+  before     Json
+  after      Json
+  status     String   @default("pending") // pending | accepted | rejected
+  createdAt  DateTime @default(now())
+
+  @@unique([productId, digest])
+  @@index([status, createdAt])
+}
+
 // Cartas que un jugador busca. Se enlazan con el catálogo cuando existen allí; si no, se guardan con su nombre.
 // Listas de deseos de una persona: una sola está activa y es la que se muestra en su perfil (índice único parcial en la migración)
 model Wishlist {

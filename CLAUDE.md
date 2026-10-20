@@ -23,6 +23,7 @@ Mantener esta estructura; si algo no encaja, proponer dónde ponerlo antes de cr
 - `core/`: piezas compartidas sin rutas: `db`, `auth`, `validation`, `r2`, `limits`, `legal`, `hashing`, `mail`, `publicSeller`, `listing`, `env`. `core/` nunca importa de `routes/`.
 - `routes/`: un `express.Router()` por tema (`users`, `uploads`, `folders`, `cards`, `orders`, `reviews`, `wishlist`, `messages`, `sellers`, `catalog`, `legal`, `admin`), montado en `server.js`. Una ruta no importa de otra: lo compartido va a `core/`. Ninguna ruta puede coincidir con la de otro archivo.
 - `moderation/`: reportes, sanciones, detección automática, escaneo de imágenes e instancias compartidas (`services.js`).
+- `core/tcgSync/`: sincronización nocturna del catálogo de TCGplayer (misma lógica y rutas de R2 que TcgplayerUpdate, sin disco). La ejecuta `scripts/catalog/sync_tcgcsv.cjs` como tarea programada de Coolify (00:00); es la excepción de `scripts/` que sí corre en producción.
 - `scripts/`: tareas manuales que no corren en producción (`db/`, `catalog/`, `r2/`, `pokemon/`, `checks/`). Se ejecutan desde `backend/`.
 - `tests/`: un `<tema>.test.cjs` por área, listado en `tests/run.cjs`.
 
