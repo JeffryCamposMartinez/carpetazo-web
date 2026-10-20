@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import AddCardFullscreen from '../AddCardFullscreen';
 import CardLightbox from '../../ui/CardLightbox';
 import { DuplicateCardNotice } from '../FolderInventoryComponents';
 import FolderAddSearchFilters from '../filters/FolderAddSearchFilters';
@@ -51,11 +52,93 @@ export default function FolderAddTab({
   const [zoomedCard, setZoomedCard] = useState(null);
   // Foto propia: solo si la carta no tiene imagen (el catálogo no la tiene y la de respaldo no carga) o si ya subiste una
   const [failedPreview, setFailedPreview] = useState(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  useEffect(() => { if (!selectedCard) setFullscreen(false); }, [selectedCard]); // al guardar o limpiar la carta se cierra
   const previewSrc = selectedCard ? getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl) : '';
   const canUploadPhoto = Boolean(selectedCard) && Boolean(selectedCard.isCustomImage || (selectedCard.hasImage !== true && (!selectedCard.imageUrl || failedPreview === previewSrc)));
   const zoomList = useMemo(() => (zoomedCard ? [{ id: 'zoom', tcg: folderData?.tcg, name: zoomedCard.name, imageUrl: getProxyImageUrl(zoomedCard.tcgProductId || zoomedCard.id, zoomedCard.imageUrl), set: getCardSetName(zoomedCard), rarity: zoomedCard.rarity || getExtDataValue(zoomedCard.extData, 'Rarity') }] : []), [zoomedCard]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Datos y botón para guardar la carta: están en el panel y también en la pantalla completa
+  const renderFormBody = () => (
+            <div className="flex flex-col gap-3">
+              <div className="text-center px-2">
+                <p className="font-bold text-gray-900 leading-tight">{cardLabel(selectedCard)}</p>
+                <p className="text-sm text-gray-500 mt-1">{getCardSetName(selectedCard)} • {selectedCard.rarity || getExtDataValue(selectedCard.extData, 'Rarity')}</p>
+                {selectedCard.isCustomImage && <p className="text-xs text-gray-500 mt-2">Si esta carta no tiene imagen en el catálogo, Moderación podrá usar tu foto para mostrarla a todos.</p>}
+                {isBatchAdding && (
+                  <p className="text-xs font-bold text-[#1e40af] mt-2">
+                    Carta {selectedQueue.findIndex(item => item.queueId === activeQueueItemId) + 1} de {selectedQueue.length}
+                  </p>
+                )}
+              </div>
+
+              <DuplicateCardNotice existingCard={selectedExistingCard} selectedCard={selectedCard} />
+              {referenceGame && <ReferencePriceBox variants={selectedVariants ?? null} source={source}currentPrice={price} onUse={(clp, variant) => {
+                setPrice(String(clp));
+                // El acabado del precio (Normal, Reverse Holofoil…) pasa al alias, salvo que la persona ya haya escrito uno propio
+                const known = (selectedVariants || []).map((item) => item.name);
+                if (variant?.name && (!pseudoName.trim() || known.includes(pseudoName.trim()))) setPseudoName(variant.name);
+              }} />}
+
+              {!isBatchAdding && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Alias / Apodo (Opcional)</label>
+                  <input type="text" value={pseudoName} onChange={(e) => setPseudoName(e.target.value)} placeholder="Ej: Charizard de Ash..." maxLength={30} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-sm text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" />
+                </div>
+              )}
+
+              <div className="flex gap-4">
+                <div className={isBatchAdding ? 'w-full' : 'flex-1'}>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Precio (CLP)*</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                    <input type="number" required min="1" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" placeholder="1000" />
+                  </div>
+                </div>
+                {!isBatchAdding && (
+                  <div className="w-1/3">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Stock*</label>
+                    <div className="flex items-stretch overflow-hidden rounded-lg border border-gray-300 bg-gray-50 focus-within:border-[#1e40af] focus-within:ring-1 focus-within:ring-[#1e40af]">
+                      <button type="button" aria-label="Restar stock" disabled={(parseInt(stock, 10) || 1) <= 1} onClick={() => setStock(prev => String(Math.max(1, (parseInt(prev, 10) || 1) - 1)))} className="flex w-8 shrink-0 items-center justify-center text-lg font-bold text-gray-600 transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-40">−</button>
+                      <input type="number" required min="1" step="1" inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} onBlur={() => { if (!(parseInt(stock, 10) >= 1)) setStock('1'); }} className="min-w-0 flex-1 bg-transparent px-1 py-1.5 text-center text-sm font-bold text-gray-900 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" placeholder="1" />
+                      <button type="button" aria-label="Sumar stock" onClick={() => setStock(prev => String((parseInt(prev, 10) || 0) + 1))} className="flex w-8 shrink-0 items-center justify-center text-lg font-bold text-gray-600 transition-colors hover:bg-gray-200">+</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {!isMylFolder && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Idioma</label>
+                  <Select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-sm">
+                    <option value="English">English</option>
+                    <option value="Spanish">Spanish</option>
+                    <option value="Japanese">Japanese</option>
+                  </Select>
+                </div>
+              )}
+
+              <button type="submit" disabled={isSaving} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-[15px]">
+                {isSaving ? <ButtonSpinner /> : <SvgIcon name="add_circle" translate="no" />}
+                {isSaving ? 'Guardando...' : isBatchAdding ? 'Guardar y continuar' : selectedExistingCard ? 'Sumar stock' : 'Guardar Carta'}
+              </button>
+            </div>
+  );
   return (
     <div className="flex flex-col-reverse lg:flex-row gap-6">
+      {fullscreen && selectedCard && (
+        <AddCardFullscreen
+          card={selectedCard}
+          list={isBatchAdding ? [] : searchResults.slice(0, visibleCount)}
+          onPick={handleResultCardClick}
+          onClose={() => setFullscreen(false)}
+          imageSrc={previewSrc}
+          tcg={folderData?.tcg}
+          onImageFail={setFailedPreview}
+          onUpload={canUploadPhoto ? () => fileInputRef.current?.click() : undefined}
+        >
+          <form onSubmit={handleSaveCard} className="flex flex-col gap-3">{renderFormBody()}</form>
+        </AddCardFullscreen>
+      )}
       {zoomedCard && zoomList.length > 0 && (
         <CardLightbox cards={zoomList} cardId="zoom" onChange={() => {}} onClose={() => setZoomedCard(null)} describe={(card) => ({ subtitle: [card.set, card.rarity].filter(Boolean).join(' • '), chips: [] })} />
       )}
@@ -291,7 +374,9 @@ export default function FolderAddTab({
           <form onSubmit={handleSaveCard} className="mt-2 flex flex-col gap-3">
             <div className="relative z-50 mt-3 flex w-full shrink-0 justify-center">
               <div className="relative flex w-full justify-center items-center">
+               <div className="relative">
                 <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} style={{ aspectRatio: cardRatio(folderData?.tcg) }} className={`relative block h-[clamp(130px,19vh,200px)] max-w-full overflow-hidden cursor-zoom-in ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-lg'} focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2`}><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} rotateLandscape style={cardCorners(folderData?.tcg)} className="w-full h-full object-contain rounded-lg shadow-md relative z-50 active:scale-[0.98]" fallbackType="zoom-main" onFail={setFailedPreview} /></button>
+                <button type="button" onClick={() => setFullscreen(true)} title="Ver en pantalla completa" aria-label="Ver en pantalla completa" className="absolute left-1.5 top-1.5 z-[60] flex h-9 w-9 items-center justify-center rounded-full bg-[#12315f]/85 text-white shadow-md backdrop-blur-sm transition-[transform,background-color] hover:bg-[#12315f] active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"><SvgIcon name="fullscreen" translate="no" className="text-[20px]" /></button>
                 {canUploadPhoto && <button 
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -301,6 +386,7 @@ export default function FolderAddTab({
                 >
                   <SvgIcon name="photo_camera" translate="no" className="text-[20px]" />
                 </button>}
+               </div>
               </div>
               <input 
                 type="file" 
@@ -310,69 +396,7 @@ export default function FolderAddTab({
                 onChange={handleImageUpload} 
               />
             </div>
-            <div className="flex flex-col gap-3">
-              <div className="text-center px-2">
-                <p className="font-bold text-gray-900 leading-tight">{cardLabel(selectedCard)}</p>
-                <p className="text-sm text-gray-500 mt-1">{getCardSetName(selectedCard)} • {selectedCard.rarity || getExtDataValue(selectedCard.extData, 'Rarity')}</p>
-                {selectedCard.isCustomImage && <p className="text-xs text-gray-500 mt-2">Si esta carta no tiene imagen en el catálogo, Moderación podrá usar tu foto para mostrarla a todos.</p>}
-                {isBatchAdding && (
-                  <p className="text-xs font-bold text-[#1e40af] mt-2">
-                    Carta {selectedQueue.findIndex(item => item.queueId === activeQueueItemId) + 1} de {selectedQueue.length}
-                  </p>
-                )}
-              </div>
-
-              <DuplicateCardNotice existingCard={selectedExistingCard} selectedCard={selectedCard} />
-              {referenceGame && <ReferencePriceBox variants={selectedVariants ?? null} source={source}currentPrice={price} onUse={(clp, variant) => {
-                setPrice(String(clp));
-                // El acabado del precio (Normal, Reverse Holofoil…) pasa al alias, salvo que la persona ya haya escrito uno propio
-                const known = (selectedVariants || []).map((item) => item.name);
-                if (variant?.name && (!pseudoName.trim() || known.includes(pseudoName.trim()))) setPseudoName(variant.name);
-              }} />}
-
-              {!isBatchAdding && (
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Alias / Apodo (Opcional)</label>
-                  <input type="text" value={pseudoName} onChange={(e) => setPseudoName(e.target.value)} placeholder="Ej: Charizard de Ash..." maxLength={30} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-sm text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" />
-                </div>
-              )}
-
-              <div className="flex gap-4">
-                <div className={isBatchAdding ? 'w-full' : 'flex-1'}>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Precio (CLP)*</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                    <input type="number" required min="1" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" placeholder="1000" />
-                  </div>
-                </div>
-                {!isBatchAdding && (
-                  <div className="w-1/3">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Stock*</label>
-                    <div className="flex items-stretch overflow-hidden rounded-lg border border-gray-300 bg-gray-50 focus-within:border-[#1e40af] focus-within:ring-1 focus-within:ring-[#1e40af]">
-                      <button type="button" aria-label="Restar stock" disabled={(parseInt(stock, 10) || 1) <= 1} onClick={() => setStock(prev => String(Math.max(1, (parseInt(prev, 10) || 1) - 1)))} className="flex w-8 shrink-0 items-center justify-center text-lg font-bold text-gray-600 transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-40">−</button>
-                      <input type="number" required min="1" step="1" inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} onBlur={() => { if (!(parseInt(stock, 10) >= 1)) setStock('1'); }} className="min-w-0 flex-1 bg-transparent px-1 py-1.5 text-center text-sm font-bold text-gray-900 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" placeholder="1" />
-                      <button type="button" aria-label="Sumar stock" onClick={() => setStock(prev => String((parseInt(prev, 10) || 0) + 1))} className="flex w-8 shrink-0 items-center justify-center text-lg font-bold text-gray-600 transition-colors hover:bg-gray-200">+</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {!isMylFolder && (
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Idioma</label>
-                  <Select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-sm">
-                    <option value="English">English</option>
-                    <option value="Spanish">Spanish</option>
-                    <option value="Japanese">Japanese</option>
-                  </Select>
-                </div>
-              )}
-
-              <button type="submit" disabled={isSaving} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-[15px]">
-                {isSaving ? <ButtonSpinner /> : <SvgIcon name="add_circle" translate="no" />}
-                {isSaving ? 'Guardando...' : isBatchAdding ? 'Guardar y continuar' : selectedExistingCard ? 'Sumar stock' : 'Guardar Carta'}
-              </button>
-            </div>
+            {renderFormBody()}
           </form>
         ) : (
           <>
