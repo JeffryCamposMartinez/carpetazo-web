@@ -99,52 +99,52 @@ export default function LandingPage() {
       <div className="relative z-10 flex min-h-[100svh] w-full flex-col overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x md:border-outline-variant/30">
 
         {/* Presentación y carrusel de juegos */}
-        <section className="relative z-20 bg-blue-100 px-4 pb-6 pt-8 text-[#12315f] md:px-12 md:pt-14">
+        <section className="relative z-20 bg-blue-100 px-4 pb-5 pt-5 text-[#12315f] md:px-12 md:pb-6 md:pt-14">
           <div className="relative mx-auto w-full max-w-[1200px] text-center">
             <div aria-hidden="true" className="pointer-events-none absolute left-1/2 -top-16 -z-10 -translate-x-1/2 h-56 w-56 rounded-full bg-[#facc15]/30 blur-3xl md:h-80 md:w-80" />
-            <h1 style={{ '--d': '0ms' }} className="lp-rise mx-auto max-w-[18ch] text-balance text-[2.6rem] font-extrabold leading-[1.02] tracking-tight md:text-7xl">Compra y vende cartas TCG en Chile</h1>
-            <p style={{ '--d': '90ms' }} className="lp-rise mx-auto mt-5 max-w-[50ch] text-base leading-relaxed text-[#12315f]/80 md:text-xl">
+            <h1 style={{ '--d': '0ms' }} className="lp-rise mx-auto max-w-[18ch] text-balance text-[2.15rem] font-extrabold leading-[1.04] tracking-tight sm:text-5xl md:text-7xl">Compra y vende cartas TCG en Chile</h1>
+            <p style={{ '--d': '90ms' }} className="lp-rise mx-auto mt-3 max-w-[50ch] text-[15px] leading-relaxed text-[#12315f]/80 md:mt-5 md:text-xl">
               Carpetazo reúne las carpetas de jugadores y tiendas chilenas. Encuentra la carta que buscas, arma tu pedido y ciérralo directo con el vendedor.
             </p>
-            <div style={{ '--d': '180ms' }} className="lp-rise mt-7 flex flex-col justify-center gap-3 sm:flex-row sm:flex-wrap">
+            <div style={{ '--d': '180ms' }} className="lp-rise mt-5 grid grid-cols-2 gap-2.5 sm:mt-7 sm:flex sm:flex-row sm:flex-wrap sm:justify-center sm:gap-3">
               {currentUser ? (
-                <Link to="/dashboard" className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-[#facc15] px-8 text-base font-extrabold text-[#12315f] shadow-[0_10px_20px_-12px_rgba(180,130,0,0.9)] transition-[transform,background-color] duration-150 hover:bg-[#fbd53a] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#12315f]/40 active:scale-[0.97]">
-                  <SvgIcon name="folder_special" translate="no" className="text-[22px]" />
+                <Link to="/dashboard" className="col-span-2 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#facc15] px-6 text-[15px] font-extrabold text-[#12315f] shadow-[0_10px_20px_-12px_rgba(180,130,0,0.9)] transition-[transform,background-color] duration-150 hover:bg-[#fbd53a] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#12315f]/40 active:scale-[0.97] sm:h-14 sm:px-8 sm:text-base">
+                  <SvgIcon name="folder_special" translate="no" className="text-[20px] sm:text-[22px]" />
                   Ir a mis carpetas
                 </Link>
               ) : (
-                <button type="button" onClick={handleLogin} className="inline-flex h-14 items-center justify-center gap-2.5 rounded-full bg-[#facc15] px-8 text-base font-extrabold text-[#12315f] shadow-[0_10px_20px_-12px_rgba(180,130,0,0.9)] transition-[transform,background-color] duration-150 hover:bg-[#fbd53a] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#12315f]/40 active:scale-[0.97]">
+                <button type="button" onClick={handleLogin} className="col-span-2 inline-flex h-12 items-center justify-center gap-2.5 rounded-full bg-[#facc15] px-6 text-[15px] font-extrabold text-[#12315f] shadow-[0_10px_20px_-12px_rgba(180,130,0,0.9)] transition-[transform,background-color] duration-150 hover:bg-[#fbd53a] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#12315f]/40 active:scale-[0.97] sm:h-14 sm:px-8 sm:text-base">
                   <img src="/images/logos/google.svg" alt="" className="h-5 w-5 rounded-full bg-white p-[2px]" />
                   Crear mi carpeta con Google
                 </button>
               )}
-              <Link to="/carpetas" className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-[#12315f] px-8 text-base font-extrabold text-white shadow-[0_10px_20px_-10px_rgba(18,49,95,0.8)] transition-[transform,background-color] duration-150 hover:bg-[#1e40af] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#facc15] active:scale-[0.97]">
-                <SvgIcon name="auto_stories" translate="no" className="text-[22px]" />
+              <Link to="/carpetas" className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-[#12315f] px-4 text-sm font-extrabold text-white shadow-[0_10px_20px_-10px_rgba(18,49,95,0.8)] transition-[transform,background-color] duration-150 hover:bg-[#1e40af] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#facc15] active:scale-[0.97] sm:h-14 sm:gap-2 sm:px-8 sm:text-base">
+                <SvgIcon name="auto_stories" translate="no" className="text-[19px] sm:text-[22px]" />
                 Explorar carpetas
               </Link>
-              <Link to="/cartas" className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-white px-8 text-base font-extrabold text-[#12315f] ring-1 ring-[#12315f]/15 shadow-sm transition-[transform,background-color] duration-150 hover:bg-white/80 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#12315f]/40 active:scale-[0.97]">
-                <SvgIcon name="search" translate="no" className="text-[22px]" />
+              <Link to="/cartas" className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-white px-4 text-sm font-extrabold text-[#12315f] ring-1 ring-[#12315f]/15 shadow-sm transition-[transform,background-color] duration-150 hover:bg-white/80 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#12315f]/40 active:scale-[0.97] sm:h-14 sm:gap-2 sm:px-8 sm:text-base">
+                <SvgIcon name="search" translate="no" className="text-[19px] sm:text-[22px]" />
                 Buscar cartas
               </Link>
             </div>
-            <ul style={{ '--d': '270ms' }} className="lp-rise mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm font-bold text-[#12315f]">
+            <ul style={{ '--d': '270ms' }} className="lp-rise mt-4 flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-xs font-bold text-[#12315f] sm:mt-6 sm:gap-x-5 sm:gap-y-2 sm:text-sm">
               {[['check_circle', 'Gratis para empezar'], ['style', 'Tus juegos TCG favoritos'], ['chat', 'Cierras directo con el vendedor']].map(([icon, label]) => (
-                <li key={label} className="flex items-center gap-1.5"><SvgIcon name={icon} translate="no" className="text-[19px] text-[#1e40af]" />{label}</li>
+                <li key={label} className="flex items-center gap-1"><SvgIcon name={icon} translate="no" className="text-[16px] text-[#1e40af] sm:text-[19px]" />{label}</li>
               ))}
             </ul>
-            <p style={{ '--d': '330ms' }} className="lp-rise mt-4 text-sm font-semibold text-[#12315f]/80">
+            <p style={{ '--d': '330ms' }} className="lp-rise mt-3 text-xs font-semibold text-[#12315f]/80 sm:mt-4 sm:text-sm">
               ¿Buscas a alguien en particular? <Link to="/vendedores" className="font-extrabold text-[#1e40af] underline underline-offset-4 transition-colors hover:text-[#12315f]">Mira los vendedores</Link>
             </p>
           </div>
 
-          <div ref={marqueeRef} className="relative mt-4 w-full overflow-hidden pb-12 pt-4 md:pb-16">
-            <div className="flex w-max animate-marquee gap-8 pb-4 pl-8 md:gap-14 md:pl-14">
+          <div ref={marqueeRef} className="relative mt-2 w-full overflow-hidden pb-10 pt-3 md:mt-4 md:pb-16 md:pt-4">
+            <div className="flex w-max animate-marquee gap-6 pb-3 pl-6 md:gap-14 md:pb-4 md:pl-14">
               {MARQUEE_ITEMS.map((item, idx) => (
                 <Link
                   key={idx}
                   to={`/carpetas?tcg=${encodeURIComponent(item.tcg)}`}
                   aria-label={`Ver carpetas de ${item.tcg}`}
-                  className="tcg-card group relative mt-4 h-64 w-44 flex-shrink-0 -skew-x-[15deg] cursor-pointer transition-transform duration-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#facc15] md:h-[min(26rem,38vh)] md:w-[min(18rem,26.5vh)] [&.force-hover]:z-30 [&.force-hover]:scale-[1.1]"
+                  className="tcg-card group relative mt-3 h-56 w-40 flex-shrink-0 -skew-x-[15deg] cursor-pointer transition-transform duration-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#facc15] md:mt-4 md:h-[min(26rem,38vh)] md:w-[min(18rem,26.5vh)] [&.force-hover]:z-30 [&.force-hover]:scale-[1.1]"
                 >
                   {/* The Skewed Card Frame */}
                   <div className="relative h-full w-full overflow-hidden rounded-xl border-4 border-white shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
