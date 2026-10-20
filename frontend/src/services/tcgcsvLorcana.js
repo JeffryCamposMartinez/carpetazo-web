@@ -4,12 +4,12 @@ export const LORCANA_CATEGORY = 71;
 export const LORCANA_MARKER = 'lorcana'; // valor de searchCategory en la carpeta
 
 export const LC_INKS = [
-  { value: 'Amber', label: 'Ámbar', color: '#f5b82e' },
-  { value: 'Amethyst', label: 'Amatista', color: '#8b4fc9' },
-  { value: 'Emerald', label: 'Esmeralda', color: '#27a05a' },
-  { value: 'Ruby', label: 'Rubí', color: '#d6313f' },
-  { value: 'Sapphire', label: 'Zafiro', color: '#2f7fd6' },
-  { value: 'Steel', label: 'Acero', color: '#8d99a6' },
+  { value: 'Amber', label: 'Ámbar', color: '#f5b82e', icon: '/images/lorcana/amber.webp' },
+  { value: 'Amethyst', label: 'Amatista', color: '#8b4fc9', icon: '/images/lorcana/amethyst.webp' },
+  { value: 'Emerald', label: 'Esmeralda', color: '#27a05a', icon: '/images/lorcana/emerald.webp' },
+  { value: 'Ruby', label: 'Rubí', color: '#d6313f', icon: '/images/lorcana/ruby.webp' },
+  { value: 'Sapphire', label: 'Zafiro', color: '#2f7fd6', icon: '/images/lorcana/sapphire.webp' },
+  { value: 'Steel', label: 'Acero', color: '#8d99a6', icon: '/images/lorcana/steel.webp' },
 ];
 
 export const LC_INK_MODES = [

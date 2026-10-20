@@ -67,10 +67,10 @@ export default function LorcanaFilters({ searchQuery, setSearchQuery, filters, s
                 aria-label={ink.label}
                 title={ink.label}
                 onClick={() => toggleInk(ink.value)}
-                style={{ backgroundColor: ink.color }}
-                className={`relative flex h-11 w-11 items-center justify-center rounded-full text-white shadow-sm outline-none ring-1 ring-black/10 transition-[transform,opacity] duration-150 focus-visible:ring-2 focus-visible:ring-blue-900 active:scale-90 ${on ? 'scale-110 ring-[3px] ring-[#facc15] ring-offset-2 ring-offset-white' : 'opacity-80 [@media(hover:hover)]:hover:scale-110 [@media(hover:hover)]:hover:opacity-100'}`}
+                className={`relative h-12 w-12 shrink-0 rounded-xl outline-none transition-[transform,opacity,filter] duration-150 focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 active:scale-90 ${on ? '-translate-y-0.5 scale-110 drop-shadow-[0_0_8px_rgba(250,204,21,0.95)]' : 'opacity-80 [@media(hover:hover)]:hover:scale-110 [@media(hover:hover)]:hover:opacity-100'}`}
               >
-                {on ? <SvgIcon name="check" translate="no" aria-hidden="true" className="text-[20px] drop-shadow" /> : <span aria-hidden="true" className="text-[11px] font-black drop-shadow">{ink.label.slice(0, 3)}</span>}
+                <img src={ink.icon} alt="" loading="lazy" draggable="false" className="h-full w-full select-none object-contain drop-shadow-sm" />
+                {on && <span className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#1e40af] text-white ring-2 ring-white"><SvgIcon name="check" translate="no" aria-hidden="true" className="text-[13px]" /></span>}
               </button>
             );
           })}
