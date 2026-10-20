@@ -2,18 +2,19 @@ import { formatCardSearchQuery } from '../../utils/cardCodeSearch';
 import SvgIcon from '../ui/SvgIcon';
 
 // Juegos del sitio con su logo (un juego sin cartas a la venta se ve vacío hasta que haya ofertas).
+// `scale`/`desk`: algunos logos traen mucho margen transparente (Yu-Gi-Oh!, One Piece, Magic) y otros ninguno; se compensan para que todos se vean del mismo tamaño.
 export const GAMES = [
-  { name: 'Pokémon', logo: '/images/logos/pokemon.webp' },
-  { name: 'Mitos y Leyendas', logo: '/images/logos/mitosyleyendas.webp' },
-  { name: 'One Piece', logo: '/images/logos/onepiece.webp' },
-  { name: 'Magic', logo: '/images/logos/magic.webp' },
-  { name: 'Yu-Gi-Oh!', logo: '/images/logos/yugioh.webp' },
-  { name: 'Riftbound', logo: '/images/logos/riftbound.webp' },
-  { name: 'Lorcana', logo: '/images/logos/lorcana.webp' },
-  { name: 'Digimon', logo: '/images/logos/digimon.webp' },
+  { name: 'Pokémon', logo: '/images/logos/pokemon.webp', scale: 0.95 },
+  { name: 'Mitos y Leyendas', logo: '/images/logos/mitosyleyendas.webp', scale: 1.05 },
+  { name: 'One Piece', logo: '/images/logos/onepiece.webp', scale: 1.7, desk: 1.35 },
+  { name: 'Magic', logo: '/images/logos/magic.webp', scale: 1.45, desk: 1.1 },
+  { name: 'Yu-Gi-Oh!', logo: '/images/logos/yugioh.webp', scale: 2.4, desk: 1.15 },
+  { name: 'Riftbound', logo: '/images/logos/riftbound.webp', scale: 0.85 },
+  { name: 'Lorcana', logo: '/images/logos/lorcana.webp', scale: 0.8 },
+  { name: 'Digimon', logo: '/images/logos/digimon.webp', scale: 0.85 },
 ];
 
-const CHIP = 'flex h-11 shrink-0 items-center justify-center gap-2.5 rounded-full px-4 text-sm font-extrabold transition-[background-color,box-shadow,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 focus-visible:ring-offset-[#DBEAFE] lg:h-12 lg:w-full lg:justify-start lg:rounded-2xl lg:px-3.5';
+const CHIP = 'flex h-11 min-w-[6.25rem] shrink-0 items-center justify-center gap-2.5 rounded-full px-3 text-sm font-extrabold transition-[background-color,box-shadow,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 focus-visible:ring-offset-[#DBEAFE] lg:h-12 lg:w-full lg:min-w-0 lg:justify-start lg:rounded-2xl lg:px-3.5';
 
 // Búsqueda y juego: arriba en el celular (los juegos se deslizan de lado) y en una columna fija a la izquierda en pantallas anchas
 // Se reutiliza en Carpetas y Vendedores: placeholder/label cambian, `format` es opcional, `counts` (Map juego→cantidad, con `total`) muestra cuántos hay y `hideGames` deja solo la búsqueda
@@ -41,11 +42,14 @@ export default function CardsFilters({ onQuery, onTcg, query, tcg, placeholder =
         )}
       </div>
 
-      {!hideGames && <div role="group" aria-label="Juego" className="-mx-3 mt-3 flex gap-2 overflow-x-auto px-3 pb-1 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:mx-0 lg:mt-4 lg:flex-col lg:gap-1.5 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden">
+      {/* py-2: el carrusel corta lo que sobresale (overflow), así el aro azul de la carta elegida queda completo */}
+      {!hideGames && <div role="group" aria-label="Juego" className="-mx-3 mt-1.5 flex gap-2 overflow-x-auto px-3 py-2 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:mx-0 lg:mt-4 lg:flex-col lg:gap-1.5 lg:overflow-visible lg:px-0 lg:py-0 [&::-webkit-scrollbar]:hidden">
         <button type="button" aria-pressed={tcg === ''} onClick={() => onTcg('')} className={`${CHIP} ${tcg === '' ? active : idle}`}>Todos{counts && <span className="hidden text-xs font-bold tabular-nums opacity-60 lg:ml-auto lg:inline">{counts.get('') || 0}</span>}</button>
         {GAMES.map((game) => (
           <button key={game.name} type="button" aria-pressed={tcg === game.name} aria-label={game.name} title={game.name} onClick={() => onTcg(tcg === game.name ? '' : game.name)} className={`${CHIP} ${tcg === game.name ? 'bg-white text-[#12315f] ring-2 ring-[#1e40af] shadow-[0_8px_16px_-10px_rgba(30,64,175,0.7)]' : idle}`}>
-            <img src={game.logo} alt="" loading="lazy" className="h-6 w-auto max-w-[5.5rem] object-contain lg:h-7 lg:w-7 lg:max-w-none lg:shrink-0" />
+            <span className="flex h-8 w-[4.75rem] shrink-0 items-center justify-center overflow-hidden lg:h-7 lg:w-7">
+              <img src={game.logo} alt="" loading="lazy" style={{ '--logo-scale': game.scale || 1, '--logo-desk': game.desk || 1 }} className="h-full w-full object-contain [transform:scale(var(--logo-scale))] lg:[transform:scale(var(--logo-desk))]" />
+            </span>
             <span className="hidden lg:inline">{game.name}</span>
             {counts && <span className="hidden text-xs font-bold tabular-nums opacity-60 lg:ml-auto lg:inline">{counts.get(game.name) || 0}</span>}
           </button>
