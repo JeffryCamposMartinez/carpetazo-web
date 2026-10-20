@@ -4,9 +4,10 @@
 // Solo agrega cartas y productos que faltan; lo que ya existe no se toca (las correcciones de TCGplayer quedan en CatalogChange).
 //   --dry-run          no escribe nada (ni R2 ni la base): cuenta qué haría
 //   --only=3,71        solo esos juegos (categoryId de TCGCSV)
-//   --image-cap=800    tope de imágenes por corrida (el resto sigue la próxima noche)
+//   --image-cap=6000   tope de imágenes por corrida (el resto sigue la próxima noche)
 //   --max-minutes=50   tiempo máximo; al cumplirse termina limpio y sigue la próxima noche
 //   --limit-sets=5     solo las primeras N ediciones de cada juego (para pruebas)
+//   --all-editions     revisa también las ediciones que no cambiaron (completa imágenes que faltan en cartas ya guardadas)
 // TCG_SYNC_ENABLED=0 apaga la tarea sin tocar Coolify. TCG_SYNC_IMAGE_CAP y TCG_SYNC_MAX_MINUTES cambian los topes por defecto.
 const args = process.argv.slice(2);
 const opt = (name) => { const hit = args.find((arg) => arg.startsWith(`--${name}=`)); return hit ? hit.slice(name.length + 3) : undefined; };
@@ -22,9 +23,10 @@ const number = (value, fallback) => (Number.isFinite(Number(value)) && Number(va
     const result = await runSync({
       dryRun: args.includes('--dry-run'),
       categories: only ? only.split(',').map(Number).filter(Number.isInteger) : DEFAULT_CATEGORIES,
-      imageCap: number(opt('image-cap') ?? process.env.TCG_SYNC_IMAGE_CAP, 800),
+      imageCap: number(opt('image-cap') ?? process.env.TCG_SYNC_IMAGE_CAP, 6000),
       maxMinutes: number(opt('max-minutes') ?? process.env.TCG_SYNC_MAX_MINUTES, 50),
       limitSets: number(opt('limit-sets'), 0),
+      allEditions: args.includes('--all-editions'),
     });
     return result.status === 'failed' ? 1 : 0;
   } finally {

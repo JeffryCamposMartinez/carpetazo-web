@@ -87,9 +87,17 @@ const product = (n, extra = {}) => ({
     const second = await run();
     ok('segunda corrida: edición sin cambios, no sube ni escribe nada', second.groupsSkipped === 1 && second.newCards === 0 && uploads.size === 0 && (await cards()).length === 5);
 
+    // --- Imagen que faltaba: TCGplayer ya la tiene y la carta existe sin imagen → se completa solo la imagen
+    remote.products = remote.products.map((p) => (p.productId === ids(5) ? { ...p, imageCount: 1 } : p));
+    const sweep = await run({ allEditions: true });
+    const filledCard = await prisma.catalogCard.findUnique({ where: { productId: ids(5) } });
+    ok('revisando todas las ediciones se completa la imagen que faltaba (sin tocar el resto)', sweep.imagesFilled === 1 && sweep.newCards === 0 && filledCard.imageKey?.includes('_Images/CZTEST Edición Uno/CZTEST Carta 5 (005-100)/') && filledCard.thumbKey?.includes('_Thumbs/') && uploads.has(filledCard.imageKey) && uploads.has(filledCard.thumbKey) && !uploads.has(filledCard.dataKey), JSON.stringify(sweep));
+    ok('lo que TCGplayer aún no tiene (sin imagen en el CDN) sigue sin imagen y no es un fallo', (await prisma.catalogCard.findUnique({ where: { productId: ids(4) } })).imageKey === null && sweep.failed === 0);
+    ok('sin esa opción, una edición sin cambios no se vuelve a mirar', (await run()).groupsSkipped === 1);
+
     // --- TCGplayer corrige una carta y agrega otra: lo nuevo entra, lo existente no se toca y la diferencia va a revisión
     remote.groupModified = '2026-10-11T10:00:00';
-    remote.products = [product(1, { name: 'CZTEST Carta 1 corregida', extendedData: product(1).extendedData.map((e) => (e.name === 'Rarity' ? { ...e, value: 'Mythic' } : e)) }), product(2), product(3, { name: 'CZTEST Booster Box', extendedData: [] }), product(4, { imageUrl: 'https://tcgplayer-cdn.tcgplayer.com/product/SINIMAGEN_200w.jpg' }), product(5, { imageCount: 0 }), product(6)];
+    remote.products = [product(1, { name: 'CZTEST Carta 1 corregida', extendedData: product(1).extendedData.map((e) => (e.name === 'Rarity' ? { ...e, value: 'Mythic' } : e)) }), product(2), product(3, { name: 'CZTEST Booster Box', extendedData: [] }), product(5), product(6)];
     const third = await run();
     const after = await prisma.catalogCard.findUnique({ where: { productId: ids(1) } });
     const changes = await prisma.catalogChange.findMany({ where: { categoryId: GAME_ID } });

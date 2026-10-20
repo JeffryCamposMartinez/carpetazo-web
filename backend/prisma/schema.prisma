@@ -343,6 +343,25 @@ model CatalogChange {
   @@index([status, createdAt])
 }
 
+// Foto que una persona subió a una carta del catálogo que no tenía imagen: Moderación decide si pasa a ser la imagen de esa carta para todos.
+// La foto se copia a Carpetazo.cl/Propuestas/ al proponerla, así sigue disponible aunque la persona cambie o borre la suya.
+model CatalogImageProposal {
+  id          String    @id @default(uuid())
+  productId   Int
+  userId      String
+  imageKey    String // copia en R2 mientras está pendiente
+  status      String    @default("pending") // pending | approved | rejected | closed
+  note        String?
+  decidedById String?
+  decidedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([productId, userId])
+  @@index([status, createdAt])
+  @@index([productId, status])
+  @@index([userId, createdAt])
+}
+
 // Cartas que un jugador busca. Se enlazan con el catálogo cuando existen allí; si no, se guardan con su nombre.
 // Listas de deseos de una persona: una sola está activa y es la que se muestra en su perfil (índice único parcial en la migración)
 model Wishlist {

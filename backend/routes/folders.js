@@ -7,6 +7,7 @@ import { folderFilterSql, folderOrderSql, likePattern, loadPublicFolders, tcgVar
 import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/publicSeller.js';
 import { badRequest, cleanCardData, isAllowedStoredImageUrl, isOptionalText, isShortText, isSmallObject, isUuid, isValidPrice, isValidStock } from '../core/validation.js';
 import { r2PublicUrl } from '../core/tcgCatalogImport.js';
+import { proposeCatalogPhoto } from '../core/catalogPhotos.js';
 import { isMylTcg, storedCardId } from '../core/mylIdentity.js';
 import { bulkPublishedRanges, reliablePublishedOn } from '../core/editionDates.js';
 import { PlanLimitError, assertFeature, assertCanAddUniqueCard, assertCanCreateFolder, assertStockChange, getEffectivePlan, getPlanState, lockPlanUser, sendPlanError } from '../core/entitlements.js';
@@ -627,6 +628,8 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
         }
       });
     });
+    // Una foto propia en una carta del catálogo que no tiene imagen se ofrece sola a Moderación (no falla la carta si algo sale mal)
+    await proposeCatalogPhoto(prisma, { userId: user.id, firebaseUid: req.user.sub, tcg: folder.tcg, tcgId: normalizedTcgId, imageUrl });
     res.json({ success: true, card });
   } catch (error) {
     if (error instanceof PlanLimitError) return sendPlanError(res, error);

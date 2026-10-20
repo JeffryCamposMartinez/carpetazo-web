@@ -110,13 +110,13 @@ const acquireRun = async (db, dryRun) => {
 
 export async function runSync(options = {}) {
   const {
-    db = prisma, categories = DEFAULT_CATEGORIES, dryRun = false, imageCap = 800, maxMinutes = 50, limitSets = 0,
+    db = prisma, categories = DEFAULT_CATEGORIES, dryRun = false, imageCap = 6000, maxMinutes = 50, limitSets = 0, allEditions = false,
     client = new TcgcsvClient({ onWait: (message) => options.log?.(message) }), upload = defaultUpload, getImages = defaultImages,
     log = (message) => console.log(message),
   } = options;
   const started = Date.now();
   const deadline = started + maxMinutes * 60000;
-  const total = { games: 0, groupsChecked: 0, groupsSkipped: 0, groupsError: 0, newCards: 0, newProducts: 0, imagesUploaded: 0, noImage: 0, failed: 0, pending: 0, changes: 0, rejected: 0, stopped: '' };
+  const total = { games: 0, groupsChecked: 0, groupsSkipped: 0, groupsError: 0, newCards: 0, newProducts: 0, imagesFilled: 0, imagesUploaded: 0, noImage: 0, failed: 0, pending: 0, changes: 0, rejected: 0, stopped: '' };
   const budget = { images: 0 };
   const outOfBudget = () => {
     if (Date.now() > deadline) { total.stopped ||= 'tiempo'; return true; }
@@ -139,16 +139,16 @@ export async function runSync(options = {}) {
       if (!remote && !dbGame) { log(`Juego ${categoryId}: TCGCSV no lo lista; se omite.`); continue; }
       const category = { categoryId, name: remote?.name, displayName: remote?.displayName || remote?.name };
       const game = dbGame || { categoryId, name: String(category.displayName).slice(0, 120), folder: gameFolderName(category) };
-      const gameStats = { checked: 0, skipped: 0, cards: 0, products: 0, images: 0, noImage: 0, failed: 0, pending: 0, changes: 0, rejected: 0 };
+      const gameStats = { checked: 0, skipped: 0, cards: 0, products: 0, filled: 0, images: 0, noImage: 0, failed: 0, pending: 0, changes: 0, rejected: 0 };
       total.games += 1;
       try {
-        await syncGame({ db, client, category, game, gameStats, dryRun, upload, getImages, log, budget, outOfBudget, limitSets });
+        await syncGame({ db, client, category, game, gameStats, dryRun, upload, getImages, log, budget, outOfBudget, limitSets, allEditions });
       } catch (error) {
         failedGames += 1;
         log(`${game.name}: ERROR ${error.message}`);
       }
-      for (const [from, to] of [['checked', 'groupsChecked'], ['skipped', 'groupsSkipped'], ['cards', 'newCards'], ['products', 'newProducts'], ['images', 'imagesUploaded'], ['noImage', 'noImage'], ['failed', 'failed'], ['pending', 'pending'], ['changes', 'changes'], ['rejected', 'rejected']]) total[to] += gameStats[from];
-      log(`${game.name}: ${gameStats.checked} ediciones revisadas (${gameStats.skipped} sin cambios) · ${gameStats.cards} cartas y ${gameStats.products} productos nuevos · ${gameStats.images} imágenes subidas · ${gameStats.failed} fallidas · ${gameStats.pending} para mañana · ${gameStats.changes} correcciones por revisar`);
+      for (const [from, to] of [['checked', 'groupsChecked'], ['skipped', 'groupsSkipped'], ['cards', 'newCards'], ['products', 'newProducts'], ['filled', 'imagesFilled'], ['images', 'imagesUploaded'], ['noImage', 'noImage'], ['failed', 'failed'], ['pending', 'pending'], ['changes', 'changes'], ['rejected', 'rejected']]) total[to] += gameStats[from];
+      log(`${game.name}: ${gameStats.checked} ediciones revisadas (${gameStats.skipped} sin cambios) · ${gameStats.cards} cartas y ${gameStats.products} productos nuevos · ${gameStats.filled} imágenes completadas · ${gameStats.images} imágenes subidas · ${gameStats.failed} fallidas · ${gameStats.pending} para mañana · ${gameStats.changes} correcciones por revisar`);
     }
   } catch (error) {
     failedGames += 1;
@@ -159,11 +159,11 @@ export async function runSync(options = {}) {
   const seconds = Math.round((Date.now() - started) / 1000);
   const summary = { ...total, failedGames, seconds };
   if (run.id) await db.catalogSyncRun.update({ where: { id: run.id }, data: { status, finishedAt: new Date(), summary } });
-  log(`Fin (${status}) en ${Math.floor(seconds / 60)} min ${seconds % 60} s: ${total.newCards} cartas y ${total.newProducts} productos nuevos, ${total.imagesUploaded} imágenes, ${total.failed} fallidas, ${total.pending} para mañana, ${total.changes} correcciones por revisar${total.stopped ? ` · se detuvo por ${total.stopped}; sigue la próxima noche` : ''}`);
+  log(`Fin (${status}) en ${Math.floor(seconds / 60)} min ${seconds % 60} s: ${total.newCards} cartas y ${total.newProducts} productos nuevos, ${total.imagesFilled} imágenes completadas, ${total.imagesUploaded} imágenes, ${total.failed} fallidas, ${total.pending} para mañana, ${total.changes} correcciones por revisar${total.stopped ? ` · se detuvo por ${total.stopped}; sigue la próxima noche` : ''}`);
   return { status, ...summary };
 }
 
-async function syncGame({ db, client, category, game, gameStats, dryRun, upload, getImages, log, budget, outOfBudget, limitSets }) {
+async function syncGame({ db, client, category, game, gameStats, dryRun, upload, getImages, log, budget, outOfBudget, limitSets, allEditions }) {
   const groups = await client.groups(category.categoryId);
   if (groups.length === 0) { log(`${game.name}: TCGplayer no tiene ediciones`); return; }
   const dbSets = await db.catalogSet.findMany({ where: { categoryId: category.categoryId }, select: { groupId: true, folder: true, modifiedOn: true } });
@@ -175,7 +175,7 @@ async function syncGame({ db, client, category, game, gameStats, dryRun, upload,
   for (const group of limitSets ? groups.slice(0, limitSets) : groups) {
     if (outOfBudget()) return;
     const dbSet = setById.get(group.groupId);
-    if (dbSet?.modifiedOn && time(dbSet.modifiedOn) === time(toIso(group.modifiedOn))) { gameStats.skipped += 1; continue; }
+    if (!allEditions && dbSet?.modifiedOn && time(dbSet.modifiedOn) === time(toIso(group.modifiedOn))) { gameStats.skipped += 1; continue; }
     gameStats.checked += 1;
     const products = await client.products(category.categoryId, group.groupId);
     if (products === null) { log(`${game.name} › ${group.name}: sin datos en TCGplayer`); continue; }
@@ -230,6 +230,8 @@ async function syncGame({ db, client, category, game, gameStats, dryRun, upload,
       changes.push({ productId: card.productId, categoryId: category.categoryId, groupId: existing.groupId, digest: createHash('sha1').update(stable(after)).digest('hex').slice(0, 20), before: Object.fromEntries(fields.map((field) => [field, existing[field] ?? null])), after });
     }
     const fresh = valid.filter((entry) => !entry.existing);
+    // Lo que ya está en la base pero sin imagen, y TCGplayer ya la tiene: se completa solo la imagen (no cuenta como corrección)
+    const fill = valid.filter((entry) => entry.existing && entry.existing.categoryId === category.categoryId && !entry.existing.imageKey && entry.card.sourceImageUrl && entry.item.product.imageCount !== 0);
     gameStats.changes += Math.min(changes.length, Math.max(0, changeBudget));
     if (!dryRun && changes.length && changeBudget > 0) {
       await db.catalogChange.createMany({ data: changes.slice(0, changeBudget), skipDuplicates: true });
@@ -239,6 +241,7 @@ async function syncGame({ db, client, category, game, gameStats, dryRun, upload,
     let complete = true;
     if (dryRun) {
       for (const entry of fresh) gameStats[entry.card.kind === 'card' ? 'cards' : 'products'] += 1;
+      gameStats.filled += fill.length;
       continue;
     }
     const { groupId, ...setData } = set;
@@ -290,6 +293,27 @@ async function syncGame({ db, client, category, game, gameStats, dryRun, upload,
         await db.catalogCard.createMany({ data: done, skipDuplicates: true });
         for (const card of done) gameStats[card.kind === 'card' ? 'cards' : 'products'] += 1;
       }
+    }
+    for (let at = 0; at < fill.length; at += CHUNK) {
+      await pool(fill.slice(at, at + CHUNK), 6, async ({ existing, card }) => {
+        if (outOfBudget()) { complete = false; gameStats.pending += 1; return; }
+        budget.images += 1;
+        try {
+          const { large, thumb } = await getImages(card.sourceImageUrl);
+          const keys = itemKeys(game.folder, existing.kind, editionFolder, existing.folder);
+          await upload(keys.imageKey, large, 'image/webp');
+          await upload(keys.thumbKey, thumb, 'image/webp');
+          await db.catalogCard.updateMany({ where: { productId: existing.productId, imageKey: null }, data: { imageKey: keys.imageKey, thumbKey: keys.thumbKey } });
+          gameStats.filled += 1;
+          gameStats.images += 1;
+        } catch (error) {
+          if (error.noImage) { gameStats.noImage += 1; return; } // TCGplayer aún no tiene la imagen: se vuelve a intentar cuando la edición cambie
+          complete = false;
+          gameStats.failed += 1;
+          gameStats.pending += 1;
+          log(`${game.name} › ${group.name} › ${card.name}: ${error.message}`);
+        }
+      });
     }
     if (complete && time(set.modifiedOn) !== time(dbSet?.modifiedOn)) await db.catalogSet.update({ where: { groupId }, data: { modifiedOn: setData.modifiedOn } });
   }

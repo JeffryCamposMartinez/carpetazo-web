@@ -309,6 +309,7 @@ export default function FolderAddTab({
               <div className="text-center px-2">
                 <p className="font-bold text-gray-900 leading-tight">{cardLabel(selectedCard)}</p>
                 <p className="text-sm text-gray-500 mt-1">{getCardSetName(selectedCard)} • {selectedCard.rarity || getExtDataValue(selectedCard.extData, 'Rarity')}</p>
+                {selectedCard.isCustomImage && <p className="text-xs text-gray-500 mt-2">Si esta carta no tiene imagen en el catálogo, Moderación podrá usar tu foto para mostrarla a todos.</p>}
                 {isBatchAdding && (
                   <p className="text-xs font-bold text-[#1e40af] mt-2">
                     Carta {selectedQueue.findIndex(item => item.queueId === activeQueueItemId) + 1} de {selectedQueue.length}

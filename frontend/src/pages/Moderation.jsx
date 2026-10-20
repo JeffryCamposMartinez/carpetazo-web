@@ -15,6 +15,8 @@ import OperationsPanel from '../components/moderation/OperationsPanel';
 import TeamPanel from '../components/moderation/TeamPanel';
 import CatalogImportPanel from '../components/moderation/CatalogImportPanel';
 import FeedbackPanel from '../components/moderation/FeedbackPanel';
+import CatalogPhotosPanel from '../components/moderation/CatalogPhotosPanel';
+import CatalogSyncPanel from '../components/moderation/CatalogSyncPanel';
 import ModNav from '../components/moderation/ModNav';
 import LoadingState from '../components/ui/LoadingState';
 import SvgIcon from '../components/ui/SvgIcon';
@@ -30,6 +32,7 @@ const TABS = [
   { id: 'cases', group: 'queue', label: 'Estafas', shortLabel: 'Estafas', icon: 'security', min: 1, blurb: 'Casos abiertos contra una cuenta, con todos sus reportes reunidos.' },
   { id: 'appeals', group: 'queue', label: 'Apelaciones', icon: 'gavel', min: 1, blurb: 'Personas que piden revisar una medida o una decisión sobre su contenido.' },
   { id: 'feedback', group: 'queue', label: 'Reclamos y sugerencias', shortLabel: 'Sugerencias', icon: 'feedback', min: 1, blurb: 'Mensajes de la comunidad para mejorar el sitio o informar un problema.' },
+  { id: 'photos', group: 'queue', label: 'Fotos de cartas', shortLabel: 'Fotos', icon: 'photo_library', min: 2, blurb: 'Fotos que la comunidad subió a cartas del catálogo sin imagen: si apruebas una, esa carta tendrá imagen para todos.' },
   { id: 'people', group: 'people', label: 'Personas y medidas', shortLabel: 'Personas', icon: 'groups', min: 1, blurb: 'Busca una cuenta, revisa su historial y aplica o levanta medidas.' },
   { id: 'account', group: 'people', label: 'Cuenta completa', shortLabel: 'Cuenta', icon: 'badge', min: 3, blurb: 'Todos los datos de una persona, sus planes con todas las fechas, y cambiarlos avisándole con un mensaje.' },
   { id: 'team', group: 'people', label: 'Equipo y administradores', shortLabel: 'Equipo', icon: 'admin_panel_settings', min: 3, blurb: 'Quién es del equipo y cómo dar el rol de administrador a otra persona, con doble confirmación.' },
@@ -37,6 +40,7 @@ const TABS = [
   { id: 'metrics', group: 'system', label: 'Métricas', icon: 'monitoring', min: 3, blurb: 'Cómo está funcionando la moderación: volumen, tiempos y resultados.' },
   { id: 'audit', group: 'system', label: 'Auditoría', icon: 'history', min: 3, blurb: 'Todo lo que se decide queda registrado, con quién lo hizo.' },
   { id: 'catalog', group: 'system', label: 'Catálogo de cartas', shortLabel: 'Catálogo', icon: 'library_add', min: 3, blurb: 'Agrega cartas nuevas a la base cargando el archivo que genera Carpetazo Update.' },
+  { id: 'sync', group: 'system', label: 'Sincronización TCG', shortLabel: 'Sincronización', icon: 'sync', min: 2, blurb: 'Lo que entró en cada corrida nocturna con TCGplayer: cartas y productos nuevos, imágenes completadas y correcciones. Solo lectura.' },
   { id: 'operations', group: 'system', label: 'Operación', icon: 'ecg_heart', min: 3, blurb: 'Estado del sitio, errores del servidor y de la web, y embudo de actividad.' },
   { id: 'tools', group: 'system', label: 'Herramientas', icon: 'build', min: 3, blurb: 'Respaldo de la base, retención de datos y prueba del envío de correos.' }
 ];
@@ -81,7 +85,7 @@ export default function Moderation() {
 
   const navItems = TABS.filter((item) => level >= item.min).map((item) => ({
     ...item,
-    count: item.id === 'reports' ? summary?.reports : item.id === 'cases' ? summary?.cases : item.id === 'appeals' ? summary?.appeals : item.id === 'feedback' ? summary?.feedback : item.id === 'people' ? summary?.pendingBans : 0,
+    count: item.id === 'reports' ? summary?.reports : item.id === 'cases' ? summary?.cases : item.id === 'appeals' ? summary?.appeals : item.id === 'feedback' ? summary?.feedback : item.id === 'photos' ? summary?.catalogPhotos : item.id === 'people' ? summary?.pendingBans : 0,
     alert: item.id === 'reports' && (summary?.criticalReports || 0) > 0
   }));
   const current = navItems.find((item) => item.id === tab) || navItems[0];
@@ -145,11 +149,13 @@ export default function Moderation() {
               {tab === 'account' && level >= 3 && <AccountDetail focusUsername={focusUsername} onFocusUsed={() => setFocusUsername('')} />}
               {tab === 'appeals' && <AppealsPanel level={level} />}
               {tab === 'feedback' && <FeedbackPanel level={level} />}
+              {tab === 'photos' && level >= 2 && <CatalogPhotosPanel />}
               {tab === 'team' && level >= 3 && <TeamPanel />}
               {tab === 'reviews' && level >= 3 && <ReviewsPanel />}
               {tab === 'metrics' && level >= 3 && <MetricsPanel />}
               {tab === 'audit' && level >= 3 && <AuditPanel />}
               {tab === 'catalog' && level >= 3 && <CatalogImportPanel />}
+              {tab === 'sync' && level >= 2 && <CatalogSyncPanel />}
               {tab === 'operations' && level >= 3 && <OperationsPanel />}
               {tab === 'tools' && level >= 3 && <ToolsPanel />}
             </div>

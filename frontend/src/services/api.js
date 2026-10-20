@@ -200,6 +200,11 @@ export const api = {
   cancelUserSubscription: (username, payload) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/subscription/cancel', { method: 'POST', body: JSON.stringify(payload) }),
   notifyUser: (username, message) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/notify', { method: 'POST', body: JSON.stringify({ message }) }),
   getAdminAppeals: (status) => apiFetch('/admin/appeals?status=' + (status || 'open')),
+  getCatalogSync: (run) => apiFetch('/admin/catalog-sync' + (run ? '?run=' + encodeURIComponent(run) : '')),
+  getCatalogSyncItems: (run, section, page = 1) => apiFetch('/admin/catalog-sync/' + encodeURIComponent(run) + '/' + encodeURIComponent(section) + '?page=' + page),
+  getCatalogPhotos: () => apiFetch('/admin/catalog-photos'),
+  approveCatalogPhoto: (id) => apiFetch('/admin/catalog-photos/' + encodeURIComponent(id) + '/approve', { method: 'POST' }),
+  rejectCatalogPhoto: (id, note) => apiFetch('/admin/catalog-photos/' + encodeURIComponent(id) + '/reject', { method: 'POST', body: JSON.stringify({ note }) }),
   decideAppeal: (id, action, note) => apiFetch('/admin/appeals/' + encodeURIComponent(id) + '/decision', { method: 'POST', body: JSON.stringify({ action, note }) }),
   // Carga de cartas nuevas desde cartas_incrementales.json (solo administradores): primero se revisa, después se carga lo revisado
   previewTcgCatalogImport: (fileName, data) => apiFetch('/admin/tcg-catalog-import/preview', { method: 'POST', body: JSON.stringify({ fileName, data }) }),

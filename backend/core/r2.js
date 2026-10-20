@@ -13,7 +13,7 @@ const missingR2Config = () => R2_REQUIRED_ENV.filter(key => !process.env[key]);
 const R2_TEST_STUB = process.env.TEST_AUTH_STUB === '1' && process.env.R2_TEST_STUB === '1';
 export const hasR2Config = () => R2_TEST_STUB || missingR2Config().length === 0;
 
-const getR2KeyFromPublicUrl = (url) => {
+export const getR2KeyFromPublicUrl = (url) => {
   if (!url || !process.env.R2_PUBLIC_URL) return null;
 
   const publicBaseUrl = process.env.R2_PUBLIC_URL.replace(/\/$/, '') + '/';
@@ -57,8 +57,11 @@ export const r2Client = new S3Client({
 // La ruta /api/__test/r2-log (routes/users.js) lo expone solo si existe
 export const r2TestLog = R2_TEST_STUB ? [] : null;
 if (r2TestLog) {
+  const OPS = { PutObjectCommand: 'put', CopyObjectCommand: 'copy', GetObjectCommand: 'get' };
+  const TEST_IMAGE = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
   r2Client.send = async (command) => {
-    r2TestLog.push({ op: command.constructor.name === 'PutObjectCommand' ? 'put' : 'delete', key: command.input.Key });
-    return {};
+    const op = OPS[command.constructor.name] || 'delete';
+    r2TestLog.push({ op, key: command.input.Key });
+    return op === 'get' ? { Body: { transformToByteArray: async () => TEST_IMAGE } } : {};
   };
 }
