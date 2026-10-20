@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { SafeImage } from './SafeImage';
 import SvgIcon from '../ui/SvgIcon';
 import CardNeighbors from '../ui/CardNeighbors';
-import { cardCorners, cardRatio } from '../../utils/cardShape';
+import { cardRatio, fullscreenCorners } from '../../utils/cardShape';
 
 const ARROW = 'absolute top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-[#12315f] shadow-lg transition-[transform,opacity,background-color] duration-150 hover:bg-white active:scale-90 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#facc15] disabled:pointer-events-none disabled:opacity-25';
 
@@ -49,7 +49,7 @@ export default function AddCardFullscreen({ card, list, onPick, onClose, imageSr
               <span className="text-base font-bold leading-tight text-gray-400">SIN IMAGEN</span>
             </div>
           ) : (
-            <SafeImage key={imageSrc} src={imageSrc} alt={card.name} rotateLandscape style={cardCorners(tcg)} className="h-full w-full rounded-xl object-contain shadow-2xl" fallbackType="zoom-main" onFail={(failed) => { setBrokenSrc(failed); onImageFail?.(failed); }} />
+            <SafeImage key={imageSrc} src={imageSrc} alt={card.name} rotateLandscape style={fullscreenCorners(tcg)} className="h-full w-full rounded-xl object-contain shadow-2xl" fallbackType="zoom-main" onFail={(failed) => { setBrokenSrc(failed); onImageFail?.(failed); }} />
           )}
           {onUpload && (
             <button type="button" onClick={onUpload} title="Subir foto real de la carta" aria-label="Subir foto real de la carta" className="absolute -bottom-3 -right-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border-2 border-white bg-[#1e40af] text-white shadow-lg transition-[transform,background-color] hover:bg-blue-800 active:scale-90">

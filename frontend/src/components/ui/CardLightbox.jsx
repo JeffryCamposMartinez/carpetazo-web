@@ -4,7 +4,7 @@ import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import useEscape from '../../hooks/useEscape';
 import { LoadingMark } from './LoadableImage';
 import CardNeighbors from './CardNeighbors';
-import { cardCorners } from '../../utils/cardShape';
+import { fullscreenCorners } from '../../utils/cardShape';
 import SvgIcon from './SvgIcon';
 
 const formatCLP = (value) => `$${Number(value || 0).toLocaleString('es-CL')}`;
@@ -134,7 +134,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
               onError={() => setFailedId(card.id)}
               ref={(img) => { if (img?.complete && img.naturalWidth > 0 && loadedId !== card.id) { setLoadedId(card.id); setRatios((prev) => (prev[card.id] ? prev : { ...prev, [card.id]: img.naturalWidth / img.naturalHeight })); } }}
               // Misma altura para todas las cartas; si no cabe a lo ancho, se reduce sin dejar bordes vacíos (el redondeo queda en la carta)
-              style={{ aspectRatio: ratios[card.id] || 63 / 88, height: `min(100cqh, calc((100cqw - 1.5rem) / ${ratios[card.id] || 63 / 88}))`, width: 'auto', ...cardCorners(card.tcg || card.game || tcg) }}
+              style={{ aspectRatio: ratios[card.id] || 63 / 88, height: `min(100cqh, calc((100cqw - 1.5rem) / ${ratios[card.id] || 63 / 88}))`, width: 'auto', ...fullscreenCorners(card.tcg || card.game || tcg) }}
               className={`rounded-2xl object-contain shadow-2xl transition-opacity duration-200 ${loadedId === card.id ? 'opacity-100' : 'opacity-0'}`}
             />
             : <span className="rounded-2xl bg-white/10 px-6 py-10 text-sm font-bold text-white/70">Sin imagen</span>}
