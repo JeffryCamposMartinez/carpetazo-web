@@ -113,27 +113,31 @@ export default function PlanCards({ plans, current, focus, onFocus, busyKey, tes
     track.scrollTo({ left: card.offsetLeft - (track.clientWidth - card.offsetWidth) / 2, behavior });
   }, []);
 
-  // Al cargar, deja a la vista el plan destacado sin animación
-  const firstKey = useRef(null);
+  const centeredKey = () => {
+    const track = trackRef.current;
+    if (!track) return null;
+    const middle = track.scrollLeft + track.clientWidth / 2;
+    let best = null;
+    let bestGap = Infinity;
+    track.querySelectorAll('[data-plan]').forEach((card) => {
+      const gap = Math.abs(card.offsetLeft + card.offsetWidth / 2 - middle);
+      if (gap < bestGap) { bestGap = gap; best = card.dataset.plan; }
+    });
+    return best;
+  };
+
+  // Si el plan destacado cambia por otra razón que tu dedo (cargan los datos o la sesión), la fila se centra en él sin animación
   useEffect(() => {
-    if (!plans.length || firstKey.current) return;
-    firstKey.current = focusKey;
-    centerOn(focusKey, 'instant');
+    if (!plans.length || Date.now() < guideUntilRef.current) return;
+    if (centeredKey() !== focusKey) centerOn(focusKey, 'instant');
   }, [plans.length, focusKey, centerOn]);
 
   const onScroll = () => {
     if (frameRef.current) return;
     frameRef.current = window.requestAnimationFrame(() => {
       frameRef.current = 0;
-      const track = trackRef.current;
-      if (!track || Date.now() < guideUntilRef.current) return; // mientras el selector guía el movimiento, no lo contradice
-      const middle = track.scrollLeft + track.clientWidth / 2;
-      let best = null;
-      let bestGap = Infinity;
-      track.querySelectorAll('[data-plan]').forEach((card) => {
-        const gap = Math.abs(card.offsetLeft + card.offsetWidth / 2 - middle);
-        if (gap < bestGap) { bestGap = gap; best = card.dataset.plan; }
-      });
+      if (Date.now() < guideUntilRef.current) return; // mientras el selector guía el movimiento, no lo contradice
+      const best = centeredKey();
       if (best && best !== focusKey) onFocus(best);
     });
   };

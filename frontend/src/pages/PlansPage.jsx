@@ -28,9 +28,10 @@ export default function PlansPage() {
   const [focusKey, setFocusKey] = useState(null);
 
   const load = useCallback(async () => {
-    const catalog = await api.getPlans();
+    // Se piden juntos y se muestran juntos: así las tarjetas ya abren centradas en tu plan
+    const [catalog, mine] = await Promise.all([api.getPlans(), currentUser ? api.getBillingMe() : null]);
     setPlans(catalog.plans || []);
-    if (currentUser) setBilling(await api.getBillingMe()); else setBilling(null);
+    setBilling(mine);
   }, [currentUser]);
 
   useEffect(() => {
@@ -147,8 +148,7 @@ export default function PlansPage() {
   if (loading) return <div className="mx-auto flex min-h-[60vh] w-full max-w-[1500px] items-center justify-center bg-[#DBEAFE]"><LoadingState variant="page" label="Cargando planes…" /></div>;
   const plan = billing?.plan;
   const usage = billing?.usage;
-  const currentIndex = plans.findIndex((item) => item.key === plan?.key);
-  const suggestedKey = plans[Math.min(Math.max(currentIndex + 1, 1), plans.length - 1)]?.key; // por defecto se destaca el plan siguiente al tuyo
+  const suggestedKey = plans.find((item) => item.key === plan?.key)?.key || plans[0]?.key; // abre en tu plan; sin plan o sin sesión, en el primero
   return (
     <div className="mx-auto w-full max-w-[1500px] flex-1 bg-[#DBEAFE] px-4 py-7 sm:px-7 sm:py-9 lg:px-12">
       <header className="mx-auto max-w-3xl text-center">
