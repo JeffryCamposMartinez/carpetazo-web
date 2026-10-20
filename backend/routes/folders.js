@@ -7,12 +7,13 @@ import { folderFilterSql, folderOrderSql, likePattern, loadPublicFolders, tcgVar
 import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/publicSeller.js';
 import { badRequest, cleanCardData, isAllowedStoredImageUrl, isOptionalText, isShortText, isSmallObject, isUuid, isValidPrice, isValidStock } from '../core/validation.js';
 import { r2PublicUrl } from '../core/tcgCatalogImport.js';
-import { proposeCatalogPhoto } from '../core/catalogPhotos.js';
+import { catalogImageUrl, proposeCatalogPhoto } from '../core/catalogPhotos.js';
 import { isMylTcg, storedCardId } from '../core/mylIdentity.js';
 import { bulkPublishedRanges, reliablePublishedOn } from '../core/editionDates.js';
 import { PlanLimitError, assertFeature, assertCanAddUniqueCard, assertCanCreateFolder, assertStockChange, getEffectivePlan, getPlanState, lockPlanUser, sendPlanError } from '../core/entitlements.js';
 
 const router = express.Router();
+const OWN_CARD_PHOTO = /\/card\/[0-9a-f]{32}\.webp$/;
 const CARD_LANGUAGES = ['English', 'Spanish', 'Japanese'];
 const normalizedLanguage = (tcg, value) => (isMylTcg(tcg) ? 'Spanish' : CARD_LANGUAGES.includes(value) ? value : 'English');
 
@@ -603,6 +604,10 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
     const normalizedTcgId = storedCardId(folder.tcg, tcgId);
     if (!normalizedTcgId) return badRequest(res, 'Identificador de carta inválido');
       
+    // Una foto propia solo vale para cartas sin imagen en el catálogo: si ya tiene una, se usa la oficial
+    let cardImageUrl = imageUrl;
+    if (imageUrl && OWN_CARD_PHOTO.test(imageUrl)) cardImageUrl = (await catalogImageUrl(prisma, folder.tcg, normalizedTcgId).catch(() => null)) || imageUrl;
+
     const cardLanguage = normalizedLanguage(folder.tcg, data?.language);
     const requestedStock = stock !== undefined ? parseInt(stock, 10) : 1;
     const card = await prisma.$transaction(async (tx) => {
@@ -619,7 +624,7 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
         data: {
           tcgId: normalizedTcgId,
           name,
-          imageUrl,
+          imageUrl: cardImageUrl,
           price: parseFloat(price) || null,
           stock: requestedStock,
           language: cardLanguage,
@@ -629,7 +634,7 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
       });
     });
     // Una foto propia en una carta del catálogo que no tiene imagen se ofrece sola a Moderación (no falla la carta si algo sale mal)
-    await proposeCatalogPhoto(prisma, { userId: user.id, firebaseUid: req.user.sub, tcg: folder.tcg, tcgId: normalizedTcgId, imageUrl });
+    await proposeCatalogPhoto(prisma, { userId: user.id, firebaseUid: req.user.sub, tcg: folder.tcg, tcgId: normalizedTcgId, imageUrl: cardImageUrl });
     res.json({ success: true, card });
   } catch (error) {
     if (error instanceof PlanLimitError) return sendPlanError(res, error);

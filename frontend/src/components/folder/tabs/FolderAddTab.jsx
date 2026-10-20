@@ -286,7 +286,7 @@ export default function FolderAddTab({
             <div className="flex justify-center relative z-50 mt-4 lg:flex-1 lg:min-h-0 w-full">
               <div className="relative flex w-full justify-center items-center">
                 <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} style={{ aspectRatio: cardRatio(folderData?.tcg), width: '100%' }} className={`relative block w-full max-w-[170px] h-auto aspect-[63/88] overflow-hidden cursor-zoom-in ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-lg'} focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2`}><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} rotateLandscape style={cardCorners(folderData?.tcg)} className="w-full h-full object-contain rounded-lg shadow-md relative z-50 active:scale-[0.98]" fallbackType="zoom-main" /></button>
-                <button 
+                {(!selectedCard.imageUrl || selectedCard.isCustomImage) && <button 
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="absolute -bottom-3 -right-3 z-[60] bg-[#1e40af] text-white rounded-full w-10 h-10 flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.5)] hover:bg-blue-800 hover:scale-110 transition-all border-2 border-white"
@@ -294,14 +294,13 @@ export default function FolderAddTab({
                   aria-label="Subir foto real de la carta"
                 >
                   <SvgIcon name="photo_camera" translate="no" className="text-[20px]" />
-                </button>
+                </button>}
               </div>
               <input 
                 type="file" 
                 ref={fileInputRef} 
                 className="hidden" 
                 accept="image/*" 
-                capture="environment" 
                 onChange={handleImageUpload} 
               />
             </div>

@@ -3,7 +3,8 @@
 import crypto from 'node:crypto';
 import { CopyObjectCommand, DeleteObjectCommand, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getR2KeyFromPublicUrl, hasR2Config, r2Client, userR2Prefix } from './r2.js';
-import { isMylTcg } from './mylIdentity.js';
+import { isMylTcg, rawMylId } from './mylIdentity.js';
+import { r2PublicUrl } from './tcgCatalogImport.js';
 import { convertImage } from './tcgSync/images.js';
 import { itemKeys } from './tcgSync/naming.js';
 
@@ -15,6 +16,17 @@ const bucket = () => process.env.R2_BUCKET_NAME;
 const encodePath = (key) => key.split('/').map(encodeURIComponent).join('/');
 const removeObject = (key) => r2Client.send(new DeleteObjectCommand({ Bucket: bucket(), Key: key })).catch((error) => console.warn('No se pudo borrar un objeto de R2:', error?.message || error));
 const put = (key, body) => r2Client.send(new PutObjectCommand({ Bucket: bucket(), Key: key, Body: body, ContentType: 'image/webp', CacheControl: CACHE_CONTROL }));
+
+// Foto oficial de una carta del catálogo, o null si no tiene: solo las cartas sin imagen admiten una foto propia
+export async function catalogImageUrl(db, tcg, tcgId) {
+  if (isMylTcg(tcg)) {
+    const product = await db.tcgProduct.findUnique({ where: { productId: rawMylId(tcgId) }, select: { imageUrl: true } });
+    return product?.imageUrl || null;
+  }
+  if (!/^[1-9]\d{0,9}$/.test(String(tcgId))) return null;
+  const card = await db.catalogCard.findFirst({ where: { productId: Number(tcgId), kind: 'card', imageKey: { not: null } }, select: { imageKey: true } });
+  return card ? r2PublicUrl(card.imageKey) : null;
+}
 
 // Se llama al agregar una carta con foto propia. Nunca falla: la carta se agrega igual si algo de aquí no sale.
 export async function proposeCatalogPhoto(db, { userId, firebaseUid, tcg, tcgId, imageUrl }) {
