@@ -2,7 +2,7 @@
 import React from 'react';
 import LoadableImage from '../ui/LoadableImage';
 
-export const SafeImage = React.memo(({ src, alt, className, style, rotateLandscape = false, fallbackType = 'grid' }) => {
+export const SafeImage = React.memo(({ src, alt, className, style, rotateLandscape = false, fallbackType = 'grid', onFail }) => {
   // Se guarda cuál imagen falló: al cambiar de carta se intenta cargar la nueva
   const [failedSrc, setFailedSrc] = React.useState(null);
   const error = failedSrc === src;
@@ -32,5 +32,5 @@ export const SafeImage = React.memo(({ src, alt, className, style, rotateLandsca
     );
   }
   
-  return <LoadableImage src={src} alt={alt} loading="lazy" className={className} style={style} rotateLandscape={rotateLandscape} onError={() => setFailedSrc(src)} />;
+  return <LoadableImage src={src} alt={alt} loading="lazy" className={className} style={style} rotateLandscape={rotateLandscape} onError={() => { setFailedSrc(src); onFail?.(src); }} />;
 });

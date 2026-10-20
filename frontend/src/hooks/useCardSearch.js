@@ -50,6 +50,7 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
         id: p.productId,
         tcgProductId: p.productId,
         name: p.name,
+        hasImage: p.hasImage,
         imageUrl: p.imageUrl || `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(p.productId))}_400w.jpg`,
         categoryId: catId === ONE_PIECE_CATEGORY ? ONE_PIECE_CATEGORY : 1,
         catId,

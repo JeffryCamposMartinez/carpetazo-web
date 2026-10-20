@@ -49,6 +49,10 @@ export default function FolderAddTab({
   };
   // Carta de la ficha en pantalla grande (al tocar su imagen)
   const [zoomedCard, setZoomedCard] = useState(null);
+  // Foto propia: solo si la carta no tiene imagen (el catálogo no la tiene y la de respaldo no carga) o si ya subiste una
+  const [failedPreview, setFailedPreview] = useState(null);
+  const previewSrc = selectedCard ? getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl) : '';
+  const canUploadPhoto = Boolean(selectedCard) && Boolean(selectedCard.isCustomImage || (selectedCard.hasImage !== true && (!selectedCard.imageUrl || failedPreview === previewSrc)));
   const zoomList = useMemo(() => (zoomedCard ? [{ id: 'zoom', tcg: folderData?.tcg, name: zoomedCard.name, imageUrl: getProxyImageUrl(zoomedCard.tcgProductId || zoomedCard.id, zoomedCard.imageUrl), set: getCardSetName(zoomedCard), rarity: zoomedCard.rarity || getExtDataValue(zoomedCard.extData, 'Rarity') }] : []), [zoomedCard]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="flex flex-col-reverse lg:flex-row gap-6">
@@ -284,11 +288,11 @@ export default function FolderAddTab({
           {isBatchAdding ? 'Agregar Selección' : 'Añadir a Carpeta'}
         </h2>
         {selectedCard ? (
-          <form onSubmit={handleSaveCard} className="flex min-h-[610px] lg:min-h-0 lg:h-[calc(100%-58px)] flex-col justify-between gap-4 mt-2">
-            <div className="flex justify-center relative z-50 mt-4 lg:flex-1 lg:min-h-0 w-full">
+          <form onSubmit={handleSaveCard} className="mt-2 flex flex-col gap-4">
+            <div className="relative z-50 mt-4 flex w-full shrink-0 justify-center">
               <div className="relative flex w-full justify-center items-center">
-                <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} style={{ aspectRatio: cardRatio(folderData?.tcg), width: '100%' }} className={`relative block w-full max-w-[170px] h-auto aspect-[63/88] overflow-hidden cursor-zoom-in ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-lg'} focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2`}><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} rotateLandscape style={cardCorners(folderData?.tcg)} className="w-full h-full object-contain rounded-lg shadow-md relative z-50 active:scale-[0.98]" fallbackType="zoom-main" /></button>
-                {(!selectedCard.imageUrl || selectedCard.isCustomImage) && <button 
+                <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} style={{ aspectRatio: cardRatio(folderData?.tcg) }} className={`relative block h-[250px] max-w-full overflow-hidden sm:h-[270px] cursor-zoom-in ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-lg'} focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2`}><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} rotateLandscape style={cardCorners(folderData?.tcg)} className="w-full h-full object-contain rounded-lg shadow-md relative z-50 active:scale-[0.98]" fallbackType="zoom-main" onFail={setFailedPreview} /></button>
+                {canUploadPhoto && <button 
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="absolute -bottom-3 -right-3 z-[60] bg-[#1e40af] text-white rounded-full w-10 h-10 flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.5)] hover:bg-blue-800 hover:scale-110 transition-all border-2 border-white"

@@ -285,6 +285,7 @@ router.get('/api/tcg/catalog/:categoryId/:groupId/cards', async (req, res) => {
         // R2 es la fuente principal. Solo si todavía no se subió la imagen
         // se entrega la URL de respaldo de la importación (o el CDN de la
         // carta) sin consultar el endpoint remoto de productos.
+        hasImage: Boolean(card.imageKey), // sin imagen propia en R2: la persona puede subir una foto
         imageUrl: r2PublicUrl(card.imageKey) || card.sourceImageUrl || `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(card.productId))}_400w.jpg`, number: card.number, rarity: card.rarity,
         extendedData, group: card.set, game: card.game.name,
       };
