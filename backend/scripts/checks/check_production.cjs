@@ -56,8 +56,18 @@ const expect = (condition, message) => { if (!condition) throw new Error(message
     });
   }
 
-  await check('el sitemap está al día y trae cartas y carpetas', async () => {
+  let catalogMap = null;
+  await check('el índice de sitemaps lista las páginas de Carpetazo y las cartas del catálogo', async () => {
     const r = await get(`${SITE}/sitemap.xml`);
+    const xml = await r.text();
+    expect(r.status === 200 && xml.includes('<sitemapindex') && xml.includes('/sitemap-main.xml'), `estado ${r.status}`);
+    catalogMap = (xml.match(/https:\/\/[^<]+\/sitemap-catalogo-1\.xml/) || [])[0] || null;
+    expect(catalogMap, 'el índice no trae los sitemaps del catálogo');
+    return `${xml.split('<sitemap>').length - 1} archivos`;
+  });
+
+  await check('el sitemap está al día y trae cartas y carpetas', async () => {
+    const r = await get(`${SITE}/sitemap-main.xml`);
     const xml = await r.text();
     expect(r.status === 200 && xml.includes('<urlset'), `estado ${r.status}`);
     cardId = (xml.match(/\/carta\/([0-9a-f-]{36})/) || [])[1] || null;
@@ -65,6 +75,21 @@ const expect = (condition, message) => { if (!condition) throw new Error(message
     expect(xml.split('<url>').length > 8, 'el sitemap solo trae las páginas fijas');
     return `${xml.split('<url>').length - 1} direcciones`;
   });
+
+  if (catalogMap) {
+    await check('el sitemap del catálogo y la página de una carta del catálogo para Google', async () => {
+      const map = await (await get(catalogMap)).text();
+      const url = (map.match(/<loc>(https:\/\/[^<]+\/catalogo\/\d+\/[^<]+)<\/loc>/) || [])[1];
+      expect(url, 'el sitemap del catálogo no trae cartas');
+      const path = new URL(url).pathname;
+      const r = await get(`${SITE}${path}`, { headers: { 'User-Agent': GOOGLEBOT } });
+      const html = await r.text();
+      expect(r.status === 200 && html.includes('application/ld+json') && html.includes('rel="canonical"') && html.includes('<h1>'), `${path}: estado ${r.status}`);
+      const human = await get(`${SITE}${path}`, { headers: { 'User-Agent': 'Mozilla/5.0 Chrome/120' } });
+      expect(human.status === 200 && (await human.text()).includes('id="root"'), `${path}: la aplicación no carga para una persona`);
+      return path;
+    });
+  }
 
   if (cardId) {
     await check('Google recibe la página de una carta con datos estructurados', async () => {

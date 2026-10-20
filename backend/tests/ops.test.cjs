@@ -58,7 +58,7 @@ const { prisma, call, ok } = require('./fixtures.cjs');
     }
     r = await call('GET', '/admin/ops/funnel?days=30', 'admin');
     const steps = r.j.sellers || [];
-    ok('el embudo trae los pasos de vendedores y compradores', r.status === 200 && steps.length === 5 && (r.j.buyers || []).length === 3 && steps[0].key === 'signups', JSON.stringify(r.j).slice(0, 200));
+    ok('el embudo trae los pasos de vendedores y compradores', r.status === 200 && steps.length === 6 && (r.j.buyers || []).length === 3 && steps[0].key === 'signups', JSON.stringify(r.j).slice(0, 200));
     ok('ningún paso supera a las personas registradas', steps.every((step) => step.count <= steps[0].count) && r.j.buyers.every((step) => step.count <= r.j.buyers[0].count));
     ok('trae totales del sitio', r.j.totals && typeof r.j.totals.users === 'number' && typeof r.j.totals.cardsOnSale === 'number', JSON.stringify(r.j.totals));
   } catch (error) {

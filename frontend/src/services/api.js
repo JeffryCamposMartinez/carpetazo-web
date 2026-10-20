@@ -200,6 +200,10 @@ export const api = {
   cancelUserSubscription: (username, payload) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/subscription/cancel', { method: 'POST', body: JSON.stringify(payload) }),
   notifyUser: (username, message) => apiFetch('/admin/users/' + encodeURIComponent(username) + '/notify', { method: 'POST', body: JSON.stringify({ message }) }),
   getAdminAppeals: (status) => apiFetch('/admin/appeals?status=' + (status || 'open')),
+  // Cuenta una acción (sin datos de la persona); nunca falla ni espera respuesta
+  trackMetric: (name, key) => { fetch(apiUrl('/metrics'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, key }), keepalive: true }).catch(() => {}); },
+  getCatalogCard: (productId) => apiFetch('/tcg/card/' + encodeURIComponent(productId)),
+  getOpsMetrics: (days) => apiFetch('/admin/ops/metrics?days=' + encodeURIComponent(days)),
   getCatalogSync: (run) => apiFetch('/admin/catalog-sync' + (run ? '?run=' + encodeURIComponent(run) : '')),
   getCatalogSyncItems: (run, section, page = 1) => apiFetch('/admin/catalog-sync/' + encodeURIComponent(run) + '/' + encodeURIComponent(section) + '?page=' + page),
   getCatalogPhotos: () => apiFetch('/admin/catalog-photos'),

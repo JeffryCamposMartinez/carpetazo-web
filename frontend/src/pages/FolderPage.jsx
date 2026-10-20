@@ -747,6 +747,7 @@ const [isSearching, setIsSearching] = useState(false);
     warmFolderPreview(id);
     try {
       await navigator.clipboard.writeText(url);
+      api.trackMetric('share_folder');
       showToast('Enlace público copiado', 'success');
     } catch (error) {
       console.error(error);

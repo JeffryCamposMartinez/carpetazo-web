@@ -375,7 +375,8 @@ export default function Dashboard() {
     if (!folder.isPublic) { showToast('Esta carpeta es privada: quien abra el enlace no verá tus cartas ni la vista previa. Hazla pública para compartirla.', 'error'); return; }
     const url = siteUrl(`/c/${folder.id}`);
     warmFolderPreview(folder.id);
-    
+    api.trackMetric('share_folder');
+
     if (navigator.share) {
       navigator.share({
         title: `Catálogo de ${folder.name}`,

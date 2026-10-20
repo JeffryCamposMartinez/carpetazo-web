@@ -29,6 +29,7 @@ export default function FolderShareNotice({ folder, onPublished, onClose, showTo
       warmFolderPreview(folder.id);
       try {
         await navigator.clipboard.writeText(url);
+        api.trackMetric('share_folder');
         showToast(isPublic ? 'Enlace copiado' : 'Carpeta publicada y enlace copiado', 'success');
         onClose();
       } catch (_error) {

@@ -17,6 +17,7 @@ export const pageLoaders = {
   folders: () => import('../pages/FoldersPage'),
   cards: () => import('../pages/CardsPage'),
   cardDetail: () => import('../pages/CardDetailPage'),
+  catalogCard: () => import('../pages/CatalogCardPage'),
   sellers: () => import('../pages/SellersPage'),
   legal: () => import('../pages/LegalPage'),
   notFound: () => import('../pages/NotFound'),

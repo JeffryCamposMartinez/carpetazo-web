@@ -10,6 +10,7 @@ import { isValidComuna } from '../core/chileData.js';
 import { PUBLIC_PLAN_RELATIONS_SELECT, withPublicPlanBadge } from '../core/publicSeller.js';
 import { isVerifiedSeller } from '../core/sellerTrust.js';
 import { badRequest } from '../core/validation.js';
+import { bumpMetric, searchKey } from '../core/metrics.js';
 import { eligibleSales, loadLiveOffers, loadSales, marketAnchors, offersAnchor, referenceFromSales, referenceSales, suspiciousOffers } from '../core/priceIntegrity.js';
 
 const router = express.Router();
@@ -368,6 +369,9 @@ router.get('/api/cards/search', async (req, res) => {
           select: CARD_SEARCH_SELECT,
         }),
       ]);
+
+    // Lo que se busca y nadie tiene a la venta (solo el texto, sin datos de la persona): muestra qué cartas faltan en el mercado
+    if (total === 0 && page === 1 && !seller && !comuna && searchKey(q)) bumpMetric('search_no_offers', searchKey(q));
 
     // Solo campos públicos: el JSON `data` de la carta puede traer más cosas
     res.json({

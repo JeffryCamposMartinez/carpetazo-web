@@ -78,6 +78,10 @@ export default function PlansPage() {
   }, [currentUser]);
 
   useEffect(() => {
+    try { if (!sessionStorage.getItem('cz-plans-view')) { sessionStorage.setItem('cz-plans-view', '1'); api.trackMetric('plans_view'); } } catch (_error) { api.trackMetric('plans_view'); }
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     setLoading(true);
     load().catch((error) => { if (!cancelled) showToast(error.message || 'No se pudieron cargar los planes', 'error'); }).finally(() => { if (!cancelled) setLoading(false); });
@@ -165,6 +169,7 @@ export default function PlansPage() {
       } else if (plan.key === 'free') {
         showToast(billing?.source === 'grant' ? 'Tu plan lo asignó el equipo de Carpetazo: no es una suscripción y no hay nada que cancelar.' : 'Ya estás en el plan Free: no tienes una suscripción que cancelar.', 'info');
       } else {
+        api.trackMetric('plan_cta', plan.key);
         const response = await api.createSubscriptionCheckout(plan.key);
         window.location.assign(response.checkoutUrl);
       }

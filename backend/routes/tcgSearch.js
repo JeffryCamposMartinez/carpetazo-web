@@ -5,6 +5,8 @@ import { indexedNames, searchTcgIndex } from '../core/tcgSearchIndex.js';
 import { buildVocabulary, hasVocabulary, suggestQuery } from '../core/cardSuggest.js';
 import { likeEscape, nameMatch } from '../core/cardSearch.js';
 import { bulkPublishedRanges } from '../core/editionDates.js';
+import { PRODUCT_ID, loadCatalogCard } from '../core/catalogPage.js';
+import { bumpMetric, searchKey } from '../core/metrics.js';
 
 const router = express.Router();
 const r2PublicUrl = (key) => {
@@ -207,7 +209,27 @@ router.get('/api/tcg/search-index', async (req, res) => {
    }
   })();
   pendingSearches.set(cacheKey, run);
-  try { return res.json(await run); } catch { return res.status(503).json({ success: false, available: false, message: 'No se pudo consultar el catálogo' }); }
+  try {
+    const response = await run;
+    // Lo que se buscó y no existe en el catálogo (solo el texto buscado, sin datos de la persona)
+    if (response.total === 0 && page === 1 && searchKey(query)) bumpMetric('search_empty', searchKey(query));
+    return res.json(response);
+  } catch { return res.status(503).json({ success: false, available: false, message: 'No se pudo consultar el catálogo' }); }
   finally { pendingSearches.delete(cacheKey); }
+});
+
+// Ficha pública de una carta del catálogo (página /catalogo/<id>): sus datos y las ofertas visibles en Carpetazo
+router.get('/api/tcg/card/:productId', async (req, res) => {
+  if (!PRODUCT_ID.test(req.params.productId)) return badRequest(res, 'Carta inválida');
+  try {
+    const found = await loadCatalogCard(prisma, Number(req.params.productId));
+    if (!found) return res.status(404).set('Cache-Control', 'public, max-age=60').json({ success: false, message: 'Carta no encontrada' });
+    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+    bumpMetric('catalog_view', found.card.gameLabel);
+    return res.json({ success: true, ...found });
+  } catch (error) {
+    console.error('Error cargando la ficha del catálogo:', error.message);
+    return res.status(500).json({ success: false, message: 'Error interno' });
+  }
 });
 export default router;

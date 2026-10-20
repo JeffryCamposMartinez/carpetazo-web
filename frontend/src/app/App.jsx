@@ -27,6 +27,7 @@ const PlansPage = lazy(pageLoaders.plans);
 const FoldersPage = lazy(pageLoaders.folders);
 const CardsPage = lazy(pageLoaders.cards);
 const CardDetailPage = lazy(pageLoaders.cardDetail);
+const CatalogCardPage = lazy(pageLoaders.catalogCard);
 const SellersPage = lazy(pageLoaders.sellers);
 const LegalPage = lazy(pageLoaders.legal);
 const NotFound = lazy(pageLoaders.notFound);
@@ -94,6 +95,7 @@ function App() {
                 <Route path="/carpetas" element={<FoldersPage />} />
                 <Route path="/cartas" element={<CardsPage />} />
                 <Route path="/carta/:cardId" element={<CardDetailPage />} />
+                <Route path="/catalogo/:productId/:slug?" element={<CatalogCardPage />} />
                 <Route path="/vendedores" element={<SellersPage />} />
                 <Route path="/terminos" element={<LegalPage kind="terminos" />} />
                 <Route path="/privacidad" element={<LegalPage kind="privacidad" />} />

@@ -152,6 +152,17 @@ model MessageStar {
   @@index([userId, createdAt])
 }
 
+// Contadores de actividad por día (sin datos de personas): búsquedas sin resultado, interés en los planes, compartidos, visitas al catálogo
+model MetricDay {
+  day   DateTime @db.Date
+  name  String
+  key   String   @default("")
+  count Int      @default(0)
+
+  @@id([day, name, key])
+  @@index([name, day])
+}
+
 // Ajustes de cada conversación para cada persona: fijada, archivada, silenciada o marcada como no leída
 model ChatSetting {
   userId       String

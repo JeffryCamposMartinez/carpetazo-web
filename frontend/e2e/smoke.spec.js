@@ -60,7 +60,7 @@ test('buscador del encabezado: busca cartas y muestra resultados o el aviso de q
 });
 
 test('una carta a la venta: su página muestra el nombre, las ofertas y el historial', async ({ page, request }) => {
-  const xml = await (await request.get('/sitemap.xml')).text();
+  const xml = await (await request.get('/sitemap-main.xml')).text();
   const cardId = (xml.match(/\/carta\/([0-9a-f-]{36})/) || [])[1];
   test.skip(!cardId, 'no hay cartas a la venta para probar');
   const problems = await open(page, `/carta/${cardId}`);
@@ -72,11 +72,22 @@ test('una carta a la venta: su página muestra el nombre, las ofertas y el histo
 });
 
 test('una carpeta pública: su catálogo carga sin fallas', async ({ page, request }) => {
-  const xml = await (await request.get('/sitemap.xml')).text();
+  const xml = await (await request.get('/sitemap-main.xml')).text();
   const folderId = (xml.match(/\/c\/([0-9a-f-]{36})/) || [])[1];
   test.skip(!folderId, 'no hay carpetas públicas para probar');
   const problems = await open(page, `/c/${folderId}`);
   await expect(page.locator('h1').first()).toBeVisible();
+  await noSideScroll(page);
+  expect(problems).toEqual([]);
+});
+
+test('una carta del catálogo: su página muestra el nombre, los datos y si alguien la vende', async ({ page, request }) => {
+  const xml = await (await request.get('/sitemap-catalogo-1.xml')).text();
+  const path = (xml.match(/<loc>https:\/\/[^<]+(\/catalogo\/\d+\/[^<]+)<\/loc>/) || [])[1];
+  test.skip(!path, 'no hay cartas del catálogo para probar');
+  const problems = await open(page, path);
+  await expect(page.locator('h1').first()).not.toBeEmpty();
+  await expect(page.getByText(/Nadie la vende por ahora|Ofertas en Carpetazo|Desde|Precio/i).first()).toBeVisible();
   await noSideScroll(page);
   expect(problems).toEqual([]);
 });

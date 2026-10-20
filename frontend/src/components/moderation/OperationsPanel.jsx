@@ -28,6 +28,47 @@ const Funnel = ({ title, steps }) => {
   );
 };
 
+const CRAWLERS = [['google', 'Google'], ['bing', 'Bing'], ['mensajería', 'WhatsApp y redes']];
+
+const TopList = ({ title, hint, rows }) => (
+  <section className="rounded-2xl border border-[#dbe3f0] bg-white p-5" aria-label={title}>
+    <h3 className="text-base font-extrabold text-[#12315f]">{title}</h3>
+    <p className="mt-0.5 text-sm text-slate-600">{hint}</p>
+    {rows.length === 0 ? <p className="mt-3 text-sm font-semibold text-slate-500">Todavía no hay datos en este período.</p> : (
+      <ol className="mt-3 space-y-1.5">
+        {rows.map((row) => <li key={row.query} className="flex items-baseline justify-between gap-3 text-sm"><span className="min-w-0 truncate font-semibold text-slate-700">{row.query}</span><span className="shrink-0 font-black tabular-nums text-[#12315f]">{row.count}</span></li>)}
+      </ol>
+    )}
+  </section>
+);
+
+// Interés y búsquedas: lo que la gente busca y no encuentra, cuánto interés hay en los planes y si Google ya recorre el catálogo (contadores sin datos de personas)
+function InterestSection({ days }) {
+  const [metrics, setMetrics] = useState(null);
+  const [failed, setFailed] = useState('');
+  useEffect(() => { setMetrics(null); setFailed(''); api.getOpsMetrics(days).then(setMetrics).catch((err) => setFailed(err.message || 'No se pudo cargar el interés.')); }, [days]);
+  if (failed) return <ErrorBox>{failed}</ErrorBox>;
+  if (!metrics) return <Spinner label="Cargando interés y búsquedas" />;
+  const tiles = [
+    ['Cartas compartidas', metrics.shares.card], ['Carpetas compartidas', metrics.shares.folder], ['Visitas a fichas del catálogo', metrics.catalog.views],
+    ...CRAWLERS.map(([key, label]) => [`Visitas de ${label} al catálogo`, metrics.catalog.crawls[key] || 0]),
+  ];
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-3 md:grid-cols-2">
+        <Funnel title="Interés en los planes" steps={metrics.plans} />
+        <dl className="grid grid-cols-2 gap-3 content-start">
+          {tiles.map(([label, value]) => <div key={label} className="rounded-2xl bg-white p-4 ring-1 ring-slate-900/5"><dt className="text-xs font-bold text-slate-500">{label}</dt><dd className="mt-0.5 text-2xl font-black tabular-nums text-[#12315f]">{value}</dd></div>)}
+        </dl>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <TopList title="Se buscó y nadie la vende" hint={`${metrics.searchNoOffers.total} búsquedas sin ofertas. Son cartas que los compradores quieren: buenas para pedir inventario.`} rows={metrics.searchNoOffers.top} />
+        <TopList title="Se buscó y no está en el catálogo" hint={`${metrics.searchEmpty.total} búsquedas sin resultados. Puede ser una carta que falta o un nombre mal escrito.`} rows={metrics.searchEmpty.top} />
+      </div>
+    </div>
+  );
+}
+
 // Operación: ¿el sitio está sano?, ¿qué errores hay?, ¿por dónde se van las personas?
 export default function OperationsPanel() {
   const [days, setDays] = useState(30);
@@ -79,6 +120,12 @@ export default function OperationsPanel() {
             </dl>
           </>
         )}
+      </section>
+
+      <section aria-label="Interés y búsquedas">
+        <h3 className="mb-2 text-lg font-extrabold text-[#12315f]">Interés y búsquedas</h3>
+        <p className="mb-3 text-sm text-slate-600">Últimos {days} días. Son contadores anónimos: no se guarda quién buscó ni quién compartió.</p>
+        <InterestSection days={days} />
       </section>
 
       <section aria-label="Errores">

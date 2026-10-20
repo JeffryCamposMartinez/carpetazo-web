@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../ui/ToastProvider';
@@ -14,6 +14,7 @@ import { ReferencePriceLine } from '../folder/ReferencePrice';
 import { formatClp } from '../../services/tcgcsvPrices';
 import { cardFill, cardRatio } from '../../utils/cardShape';
 import SvgIcon from '../ui/SvgIcon';
+import { catalogLink } from '../../utils/catalogLink';
 
 const NOTE = 'Referencia del catálogo: esta ficha no es una oferta de venta.';
 const tcgplayerImage = (card) => {
@@ -152,6 +153,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
           }}
           renderActions={(card) => (
             <div className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:justify-center">
+              {catalogLink(card) && <Link to={catalogLink(card)} className="flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/40 px-5 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-white/10 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"><SvgIcon name="info" translate="no" aria-hidden="true" className="text-[20px]" />Ver ficha de la carta</Link>}
               <button type="button" onClick={() => addToFolder(card)} className="flex h-11 items-center justify-center gap-1.5 rounded-full bg-[#facc15] px-5 text-sm font-extrabold text-[#12315f] transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
                 <SvgIcon name="add_circle" translate="no" aria-hidden="true" className="text-[20px]" />Agregar a mi carpeta
               </button>
