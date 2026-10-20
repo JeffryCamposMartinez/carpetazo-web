@@ -288,10 +288,10 @@ export default function FolderAddTab({
           {isBatchAdding ? 'Agregar Selección' : 'Añadir a Carpeta'}
         </h2>
         {selectedCard ? (
-          <form onSubmit={handleSaveCard} className="mt-2 flex flex-col gap-4">
-            <div className="relative z-50 mt-4 flex w-full shrink-0 justify-center">
+          <form onSubmit={handleSaveCard} className="mt-2 flex flex-col gap-3">
+            <div className="relative z-50 mt-3 flex w-full shrink-0 justify-center">
               <div className="relative flex w-full justify-center items-center">
-                <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} style={{ aspectRatio: cardRatio(folderData?.tcg) }} className={`relative block h-[250px] max-w-full overflow-hidden sm:h-[270px] cursor-zoom-in ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-lg'} focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2`}><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} rotateLandscape style={cardCorners(folderData?.tcg)} className="w-full h-full object-contain rounded-lg shadow-md relative z-50 active:scale-[0.98]" fallbackType="zoom-main" onFail={setFailedPreview} /></button>
+                <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} style={{ aspectRatio: cardRatio(folderData?.tcg) }} className={`relative block h-[clamp(130px,19vh,200px)] max-w-full overflow-hidden cursor-zoom-in ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-lg'} focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2`}><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} rotateLandscape style={cardCorners(folderData?.tcg)} className="w-full h-full object-contain rounded-lg shadow-md relative z-50 active:scale-[0.98]" fallbackType="zoom-main" onFail={setFailedPreview} /></button>
                 {canUploadPhoto && <button 
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
