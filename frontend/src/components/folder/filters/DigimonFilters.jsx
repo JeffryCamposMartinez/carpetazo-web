@@ -54,7 +54,6 @@ export default function DigimonFilters({ searchQuery, setSearchQuery, filters, s
         <div className="flex flex-wrap items-center gap-2">
           {DG_COLORS.map((color) => {
             const on = filters.colors.includes(color.value);
-            const light = color.value === 'White' || color.value === 'Yellow';
             return (
               <button
                 key={color.value}
@@ -63,10 +62,10 @@ export default function DigimonFilters({ searchQuery, setSearchQuery, filters, s
                 aria-label={color.label}
                 title={color.label}
                 onClick={() => toggleColor(color.value)}
-                style={{ backgroundColor: color.color }}
-                className={`relative flex h-11 w-11 items-center justify-center rounded-full shadow-sm outline-none ring-1 ring-black/15 transition-[transform,opacity] duration-150 focus-visible:ring-2 focus-visible:ring-blue-900 active:scale-90 ${light ? 'text-slate-800' : 'text-white'} ${on ? 'scale-110 ring-[3px] ring-[#facc15] ring-offset-2 ring-offset-white' : 'opacity-80 [@media(hover:hover)]:hover:scale-110 [@media(hover:hover)]:hover:opacity-100'}`}
+                className={`relative h-12 w-12 shrink-0 rounded-full outline-none transition-[transform,opacity] duration-150 focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 active:scale-90 ${on ? 'scale-110 ring-[3px] ring-[#facc15] ring-offset-2 ring-offset-white' : 'opacity-80 [@media(hover:hover)]:hover:scale-110 [@media(hover:hover)]:hover:opacity-100'}`}
               >
-                {on ? <SvgIcon name="check" translate="no" aria-hidden="true" className="text-[20px]" /> : <span aria-hidden="true" className="text-[11px] font-black">{color.label.slice(0, 3)}</span>}
+                <img src={color.icon} alt="" loading="lazy" draggable="false" className="h-full w-full rounded-full object-cover drop-shadow-sm" />
+                {on && <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#1e40af] text-white ring-2 ring-white"><SvgIcon name="check" translate="no" aria-hidden="true" className="text-[13px]" /></span>}
               </button>
             );
           })}

@@ -4,13 +4,13 @@ export const DIGIMON_CATEGORY = 63;
 export const DIGIMON_MARKER = 'digimon'; // valor de searchCategory en la carpeta
 
 export const DG_COLORS = [
-  { value: 'Red', label: 'Rojo', color: '#e0383e' },
-  { value: 'Blue', label: 'Azul', color: '#2f86e6' },
-  { value: 'Yellow', label: 'Amarillo', color: '#f2c61f' },
-  { value: 'Green', label: 'Verde', color: '#2fa84f' },
-  { value: 'Black', label: 'Negro', color: '#2b2b33' },
-  { value: 'Purple', label: 'Morado', color: '#8a49c8' },
-  { value: 'White', label: 'Blanco', color: '#f3f4f6' },
+  { value: 'Red', label: 'Rojo', color: '#e0383e', icon: '/images/digimon/red.webp' },
+  { value: 'Blue', label: 'Azul', color: '#2f86e6', icon: '/images/digimon/blue.webp' },
+  { value: 'Yellow', label: 'Amarillo', color: '#f2c61f', icon: '/images/digimon/yellow.webp' },
+  { value: 'Green', label: 'Verde', color: '#2fa84f', icon: '/images/digimon/green.webp' },
+  { value: 'Black', label: 'Negro', color: '#2b2b33', icon: '/images/digimon/black.webp' },
+  { value: 'Purple', label: 'Morado', color: '#8a49c8', icon: '/images/digimon/purple.webp' },
+  { value: 'White', label: 'Blanco', color: '#f3f4f6', icon: '/images/digimon/white.webp' },
 ];
 
 export const DG_COLOR_MODES = [
