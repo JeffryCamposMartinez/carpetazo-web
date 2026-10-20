@@ -32,5 +32,5 @@ export const SafeImage = React.memo(({ src, alt, className, style, rotateLandsca
     );
   }
   
-  return <LoadableImage src={src} alt={alt} loading="lazy" className={className} style={style} rotateLandscape={rotateLandscape} onError={() => { setFailedSrc(src); onFail?.(src); }} />;
+  return <LoadableImage src={src} alt={alt} loading={fallbackType === 'zoom-main' ? 'eager' : 'lazy'} className={className} style={style} rotateLandscape={rotateLandscape} onError={() => { setFailedSrc(src); onFail?.(src); }} />;
 });

@@ -385,9 +385,10 @@ export default function FolderAddTab({
         {selectedCard ? (
           <form onSubmit={handleSaveCard} className="mt-2 flex flex-col gap-3">
             <div className="relative z-50 mt-3 flex w-full shrink-0 justify-center">
-              <div className="relative flex w-full justify-center items-center">
-               <div className="relative">
-                <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} style={{ aspectRatio: cardRatio(folderData?.tcg) }} className={`relative block h-[clamp(130px,19vh,200px)] max-w-full overflow-hidden cursor-zoom-in ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-lg'} focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2`}><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} rotateLandscape style={cardCorners(folderData?.tcg)} className="w-full h-full object-contain rounded-lg shadow-md relative z-50 active:scale-[0.98]" fallbackType="zoom-main" onFail={setFailedPreview} /></button>
+              <div className="relative mx-auto w-[clamp(115px,36vw,145px)]" style={{ aspectRatio: cardRatio(folderData?.tcg) }}>
+                <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} className={`relative block h-full w-full overflow-hidden cursor-zoom-in ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-lg'} focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2`}>
+                  <SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} rotateLandscape style={cardCorners(folderData?.tcg)} className="relative z-50 h-full w-full rounded-lg object-contain shadow-md active:scale-[0.98]" fallbackType="zoom-main" onFail={setFailedPreview} />
+                </button>
                 {canUploadPhoto && <button 
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -397,7 +398,6 @@ export default function FolderAddTab({
                 >
                   <SvgIcon name="photo_camera" translate="no" className="text-[20px]" />
                 </button>}
-               </div>
               </div>
               <input 
                 type="file" 
