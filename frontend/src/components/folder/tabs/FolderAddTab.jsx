@@ -132,6 +132,7 @@ export default function FolderAddTab({
           onPick={handleResultCardClick}
           onClose={() => setFullscreen(false)}
           imageSrc={previewSrc}
+          srcOf={(item) => getProxyImageUrl(item.tcgProductId || item.id, item.imageUrl)}
           tcg={folderData?.tcg}
           onImageFail={setFailedPreview}
           onUpload={canUploadPhoto ? () => fileInputRef.current?.click() : undefined}
@@ -273,6 +274,17 @@ export default function FolderAddTab({
               const isCardSelected = selectedCard?.id === card.id || queuedCount > 0;
               return (
             <div key={card.id || `search-${index}`} className={`relative cursor-pointer flex flex-col justify-between ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-xl'} overflow-hidden border-2 transition-all duration-200 bg-blue-50 shadow-sm ${gridCols === 1 ? 'max-w-[255px] mx-auto w-full' : gridCols === 2 ? 'max-w-[350px] mx-auto w-full' : 'w-full'} ${isCardSelected ? 'border-[#1e40af] shadow-md scale-[1.02] ring-2 ring-[#1e40af]/20' : 'border-gray-200 hover:border-[#1e40af]/50'}`} onClick={() => handleResultCardClick(card)} onContextMenu={(e) => handleRightClickResultCard(e, card)} title={multiSelectMode ? "Clic izquierdo: Añadir 1 copia | Clic derecho: Quitar 1 copia" : ""}>
+              {!multiSelectMode && (
+                <button
+                  type="button"
+                  onClick={(event) => { event.stopPropagation(); handleResultCardClick(card); setFullscreen(true); }}
+                  title="Ver en pantalla completa"
+                  aria-label={`Ver ${card.name} en pantalla completa`}
+                  className="absolute left-2 top-2 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-[#12315f]/85 text-white shadow-md backdrop-blur-sm transition-[transform,background-color] hover:bg-[#12315f] active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"
+                >
+                  <SvgIcon name="fullscreen" translate="no" aria-hidden="true" className="text-[20px]" />
+                </button>
+              )}
               {queuedCount > 0 && (
                 <div className="absolute top-2 right-2 z-20 bg-[#1e40af] text-white text-xs font-bold rounded-full min-w-7 h-7 px-2 flex items-center justify-center border-2 border-white shadow-md">
                   x{queuedCount}
@@ -376,7 +388,6 @@ export default function FolderAddTab({
               <div className="relative flex w-full justify-center items-center">
                <div className="relative">
                 <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} style={{ aspectRatio: cardRatio(folderData?.tcg) }} className={`relative block h-[clamp(130px,19vh,200px)] max-w-full overflow-hidden cursor-zoom-in ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-lg'} focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2`}><SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} rotateLandscape style={cardCorners(folderData?.tcg)} className="w-full h-full object-contain rounded-lg shadow-md relative z-50 active:scale-[0.98]" fallbackType="zoom-main" onFail={setFailedPreview} /></button>
-                <button type="button" onClick={() => setFullscreen(true)} title="Ver en pantalla completa" aria-label="Ver en pantalla completa" className="absolute left-1.5 top-1.5 z-[60] flex h-9 w-9 items-center justify-center rounded-full bg-[#12315f]/85 text-white shadow-md backdrop-blur-sm transition-[transform,background-color] hover:bg-[#12315f] active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"><SvgIcon name="fullscreen" translate="no" className="text-[20px]" /></button>
                 {canUploadPhoto && <button 
                   type="button"
                   onClick={() => fileInputRef.current?.click()}

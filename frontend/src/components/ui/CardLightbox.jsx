@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import useEscape from '../../hooks/useEscape';
 import { LoadingMark } from './LoadableImage';
+import CardNeighbors from './CardNeighbors';
 import { cardCorners } from '../../utils/cardShape';
 import SvgIcon from './SvgIcon';
 
@@ -142,6 +143,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
           <SvgIcon name="chevron_right" translate="no" aria-hidden="true" className="text-[28px]" />
         </button>
       </div>
+      <div onClick={(event) => event.stopPropagation()}><CardNeighbors cards={cards} index={index} tcg={tcg} onPick={go} /></div>
       {cards.length > 1 && <p className="pointer-events-none shrink-0 pb-1 text-center text-[11px] font-semibold text-white/50 [@media(hover:hover)]:hidden" aria-hidden="true">Desliza para ver las demás</p>}
 
       <div className="shrink-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 text-center text-white" onClick={(event) => event.stopPropagation()}>
