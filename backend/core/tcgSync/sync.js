@@ -15,8 +15,8 @@ import { convertImage, fetchBestImage } from './images.js';
 const DATA_SCHEMA = 1;
 const CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const CHUNK = 100; // elementos nuevos por escritura en la base
-// Juegos del sitio (TCGCSV categoryId): Magic, Yu-Gi-Oh!, Pokémon, Pokémon Japón, One Piece, Riftbound y Disney Lorcana
-export const DEFAULT_CATEGORIES = [1, 2, 3, 85, 68, 89, 71];
+// Juegos del sitio (TCGCSV categoryId): Magic, Yu-Gi-Oh!, Pokémon, Pokémon Japón, One Piece, Riftbound, Disney Lorcana y Digimon
+export const DEFAULT_CATEGORIES = [1, 2, 3, 85, 68, 89, 71, 63];
 const COMPARED = ['kind', 'name', 'number', 'rarity', 'attributes', 'sourceImageUrl', 'tcgplayerUrl'];
 const MAX_CHANGES_PER_RUN = 3000;
 

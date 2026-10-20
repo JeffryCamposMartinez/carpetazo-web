@@ -15,7 +15,7 @@ export const safeSegment = (value, fallback = 'Sin_nombre', max = MAX_SEGMENT) =
   return RESERVED.test(text) ? `_${text}` : text;
 };
 
-const GAME_NAMES = { 1: 'Magic', 2: 'YuGiOh', 3: 'Pokemon', 85: 'Pokemon_Japan', 68: 'One_Piece', 89: 'Riftbound' };
+const GAME_NAMES = { 1: 'Magic', 2: 'YuGiOh', 3: 'Pokemon', 85: 'Pokemon_Japan', 68: 'One_Piece', 89: 'Riftbound', 71: 'Disney_Lorcana', 63: 'Digimon_Card_Game' };
 export const gameFolderName = (category) => GAME_NAMES[category.categoryId] || safeSegment(category.displayName || category.name, `Juego_${category.categoryId}`).replace(/ /g, '_');
 
 const numberText = (number) => String(number ?? '').replace(/[\/]/g, '-').trim();
