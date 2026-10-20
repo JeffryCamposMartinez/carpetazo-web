@@ -4,7 +4,7 @@ import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import useEscape from '../../hooks/useEscape';
 import { LoadingMark } from './LoadableImage';
 import { CardSideWing } from './CardNeighbors';
-import { fullscreenCorners } from '../../utils/cardShape';
+import { cardRatio, fullscreenCorners, isYugioh } from '../../utils/cardShape';
 import SvgIcon from './SvgIcon';
 
 const formatCLP = (value) => `$${Number(value || 0).toLocaleString('es-CL')}`;
@@ -30,7 +30,6 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
   const closeRef = useRef(null);
   const [loadedId, setLoadedId] = useState(null); // carta cuya imagen ya cargó: mientras tanto se muestra el logo con el espiral
   const [failedId, setFailedId] = useState(null);
-  const [ratios, setRatios] = useState({}); // proporción (ancho/alto) de la imagen de cada carta, para que sus esquinas redondeadas sean las de la carta y no las de una caja más ancha
   const state = useRef({});
   state.current = { index, cards, onChange, onClose };
   useBodyScrollLock();
@@ -95,11 +94,13 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
   if (!card) return null;
 
   const info = describe(card);
+  const gameTcg = card.tcg || card.game || tcg;
+  const ratio = isYugioh(gameTcg) ? 59 / 86 : 63 / 88;
   const nav = 'absolute top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#12315f] shadow-lg transition-[transform,opacity] duration-150 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] disabled:opacity-30';
 
   return createPortal(
     <div role="dialog" aria-modal="true" aria-label={card.name} className="fixed inset-0 z-[1300] flex flex-col bg-[#08122a]/90 backdrop-blur-sm" onClick={onClose}>
-      <div className="flex shrink-0 items-center justify-between gap-3 px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] text-white" onClick={(event) => event.stopPropagation()}>
+      <div className="flex h-14 shrink-0 items-center justify-between gap-3 px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] text-white" onClick={(event) => event.stopPropagation()}>
         <p className="min-w-0 truncate text-sm font-bold tabular-nums text-white/80">{cards.length > 1 ? `${index + 1} de ${cards.length}` : ''}</p>
         <button ref={closeRef} type="button" onClick={onClose} aria-label="Cerrar" className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 transition-[background-color,transform] duration-150 hover:bg-white/20 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
           <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[24px]" />
@@ -124,8 +125,15 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
 
         <div
           key={card.id}
-          className={`relative z-10 flex h-full shrink-0 items-center justify-center ${direction === 0 ? '' : direction > 0 ? 'lightbox-in-next' : 'lightbox-in-prev'}`}
-          style={{ transform: `translate(${drag.x}px, ${drag.y}px) scale(${1 - Math.min(Math.abs(drag.y), 300) / 1500})`, opacity: 1 - Math.min(Math.abs(drag.y), 300) / 500, transition: drag.active ? 'none' : 'transform 220ms cubic-bezier(0.23, 1, 0.32, 1), opacity 220ms ease-out' }}
+          className={`relative z-10 flex shrink-0 items-center justify-center ${direction === 0 ? '' : direction > 0 ? 'lightbox-in-next' : 'lightbox-in-prev'}`}
+          style={{
+            aspectRatio: cardRatio(gameTcg),
+            width: `min(var(--main-cqw), calc(96cqh * ${ratio}))`,
+            height: `min(96cqh, calc(var(--main-cqw) / ${ratio}))`,
+            transform: `translate(${drag.x}px, ${drag.y}px) scale(${1 - Math.min(Math.abs(drag.y), 300) / 1500})`,
+            opacity: 1 - Math.min(Math.abs(drag.y), 300) / 500,
+            transition: drag.active ? 'none' : 'transform 220ms cubic-bezier(0.23, 1, 0.32, 1), opacity 220ms ease-out',
+          }}
         >
           {card.imageUrl
             ? <img
@@ -133,12 +141,11 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
               referrerPolicy="no-referrer"
               alt={card.name}
               draggable={false}
-              onLoad={(event) => { setLoadedId(card.id); const { naturalWidth, naturalHeight } = event.currentTarget; if (naturalWidth && naturalHeight) setRatios((prev) => ({ ...prev, [card.id]: naturalWidth / naturalHeight })); }}
+              onLoad={() => setLoadedId(card.id)}
               onError={() => setFailedId(card.id)}
-              ref={(img) => { if (img?.complete && img.naturalWidth > 0 && loadedId !== card.id) { setLoadedId(card.id); setRatios((prev) => (prev[card.id] ? prev : { ...prev, [card.id]: img.naturalWidth / img.naturalHeight })); } }}
-              // Misma altura para todas las cartas; si no cabe a lo ancho, se reduce sin dejar bordes vacíos (el redondeo queda en la carta)
-              style={{ aspectRatio: ratios[card.id] || 63 / 88, height: `min(96cqh, calc(var(--main-cqw) / ${ratios[card.id] || 63 / 88}))`, width: 'auto', ...fullscreenCorners(card.tcg || card.game || tcg) }}
-              className={`rounded-2xl object-contain shadow-[0_24px_50px_rgba(0,0,0,0.65)] transition-opacity duration-200 ${loadedId === card.id ? 'opacity-100' : 'opacity-0'}`}
+              ref={(img) => { if (img?.complete && img.naturalWidth > 0 && loadedId !== card.id) setLoadedId(card.id); }}
+              style={fullscreenCorners(gameTcg)}
+              className={`h-full w-full rounded-2xl object-contain shadow-[0_24px_50px_rgba(0,0,0,0.65)] transition-opacity duration-200 ${loadedId === card.id ? 'opacity-100' : 'opacity-0'}`}
             />
             : <span className="rounded-2xl bg-white/10 px-6 py-10 text-sm font-bold text-white/70">Sin imagen</span>}
         </div>
@@ -149,20 +156,24 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
           <SvgIcon name="chevron_right" translate="no" aria-hidden="true" className="text-[28px]" />
         </button>
       </div>
-      {cards.length > 1 && <p className="pointer-events-none shrink-0 pb-1 text-center text-[11px] font-semibold text-white/50 [@media(hover:hover)]:hidden" aria-hidden="true">Desliza para ver las demás</p>}
+      {cards.length > 1 && <p className="pointer-events-none h-4 shrink-0 text-center text-[11px] font-semibold leading-none text-white/50 [@media(hover:hover)]:hidden" aria-hidden="true">Desliza para ver las demás</p>}
 
-      <div className="shrink-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 text-center text-white" onClick={(event) => event.stopPropagation()}>
-        <p className="line-clamp-2 text-base font-extrabold leading-tight">{card.name}</p>
-        <p className="mt-0.5 text-xs text-white/70">{info.subtitle || ' '}</p>
+      {/* Pie de altura fija: la carta de arriba mantiene siempre la misma posición y tamaño aunque cambien los textos o botones */}
+      <div
+        className={`flex shrink-0 flex-col items-center justify-start overflow-hidden px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 text-center text-white ${renderActions ? 'h-[13.5rem] sm:h-[10.5rem]' : 'h-[7.25rem]'}`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <p className="max-w-full truncate text-base font-extrabold leading-tight">{card.name}</p>
+        <p className="mt-0.5 max-w-full truncate text-xs text-white/70">{info.subtitle || '\u00A0'}</p>
         {info.chips?.length > 0 && (
-          <p className="mt-2 inline-flex flex-wrap justify-center gap-x-3 gap-y-1 rounded-full bg-white/10 px-4 py-1.5 text-sm font-bold tabular-nums">
+          <p className="mt-1.5 inline-flex max-w-full flex-wrap justify-center gap-x-3 gap-y-1 rounded-full bg-white/10 px-4 py-1 text-xs font-bold tabular-nums sm:py-1.5 sm:text-sm">
             {info.chips.map((chip, index) => (
               <span key={chip} className="inline-flex items-center gap-3">{index > 0 && <span className="text-white/40" aria-hidden="true">|</span>}{chip}</span>
             ))}
           </p>
         )}
-        {info.note && <p className="mx-auto mt-2 max-w-sm text-xs italic text-white/70">{info.note}</p>}
-        {renderActions && <div className="mx-auto mt-3 flex w-full max-w-2xl justify-center">{renderActions(card)}</div>}
+        {info.note && <p className="mx-auto mt-1.5 max-w-xl truncate text-xs italic text-white/70">{info.note}</p>}
+        {renderActions && <div className="mx-auto mt-2.5 flex w-full max-w-4xl justify-center">{renderActions(card)}</div>}
       </div>
     </div>,
     document.body
