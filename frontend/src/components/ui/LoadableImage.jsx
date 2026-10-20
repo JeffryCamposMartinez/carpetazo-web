@@ -5,10 +5,10 @@ import { NO_IMAGE_CARD_URL } from '../../utils/cardShape';
 // Se coloca sobre el contenedor de la imagen (que debe ser `relative`) o con `className` para darle otra posición.
 export function LoadingMark({ still = false, compact = false, className = 'absolute inset-0' }) {
   return (
-    <span aria-hidden="true" className={`pointer-events-none flex items-center justify-center ${className}`}>
-      <span className={`relative flex items-center justify-center ${compact ? 'h-12 w-12' : 'h-24 w-24'}`}>
-        <img src="/images/logos/logo_completo.webp" alt="" className={`object-contain ${compact ? 'h-7 w-7' : 'h-14 w-14'} ${still ? 'opacity-40 grayscale' : 'animate-pulse motion-reduce:animate-none'}`} />
-        {!still && <span className={`absolute inset-0 animate-spin rounded-full border-[#1e40af]/20 border-t-[#facc15] border-r-[#1e40af] motion-reduce:animate-none ${compact ? 'border-[3px]' : 'border-4'}`} />}
+    <span aria-hidden="true" className={`pointer-events-none flex items-center justify-center overflow-hidden ${className}`}>
+      <span className={`relative flex aspect-square shrink-0 items-center justify-center ${compact ? 'h-9 w-9' : 'h-24 w-24'}`}>
+        <img src="/images/logos/logo_completo.webp" alt="" className={`object-contain ${compact ? 'h-5 w-5' : 'h-14 w-14'} ${still ? 'opacity-40 grayscale' : 'animate-pulse motion-reduce:animate-none'}`} />
+        {!still && <span className={`absolute inset-0 animate-spin rounded-full border-[#1e40af]/20 border-t-[#facc15] border-r-[#1e40af] motion-reduce:animate-none ${compact ? 'border-[2.5px]' : 'border-4'}`} />}
       </span>
     </span>
   );

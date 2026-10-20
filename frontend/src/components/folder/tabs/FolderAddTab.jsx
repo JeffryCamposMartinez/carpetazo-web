@@ -253,12 +253,32 @@ export default function FolderAddTab({
             </div>
           </div>
           {selectedQueue.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
-              {selectedQueue.map((item, index) => (
-                <button key={item.queueId} type="button" onClick={(e) => decreaseQueueItemQuantity(e, item.queueId)} onContextMenu={(e) => e.preventDefault()} className={`relative flex-shrink-0 w-16 ${isYugioh(folderData?.tcg) ? 'rounded-[3px] p-0' : 'rounded-lg p-1'} border-2 bg-white shadow-sm transition-all ${activeQueueItemId === item.queueId ? 'border-[#1e40af]' : 'border-blue-200 hover:border-red-300'}`} title="Quitar de la selección">
-                  <div className="relative w-full" style={{ aspectRatio: cardRatio(folderData?.tcg) }}><SafeImage src={item.card.imageUrl} alt={item.card.name} rotateLandscape style={cardFit(folderData?.tcg)} className="w-full h-full object-contain rounded" fallbackType="queue" /></div>
-                  <span className="absolute -top-2 -left-2 bg-[#1e40af] text-white text-[10px] font-bold rounded-full min-w-5 px-1 h-5 flex items-center justify-center border border-white">x{item.quantity || 1}</span>
-                </button>
+            <div className="-mx-1 flex gap-3.5 overflow-x-auto px-2.5 pb-2.5 pt-2.5 custom-scrollbar">
+              {selectedQueue.map((item) => (
+                <div
+                  key={item.queueId}
+                  onClick={(e) => decreaseQueueItemQuantity(e, item.queueId)}
+                  onContextMenu={(e) => e.preventDefault()}
+                  style={{ aspectRatio: cardRatio(folderData?.tcg) }}
+                  className={`relative w-[4.5rem] flex-shrink-0 cursor-pointer ${isYugioh(folderData?.tcg) ? 'rounded-[3px] p-0' : 'rounded-xl p-1'} border-2 bg-white shadow-sm transition-all ${activeQueueItemId === item.queueId ? 'border-[#1e40af]' : 'border-blue-200 hover:border-red-300'}`}
+                  title="Toca para restar 1 copia"
+                >
+                  <div className="relative h-full w-full overflow-hidden rounded">
+                    <SafeImage src={getProxyImageUrl(item.card.tcgProductId || item.card.id, item.card.imageUrl)} fallbackSrc={tcgplayerCardImage({ ...item.card, tcg: folderData?.tcg })} alt={item.card.name} rotateLandscape style={cardFit(folderData?.tcg)} className="h-full w-full rounded object-contain" fallbackType="queue" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); removeQueueItem(item.queueId); }}
+                    className="absolute -right-2 -top-2 z-20 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-red-500 text-white shadow-md transition-transform active:scale-90"
+                    title="Quitar de la selección"
+                    aria-label={`Quitar ${item.card.name} de la selección`}
+                  >
+                    <SvgIcon name="close" translate="no" className="text-[13px]" />
+                  </button>
+                  <span className="pointer-events-none absolute -bottom-2 -left-2 z-20 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-white bg-[#1e40af] px-1 text-[10px] font-bold text-white shadow-md">
+                    x{item.quantity || 1}
+                  </span>
+                </div>
               ))}
             </div>
           )}
@@ -425,12 +445,12 @@ export default function FolderAddTab({
                     )}
                   </div>
 
-                  <div ref={queueScrollRef} className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden custom-scrollbar mt-2 px-2 pb-4">
+                  <div ref={queueScrollRef} className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden custom-scrollbar mt-1 px-3 pt-3 pb-4">
                     {selectedQueue.length > 0 ? (
                       <div className="grid grid-cols-3 gap-4">
-                        {selectedQueue.map((item, index) => (
+                        {selectedQueue.map((item) => (
                           <div key={item.queueId} onContextMenu={(e) => decreaseQueueItemQuantity(e, item.queueId)} title="Clic derecho para quitar 1 copia" style={{ aspectRatio: cardRatio(folderData?.tcg) }} className={`relative w-full aspect-[63/88] ${isYugioh(folderData?.tcg) ? 'rounded-[3px] p-0' : 'rounded-xl p-1.5'} shadow-sm border-2 border-blue-200 bg-white hover:border-red-300 transition-colors flex items-center justify-center cursor-context-menu`}>
-                            <div className="relative w-full h-full"><SafeImage src={getProxyImageUrl(item.card.tcgProductId || item.card.id, item.card.imageUrl)} fallbackSrc={tcgplayerCardImage({ ...item.card, tcg: folderData?.tcg })} alt={item.card.name} rotateLandscape style={cardFit(folderData?.tcg)} className="w-full h-full object-contain rounded-md" fallbackType="queue" /></div>
+                            <div className="relative w-full h-full overflow-hidden rounded-md"><SafeImage src={getProxyImageUrl(item.card.tcgProductId || item.card.id, item.card.imageUrl)} fallbackSrc={tcgplayerCardImage({ ...item.card, tcg: folderData?.tcg })} alt={item.card.name} rotateLandscape style={cardFit(folderData?.tcg)} className="w-full h-full object-contain rounded-md" fallbackType="queue" /></div>
                             <button 
                               type="button" 
                               onClick={() => removeQueueItem(item.queueId)} 
