@@ -7,7 +7,7 @@ export const cardRatio = (tcg, fallback = '63 / 88') => (isYugioh(tcg) ? '59 / 8
 // Pantalla completa: las cartas de Pokémon, Magic, Riftbound, Lorcana, One Piece y Digimon (mismo formato, 63:88) llevan el redondeo de una carta real,
 // que además tapa las esquinas blancas de algunas fotos. Yu-Gi-Oh! y Mitos y Leyendas se quedan como están.
 const ROUND_CARD_GAMES = /pok[eé]mon|magic|riftbound|lorcana|one.?piece|digimon/i;
-export const fullscreenCorners = (tcg) => (isYugioh(tcg) ? cardCorners(tcg) : ROUND_CARD_GAMES.test(String(tcg || '')) ? { borderRadius: '5% / 3.6%' } : undefined);
+export const fullscreenCorners = (tcg) => (isYugioh(tcg) ? cardCorners(tcg) : ROUND_CARD_GAMES.test(String(tcg || '')) ? { borderRadius: '6% / 4.3%', objectFit: 'fill' } : undefined);
 export const cardCorners = (tcg) => (isYugioh(tcg) ? { borderRadius: YUGIOH_RADIUS, objectFit: 'fill' } : undefined);
 // Todas las cartas de Yu-Gi-Oh! usan el mismo marco (59:86) y la imagen se estira hasta llenarlo de lado a lado y de arriba abajo
 // (algunas fotos son un poco más bajas que otras: así no quedan espacios vacíos ni tarjetas de distinto alto en una fila)

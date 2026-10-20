@@ -49,7 +49,9 @@ export default function AddCardFullscreen({ card, list, onPick, onClose, imageSr
               <span className="text-base font-bold leading-tight text-gray-400">SIN IMAGEN</span>
             </div>
           ) : (
-            <SafeImage key={imageSrc} src={imageSrc} alt={card.name} rotateLandscape style={fullscreenCorners(tcg)} className="h-full w-full rounded-xl object-contain shadow-2xl" fallbackType="zoom-main" onFail={(failed) => { setBrokenSrc(failed); onImageFail?.(failed); }} />
+            <div className="relative h-full w-full overflow-hidden rounded-xl shadow-2xl" style={fullscreenCorners(tcg)}>
+              <SafeImage key={imageSrc} src={imageSrc} alt={card.name} rotateLandscape style={fullscreenCorners(tcg)} className="h-full w-full rounded-xl object-contain" fallbackType="zoom-main" onFail={(failed) => { setBrokenSrc(failed); onImageFail?.(failed); }} />
+            </div>
           )}
           {onUpload && (
             <button type="button" onClick={onUpload} title="Subir foto real de la carta" aria-label="Subir foto real de la carta" className="absolute -bottom-3 -right-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border-2 border-white bg-[#1e40af] text-white shadow-lg transition-[transform,background-color] hover:bg-blue-800 active:scale-90">

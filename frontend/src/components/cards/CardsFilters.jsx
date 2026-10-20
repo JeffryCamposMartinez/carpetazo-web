@@ -9,8 +9,8 @@ export const GAMES = [
   { name: 'Magic', logo: '/images/logos/magic.webp' },
   { name: 'Yu-Gi-Oh!', logo: '/images/logos/yugioh.webp' },
   { name: 'Riftbound', logo: '/images/logos/riftbound.webp' },
-  { name: 'Lorcana', logo: '/images/logos/lorcana.svg' },
-  { name: 'Digimon', logo: '/images/logos/digimon.svg' },
+  { name: 'Lorcana', logo: '/images/logos/lorcana.webp' },
+  { name: 'Digimon', logo: '/images/logos/digimon.webp' },
 ];
 
 const CHIP = 'flex h-11 shrink-0 items-center justify-center gap-2.5 rounded-full px-4 text-sm font-extrabold transition-[background-color,box-shadow,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 focus-visible:ring-offset-[#DBEAFE] lg:h-12 lg:w-full lg:justify-start lg:rounded-2xl lg:px-3.5';

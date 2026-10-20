@@ -32,11 +32,11 @@ const GAMES = [
   { name: 'Magic', logo: '/images/logos/magic.webp', scale: 'scale-[1.4]' },
   { name: 'One Piece', logo: '/images/logos/onepiece.webp', scale: 'scale-[1.4]' },
   { name: 'Riftbound', logo: '/images/logos/riftbound.webp', scale: 'scale-100' },
-  { name: 'Lorcana', logo: '/images/logos/lorcana.svg', scale: 'scale-110' },
-  { name: 'Digimon', logo: '/images/logos/digimon.svg', scale: 'scale-110' },
+  { name: 'Lorcana', logo: '/images/logos/lorcana.webp', scale: 'scale-110' },
+  { name: 'Digimon', logo: '/images/logos/digimon.webp', scale: 'scale-110' },
 ];
 
-const FAN = ['pokemon', 'mitos', 'yugioh', 'magic', 'onepiece', 'riftbound'];
+const FAN = ['pokemon', 'mitos', 'yugioh', 'magic', 'onepiece', 'riftbound', 'lorcana', 'digimon'];
 
 // Aparece una vez al entrar en pantalla; `--d` escalona a los hermanos
 function useReveal() {
@@ -80,7 +80,7 @@ function Steps({ title, icon, steps, dark }) {
 export function HowItWorks() {
   const ref = useReveal();
   return (
-    <section ref={ref} className={`lp-group bg-blue-100 ${SECTION}`}>
+    <section ref={ref} className={`lp-group border-t border-[#12315f]/10 bg-[#F4F8FF] ${SECTION}`}>
       <div className="mx-auto w-full max-w-[1200px]">
         <h2 className={`${H2} text-[#12315f]`}>Cómo funciona</h2>
         <div className="mt-8 grid gap-6 md:grid-cols-2 md:gap-8">
@@ -115,7 +115,7 @@ export function Games() {
   return (
     <section className={`bg-[#F4F8FF] ${SECTION}`}>
       <div className="mx-auto w-full max-w-[1200px]">
-        <h2 className={`${H2} text-[#12315f]`}>Ocho juegos, un solo lugar</h2>
+        <h2 className={`${H2} text-[#12315f]`}>Tus juegos favoritos en un solo lugar</h2>
         <p className="mt-3 max-w-[60ch] text-base leading-relaxed text-slate-600">Busca y carga cartas de estos juegos, cada uno con su catálogo. Toca uno para ver sus carpetas.</p>
         <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 md:gap-4 lg:grid-cols-8">
           {GAMES.map((game) => (
@@ -174,17 +174,17 @@ export function FinalCta({ primaryCta }) {
             </Link>
           </div>
         </div>
-        <div aria-hidden="true" className="relative mx-auto hidden h-72 w-full max-w-md md:block">
+        <div aria-hidden="true" className="relative mx-auto hidden h-72 w-full max-w-lg md:block">
           {FAN.map((name, index) => {
-            const turn = (index - (FAN.length - 1) / 2) * 11;
+            const turn = (index - (FAN.length - 1) / 2) * 8.5;
             return (
               <img
                 key={name}
                 src={`/images/carousel/${name}.webp`}
                 alt=""
                 loading="lazy"
-                style={{ left: `${index * 14.5}%`, transform: `rotate(${turn}deg) translateY(${Math.abs(turn) * 0.9}px)`, zIndex: index }}
-                className="absolute top-2 w-[34%] rounded-xl shadow-[0_18px_28px_-10px_rgba(0,0,0,0.6)] ring-2 ring-white/80 transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] [@media(hover:hover)]:hover:brightness-110"
+                style={{ left: `${index * 10}%`, transform: `rotate(${turn}deg) translateY(${Math.abs(turn) * 0.9}px)`, zIndex: index }}
+                className="absolute top-2 w-[31%] rounded-md shadow-[0_18px_28px_-10px_rgba(0,0,0,0.6)] ring-2 ring-white/80 transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] [@media(hover:hover)]:hover:brightness-110"
               />
             );
           })}

@@ -13,8 +13,8 @@ const GAMES = [
   { name: 'Magic', logo: '/images/logos/magic.webp', scale: 'scale-[1.4]' },
   { name: 'One Piece', logo: '/images/logos/onepiece.webp', scale: 'scale-[1.4]' },
   { name: 'Riftbound', logo: '/images/logos/riftbound.webp', scale: 'scale-100' },
-  { name: 'Lorcana', logo: '/images/logos/lorcana.svg', scale: 'scale-110' },
-  { name: 'Digimon', logo: '/images/logos/digimon.svg', scale: 'scale-110' },
+  { name: 'Lorcana', logo: '/images/logos/lorcana.webp', scale: 'scale-110' },
+  { name: 'Digimon', logo: '/images/logos/digimon.webp', scale: 'scale-110' },
 ];
 
 const normalize = (value) => String(value || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -267,10 +267,30 @@ function RecentCards({ cards, loading }) {
 // Entrada por juego, con cuántas carpetas públicas tiene cada uno
 function BrowseByGame({ counts, loading }) {
   const rowRef = useRef(null);
-  // Efecto «dock»: la tarjeta bajo el mouse crece y las vecinas la siguen según su distancia (solo con mouse; en el celular se desliza)
+  // Efecto «dock» por fila: la tarjeta bajo el mouse crece y las vecinas de su misma fila la siguen según su distancia
   const magnify = (event) => {
     if (event.pointerType && event.pointerType !== 'mouse') return;
-    for (const item of rowRef.current?.children || []) {
+    const container = rowRef.current;
+    if (!container) return;
+    const items = Array.from(container.children);
+    const direct = event.target?.closest?.('a');
+    let activeTop = direct && container.contains(direct) ? direct.offsetTop : null;
+    if (activeTop === null) {
+      const rect = container.getBoundingClientRect();
+      const relY = event.clientY - rect.top;
+      let bestDist = Infinity;
+      for (const item of items) {
+        const midY = item.offsetTop + item.offsetHeight / 2;
+        const dist = Math.abs(relY - midY);
+        if (dist < bestDist) { bestDist = dist; activeTop = item.offsetTop; }
+      }
+    }
+    for (const item of items) {
+      if (activeTop === null || Math.abs(item.offsetTop - activeTop) > 10) {
+        item.style.removeProperty('--dock');
+        item.style.zIndex = '';
+        continue;
+      }
       const box = item.getBoundingClientRect();
       const t = Math.max(0, 1 - Math.abs(event.clientX - (box.left + box.width / 2)) / 230);
       item.style.setProperty('--dock', (t * t * (3 - 2 * t)).toFixed(3));

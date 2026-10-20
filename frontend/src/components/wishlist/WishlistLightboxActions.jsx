@@ -19,7 +19,7 @@ export default function WishlistLightboxActions({ item, busy, onQuantity, onSave
   const save = async () => { if (await onSaveDetails(item, draft)) setOpen(false); };
 
   return (
-    <div className="w-full space-y-2.5">
+    <div className="w-full max-w-sm space-y-2.5">
       <div className="flex items-center justify-center gap-2">
         <div className="flex items-center rounded-full bg-white/10">
           <button type="button" aria-label="Quitar una copia" disabled={busy || item.quantity <= 1} onClick={() => onQuantity(item, -1)} className={`${roundButton} hover:bg-white/15`}>

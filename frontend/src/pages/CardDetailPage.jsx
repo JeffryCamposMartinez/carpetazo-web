@@ -99,7 +99,7 @@ export default function CardDetailPage() {
       }
     } : undefined
   } : {});
-  const lightboxCards = useMemo(() => (card ? [{ id: card.id, name: card.name, imageUrl: card.imageUrl }] : []), [card]);
+  const lightboxCards = useMemo(() => (card ? [{ id: card.id, name: card.name, imageUrl: card.imageUrl, tcg: card.tcg }] : []), [card]);
 
   const addToWishlist = async () => {
     if (!currentUser) { navigate('/bienvenida'); return; }

@@ -157,7 +157,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
           </p>
         )}
         {info.note && <p className="mx-auto mt-2 max-w-sm text-xs italic text-white/70">{info.note}</p>}
-        {renderActions && <div className="mx-auto mt-3 flex w-full max-w-sm justify-center">{renderActions(card)}</div>}
+        {renderActions && <div className="mx-auto mt-3 flex w-full max-w-2xl justify-center">{renderActions(card)}</div>}
       </div>
     </div>,
     document.body

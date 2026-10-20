@@ -66,6 +66,12 @@ export default function WishlistSection({ username, seller, isOwner = false, var
     }
   };
 
+  useEffect(() => {
+    if (!previewId || page >= pages || loadingMore) return;
+    const idx = items.findIndex((item) => item.id === previewId);
+    if (idx >= 0 && idx >= items.length - 3) loadMore();
+  }, [previewId, items, page, pages, loadingMore]);
+
   // La carta propia que coincide con la deseada (primero las de carpetas públicas, luego las no públicas) viaja con el mensaje
   const findMyCard = async (item) => {
     const same = (value) => String(value || '').trim().toLowerCase();

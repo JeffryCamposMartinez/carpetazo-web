@@ -84,7 +84,7 @@ export default function LoadableImage({ src, fallbackSrc, alt, className = '', c
   const imageStyle = rotateLandscape
     ? {
         ...style,
-        ...(isLandscape ? { transform: `${style?.transform ? `${style.transform} ` : ''}rotate(-90deg) scale(1.4)`, transformOrigin: 'center center' } : {}),
+        ...(isLandscape ? { objectFit: 'contain', transform: `${style?.transform ? `${style.transform} ` : ''}rotate(-90deg) scale(1.4)`, transformOrigin: 'center center' } : {}),
         transition: 'opacity 200ms ease'
       }
     : style;

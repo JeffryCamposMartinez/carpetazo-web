@@ -233,6 +233,18 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
     }
   };
 
+  useEffect(() => {
+    if (!previewKey) return;
+    const idx = results.findIndex((row) => row.key === previewKey);
+    if (idx < 0) return;
+    if (idx >= visible - 5 && visible < results.length) {
+      setVisible((prev) => Math.max(prev + PAGE, idx + PAGE));
+    }
+    if (idx >= results.length - 5 && moreEditions && !searching) {
+      scanMoreEditions();
+    }
+  }, [previewKey, results, visible, moreEditions, searching]);
+
   const inputClass = 'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base text-slate-900 focus:border-[#1e40af] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70';
 
   return (
@@ -357,7 +369,7 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
               type="button"
               disabled={busyKey === card.row.key}
               onClick={() => onAdd({ ...card.row.payload }, card.row.label, card.row.key)}
-              className={`h-12 w-full rounded-full text-sm font-extrabold transition-[transform,filter] duration-150 hover:brightness-95 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] disabled:opacity-60 ${addedKeys.has(card.row.key) ? 'bg-emerald-100 text-emerald-800' : 'bg-[#facc15] text-[#12315f]'}`}
+              className={`h-12 w-full max-w-sm rounded-full text-sm font-extrabold transition-[transform,filter] duration-150 hover:brightness-95 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] disabled:opacity-60 ${addedKeys.has(card.row.key) ? 'bg-emerald-100 text-emerald-800' : 'bg-[#facc15] text-[#12315f]'}`}
             >
               {addedKeys.has(card.row.key) ? 'Sumar otra copia' : 'Agregar a mis deseadas'}
             </button>

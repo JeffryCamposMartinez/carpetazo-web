@@ -1,4 +1,4 @@
-﻿import LiquidTabs from '../components/ui/LiquidTabs';
+import LiquidTabs from '../components/ui/LiquidTabs';
 import { memo, useState, useEffect, useRef, startTransition } from 'react';
 
 import React from 'react';
@@ -333,6 +333,18 @@ const [isSearching, setIsSearching] = useState(false);
   useEffect(() => {
     if (selectedCard?.cardLanguage) setLanguage(selectedCard.cardLanguage);
   }, [selectedCard?.id]);
+  // Al avanzar o retroceder en pantalla completa cerca del límite, seguir cargando cartas y ediciones sin cortar el recorrido
+  useEffect(() => {
+    if (!selectedCard || isBatchAdding) return;
+    const idx = searchResults.findIndex((item) => item.id === selectedCard.id);
+    if (idx < 0) return;
+    if (idx >= visibleCount - 5 && (visibleCount < searchResults.length || hasMoreGroups)) {
+      setVisibleCount((prev) => Math.max(prev + PAGE_SIZE, idx + PAGE_SIZE));
+    }
+    if (idx >= searchResults.length - 5 && hasMoreGroups && !isSearching) {
+      loadMorePokemonRef.current?.();
+    }
+  }, [selectedCard?.id, isBatchAdding, searchResults, visibleCount, hasMoreGroups, isSearching]);
   const [isSaving, setIsSaving] = useState(false);
   const abortControllerRef = useRef(null);
   const fileInputRef = useRef(null);
