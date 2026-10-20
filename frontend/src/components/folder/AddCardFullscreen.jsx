@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { SafeImage } from './SafeImage';
 import SvgIcon from '../ui/SvgIcon';
-import CardNeighbors from '../ui/CardNeighbors';
+import { CardSideWing } from '../ui/CardNeighbors';
 import { cardRatio, fullscreenCorners } from '../../utils/cardShape';
 
-const ARROW = 'absolute top-1/2 z-10 flex h-11 w-11 sm:h-12 sm:w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#12315f] shadow-lg transition-[transform,opacity,background-color] duration-150 hover:bg-white active:scale-90 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#facc15] disabled:pointer-events-none disabled:opacity-25';
+const ARROW = 'absolute top-1/2 z-20 flex h-11 w-11 sm:h-12 sm:w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#12315f] shadow-lg transition-[transform,opacity,background-color] duration-150 hover:bg-white active:scale-90 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#facc15] disabled:pointer-events-none disabled:opacity-25';
 const SWIPE_DISTANCE = 55;
 const SWIPE_SPEED = 0.32;
 
@@ -23,6 +23,7 @@ export default function AddCardFullscreen({ card, list, onPick, onClose, imageSr
   const broken = !imageSrc || brokenSrc === imageSrc;
   const previous = index > 0 ? list[index - 1] : null;
   const next = index >= 0 && index < list.length - 1 ? list[index + 1] : null;
+  const hasNeighbors = list.length > 1 && index >= 0;
 
   useEffect(() => {
     setDrag({ x: 0, active: false });
@@ -82,21 +83,24 @@ export default function AddCardFullscreen({ card, list, onPick, onClose, imageSr
 
       <div className="relative flex min-h-0 flex-1 flex-col">
         <div
-          className="relative flex min-h-0 flex-1 touch-pan-y select-none items-center justify-center overflow-hidden px-4 pb-2 pt-14 [container-type:size] sm:px-16 lg:px-24 lg:pt-10"
+          className={`relative flex min-h-0 flex-1 touch-pan-y select-none items-center justify-center gap-0 overflow-hidden px-2 pb-4 pt-14 [container-type:size] sm:gap-3.5 sm:px-14 lg:gap-5 lg:px-20 lg:pt-10 ${hasNeighbors ? '[--main-cqw:68cqw] sm:[--main-cqw:43cqw]' : '[--main-cqw:88cqw]'}`}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerEnd}
           onPointerCancel={onPointerEnd}
         >
-          <button type="button" onClick={() => previous && onPick(previous)} disabled={!previous} aria-label="Carta anterior" className={`${ARROW} left-2 sm:left-3 lg:left-8`}>
+          <button type="button" onClick={() => previous && onPick(previous)} disabled={!previous} aria-label="Carta anterior" className={`${ARROW} left-2 sm:left-3 lg:left-6`}>
             <SvgIcon name="chevron_left" translate="no" className="text-[28px] sm:text-[30px]" />
           </button>
+
+          <CardSideWing side="left" cards={list} index={index} tcg={tcg} srcOf={srcOf} onPick={(step) => list[index + step] && onPick(list[index + step])} />
+
           <div
-            className="relative"
+            className="relative z-10 shrink-0"
             style={{
               aspectRatio: cardRatio(tcg),
-              width: `min(100cqw, calc(100cqh * ${ratio}))`,
-              height: `min(100cqh, calc(100cqw / ${ratio}))`,
+              width: `min(var(--main-cqw), calc(96cqh * ${ratio}))`,
+              height: `min(96cqh, calc(var(--main-cqw) / ${ratio}))`,
               transform: `translate3d(${drag.x}px, 0, 0) rotate(${drag.x * 0.035}deg)`,
               transition: drag.active ? 'none' : 'transform 220ms cubic-bezier(0.22, 1, 0.36, 1)',
             }}
@@ -107,7 +111,7 @@ export default function AddCardFullscreen({ card, list, onPick, onClose, imageSr
                 <span className="text-base font-bold leading-tight text-gray-400">SIN IMAGEN</span>
               </div>
             ) : (
-              <div className="relative h-full w-full overflow-hidden rounded-xl shadow-2xl" style={fullscreenCorners(tcg)}>
+              <div className="relative h-full w-full overflow-hidden rounded-xl shadow-[0_24px_50px_rgba(0,0,0,0.65)]" style={fullscreenCorners(tcg)}>
                 <SafeImage key={imageSrc} src={imageSrc} alt={card.name} rotateLandscape style={fullscreenCorners(tcg)} className="pointer-events-none h-full w-full rounded-xl object-contain" fallbackType="zoom-main" onFail={(failed) => { setBrokenSrc(failed); onImageFail?.(failed); }} />
               </div>
             )}
@@ -117,16 +121,15 @@ export default function AddCardFullscreen({ card, list, onPick, onClose, imageSr
               </button>
             )}
           </div>
-          <button type="button" onClick={() => next && onPick(next)} disabled={!next} aria-label="Carta siguiente" className={`${ARROW} right-2 sm:right-3 lg:right-8`}>
+
+          <CardSideWing side="right" cards={list} index={index} tcg={tcg} srcOf={srcOf} onPick={(step) => list[index + step] && onPick(list[index + step])} />
+
+          <button type="button" onClick={() => next && onPick(next)} disabled={!next} aria-label="Carta siguiente" className={`${ARROW} right-2 sm:right-3 lg:right-6`}>
             <SvgIcon name="chevron_right" translate="no" className="text-[28px] sm:text-[30px]" />
           </button>
           {index >= 0 && list.length > 1 && (
-            <span className="absolute left-4 top-4 rounded-full bg-white/15 px-3 py-1 text-xs font-bold tabular-nums text-white">{index + 1} / {list.length}</span>
+            <span className="absolute left-4 top-4 z-20 rounded-full bg-white/15 px-3 py-1 text-xs font-bold tabular-nums text-white">{index + 1} / {list.length}</span>
           )}
-        </div>
-
-        <div className="shrink-0 lg:pb-4">
-          <CardNeighbors cards={list} index={index} tcg={tcg} srcOf={srcOf} onPick={(step) => list[index + step] && onPick(list[index + step])} />
         </div>
 
         {/* Barra inferior en móvil cuando el formulario está oculto: deja máximo espacio a la carta y permite abrir las opciones de guardado */}

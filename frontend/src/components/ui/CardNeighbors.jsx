@@ -1,45 +1,127 @@
 import { useState } from 'react';
-import { cardRatio } from '../../utils/cardShape';
+import { cardRatio, fullscreenCorners } from '../../utils/cardShape';
 
-// Tamaños según la distancia a la carta actual: las más cercanas se ven más grandes y nítidas
-const LOOK = {
-  0: { height: 'h-[4.75rem] sm:h-[5.5rem]', opacity: 'opacity-100', ring: 'ring-2 ring-[#facc15]' },
-  1: { height: 'h-14 sm:h-16', opacity: 'opacity-80', ring: 'ring-1 ring-white/30' },
-  2: { height: 'h-10 sm:h-12', opacity: 'opacity-50', ring: 'ring-1 ring-white/20' },
+// Escala de las cartas vecinas a los lados de la carta principal en pantalla completa:
+// ±1 (inmediata anterior/siguiente) se ve mediana; ±2 (dos lugares) más pequeña.
+const SIDE_LOOK = {
+  1: {
+    size: (ratio) => ({
+      aspectRatio: `${ratio}`,
+      width: `min(14cqw, calc(54cqh * ${ratio}))`,
+      height: `min(54cqh, calc(14cqw / ${ratio}))`,
+    }),
+    mobileSize: (ratio) => ({
+      aspectRatio: `${ratio}`,
+      width: `min(22cqw, calc(48cqh * ${ratio}))`,
+      height: `min(48cqh, calc(22cqw / ${ratio}))`,
+    }),
+    opacity: 'opacity-75 [@media(hover:hover)]:hover:opacity-100 [@media(hover:hover)]:hover:scale-[1.04]',
+    ring: 'ring-1 ring-white/35 shadow-[0_14px_30px_rgba(0,0,0,0.55)]',
+  },
+  2: {
+    size: (ratio) => ({
+      aspectRatio: `${ratio}`,
+      width: `min(9.5cqw, calc(38cqh * ${ratio}))`,
+      height: `min(38cqh, calc(9.5cqw / ${ratio}))`,
+    }),
+    mobileSize: (ratio) => ({
+      aspectRatio: `${ratio}`,
+      width: `min(15cqw, calc(34cqh * ${ratio}))`,
+      height: `min(34cqh, calc(15cqw / ${ratio}))`,
+    }),
+    opacity: 'opacity-45 [@media(hover:hover)]:hover:opacity-90 [@media(hover:hover)]:hover:scale-[1.04]',
+    ring: 'ring-1 ring-white/20 shadow-[0_10px_22px_rgba(0,0,0,0.45)]',
+  },
 };
 
-function Thumb({ card, offset, src, tcg, onPick }) {
+function SideThumb({ card, offset, src, tcg, onPick, mobile = false }) {
   const [failed, setFailed] = useState(false);
-  const look = LOOK[Math.abs(offset)];
+  const step = Math.abs(offset);
+  const look = SIDE_LOOK[step];
+  const ratioStr = cardRatio(tcg);
+  const [rw, rh] = ratioStr.split('/').map(Number);
+  const ratio = (rw && rh) ? rw / rh : 63 / 88;
+  const boxStyle = mobile ? look.mobileSize(ratio) : look.size(ratio);
+
+  if (!card) {
+    // Reserva el mismo espacio para que la carta central nunca salte al llegar al principio o al final
+    return <div aria-hidden="true" className="pointer-events-none shrink-0" style={boxStyle} />;
+  }
+
   return (
     <button
       type="button"
-      onClick={offset === 0 ? undefined : () => onPick(offset)}
-      aria-label={offset === 0 ? `${card.name} (actual)` : `${offset < 0 ? 'Anterior' : 'Siguiente'}: ${card.name}`}
-      aria-current={offset === 0 ? 'true' : undefined}
-      tabIndex={offset === 0 ? -1 : 0}
+      onClick={() => onPick(offset)}
+      aria-label={`${offset < 0 ? 'Anterior' : 'Siguiente'}: ${card.name}`}
       onPointerDown={(event) => event.stopPropagation()}
-      className={`${look.height} ${look.opacity} ${look.ring} shrink-0 overflow-hidden rounded-md bg-white/10 transition-[opacity,transform] duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] ${offset === 0 ? 'cursor-default' : '[@media(hover:hover)]:hover:opacity-100 active:scale-95'}`}
-      style={{ aspectRatio: cardRatio(tcg) }}
+      style={{ ...boxStyle, ...fullscreenCorners(tcg) }}
+      className={`${look.opacity} ${look.ring} relative shrink-0 overflow-hidden rounded-xl bg-white/10 transition-[opacity,transform] duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] active:scale-95`}
     >
-      {src && !failed
-        ? <img src={src} alt="" loading="lazy" draggable={false} referrerPolicy="no-referrer" onError={() => setFailed(true)} className="h-full w-full object-cover" />
-        : <span className="flex h-full w-full items-center justify-center px-0.5 text-center text-[8px] font-bold leading-tight text-white/60">{card.name}</span>}
+      {src && !failed ? (
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          draggable={false}
+          referrerPolicy="no-referrer"
+          onError={() => setFailed(true)}
+          style={fullscreenCorners(tcg)}
+          className="h-full w-full select-none object-cover"
+        />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center px-1 text-center text-[9px] font-bold leading-tight text-white/60">
+          {card.name}
+        </span>
+      )}
     </button>
   );
 }
 
-// Vista previa de las 2 cartas anteriores y las 2 siguientes de un visor a pantalla completa; al tocar una, el visor pasa a ella.
-// `onPick(step)` recibe cuántos lugares moverse (-2, -1, 1 o 2); `srcOf(card)` da la imagen de cada carta.
-export default function CardNeighbors({ cards, index, onPick, tcg, srcOf = (card) => card.imageUrl }) {
-  if (cards.length < 2 || index < 0) return null;
-  const offsets = [-2, -1, 0, 1, 2].filter((offset) => cards[index + offset]);
+// Cartas vecinas a un lado ('left' -> [-2, -1], 'right' -> [+1, +2]) de la carta en pantalla completa.
+export function CardSideWing({ side, cards, index, onPick, tcg, srcOf = (card) => card.imageUrl }) {
+  if (!cards || cards.length < 2 || index < 0) return null;
+  const offsets = side === 'left' ? [-2, -1] : [1, 2];
+  const mobileOffset = side === 'left' ? -1 : 1;
+  const mobileCard = cards[index + mobileOffset] || null;
+  const mobileTcg = mobileCard?.tcg || mobileCard?.game || tcg;
+
   return (
-    <div className="flex shrink-0 items-center justify-center gap-1.5 px-3 pb-2 sm:gap-2.5" role="group" aria-label="Cartas cercanas">
-      {offsets.map((offset) => {
-        const card = cards[index + offset];
-        return <Thumb key={card.id} card={card} offset={offset} src={srcOf(card)} tcg={card.tcg || card.game || tcg} onPick={onPick} />;
-      })}
-    </div>
+    <>
+      {/* Escritorio y tablet: muestra hasta 2 cartas a cada lado en escalera (-2, -1 | CARTA | +1, +2) */}
+      <div className="hidden shrink-0 items-center gap-2.5 sm:flex lg:gap-4" role="group" aria-label={side === 'left' ? 'Cartas anteriores' : 'Cartas siguientes'}>
+        {offsets.map((offset) => {
+          const item = cards[index + offset] || null;
+          const itemTcg = item?.tcg || item?.game || tcg;
+          return (
+            <SideThumb
+              key={item ? `${offset}-${item.id}` : `empty-${offset}`}
+              card={item}
+              offset={offset}
+              src={item ? srcOf(item) : ''}
+              tcg={itemTcg}
+              onPick={onPick}
+            />
+          );
+        })}
+      </div>
+
+      {/* Móvil: muestra la carta anterior/siguiente asomándose a cada lado de la carta principal */}
+      <div
+        className={`flex shrink-0 items-center sm:hidden ${side === 'left' ? '-mr-6 z-0' : '-ml-6 z-0'}`}
+        role="group"
+        aria-label={side === 'left' ? 'Carta anterior' : 'Carta siguiente'}
+      >
+        <SideThumb
+          card={mobileCard}
+          offset={mobileOffset}
+          src={mobileCard ? srcOf(mobileCard) : ''}
+          tcg={mobileTcg}
+          onPick={onPick}
+          mobile
+        />
+      </div>
+    </>
   );
 }
+
+export default CardSideWing;

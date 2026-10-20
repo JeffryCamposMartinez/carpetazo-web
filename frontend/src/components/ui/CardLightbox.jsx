@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import useEscape from '../../hooks/useEscape';
 import { LoadingMark } from './LoadableImage';
-import CardNeighbors from './CardNeighbors';
+import { CardSideWing } from './CardNeighbors';
 import { fullscreenCorners } from '../../utils/cardShape';
 import SvgIcon from './SvgIcon';
 
@@ -107,7 +107,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
       </div>
 
       <div
-        className="relative flex min-h-0 flex-1 touch-none select-none items-center justify-center overflow-hidden px-3 [container-type:size]"
+        className={`relative flex min-h-0 flex-1 touch-none select-none items-center justify-center gap-0 overflow-hidden px-2 [container-type:size] sm:gap-3.5 sm:px-14 lg:gap-5 lg:px-20 ${cards.length > 1 ? '[--main-cqw:68cqw] sm:[--main-cqw:43cqw]' : '[--main-cqw:88cqw]'}`}
         onClick={(event) => event.stopPropagation()}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -119,9 +119,12 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
         <button type="button" aria-label="Carta anterior" disabled={index <= 0} onClick={() => go(-1)} onPointerDown={(event) => event.stopPropagation()} className={`${nav} left-2 hidden sm:left-6 [@media(hover:hover)]:flex ${cards.length < 2 ? "!hidden" : ""}`}>
           <SvgIcon name="chevron_left" translate="no" aria-hidden="true" className="text-[28px]" />
         </button>
+
+        <CardSideWing side="left" cards={cards} index={index} tcg={tcg} onPick={go} />
+
         <div
           key={card.id}
-          className={`flex h-full max-w-full items-center justify-center ${direction === 0 ? '' : direction > 0 ? 'lightbox-in-next' : 'lightbox-in-prev'}`}
+          className={`relative z-10 flex h-full shrink-0 items-center justify-center ${direction === 0 ? '' : direction > 0 ? 'lightbox-in-next' : 'lightbox-in-prev'}`}
           style={{ transform: `translate(${drag.x}px, ${drag.y}px) scale(${1 - Math.min(Math.abs(drag.y), 300) / 1500})`, opacity: 1 - Math.min(Math.abs(drag.y), 300) / 500, transition: drag.active ? 'none' : 'transform 220ms cubic-bezier(0.23, 1, 0.32, 1), opacity 220ms ease-out' }}
         >
           {card.imageUrl
@@ -134,16 +137,18 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
               onError={() => setFailedId(card.id)}
               ref={(img) => { if (img?.complete && img.naturalWidth > 0 && loadedId !== card.id) { setLoadedId(card.id); setRatios((prev) => (prev[card.id] ? prev : { ...prev, [card.id]: img.naturalWidth / img.naturalHeight })); } }}
               // Misma altura para todas las cartas; si no cabe a lo ancho, se reduce sin dejar bordes vacíos (el redondeo queda en la carta)
-              style={{ aspectRatio: ratios[card.id] || 63 / 88, height: `min(100cqh, calc((100cqw - 1.5rem) / ${ratios[card.id] || 63 / 88}))`, width: 'auto', ...fullscreenCorners(card.tcg || card.game || tcg) }}
-              className={`rounded-2xl object-contain shadow-2xl transition-opacity duration-200 ${loadedId === card.id ? 'opacity-100' : 'opacity-0'}`}
+              style={{ aspectRatio: ratios[card.id] || 63 / 88, height: `min(96cqh, calc(var(--main-cqw) / ${ratios[card.id] || 63 / 88}))`, width: 'auto', ...fullscreenCorners(card.tcg || card.game || tcg) }}
+              className={`rounded-2xl object-contain shadow-[0_24px_50px_rgba(0,0,0,0.65)] transition-opacity duration-200 ${loadedId === card.id ? 'opacity-100' : 'opacity-0'}`}
             />
             : <span className="rounded-2xl bg-white/10 px-6 py-10 text-sm font-bold text-white/70">Sin imagen</span>}
         </div>
+
+        <CardSideWing side="right" cards={cards} index={index} tcg={tcg} onPick={go} />
+
         <button type="button" aria-label="Carta siguiente" disabled={index >= cards.length - 1} onClick={() => go(1)} onPointerDown={(event) => event.stopPropagation()} className={`${nav} right-2 hidden sm:right-6 [@media(hover:hover)]:flex ${cards.length < 2 ? "!hidden" : ""}`}>
           <SvgIcon name="chevron_right" translate="no" aria-hidden="true" className="text-[28px]" />
         </button>
       </div>
-      <div onClick={(event) => event.stopPropagation()}><CardNeighbors cards={cards} index={index} tcg={tcg} onPick={go} /></div>
       {cards.length > 1 && <p className="pointer-events-none shrink-0 pb-1 text-center text-[11px] font-semibold text-white/50 [@media(hover:hover)]:hidden" aria-hidden="true">Desliza para ver las demás</p>}
 
       <div className="shrink-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 text-center text-white" onClick={(event) => event.stopPropagation()}>
