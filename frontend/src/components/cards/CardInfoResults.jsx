@@ -147,8 +147,8 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
             const prices = (card.groupId ? variantsFor(card) : null) || [];
             return {
               subtitle: [card.game, card.setName, card.language].filter(Boolean).join(' · '),
-              chips: ['Referencia del catálogo', ...prices.slice(0, 3).map((variant) => `${variant.name} ${formatClp(variant.clp)}`)],
-              note: prices.length ? `${NOTE} El precio es una referencia de mercado en TCGplayer.` : NOTE,
+              chips: prices.length ? prices.slice(0, 3).map((variant) => `${variant.name} ${formatClp(variant.clp)}`) : ['Referencia del catálogo'],
+              note: prices.length ? `${NOTE} Precio ref. TCGplayer.` : NOTE,
             };
           }}
           renderActions={(card) => (

@@ -159,24 +159,24 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
           <SvgIcon name="chevron_right" translate="no" aria-hidden="true" className="text-[28px]" />
         </button>
       </div>
-      {cards.length > 1 && <p className="pointer-events-none h-4 shrink-0 text-center text-[11px] font-semibold leading-none text-white/50 [@media(hover:hover)]:hidden" aria-hidden="true">Desliza para ver las demás</p>}
+      {cards.length > 1 && <p className="pointer-events-none shrink-0 py-1 text-center text-[11px] font-semibold leading-tight text-white/55 [@media(hover:hover)]:hidden" aria-hidden="true">Desliza para ver las demás</p>}
 
       {/* Pie de altura fija: la carta de arriba mantiene siempre la misma posición y tamaño aunque cambien los textos o botones */}
       <div
-        className={`flex shrink-0 flex-col items-center justify-start overflow-hidden px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 text-center text-white ${renderActions ? 'h-[13.5rem] sm:h-[10.5rem]' : 'h-[7.25rem]'}`}
+        className={`flex shrink-0 flex-col items-center justify-start overflow-y-auto overscroll-contain px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1.5 text-center text-white [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${renderActions ? 'h-[calc(14.25rem+env(safe-area-inset-bottom,0px))] sm:h-[11rem]' : 'h-[calc(7.5rem+env(safe-area-inset-bottom,0px))]'}`}
         onClick={(event) => event.stopPropagation()}
       >
-        <p className="max-w-full truncate text-base font-extrabold leading-tight">{card.name}</p>
-        <p className="mt-0.5 max-w-full truncate text-xs text-white/70">{info.subtitle || '\u00A0'}</p>
+        <p className="max-w-full shrink-0 truncate text-base font-extrabold leading-snug">{card.name}</p>
+        <p className="mt-0.5 max-w-full shrink-0 truncate text-xs leading-normal text-white/75">{info.subtitle || '\u00A0'}</p>
         {info.chips?.length > 0 && (
-          <p className="mt-1.5 inline-flex max-w-full flex-wrap justify-center gap-x-3 gap-y-1 rounded-full bg-white/10 px-4 py-1 text-xs font-bold tabular-nums sm:py-1.5 sm:text-sm">
+          <p className="mt-1.5 inline-flex max-w-full shrink-0 flex-wrap justify-center gap-x-2.5 gap-y-1 rounded-2xl bg-white/10 px-3.5 py-1 text-xs font-bold leading-snug tabular-nums sm:rounded-full sm:px-4 sm:py-1.5 sm:text-sm">
             {info.chips.map((chip, index) => (
-              <span key={chip} className="inline-flex items-center gap-3">{index > 0 && <span className="text-white/40" aria-hidden="true">|</span>}{chip}</span>
+              <span key={chip} className="inline-flex items-center gap-2.5">{index > 0 && <span className="text-white/40" aria-hidden="true">|</span>}{chip}</span>
             ))}
           </p>
         )}
-        {info.note && <p className="mx-auto mt-1.5 max-w-xl truncate text-xs italic text-white/70">{info.note}</p>}
-        {renderActions && <div className="mx-auto mt-2.5 flex w-full max-w-4xl justify-center">{renderActions(card)}</div>}
+        {info.note && <p className="mx-auto mt-1.5 max-w-xl shrink-0 line-clamp-2 text-[11px] leading-snug italic text-white/70 sm:text-xs">{info.note}</p>}
+        {renderActions && <div className="mx-auto mt-2.5 flex w-full max-w-4xl shrink-0 justify-center">{renderActions(card)}</div>}
       </div>
     </div>,
     document.body
