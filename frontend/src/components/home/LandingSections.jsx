@@ -32,6 +32,8 @@ const GAMES = [
   { name: 'Magic', logo: '/images/logos/magic.webp', scale: 'scale-[1.4]' },
   { name: 'One Piece', logo: '/images/logos/onepiece.webp', scale: 'scale-[1.4]' },
   { name: 'Riftbound', logo: '/images/logos/riftbound.webp', scale: 'scale-100' },
+  { name: 'Lorcana', logo: '/images/logos/lorcana.svg', scale: 'scale-110' },
+  { name: 'Digimon', logo: '/images/logos/digimon.svg', scale: 'scale-110' },
 ];
 
 const FAN = ['pokemon', 'mitos', 'yugioh', 'magic', 'onepiece', 'riftbound'];
@@ -113,9 +115,9 @@ export function Games() {
   return (
     <section className={`bg-[#F4F8FF] ${SECTION}`}>
       <div className="mx-auto w-full max-w-[1200px]">
-        <h2 className={`${H2} text-[#12315f]`}>Seis juegos, un solo lugar</h2>
+        <h2 className={`${H2} text-[#12315f]`}>Ocho juegos, un solo lugar</h2>
         <p className="mt-3 max-w-[60ch] text-base leading-relaxed text-slate-600">Busca y carga cartas de estos juegos, cada uno con su catálogo. Toca uno para ver sus carpetas.</p>
-        <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-6">
+        <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 md:gap-4 lg:grid-cols-8">
           {GAMES.map((game) => (
             <li key={game.name}>
               <Link to={`/carpetas?tcg=${encodeURIComponent(game.name)}`} className="group flex h-full flex-col items-center gap-2 rounded-2xl bg-white px-3 pb-3.5 pt-4 shadow-[0_1px_2px_rgba(18,49,95,0.06),0_12px_24px_-18px_rgba(18,49,95,0.45)] ring-1 ring-[#12315f]/8 transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] active:scale-[0.97] [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:shadow-[0_18px_30px_-16px_rgba(18,49,95,0.5)]">

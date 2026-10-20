@@ -35,6 +35,18 @@ export const TCG_CONFIG = {
     inventoryFilters: ['edition'],
     addFilters: ['edition', 'rarity'],
   },
+  Lorcana: {
+    categoryId: 'lorcana', // se busca en el catálogo local (TCGCSV categoría 71)
+    defaultLanguage: 'English',
+    inventoryFilters: ['edition'],
+    addFilters: ['edition', 'rarity'],
+  },
+  Digimon: {
+    categoryId: 'digimon', // se busca en el catálogo local (TCGCSV categoría 63)
+    defaultLanguage: 'English',
+    inventoryFilters: ['edition'],
+    addFilters: ['edition', 'rarity'],
+  },
 };
 
 export const getTcgConfig = (tcg) => TCG_CONFIG[tcg] || TCG_CONFIG.Pokemon;

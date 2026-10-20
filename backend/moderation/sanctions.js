@@ -584,7 +584,7 @@ export const registerSanctions = (app, deps) => {
       const target = await findUserByUsername(req.params.username);
       if (!target || target.role === 'deleted') return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
       const role = req.body?.role;
-      if (!['moderator', 'support', 'user'].includes(role)) return badRequest(res, 'Rol inválido');
+      if (!['moderator', 'user'].includes(role)) return badRequest(res, 'Rol inválido');
       if (target.role === 'admin' || target.role === 'coadmin') return res.status(403).json({ success: false, message: 'El rol de un administrador o co-administrador se cambia desde «Equipo y administradores»' });
       const actorId = await currentUserId(req);
       const message = cleanNotice(req.body?.message);
@@ -593,7 +593,7 @@ export const registerSanctions = (app, deps) => {
         prisma.user.update({ where: { id: target.id }, data: { role } }),
         prisma.moderationAudit.create({ data: { actorId, action: 'role.changed', targetType: 'user', targetId: target.id, note: `Rol de @${target.username}: ${target.role} → ${role}` } })
       ]);
-      const roleName = { moderator: 'Moderador', support: 'Soporte', user: 'sin rol de equipo' }[role];
+      const roleName = { moderator: 'Moderador', user: 'sin rol de equipo' }[role];
       const notified = req.body?.notify === false ? null : await notifyUser({ actorId, targetId: target.id, title: 'Cambió tu rol en Carpetazo', summary: `Tu rol en el equipo ahora es: ${roleName}.`, message });
       res.json({ success: true, notified });
     } catch (error) {

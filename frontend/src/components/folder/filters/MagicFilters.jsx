@@ -9,7 +9,7 @@ import SvgIcon from '../../ui/SvgIcon';
 const compact = '!h-10 !min-h-10 !rounded-xl !text-[13px]';
 const any = (label) => ({ value: '', label });
 
-export default function MagicFilters({ searchQuery, setSearchQuery, filters, setFilters, searchSet, availableSets, onSelectSet, loadedCards = [] }) {
+export default function MagicFilters({ searchQuery, setSearchQuery, filters, setFilters, searchSet, availableSets, onSelectSet, loadedCards = [], hideSearch = false }) {
   const [meta, setMeta] = useState(null);
   const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => { loadMagicMeta().then(setMeta); }, []);
@@ -37,16 +37,18 @@ export default function MagicFilters({ searchQuery, setSearchQuery, filters, set
   return (
     <div className="relative w-full rounded-2xl border-2 border-blue-900/10 bg-white p-2 shadow-[0_8px_30px_rgb(0,0,0,0.08)] sm:p-3">
       <div className="flex flex-col gap-2.5 p-1 sm:gap-3 sm:p-1.5">
-        <div className="group relative w-full">
-          <SvgIcon name="search" translate="no" aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-blue-900 transition-colors group-focus-within:text-yellow-500" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Nombre, número o tipo de carta..."
-            className="w-full rounded-xl border-2 border-blue-900/20 bg-slate-50 py-2.5 pl-10 pr-3 text-sm font-semibold text-blue-900 placeholder-blue-900/50 shadow-sm outline-none transition-all focus:border-yellow-400 focus:bg-white focus:ring-4 focus:ring-yellow-400/20"
-          />
-        </div>
+        {!hideSearch && (
+          <div className="group relative w-full">
+            <SvgIcon name="search" translate="no" aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-blue-900 transition-colors group-focus-within:text-yellow-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Nombre, número o tipo de carta..."
+              className="w-full rounded-xl border-2 border-blue-900/20 bg-slate-50 py-2.5 pl-10 pr-3 text-sm font-semibold text-blue-900 placeholder-blue-900/50 shadow-sm outline-none transition-all focus:border-yellow-400 focus:bg-white focus:ring-4 focus:ring-yellow-400/20"
+            />
+          </div>
+        )}
 
         {/* Colores (W U B R G) e incoloro; el modo dice cómo se comparan */}
         <div className="flex flex-wrap items-center gap-2">

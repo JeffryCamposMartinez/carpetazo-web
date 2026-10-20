@@ -35,7 +35,7 @@ const { prisma, call, ok } = require('./fixtures.cjs');
     r = await call('POST', `/admin/team/${id('nobuyer')}/role`, 'ale', { role: 'moderator', confirmUsername: touched.nobuyer.username });
     ok('el co-administrador da el rol de moderador', r.status === 200 && (await roleOf(id('nobuyer'))) === 'moderator', JSON.stringify(r.j).slice(0, 100));
     r = await call('POST', `/admin/team/${id('nobuyer')}/role`, 'ale', { role: 'support', confirmUsername: touched.nobuyer.username });
-    ok('el co-administrador cambia a soporte', r.status === 200 && (await roleOf(id('nobuyer'))) === 'support', String(r.status));
+    ok('el rol de soporte ya no se puede asignar → 400', r.status === 400 && (await roleOf(id('nobuyer'))) === 'moderator', String(r.status));
     r = await call('POST', `/admin/team/${id('nobuyer')}/suspend`, 'ale', { reason: 'prueba de suspensión', days: 1, confirmUsername: touched.nobuyer.username });
     ok('el co-administrador suspende a alguien del equipo de nivel inferior', r.status === 200, String(r.status));
     r = await call('POST', `/admin/team/${id('nobuyer')}/restore`, 'ale', { note: 'se levanta la prueba', confirmUsername: touched.nobuyer.username });

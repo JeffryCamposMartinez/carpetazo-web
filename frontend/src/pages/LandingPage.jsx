@@ -82,7 +82,7 @@ export default function LandingPage() {
               </Link>
             </div>
             <ul style={{ '--d': '270ms' }} className="lp-rise mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm font-bold text-[#12315f]">
-              {[['check_circle', 'Gratis para empezar'], ['style', 'Seis juegos de cartas'], ['chat', 'Cierras directo con el vendedor']].map(([icon, label]) => (
+              {[['check_circle', 'Gratis para empezar'], ['style', 'Ocho juegos de cartas'], ['chat', 'Cierras directo con el vendedor']].map(([icon, label]) => (
                 <li key={label} className="flex items-center gap-1.5"><SvgIcon name={icon} translate="no" className="text-[19px] text-[#1e40af]" />{label}</li>
               ))}
             </ul>

@@ -6,7 +6,7 @@ import EmptyState from '../ui/EmptyState';
 import SvgIcon from '../ui/SvgIcon';
 
 const formatCLP = (value) => `$${Math.round(Number(value) || 0).toLocaleString('es-CL')}`;
-const TCG_LABELS = { Pokemon: 'Pokémon', OnePiece: 'One Piece', YuGiOh: 'Yu-Gi-Oh!' };
+const TCG_LABELS = { Pokemon: 'Pokémon', OnePiece: 'One Piece', YuGiOh: 'Yu-Gi-Oh!', Lorcana: 'Disney Lorcana' };
 const tcgLabel = (value) => TCG_LABELS[value] || value;
 const TABS = [['public', 'Públicas'], ['private', 'No públicas'], ['all', 'Todas']];
 
@@ -52,7 +52,7 @@ export default function CardPicker({ open, onClose, onPick, myUsername }) {
   const emptyText = tab === 'private' ? 'No tienes cartas en carpetas no públicas con esos filtros.' : tab === 'public' ? 'No tienes cartas en carpetas públicas con esos filtros.' : 'Prueba con otro nombre o juego.';
   const sellerOf = (card) => (tab === 'all' ? card.folder?.user?.name || card.folder?.user?.username || 'Vendedor' : card.folderName);
   const gameOf = (card) => tcgLabel(tab === 'all' ? card.folder?.tcg : card.tcg);
-  const gameChips = tab === 'all' ? ['Pokemon', 'Mitos y Leyendas', 'OnePiece', 'Magic', 'YuGiOh', 'Riftbound'] : tcgs;
+  const gameChips = tab === 'all' ? ['Pokemon', 'Mitos y Leyendas', 'OnePiece', 'Magic', 'YuGiOh', 'Riftbound', 'Lorcana', 'Digimon'] : tcgs;
 
   return (
     <Sheet open={open} onClose={onClose} title="Enviar una carta" full className="sm:max-w-lg">

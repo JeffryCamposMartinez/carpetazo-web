@@ -114,9 +114,9 @@ const U = 'cztest_nobuyer';
 
     // ----- Cambio de rol con mensaje -----
     since = new Date();
-    r = await call('POST', `/admin/users/${U}/role`, 'admin', { role: 'support', message: 'Bienvenida al equipo de soporte' });
+    r = await call('POST', `/admin/users/${U}/role`, 'admin', { role: 'moderator', message: 'Bienvenida al equipo de soporte' });
     notices = await noticesFor(since, /Bienvenida al equipo/);
-    ok('cambiar el rol avisa a la persona con el mensaje', r.status === 200 && notices.length === 1 && /Bienvenida al equipo/.test(textOf(notices[0])) && /Soporte/.test(textOf(notices[0])), JSON.stringify(r.j));
+    ok('cambiar el rol avisa a la persona con el mensaje', r.status === 200 && notices.length === 1 && /Bienvenida al equipo/.test(textOf(notices[0])) && /Moderador/.test(textOf(notices[0])), JSON.stringify(r.j));
     await call('POST', `/admin/users/${U}/role`, 'admin', { role: 'user', notify: false });
 
     // ----- La ficha refleja todo -----

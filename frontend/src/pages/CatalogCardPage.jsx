@@ -10,7 +10,7 @@ import { catalogLink } from '../utils/catalogLink';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 const WISHLIST_CATEGORIES = new Set([1, 2, 3, 68, 85, 89]); // juegos que la lista de deseadas acepta desde el catálogo de TCGplayer
-const GAME_FILTER = { Pokemon: 'Pokémon', Pokemon_Japan: 'Pokémon', One_Piece: 'One Piece', Magic: 'Magic', YuGiOh: 'Yu-Gi-Oh!', Riftbound: 'Riftbound' };
+const GAME_FILTER = { Pokemon: 'Pokémon', Pokemon_Japan: 'Pokémon', One_Piece: 'One Piece', Magic: 'Magic', YuGiOh: 'Yu-Gi-Oh!', Riftbound: 'Riftbound', Disney_Lorcana: 'Lorcana', Digimon_Card_Game: 'Digimon' };
 
 function PageSkeleton() {
   return (

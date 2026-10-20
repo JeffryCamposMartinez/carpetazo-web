@@ -7,6 +7,12 @@ const { prisma, NAMES, call, ok, acceptTerms } = require('./fixtures.cjs');
     // ---- carpeta de prueba del vendedor
     let r = await call('POST', '/folders', 'seller', { name: 'TEST lote A', tcg: 'Pokemon', color: 'red', isPublic: true });
     const fid = r.j.folder.id; cleanup.folders.push(fid);
+    for (const tcg of ['Lorcana', 'Digimon']) {
+      const created = await call('POST', '/folders', 'seller', { name: 'CZTEST ' + tcg, tcg }, '10.77.0.5'); // otra conexión: el tope de carpetas nuevas por conexión se comparte con el resto de la suite
+      ok('crear carpeta de ' + tcg + ' → 200 y guarda el juego', created.status === 200 && created.j?.folder?.tcg === tcg, String(created.status));
+      const removed = created.j?.folder?.id ? await call('DELETE', '/folders/' + created.j.folder.id, 'seller', undefined, '10.77.0.5') : { status: 0 };
+      ok('...y se borra para no ocupar un lugar del plan', removed.status === 200, String(removed.status));
+    }
     ok('#14 crear carpeta con juego inválido → 400', (await call('POST', '/folders', 'seller', { name: 'x', tcg: 'Basura' })).status === 400);
     ok('#14 cambiar el juego de una carpeta → 400', (await call('PUT', '/folders/' + fid, 'seller', { tcg: 'Magic' })).status === 400);
     ok('#14 mismo juego + otros campos → 200', (await call('PUT', '/folders/' + fid, 'seller', { tcg: 'Pokemon', name: 'TEST lote A2' })).status === 200);

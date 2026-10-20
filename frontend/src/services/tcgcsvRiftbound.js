@@ -44,7 +44,6 @@ export const RB_VERSIONS = [
   { value: 'overnumbered', label: 'Sobrenumerada' },
   { value: 'signature', label: 'Firma (Signature)' },
   { value: 'metal', label: 'Metal' },
-  { value: 'prize', label: 'Prize Wall' },
   { value: 'serial', label: 'Numerada' },
   { value: 'oversized', label: 'Sobredimensionada' },
   { value: 'event', label: 'Evento o torneo' },

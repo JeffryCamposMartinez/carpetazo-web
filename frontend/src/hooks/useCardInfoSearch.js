@@ -6,17 +6,19 @@ import { EMPTY_OP_FILTERS } from '../services/tcgcsvOnePiece';
 import { EMPTY_MAGIC_FILTERS } from '../services/tcgcsvMagic';
 import { EMPTY_RB_FILTERS } from '../services/tcgcsvRiftbound';
 import { EMPTY_YGO_FILTERS } from '../services/tcgcsvYugioh';
+import { EMPTY_LC_FILTERS } from '../services/tcgcsvLorcana';
+import { EMPTY_DG_FILTERS } from '../services/tcgcsvDigimon';
 import { isSimilarName } from '../utils/similarName';
 
 export const INFO_PAGE = 60; // cartas por página
-export const INFO_GAMES = ['Pokémon', 'Mitos y Leyendas', 'One Piece', 'Magic', 'Yu-Gi-Oh!', 'Riftbound'];
-const GAME_FILTERS = { 'One Piece': EMPTY_OP_FILTERS, Magic: EMPTY_MAGIC_FILTERS, 'Yu-Gi-Oh!': EMPTY_YGO_FILTERS, Riftbound: EMPTY_RB_FILTERS };
+export const INFO_GAMES = ['Pokémon', 'Mitos y Leyendas', 'One Piece', 'Magic', 'Yu-Gi-Oh!', 'Riftbound', 'Lorcana', 'Digimon'];
+const GAME_FILTERS = { 'One Piece': EMPTY_OP_FILTERS, Magic: EMPTY_MAGIC_FILTERS, 'Yu-Gi-Oh!': EMPTY_YGO_FILTERS, Riftbound: EMPTY_RB_FILTERS, Lorcana: EMPTY_LC_FILTERS, Digimon: EMPTY_DG_FILTERS };
 const MYL_CATEGORY = '99';
 const BATCH = 3; // ediciones que se descargan a la vez
 const ROUND_EDITIONS = 24; // ediciones revisadas por juego en cada tanda; las tandas se repiten hasta llenar la página
 const SIMILAR_FROM = 4; // desde este largo del texto también se buscan nombres parecidos
 
-const INDEX_GAME_LABEL = { Pokemon: 'Pokémon', Pokemon_Japan: 'Pokémon', YuGiOh: 'Yu-Gi-Oh!', One_Piece: 'One Piece', OnePiece: 'One Piece' };
+const INDEX_GAME_LABEL = { Pokemon: 'Pokémon', Pokemon_Japan: 'Pokémon', YuGiOh: 'Yu-Gi-Oh!', One_Piece: 'One Piece', OnePiece: 'One Piece', Disney_Lorcana: 'Lorcana', Digimon_Card_Game: 'Digimon' };
 const label = (name, number) => (number && !name.includes(number) ? `${name} - ${number}` : name);
 
 const fromTcgcsv = (card, game, groupId) => ({
@@ -111,7 +113,7 @@ export default function useCardInfoSearch({ query, game, enabled, page, sort = '
         loopRef.current = null;
         return;
       }
-      const indexGame = game === 'Pokémon' ? 'Pokemon,Pokemon_Japan' : game === 'Yu-Gi-Oh!' ? 'YuGiOh' : game === 'One Piece' ? 'One_Piece' : game;
+      const indexGame = game === 'Pokémon' ? 'Pokemon,Pokemon_Japan' : game === 'Yu-Gi-Oh!' ? 'YuGiOh' : game === 'One Piece' ? 'One_Piece' : game === 'Lorcana' ? 'Disney_Lorcana' : game === 'Digimon' ? 'Digimon_Card_Game' : game;
       const indexed = await api.searchTcgIndex(term, indexGame, wantedRef.current, sort);
       if (indexed.available) {
         // El índice nombra los juegos con claves técnicas (Pokemon_Japan, One_Piece...): se muestran y se guardan con el nombre del sitio

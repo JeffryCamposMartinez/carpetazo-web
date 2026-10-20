@@ -18,7 +18,7 @@ const DROP_RATIO = 0.95; // se avisa de una baja desde un 5 %
 const SHOWN = 8; // novedades que se detallan en un aviso
 const ITEMS_MAX = 20000;
 const CHUNK = 400;
-const WISH_TCG = { 1: 'Pokemon', 99: 'Mitos y Leyendas', 68: 'OnePiece', 89: 'Riftbound', 1001: 'Magic', 2: 'YuGiOh' };
+const WISH_TCG = { 1: 'Pokemon', 99: 'Mitos y Leyendas', 68: 'OnePiece', 89: 'Riftbound', 1001: 'Magic', 2: 'YuGiOh', 71: 'Lorcana', 63: 'Digimon' };
 const clp = (value) => `$${Math.round(Number(value) || 0).toLocaleString('es-CL')}`;
 
 // --- Baja de los avisos por correo: enlace firmado en cada correo ---

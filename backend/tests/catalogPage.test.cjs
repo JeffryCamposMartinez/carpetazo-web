@@ -42,6 +42,16 @@ const html = async (path) => { const r = await fetch(B + path); return { status:
     ok('carta que no existe → 404', (await call('GET', '/tcg/card/98099999', null)).status === 404);
     ok('un producto sellado no tiene ficha → 404', (await call('GET', `/tcg/card/${IDS.producto}`, null)).status === 404);
 
+    // --- Datos de cartas para filtrar una carpeta pública (Yu-Gi-Oh!, Magic, One Piece, Riftbound)
+    r = await call('POST', '/tcg/catalog/cards-data', null, { ids: [IDS.carta, String(IDS.otraEdicion), IDS.producto, 'abc', '0', "1; DROP TABLE", IDS.carta] });
+    const data = r.j?.data || {};
+    ok('devuelve los datos de las cartas pedidas, sin sesión', r.status === 200 && Object.keys(data).length === 2 && data[IDS.carta]?.extendedData.some((item) => item.name === 'CardText') && data[IDS.carta].group.name === 'CZTEST Edición Alfa', JSON.stringify(Object.keys(data)));
+    ok('trae el número de la carta y la edición', data[IDS.carta]?.extendedData.some((item) => item.name === 'Number' && item.value === '012/100') && data[IDS.otraEdicion]?.group.name === 'CZTEST Edición Beta');
+    ok('un producto sellado y los ids inválidos se ignoran', !data[IDS.producto] && !('abc' in data));
+    ok('sin ids → vacío', (await call('POST', '/tcg/catalog/cards-data', null, { ids: [] })).j.data && Object.keys((await call('POST', '/tcg/catalog/cards-data', null, { ids: [] })).j.data).length === 0);
+    ok('más de 500 ids → 400', (await call('POST', '/tcg/catalog/cards-data', null, { ids: Array.from({ length: 501 }, (_, i) => i + 1) })).status === 400);
+    ok('un cuerpo sin ids no rompe', (await call('POST', '/tcg/catalog/cards-data', null, {})).status === 200);
+
     // --- Página para buscadores
     let page = await html(`/seo/catalog/${IDS.carta}`);
     ok('página para buscadores: HTML con título, descripción y dirección canónica', page.status === 200 && /text\/html/.test(page.type) && /<title>CZTEST Dragón &lt;b&gt;Rojo&lt;\/b&gt; &amp; &quot;Co&quot; \(CZTEST Edición Alfa\)/.test(page.body) && page.body.includes(`<link rel="canonical" href="https://carpetazo.cl/catalogo/${IDS.carta}/cztest-dragon-b-rojo-b-co">`) && /desde \$4\.500/.test(page.body), page.body.slice(0, 300));

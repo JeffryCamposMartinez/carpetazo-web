@@ -13,6 +13,8 @@ const GAMES = [
   { name: 'Magic', logo: '/images/logos/magic.webp', scale: 'scale-[1.4]' },
   { name: 'One Piece', logo: '/images/logos/onepiece.webp', scale: 'scale-[1.4]' },
   { name: 'Riftbound', logo: '/images/logos/riftbound.webp', scale: 'scale-100' },
+  { name: 'Lorcana', logo: '/images/logos/lorcana.svg', scale: 'scale-110' },
+  { name: 'Digimon', logo: '/images/logos/digimon.svg', scale: 'scale-110' },
 ];
 
 const normalize = (value) => String(value || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -215,7 +217,7 @@ function RecentCards({ cards, loading }) {
     <section aria-labelledby="destacados-cartas">
       <SectionHeader id="destacados-cartas" title="Cartas subidas hace poco" note="Lo último que publicaron los vendedores, con stock disponible." to="/cartas" linkLabel="Buscar cartas" />
       {loading ? (
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-8">
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="aspect-[63/88]" />)}
         </div>
       ) : visible.length === 0 ? (
@@ -223,7 +225,7 @@ function RecentCards({ cards, loading }) {
           Cuando los vendedores suban cartas con stock, las más recientes aparecerán aquí.
         </EmptyState>
       ) : (
-        <div className="grid grid-cols-3 items-start gap-2 sm:grid-cols-4 lg:grid-cols-6">
+        <div className="grid grid-cols-3 items-start gap-2 sm:grid-cols-4 lg:grid-cols-8">
           {visible.map((card, index) => {
             const big = index === 0;
             const myl = isMyl(card.folder?.tcg);

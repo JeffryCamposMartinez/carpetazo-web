@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 120" role="img" aria-label="Digimon Card Game">
+  <defs>
+    <linearGradient id="dg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fb923c"/><stop offset="1" stop-color="#ea580c"/></linearGradient>
+  </defs>
+  <text x="140" y="70" text-anchor="middle" font-family="'Arial Black', Impact, Arial, sans-serif" font-size="54" font-weight="900" letter-spacing="1" fill="url(#dg)" stroke="#1d4ed8" stroke-width="7" stroke-linejoin="round" paint-order="stroke">DIGIMON</text>
+  <rect x="52" y="82" width="176" height="24" rx="12" fill="#1d4ed8"/>
+  <text x="140" y="100" text-anchor="middle" font-family="'Arial Black', Impact, Arial, sans-serif" font-size="15" font-weight="900" letter-spacing="5" fill="#ffffff">CARD GAME</text>
+</svg>

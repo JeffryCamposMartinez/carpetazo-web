@@ -4,6 +4,8 @@ import { ONE_PIECE_CATEGORY, filterOnePieceCards, onePieceExt, onePieceGroupLabe
 import { MAGIC_CATEGORY, MAGIC_MARKER, filterMagicCards, loadMagicMeta, magicExt, magicGroupLabel, magicMatchesQuery } from './tcgcsvMagic';
 import { YUGIOH_CATEGORY, YUGIOH_MARKER, filterYugiohCards, loadYugiohMeta, yugiohExt, yugiohGroupLabel, yugiohMatchesQuery } from './tcgcsvYugioh';
 import { RIFTBOUND_CATEGORY, RIFTBOUND_MARKER, filterRiftboundCards, riftboundExt, riftboundGroupLabel, riftboundMatchesQuery } from './tcgcsvRiftbound';
+import { LORCANA_CATEGORY, LORCANA_MARKER, filterLorcanaCards, lorcanaExt, lorcanaGroupLabel, lorcanaMatchesQuery } from './tcgcsvLorcana';
+import { DIGIMON_CATEGORY, DIGIMON_MARKER, digimonExt, digimonGroupLabel, digimonMatchesQuery, filterDigimonCards } from './tcgcsvDigimon';
 import { sortCatalogGroupsNewestFirst } from './catalogOrdering';
 
 // Juegos que se buscan directo en TCGCSV. `searchCategory` es el valor de la carpeta: '1' = Pokémon, '68' = One Piece, 'magic' = Magic, 'riftbound' = Riftbound, 'yugioh' = Yu-Gi-Oh!.
@@ -14,6 +16,8 @@ export const tcgcsvCategoryId = (searchCategory, lang) => {
   if (searchCategory === MAGIC_MARKER) return MAGIC_CATEGORY;
   if (searchCategory === RIFTBOUND_MARKER) return RIFTBOUND_CATEGORY;
   if (searchCategory === YUGIOH_MARKER) return YUGIOH_CATEGORY;
+  if (searchCategory === LORCANA_MARKER) return LORCANA_CATEGORY;
+  if (searchCategory === DIGIMON_MARKER) return DIGIMON_CATEGORY;
   return null;
 };
 
@@ -23,6 +27,8 @@ const GAMES = {
   'One Piece': { catId: ONE_PIECE_CATEGORY, marker: '68', label: onePieceGroupLabel, parse: (ext, group, name) => onePieceExt(ext, group, name), matches: withLooseMatch(onePieceMatchesQuery), filter: filterOnePieceCards },
   Magic: { catId: MAGIC_CATEGORY, marker: MAGIC_MARKER, label: magicGroupLabel, meta: loadMagicMeta, parse: (ext, group, name, meta) => magicExt(ext, group, name, meta), matches: withLooseMatch(magicMatchesQuery), filter: filterMagicCards },
   Riftbound: { catId: RIFTBOUND_CATEGORY, marker: RIFTBOUND_MARKER, label: riftboundGroupLabel, parse: (ext, group, name) => riftboundExt(ext, group, name), matches: withLooseMatch(riftboundMatchesQuery), filter: filterRiftboundCards },
+  Lorcana: { catId: LORCANA_CATEGORY, marker: LORCANA_MARKER, label: lorcanaGroupLabel, parse: (ext, group, name) => lorcanaExt(ext, group, name), matches: withLooseMatch(lorcanaMatchesQuery), filter: filterLorcanaCards },
+  Digimon: { catId: DIGIMON_CATEGORY, marker: DIGIMON_MARKER, label: digimonGroupLabel, parse: (ext, group, name) => digimonExt(ext, group, name), matches: withLooseMatch(digimonMatchesQuery), filter: filterDigimonCards },
 };
 
 export const tcgcsvGameInfo = (game) => GAMES[game] || null;

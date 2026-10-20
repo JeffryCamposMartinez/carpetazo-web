@@ -21,7 +21,7 @@ import SvgIcon from '../components/ui/SvgIcon';
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 
 // Nombre con el que /cartas filtra cada juego (el servidor guarda otra forma)
-const GAME_FILTER = { Pokemon: 'Pokémon', YuGiOh: 'Yu-Gi-Oh!', OnePiece: 'One Piece' };
+const GAME_FILTER = { Pokemon: 'Pokémon', YuGiOh: 'Yu-Gi-Oh!', OnePiece: 'One Piece', Lorcana: 'Lorcana', Digimon: 'Digimon' };
 
 const DETAILS = [
   ['Juego', 'tcg'], ['Edición', 'set'], ['Rareza', 'rarity'], ['Número', 'number'],

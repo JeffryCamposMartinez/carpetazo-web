@@ -94,7 +94,7 @@ export default function OperationsPanel() {
         <span aria-hidden="true" className={`h-3 w-3 rounded-full ${health?.status === 'ok' ? 'bg-emerald-500' : health ? 'bg-red-500' : 'bg-slate-300'}`} />
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-extrabold text-[#12315f]">{health?.status === 'ok' ? 'El servicio responde con normalidad' : health ? 'El servicio tiene problemas' : 'Comprobando el servicio…'}</h3>
-          <p className="text-sm text-slate-600">{health?.status === 'ok' ? `Base de datos conectada · encendido hace ${health.uptime < 3600 ? `${Math.max(1, Math.round(health.uptime / 60))} min` : `${Math.round(health.uptime / 3600)} h`}` : health ? 'La base de datos no contesta o el servidor no responde.' : ''}</p>
+          <p className="text-sm text-slate-600">{health?.status === 'ok' ? `Base de datos conectada${Number.isFinite(health.uptime) ? ` · encendido hace ${health.uptime < 3600 ? `${Math.max(1, Math.round(health.uptime / 60))} min` : `${Math.round(health.uptime / 3600)} h`}` : ''}` : health ? 'La base de datos no contesta o el servidor no responde.' : ''}</p>
         </div>
         <div className="text-right text-sm"><p className="font-black tabular-nums text-[#12315f]">{errors ? errors.last24h : '—'}</p><p className="text-xs font-semibold text-slate-500">errores distintos en 24 h</p></div>
       </section>

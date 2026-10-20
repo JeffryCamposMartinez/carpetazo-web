@@ -188,6 +188,7 @@ const raw = async (method, path, who, rawBody, headers = {}) => {
 
     // ---- El respaldo completo: contenido sensible y consistencia
     await prisma.user.update({ where: { id: ale.id }, data: { role: ale.role } });
+    await prisma.metricDay.deleteMany({}); // otras pruebas (búsquedas hostiles) dejan términos como DATABASE_URL en los contadores y aquí se busca justo ese texto
     r = await fetch(B + '/admin/backup', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '10.91.0.1', Authorization: 'Bearer test-cztest-admin' }, body: JSON.stringify({ confirm: true }) });
     const text = zlib.gunzipSync(Buffer.from(await r.arrayBuffer())).toString('utf8');
     const lines = text.trim().split('\n').map((line) => JSON.parse(line));

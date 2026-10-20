@@ -17,7 +17,7 @@ const loadFamilies = () => {
   return familiesCache;
 };
 
-export default function OnePieceFilters({ searchQuery, setSearchQuery, filters, setFilters, searchSet, availableSets, onSelectSet, loadedCards = [] }) {
+export default function OnePieceFilters({ searchQuery, setSearchQuery, filters, setFilters, searchSet, availableSets, onSelectSet, loadedCards = [], hideSearch = false }) {
   const [families, setFamilies] = useState([]);
   const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => { loadFamilies().then(setFamilies); }, []);
@@ -39,16 +39,18 @@ export default function OnePieceFilters({ searchQuery, setSearchQuery, filters, 
     <div className="relative w-full rounded-2xl border-2 border-blue-900/10 bg-white p-2 shadow-[0_8px_30px_rgb(0,0,0,0.08)] sm:p-3">
       <div className="flex flex-col gap-2.5 p-1 sm:gap-3 sm:p-1.5">
         {/* Búsqueda: nombre, código (OP08-001) o familia */}
-        <div className="group relative w-full">
-          <SvgIcon name="search" translate="no" aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-blue-900 transition-colors group-focus-within:text-yellow-500" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Nombre, código (OP08-001) o familia..."
-            className="w-full rounded-xl border-2 border-blue-900/20 bg-slate-50 py-2.5 pl-10 pr-3 text-sm font-semibold text-blue-900 placeholder-blue-900/50 shadow-sm outline-none transition-all focus:border-yellow-400 focus:bg-white focus:ring-4 focus:ring-yellow-400/20"
-          />
-        </div>
+        {!hideSearch && (
+          <div className="group relative w-full">
+            <SvgIcon name="search" translate="no" aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-blue-900 transition-colors group-focus-within:text-yellow-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Nombre, código (OP08-001) o familia..."
+              className="w-full rounded-xl border-2 border-blue-900/20 bg-slate-50 py-2.5 pl-10 pr-3 text-sm font-semibold text-blue-900 placeholder-blue-900/50 shadow-sm outline-none transition-all focus:border-yellow-400 focus:bg-white focus:ring-4 focus:ring-yellow-400/20"
+            />
+          </div>
+        )}
 
         {/* Colores: se pueden elegir varios (cartas de cualquiera de ellos) */}
         <div>

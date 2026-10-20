@@ -15,7 +15,7 @@ import { restrictions } from '../moderation/services.js';
 const ASSETS = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'assets');
 const FONT_EXTRA = { file: path.join(ASSETS, 'PlusJakartaSans-ExtraBold.ttf'), family: 'Plus Jakarta Sans ExtraBold' };
 const FONT_BOLD = { file: path.join(ASSETS, 'PlusJakartaSans-Bold.ttf'), family: 'Plus Jakarta Sans Bold' };
-const TCG_LABELS = { Pokemon: 'Pokémon', 'Mitos y Leyendas': 'Mitos y Leyendas', OnePiece: 'One Piece', Magic: 'Magic', YuGiOh: 'Yu-Gi-Oh!', Riftbound: 'Riftbound' };
+const TCG_LABELS = { Pokemon: 'Pokémon', 'Mitos y Leyendas': 'Mitos y Leyendas', OnePiece: 'One Piece', Magic: 'Magic', YuGiOh: 'Yu-Gi-Oh!', Riftbound: 'Riftbound', Lorcana: 'Disney Lorcana', Digimon: 'Digimon Card Game' };
 const visibleCard = { stock: { gt: 0 }, moderationState: 'visible', folder: { isPublic: true, moderationState: 'visible' } };
 const USERNAME = /^[A-Za-z0-9_.-]{3,30}$/;
 const CACHE_MAX = 400;

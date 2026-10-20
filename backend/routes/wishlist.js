@@ -13,8 +13,8 @@ const WISHLIST_MAX_ITEMS = 300; // tope técnico por lista (el de cada plan est�
 const WISHLIST_MAX_LISTS = 10;
 const DEFAULT_LIST_NAME = 'Mi lista';
 const WISHLIST_PAGE_SIZE = 24;
-const WISHLIST_GAMES = ['Pokémon', 'Mitos y Leyendas', 'One Piece', 'Magic', 'Yu-Gi-Oh!', 'Riftbound'];
-const WISHLIST_GAME_BY_CATEGORY = { 1: 'Pokémon', 99: 'Mitos y Leyendas', 68: 'One Piece', 89: 'Riftbound', 1001: 'Magic', 2: 'Yu-Gi-Oh!' };
+const WISHLIST_GAMES = ['Pokémon', 'Mitos y Leyendas', 'One Piece', 'Magic', 'Yu-Gi-Oh!', 'Riftbound', 'Lorcana', 'Digimon'];
+const WISHLIST_GAME_BY_CATEGORY = { 1: 'Pokémon', 99: 'Mitos y Leyendas', 68: 'One Piece', 89: 'Riftbound', 1001: 'Magic', 2: 'Yu-Gi-Oh!', 71: 'Lorcana', 63: 'Digimon' };
 // Juegos que se buscan directo en TCGCSV: categoría de TCGCSV -> categoría guardada, juego y nombre con que se guardan las carpetas.
 // (La categoría de Magic en TCGCSV es 1, igual que la que se guarda para Pokémon: por eso Magic se guarda como 1001.)
 const WISHLIST_TCGCSV = {
@@ -24,6 +24,8 @@ const WISHLIST_TCGCSV = {
   1: { stored: 1001, game: 'Magic' },
   89: { stored: 89, game: 'Riftbound' },
   2: { stored: 2, game: 'Yu-Gi-Oh!' },
+  71: { stored: 71, game: 'Lorcana' },
+  63: { stored: 63, game: 'Digimon' },
 };
 const WISHLIST_OWN_SELECT = { id: true, wishlistId: true, categoryId: true, productId: true, name: true, game: true, detail: true, imageUrl: true, quantity: true, maxPrice: true, priceVisible: true, note: true, createdAt: true };
 
@@ -31,7 +33,7 @@ const WISHLIST_OWN_SELECT = { id: true, wishlistId: true, categoryId: true, prod
 const normalizeWishlistGame = (value) => {
   if (value === undefined || value === null || value === '') return null;
   if (typeof value !== 'string') return undefined;
-  const GAME_ALIASES = { Pokemon: 'Pokémon', Pokemon_Japan: 'Pokémon', YuGiOh: 'Yu-Gi-Oh!', OnePiece: 'One Piece', One_Piece: 'One Piece' }; // nombres con que se guardan las carpetas y claves del índice del catálogo
+  const GAME_ALIASES = { Pokemon: 'Pokémon', Pokemon_Japan: 'Pokémon', YuGiOh: 'Yu-Gi-Oh!', OnePiece: 'One Piece', One_Piece: 'One Piece', Disney_Lorcana: 'Lorcana', Digimon_Card_Game: 'Digimon' }; // nombres con que se guardan las carpetas y claves del índice del catálogo
   const game = GAME_ALIASES[value.trim()] || value.trim();
   return WISHLIST_GAMES.includes(game) ? game : undefined;
 };
@@ -90,7 +92,7 @@ router.get('/api/wishlist/me', authenticateToken, async (req, res) => {
 });
 
 // Cartas de la lista que hoy tienen otros vendedores (catálogos públicos, con stock y dentro del precio máximo)
-const WISHLIST_MATCH_TCG = { 1: 'Pokemon', 99: 'Mitos y Leyendas', 68: 'OnePiece', 89: 'Riftbound', 1001: 'Magic', 2: 'YuGiOh' };
+const WISHLIST_MATCH_TCG = { 1: 'Pokemon', 99: 'Mitos y Leyendas', 68: 'OnePiece', 89: 'Riftbound', 1001: 'Magic', 2: 'YuGiOh', 71: 'Lorcana', 63: 'Digimon' };
 const WISHLIST_MATCHES_PER_ITEM = 5;
 router.get('/api/wishlist/matches', authenticateToken, async (req, res) => {
   try {
@@ -158,7 +160,7 @@ router.post('/api/wishlist', authenticateToken, async (req, res) => {
     if (catalog) {
       identity = { productId: catalog.categoryId === 99 ? storedMylId(catalog.productId) : catalog.productId, categoryId: catalog.categoryId, name: catalog.name, game: WISHLIST_GAME_BY_CATEGORY[catalog.categoryId] || game, detail: catalog.group?.name || detail, imageUrl: catalog.imageUrl || null };
     } else if (external !== undefined) {
-      // Cartas de TCGCSV (Pokémon 3 y 85, One Piece 68, Magic 1, Riftbound 89, Yu-Gi-Oh! 2): el catálogo no está en la base, el identificador se valida por forma
+      // Cartas de TCGCSV (Pokémon 3 y 85, One Piece 68, Magic 1, Riftbound 89, Yu-Gi-Oh! 2, Lorcana 71, Digimon 63): el catálogo no está en la base, el identificador se valida por forma
       const externalCategory = Number(external?.categoryId);
       const externalGame = WISHLIST_TCGCSV[externalCategory];
       const externalId = typeof external?.productId === 'string' || typeof external?.productId === 'number' ? String(external.productId) : '';

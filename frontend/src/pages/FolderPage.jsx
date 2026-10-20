@@ -23,6 +23,8 @@ import { catalogJson } from '../services/tcgcsvFetch';
 import { EMPTY_OP_FILTERS, ONE_PIECE_CATEGORY, onePieceGroupLabel } from '../services/tcgcsvOnePiece';
 import { EMPTY_MAGIC_FILTERS, MAGIC_CATEGORY, magicGroupLabel } from '../services/tcgcsvMagic';
 import { EMPTY_RB_FILTERS, RIFTBOUND_CATEGORY, riftboundGroupLabel } from '../services/tcgcsvRiftbound';
+import { EMPTY_LC_FILTERS, LORCANA_CATEGORY, lorcanaGroupLabel } from '../services/tcgcsvLorcana';
+import { DIGIMON_CATEGORY, EMPTY_DG_FILTERS, digimonGroupLabel } from '../services/tcgcsvDigimon';
 import { EMPTY_YGO_FILTERS, YUGIOH_CATEGORY, yugiohGroupLabel } from '../services/tcgcsvYugioh';
 import { tcgcsvCategoryId } from '../services/tcgcsvGames';
 import { sortCatalogGroupsNewestFirst } from '../services/catalogOrdering';
@@ -123,6 +125,8 @@ export default function FolderPage() {
   const [opFilters, setOpFilters] = useState(EMPTY_OP_FILTERS); // filtros de One Piece
   const [magicFilters, setMagicFilters] = useState(EMPTY_MAGIC_FILTERS); // filtros de Magic
   const [rbFilters, setRbFilters] = useState(EMPTY_RB_FILTERS); // filtros de Riftbound
+  const [lcFilters, setLcFilters] = useState(EMPTY_LC_FILTERS); // filtros de Lorcana
+  const [dgFilters, setDgFilters] = useState(EMPTY_DG_FILTERS); // filtros de Digimon
   const [ygFilters, setYgFilters] = useState(EMPTY_YGO_FILTERS); // filtros de Yu-Gi-Oh!
 
 const [filterRarity, setFilterRarity] = useState('');
@@ -552,7 +556,7 @@ const [isSearching, setIsSearching] = useState(false);
           const groups = sortCatalogGroupsNewestFirst((json.results || [])
             .filter(g => new Date(g.publishedOn) <= new Date())
             .filter(g => emptyGroups[catId]?.[g.groupId] !== g.modifiedOn));
-          setAvailableSets(groups.map(g => ({ groupId: g.groupId, id: g.groupId, name: catId === ONE_PIECE_CATEGORY ? onePieceGroupLabel(g) : catId === MAGIC_CATEGORY ? magicGroupLabel(g) : catId === RIFTBOUND_CATEGORY ? riftboundGroupLabel(g) : catId === YUGIOH_CATEGORY ? yugiohGroupLabel(g) : g.name, isSupplemental: g.isSupplemental, abbreviation: g.abbreviation, publishedOn: g.publishedOn })));
+          setAvailableSets(groups.map(g => ({ groupId: g.groupId, id: g.groupId, name: catId === ONE_PIECE_CATEGORY ? onePieceGroupLabel(g) : catId === MAGIC_CATEGORY ? magicGroupLabel(g) : catId === RIFTBOUND_CATEGORY ? riftboundGroupLabel(g) : catId === YUGIOH_CATEGORY ? yugiohGroupLabel(g) : catId === LORCANA_CATEGORY ? lorcanaGroupLabel(g) : catId === DIGIMON_CATEGORY ? digimonGroupLabel(g) : g.name, isSupplemental: g.isSupplemental, abbreviation: g.abbreviation, publishedOn: g.publishedOn })));
         })
         .catch((error) => {
           if (error?.name !== 'AbortError') {
@@ -796,14 +800,14 @@ const [isSearching, setIsSearching] = useState(false);
     }
 
     setSearchResults(filtered);
-  }, [rawSearchResults, filterType, filterRarity, searchQuery, mylType, mylRace, mylCost, searchPhysicalProduct, selectedSupertype, selectedType, opFilters, magicFilters, rbFilters, ygFilters]);
+  }, [rawSearchResults, filterType, filterRarity, searchQuery, mylType, mylRace, mylCost, searchPhysicalProduct, selectedSupertype, selectedType, opFilters, magicFilters, rbFilters, lcFilters, dgFilters, ygFilters]);
 
   // Si con los filtros actuales no alcanzan resultados para llenar la primera página, seguir cargando ediciones
   useEffect(() => {
     if (isTcgcsvSearch && hasMoreGroups && !isSearching && searchResults.length < PAGE_SIZE) {
       loadMorePokemonRef.current?.();
     }
-  }, [searchResults, hasMoreGroups, isSearching, selectedSupertype, selectedType, filterRarity, opFilters, magicFilters, rbFilters, ygFilters]);
+  }, [searchResults, hasMoreGroups, isSearching, selectedSupertype, selectedType, filterRarity, opFilters, magicFilters, rbFilters, lcFilters, dgFilters, ygFilters]);
 
   // Al cargar las ediciones de Pokémon con "Todas las ediciones", buscar solo para no dejar la lista en blanco
   useEffect(() => {
@@ -821,7 +825,7 @@ const [isSearching, setIsSearching] = useState(false);
   }, [loadingFolder, searchCategory, initialSearchTriggered, activeTab]);
 
   const { applyCardFilters, handleSearchAPI, loadMorePokemonRef, pokeGenRef, pokeLoadingRef, pokeQueueRef } = useCardSearch({
-    abortControllerRef, activeTab, availableSets, filterRarity, loadingFolder, mylCost, mylRace, mylType, magicFilters, opFilters, rbFilters, ygFilters,
+    abortControllerRef, activeTab, availableSets, filterRarity, loadingFolder, mylCost, mylRace, mylType, magicFilters, opFilters, rbFilters, lcFilters, dgFilters, ygFilters,
     searchBlock, searchCategory, searchLang, searchPhysicalProduct, searchQuery, searchSet, selectedSupertype,
     selectedType, setAvailableRarities, setFilterRarity, setFilterType, setHasMoreGroups, setHasSearchedAPI,
     setIsSearching, setRawSearchResults, showToast
@@ -893,10 +897,10 @@ const [isSearching, setIsSearching] = useState(false);
             pseudoName: isBatchAdding ? '' : pseudoName.trim(),
             set: getCardSetName(selectedCard) || 'Unknown',
             rarity: getExtDataValue(selectedCard.extData, 'Rarity') || getExtDataValue(selectedCard.extData, 'Card Number / Rarity') || getExtDataValue(selectedCard.extData, 'Frequency') || 'Unknown',
-            supertype: selectedCard.extData?.magic?.types?.[0] || selectedCard.extData?.rb?.types?.[0] || selectedCard.extData?.ygo?.kind || getExtDataValue(selectedCard.extData, 'Card Type / HP / Stage')?.split(' / ')[0] || getExtDataValue(selectedCard.extData, 'Type') || getExtDataValue(selectedCard.extData, 'CardType') || 'Unknown',
-            type: selectedCard.extData?.magic?.colors?.join('') || selectedCard.extData?.rb?.domains?.join('/') || selectedCard.extData?.ygo?.attribute || getExtDataValue(selectedCard.extData, 'Type') || getExtDataValue(selectedCard.extData, 'Color'),
-            race: selectedCard.extData?.magic?.subtypes?.join(' ') || selectedCard.extData?.rb?.tags?.join(' ') || selectedCard.extData?.ygo?.race || getExtDataValue(selectedCard.extData, 'Race'),
-            cost: selectedCard.extData?.magic?.mv ?? selectedCard.extData?.rb?.energy ?? selectedCard.extData?.ygo?.level ?? getExtDataValue(selectedCard.extData, 'Cost'),
+            supertype: selectedCard.extData?.magic?.types?.[0] || selectedCard.extData?.rb?.types?.[0] || selectedCard.extData?.ygo?.kind || selectedCard.extData?.lc?.types?.[0] || selectedCard.extData?.dg?.types?.[0] || getExtDataValue(selectedCard.extData, 'Card Type / HP / Stage')?.split(' / ')[0] || getExtDataValue(selectedCard.extData, 'Type') || getExtDataValue(selectedCard.extData, 'CardType') || 'Unknown',
+            type: selectedCard.extData?.magic?.colors?.join('') || selectedCard.extData?.rb?.domains?.join('/') || selectedCard.extData?.ygo?.attribute || selectedCard.extData?.lc?.inks?.join('/') || selectedCard.extData?.dg?.colors?.join('/') || getExtDataValue(selectedCard.extData, 'Type') || getExtDataValue(selectedCard.extData, 'Color'),
+            race: selectedCard.extData?.magic?.subtypes?.join(' ') || selectedCard.extData?.rb?.tags?.join(' ') || selectedCard.extData?.ygo?.race || selectedCard.extData?.lc?.classes?.join(' ') || selectedCard.extData?.dg?.traits?.join(' ') || getExtDataValue(selectedCard.extData, 'Race'),
+            cost: selectedCard.extData?.magic?.mv ?? selectedCard.extData?.rb?.energy ?? selectedCard.extData?.ygo?.level ?? selectedCard.extData?.lc?.cost ?? selectedCard.extData?.dg?.cost ?? getExtDataValue(selectedCard.extData, 'Cost'),
             effect: getExtDataValue(selectedCard.extData, 'Effect'),
             number: getExtDataValue(selectedCard.extData, 'Number') || '',
             total: '',
@@ -995,11 +999,11 @@ const [isSearching, setIsSearching] = useState(false);
     filteredSearchSets, folderData, getCardSelectionKey, getCardSetName, getProxyImageUrl, gridCols,
     handleImageUpload, handleResultCardClick, handleRightClickResultCard, handleSaveCard, handleSearchAPI,
     hasMoreGroups, hasSearchedAPI, isBatchAdding, isMylFolder, isSaving, isSearching, isSetDropdownOpen, language,
-    multiSelectMode, mylCost, mylRace, mylType, magicFilters, observerTarget, opFilters, price, rbFilters, ygFilters, pseudoName, queueScrollRef, removeQueueItem,
+    multiSelectMode, mylCost, mylRace, mylType, magicFilters, observerTarget, opFilters, price, rbFilters, lcFilters, dgFilters, ygFilters, pseudoName, queueScrollRef, removeQueueItem,
     resetCardForm, scrollToTopIfNeeded, searchBlock, searchCategory, searchLang, searchPhysicalProduct, searchQuery,
     searchResults, searchSet, selectedCard, selectedExistingCard, selectedQueue, selectedQueueCountByCard,
     selectedSupertype, selectedType, setActiveQueueItemId, setFilterRarity, setFilterType, setGridCols,
-    setIsSetDropdownOpen, setLanguage, setMylCost, setMylRace, setMagicFilters, setMylType, setOpFilters, setPrice, setRbFilters, setYgFilters, setPseudoName, setSearchBlock,
+    setIsSetDropdownOpen, setLanguage, setMylCost, setMylRace, setMagicFilters, setMylType, setOpFilters, setPrice, setRbFilters, setLcFilters, setDgFilters, setYgFilters, setPseudoName, setSearchBlock,
     setSearchLang, setSearchPhysicalProduct, setSearchQuery: handleSearchQueryChange, setSearchSet, setSelectedCard, setSelectedQueue,
     setSelectedSupertype, setSelectedType, setShowCardDetails, setStock, showCardDetails, showScrollTop,
     startQueuedAdd, stock, toggleMultiSelectMode, totalQueuedCards, visibleCount };

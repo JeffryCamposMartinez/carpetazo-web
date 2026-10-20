@@ -202,7 +202,7 @@ const idOf = async (name) => (await prisma.user.findUnique({ where: { firebaseUi
     ok('adjuntar una carta pública → 200 con sus datos', r.status === 200 && r.j.message.attachment?.id === fx.cardId && r.j.message.attachment.price === 1000 && !JSON.stringify(r.j.message.attachment).includes('userId'), JSON.stringify(r.j));
     ok('adjuntar una carta inventada → 400', (await send('jerry', 'seller', cardMsg('00000000-0000-4000-8000-000000000000'))).status === 400);
     ok('adjuntar con un id que no es uuid → 400', (await send('jerry', 'seller', cardMsg('abc'))).status === 400);
-    const privateFolder = (await call('POST', '/folders', 'seller', { name: 'TEST chat privada', tcg: 'Pokemon', color: 'blue', isPublic: false })).j.folder;
+    const privateFolder = (await call('POST', '/folders', 'seller', { name: 'TEST chat privada', tcg: 'Pokemon', color: 'blue', isPublic: false }, '10.88.0.7')).j.folder; // otra conexión: el tope de carpetas nuevas por conexión se agota hacia el final de la suite
     const hidden = await prisma.card.create({ data: { tcgId: 'tst-chat-priv', name: 'Carta privada', price: 500, stock: 1, folderId: privateFolder.id } });
     ok('adjuntar una carta de una carpeta privada → 400', (await send('jerry', 'seller', cardMsg(hidden.id))).status === 400);
     await prisma.folder.update({ where: { id: privateFolder.id }, data: { isPublic: true } });

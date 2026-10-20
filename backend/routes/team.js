@@ -22,7 +22,7 @@ const changeLog = new Map(); // quien hace el cambio -> momentos de los últimos
 
 const RANK = { owner: 4, admin: 3, coadmin: 2.5, moderator: 2, support: 1, user: 0 };
 const ROLE_LABEL = { admin: 'Administrador', coadmin: 'Co-administrador', moderator: 'Moderador', support: 'Soporte', user: 'Sin rol de equipo' };
-const ASSIGNABLE = ['admin', 'coadmin', 'moderator', 'support', 'user'];
+const ASSIGNABLE = ['admin', 'coadmin', 'moderator', 'user']; // «support» ya no se asigna: solo lo conservaría una cuenta antigua
 const rankOf = (user) => (user.isOwner ? RANK.owner : RANK[user.role] ?? 0);
 
 const PERSON = { id: true, username: true, name: true, photoURL: true, role: true, isOwner: true, createdAt: true, publicComuna: true };

@@ -12,13 +12,13 @@ export const YGO_KINDS = [
 ];
 
 export const YGO_ATTRIBUTES = [
-  { value: 'DARK', label: 'Oscuridad', hex: '#6d28d9' },
-  { value: 'LIGHT', label: 'Luz', hex: '#eab308' },
-  { value: 'EARTH', label: 'Tierra', hex: '#92400e' },
-  { value: 'WATER', label: 'Agua', hex: '#2563eb' },
-  { value: 'FIRE', label: 'Fuego', hex: '#dc2626' },
-  { value: 'WIND', label: 'Viento', hex: '#16a34a' },
-  { value: 'DIVINE', label: 'Divino', hex: '#b45309' },
+  { value: 'DARK', label: 'Oscuridad', hex: '#6d28d9', icon: '/images/ygo/dark.webp' },
+  { value: 'LIGHT', label: 'Luz', hex: '#eab308', icon: '/images/ygo/light.webp' },
+  { value: 'EARTH', label: 'Tierra', hex: '#92400e', icon: '/images/ygo/earth.webp' },
+  { value: 'WATER', label: 'Agua', hex: '#2563eb', icon: '/images/ygo/water.webp' },
+  { value: 'FIRE', label: 'Fuego', hex: '#dc2626', icon: '/images/ygo/fire.webp' },
+  { value: 'WIND', label: 'Viento', hex: '#16a34a', icon: '/images/ygo/wind.webp' },
+  { value: 'DIVINE', label: 'Divino', hex: '#b45309', icon: '/images/ygo/divine.webp' },
 ];
 
 // Categorías de monstruo, mágica y trampa (el selector muestra solo las del tipo elegido)
@@ -38,7 +38,7 @@ export const YGO_TRAP_CATEGORIES = [
 ];
 
 export const YGO_RACES = [
-  ['Aqua', 'Aqua'], ['Beast', 'Bestia'], ['Beast-Warrior', 'Bestia Guerrera'], ['Creator-God', 'Dios Creador'], ['Cyberse', 'Cyberso'],
+  ['Aqua', 'Aqua'], ['Beast', 'Bestia'], ['Beast-Warrior', 'Bestia Guerrera'], ['Cyberse', 'Cyberso'],
   ['Dinosaur', 'Dinosaurio'], ['Divine-Beast', 'Bestia Divina'], ['Dragon', 'Dragón'], ['Fairy', 'Hada'], ['Fiend', 'Demonio'],
   ['Fish', 'Pez'], ['Illusion', 'Ilusión'], ['Insect', 'Insecto'], ['Machine', 'Máquina'], ['Plant', 'Planta'], ['Psychic', 'Psíquico'],
   ['Pyro', 'Piro'], ['Reptile', 'Reptil'], ['Rock', 'Roca'], ['Sea Serpent', 'Serpiente Marina'], ['Spellcaster', 'Lanzador de Conjuros'],
@@ -46,12 +46,18 @@ export const YGO_RACES = [
 ].map(([value, label]) => ({ value, label }));
 
 export const YGO_RARITIES = [
-  ['Common', 'Común'], ['Short Print', 'Impresión corta'], ['Super Short Print', 'Súper impresión corta'], ['Rare', 'Rara'],
+  ['Common', 'Común'], ['Rare', 'Rara'],
   ['Super Rare', 'Súper rara'], ['Ultra Rare', 'Ultra rara'], ['Ultimate Rare', 'Última rara (Ultimate)'], ['Secret Rare', 'Secreta'],
   ['Prismatic Secret Rare', 'Secreta prismática'], ['Quarter Century Secret Rare', 'Secreta 25.º aniversario'], ['Starlight Rare', 'Starlight'],
   ['Ghost Rare', 'Fantasma (Ghost)'], ['Ghost/Gold Rare', 'Fantasma y dorada'], ['Gold Rare', 'Dorada'], ['Premium Gold Rare', 'Dorada premium'],
   ['Gold Secret Rare', 'Dorada secreta'], ['Platinum Rare', 'Platino'], ['Platinum Secret Rare', 'Platino secreta'], ['Mosaic Rare', 'Mosaico'],
   ['Shatterfoil Rare', 'Shatterfoil'], ['Starfoil Rare', 'Starfoil'], ["Collector's Rare", 'De coleccionista'], ['Grand Master Rare', 'Gran Maestro'],
+  ["Prismatic Collector's Rare", 'De coleccionista prismática'], ['Prismatic Ultimate Rare', 'Última rara prismática'], ['Parallel Rare', 'Paralela'],
+  ['Duel Terminal Normal Parallel Rare', 'Duel Terminal: paralela normal'], ['Duel Terminal Rare Parallel Rare', 'Duel Terminal: paralela rara'],
+  ['Duel Terminal Super Parallel Rare', 'Duel Terminal: súper paralela'], ['Duel Terminal Ultra Parallel Rare', 'Duel Terminal: ultra paralela'],
+  ['Duel Terminal Technology Common', 'Duel Terminal: tecnología común'], ['Duel Terminal Technology Ultra Rare', 'Duel Terminal: tecnología ultra'],
+  ['Emblazoned Secret Rare', 'Emblazoned secreta'], ['Emblazoned Ultra Rare', 'Emblazoned ultra'],
+  ['Secret Pharaoh’s Rare', 'Secreta del Faraón'], ['Ultra Pharaoh’s Rare', 'Ultra del Faraón'], ['Promo', 'Promo'],
 ].map(([value, label]) => ({ value, label }));
 
 export const YGO_BANLIST = [
@@ -61,8 +67,7 @@ export const YGO_BANLIST = [
 ];
 
 export const YGO_LANGUAGES = [
-  { value: 'EN', label: 'Inglés' }, { value: 'SP', label: 'Español' }, { value: 'PT', label: 'Portugués' }, { value: 'FR', label: 'Francés' },
-  { value: 'DE', label: 'Alemán' }, { value: 'IT', label: 'Italiano' }, { value: 'JP', label: 'Japonés' }, { value: 'KR', label: 'Coreano' },
+  { value: 'EN', label: 'Inglés' }, { value: 'SP', label: 'Español' }, { value: 'DE', label: 'Alemán' }, { value: 'JP', label: 'Japonés' }, // solo los idiomas que existen en el catálogo
 ];
 
 export const YGO_VERSIONS = [

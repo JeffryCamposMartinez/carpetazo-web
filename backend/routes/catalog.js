@@ -12,7 +12,7 @@ const router = express.Router();
 const gzipAsync = promisify(gzip);
 
 // Proxy con caché hacia TCGCSV (Pokémon inglés y japonés, One Piece, Magic, Riftbound, Yu-Gi-Oh!): el navegador no puede llamarlo directo por CORS
-const TCGCSV_ALLOWED_PATH = /^\/tcgplayer\/(1|2|3|68|85|89)\/(groups|\d+\/(products|prices))$/;
+const TCGCSV_ALLOWED_PATH = /^\/tcgplayer\/(1|2|3|63|68|71|85|89)\/(groups|\d+\/(products|prices))$/;
 const TCGCSV_TTL_MS = 30 * 60 * 1000;
 const TCGCSV_STALE_MS = 6 * 60 * 60 * 1000; // si TCGCSV falla se sigue sirviendo la última copia por este tiempo
 const TCGCSV_MAX_ENTRIES = 200;
@@ -392,6 +392,33 @@ async function buildFilterOptions(categoryId) {
       rarities: [...rarities].sort(sortText),
     };
 }
+
+// Datos públicos del catálogo (los mismos que usa el buscador de «agregar cartas») de cartas ya guardadas en una carpeta: así la carpeta pública
+// filtra Yu-Gi-Oh!, Magic, One Piece y Riftbound con los mismos criterios. Solo ids numéricos de TCGplayer.
+router.post('/api/tcg/catalog/cards-data', async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+    if (ids.length > 500) return badRequest(res, 'Demasiadas cartas');
+    const productIds = [...new Set(ids.map((id) => String(id).trim()).filter((id) => /^[1-9]\d{0,9}$/.test(id)).map(Number))];
+    if (productIds.length === 0) return res.json({ success: true, data: {} });
+    const rows = await prisma.catalogCard.findMany({
+      where: { productId: { in: productIds }, kind: 'card' },
+      select: { productId: true, attributes: true, number: true, set: { select: { groupId: true, name: true, abbreviation: true, publishedOn: true } } },
+    });
+    const data = {};
+    rows.forEach((row) => {
+      const attributes = row.attributes && typeof row.attributes === 'object' && !Array.isArray(row.attributes) ? row.attributes : {};
+      const extendedData = Object.entries(attributes).map(([name, value]) => ({ name, value: String(value ?? '') }));
+      if (row.number && !extendedData.some((item) => item.name === 'Number')) extendedData.push({ name: 'Number', value: row.number });
+      data[row.productId] = { extendedData, group: row.set };
+    });
+    res.set('Cache-Control', 'public, max-age=600');
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error cargando datos de cartas del catálogo:', error.message);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
 
 router.post('/api/tcg/products/metadata', async (req, res) => {
   try {

@@ -283,6 +283,7 @@ export const api = {
   getTcgCategories: () => apiFetch('/tcg/categories'),
   getTcgGroups: (categoryId) => apiFetch('/tcg/' + encodeURIComponent(categoryId) + '/groups'),
   getTcgFilterOptions: (categoryId) => apiFetch('/tcg/' + encodeURIComponent(categoryId) + '/filter-options'),
+  getCatalogCardsData: (ids = []) => apiFetch('/tcg/catalog/cards-data', { method: 'POST', body: JSON.stringify({ ids: ids.map(String) }) }),
   getTcgProductsMetadata: (ids = []) => apiFetch('/tcg/products/metadata', {
     method: 'POST',
     body: JSON.stringify({ ids: ids.filter(id => id !== undefined && id !== null).map(String) })

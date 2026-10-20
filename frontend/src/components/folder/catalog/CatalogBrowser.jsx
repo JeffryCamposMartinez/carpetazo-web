@@ -9,7 +9,7 @@ import SvgIcon from '../../ui/SvgIcon';
 // Catálogo público: búsqueda, filtros y vista de álbum o cuadrícula de las cartas.
 export default function CatalogBrowser({
   activeFilterCount, addToCart, addToWishlist, availableRarities, availableSets, cards, cart, cartItemsCount,
-  cartTotal, counts, decrementCart, folderData, formatCLP, isMobileFiltersOpen, isOwner, isSetDropdownOpen,
+  cartTotal, counts, decrementCart, folderData, gameFilters, formatCLP, isMobileFiltersOpen, isOwner, isSetDropdownOpen,
   mylCost, mylFilterOptions, mylRace, mylType, onlyAvailable, quickRarity, searchQuery, searchSet,
   selectedSupertype, selectedType, setIsMobileFiltersOpen, setIsSetDropdownOpen, setMylCost, setMylRace,
   setMylType, setOnlyAvailable, setQuickRarity, setSearchQuery, setSearchSet, setSelectedSupertype,
@@ -90,6 +90,7 @@ export default function CatalogBrowser({
                     mylCost={mylCost}
                     setMylCost={setMylCost}
                     mylFilterOptions={mylFilterOptions}
+                    gameFilters={gameFilters}
                   />
 
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">

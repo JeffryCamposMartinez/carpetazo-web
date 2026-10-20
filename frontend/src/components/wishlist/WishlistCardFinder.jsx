@@ -14,6 +14,8 @@ import { fetchGameGroupCards, fetchGameGroups, filterGameCards, tcgcsvGameInfo }
 import { EMPTY_OP_FILTERS, countOnePieceFilters } from '../../services/tcgcsvOnePiece';
 import { EMPTY_MAGIC_FILTERS, countMagicFilters } from '../../services/tcgcsvMagic';
 import { EMPTY_RB_FILTERS, countRiftboundFilters } from '../../services/tcgcsvRiftbound';
+import { EMPTY_LC_FILTERS, countLorcanaFilters } from '../../services/tcgcsvLorcana';
+import { EMPTY_DG_FILTERS, countDigimonFilters } from '../../services/tcgcsvDigimon';
 import { EMPTY_YGO_FILTERS, countYugiohFilters } from '../../services/tcgcsvYugioh';
 import EmptyState from '../ui/EmptyState';
 import LoadingState from '../ui/LoadingState';
@@ -26,6 +28,8 @@ export const WISHLIST_GAMES = [
   { name: 'Magic', available: true },
   { name: 'Yu-Gi-Oh!', available: true },
   { name: 'Riftbound', available: true },
+  { name: 'Lorcana', available: true },
+  { name: 'Digimon', available: true },
 ];
 
 const MYL_CATEGORY = '99';
@@ -80,6 +84,8 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
   const [opFilters, setOpFilters] = useState(EMPTY_OP_FILTERS);
   const [magicFilters, setMagicFilters] = useState(EMPTY_MAGIC_FILTERS);
   const [rbFilters, setRbFilters] = useState(EMPTY_RB_FILTERS);
+  const [lcFilters, setLcFilters] = useState(EMPTY_LC_FILTERS);
+  const [dgFilters, setDgFilters] = useState(EMPTY_DG_FILTERS);
   const [ygFilters, setYgFilters] = useState(EMPTY_YGO_FILTERS);
 
   const [results, setResults] = useState([]);
@@ -93,8 +99,8 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
   const isMyl = game === 'Mitos y Leyendas';
   const selectedGame = WISHLIST_GAMES.find((item) => item.name === game);
   const gameInfo = tcgcsvGameInfo(game); // One Piece, Magic o Riftbound
-  const gameFilters = game === 'One Piece' ? opFilters : game === 'Magic' ? magicFilters : game === 'Yu-Gi-Oh!' ? ygFilters : rbFilters;
-  const gameFilterCount = game === 'One Piece' ? countOnePieceFilters(opFilters) : game === 'Magic' ? countMagicFilters(magicFilters) : game === 'Yu-Gi-Oh!' ? countYugiohFilters(ygFilters) : countRiftboundFilters(rbFilters);
+  const gameFilters = game === 'One Piece' ? opFilters : game === 'Magic' ? magicFilters : game === 'Yu-Gi-Oh!' ? ygFilters : game === 'Lorcana' ? lcFilters : game === 'Digimon' ? dgFilters : rbFilters;
+  const gameFilterCount = game === 'One Piece' ? countOnePieceFilters(opFilters) : game === 'Magic' ? countMagicFilters(magicFilters) : game === 'Yu-Gi-Oh!' ? countYugiohFilters(ygFilters) : game === 'Lorcana' ? countLorcanaFilters(lcFilters) : game === 'Digimon' ? countDigimonFilters(dgFilters) : countRiftboundFilters(rbFilters);
   const loadCards = (group, signal) => (gameInfo ? fetchGameGroupCards(game, group, signal) : fetchPokemonGroupCards(searchLang, group, signal));
   const rowOf = (card) => (gameInfo ? gameRow(card, game) : pokemonRow(card));
   // Texto de búsqueda y filtros del juego sobre las cartas de una edición
@@ -105,7 +111,7 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
   const resetFilters = () => {
     setSearchQuery(''); setSearchSet(''); setSelectedSupertype(''); setSelectedType('');
     setSearchBlock(''); setSearchPhysicalProduct(''); setMylType(''); setMylRace(''); setMylCost('');
-    setOpFilters(EMPTY_OP_FILTERS); setMagicFilters(EMPTY_MAGIC_FILTERS); setRbFilters(EMPTY_RB_FILTERS); setYgFilters(EMPTY_YGO_FILTERS);
+    setOpFilters(EMPTY_OP_FILTERS); setMagicFilters(EMPTY_MAGIC_FILTERS); setRbFilters(EMPTY_RB_FILTERS); setLcFilters(EMPTY_LC_FILTERS); setDgFilters(EMPTY_DG_FILTERS); setYgFilters(EMPTY_YGO_FILTERS);
     setResults([]); setHint(''); setVisible(PAGE);
   };
   if (resetRef) resetRef.current = resetFilters;
@@ -196,7 +202,7 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
 
     const timer = setTimeout(run, 400);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [game, searchQuery, searchSet, searchLang, selectedSupertype, selectedType, editionGroups, mylFilters, opFilters, magicFilters, rbFilters, ygFilters]);
+  }, [game, searchQuery, searchSet, searchLang, selectedSupertype, selectedType, editionGroups, mylFilters, opFilters, magicFilters, rbFilters, lcFilters, dgFilters, ygFilters]);
 
   // Descarga ediciones de a 3, de la más nueva a la más vieja, hasta juntar una página de coincidencias (o llegar a la última)
   const scanEditions = async (from, term, signal) => {
@@ -280,6 +286,10 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
             setMagicFilters={setMagicFilters}
             rbFilters={rbFilters}
             setRbFilters={setRbFilters}
+            lcFilters={lcFilters}
+            setLcFilters={setLcFilters}
+            dgFilters={dgFilters}
+            setDgFilters={setDgFilters}
             ygFilters={ygFilters}
             setYgFilters={setYgFilters}
             loadedCards={results}

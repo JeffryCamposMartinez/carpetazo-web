@@ -5,7 +5,7 @@ import FeaturedZone from '../components/home/FeaturedZone';
 import usePageMeta from '../hooks/usePageMeta';
 
 export default function ExplorePage() {
-  usePageMeta({ title: 'Carpetazo - Compra y vende cartas TCG en Chile', description: 'Compra y vende cartas de Pokémon, Mitos y Leyendas, Yu-Gi-Oh!, Magic, One Piece y Riftbound directo a jugadores de Chile. Explora carpetas, cartas y vendedores.', path: '/', jsonLd: { '@context': 'https://schema.org', '@type': 'WebSite', name: 'Carpetazo', url: 'https://carpetazo.cl/', inLanguage: 'es-CL', potentialAction: { '@type': 'SearchAction', target: 'https://carpetazo.cl/cartas?q={search_term_string}', 'query-input': 'required name=search_term_string' } } });
+  usePageMeta({ title: 'Carpetazo - Compra y vende cartas TCG en Chile', description: 'Compra y vende cartas de Pokémon, Mitos y Leyendas, Yu-Gi-Oh!, Magic, One Piece, Riftbound, Lorcana y Digimon directo a jugadores de Chile. Explora carpetas, cartas y vendedores.', path: '/', jsonLd: { '@context': 'https://schema.org', '@type': 'WebSite', name: 'Carpetazo', url: 'https://carpetazo.cl/', inLanguage: 'es-CL', potentialAction: { '@type': 'SearchAction', target: 'https://carpetazo.cl/cartas?q={search_term_string}', 'query-input': 'required name=search_term_string' } } });
   // Las cartas recientes alimentan el mosaico de destacados
   const [recentCards, setRecentCards] = useState([]);
   const [loadingCards, setLoadingCards] = useState(true);

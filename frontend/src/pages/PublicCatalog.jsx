@@ -8,6 +8,7 @@ import { formatWhatsAppNumber, getInstagramHref, getSocialHref } from '../utils/
 import { wishlistPayloadFromCard } from '../utils/wishlistPayload';
 import CatalogCartDrawer from '../components/folder/catalog/CatalogCartDrawer';
 import CatalogBrowser from '../components/folder/catalog/CatalogBrowser';
+import { gameFilterKit, withCatalogData } from '../services/tcgGameFilters';
 import CatalogCover from '../components/folder/catalog/CatalogCover';
 import { rarityRank } from '../utils/rarityRank';
 import usePageMeta from '../hooks/usePageMeta';
@@ -37,6 +38,7 @@ function PublicCatalog() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [unavailable, setUnavailable] = useState(false); // el servidor responde igual si la carpeta es privada o no existe, para no revelar cuál
   
   const { showToast } = useToast();
   
@@ -69,6 +71,9 @@ function PublicCatalog() {
   const [mylCost, setMylCost] = useState('');
   const [mylFilterOptions, setMylFilterOptions] = useState({ types: [], races: [], costs: [], rarities: [] });
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const gameKit = useMemo(() => gameFilterKit(folderData?.tcg), [folderData?.tcg]);
+  const [gameFilterValues, setGameFilterValues] = useState(null);
+  useEffect(() => { setGameFilterValues(gameKit ? { ...gameKit.empty } : null); }, [gameKit]);
   
   const [appliedFilters, setAppliedFilters] = useState({
     query: '', set: '', supertype: '', type: '', mylType: '', mylRace: '', mylCost: ''
@@ -166,10 +171,12 @@ function PublicCatalog() {
         }
 
         setCards(cardsList);
+        // Yu-Gi-Oh!, Magic, One Piece y Riftbound: se completan los datos de cada carta para poder filtrarlas como al agregarlas
+        if (gameFilterKit(folder.tcg)) withCatalogData(folder.tcg, cardsList).then(setCards).catch((dataError) => console.warn('No se pudieron completar los datos de las cartas.', dataError?.message || dataError));
         
       } catch (error) {
         console.error("Error fetching catalog:", error);
-        setErrorMsg("Hubo un error al cargar el catálogo.");
+        if (error?.status === 404) { setUnavailable(true); setErrorMsg('Esta carpeta no está disponible'); } else setErrorMsg("Hubo un error al cargar el catálogo.");
       } finally {
         setLoading(false);
       }
@@ -256,7 +263,8 @@ function PublicCatalog() {
     setQuickRarity('');
     setOnlyAvailable(false);
     setSortBy('featured');
-  }, []);
+    setGameFilterValues((previous) => (previous && gameKit ? { ...gameKit.empty } : previous));
+  }, [gameKit]);
 
   const scrollCatalogTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -264,7 +272,7 @@ function PublicCatalog() {
 
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
 
-  const activeFilterCount = [selectedSupertype, selectedType, searchSet, mylType, mylRace, mylCost, quickRarity].filter(Boolean).length
+  const activeFilterCount = [selectedSupertype, selectedType, searchSet, mylType, mylRace, mylCost, quickRarity].filter(Boolean).length + (gameKit && gameFilterValues ? gameKit.count(gameFilterValues) : 0)
     + (onlyAvailable ? 1 : 0) + (sortBy !== 'featured' ? 1 : 0);
 
   const isOwner = Boolean(sellerData?.isOwner) || ownsFolder;
@@ -422,7 +430,8 @@ function PublicCatalog() {
     setSearchParams(nextParams, { replace: true });
   }, [searchQuery, searchSet, selectedSupertype, selectedType, mylType, mylRace, mylCost, folderData?.tcg, setSearchParams]);
 
-  const filteredCards = useMemo(() => cards
+  const filteredCards = useMemo(() => {
+    const list = cards
     .filter(card => folderData?.tcg === 'Mitos y Leyendas' || appliedFilters.supertype === '' || card.supertype === appliedFilters.supertype)
     .filter(card => folderData?.tcg === 'Mitos y Leyendas' || appliedFilters.type === '' || (card.types && card.types.includes(appliedFilters.type)) || (card.supertype === 'Energy' && card.name && card.name.includes(appliedFilters.type)))
     .filter(card => folderData?.tcg !== 'Mitos y Leyendas' || appliedFilters.mylType === '' || [card.type, card.cardType, card.supertype].filter(Boolean).includes(appliedFilters.mylType))
@@ -451,7 +460,9 @@ function PublicCatalog() {
         card.subtype,
       ].filter(Boolean).join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
       return haystack.includes(query);
-    }), [cards, appliedFilters, folderData?.tcg, quickRarity, onlyAvailable]);
+    });
+    return gameKit && gameFilterValues ? gameKit.filter(list, gameFilterValues) : list;
+  }, [cards, appliedFilters, folderData?.tcg, quickRarity, onlyAvailable, gameKit, gameFilterValues]);
 
   const sortedCards = useMemo(() => {
     const normalizeText = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -580,7 +591,9 @@ function PublicCatalog() {
     return (
       <div className="relative z-10 flex min-h-[calc(100svh-80px)] w-full flex-col items-center justify-center bg-[#DBEAFE] p-6">
         <EmptyState icon="folder_off" title={errorMsg} action={{ label: 'Volver al inicio', to: '/' }} secondary={{ label: 'Ver todas las carpetas', to: '/carpetas' }} className="max-w-md">
-          Revisa que el enlace esté completo o pídele al vendedor que te lo envíe de nuevo.
+          {unavailable
+            ? 'Puede que su dueño la haya hecho privada, que se haya eliminado o que el enlace esté incompleto. Pídele al vendedor que te envíe el enlace de nuevo.'
+            : 'Revisa tu conexión e inténtalo de nuevo en un momento.'}
         </EmptyState>
       </div>
     );
@@ -589,7 +602,7 @@ function PublicCatalog() {
   const catalogCartDrawerProps = { cart, cartTotal, currentUser, formatCLP, handleMessageCheckout,
     handleWhatsAppCheckout, isProcessingCheckout, messageMode, removeFromCart, setIsCartOpen, socialEnabled };
 
-  const catalogBrowserProps = { activeFilterCount, addToCart, addToWishlist, availableRarities, availableSets, cards,
+  const catalogBrowserProps = { gameFilters: gameKit && gameFilterValues ? { key: gameKit.key, filters: gameFilterValues, setFilters: setGameFilterValues } : null, activeFilterCount, addToCart, addToWishlist, availableRarities, availableSets, cards,
     cart, cartItemsCount, cartTotal, counts, decrementCart, folderData, formatCLP, isMobileFiltersOpen, isOwner,
     isSetDropdownOpen, mylCost, mylFilterOptions, mylRace, mylType, onlyAvailable, quickRarity, searchQuery,
     searchSet, selectedSupertype, selectedType, setIsMobileFiltersOpen, setIsSetDropdownOpen, setMylCost, setMylRace,

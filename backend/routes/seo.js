@@ -11,7 +11,7 @@ import { botFamily, bumpMetric } from '../core/metrics.js';
 const router = express.Router();
 const SITE = 'https://carpetazo.cl';
 const API = process.env.PUBLIC_API_URL || 'https://api.carpetazo.cl';
-const TCG_LABELS = { Pokemon: 'Pokémon', 'Mitos y Leyendas': 'Mitos y Leyendas', OnePiece: 'One Piece', Magic: 'Magic', YuGiOh: 'Yu-Gi-Oh!', Riftbound: 'Riftbound' };
+const TCG_LABELS = { Pokemon: 'Pokémon', 'Mitos y Leyendas': 'Mitos y Leyendas', OnePiece: 'One Piece', Magic: 'Magic', YuGiOh: 'Yu-Gi-Oh!', Riftbound: 'Riftbound', Lorcana: 'Disney Lorcana', Digimon: 'Digimon Card Game' };
 const visibleCard = { stock: { gt: 0 }, moderationState: 'visible', folder: { isPublic: true, moderationState: 'visible' } };
 const USERNAME = /^[A-Za-z0-9_.-]{3,30}$/;
 const OFFERS_SHOWN = 20;

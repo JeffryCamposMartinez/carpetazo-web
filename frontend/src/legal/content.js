@@ -202,7 +202,7 @@ export const termsBlocks = [
  },
  {
   "t": "p",
-  "x": "10.1. **Tu contenido.** Sigue siendo tuyo. Nos otorgas una **licencia limitada, gratuita y no exclusiva** para mostrarlo, almacenarlo y procesarlo (por ejemplo, redimensionar imágenes) **solo para operar Carpetazo**. Terminará cuando elimines el contenido o tu cuenta, salvo copias necesarias por seguridad, reportes o por ley."
+  "x": "10.1. **Tu contenido.** Sigue siendo tuyo. Nos otorgas una **licencia limitada, gratuita y no exclusiva** para mostrarlo, almacenarlo y procesarlo (por ejemplo, redimensionar imágenes) **solo para operar Carpetazo**. Terminará cuando elimines el contenido o tu cuenta, salvo copias necesarias por seguridad, reportes o por ley. **Fotos para cartas sin imagen:** si subes una foto a una carta del catálogo que todavía no tiene imagen, puede ofrecerse a Moderación; si la aprueba, nos autorizas a usarla como imagen de esa carta para todas las personas, con esta misma licencia, y podrá seguir usándose aunque elimines tu carpeta o tu cuenta (se asocia solo internamente a tu cuenta, no se muestra tu nombre). Debe ser una foto tuya de la carta real y cumplir las reglas del punto 5; si se rechaza, se borra la copia que se había ofrecido, y te avisamos de la decisión."
  },
  {
   "t": "p",

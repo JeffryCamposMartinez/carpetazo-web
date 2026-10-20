@@ -20,7 +20,7 @@ const normalize = (text) => (text || '').toLowerCase().normalize('NFD').replace(
 
 // La búsqueda, el juego, el orden y la página se resuelven en el servidor (40 carpetas por página)
 export default function FoldersPage() {
-  usePageMeta({ title: 'Carpetas de cartas TCG de vendedores chilenos | Carpetazo', description: 'Explora las carpetas públicas de vendedores de cartas TCG en Chile: Pokémon, Yu-Gi-Oh!, Magic, One Piece y más.', path: '/carpetas' });
+  usePageMeta({ title: 'Carpetas de cartas TCG de vendedores chilenos | Carpetazo', description: 'Explora las carpetas públicas de vendedores de cartas TCG en Chile: Pokémon, Yu-Gi-Oh!, Magic, One Piece, Lorcana, Digimon y más.', path: '/carpetas' });
   const [searchParams, setSearchParams] = useSearchParams();
   const urlQuery = searchParams.get('q') || '';
   const selectedTcg = searchParams.get('tcg') || 'Todos';

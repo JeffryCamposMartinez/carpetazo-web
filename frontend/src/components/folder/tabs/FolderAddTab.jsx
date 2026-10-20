@@ -12,6 +12,8 @@ import { cardCorners, cardFit, cardRatio, isYugioh } from '../../../utils/cardSh
 import { EMPTY_OP_FILTERS } from '../../../services/tcgcsvOnePiece';
 import { EMPTY_MAGIC_FILTERS } from '../../../services/tcgcsvMagic';
 import { EMPTY_RB_FILTERS } from '../../../services/tcgcsvRiftbound';
+import { EMPTY_LC_FILTERS } from '../../../services/tcgcsvLorcana';
+import { EMPTY_DG_FILTERS } from '../../../services/tcgcsvDigimon';
 import { EMPTY_YGO_FILTERS } from '../../../services/tcgcsvYugioh';
 import LoadingState, { ButtonSpinner } from '../../ui/LoadingState';
 import EmptyState from '../../ui/EmptyState';
@@ -23,10 +25,10 @@ export default function FolderAddTab({
   folderData, getCardSelectionKey, getCardSetName, getProxyImageUrl, gridCols, handleImageUpload,
   handleResultCardClick, handleRightClickResultCard, handleSaveCard, handleSearchAPI, hasMoreGroups,
   hasSearchedAPI, isBatchAdding, isMylFolder, isSaving, isSearching, isSetDropdownOpen, language,
-  multiSelectMode, mylCost, mylRace, mylType, magicFilters, observerTarget, opFilters, price, pseudoName, rbFilters, ygFilters, queueScrollRef,
+  multiSelectMode, mylCost, mylRace, mylType, magicFilters, observerTarget, opFilters, price, pseudoName, rbFilters, lcFilters, dgFilters, ygFilters, queueScrollRef,
   removeQueueItem, resetCardForm, scrollToTopIfNeeded, searchBlock, searchCategory, searchLang,
   searchPhysicalProduct, searchQuery, searchResults, searchSet, selectedCard, selectedExistingCard,
-  selectedQueue, selectedQueueCountByCard, selectedSupertype, selectedType, setActiveQueueItemId, setMagicFilters, setOpFilters, setRbFilters, setYgFilters,
+  selectedQueue, selectedQueueCountByCard, selectedSupertype, selectedType, setActiveQueueItemId, setMagicFilters, setOpFilters, setRbFilters, setLcFilters, setDgFilters, setYgFilters,
   setFilterRarity, setFilterType, setGridCols, setIsSetDropdownOpen, setLanguage, setMylCost, setMylRace,
   setMylType, setPrice, setPseudoName, setSearchBlock, setSearchLang, setSearchPhysicalProduct,
   setSearchQuery, setSearchSet, setSelectedCard, setSelectedQueue, setSelectedSupertype, setSelectedType,
@@ -34,7 +36,7 @@ export default function FolderAddTab({
   totalQueuedCards, visibleCount
 }) {
   // Precio referencial (Pokémon: TCGplayer; Mitos y Leyendas: vendedores de Carpetazo) de las cartas a la vista y de la que se agrega
-  const referenceGame = searchCategory === '1' ? 'pokemon' : searchCategory === '68' ? 'onepiece' : searchCategory === 'magic' ? 'magic' : searchCategory === 'riftbound' ? 'riftbound' : searchCategory === 'yugioh' ? 'yugioh' : searchCategory === '99' ? 'myl' : null;
+  const referenceGame = searchCategory === '1' ? 'pokemon' : searchCategory === '68' ? 'onepiece' : searchCategory === 'magic' ? 'magic' : searchCategory === 'riftbound' ? 'riftbound' : searchCategory === 'yugioh' ? 'yugioh' : searchCategory === 'lorcana' ? 'lorcana' : searchCategory === 'digimon' ? 'digimon' : searchCategory === '99' ? 'myl' : null;
   const { variantsFor, source } = useReferencePrices(selectedCard ? [selectedCard, ...searchResults.slice(0, visibleCount)] : searchResults.slice(0, visibleCount), referenceGame);
   const selectedVariants = referenceGame && selectedCard ? variantsFor(selectedCard) : undefined;
   // Botón flotante de limpiar filtros: deja todos los filtros del juego en su estado inicial
@@ -42,7 +44,7 @@ export default function FolderAddTab({
     setSearchQuery(''); setSearchSet('');
     setSearchBlock(''); setSearchPhysicalProduct(''); setMylType(''); setMylRace(''); setMylCost('');
     setSelectedSupertype(''); setSelectedType(''); setFilterRarity(''); setFilterType('all');
-    setOpFilters(EMPTY_OP_FILTERS); setMagicFilters(EMPTY_MAGIC_FILTERS); setRbFilters(EMPTY_RB_FILTERS); setYgFilters(EMPTY_YGO_FILTERS);
+    setOpFilters(EMPTY_OP_FILTERS); setMagicFilters(EMPTY_MAGIC_FILTERS); setRbFilters(EMPTY_RB_FILTERS); setLcFilters(EMPTY_LC_FILTERS); setDgFilters(EMPTY_DG_FILTERS); setYgFilters(EMPTY_YGO_FILTERS);
     scrollToTopIfNeeded();
   };
   // Carta de la ficha en pantalla grande (al tocar su imagen)
@@ -75,7 +77,7 @@ export default function FolderAddTab({
             filteredSearchSets={filteredSearchSets}
             isSetDropdownOpen={isSetDropdownOpen}
             setIsSetDropdownOpen={setIsSetDropdownOpen}
-            opFilters={opFilters} setOpFilters={setOpFilters} magicFilters={magicFilters} setMagicFilters={setMagicFilters} rbFilters={rbFilters} setRbFilters={setRbFilters} ygFilters={ygFilters} setYgFilters={setYgFilters} loadedCards={searchResults}
+            opFilters={opFilters} setOpFilters={setOpFilters} magicFilters={magicFilters} setMagicFilters={setMagicFilters} rbFilters={rbFilters} setRbFilters={setRbFilters} lcFilters={lcFilters} setLcFilters={setLcFilters} dgFilters={dgFilters} setDgFilters={setDgFilters} ygFilters={ygFilters} setYgFilters={setYgFilters} loadedCards={searchResults}
             selectedType={selectedType} setSelectedType={setSelectedType} selectedSupertype={selectedSupertype} setSelectedSupertype={setSelectedSupertype} filterCounts={filterCounts} filterType={filterType}
             setFilterType={setFilterType}
             availableRarities={availableRarities}

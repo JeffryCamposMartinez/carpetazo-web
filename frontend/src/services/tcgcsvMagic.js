@@ -72,8 +72,6 @@ export const MAGIC_COLLECTIONS = [
   { value: 'promo', label: 'Promos y eventos' },
   { value: 'lair', label: 'Secret Lair' },
   { value: 'art', label: 'Art Series' },
-  { value: 'token', label: 'Fichas y emblemas' },
-  { value: 'other', label: 'Otros' },
 ];
 
 export const MAGIC_MV = [...Array.from({ length: 8 }, (_, i) => String(i)), '8+'];

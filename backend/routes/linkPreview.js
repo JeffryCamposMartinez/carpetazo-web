@@ -8,7 +8,7 @@ import { isAllowedProxyImageUrl } from '../core/validation.js';
 const router = express.Router();
 const SITE = 'https://carpetazo.cl';
 const API = process.env.PUBLIC_API_URL || 'https://api.carpetazo.cl';
-const TCG_LABELS = { Pokemon: 'Pokémon', 'Mitos y Leyendas': 'Mitos y Leyendas', OnePiece: 'One Piece', Magic: 'Magic', YuGiOh: 'Yu-Gi-Oh!', Riftbound: 'Riftbound' };
+const TCG_LABELS = { Pokemon: 'Pokémon', 'Mitos y Leyendas': 'Mitos y Leyendas', OnePiece: 'One Piece', Magic: 'Magic', YuGiOh: 'Yu-Gi-Oh!', Riftbound: 'Riftbound', Lorcana: 'Disney Lorcana', Digimon: 'Digimon Card Game' };
 const DEFAULT_PREVIEW = {
   title: 'Carpetazo - El mercado de Cartas TCG en Chile',
   description: 'Compra, vende y gestiona tus colecciones de cartas en Chile.',

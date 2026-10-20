@@ -4,6 +4,8 @@ import OnePieceFilters from './OnePieceFilters';
 import MagicFilters from './MagicFilters';
 import RiftboundFilters from './RiftboundFilters';
 import YugiohFilters from './YugiohFilters';
+import LorcanaFilters from './LorcanaFilters';
+import DigimonFilters from './DigimonFilters';
 import React from 'react';
 import ThemedSelect from '../../ui/ThemedSelect';
 import Select from '../../ui/Select';
@@ -252,6 +254,10 @@ export default function FolderAddSearchFilters({
   setMagicFilters,
   rbFilters,
   setRbFilters,
+  lcFilters,
+  setLcFilters,
+  dgFilters,
+  setDgFilters,
   ygFilters,
   setYgFilters,
   loadedCards,
@@ -303,6 +309,28 @@ export default function FolderAddSearchFilters({
           setSearchQuery={setSearchQuery}
           filters={ygFilters}
           setFilters={setYgFilters}
+          searchSet={searchSet}
+          availableSets={availableSets}
+          onSelectSet={onSelectSet}
+          loadedCards={loadedCards}
+        />
+      ) : searchCategory === 'lorcana' ? (
+        <LorcanaFilters
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          filters={lcFilters}
+          setFilters={setLcFilters}
+          searchSet={searchSet}
+          availableSets={availableSets}
+          onSelectSet={onSelectSet}
+          loadedCards={loadedCards}
+        />
+      ) : searchCategory === 'digimon' ? (
+        <DigimonFilters
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          filters={dgFilters}
+          setFilters={setDgFilters}
           searchSet={searchSet}
           availableSets={availableSets}
           onSelectSet={onSelectSet}

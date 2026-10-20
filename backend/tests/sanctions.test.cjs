@@ -26,9 +26,10 @@ const upload = async (who, reportId, buffer, name = 'a.png', type = 'image/png')
     ok('cambiar rol siendo usuario común → 403', (await call('POST', `/admin/users/${NAMES.ignacio}/role`, 'jerry', { role: 'moderator' })).status === 403);
     ok('rol inválido → 400', (await call('POST', `/admin/users/${NAMES.ignacio}/role`, 'admin', { role: 'dios' })).status === 400);
     ok('no se cambia el rol de un administrador → 403', (await call('POST', `/admin/users/${NAMES.admin}/role`, 'admin', { role: 'user' })).status === 403);
-    ok('usuario inexistente → 404', (await call('POST', '/admin/users/no_existe_xyz/role', 'admin', { role: 'support' })).status === 404);
+    ok('usuario inexistente → 404', (await call('POST', '/admin/users/no_existe_xyz/role', 'admin', { role: 'moderator' })).status === 404);
     ok('hacer moderador a un usuario → 200', (await call('POST', `/admin/users/${NAMES.ignacio}/role`, 'admin', { role: 'moderator' })).status === 200);
-    ok('hacer soporte a un usuario → 200', (await call('POST', `/admin/users/${NAMES.jeffry}/role`, 'admin', { role: 'support' })).status === 200);
+    ok('el rol de soporte ya no se puede asignar → 400', (await call('POST', `/admin/users/${NAMES.jeffry}/role`, 'admin', { role: 'support' })).status === 400);
+    await prisma.user.update({ where: { firebaseUid: uid('jeffry') }, data: { role: 'support' } }); // una cuenta antigua con ese rol sigue siendo de solo lectura
     let r = await call('GET', '/admin/me', 'ignacio');
     ok('el moderador entra al panel pero no es administrador', r.status === 200 && r.j.isStaff === true && r.j.isAdmin === false && r.j.level === 2);
     ok('un usuario común no entra al panel → 403', (await call('GET', '/admin/me', 'jerry')).status === 403);

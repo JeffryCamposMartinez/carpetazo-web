@@ -26,7 +26,7 @@ const readView = () => {
 
 // Cartas a la venta de todas las carpetas públicas. Búsqueda, juego, orden y página viven en la dirección (se pueden compartir).
 export default function CardsPage() {
-  usePageMeta({ title: 'Cartas TCG en venta en Chile | Carpetazo', description: 'Busca y compra cartas de Pokémon, Yu-Gi-Oh!, Magic, One Piece y Mitos y Leyendas a vendedores de todo Chile. Compara precios y ofertas.', path: '/cartas' });
+  usePageMeta({ title: 'Cartas TCG en venta en Chile | Carpetazo', description: 'Busca y compra cartas de Pokémon, Yu-Gi-Oh!, Magic, One Piece, Riftbound, Lorcana, Digimon y Mitos y Leyendas a vendedores de todo Chile. Compara precios y ofertas.', path: '/cartas' });
   const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser } = useAuth();
   const navigate = useNavigate();

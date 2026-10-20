@@ -5,13 +5,15 @@ import { ONE_PIECE_CATEGORY, filterOnePieceCards, onePieceExt, onePieceMatchesQu
 import { MAGIC_CATEGORY, MAGIC_MARKER, filterMagicCards, loadMagicMeta, magicExt, magicMatchesQuery } from '../services/tcgcsvMagic';
 import { RIFTBOUND_CATEGORY, RIFTBOUND_MARKER, filterRiftboundCards, riftboundExt, riftboundMatchesQuery } from '../services/tcgcsvRiftbound';
 import { YUGIOH_CATEGORY, YUGIOH_MARKER, filterYugiohCards, loadYugiohMeta, yugiohExt, yugiohMatchesQuery } from '../services/tcgcsvYugioh';
+import { LORCANA_CATEGORY, LORCANA_MARKER, filterLorcanaCards, lorcanaExt, lorcanaMatchesQuery } from '../services/tcgcsvLorcana';
+import { DIGIMON_CATEGORY, DIGIMON_MARKER, digimonExt, digimonMatchesQuery, filterDigimonCards } from '../services/tcgcsvDigimon';
 import { tcgcsvCategoryId } from '../services/tcgcsvGames';
 import { getExtDataValue } from '../components/folder/folderCards';
 import { useEffect, useRef } from 'react';
 
 // Búsqueda de cartas para agregar a una carpeta: Pokémon por ediciones (TCGCSV, de la más nueva a la más vieja), Mitos y Leyendas y el resto desde la base, con filtros.
 export default function useCardSearch({ abortControllerRef, activeTab, availableSets, filterRarity,
-  loadingFolder, mylCost, mylRace, mylType, magicFilters, opFilters, rbFilters, searchBlock, ygFilters, searchCategory, searchLang, searchPhysicalProduct,
+  loadingFolder, mylCost, mylRace, mylType, magicFilters, opFilters, rbFilters, lcFilters, dgFilters, searchBlock, ygFilters, searchCategory, searchLang, searchPhysicalProduct,
   searchQuery, searchSet, selectedSupertype, selectedType, setAvailableRarities, setFilterRarity,
   setFilterType, setHasMoreGroups, setHasSearchedAPI, setIsSearching, setRawSearchResults, showToast }) {
   // --- Pokémon (TCGCSV): en "Todas las ediciones" se cargan ediciones de a poco, de la más nueva a la más vieja ---
@@ -54,7 +56,7 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
         cardLanguage: catId === 85 ? 'Japanese' : 'English',
         groupId: p.groupId,
         group: { id: p.groupId, name: group?.name || '', publishedOn: group?.publishedOn },
-        extData: { ...ext, localId: ext.Number, ...(catId === ONE_PIECE_CATEGORY ? onePieceExt(ext, group, p.name) : catId === MAGIC_CATEGORY ? magicExt(ext, group, p.name, magicMeta) : catId === RIFTBOUND_CATEGORY ? riftboundExt(ext, group, p.name) : catId === YUGIOH_CATEGORY ? yugiohExt(ext, group, p.name, magicMeta) : classifyTcgcsvCard(p.name, ext)) },
+        extData: { ...ext, localId: ext.Number, ...(catId === ONE_PIECE_CATEGORY ? onePieceExt(ext, group, p.name) : catId === MAGIC_CATEGORY ? magicExt(ext, group, p.name, magicMeta) : catId === RIFTBOUND_CATEGORY ? riftboundExt(ext, group, p.name) : catId === YUGIOH_CATEGORY ? yugiohExt(ext, group, p.name, magicMeta) : catId === LORCANA_CATEGORY ? lorcanaExt(ext, group, p.name) : catId === DIGIMON_CATEGORY ? digimonExt(ext, group, p.name) : classifyTcgcsvCard(p.name, ext)) },
       }));
     const extractNum = (str) => { const m = (str || '').match(/\d+/); return m ? parseInt(m[0], 10) : 0; };
     list.sort((a, b) => {
@@ -82,6 +84,8 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
     if (searchCategory === MAGIC_MARKER) return filterMagicCards(list, magicFilters);
     if (searchCategory === RIFTBOUND_MARKER) return filterRiftboundCards(list, rbFilters);
     if (searchCategory === YUGIOH_MARKER) return filterYugiohCards(list, ygFilters);
+    if (searchCategory === LORCANA_MARKER) return filterLorcanaCards(list, lcFilters);
+    if (searchCategory === DIGIMON_MARKER) return filterDigimonCards(list, dgFilters);
     if (selectedSupertype) {
         const catMap = { "Pokémon": "Pokémon", "Trainer": "Entrenador", "Energy": "Energía" };
         list = list.filter(c => c.extData?.category === catMap[selectedSupertype]);
@@ -122,7 +126,7 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
   };
 
   // Carga ediciones de la cola hasta juntar `target` cartas que coincidan con el texto buscado
-  const matchesText = (c, q) => (c.catId === ONE_PIECE_CATEGORY ? withLooseMatch(onePieceMatchesQuery)(c, q) : c.catId === MAGIC_CATEGORY ? withLooseMatch(magicMatchesQuery)(c, q) : c.catId === RIFTBOUND_CATEGORY ? withLooseMatch(riftboundMatchesQuery)(c, q) : c.catId === YUGIOH_CATEGORY ? withLooseMatch(yugiohMatchesQuery)(c, q) : matchesCardQuery(q, c.name, c.extData.Number, c.group?.name));
+  const matchesText = (c, q) => (c.catId === ONE_PIECE_CATEGORY ? withLooseMatch(onePieceMatchesQuery)(c, q) : c.catId === MAGIC_CATEGORY ? withLooseMatch(magicMatchesQuery)(c, q) : c.catId === RIFTBOUND_CATEGORY ? withLooseMatch(riftboundMatchesQuery)(c, q) : c.catId === YUGIOH_CATEGORY ? withLooseMatch(yugiohMatchesQuery)(c, q) : c.catId === LORCANA_CATEGORY ? withLooseMatch(lorcanaMatchesQuery)(c, q) : c.catId === DIGIMON_CATEGORY ? withLooseMatch(digimonMatchesQuery)(c, q) : matchesCardQuery(q, c.name, c.extData.Number, c.group?.name));
 
   const loadPokemonGroups = async (target, gen, signal, q) => {
     const catId = pokeCatRef.current;

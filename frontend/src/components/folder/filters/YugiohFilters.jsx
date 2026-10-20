@@ -10,7 +10,7 @@ import SvgIcon from '../../ui/SvgIcon';
 const compact = '!h-10 !min-h-10 !rounded-xl !text-[13px]';
 const any = (label) => ({ value: '', label });
 
-export default function YugiohFilters({ searchQuery, setSearchQuery, filters, setFilters, searchSet, availableSets, onSelectSet, loadedCards = [] }) {
+export default function YugiohFilters({ searchQuery, setSearchQuery, filters, setFilters, searchSet, availableSets, onSelectSet, loadedCards = [], hideSearch = false }) {
   const [meta, setMeta] = useState(null);
   const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => { loadYugiohMeta().then(setMeta); }, []);
@@ -37,16 +37,18 @@ export default function YugiohFilters({ searchQuery, setSearchQuery, filters, se
   return (
     <div className="relative w-full rounded-2xl border-2 border-blue-900/10 bg-white p-2 shadow-[0_8px_30px_rgb(0,0,0,0.08)] sm:p-3">
       <div className="flex flex-col gap-2.5 p-1 sm:gap-3 sm:p-1.5">
-        <div className="group relative w-full">
-          <SvgIcon name="search" translate="no" aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-blue-900 transition-colors group-focus-within:text-yellow-500" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Nombre, código (SDMY-EN001) o arquetipo..."
-            className="w-full rounded-xl border-2 border-blue-900/20 bg-slate-50 py-2.5 pl-10 pr-3 text-sm font-semibold text-blue-900 placeholder-blue-900/50 shadow-sm outline-none transition-all focus:border-yellow-400 focus:bg-white focus:ring-4 focus:ring-yellow-400/20"
-          />
-        </div>
+        {!hideSearch && (
+          <div className="group relative w-full">
+            <SvgIcon name="search" translate="no" aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-blue-900 transition-colors group-focus-within:text-yellow-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Nombre, código (SDMY-EN001) o arquetipo..."
+              className="w-full rounded-xl border-2 border-blue-900/20 bg-slate-50 py-2.5 pl-10 pr-3 text-sm font-semibold text-blue-900 placeholder-blue-900/50 shadow-sm outline-none transition-all focus:border-yellow-400 focus:bg-white focus:ring-4 focus:ring-yellow-400/20"
+            />
+          </div>
+        )}
 
         {/* Monstruo, mágica o trampa */}
         <LiquidTabs
@@ -74,10 +76,10 @@ export default function YugiohFilters({ searchQuery, setSearchQuery, filters, se
                   aria-label={attribute.label}
                   title={attribute.label}
                   onClick={() => toggleAttribute(attribute.value)}
-                  style={{ backgroundColor: attribute.hex }}
-                  className={`flex h-10 min-w-[2.5rem] items-center justify-center rounded-full px-2.5 text-[11px] font-black text-white shadow-sm outline-none transition-[transform,opacity] focus-visible:ring-2 focus-visible:ring-blue-900 active:scale-90 ${on ? 'scale-105 ring-2 ring-blue-900 ring-offset-2' : 'opacity-70 hover:scale-105 hover:opacity-100'}`}
+                  className={`relative h-11 w-11 shrink-0 rounded-full shadow-sm outline-none transition-[transform,opacity] duration-150 focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 active:scale-90 ${on ? 'scale-110 ring-[3px] ring-[#facc15] ring-offset-2 ring-offset-white' : 'opacity-80 [@media(hover:hover)]:hover:scale-110 [@media(hover:hover)]:hover:opacity-100'}`}
                 >
-                  {on ? <SvgIcon name="check" translate="no" aria-hidden="true" className="text-[18px]" /> : attribute.label.slice(0, 3)}
+                  <img src={attribute.icon} alt="" loading="lazy" draggable="false" className="h-full w-full rounded-full object-cover" />
+                  {on && <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#1e40af] text-white ring-2 ring-white"><SvgIcon name="check" translate="no" aria-hidden="true" className="text-[13px]" /></span>}
                 </button>
               );
             })}

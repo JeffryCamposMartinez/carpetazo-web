@@ -1,5 +1,11 @@
 import React from 'react';
 import Filters from './Filters';
+import MagicFilters from './MagicFilters';
+import OnePieceFilters from './OnePieceFilters';
+import RiftboundFilters from './RiftboundFilters';
+import YugiohFilters from './YugiohFilters';
+import LorcanaFilters from './LorcanaFilters';
+import DigimonFilters from './DigimonFilters';
 import ThemedSelect from '../../ui/ThemedSelect';
 import Select from '../../ui/Select';
 
@@ -87,6 +93,7 @@ export default function PublicCatalogFilters({
   mylCost,
   setMylCost,
   mylFilterOptions,
+  gameFilters,
   variant = 'bar',
 }) {
   const isMyl = tcg === 'Mitos y Leyendas';
@@ -111,6 +118,23 @@ export default function PublicCatalogFilters({
       variant={variant}
     />
   );
+
+  const GamePanel = gameFilters && { yugioh: YugiohFilters, magic: MagicFilters, onepiece: OnePieceFilters, riftbound: RiftboundFilters, lorcana: LorcanaFilters, digimon: DigimonFilters }[gameFilters.key];
+  if (GamePanel) {
+    return (
+      <GamePanel
+        hideSearch
+        searchQuery=""
+        setSearchQuery={() => {}}
+        filters={gameFilters.filters}
+        setFilters={gameFilters.setFilters}
+        searchSet={searchSet}
+        availableSets={availableSets.map((name) => ({ groupId: name, name }))}
+        onSelectSet={(next) => { setSearchSet(next === '' || next == null ? '' : String(next)); setIsSetDropdownOpen(false); }}
+        loadedCards={cards}
+      />
+    );
+  }
 
   if (!isMyl) {
     return (

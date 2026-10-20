@@ -6,6 +6,7 @@ import { routeLimiter } from '../core/limits.js';
 import { badRequest, isShortText } from '../core/validation.js';
 import { approveProposal, rejectProposal } from '../core/catalogPhotos.js';
 import { r2PublicUrl } from '../core/tcgCatalogImport.js';
+import { cleanNotice, notifyUser } from '../core/staffNotice.js';
 
 const router = express.Router();
 const PAGE = 30;
@@ -51,6 +52,14 @@ const decide = (action) => async (req, res) => {
   if (action === 'reject' && note && !isShortText(note, 300)) return badRequest(res, 'El motivo es muy largo');
   try {
     const result = action === 'approve' ? await approveProposal(prisma, id, req.dbUser.id) : await rejectProposal(prisma, id, req.dbUser.id, note);
+    // La persona que subió la foto se entera de lo que se decidió (no falla la decisión si el aviso no sale)
+    const proposal = await prisma.catalogImageProposal.findUnique({ where: { id }, select: { userId: true, productId: true } });
+    const card = proposal && await prisma.catalogCard.findUnique({ where: { productId: proposal.productId }, select: { name: true } });
+    if (proposal) {
+      await notifyUser(action === 'approve'
+        ? { actorId: req.dbUser.id, targetId: proposal.userId, title: 'Tu foto de carta fue aprobada', summary: `Usaremos tu foto de «${card?.name || 'la carta'}» como imagen de esa carta para todos. ¡Gracias por ayudar!` }
+        : { actorId: req.dbUser.id, targetId: proposal.userId, title: 'Tu foto de carta no fue aprobada', summary: `No pudimos usar tu foto de «${card?.name || 'la carta'}» como imagen de esa carta. Sigue en tu carpeta.`, message: cleanNotice(note) || '' });
+    }
     res.json({ success: true, ...result });
   } catch (error) {
     if (error.status) return res.status(error.status).json({ success: false, message: error.message });

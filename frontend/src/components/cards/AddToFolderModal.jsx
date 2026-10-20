@@ -11,7 +11,7 @@ import { useToast } from '../ui/ToastProvider';
 import { ReferencePriceBox } from '../folder/ReferencePrice';
 
 // Juego de la ficha del catálogo (nombre que se muestra) → clave de la carpeta
-const FOLDER_TCG = { 'Pokémon': 'Pokemon', 'Mitos y Leyendas': 'Mitos y Leyendas', 'One Piece': 'OnePiece', Magic: 'Magic', 'Yu-Gi-Oh!': 'YuGiOh', Riftbound: 'Riftbound' };
+const FOLDER_TCG = { 'Pokémon': 'Pokemon', 'Mitos y Leyendas': 'Mitos y Leyendas', 'One Piece': 'OnePiece', Magic: 'Magic', 'Yu-Gi-Oh!': 'YuGiOh', Riftbound: 'Riftbound', Lorcana: 'Lorcana', Digimon: 'Digimon' };
 const NEW_FOLDER = '__new__';
 const LANGUAGE_OPTIONS = [{ value: 'English', label: 'Inglés' }, { value: 'Spanish', label: 'Español' }, { value: 'Japanese', label: 'Japonés' }];
 const label = 'mb-1 block text-sm font-extrabold text-[#12315f]';

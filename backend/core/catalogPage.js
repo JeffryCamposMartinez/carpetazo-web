@@ -3,7 +3,7 @@
 import { r2PublicUrl } from './tcgCatalogImport.js';
 
 // CatalogGame.name guarda el nombre de carpeta del juego; estas son las etiquetas que ve la gente
-export const GAME_LABELS = { Pokemon: 'Pokémon', Pokemon_Japan: 'Pokémon Japón', One_Piece: 'One Piece', Magic: 'Magic: The Gathering', YuGiOh: 'Yu-Gi-Oh!', Riftbound: 'Riftbound', Disney_Lorcana: 'Disney Lorcana' };
+export const GAME_LABELS = { Pokemon: 'Pokémon', Pokemon_Japan: 'Pokémon Japón', One_Piece: 'One Piece', Magic: 'Magic: The Gathering', YuGiOh: 'Yu-Gi-Oh!', Riftbound: 'Riftbound', Disney_Lorcana: 'Disney Lorcana', Digimon_Card_Game: 'Digimon Card Game' };
 export const gameLabel = (name) => GAME_LABELS[name] || String(name || '').replace(/_/g, ' ');
 export const PRODUCT_ID = /^[1-9]\d{0,9}$/;
 const OFFERS_SHOWN = 20;
