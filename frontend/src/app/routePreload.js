@@ -2,25 +2,33 @@
 // para que al tocar una sección del menú el cambio sea inmediato y no espere la red.
 import { api } from '../services/api';
 
+// Si la red o el servidor tardan un instante al saltar de página, reintenta una vez antes de dar por caída la pantalla
+const retryImport = (loader) => () =>
+  loader().catch(
+    () => new Promise((resolve, reject) => {
+      setTimeout(() => loader().then(resolve, reject), 250);
+    })
+  );
+
 export const pageLoaders = {
-  landing: () => import('../pages/LandingPage'),
-  dashboard: () => import('../pages/Dashboard'),
-  explore: () => import('../pages/ExplorePage'),
-  folder: () => import('../pages/FolderPage'),
-  catalog: () => import('../pages/PublicCatalog'),
-  seller: () => import('../pages/SellerProfile'),
-  profile: () => import('../pages/ProfilePage'),
-  messages: () => import('../pages/Messages'),
-  moderation: () => import('../pages/Moderation'),
-  feedback: () => import('../pages/FeedbackPage'),
-  plans: () => import('../pages/PlansPage'),
-  folders: () => import('../pages/FoldersPage'),
-  cards: () => import('../pages/CardsPage'),
-  cardDetail: () => import('../pages/CardDetailPage'),
-  catalogCard: () => import('../pages/CatalogCardPage'),
-  sellers: () => import('../pages/SellersPage'),
-  legal: () => import('../pages/LegalPage'),
-  notFound: () => import('../pages/NotFound'),
+  landing: retryImport(() => import('../pages/LandingPage')),
+  dashboard: retryImport(() => import('../pages/Dashboard')),
+  explore: retryImport(() => import('../pages/ExplorePage')),
+  folder: retryImport(() => import('../pages/FolderPage')),
+  catalog: retryImport(() => import('../pages/PublicCatalog')),
+  seller: retryImport(() => import('../pages/SellerProfile')),
+  profile: retryImport(() => import('../pages/ProfilePage')),
+  messages: retryImport(() => import('../pages/Messages')),
+  moderation: retryImport(() => import('../pages/Moderation')),
+  feedback: retryImport(() => import('../pages/FeedbackPage')),
+  plans: retryImport(() => import('../pages/PlansPage')),
+  folders: retryImport(() => import('../pages/FoldersPage')),
+  cards: retryImport(() => import('../pages/CardsPage')),
+  cardDetail: retryImport(() => import('../pages/CardDetailPage')),
+  catalogCard: retryImport(() => import('../pages/CatalogCardPage')),
+  sellers: retryImport(() => import('../pages/SellersPage')),
+  legal: retryImport(() => import('../pages/LegalPage')),
+  notFound: retryImport(() => import('../pages/NotFound')),
 };
 
 const loaderByPath = {

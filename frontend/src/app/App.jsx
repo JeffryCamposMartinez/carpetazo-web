@@ -51,10 +51,10 @@ function RouteLoading() {
   );
 }
 
-// Cada cambio de ruta reinicia el aviso de error
+// Cada cambio de ruta o búsqueda reinicia el aviso de error
 function RouteBoundary({ children }) {
   const location = useLocation();
-  return <ErrorBoundary resetKey={location.pathname}>{children}</ErrorBoundary>;
+  return <ErrorBoundary resetKey={`${location.pathname}${location.search}`}>{children}</ErrorBoundary>;
 }
 
 function App() {

@@ -12,10 +12,18 @@ export const isChunkLoadError = (error) =>
 
 // "reading 'default'": el navegador (típico en el navegador interno de Instagram/iOS) entregó una pantalla vacía en vez del módulo
 // Recarga una sola vez por minuto para no entrar en bucle si el problema persiste
-export const reloadOnceForNewVersion = () => {
+const canAutoReload = () => {
   try {
     const last = Number(sessionStorage.getItem(RELOAD_KEY) || 0);
-    if (Date.now() - last < 60000) return false;
+    return Date.now() - last >= 60000;
+  } catch (_error) {
+    return true;
+  }
+};
+
+export const reloadOnceForNewVersion = () => {
+  if (!canAutoReload()) return false;
+  try {
     sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
   } catch (_error) { /* sin almacenamiento: se intenta igual */ }
   window.location.reload();
@@ -23,10 +31,18 @@ export const reloadOnceForNewVersion = () => {
 };
 
 export default class ErrorBoundary extends Component {
-  state = { error: null };
+  state = { error: null, reloading: false, prevResetKey: this.props.resetKey };
+
+  static getDerivedStateFromProps(props, state) {
+    // Al cambiar de ruta se limpia antes de pintar, sin parpadear el aviso en la pantalla nueva
+    if (props.resetKey !== state.prevResetKey) {
+      return { error: null, reloading: false, prevResetKey: props.resetKey };
+    }
+    return null;
+  }
 
   static getDerivedStateFromError(error) {
-    return { error };
+    return { error, reloading: isChunkLoadError(error) && canAutoReload() };
   }
 
   componentDidCatch(error) {
@@ -35,13 +51,17 @@ export default class ErrorBoundary extends Component {
     else reportClientError(error, 'pantalla');
   }
 
-  componentDidUpdate(prevProps) {
-    // Al cambiar de ruta se vuelve a intentar
-    if (this.state.error && prevProps.resetKey !== this.props.resetKey) this.setState({ error: null });
-  }
-
   render() {
     if (!this.state.error) return this.props.children;
+    if (this.state.reloading) {
+      return (
+        <div className="min-h-[100svh] flex-1" role="status" aria-label="Cargando">
+          <div className="h-[3px] w-full overflow-hidden bg-transparent">
+            <div className="route-loading-bar h-full w-1/3 rounded-full bg-[#facc15]" />
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex flex-1 items-center justify-center px-4 py-16" role="alert">
         <div className="max-w-sm rounded-3xl bg-white/95 p-6 text-center shadow-xl ring-1 ring-slate-900/5">
