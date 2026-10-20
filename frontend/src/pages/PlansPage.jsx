@@ -6,7 +6,7 @@ import LoadingState from '../components/ui/LoadingState';
 import { useToast } from '../components/ui/ToastProvider';
 import usePageMeta from '../hooks/usePageMeta';
 import ConfirmModal from '../components/ui/ConfirmModal';
-import SubscriptionPanel, { GrantNote, formatDate } from '../components/plans/SubscriptionPanel';
+import SubscriptionPanel, { formatDate } from '../components/plans/SubscriptionPanel';
 import PlanCards from '../components/plans/PlanCards';
 
 const number = (value) => value === null ? 'Ilimitadas' : Number(value).toLocaleString('es-CL');
@@ -157,16 +157,17 @@ export default function PlansPage() {
       </header>
 
       {currentUser && plan && (
-        <section className="mx-auto mt-8 flex max-w-4xl flex-col gap-4 rounded-2xl border border-blue-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div><p className="text-xs font-black uppercase tracking-wider text-slate-500">Tu plan actual</p><p className="mt-1 text-2xl font-black text-[#12315f]">{plan.name}</p></div>
-          <div className="grid grid-cols-2 gap-6 text-sm sm:text-right">
-            <div><p className="font-bold text-slate-500">Carpetas</p><p className="text-lg font-black text-[#12315f]">{usage?.folders || 0} / {number(plan.folders)}</p></div>
-            <div><p className="font-bold text-slate-500">Estado</p><p className="text-lg font-black text-emerald-700">{billing.source === 'subscription' ? 'Suscripción activa' : billing.testMode ? 'Prueba local' : 'Incluido'}</p></div>
-          </div>
+        <section className="mx-auto mt-5 flex max-w-4xl flex-wrap items-center gap-x-4 gap-y-1.5 rounded-2xl bg-white px-4 py-2.5 text-sm shadow-sm ring-1 ring-[#12315f]/10">
+          <p className="flex items-center gap-2 font-bold text-slate-500">Tu plan <span className="rounded-full bg-[#facc15] px-3 py-0.5 text-sm font-black text-[#12315f]">{plan.name}</span></p>
+          <p className="min-w-0 flex-1 basis-56 text-[13px] font-semibold text-slate-600">
+            {billing.source === 'grant'
+              ? `Lo asignó el equipo de Carpetazo${billing.grant?.endsAt ? ` y vence el ${formatDate(billing.grant.endsAt)}` : ', sin fecha de término'}. No se cobra ni hay nada que cancelar.`
+              : billing.source === 'subscription' ? 'Suscripción activa.' : billing.testMode ? 'Prueba local.' : 'Incluido.'}
+          </p>
+          <p className="font-bold text-slate-500">Carpetas <span className="font-black text-[#12315f]">{usage?.folders || 0} / {number(plan.folders)}</span></p>
         </section>
       )}
 
-      {billing?.source === 'grant' && <GrantNote billing={billing} />}
       {sub && <SubscriptionPanel billing={billing} plans={plans} busy={busy === 'cancel'} onCancel={cancelSubscription} onUndoChange={() => applyChange(plans.find((item) => item.key === sub.planKey))} />}
 
       {billing?.testMode && <div className="mx-auto mt-5 max-w-4xl rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900"><strong>Modo de prueba local:</strong> cambiar de plan aquí no realiza cobros y permite comprobar inmediatamente todos los límites.</div>}
