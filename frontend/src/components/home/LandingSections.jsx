@@ -17,60 +17,23 @@ const SELL_STEPS = [
 
 // Los colores de cada función son los de los banners de la portada
 const FEATURES = [
-  {
-    icon: 'auto_stories',
-    tone: 'bg-teal-100 text-teal-700',
-    title: 'Carpetas públicas',
-    text: 'Cada carpeta se ve como un álbum o en cuadrícula, con el stock y el precio de cada carta.',
-    cards: ['/images/carousel/pokemon.webp', '/images/carousel/mitos.webp'],
-    folder: '/images/carpeta_v4.webp',
-  },
-  {
-    icon: 'tune',
-    tone: 'bg-violet-100 text-violet-700',
-    title: 'Filtros por juego',
-    text: 'Busca por nombre y filtra por edición. Cada juego suma sus propios filtros, como tipo, raza o coste.',
-    cards: ['/images/carousel/magic.webp', '/images/carousel/lorcana.webp'],
-  },
-  {
-    icon: 'inbox',
-    tone: 'bg-orange-100 text-orange-700',
-    title: 'Panel de pedidos',
-    text: 'Revisa las solicitudes de compra, confirma las ventas y consulta tu historial.',
-    cards: ['/images/promos/luffy.webp', '/images/carousel/onepiece.webp'],
-  },
-  {
-    icon: 'favorite',
-    tone: 'bg-rose-100 text-rose-700',
-    title: 'Lista de deseos con avisos',
-    text: 'Guarda lo que buscas con un precio máximo y te avisamos cuando aparezca o baje de precio.',
-    cards: ['/images/promos/charizard.webp', '/images/promos/onering.webp'],
-  },
-  {
-    icon: 'chat',
-    tone: 'bg-blue-100 text-blue-700',
-    title: 'Mensajes directos',
-    text: 'Habla con compradores y vendedores sin salir de Carpetazo.',
-    cards: ['/images/carousel/yugioh.webp', '/images/carousel/mitos.webp'],
-  },
-  {
-    icon: 'badge',
-    tone: 'bg-lime-100 text-lime-700',
-    title: 'Perfil de vendedor',
-    text: 'Un perfil público con tu descripción, tu ubicación y tus redes.',
-    cards: ['/images/carousel/digimon.webp', '/images/carousel/riftbound.webp'],
-  },
+  { icon: 'auto_stories', tone: 'bg-teal-100 text-teal-700', title: 'Carpetas públicas', text: 'Cada carpeta se ve como un álbum o en cuadrícula, con el stock y el precio de cada carta.' },
+  { icon: 'tune', tone: 'bg-violet-100 text-violet-700', title: 'Filtros por juego', text: 'Busca por nombre y filtra por edición. Cada juego suma sus propios filtros, como tipo, raza o coste.' },
+  { icon: 'inbox', tone: 'bg-orange-100 text-orange-700', title: 'Panel de pedidos', text: 'Revisa las solicitudes de compra, confirma las ventas y consulta tu historial.' },
+  { icon: 'favorite', tone: 'bg-rose-100 text-rose-700', title: 'Lista de deseos con avisos', text: 'Guarda lo que buscas con un precio máximo y te avisamos cuando aparezca o baje de precio.' },
+  { icon: 'chat', tone: 'bg-blue-100 text-blue-700', title: 'Mensajes directos', text: 'Habla con compradores y vendedores sin salir de Carpetazo.' },
+  { icon: 'badge', tone: 'bg-lime-100 text-lime-700', title: 'Perfil de vendedor', text: 'Un perfil público con tu descripción, tu ubicación y tus redes.' },
 ];
 
 const GAMES = [
-  { name: 'Pokémon', logo: '/images/logos/pokemon.webp', card: '/images/carousel/pokemon.webp', scale: 'scale-100' },
-  { name: 'Mitos y Leyendas', logo: '/images/logos/mitosyleyendas.webp', card: '/images/carousel/mitos.webp', scale: 'scale-[1.22]' },
-  { name: 'Yu-Gi-Oh!', logo: '/images/logos/yugioh.webp', card: '/images/carousel/yugioh.webp', scale: 'scale-[2]' },
-  { name: 'Magic', logo: '/images/logos/magic.webp', card: '/images/carousel/magic.webp', scale: 'scale-[1.4]' },
-  { name: 'One Piece', logo: '/images/logos/onepiece.webp', card: '/images/carousel/onepiece.webp', scale: 'scale-[1.4]' },
-  { name: 'Riftbound', logo: '/images/logos/riftbound.webp', card: '/images/carousel/riftbound.webp', scale: 'scale-100' },
-  { name: 'Lorcana', logo: '/images/logos/lorcana.webp', card: '/images/carousel/lorcana.webp', scale: 'scale-110' },
-  { name: 'Digimon', logo: '/images/logos/digimon.webp', card: '/images/carousel/digimon.webp', scale: 'scale-110' },
+  { name: 'Pokémon', logo: '/images/logos/pokemon.webp', scale: 'scale-100' },
+  { name: 'Mitos y Leyendas', logo: '/images/logos/mitosyleyendas.webp', scale: 'scale-[1.22]' },
+  { name: 'Yu-Gi-Oh!', logo: '/images/logos/yugioh.webp', scale: 'scale-[2]' },
+  { name: 'Magic', logo: '/images/logos/magic.webp', scale: 'scale-[1.4]' },
+  { name: 'One Piece', logo: '/images/logos/onepiece.webp', scale: 'scale-[1.4]' },
+  { name: 'Riftbound', logo: '/images/logos/riftbound.webp', scale: 'scale-100' },
+  { name: 'Lorcana', logo: '/images/logos/lorcana.webp', scale: 'scale-110' },
+  { name: 'Digimon', logo: '/images/logos/digimon.webp', scale: 'scale-110' },
 ];
 
 const FAN = ['pokemon', 'mitos', 'yugioh', 'magic', 'onepiece', 'riftbound', 'lorcana', 'digimon'];
@@ -95,58 +58,9 @@ const delay = (index) => ({ '--d': `${index * 70}ms` });
 const SECTION = 'px-4 py-10 md:px-12 md:py-20';
 const H2 = 'max-w-[24ch] text-balance text-2xl font-extrabold tracking-tight sm:text-3xl md:text-4xl';
 
-function BuyVisual() {
-  const cards = [
-    { src: '/images/promos/charizard.webp', price: '$14.990', rotate: '-rotate-6 -translate-x-10 translate-y-1' },
-    { src: '/images/promos/onering.webp', price: '$24.500', rotate: 'rotate-0 z-10 -translate-y-1 scale-105' },
-    { src: '/images/carousel/lorcana.webp', price: '$19.990', rotate: 'rotate-6 translate-x-10 translate-y-1' },
-  ];
-  return (
-    <div aria-hidden="true" className="relative mb-5 flex h-36 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-[#e8f1ff] to-indigo-100/80 px-4 ring-1 ring-[#12315f]/10">
-      <div className="relative flex items-center justify-center">
-        {cards.map((card, i) => (
-          <div key={i} className={`relative transition-transform duration-300 ${card.rotate}`}>
-            <img src={card.src} alt="" loading="lazy" className="h-28 w-auto rounded-md object-cover shadow-[0_10px_20px_-6px_rgba(18,49,95,0.45)] ring-2 ring-white" />
-            <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#12315f] px-2 py-0.5 text-[10px] font-extrabold text-[#facc15] shadow">
-              {card.price}
-            </span>
-          </div>
-        ))}
-      </div>
-      <span className=" absolute bottom-2.5 right-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-extrabold text-[#12315f] shadow-sm ring-1 ring-[#12315f]/10">
-        <SvgIcon name="shopping_cart" translate="no" className="text-[14px] text-[#1e40af]" />
-        Pedido listo
-      </span>
-    </div>
-  );
-}
-
-function SellVisual() {
-  const cards = [
-    { src: '/images/carousel/pokemon.webp', cls: '-rotate-12 -translate-x-6 translate-y-1' },
-    { src: '/images/carousel/mitos.webp', cls: '-rotate-3 -translate-x-1 -translate-y-0.5 z-10' },
-    { src: '/images/carousel/digimon.webp', cls: 'rotate-6 translate-x-4 translate-y-1 z-20' },
-  ];
-  return (
-    <div aria-hidden="true" className="relative mb-5 flex h-36 items-center justify-center gap-3 overflow-hidden rounded-2xl bg-gradient-to-br from-[#193d75] via-[#12315f] to-[#0B1E45] px-4 ring-1 ring-white/15">
-      <img src="/images/carpeta_v4.webp" alt="" loading="lazy" className="relative z-20 h-28 w-auto -rotate-3 object-contain drop-shadow-[0_12px_18px_rgba(0,0,0,0.5)]" />
-      <div className="relative flex items-center justify-center">
-        {cards.map((card, i) => (
-          <img key={i} src={card.src} alt="" loading="lazy" className={`h-24 w-auto rounded-md object-cover shadow-[0_10px_20px_-6px_rgba(0,0,0,0.65)] ring-1 ring-white/80 ${card.cls}`} />
-        ))}
-      </div>
-      <span className="absolute bottom-2.5 right-3 z-30 inline-flex items-center gap-1 rounded-full bg-[#facc15] px-2.5 py-1 text-[11px] font-extrabold text-[#12315f] shadow">
-        <SvgIcon name="bolt" translate="no" className="text-[14px]" />
-        Tu link público
-      </span>
-    </div>
-  );
-}
-
-function Steps({ title, icon, steps, dark, visual }) {
+function Steps({ title, icon, steps, dark }) {
   return (
     <div className={`rounded-3xl p-5 sm:p-6 md:p-8 ${dark ? 'bg-[#12315f] text-white shadow-[0_24px_40px_-24px_rgba(18,49,95,0.8)]' : 'bg-white shadow-[0_20px_36px_-26px_rgba(18,49,95,0.5)] ring-1 ring-[#12315f]/10'}`}>
-      {visual}
       <h3 className="flex items-center gap-3 text-xl font-extrabold">
         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${dark ? 'bg-[#facc15] text-[#12315f]' : 'bg-[#12315f] text-[#facc15]'}`}><SvgIcon name={icon} translate="no" className="text-[24px]" /></span>
         {title}
@@ -170,8 +84,8 @@ export function HowItWorks() {
       <div className="mx-auto w-full max-w-[1200px]">
         <h2 className={`${H2} text-[#12315f]`}>Cómo funciona</h2>
         <div className="mt-6 grid gap-5 md:mt-8 md:grid-cols-2 md:gap-8">
-          <Steps title="Si quieres comprar" icon="shopping_cart" steps={BUY_STEPS} visual={<BuyVisual />} />
-          <Steps title="Si quieres vender" icon="storefront" steps={SELL_STEPS} dark visual={<SellVisual />} />
+          <Steps title="Si quieres comprar" icon="shopping_cart" steps={BUY_STEPS} />
+          <Steps title="Si quieres vender" icon="storefront" steps={SELL_STEPS} dark />
         </div>
       </div>
     </section>
@@ -185,25 +99,12 @@ export function Features() {
         <h2 className={`${H2} text-[#12315f]`}>Lo que puedes hacer en Carpetazo</h2>
         <ul className="mt-6 grid gap-3.5 sm:mt-8 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
           {FEATURES.map((feature) => (
-            <li key={feature.title} className="group relative overflow-hidden rounded-2xl bg-[#F4F8FF] p-5 ring-1 ring-[#12315f]/8 transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:shadow-[0_18px_30px_-20px_rgba(18,49,95,0.5)]">
-              {/* Mini composición de cartas en la esquina para dar vida en móvil y escritorio */}
-              <div aria-hidden="true" className="pointer-events-none absolute -right-2 -top-2 flex items-center">
-                {feature.folder && (
-                  <img src={feature.folder} alt="" loading="lazy" className="h-16 w-auto -rotate-12 object-contain opacity-90 drop-shadow-md" />
-                )}
-                {feature.cards.map((src, idx) => (
-                  <img
-                    key={src}
-                    src={src}
-                    alt=""
-                    loading="lazy"
-                    className={`h-16 w-auto rounded-[4px] object-cover shadow-md ring-1 ring-white/90 transition-transform duration-300 ${idx === 0 ? '-rotate-12 translate-x-2 translate-y-1' : 'rotate-6 -translate-x-1 translate-y-2'}`}
-                  />
-                ))}
+            <li key={feature.title} className="rounded-2xl bg-[#F4F8FF] p-5 ring-1 ring-[#12315f]/8 transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:shadow-[0_18px_30px_-20px_rgba(18,49,95,0.5)]">
+              <div className="flex items-center gap-3 sm:block">
+                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl sm:h-12 sm:w-12 ${feature.tone}`}><SvgIcon name={feature.icon} translate="no" className="text-[24px] sm:text-[26px]" /></span>
+                <h3 className="text-lg font-extrabold text-[#12315f] sm:mt-4">{feature.title}</h3>
               </div>
-              <span className={`relative z-10 flex h-11 w-11 items-center justify-center rounded-2xl ${feature.tone}`}><SvgIcon name={feature.icon} translate="no" className="text-[24px]" /></span>
-              <h3 className="relative z-10 mt-3.5 pr-20 text-lg font-extrabold text-[#12315f]">{feature.title}</h3>
-              <p className="relative z-10 mt-1.5 text-[15px] leading-relaxed text-slate-600">{feature.text}</p>
+              <p className="mt-2 text-[15px] leading-relaxed text-slate-600 sm:mt-1.5">{feature.text}</p>
             </li>
           ))}
         </ul>
@@ -219,21 +120,11 @@ export function Games() {
         <h2 className={`${H2} text-[#12315f]`}>Tus juegos favoritos en un solo lugar</h2>
         <p className="mt-2.5 max-w-[60ch] text-[15px] leading-relaxed text-slate-600 md:mt-3 md:text-base">Busca y carga cartas de estos juegos, cada uno con su catálogo. Toca uno para ver sus carpetas.</p>
         <ul className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:grid-cols-4 md:gap-4 lg:grid-cols-8">
-          {GAMES.map((game, idx) => (
+          {GAMES.map((game) => (
             <li key={game.name}>
-              <Link to={`/carpetas?tcg=${encodeURIComponent(game.name)}`} className="group relative flex h-full flex-col items-center justify-between overflow-hidden rounded-2xl bg-white px-3 pb-3.5 pt-3.5 shadow-[0_1px_2px_rgba(18,49,95,0.06),0_12px_24px_-18px_rgba(18,49,95,0.45)] ring-1 ring-[#12315f]/8 transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] active:scale-[0.97] [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:shadow-[0_18px_30px_-16px_rgba(18,49,95,0.5)]">
-                <div className="relative flex h-28 w-full items-center justify-center sm:h-24">
-                  <img
-                    src={game.card}
-                    alt=""
-                    loading="lazy"
-                    className={`h-24 w-auto rounded-md object-cover shadow-[0_10px_18px_-6px_rgba(18,49,95,0.45)] ring-2 ring-white transition-transform duration-300 group-hover:scale-105 sm:h-20 ${idx % 2 === 0 ? '-rotate-3 group-hover:rotate-0' : 'rotate-3 group-hover:rotate-0'}`}
-                  />
-                </div>
-                <span className="mt-2 flex h-11 w-full items-center justify-center overflow-hidden">
-                  <img src={game.logo} alt={game.name} loading="lazy" className={`max-h-full max-w-[82%] object-contain ${game.scale}`} />
-                </span>
-                <span className="mt-1 text-xs font-bold text-[#12315f]/75 transition-colors group-hover:text-[#1e40af]">Ver carpetas</span>
+              <Link to={`/carpetas?tcg=${encodeURIComponent(game.name)}`} className="group flex h-full flex-col items-center gap-2 rounded-2xl bg-white px-3 pb-3.5 pt-4 shadow-[0_1px_2px_rgba(18,49,95,0.06),0_12px_24px_-18px_rgba(18,49,95,0.45)] ring-1 ring-[#12315f]/8 transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] active:scale-[0.97] [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:shadow-[0_18px_30px_-16px_rgba(18,49,95,0.5)]">
+                <span className="flex h-16 w-full items-center justify-center overflow-hidden"><img src={game.logo} alt={game.name} loading="lazy" className={`max-h-full max-w-[80%] object-contain ${game.scale}`} /></span>
+                <span className="text-xs font-bold text-[#12315f]/70 transition-colors group-hover:text-[#1e40af]">Ver carpetas</span>
               </Link>
             </li>
           ))}
@@ -257,15 +148,11 @@ export function PlansTeaser() {
   return (
     <section className={`bg-[#fff7d1] ${SECTION}`}>
       <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-12">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-          <div aria-hidden="true" className="relative mx-auto flex h-24 w-36 shrink-0 items-center justify-center sm:mx-0">
-            <img src="/images/carpeta_v4.webp" alt="" loading="lazy" className="relative z-10 h-24 w-auto -rotate-6 object-contain drop-shadow-[0_10px_14px_rgba(18,49,95,0.3)]" />
-            <img src="/images/promos/charizard.webp" alt="" loading="lazy" className=" -ml-5 h-20 w-auto rotate-6 rounded-md object-cover shadow-md ring-2 ring-white" />
-            <img src="/images/promos/luffy.webp" alt="" loading="lazy" className="-ml-4 h-20 w-auto rotate-12 rounded-md object-cover shadow-md ring-2 ring-white" />
-          </div>
+        <div className="flex items-start gap-4 sm:items-center sm:gap-5">
+          <img src="/images/carpeta_v4.webp" alt="" loading="lazy" aria-hidden="true" className="h-16 w-auto shrink-0 -rotate-3 object-contain drop-shadow-[0_8px_12px_rgba(18,49,95,0.25)] sm:h-20" />
           <div>
             <h2 className={`${H2} text-[#12315f]`}>Gratis para empezar, planes para crecer</h2>
-            <p className="mt-2.5 max-w-[56ch] text-[15px] leading-relaxed text-slate-700 md:mt-3 md:text-base">
+            <p className="mt-2 max-w-[56ch] text-[15px] leading-relaxed text-slate-700 md:mt-3 md:text-base">
               {free ? `Con el plan Free tienes ${free.folders} ${free.folders === 1 ? 'carpeta' : 'carpetas'} de hasta ${free.uniqueCardsPerFolder} cartas únicas.` : 'Empiezas sin pagar nada.'}
               {cheapest ? ` Cuando tu colección crezca, los planes parten desde ${money(cheapest.priceClp)} al mes.` : ' Cuando tu colección crezca, puedes elegir un plan con más espacio.'}
             </p>
