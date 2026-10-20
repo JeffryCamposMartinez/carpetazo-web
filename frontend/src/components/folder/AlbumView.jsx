@@ -9,6 +9,7 @@ import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 import EmptyState from '../ui/EmptyState';
 import { rawMylId } from '../../utils/mylIdentity';
 import SvgIcon from '../ui/SvgIcon';
+import { NO_IMAGE_CARD_URL, onCardImageError, tcgplayerCardImage } from '../../utils/cardShape';
 
 
 const stripHtml = (value = '') => String(value || '').replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
@@ -549,7 +550,8 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
         >
           <div className="relative w-24 md:w-32 rotate-3 scale-105 rounded-xl bg-black/80 p-1 shadow-xl ring-2 ring-white/30">
             <img
-              src={dragFloatingCard.imageUrl}
+              src={dragFloatingCard.imageUrl || tcgplayerCardImage(dragFloatingCard) || NO_IMAGE_CARD_URL}
+              onError={(e) => onCardImageError(e, tcgplayerCardImage(dragFloatingCard))}
               alt={dragFloatingCard.name}
               className="block w-full rounded-[5%] object-contain opacity-90"
             />

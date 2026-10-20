@@ -5,6 +5,7 @@ import { getCardStyle } from './profileStyles';
 import { getFolderFilter } from '../../config/folderOptions';
 import { readableOn } from '../../utils/color';
 import SvgIcon from '../ui/SvgIcon';
+import { NO_IMAGE_CARD_URL, onCardImageError, tcgplayerCardImage } from '../../utils/cardShape';
 
 // Frase de la vitrina según su estilo
 const SHOWCASE_LINES = {
@@ -71,9 +72,7 @@ export default function ProfileModules({
                     <li key={card.id} className="min-w-0">
                       <Link to={`/carta/${card.id}`} className="group block focus:outline-none focus-visible:ring-2" style={{ color: publicTheme.text }} title={`${card.name} · ${card.folderName}`}>
                         <span className="relative block overflow-hidden rounded-lg bg-black/5" style={{ aspectRatio: '63 / 88' }}>
-                          {card.imageUrl
-                            ? <img src={card.imageUrl} alt={card.name} loading="lazy" decoding="async" className="h-full w-full object-fill transition-transform duration-200 group-hover:scale-[1.03]" />
-                            : <span className="flex h-full items-center justify-center p-1 text-center text-[10px] font-bold" style={textMuted}>Sin imagen</span>}
+                          <img src={card.imageUrl || tcgplayerCardImage(card) || NO_IMAGE_CARD_URL} onError={(e) => onCardImageError(e, tcgplayerCardImage(card))} alt={card.name} loading="lazy" decoding="async" className="h-full w-full object-fill transition-transform duration-200 group-hover:scale-[1.03]" />
                           {card.price > 0 && <span className="absolute bottom-1 left-1 rounded-md bg-[#facc15] px-1.5 py-0.5 text-[11px] font-black tabular-nums text-[#12315f] shadow">${Math.round(card.price).toLocaleString('es-CL')}</span>}
                         </span>
                         <span className="mt-1 block truncate text-xs font-bold">{card.name}</span>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { NO_IMAGE_CARD_URL } from '../../utils/cardShape';
 
 // Logo de Carpetazo con un espiral girando: se muestra mientras llega la imagen de una carta.
 // Se coloca sobre el contenedor de la imagen (que debe ser `relative`) o con `className` para darle otra posición.
@@ -14,29 +15,27 @@ export function LoadingMark({ still = false, compact = false, className = 'absol
 }
 
 const NEAR_PX = 900; // se empieza a descargar la imagen cuando falta esta distancia para verla
-const MAX_RETRIES = 2;
-const RETRY_DELAY_MS = 1500;
+const MAX_RETRIES = 1;
+const RETRY_DELAY_MS = 1000;
 
-// Imagen de carta que muestra el logo con el espiral hasta que carga (y el logo quieto si falla).
-// Su contenedor debe ser `relative`.
-// Con `loading="lazy"` la descarga la decide un IntersectionObserver propio en vez del del navegador: el nativo, dentro de
-// tarjetas animadas o con «transform», a veces no despierta la imagen hasta que el mouse pasa por encima.
-// Si la descarga falla se reintenta sola un par de veces.
+// Imagen de carta que muestra el logo con el espiral hasta que carga.
+// Si no existe ni en R2 ni en el respaldo de TCGplayer, muestra la imagen oficial "SIN IMAGEN" de R2.
 export default function LoadableImage({ src, fallbackSrc, alt, className = '', compact = false, onError, onLoad, loading, rotateLandscape = false, style, ...rest }) {
   const lazy = loading === 'lazy';
+  const resolvedInitial = src || fallbackSrc || NO_IMAGE_CARD_URL;
   const [state, setState] = useState('loading'); // loading | loaded | failed
   const [near, setNear] = useState(!lazy);
   const [attempt, setAttempt] = useState(0);
-  const [activeSrc, setActiveSrc] = useState(src);
+  const [activeSrc, setActiveSrc] = useState(resolvedInitial);
   const [isLandscape, setIsLandscape] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
     setState('loading');
     setAttempt(0);
-    setActiveSrc(src);
+    setActiveSrc(src || fallbackSrc || NO_IMAGE_CARD_URL);
     setIsLandscape(false);
-  }, [src]);
+  }, [src, fallbackSrc]);
 
   useEffect(() => {
     if (!lazy || near) return undefined;
@@ -52,30 +51,36 @@ export default function LoadableImage({ src, fallbackSrc, alt, className = '', c
   useEffect(() => {
     // Si la imagen ya estaba en caché, `load` pudo haber ocurrido antes de enlazar el evento
     if (near && ref.current?.complete && ref.current.naturalWidth > 0) {
-      setIsLandscape(rotateLandscape && ref.current.naturalWidth > ref.current.naturalHeight);
+      setIsLandscape(rotateLandscape && activeSrc !== NO_IMAGE_CARD_URL && ref.current.naturalWidth > ref.current.naturalHeight);
       setState('loaded');
     }
-  }, [near, src, attempt, rotateLandscape]);
+  }, [near, activeSrc, attempt, rotateLandscape]);
 
   const handleLoad = (event) => {
     const image = event.currentTarget;
-    setIsLandscape(rotateLandscape && image.naturalWidth > image.naturalHeight);
+    setIsLandscape(rotateLandscape && activeSrc !== NO_IMAGE_CARD_URL && image.naturalWidth > image.naturalHeight);
     setState('loaded');
     onLoad?.(event);
   };
 
   const handleError = (event) => {
+    if (fallbackSrc && activeSrc !== fallbackSrc && activeSrc !== NO_IMAGE_CARD_URL) {
+      setActiveSrc(fallbackSrc);
+      setAttempt(0);
+      setState('loading');
+      return;
+    }
+    if (activeSrc !== NO_IMAGE_CARD_URL) {
+      onError?.(event);
+      setActiveSrc(NO_IMAGE_CARD_URL);
+      setAttempt(0);
+      setState('loading');
+      return;
+    }
     if (attempt < MAX_RETRIES) {
       window.setTimeout(() => setAttempt((count) => count + 1), RETRY_DELAY_MS);
     } else {
-      if (fallbackSrc && activeSrc !== fallbackSrc) {
-        setActiveSrc(fallbackSrc);
-        setAttempt(0);
-        setState('loading');
-        return;
-      }
       setState('failed');
-      onError?.(event);
     }
   };
 

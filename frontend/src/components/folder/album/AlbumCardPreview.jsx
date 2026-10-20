@@ -1,5 +1,5 @@
 import LoadableImage from '../../ui/LoadableImage';
-import { fullscreenCorners } from '../../../utils/cardShape';
+import { fullscreenCorners, tcgplayerCardImage } from '../../../utils/cardShape';
 import { Link } from 'react-router-dom';
 import SvgIcon from '../../ui/SvgIcon';
 // Vista ampliada de una carta dentro del álbum: imagen a un lado y datos al otro.
@@ -83,6 +83,7 @@ export default function AlbumCardPreview({
         </div>
         <LoadableImage 
           src={previewCard.imageUrl} 
+          fallbackSrc={tcgplayerCardImage({ ...previewCard, tcg: previewCard.tcg || tcg })}
           alt={previewCard.name} 
           style={fullscreenCorners(previewCard.tcg || tcg)}
           className={`max-h-full md:max-h-[92%] max-w-[69%] md:max-w-full object-contain rounded-xl md:rounded-2xl shadow-[0_14px_32px_rgba(0,0,0,0.7)] md:shadow-[0_18px_45px_rgba(0,0,0,0.78)] relative z-20 -translate-x-[52%] md:translate-x-0 ${Number(previewCard.stock || 0) <= 0 ? 'grayscale opacity-60' : ''}`}

@@ -2,6 +2,7 @@ import { DRAG_PAGE_TURN_EDGE_RATIO } from './albumDrag';
 import { DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from '../dragScroll';
 import EmptyState from '../../ui/EmptyState';
 import SvgIcon from '../../ui/SvgIcon';
+import { NO_IMAGE_CARD_URL, onCardImageError, tcgplayerCardImage } from '../../../utils/cardShape';
 // Una hoja del álbum: sus bolsillos de cartas por delante y por detrás, y su giro.
 export default function AlbumPage({
   pageIndex, activeCardId, albumDragNavRef, cards, cardsPerPage, currentPage, dragPageTurnDirectionRef,
@@ -306,7 +307,8 @@ export default function AlbumPage({
               <div className="relative w-[95%] h-[95%] flex items-center justify-center">
                 {isWarmPage ? (
                   <img
-                    src={card.imageUrl}
+                    src={card.imageUrl || tcgplayerCardImage(card) || NO_IMAGE_CARD_URL}
+                    onError={(e) => onCardImageError(e, tcgplayerCardImage(card))}
                     alt={card.name}
                     decoding="async"
                     className={`max-w-full max-h-full object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] rounded-[4%] ${Number(card.stock || 0) <= 0 ? 'grayscale opacity-60' : ''}`}

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { SafeImage } from './SafeImage';
 import SvgIcon from '../ui/SvgIcon';
 import { CardSideWing } from '../ui/CardNeighbors';
-import { cardRatio, fullscreenCorners } from '../../utils/cardShape';
+import { cardRatio, fullscreenCorners, tcgplayerCardImage } from '../../utils/cardShape';
 
 const ARROW = 'absolute top-1/2 z-20 flex h-11 w-11 sm:h-12 sm:w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#12315f] shadow-lg transition-[transform,opacity,background-color] duration-150 hover:bg-white active:scale-90 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#facc15] disabled:pointer-events-none disabled:opacity-25';
 const SWIPE_DISTANCE = 55;
@@ -15,12 +15,10 @@ export default function AddCardFullscreen({ card, list, onPick, onClose, imageSr
   const index = list.findIndex((item) => item.id === card.id);
   const [ratioW, ratioH] = cardRatio(tcg).split('/').map(Number);
   const ratio = ratioW / ratioH;
-  const [brokenSrc, setBrokenSrc] = useState(null);
   const [mobileFormOpen, setMobileFormOpen] = useState(false);
   const [drag, setDrag] = useState({ x: 0, active: false });
   const gesture = useRef(null);
 
-  const broken = !imageSrc || brokenSrc === imageSrc;
   const previous = index > 0 ? list[index - 1] : null;
   const next = index >= 0 && index < list.length - 1 ? list[index + 1] : null;
   const hasNeighbors = list.length > 1 && index >= 0;
@@ -105,16 +103,9 @@ export default function AddCardFullscreen({ card, list, onPick, onClose, imageSr
               transition: drag.active ? 'none' : 'transform 220ms cubic-bezier(0.22, 1, 0.36, 1)',
             }}
           >
-            {broken ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl bg-gray-50 p-4 text-center shadow-2xl">
-                <img src="/images/logos/logo_completo.webp" alt="" className="mb-3 max-h-[45%] w-2/3 max-w-[120px] object-contain opacity-40 grayscale" />
-                <span className="text-base font-bold leading-tight text-gray-400">SIN IMAGEN</span>
-              </div>
-            ) : (
-              <div className="relative h-full w-full overflow-hidden rounded-xl shadow-[0_24px_50px_rgba(0,0,0,0.65)]" style={fullscreenCorners(tcg)}>
-                <SafeImage key={imageSrc} src={imageSrc} alt={card.name} rotateLandscape style={fullscreenCorners(tcg)} className="pointer-events-none h-full w-full rounded-xl object-contain" fallbackType="zoom-main" onFail={(failed) => { setBrokenSrc(failed); onImageFail?.(failed); }} />
-              </div>
-            )}
+            <div className="relative h-full w-full overflow-hidden rounded-xl shadow-[0_24px_50px_rgba(0,0,0,0.65)]" style={fullscreenCorners(tcg)}>
+              <SafeImage key={imageSrc || card.id} src={imageSrc} fallbackSrc={tcgplayerCardImage({ ...card, tcg })} alt={card.name} rotateLandscape style={fullscreenCorners(tcg)} className="pointer-events-none h-full w-full rounded-xl object-contain" fallbackType="zoom-main" onFail={(failed) => onImageFail?.(failed)} />
+            </div>
             {onUpload && (
               <button type="button" onClick={onUpload} title="Subir foto real de la carta" aria-label="Subir foto real de la carta" className="absolute -bottom-3 -right-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border-2 border-white bg-[#1e40af] text-white shadow-lg transition-[transform,background-color] hover:bg-blue-800 active:scale-90">
                 <SvgIcon name="photo_camera" translate="no" className="text-[20px]" />

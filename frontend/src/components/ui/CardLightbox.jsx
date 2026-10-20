@@ -4,7 +4,7 @@ import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import useEscape from '../../hooks/useEscape';
 import { LoadingMark } from './LoadableImage';
 import { CardSideWing } from './CardNeighbors';
-import { cardRatio, fullscreenCorners, isYugioh } from '../../utils/cardShape';
+import { cardRatio, fullscreenCorners, isYugioh, NO_IMAGE_CARD_URL, onCardImageError, tcgplayerCardImage } from '../../utils/cardShape';
 import SvgIcon from './SvgIcon';
 
 const formatCLP = (value) => `$${Number(value || 0).toLocaleString('es-CL')}`;
@@ -96,6 +96,8 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
   const info = describe(card);
   const gameTcg = card.tcg || card.game || tcg;
   const ratio = isYugioh(gameTcg) ? 59 / 86 : 63 / 88;
+  const fallbackUrl = tcgplayerCardImage({ ...card, tcg: gameTcg });
+  const initialSrc = card.imageUrl || fallbackUrl || NO_IMAGE_CARD_URL;
   const nav = 'absolute top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#12315f] shadow-lg transition-[transform,opacity] duration-150 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] disabled:opacity-30';
 
   return createPortal(
@@ -116,7 +118,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
         onPointerCancel={onPointerEnd}
       >
         {/* Botones a los lados: solo donde hay mouse; en pantallas táctiles se arrastra */}
-        {card.imageUrl && loadedId !== card.id && <LoadingMark still={failedId === card.id} className="absolute inset-0 scale-125" />}
+        {loadedId !== card.id && <LoadingMark still={failedId === card.id} className="absolute inset-0 scale-125" />}
         <button type="button" aria-label="Carta anterior" disabled={index <= 0} onClick={() => go(-1)} onPointerDown={(event) => event.stopPropagation()} className={`${nav} left-2 hidden sm:left-6 [@media(hover:hover)]:flex ${cards.length < 2 ? "!hidden" : ""}`}>
           <SvgIcon name="chevron_left" translate="no" aria-hidden="true" className="text-[28px]" />
         </button>
@@ -135,19 +137,20 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
             transition: drag.active ? 'none' : 'transform 220ms cubic-bezier(0.23, 1, 0.32, 1), opacity 220ms ease-out',
           }}
         >
-          {card.imageUrl
-            ? <img
-              src={card.imageUrl}
-              referrerPolicy="no-referrer"
-              alt={card.name}
-              draggable={false}
-              onLoad={() => setLoadedId(card.id)}
-              onError={() => setFailedId(card.id)}
-              ref={(img) => { if (img?.complete && img.naturalWidth > 0 && loadedId !== card.id) setLoadedId(card.id); }}
-              style={fullscreenCorners(gameTcg)}
-              className={`h-full w-full rounded-2xl object-contain shadow-[0_24px_50px_rgba(0,0,0,0.65)] transition-opacity duration-200 ${loadedId === card.id ? 'opacity-100' : 'opacity-0'}`}
-            />
-            : <span className="rounded-2xl bg-white/10 px-6 py-10 text-sm font-bold text-white/70">Sin imagen</span>}
+          <img
+            src={initialSrc}
+            referrerPolicy="no-referrer"
+            alt={card.name}
+            draggable={false}
+            onLoad={() => setLoadedId(card.id)}
+            onError={(event) => {
+              if (event.currentTarget.src === NO_IMAGE_CARD_URL) setFailedId(card.id);
+              else onCardImageError(event, fallbackUrl);
+            }}
+            ref={(img) => { if (img?.complete && img.naturalWidth > 0 && loadedId !== card.id) setLoadedId(card.id); }}
+            style={fullscreenCorners(gameTcg)}
+            className={`h-full w-full rounded-2xl object-contain shadow-[0_24px_50px_rgba(0,0,0,0.65)] transition-opacity duration-200 ${loadedId === card.id ? 'opacity-100' : 'opacity-0'}`}
+          />
         </div>
 
         <CardSideWing side="right" cards={cards} index={index} tcg={tcg} onPick={go} />

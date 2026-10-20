@@ -4,6 +4,7 @@ import EmojiPicker from './EmojiPicker';
 import { MicButton, RecordingBar } from './VoiceControls';
 import useVoiceRecorder, { voiceSupported } from '../../hooks/useVoiceRecorder';
 import SvgIcon from '../ui/SvgIcon';
+import { NO_IMAGE_CARD_URL, onCardImageError, tcgplayerCardImage } from '../../utils/cardShape';
 
 const MAX_HEIGHT = 140;
 
@@ -120,7 +121,7 @@ export default function Composer({
       {attachedCard && (
         <div className="flex items-center gap-2 px-3 pt-2 sm:px-5">
           <div className="flex min-w-0 flex-1 items-center gap-3 rounded-xl bg-white px-2 py-2 shadow-sm ring-1 ring-black/5">
-            {attachedCard.imageUrl ? <img src={attachedCard.imageUrl} alt="" className="h-14 w-10 shrink-0 rounded bg-slate-200 object-cover" /> : <span className="h-14 w-10 shrink-0 rounded bg-slate-200" />}
+            <img src={attachedCard.imageUrl || tcgplayerCardImage(attachedCard) || NO_IMAGE_CARD_URL} onError={(e) => onCardImageError(e, tcgplayerCardImage(attachedCard))} alt="" className="h-14 w-10 shrink-0 rounded bg-slate-200 object-cover" />
             <span className="min-w-0 flex-1">
               <span className="block text-xs font-extrabold text-[#1e40af]">{attachedCard.id ? 'Se enviará con esta carta' : 'Se enviará con esta foto'}</span>
               <span className="block truncate text-[14px] font-extrabold text-[#12315f]">{attachedCard.name}</span>

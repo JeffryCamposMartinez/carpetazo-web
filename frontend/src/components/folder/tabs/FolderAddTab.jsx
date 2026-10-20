@@ -9,7 +9,7 @@ import { ReferencePriceBox, ReferencePriceLine } from '../ReferencePrice';
 import useReferencePrices from '../../../hooks/useReferencePrices';
 import Select from '../../ui/Select';
 import { TCG_LABELS } from '../../../config/folderOptions';
-import { cardCorners, cardFit, cardRatio, isYugioh } from '../../../utils/cardShape';
+import { cardCorners, cardFit, cardRatio, isYugioh, tcgplayerCardImage } from '../../../utils/cardShape';
 import { EMPTY_OP_FILTERS } from '../../../services/tcgcsvOnePiece';
 import { EMPTY_MAGIC_FILTERS } from '../../../services/tcgcsvMagic';
 import { EMPTY_RB_FILTERS } from '../../../services/tcgcsvRiftbound';
@@ -292,7 +292,7 @@ export default function FolderAddTab({
               )}
               {/* Cada juego tiene su proporción (Yu-Gi-Oh! es más angosta); la imagen entra entera, sin recortes */}
               <div className="relative w-full flex items-center justify-center bg-gray-50 overflow-hidden" style={{ aspectRatio: isMylFolder ? '709 / 1016' : cardRatio(folderData?.tcg) }}>
-                <SafeImage src={card.imageUrl} alt={card.name} rotateLandscape style={cardFit(folderData?.tcg)} className="w-full h-full object-contain relative z-10 transition-opacity duration-300" fallbackType="grid" />
+                <SafeImage src={card.imageUrl} fallbackSrc={tcgplayerCardImage({ ...card, tcg: folderData?.tcg })} alt={card.name} rotateLandscape style={cardFit(folderData?.tcg)} className="w-full h-full object-contain relative z-10 transition-opacity duration-300" fallbackType="grid" />
               </div>
               {showCardDetails && (
                 <div className={`text-center border-t border-gray-100 w-full ${gridCols <= 2 ? 'p-2' : gridCols === 3 ? 'p-3' : gridCols === 4 ? 'p-2' : 'p-1'}`}>
@@ -387,7 +387,7 @@ export default function FolderAddTab({
             <div className="relative z-50 mt-3 flex w-full shrink-0 justify-center">
               <div className="relative mx-auto w-[clamp(115px,36vw,145px)]" style={{ aspectRatio: cardRatio(folderData?.tcg) }}>
                 <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} className={`relative block h-full w-full overflow-hidden cursor-zoom-in ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-lg'} focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2`}>
-                  <SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} alt={selectedCard.name} rotateLandscape style={cardCorners(folderData?.tcg)} className="relative z-50 h-full w-full rounded-lg object-contain shadow-md active:scale-[0.98]" fallbackType="zoom-main" onFail={setFailedPreview} />
+                  <SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} fallbackSrc={tcgplayerCardImage({ ...selectedCard, tcg: folderData?.tcg })} alt={selectedCard.name} rotateLandscape style={cardCorners(folderData?.tcg)} className="relative z-50 h-full w-full rounded-lg object-contain shadow-md active:scale-[0.98]" fallbackType="zoom-main" onFail={setFailedPreview} />
                 </button>
                 {canUploadPhoto && <button 
                   type="button"
@@ -430,7 +430,7 @@ export default function FolderAddTab({
                       <div className="grid grid-cols-3 gap-4">
                         {selectedQueue.map((item, index) => (
                           <div key={item.queueId} onContextMenu={(e) => decreaseQueueItemQuantity(e, item.queueId)} title="Clic derecho para quitar 1 copia" style={{ aspectRatio: cardRatio(folderData?.tcg) }} className={`relative w-full aspect-[63/88] ${isYugioh(folderData?.tcg) ? 'rounded-[3px] p-0' : 'rounded-xl p-1.5'} shadow-sm border-2 border-blue-200 bg-white hover:border-red-300 transition-colors flex items-center justify-center cursor-context-menu`}>
-                            <div className="relative w-full h-full"><SafeImage src={getProxyImageUrl(item.card.tcgProductId || item.card.id, item.card.imageUrl)} alt={item.card.name} rotateLandscape style={cardFit(folderData?.tcg)} className="w-full h-full object-contain rounded-md" fallbackType="queue" /></div>
+                            <div className="relative w-full h-full"><SafeImage src={getProxyImageUrl(item.card.tcgProductId || item.card.id, item.card.imageUrl)} fallbackSrc={tcgplayerCardImage({ ...item.card, tcg: folderData?.tcg })} alt={item.card.name} rotateLandscape style={cardFit(folderData?.tcg)} className="w-full h-full object-contain rounded-md" fallbackType="queue" /></div>
                             <button 
                               type="button" 
                               onClick={() => removeQueueItem(item.queueId)} 

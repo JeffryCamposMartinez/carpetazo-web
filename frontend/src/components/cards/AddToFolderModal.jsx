@@ -9,6 +9,7 @@ import ThemedSelect from '../ui/ThemedSelect';
 import { ButtonSpinner } from '../ui/LoadingState';
 import { useToast } from '../ui/ToastProvider';
 import { ReferencePriceBox } from '../folder/ReferencePrice';
+import { NO_IMAGE_CARD_URL, onCardImageError, tcgplayerCardImage } from '../../utils/cardShape';
 
 // Juego de la ficha del catálogo (nombre que se muestra) → clave de la carpeta
 const FOLDER_TCG = { 'Pokémon': 'Pokemon', 'Mitos y Leyendas': 'Mitos y Leyendas', 'One Piece': 'OnePiece', Magic: 'Magic', 'Yu-Gi-Oh!': 'YuGiOh', Riftbound: 'Riftbound', Lorcana: 'Lorcana', Digimon: 'Digimon' };
@@ -128,7 +129,7 @@ export default function AddToFolderModal({ card, variants = [], onClose }) {
         <div className="relative shrink-0 border-b-4 border-[#facc15] bg-[#12315f] px-5 pb-4 pt-5 text-white">
           <button type="button" onClick={onClose} aria-label="Cerrar" className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"><SvgIcon name="close" className="text-[22px]" /></button>
           <div className="flex items-center gap-3.5 pr-10">
-            {card.imageUrl && <img src={card.imageUrl} alt="" referrerPolicy="no-referrer" className="h-24 w-auto shrink-0 rounded-lg object-contain shadow-[0_8px_18px_-6px_rgba(0,0,0,0.6)] ring-2 ring-white/20" />}
+            <img src={card.imageUrl || tcgplayerCardImage(card) || NO_IMAGE_CARD_URL} onError={(e) => onCardImageError(e, tcgplayerCardImage(card))} alt="" referrerPolicy="no-referrer" className="h-24 w-auto shrink-0 rounded-lg object-contain shadow-[0_8px_18px_-6px_rgba(0,0,0,0.6)] ring-2 ring-white/20" />
             <div className="min-w-0">
               <h2 id="add-folder-title" className="flex items-center gap-1.5 text-lg font-black leading-tight"><SvgIcon name="folder" className="shrink-0 text-[22px] text-[#facc15]" />Agregar a mi carpeta</h2>
               <p className="mt-1.5 line-clamp-2 text-sm font-extrabold leading-snug">{card.name}</p>

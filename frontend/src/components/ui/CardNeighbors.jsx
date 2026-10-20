@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { cardRatio, fullscreenCorners } from '../../utils/cardShape';
+import { cardRatio, fullscreenCorners, NO_IMAGE_CARD_URL, onCardImageError, tcgplayerCardImage } from '../../utils/cardShape';
 
 // Escala de las cartas vecinas a los lados de la carta principal en pantalla completa:
 // ±1 (inmediata anterior/siguiente) se ve mediana; ±2 (dos lugares) más pequeña.
@@ -35,7 +34,6 @@ const SIDE_LOOK = {
 };
 
 function SideThumb({ card, offset, src, tcg, onPick, mobile = false }) {
-  const [failed, setFailed] = useState(false);
   const step = Math.abs(offset);
   const look = SIDE_LOOK[step];
   const ratioStr = cardRatio(tcg);
@@ -48,6 +46,9 @@ function SideThumb({ card, offset, src, tcg, onPick, mobile = false }) {
     return <div aria-hidden="true" className="pointer-events-none shrink-0" style={boxStyle} />;
   }
 
+  const fallbackUrl = tcgplayerCardImage({ ...card, tcg });
+  const initialSrc = src || fallbackUrl || NO_IMAGE_CARD_URL;
+
   return (
     <button
       type="button"
@@ -57,22 +58,16 @@ function SideThumb({ card, offset, src, tcg, onPick, mobile = false }) {
       style={{ ...boxStyle, ...fullscreenCorners(tcg) }}
       className={`${look.opacity} ${look.ring} relative shrink-0 overflow-hidden rounded-xl bg-white/10 transition-[opacity,transform] duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] active:scale-95`}
     >
-      {src && !failed ? (
-        <img
-          src={src}
-          alt=""
-          loading="lazy"
-          draggable={false}
-          referrerPolicy="no-referrer"
-          onError={() => setFailed(true)}
-          style={fullscreenCorners(tcg)}
-          className="h-full w-full select-none object-cover"
-        />
-      ) : (
-        <span className="flex h-full w-full items-center justify-center px-1 text-center text-[9px] font-bold leading-tight text-white/60">
-          {card.name}
-        </span>
-      )}
+      <img
+        src={initialSrc}
+        alt=""
+        loading="lazy"
+        draggable={false}
+        referrerPolicy="no-referrer"
+        onError={(event) => onCardImageError(event, fallbackUrl)}
+        style={fullscreenCorners(tcg)}
+        className="h-full w-full select-none object-cover"
+      />
     </button>
   );
 }

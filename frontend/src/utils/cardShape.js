@@ -14,3 +14,30 @@ export const cardCorners = (tcg) => (isYugioh(tcg) ? { borderRadius: YUGIOH_RADI
 export const cardFit = (tcg) => (isYugioh(tcg) ? { borderRadius: YUGIOH_RADIUS, objectFit: 'fill', width: '100%', height: '100%' } : undefined);
 // Para marcos con tamaño fijo y la imagen puesta con margen: en Yu-Gi-Oh! la imagen se estira hasta ocupar todo el contenedor, de lado a lado y de arriba abajo
 export const cardFill = (tcg) => (isYugioh(tcg) ? { borderRadius: YUGIOH_RADIUS, objectFit: 'fill', inset: 0, width: '100%', height: '100%' } : undefined);
+
+// Imagen oficial de respaldo en R2 cuando la carta no tiene imagen ni en R2 ni en el CDN de TCGplayer
+export const NO_IMAGE_CARD_URL = 'https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Sin_Imagen/Carpetazo_TCG_Sin_Imagen.webp';
+
+export const tcgplayerCardImage = (card) => {
+  if (!card) return '';
+  if (typeof card !== 'object') {
+    return /^\d+$/.test(String(card)) ? `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(card))}_400w.jpg` : '';
+  }
+  if (/mitos/i.test(String(card.tcg || card.game || '')) || String(card.catId || card.categoryId || '') === '99') return '';
+  const id = card.tcgProductId || card.productId || card.payload?.external?.productId;
+  return id && /^\d+$/.test(String(id))
+    ? `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(id))}_400w.jpg`
+    : '';
+};
+
+export const onCardImageError = (event, fallbackUrl = '') => {
+  const img = event.currentTarget;
+  if (!img) return;
+  if (fallbackUrl && img.src !== fallbackUrl && img.src !== NO_IMAGE_CARD_URL) {
+    img.src = fallbackUrl;
+    return;
+  }
+  if (img.src !== NO_IMAGE_CARD_URL) {
+    img.src = NO_IMAGE_CARD_URL;
+  }
+};

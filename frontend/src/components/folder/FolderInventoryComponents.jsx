@@ -4,6 +4,7 @@ import LiquidTabs from '../ui/LiquidTabs';
 import { DETAIL_MODES } from './folderCards';
 import EmptyState from '../ui/EmptyState';
 import SvgIcon from '../ui/SvgIcon';
+import { NO_IMAGE_CARD_URL, onCardImageError, tcgplayerCardImage } from '../../utils/cardShape';
 
 const formatCLP = (value) => {
   const number = Number(value || 0);
@@ -240,7 +241,7 @@ export const DragFloatingPreview = ({ preview, previewRef }) => {
     >
       <div className="relative w-24 rotate-3 scale-105 rounded-xl bg-black/80 p-1 shadow-xl ring-2 ring-white/30 md:w-32">
         <img
-          src={preview.card.imageUrl}
+          src={preview.card.imageUrl || tcgplayerCardImage(preview.card) || NO_IMAGE_CARD_URL} onError={(e) => onCardImageError(e, tcgplayerCardImage(preview.card))}
           alt={preview.card.name}
           className="block w-full rounded-[5%] object-contain opacity-90"
         />

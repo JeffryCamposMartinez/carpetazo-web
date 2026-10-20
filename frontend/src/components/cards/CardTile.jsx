@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import LoadableImage from '../ui/LoadableImage';
-import { cardFill, cardRatio } from '../../utils/cardShape';
+import { cardFill, cardRatio, tcgplayerCardImage } from '../../utils/cardShape';
 import { LoadingMark } from '../ui/LoadableImage';
 import SvgIcon from '../ui/SvgIcon';
 
@@ -47,9 +47,7 @@ function Availability({ stock }) {
 }
 
 function CardImage({ card, className }) {
-  return card.imageUrl
-    ? <LoadableImage src={card.imageUrl} alt={card.name} loading="lazy" decoding="async" rotateLandscape className={className} style={cardFill(card.folder?.tcg)} />
-    : <span className="absolute inset-0 flex items-center justify-center px-2 text-center text-xs font-semibold text-slate-400">Sin imagen</span>;
+  return <LoadableImage src={card.imageUrl} fallbackSrc={tcgplayerCardImage({ ...card, tcg: card.folder?.tcg })} alt={card.name} loading="lazy" decoding="async" rotateLandscape className={className} style={cardFill(card.folder?.tcg)} />;
 }
 
 function WishButton({ card, wanted, onWish, className }) {

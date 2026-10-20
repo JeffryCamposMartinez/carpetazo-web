@@ -99,7 +99,7 @@ export default function CatalogCardPage() {
         <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[minmax(0,21rem)_minmax(0,1fr)] md:items-start lg:gap-10">
           <div className="mx-auto w-full max-w-[12.5rem] sm:max-w-[16rem] md:max-w-none">
             <div className="relative aspect-[63/88] overflow-hidden rounded-2xl bg-white p-2 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.7)]">
-              {card.imageUrl && <LoadableImage src={card.imageUrl} alt={card.name} rotateLandscape className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-lg object-contain" />}
+              <LoadableImage src={card.imageUrl} fallbackSrc={card.productId && card.game !== 'Mitos y Leyendas' ? `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(card.productId))}_400w.jpg` : undefined} alt={card.name} rotateLandscape className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-lg object-contain" />
             </div>
           </div>
 
@@ -182,7 +182,7 @@ export default function CatalogCardPage() {
                 <li key={other.productId} className="min-w-0">
                   <Link to={other.path} className="group block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
                     <span className="relative block aspect-[63/88] overflow-hidden rounded-xl bg-white ring-1 ring-slate-900/5 transition-transform duration-150 group-hover:-translate-y-0.5">
-                      {other.imageUrl && <LoadableImage src={other.imageUrl} alt={other.name} loading="lazy" compact className="absolute inset-0 h-full w-full object-contain" />}
+                      <LoadableImage src={other.imageUrl} fallbackSrc={other.productId && card.game !== 'Mitos y Leyendas' ? `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(other.productId))}_400w.jpg` : undefined} alt={other.name} loading="lazy" compact className="absolute inset-0 h-full w-full object-contain" />
                     </span>
                     <span className="mt-1 block truncate text-xs font-bold text-[#12315f]">{other.set || other.name}</span>
                     {other.number && <span className="block truncate text-xs text-slate-500">{other.number}</span>}

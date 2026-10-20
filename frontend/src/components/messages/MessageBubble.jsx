@@ -4,6 +4,7 @@ import Ticks, { messageStatus } from './Ticks';
 import VoiceMessage from './VoiceMessage';
 import { clock, decodeMessage, splitLinks, splitMatches } from './messageUtils';
 import SvgIcon from '../ui/SvgIcon';
+import { NO_IMAGE_CARD_URL, onCardImageError, tcgplayerCardImage } from '../../utils/cardShape';
 
 const LONG_PRESS_MS = 420;
 const REPLY_DISTANCE = 56;
@@ -33,10 +34,10 @@ function CardAttachment({ attachment, own, onImage }) {
       {attachment.imageUrl
         ? (
           <button type="button" onClick={() => onImage?.(attachment.imageUrl)} aria-label={`Ver ${attachment.name} a pantalla completa`} className="block w-full overflow-hidden rounded-lg bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
-            <img src={attachment.imageUrl} alt={attachment.name} loading="lazy" draggable="false" className="aspect-[5/7] w-full object-cover" />
+            <img src={attachment.imageUrl || tcgplayerCardImage(attachment) || NO_IMAGE_CARD_URL} onError={(e) => onCardImageError(e, tcgplayerCardImage(attachment))} alt={attachment.name} loading="lazy" draggable="false" className="aspect-[5/7] w-full object-cover" />
           </button>
         )
-        : <span aria-hidden="true" className="flex aspect-[5/7] w-full items-center justify-center rounded-lg bg-slate-200 text-slate-400"><SvgIcon name="style" translate="no" className="text-[40px]" /></span>}
+        : <button type="button" onClick={() => onImage?.(tcgplayerCardImage(attachment) || NO_IMAGE_CARD_URL)} aria-label={`Ver ${attachment.name} a pantalla completa`} className="block w-full overflow-hidden rounded-lg bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"><img src={tcgplayerCardImage(attachment) || NO_IMAGE_CARD_URL} onError={(e) => onCardImageError(e, tcgplayerCardImage(attachment))} alt={attachment.name} loading="lazy" draggable="false" className="aspect-[5/7] w-full object-cover" /></button>}
       <div className="px-1 pb-0.5 pt-2">
         <span className={`block text-[15px] font-extrabold leading-tight ${own ? 'text-white' : 'text-[#12315f]'}`}>{attachment.name}</span>
         {attachment.set && <span className={`mt-0.5 block truncate text-xs ${own ? 'text-blue-100' : 'text-slate-500'}`}>{attachment.set}</span>}

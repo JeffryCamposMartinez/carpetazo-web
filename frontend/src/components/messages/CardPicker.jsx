@@ -4,6 +4,7 @@ import Sheet from './Sheet';
 import LoadingState from '../ui/LoadingState';
 import EmptyState from '../ui/EmptyState';
 import SvgIcon from '../ui/SvgIcon';
+import { NO_IMAGE_CARD_URL, onCardImageError, tcgplayerCardImage } from '../../utils/cardShape';
 
 const formatCLP = (value) => `$${Math.round(Number(value) || 0).toLocaleString('es-CL')}`;
 const TCG_LABELS = { Pokemon: 'Pokémon', OnePiece: 'One Piece', YuGiOh: 'Yu-Gi-Oh!', Lorcana: 'Disney Lorcana' };
@@ -86,7 +87,7 @@ export default function CardPicker({ open, onClose, onPick, myUsername }) {
               {cards.map((card) => (
                 <li key={card.id}>
                   <button type="button" onClick={() => onPick(card)} className="flex min-h-[7.5rem] w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-slate-50 focus:outline-none focus-visible:bg-slate-100">
-                    {card.imageUrl ? <img src={card.imageUrl} alt="" loading="lazy" className="h-28 w-20 shrink-0 rounded-md bg-slate-200 object-cover" /> : <span className="h-28 w-20 shrink-0 rounded-md bg-slate-200" />}
+                    <img src={card.imageUrl || tcgplayerCardImage(card) || NO_IMAGE_CARD_URL} onError={(e) => onCardImageError(e, tcgplayerCardImage(card))} alt="" loading="lazy" className="h-28 w-20 shrink-0 rounded-md bg-slate-200 object-cover" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[15px] font-extrabold text-[#12315f]">{card.name}</span>
                       <span className="block truncate text-xs text-slate-500">{[gameOf(card), sellerOf(card)].filter(Boolean).join(' · ')}</span>
