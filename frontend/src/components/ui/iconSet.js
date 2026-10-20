@@ -390,6 +390,16 @@ export const ICONS = {
   },
   "inner": "<path d=\"m12 3 8.5 6-8.5 12L3.5 9zM3.5 9h17M8 9l4 12m4-12-4-6\"/>"
  },
+ "open_with": {
+  "root": {
+   "fill": "none",
+   "stroke": "currentColor",
+   "strokeWidth": "2",
+   "strokeLinecap": "round",
+   "strokeLinejoin": "round"
+  },
+  "inner": "<path d=\"M12 3v18M3 12h18M12 3 9 6m3-3 3 3m-3 15-3-3m3 3 3-3M3 12l3-3m-3 3 3 3m15-3-3-3m3 3-3 3\"/>"
+ },
  "drag_indicator": {
   "root": {
    "fill": "none",

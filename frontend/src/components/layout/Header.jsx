@@ -140,6 +140,7 @@ export default function Header() {
     { value: '/carpetas', href: '/carpetas', label: 'Carpetas' },
     { value: '/cartas', href: '/cartas', label: 'Cartas' },
     { value: '/vendedores', href: '/vendedores', label: 'Vendedores' },
+    { value: '/planes', href: '/planes', label: 'Planes' },
   ];
   // La banda de secciones tiene su propio estado: se mueve en cuanto se toca y no espera a la pantalla ni a sus datos
   const [pendingNav, setPendingNav] = useState(null);
@@ -696,7 +697,7 @@ export default function Header() {
               ariaLabel="Navegación principal"
               navigation
               layout="grid"
-              buttonClassName="h-10 rounded-full px-1 text-[13.5px] max-[359px]:text-[12px] font-medium leading-none before:absolute before:inset-x-0 before:-inset-y-0.5 before:content-[''] focus-visible:ring-2 focus-visible:ring-[#facc15]"
+              buttonClassName="h-10 rounded-full px-0.5 text-[13px] max-[389px]:text-[11.5px] font-medium leading-none before:absolute before:inset-x-0 before:-inset-y-0.5 before:content-[''] focus-visible:ring-2 focus-visible:ring-[#facc15]"
               indicatorClassName="rounded-full shadow-sm"
               indicatorStyle={{ backgroundColor: themedNavActive ? (publicHeaderTheme.surface || publicHeaderTheme.card) : '#ffffff' }}
               activeTextClassName="font-bold"

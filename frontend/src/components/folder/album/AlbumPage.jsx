@@ -7,7 +7,7 @@ export default function AlbumPage({
   pageIndex, activeCardId, albumDragNavRef, cards, cardsPerPage, currentPage, dragPageTurnDirectionRef,
   dragPageTurnEnteredAtRef, dragScrollSpeedRef, dropPreviewIndex, emptyMessage, isDesktop,
   isTouchAlbumDragRef, longPressTimeoutRef, moveDragFloatingPreview, onReorderCard, pageTurnDurationMs,
-  pageTurnEasing, previewCard, renderCardOverlays, reorderEnabled, setActiveCardId, setDragFloatingCard,
+  pageTurnEasing, previewCard, renderCardOverlays, reorderEnabled, selectable, selectedIds, onToggleSelect, setActiveCardId, setDragFloatingCard,
   setDraggingReorderCardId, setDropPreviewIndex, setPreviewCard, targetPage, totalPages, touchAlbumCardIdRef,
   touchAlbumDropIndexRef, touchStartPosRef, turnDirection, warmAnchors, warmRadius
 }) {
@@ -263,13 +263,17 @@ export default function AlbumPage({
         onClick={(e) => {
           e.stopPropagation();
           if (reorderEnabled && e.detail > 1) return;
+          if (selectable) {
+            if (card?.id) onToggleSelect?.(card.id);
+            return;
+          }
           if (card) {
             setActiveCardId(null);
               setPreviewCard(card);
           }
         }}
         onMouseEnter={() => {
-          if (isDesktop && card) setActiveCardId(uniqueId);
+          if (isDesktop && card && !selectable) setActiveCardId(uniqueId);
         }}
         onMouseLeave={() => {
           if (isDesktop && card) setActiveCardId(null);
@@ -283,6 +287,15 @@ export default function AlbumPage({
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 pointer-events-none z-10 rounded-xl" />
+
+        {selectable && card && (
+          <span className={`absolute left-1 top-1 z-[140] flex h-6 w-6 items-center justify-center rounded-full border-2 shadow-sm pointer-events-none ${selectedIds?.has(card.id) ? 'border-white bg-[#1e40af] text-white' : 'border-white bg-white/70 text-transparent'}`}>
+            <SvgIcon name="check" translate="no" aria-hidden="true" className="text-[16px]" />
+          </span>
+        )}
+        {selectable && card && selectedIds?.has(card.id) && (
+          <div className="absolute inset-0 z-[135] rounded-xl ring-4 ring-[#facc15] pointer-events-none" />
+        )}
 
         {card ? (
           <div 

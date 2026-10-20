@@ -4,7 +4,7 @@ import express from 'express';
 import { authenticateToken, isAdminEmail } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { getPlanState, lockPlanUser } from '../core/entitlements.js';
-import { adminOnlyPlans, paidPlan, publicPlans, validPlanKey } from '../core/plans.js';
+import { paidPlan, publicPlans, validPlanKey } from '../core/plans.js';
 import { cancelSubscriptionRecord, isMercadoPagoCheckoutUrl, mpFetch } from '../core/mercadopago.js';
 
 const router = express.Router();
@@ -57,7 +57,7 @@ router.get('/api/billing/me', authenticateToken, async (req, res) => {
     ]);
     const scheduled = subscriptions.find((row) => row.status === 'scheduled');
     res.set('Cache-Control', 'private, no-store');
-    res.json({ success: true, ...state, scheduledChange: scheduled && state.subscription ? { planKey: scheduled.planKey, priceClp: scheduled.priceClp, effectiveAt: state.subscription.currentPeriodEnd || state.subscription.nextPaymentAt } : null, subscriptions: subscriptions.filter((row) => row.status !== 'scheduled').map(safeSubscription), testMode: TEST_MODE, ...(isAdminRequest(req, user) ? { adminPlans: adminOnlyPlans() } : {}) });
+    res.json({ success: true, ...state, scheduledChange: scheduled && state.subscription ? { planKey: scheduled.planKey, priceClp: scheduled.priceClp, effectiveAt: state.subscription.currentPeriodEnd || state.subscription.nextPaymentAt } : null, subscriptions: subscriptions.filter((row) => row.status !== 'scheduled').map(safeSubscription), testMode: TEST_MODE });
   } catch (error) {
     console.error('Error loading billing state:', error);
     res.status(500).json({ success: false, message: 'No se pudo cargar tu plan' });

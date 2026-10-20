@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import LazyFolderCard from '../folder/LazyFolderCard';
@@ -264,17 +264,31 @@ function RecentCards({ cards, loading }) {
 
 // Entrada por juego, con cuántas carpetas públicas tiene cada uno
 function BrowseByGame({ counts, loading }) {
+  const rowRef = useRef(null);
+  // Efecto «dock»: la tarjeta bajo el mouse crece y las vecinas la siguen según su distancia (solo con mouse; en el celular se desliza)
+  const magnify = (event) => {
+    if (event.pointerType && event.pointerType !== 'mouse') return;
+    for (const item of rowRef.current?.children || []) {
+      const box = item.getBoundingClientRect();
+      const t = Math.max(0, 1 - Math.abs(event.clientX - (box.left + box.width / 2)) / 230);
+      item.style.setProperty('--dock', (t * t * (3 - 2 * t)).toFixed(3));
+      item.style.zIndex = t > 0.55 ? 10 : '';
+    }
+  };
+  const settle = () => {
+    for (const item of rowRef.current?.children || []) { item.style.removeProperty('--dock'); item.style.zIndex = ''; }
+  };
   return (
     <section aria-labelledby="destacados-juegos">
       <SectionHeader as="h2" id="destacados-juegos" title="Explora por juego" note="Entra directo a las carpetas del TCG que coleccionas." />
-      <div className="-mx-4 flex scroll-px-4 snap-x gap-3 overflow-x-auto px-4 pb-2 pt-1 sm:mx-0 sm:scroll-px-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div ref={rowRef} onPointerMove={magnify} onPointerLeave={settle} className="-mx-4 flex scroll-px-4 snap-x gap-3 overflow-x-auto px-4 pb-2 pt-1 sm:mx-0 sm:scroll-px-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {GAMES.map((game) => {
           const count = counts[normalize(game.name)] || 0;
           return (
             <Link
               key={game.name}
               to={`/carpetas?tcg=${encodeURIComponent(game.name)}`}
-              className="group flex w-[36vw] max-w-[170px] shrink-0 snap-start flex-col items-center gap-2 rounded-2xl bg-white px-3 pb-3.5 pt-4 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-16px_rgba(26,43,75,0.35)] ring-1 ring-[#1a2b4b]/8 transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_30px_-16px_rgba(26,43,75,0.45)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e40af] motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:w-auto sm:max-w-none"
+              className="group flex w-[36vw] max-w-[170px] shrink-0 snap-start flex-col items-center gap-2 rounded-2xl bg-white px-3 pb-3.5 pt-4 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-16px_rgba(26,43,75,0.35)] ring-1 ring-[#1a2b4b]/8 transition-[transform,box-shadow] origin-bottom [transform:translateY(calc(var(--dock,0)*-10px))_scale(calc(1+var(--dock,0)*0.16))] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:shadow-[0_18px_30px_-16px_rgba(26,43,75,0.45)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e40af] motion-reduce:transition-none motion-reduce:![transform:none] sm:w-auto sm:max-w-none"
             >
               <div className="flex h-16 w-full items-center justify-center">
                 <img src={game.logo} alt={game.name} className={`max-h-full max-w-[80%] object-contain ${game.scale}`} loading="lazy" />

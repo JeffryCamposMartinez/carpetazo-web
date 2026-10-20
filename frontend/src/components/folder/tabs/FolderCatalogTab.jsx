@@ -18,7 +18,7 @@ export default function FolderCatalogTab({
   showScrollTop
 }) {
   const isGrid = catalogViewMode === 'grid';
-  const visibleCards = isGrid ? inventory.gridCards : filteredCatalog;
+  const visibleCards = inventory.gridCards;
   const gridPages = isGrid ? chunkCardsByPage(inventory.gridCards) : [];
   const clearAllFilters = () => { clearCatalogFilters(); inventory.setQuickFilter(''); };
 
@@ -81,21 +81,19 @@ export default function FolderCatalogTab({
         hasFilters={hasCatalogFilters || Boolean(inventory.quickFilter)}
       />
 
-      {isGrid && (
-        <InventoryToolbar
-          counts={inventory.counts}
-          draftCount={inventory.draftCount}
-          onQuickFilter={inventory.setQuickFilter}
-          onSaveDrafts={inventory.saveDrafts}
-          onSaveOrder={inventory.saveSortAsFolderOrder}
-          onSort={inventory.setSortKey}
-          onStartSelecting={inventory.startSelecting}
-          quickFilter={inventory.quickFilter}
-          saving={inventory.busy}
-          selecting={inventory.selecting}
-          sortKey={inventory.sortKey}
-        />
-      )}
+      <InventoryToolbar
+        counts={inventory.counts}
+        draftCount={inventory.draftCount}
+        onQuickFilter={inventory.setQuickFilter}
+        onSaveDrafts={inventory.saveDrafts}
+        onSaveOrder={inventory.saveSortAsFolderOrder}
+        onSort={inventory.setSortKey}
+        onStartSelecting={inventory.startSelecting}
+        quickFilter={inventory.quickFilter}
+        saving={inventory.busy}
+        selecting={inventory.selecting}
+        sortKey={inventory.sortKey}
+      />
 
       {!inventory.selecting && <InventoryViewSwitcher
         mode={catalogViewMode}
@@ -179,10 +177,13 @@ export default function FolderCatalogTab({
         <div className="rounded-2xl bg-[#dbeafe] py-6 overflow-hidden">
           <AlbumView
             tcg={folderData?.tcg}
-            cards={previewCatalog}
+            cards={inventory.gridCards}
             binderColor={folderData?.color || '#2f7336'}
             emptyMessage="No se encontraron cartas que coincidan con los filtros."
-            reorderEnabled={!savingCatalogOrder}
+            reorderEnabled={!savingCatalogOrder && inventory.dragEnabled}
+            selectable={inventory.selecting}
+            selectedIds={inventory.selectedIds}
+            onToggleSelect={inventory.toggleSelected}
             onReorderCard={handleCatalogReorder}
           />
         </div>
@@ -255,7 +256,7 @@ export default function FolderCatalogTab({
 
       <DragFloatingPreview preview={catalogDragFloatingPreview} previewRef={catalogDragFloatingPreviewRef} />
 
-      {isGrid && inventory.selecting && (
+      {inventory.selecting && (
         <InventoryBulkBar
           busy={inventory.busy}
           count={inventory.selectedIds.size}

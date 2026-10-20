@@ -451,7 +451,7 @@ const [isSearching, setIsSearching] = useState(false);
     const tick = () => {
       const speed = catalogDragScrollSpeedRef.current;
       if (speed !== 0) {
-        window.scrollBy({ top: speed, left: 0, behavior: 'auto' });
+        window.scrollBy({ top: speed, left: 0, behavior: 'instant' });
       }
       catalogDragScrollFrameRef.current = window.requestAnimationFrame(tick);
     };

@@ -59,21 +59,21 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
           {dragHandleProps && (
             <div
               {...dragHandleProps}
-              className={`${compact ? 'top-1.5 left-1.5 w-8 h-8' : 'top-2 left-2 w-9 h-9'} absolute z-10 rounded-full bg-white/90 text-[#1e40af] shadow-sm border border-blue-100 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-100 transition-opacity`}
+              className={`${compact ? 'top-0.5 left-0.5 w-12 h-12' : 'top-1 left-1 w-14 h-14'} absolute z-10 rounded-full bg-[#1e40af] text-white border-[3px] border-white shadow-[0_1px_5px_rgba(0,0,0,0.4)] p-0 leading-none flex items-center justify-center cursor-grab active:cursor-grabbing active:scale-95 hover:bg-[#1d4ed8] opacity-100 transition-[background-color,transform]`}
               style={{ touchAction: 'none' }}
               title="Mantén y arrastra para ordenar"
             >
-              <SvgIcon name="drag_indicator" translate="no" className="text-[21px]" />
+              <SvgIcon name="open_with" translate="no" className="block text-[27px]" />
             </div>
           )}
           {/* En pantallas táctiles no hay «pasar el mouse»: el botón de eliminar queda siempre a la vista */}
           <button
             onClick={() => onDelete(card.id)}
-            className={`${compact ? 'top-1.5 right-1.5 w-8 h-8 [@media(hover:hover)]:w-7 [@media(hover:hover)]:h-7' : 'top-2 right-2 w-8 h-8'} absolute z-10 flex items-center justify-center rounded-full bg-red-600 hover:bg-red-700 text-white opacity-100 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity shadow-sm`}
+            className={`${compact ? 'top-0.5 right-0.5 w-12 h-12' : 'top-1 right-1 w-14 h-14'} absolute z-10 flex items-center justify-center rounded-full bg-red-600 hover:bg-red-700 text-white opacity-100 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity shadow-sm`}
             title="Eliminar carta"
             aria-label={`Eliminar ${card.name}`}
           >
-            <SvgIcon name="delete" translate="no" className="text-[18px]" />
+            <SvgIcon name="delete" translate="no" className="text-[25px]" />
           </button>
         </>
       )}
@@ -93,7 +93,7 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
               />
             )}
           {!selectable && Number(card.stock || 0) > 0 && (
-            <Link to={`/carta/${card.id}`} aria-label={`Ver ficha pública de ${card.name}`} title="Ver ficha pública" className="absolute left-1 top-1 z-[2] flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[#1e40af] shadow ring-1 ring-black/10 transition active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
+            <Link to={`/carta/${card.id}`} aria-label={`Ver ficha pública de ${card.name}`} title="Ver ficha pública" className="absolute bottom-1 left-1 z-[2] flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[#1e40af] shadow ring-1 ring-black/10 transition active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
               <SvgIcon name="open_in_new" translate="no" aria-hidden="true" className="text-[18px]" />
             </Link>
           )}

@@ -3,26 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useRef } from 'react';
 import usePageMeta from '../hooks/usePageMeta';
 import SvgIcon from '../components/ui/SvgIcon';
-
-const BUY_STEPS = [
-  'Busca una carta o una carpeta.',
-  'Agrega cartas al carrito y genera el pedido.',
-  'Cierra el trato por WhatsApp con el vendedor.',
-];
-
-const SELL_STEPS = [
-  'Entra con tu cuenta de Google.',
-  'Crea una carpeta y carga tus cartas con precio y stock.',
-  'Comparte el enlace y recibe los pedidos en tu panel.',
-];
-
-const FEATURES = [
-  { icon: 'auto_stories', title: 'Carpetas públicas', text: 'Cada carpeta se ve como un álbum o en cuadrícula, con el stock y el precio de cada carta.' },
-  { icon: 'tune', title: 'Filtros para Mitos y Leyendas', text: 'Filtra por bloque, edición, producto, tipo, raza y coste.' },
-  { icon: 'inbox', title: 'Panel de pedidos', text: 'Revisa las solicitudes de compra, confirma las ventas y consulta tu historial.' },
-  { icon: 'chat', title: 'Mensajes directos', text: 'Habla con compradores y vendedores sin salir de Carpetazo.' },
-  { icon: 'badge', title: 'Perfil de vendedor', text: 'Un perfil público con tu descripción, tu ubicación y tus redes.' },
-];
+import { FinalCta, Features, Games, HowItWorks, PlansTeaser } from '../components/home/LandingSections';
 
 export default function LandingPage() {
   usePageMeta({ title: 'Vende tus cartas TCG en Chile | Carpetazo', description: 'Arma tu carpeta de cartas, comparte el enlace y recibe pedidos de compradores de todo Chile. Gratis, con perfil de vendedor, mensajes y panel de pedidos.', path: '/bienvenida' });
@@ -84,21 +65,29 @@ export default function LandingPage() {
 
         {/* Presentación y carrusel de juegos */}
         <section className="relative z-20 bg-blue-100 px-4 pb-6 pt-8 text-[#12315f] md:px-12 md:pt-14">
-          <div className="mx-auto w-full max-w-[1200px]">
-            <h1 className="max-w-[20ch] text-balance text-4xl font-extrabold leading-[1.05] tracking-tight md:text-6xl">Compra y vende cartas TCG en Chile</h1>
-            <p className="mt-4 max-w-[52ch] text-base leading-relaxed text-slate-700 md:text-lg">
-              Carpetazo reúne las carpetas de cartas de jugadores y tiendas chilenas. Encuentra la carta que buscas, arma tu pedido y ciérralo por WhatsApp.
+          <div className="relative mx-auto w-full max-w-[1200px] text-center">
+            <div aria-hidden="true" className="pointer-events-none absolute left-1/2 -top-16 -z-10 -translate-x-1/2 h-56 w-56 rounded-full bg-[#facc15]/30 blur-3xl md:h-80 md:w-80" />
+            <h1 style={{ '--d': '0ms' }} className="lp-rise mx-auto max-w-[18ch] text-balance text-[2.6rem] font-extrabold leading-[1.02] tracking-tight md:text-7xl">Compra y vende cartas TCG en Chile</h1>
+            <p style={{ '--d': '90ms' }} className="lp-rise mx-auto mt-5 max-w-[50ch] text-base leading-relaxed text-[#12315f]/80 md:text-xl">
+              Carpetazo reúne las carpetas de jugadores y tiendas chilenas. Encuentra la carta que buscas, arma tu pedido y ciérralo directo con el vendedor.
             </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Link to="/carpetas" className="inline-flex h-12 items-center justify-center rounded-full bg-[#12315f] px-7 text-[15px] font-extrabold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+            <div style={{ '--d': '180ms' }} className="lp-rise mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link to="/carpetas" className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-[#12315f] px-8 text-base font-extrabold text-white shadow-[0_10px_20px_-10px_rgba(18,49,95,0.8)] transition-[transform,background-color] duration-150 hover:bg-[#1e40af] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#facc15] active:scale-[0.97]">
+                <SvgIcon name="auto_stories" translate="no" className="text-[22px]" />
                 Explorar carpetas
               </Link>
-              <Link to="/cartas" className="inline-flex h-12 items-center justify-center rounded-full border-2 border-[#12315f] px-7 text-[15px] font-extrabold text-[#12315f] transition-colors hover:bg-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+              <Link to="/cartas" className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-[#facc15] px-8 text-base font-extrabold text-[#12315f] shadow-[0_10px_20px_-12px_rgba(180,130,0,0.9)] transition-[transform,background-color] duration-150 hover:bg-[#fbd53a] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#12315f]/40 active:scale-[0.97]">
+                <SvgIcon name="search" translate="no" className="text-[22px]" />
                 Buscar cartas
               </Link>
             </div>
-            <p className="mt-4 text-sm font-semibold text-[#12315f]">
-              ¿Buscas a alguien en particular? <Link to="/vendedores" className="font-extrabold underline underline-offset-2">Mira los vendedores</Link>.
+            <ul style={{ '--d': '270ms' }} className="lp-rise mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm font-bold text-[#12315f]">
+              {[['check_circle', 'Gratis para empezar'], ['style', 'Seis juegos de cartas'], ['chat', 'Cierras directo con el vendedor']].map(([icon, label]) => (
+                <li key={label} className="flex items-center gap-1.5"><SvgIcon name={icon} translate="no" className="text-[19px] text-[#1e40af]" />{label}</li>
+              ))}
+            </ul>
+            <p style={{ '--d': '330ms' }} className="lp-rise mt-4 text-sm font-semibold text-[#12315f]/80">
+              ¿Buscas a alguien en particular? <Link to="/vendedores" className="font-extrabold text-[#1e40af] underline underline-offset-4 transition-colors hover:text-[#12315f]">Mira los vendedores</Link>
             </p>
           </div>
 
@@ -163,77 +152,11 @@ export default function LandingPage() {
         </div>
         </section>
 
-        {/* Cómo funciona */}
-        <section className="bg-white px-4 py-14 md:px-12 md:py-20">
-          <div className="mx-auto w-full max-w-[1200px]">
-            <h2 className="max-w-[24ch] text-balance text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Cómo funciona</h2>
-            <div className="mt-8 grid gap-10 md:grid-cols-2 md:gap-16">
-              {[{ title: 'Si quieres comprar', steps: BUY_STEPS }, { title: 'Si quieres vender', steps: SELL_STEPS }].map((group) => (
-                <div key={group.title}>
-                  <h3 className="border-b-2 border-[#facc15] pb-2 text-xl font-extrabold text-[#12315f]">{group.title}</h3>
-                  <ol className="mt-4 divide-y divide-slate-200">
-                    {group.steps.map((step, index) => (
-                      <li key={step} className="flex items-baseline gap-4 py-4">
-                        <span className="w-6 shrink-0 text-lg font-black tabular-nums text-[#1e40af]">{index + 1}</span>
-                        <span className="text-base leading-relaxed text-slate-700">{step}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Qué incluye */}
-        <section className="bg-[#F4F6FA] px-4 py-14 md:px-12 md:py-20">
-          <div className="mx-auto w-full max-w-[1200px]">
-            <h2 className="max-w-[24ch] text-balance text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Lo que puedes hacer en Carpetazo</h2>
-            <dl className="mt-8 divide-y divide-slate-200 border-y border-slate-200">
-              {FEATURES.map((feature) => (
-                <div key={feature.title} className="grid gap-1 py-5 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] md:gap-8">
-                  <dt className="flex items-center gap-3 text-lg font-extrabold text-[#12315f]">
-                    <SvgIcon name={feature.icon} translate="no" className="text-[24px] text-[#1e40af]" />
-                    {feature.title}
-                  </dt>
-                  <dd className="text-base leading-relaxed text-slate-600 md:pl-0">{feature.text}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </section>
-
-        {/* Juegos disponibles */}
-        <section className="bg-white px-4 py-14 md:px-12 md:py-20">
-          <div className="mx-auto w-full max-w-[1200px]">
-            <h2 className="max-w-[24ch] text-balance text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Juegos con catálogo de cartas</h2>
-            <p className="mt-3 max-w-[60ch] text-base leading-relaxed text-slate-600">Hoy puedes buscar y cargar cartas de estos dos juegos. Las carpetas de otros juegos se irán sumando.</p>
-            <ul className="mt-8 grid max-w-2xl grid-cols-2 gap-4">
-              {[{ name: 'Pokémon', logo: '/images/logos/pokemon.webp' }, { name: 'Mitos y Leyendas', logo: '/images/logos/mitosyleyendas.webp' }].map((game) => (
-                <li key={game.name}>
-                  <Link to={`/carpetas?tcg=${encodeURIComponent(game.name)}`} className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white p-5 transition hover:border-[#1e40af] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-                    <img src={game.logo} alt="" className="h-16 w-auto max-w-full object-contain" loading="lazy" />
-                    <span className="text-sm font-bold text-[#12315f]">Ver carpetas de {game.name}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        {/* Llamado final */}
-        <section className="bg-[#12315f] px-4 py-14 text-white md:px-12 md:py-20">
-          <div className="mx-auto w-full max-w-[1200px]">
-            <h2 className="max-w-[22ch] text-balance text-3xl font-extrabold tracking-tight md:text-4xl">Publica tu primera carpeta</h2>
-            <p className="mt-3 max-w-[52ch] text-base leading-relaxed text-blue-100">Es gratis. Con tu cuenta de Google puedes cargar tus cartas y compartir el enlace hoy mismo.</p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-              {primaryCta}
-              <Link to="/carpetas" className="inline-flex h-12 items-center justify-center rounded-full border-2 border-white/40 px-7 text-[15px] font-bold text-white transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
-                Explorar carpetas
-              </Link>
-            </div>
-          </div>
-        </section>
+        <HowItWorks />
+        <Features />
+        <Games />
+        <PlansTeaser />
+        <FinalCta primaryCta={primaryCta} />
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import SvgIcon from '../ui/SvgIcon';
 
 const CHIP = 'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-bold ring-1 transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]';
 
-// Ordenar, filtros rápidos y entrada a la selección en bloque (solo vista cuadrícula)
+// Ordenar, filtros rápidos y entrada a la selección en bloque (en cuadrícula y en álbum)
 export default function InventoryToolbar({ counts, draftCount, onSaveDrafts, onSaveOrder, onStartSelecting, onQuickFilter, onSort, quickFilter, saving, selecting, sortKey }) {
   const chips = [
     { key: 'noStock', label: 'Sin stock', count: counts.noStock, on: 'bg-red-600 text-white ring-red-600', off: 'bg-red-50 text-red-700 ring-red-100 hover:bg-red-100' },

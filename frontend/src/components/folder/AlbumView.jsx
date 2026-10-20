@@ -36,7 +36,7 @@ const getCardAbilityText = (card) => {
   );
 };
 
-export default function AlbumView({ cards = [], renderCardActions, renderCardOverlays, binderColor = '#2f7336', emptyMessage, topRightControls, tcg, reorderEnabled = false, onReorderCard }) {
+export default function AlbumView({ cards = [], renderCardActions, renderCardOverlays, binderColor = '#2f7336', emptyMessage, topRightControls, tcg, reorderEnabled = false, onReorderCard, selectable = false, selectedIds, onToggleSelect }) {
   const [currentPage, setCurrentPage] = useState(0);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
   // En móvil la página gira 180° hacia la izquierda (fuera de pantalla); con una curva simétrica,
@@ -161,7 +161,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
     const tick = () => {
       const speed = dragScrollSpeedRef.current;
       if (speed !== 0) {
-        window.scrollBy({ top: speed, left: 0, behavior: 'auto' });
+        window.scrollBy({ top: speed, left: 0, behavior: 'instant' });
       }
 
       const direction = dragPageTurnDirectionRef.current;
@@ -424,7 +424,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
   const albumPageProps = { activeCardId, albumDragNavRef, cards, cardsPerPage, currentPage, dragPageTurnDirectionRef,
     dragPageTurnEnteredAtRef, dragScrollSpeedRef, dropPreviewIndex, emptyMessage, isDesktop, isTouchAlbumDragRef,
     longPressTimeoutRef, moveDragFloatingPreview, onReorderCard, pageTurnDurationMs, pageTurnEasing, previewCard,
-    renderCardOverlays, reorderEnabled, setActiveCardId, setDragFloatingCard, setDraggingReorderCardId,
+    renderCardOverlays, reorderEnabled, selectable, selectedIds, onToggleSelect, setActiveCardId, setDragFloatingCard, setDraggingReorderCardId,
     setDropPreviewIndex, setPreviewCard, targetPage, totalPages, touchAlbumCardIdRef, touchAlbumDropIndexRef,
     touchStartPosRef, turnDirection, warmAnchors, warmRadius };
 

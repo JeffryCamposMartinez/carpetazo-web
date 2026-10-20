@@ -335,7 +335,7 @@ const LEAK = /node_modules|\/backend\/|C:\\|\bat (async )?[\w.<>$]+ \((file:\/\/
       ok('contratar el plan de prueba sin ser administrador → 404 (' + who + ')', r.status === 404, 'status ' + r.status);
     }
     r = await call('GET', '/billing/me', 'admin');
-    ok('/billing/me muestra el plan de prueba ($950) a un administrador', r.status === 200 && r.j?.adminPlans?.[0]?.key === 'test' && r.j.adminPlans[0].priceClp === 950, JSON.stringify(r.j?.adminPlans));
+    ok('/billing/me ya no muestra el plan de prueba ni al administrador', r.status === 200 && !r.j?.adminPlans, JSON.stringify(r.j?.adminPlans));
 
     // ===== 14. Búsqueda de personas por parecido (moderación) =====
     console.log('\n-- 14. búsqueda de personas');
