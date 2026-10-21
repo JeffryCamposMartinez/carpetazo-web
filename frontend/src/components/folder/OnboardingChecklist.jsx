@@ -18,7 +18,8 @@ const COPY = {
   share: { icon: 'ios_share', title: 'Comparte tu carpeta', text: () => 'Manda el enlace por WhatsApp o Instagram: se ve con una vista previa de tus cartas.', cta: 'Compartir enlace' }
 };
 
-// Guía de primeros pasos del vendedor. El avance viene del servidor (lo que ya hizo de verdad) y desaparece al completarse.
+// Guía de primeros pasos del vendedor. El avance viene del servidor (lo que ya hizo de verdad).
+// Nunca desaparece: se puede minimizar (queda una barra compacta) y volver a abrir; al completarse queda minimizada como «completados».
 export default function OnboardingChecklist({ foldersCount, onCreateFolder, version }) {
   const { currentUser } = useAuth();
   const { showToast } = useToast();
@@ -26,6 +27,7 @@ export default function OnboardingChecklist({ foldersCount, onCreateFolder, vers
   const [state, setState] = useState(null);
   const [failed, setFailed] = useState(false);
   const [hidden, setHidden] = useState(() => (uid ? readHidden(uid) : false));
+  const [openDone, setOpenDone] = useState(false); // con todo completado, empieza minimizada; esto la abre solo en esta visita
 
   const load = useCallback(() => {
     api.getOnboarding().then((res) => { if (res?.success) { setState(res); setFailed(false); } else setFailed(true); }).catch(() => setFailed(true));
@@ -47,13 +49,15 @@ export default function OnboardingChecklist({ foldersCount, onCreateFolder, vers
     api.markOnboardingShared().then(load).catch(() => {});
   };
 
-  const hide = () => {
-    setHidden(true);
-    try { localStorage.setItem(hiddenKey(uid), '1'); } catch (_error) { /* sin almacenamiento: solo dura esta visita */ }
+  const toggle = (open) => {
+    if (open === 'complete') { setOpenDone((value) => !value); return; }
+    const next = !hidden;
+    setHidden(next);
+    try { if (next) localStorage.setItem(hiddenKey(uid), '1'); else localStorage.removeItem(hiddenKey(uid)); } catch (_error) { /* sin almacenamiento: solo dura esta visita */ }
   };
 
   if (failed && !state) return foldersCount === 0 ? <FolderEmptySteps /> : null;
-  if (!state || state.complete || hidden) return null;
+  if (!state) return null;
 
   const current = state.steps.find((step) => !step.done)?.key;
   const action = (key) => {
@@ -63,6 +67,25 @@ export default function OnboardingChecklist({ foldersCount, onCreateFolder, vers
     return { onClick: share };
   };
   const percent = Math.round((state.done / state.total) * 100);
+  const collapsed = state.complete ? !openDone : hidden;
+  const toggleKind = state.complete ? 'complete' : 'normal';
+
+  if (collapsed) {
+    return (
+      <section aria-label="Primeros pasos para vender" className="mb-6 flex items-center gap-3 rounded-2xl bg-white px-4 py-2.5 shadow-[0_1px_2px_rgba(26,43,75,0.06)] ring-1 ring-slate-900/5 sm:px-6">
+        <span aria-hidden="true" className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${state.complete ? 'bg-[#1e40af] text-white' : 'bg-[#facc15] text-[#12315f]'}`}>
+          <SvgIcon name={state.complete ? 'check' : 'flag'} translate="no" className="text-[20px]" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-extrabold text-[#12315f]">{state.complete ? '¡Primeros pasos completados!' : 'Empieza a vender en Carpetazo'}</span>
+          <span className="block truncate text-xs text-slate-600">{state.done} de {state.total} pasos</span>
+        </span>
+        <button type="button" onClick={() => toggle(toggleKind)} aria-expanded="false" className="inline-flex h-11 shrink-0 items-center gap-1 rounded-full bg-[#dbeafe] px-4 text-xs font-extrabold text-[#1e40af] transition-[background-color,transform] duration-150 hover:bg-[#bfdbfe] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
+          {state.complete ? 'Ver pasos' : 'Mostrar'}<SvgIcon name="expand_more" translate="no" aria-hidden="true" className="text-[18px]" />
+        </button>
+      </section>
+    );
+  }
 
   return (
     <section aria-labelledby="onboarding-title" className="mb-6 overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(26,43,75,0.06)] ring-1 ring-slate-900/5">
@@ -71,7 +94,7 @@ export default function OnboardingChecklist({ foldersCount, onCreateFolder, vers
           <h2 id="onboarding-title" className="text-lg font-extrabold text-[#12315f] sm:text-xl">Empieza a vender en Carpetazo</h2>
           <p className="mt-0.5 text-sm text-slate-600">{state.done} de {state.total} pasos · tu carpeta lista en minutos</p>
         </div>
-        <button type="button" onClick={hide} className="-mr-2 -mt-1 inline-flex h-11 shrink-0 items-center rounded-lg px-3 text-xs font-bold text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">Ocultar</button>
+        <button type="button" onClick={() => toggle(toggleKind)} aria-expanded="true" className="-mr-2 -mt-1 inline-flex h-11 shrink-0 items-center gap-1 rounded-lg px-3 text-xs font-bold text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">Minimizar<SvgIcon name="expand_less" translate="no" aria-hidden="true" className="text-[18px]" /></button>
       </div>
       <div className="mx-4 h-2 overflow-hidden rounded-full bg-[#dbeafe] sm:mx-6" role="progressbar" aria-valuemin={0} aria-valuemax={state.total} aria-valuenow={state.done} aria-label="Avance de tus primeros pasos">
         <div className="h-full rounded-full bg-gradient-to-r from-[#1e40af] to-[#facc15] transition-[width] duration-500 ease-out motion-reduce:transition-none" style={{ width: `${Math.max(percent, 6)}%` }} />
