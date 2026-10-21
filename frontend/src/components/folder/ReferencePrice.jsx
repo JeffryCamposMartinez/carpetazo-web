@@ -22,17 +22,17 @@ export function ReferencePriceBox({ variants, source, currentPrice, onUse }) {
   if (variants === null) return <p className="text-xs text-gray-400">Buscando precio referencial…</p>;
   if (!variants.length) return <p className="text-xs text-gray-400">{source === 'carpetazo' ? 'Aún no hay suficientes ventas ni vendedores para una referencia.' : 'Sin precio de mercado para esta carta.'}</p>;
   return (
-    <div className="rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2" aria-label="Precio referencial">
-      <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Precio referencial de mercado</p>
-      <ul className="mt-1 space-y-1">
+    <div className="rounded-lg border border-blue-100 bg-blue-50/60 px-2.5 py-1.5" aria-label="Precio referencial">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Precio referencial de mercado</p>
+      <ul className="mt-1 space-y-0.5">
         {variants.map((variant) => {
           const used = String(variant.clp) === String(currentPrice);
           return (
-            <li key={variant.name} className="flex items-center justify-between gap-2 text-sm">
-              <span className="min-w-0 truncate text-gray-600">{variant.name}{variant.note && <span className="text-xs text-gray-400"> · {variant.note}</span>}</span>
-              <span className="flex shrink-0 items-center gap-2 font-bold text-gray-900 tabular-nums">
+            <li key={variant.name} className="flex items-center justify-between gap-2 text-xs">
+              <span className="min-w-0 truncate text-gray-600 font-medium">{variant.name}{variant.note && <span className="text-[11px] text-gray-400"> · {variant.note}</span>}</span>
+              <span className="flex shrink-0 items-center gap-1.5 font-bold text-gray-900 tabular-nums">
                 {formatClp(variant.clp)}
-                <button type="button" onClick={() => onUse(variant.clp, variant)} disabled={used} className="rounded-md bg-white px-2 py-1 text-xs font-bold text-[#1e40af] ring-1 ring-[#1e40af]/30 transition-colors hover:bg-[#1e40af] hover:text-white disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-[#1e40af]">
+                <button type="button" onClick={() => onUse(variant.clp, variant)} disabled={used} className="rounded bg-white px-1.5 py-0.5 text-[11px] font-bold text-[#1e40af] ring-1 ring-[#1e40af]/30 transition-colors hover:bg-[#1e40af] hover:text-white disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-[#1e40af]">
                   {used ? 'Usado' : 'Usar'}
                 </button>
               </span>
@@ -40,7 +40,7 @@ export function ReferencePriceBox({ variants, source, currentPrice, onUse }) {
           );
         })}
       </ul>
-      <p className="mt-1 text-[11px] text-gray-500">{SOURCE_NOTE[source === 'carpetazo' ? (variants[0].from === 'sales' ? 'carpetazoSales' : 'carpetazoSellers') : source]}</p>
+      <p className="mt-0.5 text-[10px] text-gray-500 leading-tight">{SOURCE_NOTE[source === 'carpetazo' ? (variants[0].from === 'sales' ? 'carpetazoSales' : 'carpetazoSellers') : source]}</p>
     </div>
   );
 }

@@ -71,66 +71,70 @@ export default function FolderAddTab({
   const zoomList = useMemo(() => (zoomedCard ? [{ id: 'zoom', tcg: folderData?.tcg, name: zoomedCard.name, imageUrl: getProxyImageUrl(zoomedCard.tcgProductId || zoomedCard.id, zoomedCard.imageUrl), set: getCardSetName(zoomedCard), rarity: zoomedCard.rarity || getExtDataValue(zoomedCard.extData, 'Rarity') }] : []), [zoomedCard]); // eslint-disable-line react-hooks/exhaustive-deps
   // Datos y botón para guardar la carta: están en el panel y también en la pantalla completa
   const renderFormBody = () => (
-            <div className="flex flex-col gap-3">
-              <div className="text-center px-2">
-                <p className="font-bold text-gray-900 leading-tight">{cardLabel(selectedCard)}</p>
-                <p className="text-sm text-gray-500 mt-1">{getCardSetName(selectedCard)} • {selectedCard.rarity || getExtDataValue(selectedCard.extData, 'Rarity')}</p>
-                {selectedCard.isCustomImage && <p className="text-xs text-gray-500 mt-2">Si esta carta no tiene imagen en el catálogo, Moderación podrá usar tu foto para mostrarla a todos.</p>}
+            <div className="flex flex-col gap-2">
+              <div className="text-center px-1">
+                <p className="font-bold text-gray-900 leading-tight text-sm truncate">{cardLabel(selectedCard)}</p>
+                <p className="text-xs text-gray-500 mt-0.5 truncate">{getCardSetName(selectedCard)} • {selectedCard.rarity || getExtDataValue(selectedCard.extData, 'Rarity')}</p>
+                {selectedCard.isCustomImage && <p className="text-[11px] text-gray-500 mt-1">Si esta carta no tiene imagen en el catálogo, Moderación podrá usar tu foto para mostrarla a todos.</p>}
                 {isBatchAdding && (
-                  <p className="text-xs font-bold text-[#1e40af] mt-2">
+                  <p className="text-xs font-bold text-[#1e40af] mt-1">
                     Carta {selectedQueue.findIndex(item => item.queueId === activeQueueItemId) + 1} de {selectedQueue.length}
                   </p>
                 )}
               </div>
 
               <DuplicateCardNotice existingCard={selectedExistingCard} selectedCard={selectedCard} />
-              {referenceGame && <ReferencePriceBox variants={selectedVariants ?? null} source={source}currentPrice={price} onUse={(clp, variant) => {
+              {referenceGame && <ReferencePriceBox variants={selectedVariants ?? null} source={source} currentPrice={price} onUse={(clp, variant) => {
                 setPrice(String(clp));
-                // El acabado del precio (Normal, Reverse Holofoil…) pasa al alias, salvo que la persona ya haya escrito uno propio
                 const known = (selectedVariants || []).map((item) => item.name);
                 if (variant?.name && (!pseudoName.trim() || known.includes(pseudoName.trim()))) setPseudoName(variant.name);
               }} />}
 
-              {!isBatchAdding && (
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Alias / Apodo (Opcional)</label>
-                  <input type="text" value={pseudoName} onChange={(e) => setPseudoName(e.target.value)} placeholder="Ej: Charizard de Ash..." maxLength={30} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-sm text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" />
-                </div>
-              )}
-
-              <div className="flex gap-4">
-                <div className={isBatchAdding ? 'w-full' : 'flex-1'}>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Precio (CLP)*</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                    <input type="number" required min="1" value={price} onChange={(e) => { setPrice(e.target.value); if (e.target.value !== suggestedPrice) setSuggestedPrice(''); }} className="w-full bg-gray-50 border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" placeholder="1000" />
+              {/* Fila 1: Precio y Stock */}
+              <div className="flex gap-2">
+                <div className={isBatchAdding ? 'w-full' : 'flex-1 min-w-0'}>
+                  <div className="flex items-baseline justify-between mb-0.5">
+                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">Precio (CLP)*</label>
+                    {suggestedPrice && price === suggestedPrice && <span className="text-[10px] font-bold text-emerald-700">Sugerido</span>}
                   </div>
-                  {suggestedPrice && price === suggestedPrice && <p className="mt-1 text-[11px] font-semibold text-emerald-700">Precio sugerido por el mercado. Puedes cambiarlo.</p>}
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">$</span>
+                    <input type="number" required min="1" value={price} onChange={(e) => { setPrice(e.target.value); if (e.target.value !== suggestedPrice) setSuggestedPrice(''); }} className="w-full bg-gray-50 border border-gray-300 rounded-lg pl-6 pr-2.5 py-1 text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" placeholder="1000" />
+                  </div>
                 </div>
                 {!isBatchAdding && (
-                  <div className="w-1/3">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Stock*</label>
-                    <div className="flex items-stretch overflow-hidden rounded-lg border border-gray-300 bg-gray-50 focus-within:border-[#1e40af] focus-within:ring-1 focus-within:ring-[#1e40af]">
-                      <button type="button" aria-label="Restar stock" disabled={(parseInt(stock, 10) || 1) <= 1} onClick={() => setStock(prev => String(Math.max(1, (parseInt(prev, 10) || 1) - 1)))} className="flex w-8 shrink-0 items-center justify-center text-lg font-bold text-gray-600 transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-40">−</button>
-                      <input type="number" required min="1" step="1" inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} onBlur={() => { if (!(parseInt(stock, 10) >= 1)) setStock('1'); }} className="min-w-0 flex-1 bg-transparent px-1 py-1.5 text-center text-sm font-bold text-gray-900 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" placeholder="1" />
-                      <button type="button" aria-label="Sumar stock" onClick={() => setStock(prev => String((parseInt(prev, 10) || 0) + 1))} className="flex w-8 shrink-0 items-center justify-center text-lg font-bold text-gray-600 transition-colors hover:bg-gray-200">+</button>
+                  <div className="w-24 shrink-0">
+                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-0.5 block">Stock*</label>
+                    <div className="flex h-[30px] items-stretch overflow-hidden rounded-lg border border-gray-300 bg-gray-50 focus-within:border-[#1e40af] focus-within:ring-1 focus-within:ring-[#1e40af]">
+                      <button type="button" aria-label="Restar stock" disabled={(parseInt(stock, 10) || 1) <= 1} onClick={() => setStock(prev => String(Math.max(1, (parseInt(prev, 10) || 1) - 1)))} className="flex w-7 shrink-0 items-center justify-center text-base font-bold text-gray-600 transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-40">−</button>
+                      <input type="number" required min="1" step="1" inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} onBlur={() => { if (!(parseInt(stock, 10) >= 1)) setStock('1'); }} className="min-w-0 flex-1 bg-transparent px-0.5 text-center text-xs font-bold text-gray-900 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" placeholder="1" />
+                      <button type="button" aria-label="Sumar stock" onClick={() => setStock(prev => String((parseInt(prev, 10) || 0) + 1))} className="flex w-7 shrink-0 items-center justify-center text-base font-bold text-gray-600 transition-colors hover:bg-gray-200">+</button>
                     </div>
                   </div>
                 )}
               </div>
 
-              {!isMylFolder && (
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Idioma</label>
-                  <Select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af] text-sm">
-                    <option value="English">English</option>
-                    <option value="Spanish">Spanish</option>
-                    <option value="Japanese">Japanese</option>
-                  </Select>
-                </div>
-              )}
+              {/* Fila 2: Idioma y Alias / Apodo juntos */}
+              <div className="flex gap-2">
+                {!isMylFolder && (
+                  <div className={isBatchAdding ? 'w-full' : 'w-28 shrink-0'}>
+                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-0.5 block">Idioma</label>
+                    <Select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full px-2 py-1 text-xs rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]">
+                      <option value="English">English</option>
+                      <option value="Spanish">Spanish</option>
+                      <option value="Japanese">Japanese</option>
+                    </Select>
+                  </div>
+                )}
+                {!isBatchAdding && (
+                  <div className="flex-1 min-w-0">
+                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-0.5 block">Alias (Opcional)</label>
+                    <input type="text" value={pseudoName} onChange={(e) => setPseudoName(e.target.value)} placeholder="Ej: Charizard de Ash..." maxLength={30} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-2.5 py-1 text-xs text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" />
+                  </div>
+                )}
+              </div>
 
-              <button type="submit" disabled={isSaving} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-[15px]">
+              <button type="submit" disabled={isSaving} className="mt-1 w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold h-10 rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 text-sm active:scale-[0.98]">
                 {isSaving ? <ButtonSpinner /> : <SvgIcon name="add_circle" translate="no" />}
                 {isSaving ? 'Guardando...' : isBatchAdding ? 'Guardar y continuar' : selectedExistingCard ? 'Sumar stock' : 'Guardar Carta'}
               </button>
@@ -453,14 +457,14 @@ export default function FolderAddTab({
             </button>
         </div>
 
-      <div id="add-catalog-panel" className={`w-full max-w-[400px] lg:w-[400px] bg-white p-6 lg:p-6 rounded-2xl shadow-sm border border-gray-200 lg:sticky lg:top-[140px] flex-shrink-0 z-10 hover:z-[60] mx-auto lg:mx-0 self-center lg:self-start scroll-mt-[130px] lg:scroll-mt-[150px] ${selectedCard ? 'block lg:max-h-[calc(100vh-160px)] lg:overflow-y-auto' : 'hidden lg:block lg:h-[calc(100vh-160px)]'}`}>
-        <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 border-b border-gray-200 pb-4">
-          <SvgIcon name="add_circle" translate="no" className="text-[#1e40af]" />
+      <div id="add-catalog-panel" className={`w-full max-w-[390px] lg:w-[390px] bg-white p-3.5 lg:p-4 rounded-2xl shadow-sm border border-gray-200 lg:sticky lg:top-[125px] flex-shrink-0 z-10 hover:z-[60] mx-auto lg:mx-0 self-center lg:self-start scroll-mt-[130px] lg:scroll-mt-[150px] ${selectedCard ? 'block' : 'hidden lg:block lg:min-h-[500px]'}`}>
+        <h2 className="text-sm font-extrabold text-[#1a2b4b] flex items-center gap-1.5 border-b border-gray-100 pb-2">
+          <SvgIcon name="add_circle" translate="no" className="text-[#1e40af] text-[18px]" />
           {isBatchAdding ? 'Agregar Selección' : 'Añadir a Carpeta'}
         </h2>
         {selectedCard ? (
-          <form onSubmit={handleSaveCard} className="mt-2 flex flex-col gap-3">
-            <div className="relative z-50 mt-3 flex w-full shrink-0 justify-center">
+          <form onSubmit={handleSaveCard} className="mt-1 flex flex-col gap-1.5">
+            <div className="relative z-50 flex w-full shrink-0 justify-center">
               <div className="relative mx-auto w-[clamp(115px,36vw,145px)]" style={{ aspectRatio: cardRatio(folderData?.tcg) }}>
                 <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} className={`relative block h-full w-full overflow-hidden cursor-zoom-in ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-lg'} focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2`}>
                   <SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} fallbackSrc={tcgplayerCardImage({ ...selectedCard, tcg: folderData?.tcg })} alt={selectedCard.name} rotateLandscape style={cardCorners(folderData?.tcg)} className="relative z-50 h-full w-full rounded-lg object-contain shadow-md active:scale-[0.98]" fallbackType="zoom-main" onFail={setFailedPreview} />
