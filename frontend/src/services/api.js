@@ -346,6 +346,8 @@ export const api = {
   getMyOrders: (cursor) => apiFetch('/orders/mine' + (cursor ? `?cursor=${encodeURIComponent(cursor)}` : '')),
   getMyPendingOrders: (since) => apiFetch('/orders/mine/pending' + (since ? `?since=${encodeURIComponent(since)}` : '')),
   setMyOrderStatus: (id, status) => apiFetch('/orders/mine/' + encodeURIComponent(id) + '/status', { method: 'POST', body: JSON.stringify({ status }) }),
+  getFooterSettings: () => apiFetch('/site/footer'),
+  updateFooterSettings: (data) => apiFetch('/admin/site/footer', { method: 'PUT', body: JSON.stringify(data) }),
 };
 
 export default api;

@@ -1,0 +1,29 @@
+{
+  "tagline": "Compra, vende y comparte tu colección de cartas TCG en todo Chile.",
+  "address": "",
+  "email": "contacto@carpetazo.cl",
+  "phone": "",
+  "facebookUrl": "https://facebook.com/carpetazo.cl",
+  "instagramUrl": "https://instagram.com/carpetazo.cl",
+  "whatsappUrl": "",
+  "discordUrl": "",
+  "twitterUrl": "",
+  "tiktokUrl": "",
+  "theme": "dark",
+  "copyrightText": "",
+  "infoLinks": [
+    {
+      "label": "Nosotros",
+      "url": "/bienvenida"
+    },
+    {
+      "label": "Términos y condiciones",
+      "url": "/terminos"
+    },
+    {
+      "label": "Políticas de privacidad",
+      "url": "/privacidad"
+    }
+  ],
+  "updatedAt": "2026-10-21T06:06:00.000Z"
+}

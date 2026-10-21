@@ -10,6 +10,7 @@ import { hashEmail, hashIp } from '../core/hashing.js';
 import { LEGAL_CURRENT } from '../core/legal.js';
 import { escapeHtml, sendUserEmail } from '../core/mail.js';
 import { badRequest, isOptionalText, isShortText, isUuid, validUsername } from '../core/validation.js';
+import { getFooterSettings, saveFooterSettings } from '../core/footerSettings.js';
 
 const router = express.Router();
 
@@ -340,6 +341,37 @@ router.post('/api/admin/users/:username/notify', authenticateToken, requireStaff
   } catch (error) {
     console.error('Error sending staff notice:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Configuración del pie de página (público para la web)
+router.get('/api/site/footer', async (_req, res) => {
+  try {
+    const settings = await getFooterSettings();
+    res.json({ success: true, settings });
+  } catch (error) {
+    console.error('Error loading footer settings:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Actualizar configuración del pie de página (solo administradores y moderadores nivel 2+)
+router.put('/api/admin/site/footer', authenticateToken, requireStaff(2), async (req, res) => {
+  try {
+    const updated = await saveFooterSettings(req.body || {});
+    const actorId = await currentUserId(req);
+    await prisma.moderationAudit.create({
+      data: {
+        actorId,
+        action: 'site.footer_updated',
+        targetType: 'system',
+        note: 'Actualizó la configuración del pie de página'
+      }
+    }).catch(() => {});
+    res.json({ success: true, settings: updated });
+  } catch (error) {
+    console.error('Error saving footer settings:', error);
+    res.status(500).json({ success: false, message: 'Error interno al guardar la configuración' });
   }
 });
 
