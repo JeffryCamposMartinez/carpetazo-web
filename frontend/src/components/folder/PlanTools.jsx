@@ -64,7 +64,7 @@ function VisitsDetail() {
 }
 
 // Herramientas que dependen del plan: exportar el inventario y ver el detalle de visitas. Sin el plan, llevan a la página de planes.
-export default function PlanTools({ plan }) {
+export default function PlanTools({ plan, children }) {
   const { showToast } = useToast();
   const [exporting, setExporting] = useState(false);
   const [visitsOpen, setVisitsOpen] = useState(false);
@@ -89,13 +89,14 @@ export default function PlanTools({ plan }) {
 
   return (
     <div className="mb-5 -mt-2">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {plan.inventoryExport
           ? <button type="button" onClick={exportInventory} disabled={exporting} className={buttonClass}>{exporting ? <ButtonSpinner tone="dark" /> : <SvgIcon name="download" translate="no" aria-hidden="true" className="text-[19px]" />}Exportar inventario (CSV)</button>
           : <Link to="/planes" className={buttonClass} title="Disponible desde el plan Entusiasta"><SvgIcon name="lock" translate="no" aria-hidden="true" className="text-[19px]" />Exportar inventario · Entusiasta</Link>}
         {plan.visitsDetail
           ? <button type="button" onClick={() => setVisitsOpen((open) => !open)} aria-expanded={visitsOpen} className={buttonClass}><SvgIcon name="monitoring" translate="no" aria-hidden="true" className="text-[19px]" />{visitsOpen ? 'Ocultar visitas' : 'Detalle de visitas'}</button>
           : <Link to="/planes" className={buttonClass} title="Disponible desde el plan Premium"><SvgIcon name="lock" translate="no" aria-hidden="true" className="text-[19px]" />Detalle de visitas · Premium</Link>}
+        {children}
       </div>
       {plan.visitsDetail && visitsOpen && <VisitsDetail />}
     </div>

@@ -72,23 +72,32 @@ export default function OnboardingChecklist({ foldersCount, onCreateFolder, vers
 
   if (collapsed) {
     return (
-      <section aria-label="Primeros pasos para vender" className="mb-6 flex items-center gap-3 rounded-2xl bg-white px-4 py-2.5 shadow-[0_1px_2px_rgba(26,43,75,0.06)] ring-1 ring-slate-900/5 sm:px-6">
-        <span aria-hidden="true" className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${state.complete ? 'bg-[#1e40af] text-white' : 'bg-[#facc15] text-[#12315f]'}`}>
-          <SvgIcon name={state.complete ? 'check' : 'flag'} translate="no" className="text-[20px]" />
+      <button
+        type="button"
+        onClick={() => toggle(toggleKind)}
+        aria-expanded="false"
+        className="inline-flex h-10 [@media(pointer:coarse)]:h-11 max-w-full items-center gap-2 rounded-xl border border-blue-200 bg-white px-3 text-sm font-extrabold text-[#12315f] transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"
+      >
+        <span aria-hidden="true" className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${state.complete ? 'bg-[#1e40af] text-white' : 'bg-[#facc15] text-[#12315f]'}`}>
+          <SvgIcon name={state.complete ? 'check' : 'flag'} translate="no" className="text-[15px]" />
         </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-extrabold text-[#12315f]">{state.complete ? '¡Primeros pasos completados!' : 'Empieza a vender en Carpetazo'}</span>
-          <span className="block truncate text-xs text-slate-600">{state.done} de {state.total} pasos</span>
+        <span className="truncate">
+          {state.complete ? '¡Primeros pasos completados!' : 'Empieza a vender en Carpetazo'}
         </span>
-        <button type="button" onClick={() => toggle(toggleKind)} aria-expanded="false" className="inline-flex h-11 shrink-0 items-center gap-1 rounded-full bg-[#dbeafe] px-4 text-xs font-extrabold text-[#1e40af] transition-[background-color,transform] duration-150 hover:bg-[#bfdbfe] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-          {state.complete ? 'Ver pasos' : 'Mostrar'}<SvgIcon name="expand_more" translate="no" aria-hidden="true" className="text-[18px]" />
-        </button>
-      </section>
+        <span className="shrink-0 text-xs font-semibold text-slate-500 tabular-nums">
+          <span className="hidden sm:inline">{state.done} de {state.total} pasos</span>
+          <span className="sm:hidden">{state.done}/{state.total}</span>
+        </span>
+        <span className="inline-flex h-7 shrink-0 items-center gap-0.5 rounded-lg bg-[#dbeafe] px-2 text-xs font-extrabold text-[#1e40af]">
+          {state.complete ? 'Ver pasos' : 'Mostrar'}
+          <SvgIcon name="expand_more" translate="no" aria-hidden="true" className="text-[16px]" />
+        </span>
+      </button>
     );
   }
 
   return (
-    <section aria-labelledby="onboarding-title" className="mb-6 overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(26,43,75,0.06)] ring-1 ring-slate-900/5">
+    <section aria-labelledby="onboarding-title" className="basis-full w-full mb-6 mt-2 overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(26,43,75,0.06)] ring-1 ring-slate-900/5">
       <div className="flex items-start justify-between gap-3 p-4 pb-3 sm:p-6 sm:pb-4">
         <div className="min-w-0">
           <h2 id="onboarding-title" className="text-lg font-extrabold text-[#12315f] sm:text-xl">Empieza a vender en Carpetazo</h2>

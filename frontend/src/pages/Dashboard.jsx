@@ -535,7 +535,15 @@ export default function Dashboard() {
                 <Link to="/planes" className="inline-flex h-10 [@media(pointer:coarse)]:h-11 items-center justify-center rounded-xl bg-[#12315f] px-4 text-sm font-extrabold text-white hover:bg-[#1e40af]">Ver mi plan</Link>
               </div>
             )}
-            {planState?.plan && folders.length > 0 && <PlanTools plan={planState.plan} />}
+            {planState?.plan && folders.length > 0 ? (
+              <PlanTools plan={planState.plan}>
+                <OnboardingChecklist foldersCount={folders.length} onCreateFolder={() => setIsCreateModalOpen(true)} version={`${folders.length}:${totalCards}`} />
+              </PlanTools>
+            ) : (
+              <div className="mb-5 flex flex-wrap items-center gap-2">
+                <OnboardingChecklist foldersCount={folders.length} onCreateFolder={() => setIsCreateModalOpen(true)} version={`${folders.length}:${totalCards}`} />
+              </div>
+            )}
             {folders.length > 0 && <FolderSummary variant="strip" folderCount={folders.length} publicCount={publicCount} cardCount={totalCards} weeklyVisits={weeklyVisits} pendingCount={pendingCount} onOpenRequests={() => changeTab('solicitudes')} />}
           {/* Móvil: la acción primaria es un botón, no un banner; junto al resumen de lo que ya hay */}
             <div className="mb-5 flex items-center justify-between gap-3 sm:hidden">
@@ -554,7 +562,6 @@ export default function Dashboard() {
               Nueva carpeta
             </button>
             </div>
-            <OnboardingChecklist foldersCount={folders.length} onCreateFolder={() => setIsCreateModalOpen(true)} version={`${folders.length}:${totalCards}`} />
 
             <FolderGrid {...folderGridProps} />
           </div>
