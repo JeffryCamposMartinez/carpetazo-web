@@ -356,7 +356,7 @@ export default function FolderAddTab({
                   onClick={(event) => { event.stopPropagation(); handleResultCardClick(card); setFullscreen(true); }}
                   title="Ver en pantalla completa"
                   aria-label={`Ver ${card.name} en pantalla completa`}
-                  className="absolute left-2 top-2 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-[#12315f]/85 text-white shadow-md backdrop-blur-sm transition-[transform,background-color] hover:bg-[#12315f] active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"
+                  className="absolute left-2 top-2 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-[#0f172a]/35 hover:bg-[#0f172a]/65 text-white ring-1 ring-white/30 shadow-sm backdrop-blur-md transition-[transform,background-color] active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"
                 >
                   <SvgIcon name="fullscreen" translate="no" aria-hidden="true" className="text-[20px]" />
                 </button>
