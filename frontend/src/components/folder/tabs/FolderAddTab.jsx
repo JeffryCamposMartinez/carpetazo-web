@@ -103,7 +103,7 @@ export default function FolderAddTab({
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Precio (CLP)*</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                    <input type="number" required min="1" value={price} onChange={(e) => { setPrice(e.target.value); if (e.target.value !== suggestedPrice) setSuggestedPrice('); }} className="w-full bg-gray-50 border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" placeholder="1000" />
+                    <input type="number" required min="1" value={price} onChange={(e) => { setPrice(e.target.value); if (e.target.value !== suggestedPrice) setSuggestedPrice(''); }} className="w-full bg-gray-50 border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" placeholder="1000" />
                   </div>
                   {suggestedPrice && price === suggestedPrice && <p className="mt-1 text-[11px] font-semibold text-emerald-700">Precio sugerido por el mercado. Puedes cambiarlo.</p>}
                 </div>
