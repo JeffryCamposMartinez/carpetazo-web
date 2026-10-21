@@ -93,6 +93,8 @@ export default function FolderCatalogTab({
         saving={inventory.busy}
         selecting={inventory.selecting}
         sortKey={inventory.sortKey}
+        viewMode={catalogViewMode}
+        onViewModeChange={setCatalogViewMode}
       />
 
       {!inventory.selecting && <InventoryViewSwitcher

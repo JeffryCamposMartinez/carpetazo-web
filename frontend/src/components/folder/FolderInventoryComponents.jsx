@@ -165,8 +165,8 @@ export const InventoryViewSwitcher = ({
   gridDensity,
   onCycleGridDensity,
 }) => (
-  <div className="fixed bottom-[5.75rem] right-6 z-[1200] flex justify-end md:static md:mb-3 md:border-b md:border-gray-100 md:pb-2">
-    <div className="w-14 rounded-full bg-white/95 p-1 shadow-2xl ring-4 ring-white/70 backdrop-blur md:w-auto md:flex md:flex-row md:items-center md:rounded-xl md:bg-gray-100 md:shadow-inner md:ring-0 md:backdrop-blur-0">
+  <div className="fixed bottom-[5.75rem] right-6 z-[1200] flex justify-end md:hidden">
+    <div className="w-14 rounded-full bg-white/95 p-1 shadow-2xl ring-4 ring-white/70 backdrop-blur">
       {onCycleDetails && (
         <button
           type="button"
