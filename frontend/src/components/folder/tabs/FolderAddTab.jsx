@@ -119,10 +119,10 @@ export default function FolderAddTab({
                 {!isMylFolder && (
                   <div className={isBatchAdding ? 'w-full' : 'w-32 shrink-0'}>
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Idioma</label>
-                    <Select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]">
-                      <option value="English">English</option>
-                      <option value="Spanish">Spanish</option>
-                      <option value="Japanese">Japanese</option>
+                    <Select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full" buttonClassName="!min-h-10 !h-10 !rounded-lg !px-3 !text-sm">
+                      <option value="English">Inglés</option>
+                      <option value="Spanish">Español</option>
+                      <option value="Japanese">Japonés</option>
                     </Select>
                   </div>
                 )}
