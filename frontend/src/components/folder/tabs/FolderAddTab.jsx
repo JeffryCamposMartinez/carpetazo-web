@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import AddCardFullscreen from '../AddCardFullscreen';
 import CardLightbox from '../../ui/CardLightbox';
 import { DuplicateCardNotice } from '../FolderInventoryComponents';
@@ -40,7 +40,19 @@ export default function FolderAddTab({
   const referenceGame = searchCategory === '1' ? 'pokemon' : searchCategory === '68' ? 'onepiece' : searchCategory === 'magic' ? 'magic' : searchCategory === 'riftbound' ? 'riftbound' : searchCategory === 'yugioh' ? 'yugioh' : searchCategory === 'lorcana' ? 'lorcana' : searchCategory === 'digimon' ? 'digimon' : searchCategory === '99' ? 'myl' : null;
   const { variantsFor, source } = useReferencePrices(selectedCard ? [selectedCard, ...searchResults.slice(0, visibleCount)] : searchResults.slice(0, visibleCount), referenceGame);
   const selectedVariants = referenceGame && selectedCard ? variantsFor(selectedCard) : undefined;
-  // Botón flotante de limpiar filtros: deja todos los filtros del juego en su estado inicial
+  // Precio sugerido: al elegir una carta con precio de referencia, el campo se rellena solo con el más bajo (la persona lo cambia si quiere).
+  // Una carta se rellena una sola vez y nunca se pisa un precio que la persona ya escribió.
+  const filledRef = useRef({ key: null, value: '' });
+  const [suggestedPrice, setSuggestedPrice] = useState('');
+  const selectedKey = selectedCard ? getCardSelectionKey(selectedCard) : null;
+  useEffect(() => {
+    if (!selectedKey) { filledRef.current = { key: null, value: '' }; setSuggestedPrice(''); return; }
+    if (!selectedVariants?.length || filledRef.current.key === selectedKey) return;
+    const clp = String(selectedVariants[0].clp);
+    const untouched = price === '' || price === filledRef.current.value;
+    filledRef.current = { key: selectedKey, value: untouched ? clp : '' };
+    if (untouched) { setPrice(clp); setSuggestedPrice(clp); } else setSuggestedPrice('');
+  }, [selectedKey, selectedVariants]); // eslint-disable-line react-hooks/exhaustive-deps  // Botón flotante de limpiar filtros: deja todos los filtros del juego en su estado inicial
   const clearAllFilters = () => {
     setSearchQuery(''); setSearchSet('');
     setSearchBlock(''); setSearchPhysicalProduct(''); setMylType(''); setMylRace(''); setMylCost('');
@@ -91,8 +103,9 @@ export default function FolderAddTab({
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Precio (CLP)*</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                    <input type="number" required min="1" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" placeholder="1000" />
+                    <input type="number" required min="1" value={price} onChange={(e) => { setPrice(e.target.value); if (e.target.value !== suggestedPrice) setSuggestedPrice('); }} className="w-full bg-gray-50 border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm font-bold text-gray-900 focus:outline-none focus:border-[#1e40af] focus:ring-1 focus:ring-[#1e40af]" placeholder="1000" />
                   </div>
+                  {suggestedPrice && price === suggestedPrice && <p className="mt-1 text-[11px] font-semibold text-emerald-700">Precio sugerido por el mercado. Puedes cambiarlo.</p>}
                 </div>
                 {!isBatchAdding && (
                   <div className="w-1/3">
