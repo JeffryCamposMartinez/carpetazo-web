@@ -34,7 +34,7 @@ export default function FolderAddTab({
   setMylType, setPrice, setPseudoName, setSearchBlock, setSearchLang, setSearchPhysicalProduct,
   setSearchQuery, setSearchSet, setSelectedCard, setSelectedQueue, setSelectedSupertype, setSelectedType,
   setShowCardDetails, setStock, showCardDetails, showScrollTop, startQueuedAdd, stock, toggleMultiSelectMode,
-  totalQueuedCards, visibleCount
+  totalQueuedCards, visibleCount, cardsCount = 1
 }) {
   // Precio referencial (Pokémon: TCGplayer; Mitos y Leyendas: vendedores de Carpetazo) de las cartas a la vista y de la que se agrega
   const referenceGame = searchCategory === '1' ? 'pokemon' : searchCategory === '68' ? 'onepiece' : searchCategory === 'magic' ? 'magic' : searchCategory === 'riftbound' ? 'riftbound' : searchCategory === 'yugioh' ? 'yugioh' : searchCategory === 'lorcana' ? 'lorcana' : searchCategory === 'digimon' ? 'digimon' : searchCategory === '99' ? 'myl' : null;
@@ -123,9 +123,52 @@ export default function FolderAddTab({
               </button>
             </div>
   );
+  // Guía de pasos: el paso actual sale de lo que la persona ya hizo (sin carta ni resultados → 1; con resultados → 2; con carta o selección → 3)
+  const guideStep = selectedCard || selectedQueue.length > 0 ? 3 : searchResults.length > 0 || isSearching ? 2 : 1;
+  const GUIDE_STEPS = [
+    { n: 1, title: 'Busca la carta', hint: 'Escribe su nombre' },
+    { n: 2, title: 'Elígela', hint: multiSelectMode ? 'Toca varias' : 'Toca la que es' },
+    { n: 3, title: 'Precio y guardar', hint: 'Ponle tu precio' },
+  ];
+  // Carpeta recién creada: una sola acción clara para empezar
+  const showFirstCard = cardsCount === 0 && guideStep === 1 && !hasSearchedAPI && !searchQuery;
+  const focusSearch = () => {
+    const panel = document.getElementById('add-search-panel');
+    panel?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    window.setTimeout(() => panel?.querySelector('input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"])')?.focus({ preventScroll: true }), 350);
+  };
   return (
-    <div className="flex flex-col-reverse lg:flex-row gap-6">
-      {fullscreen && selectedCard && (
+    <div className="flex flex-col gap-4">
+      <ol aria-label="Pasos para agregar una carta" className="grid grid-cols-3 gap-2 rounded-2xl border border-blue-200 bg-white p-2 shadow-sm sm:gap-3 sm:p-3">
+        {GUIDE_STEPS.map((step) => {
+          const done = step.n < guideStep;
+          const current = step.n === guideStep;
+          return (
+            <li key={step.n} aria-current={current ? 'step' : undefined} className={`flex min-w-0 items-center gap-2 rounded-xl px-2 py-1.5 transition-colors sm:gap-3 sm:px-3 sm:py-2 ${current ? 'bg-[#1e40af]/10 ring-1 ring-[#1e40af]/30' : ''}`}>
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black sm:h-8 sm:w-8 sm:text-sm ${done ? 'bg-emerald-500 text-white' : current ? 'bg-[#1e40af] text-white' : 'bg-gray-200 text-gray-500'}`}>
+                {done ? <SvgIcon name="check" translate="no" aria-hidden="true" className="text-[16px]" /> : step.n}
+              </span>
+              <span className="min-w-0 leading-tight">
+                <span className={`block truncate text-[12px] font-extrabold sm:text-sm ${current ? 'text-[#12315f]' : done ? 'text-emerald-700' : 'text-gray-500'}`}>{step.title}</span>
+                <span className="hidden truncate text-xs text-gray-500 sm:block">{step.hint}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+      {showFirstCard && (
+        <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-[#1e40af]/40 bg-white p-6 text-center shadow-sm">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1e40af]/10 text-[#1e40af]"><SvgIcon name="add_circle" translate="no" aria-hidden="true" className="text-[32px]" /></span>
+          <div>
+            <p className="text-lg font-black text-[#12315f]">Agrega tu primera carta</p>
+            <p className="mt-1 text-sm text-gray-600">Busca su nombre, tócala y ponle tu precio. Así de simple; después puedes seguir con las demás.</p>
+          </div>
+          <button type="button" onClick={focusSearch} className="flex h-12 items-center justify-center gap-2 rounded-full bg-[#facc15] px-6 text-sm font-extrabold text-[#12315f] shadow-sm transition-transform active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
+            <SvgIcon name="search" translate="no" aria-hidden="true" className="text-[20px]" />Buscar mi primera carta
+          </button>
+        </div>
+      )}
+    <div className="flex flex-col-reverse lg:flex-row gap-6">      {fullscreen && selectedCard && (
         <AddCardFullscreen
           card={selectedCard}
           list={isBatchAdding ? [] : searchResults.slice(0, visibleCount)}
@@ -144,7 +187,7 @@ export default function FolderAddTab({
         <CardLightbox cards={zoomList} cardId="zoom" onChange={() => {}} onClose={() => setZoomedCard(null)} describe={(card) => ({ subtitle: [card.set, card.rarity].filter(Boolean).join(' • '), chips: [] })} />
       )}
       {/* Lado Izquierdo: Buscador de API */}
-      <div className="flex-1 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+      <div id="add-search-panel" className="flex-1 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
         <div className="bg-white pb-4 mb-4 border-b border-gray-200">
             <h2 className="font-headline-md text-headline-md text-[#1a2b4b] flex items-center gap-2 mb-4">
           <SvgIcon name="search" translate="no" className="text-[#1e40af]" />
@@ -490,6 +533,7 @@ export default function FolderAddTab({
           </>
         )}
       </div>
+    </div>
     </div>
   );
 }

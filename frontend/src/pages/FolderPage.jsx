@@ -1018,7 +1018,7 @@ const [isSearching, setIsSearching] = useState(false);
     setIsSetDropdownOpen, setLanguage, setMylCost, setMylRace, setMagicFilters, setMylType, setOpFilters, setPrice, setRbFilters, setLcFilters, setDgFilters, setYgFilters, setPseudoName, setSearchBlock,
     setSearchLang, setSearchPhysicalProduct, setSearchQuery: handleSearchQueryChange, setSearchSet, setSelectedCard, setSelectedQueue,
     setSelectedSupertype, setSelectedType, setShowCardDetails, setStock, showCardDetails, showScrollTop,
-    startQueuedAdd, stock, toggleMultiSelectMode, totalQueuedCards, visibleCount };
+    startQueuedAdd, stock, toggleMultiSelectMode, totalQueuedCards, visibleCount, cardsCount: cards.length };
 
   return (
     <>
