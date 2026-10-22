@@ -1,6 +1,7 @@
 // Ficha pública de una carta del catálogo de TCGplayer: la usan la página /catalogo/<id> (JSON para la web) y la página para buscadores.
 // Solo datos públicos del catálogo y las ofertas visibles de carpetas públicas.
 import { r2PublicUrl } from './tcgCatalogImport.js';
+import { eligibleSales, loadLiveOffers, loadSales, offersAnchor } from './priceIntegrity.js';
 
 // CatalogGame.name guarda el nombre de carpeta del juego; estas son las etiquetas que ve la gente
 export const GAME_LABELS = { Pokemon: 'Pokémon', Pokemon_Japan: 'Pokémon Japón', One_Piece: 'One Piece', Magic: 'Magic: The Gathering', YuGiOh: 'Yu-Gi-Oh!', Riftbound: 'Riftbound', Disney_Lorcana: 'Disney Lorcana', Digimon_Card_Game: 'Digimon Card Game' };
@@ -29,6 +30,31 @@ const view = (row) => ({
   productId: row.productId, name: row.name, number: row.number, rarity: row.rarity, set: row.set?.name || '', game: row.game?.name || '', gameLabel: gameLabel(row.game?.name),
   imageUrl: r2PublicUrl(row.imageKey || row.thumbKey), path: catalogPath(row),
 });
+
+// Historial público por carta de catálogo. Las ventas presenciales son declaradas
+// por el vendedor: se muestra el precio publicado por unidad, nunca el total ajustado.
+export const loadCatalogSales = async (db, productId, tcg, days = 730, limit = 10) => {
+  const tcgId = String(productId);
+  const [sales, offers, inPersonRows] = await Promise.all([
+    loadSales({ tcg, tcgIds: [tcgId], days }),
+    loadLiveOffers({ tcg, tcgIds: [tcgId] }),
+    db.$queryRaw`
+      SELECT s."createdAt" AS "at",
+             (line->>'unitPrice')::float AS "price",
+             CASE WHEN line->>'quantity' ~ '^[0-9]{1,4}$' THEN (line->>'quantity')::int ELSE 1 END AS "quantity"
+      FROM "InPersonSale" s
+      CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(s."items"::jsonb) = 'array' THEN s."items"::jsonb ELSE '[]'::jsonb END) AS line
+      WHERE s."createdAt" > now() - make_interval(days => ${days}::int)
+        AND line->>'tcgId' = ${tcgId}
+        AND COALESCE(line->>'tcg', ${tcg}) = ${tcg}
+        AND line->>'unitPrice' ~ '^[0-9]+(\\.[0-9]+)?$'
+    `,
+  ]);
+  const anchor = offersAnchor(offers);
+  const confirmed = eligibleSales(sales, anchor).map((sale) => ({ at: sale.at, price: Math.round(sale.unit), quantity: sale.quantity, source: 'confirmada' }));
+  const inPerson = inPersonRows.filter((sale) => Number(sale.price) > 0).map((sale) => ({ at: sale.at, price: Math.round(Number(sale.price)), quantity: Number(sale.quantity) || 1, source: 'presencial' }));
+  return [...confirmed, ...inPerson].sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, limit);
+};
 
 // null si la carta no existe en el catálogo (o no es una carta: los sobres y cajas no tienen ficha)
 export async function loadCatalogCard(db, productId) {

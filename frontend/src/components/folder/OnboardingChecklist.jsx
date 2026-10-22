@@ -76,7 +76,7 @@ export default function OnboardingChecklist({ foldersCount, onCreateFolder, vers
         type="button"
         onClick={() => toggle(toggleKind)}
         aria-expanded="false"
-        className="inline-flex h-10 [@media(pointer:coarse)]:h-11 max-w-full items-center gap-2 rounded-xl border border-blue-200 bg-white px-3 text-sm font-extrabold text-[#12315f] transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"
+        className="inline-flex h-9 [@media(pointer:coarse)]:h-10 max-w-full items-center gap-1.5 rounded-xl border border-blue-200 bg-white px-2.5 text-xs font-extrabold text-[#12315f] transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] sm:h-10 sm:gap-2 sm:px-3 sm:text-sm"
       >
         <span aria-hidden="true" className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${state.complete ? 'bg-[#1e40af] text-white' : 'bg-[#facc15] text-[#12315f]'}`}>
           <SvgIcon name={state.complete ? 'check' : 'flag'} translate="no" className="text-[15px]" />

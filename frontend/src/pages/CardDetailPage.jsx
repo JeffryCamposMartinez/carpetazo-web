@@ -13,8 +13,7 @@ import { CardAvailability, RecentSales, TcgplayerRange } from '../components/car
 import ReportButton from '../components/moderation/ReportButton';
 import useCardPriceRanges from '../hooks/useCardPriceRanges';
 import usePageMeta from '../hooks/usePageMeta';
-import CardPriceHistory from '../components/cards/CardPriceHistory';
-import { referencePrice } from '../utils/referencePrice';
+import CatalogPriceHistory from '../components/cards/CatalogPriceHistory';
 import { cardFill, cardRatio, isYugioh } from '../utils/cardShape';
 import SvgIcon from '../components/ui/SvgIcon';
 
@@ -77,7 +76,6 @@ export default function CardDetailPage() {
   const chosen = offers.find((offer) => offer.id === cardId);
   const best = offers.find((offer) => Number(offer.price) > 0);
   const priceRanges = useCardPriceRanges(card, chosen?.language || best?.language);
-  const referenceClp = referencePrice(data?.reference, priceRanges.ranges);
   usePageMeta(card ? {
     title: `${card.name}${card.set ? ` (${card.set})` : ''} - ${card.tcg}${best ? ` desde ${formatCLP(best.price)}` : ''} | Carpetazo`,
     description: `Compra ${card.name} de ${card.tcg}${card.set ? `, edición ${card.set}` : ''} en Chile. ${offers.length} ${offers.length === 1 ? 'oferta' : 'ofertas'}${best ? ` desde ${formatCLP(best.price)}` : ''}.`,
@@ -141,6 +139,11 @@ export default function CardDetailPage() {
             <button type="button" onClick={() => setZoom(true)} aria-label={`Ver ${card.name} en pantalla grande`} className="relative block w-full cursor-zoom-in overflow-hidden rounded-2xl bg-white p-2 shadow-[0_18px_40px_-24px_rgba(26,43,75,0.6)] ring-1 ring-slate-900/5 transition-transform duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]" style={{ aspectRatio: cardRatio(card.tcg), ...(isYugioh(card.tcg) ? { padding: 0, borderRadius: '3px' } : {}) }}>
               <LoadableImage src={card.imageUrl} alt={card.name} rotateLandscape className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-lg object-contain" style={cardFill(card.tcg)} />
             </button>
+            <div className="mt-2">
+              <CardShare cardId={chosen?.id || card.id} name={card.name} message={`¡Mira esta carta en Carpetazo! ${card.name}${best ? ` desde ${formatCLP(best.price)}` : ''}`} showToast={showToast}>
+                <ReportButton targetType="card" targetId={chosen?.id || best?.id || card.id} label="Reportar esta publicación" className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl text-sm font-bold text-slate-500 transition-colors hover:bg-slate-50 hover:text-red-600" />
+              </CardShare>
+            </div>
           </div>
 
           <div className="min-w-0 space-y-4 md:col-start-2 md:row-span-2 md:row-start-1">
@@ -182,8 +185,6 @@ export default function CardDetailPage() {
             <CardAvailability stats={data.stats || { copies: offers.reduce((sum, offer) => sum + (offer.stock || 0), 0), sellers: offers.length }} />
             <TcgplayerRange status={priceRanges.status} ranges={priceRanges.ranges} />
             <Reference reference={data.reference} />
-            <CardPriceHistory cardId={chosen?.id || card.id} reference={referenceClp} />
-
             {details.length > 0 && (
               <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 rounded-2xl bg-white p-4 text-sm ring-1 ring-slate-900/5">
                 {details.map(([label, value]) => (
@@ -198,6 +199,7 @@ export default function CardDetailPage() {
                 ))}
               </dl>
             )}
+            <CatalogPriceHistory cardId={chosen?.id || card.id} />
             {card.effect && (
               <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-900/5">
                 <p className="text-xs font-bold text-slate-500">Habilidad</p>
@@ -205,11 +207,6 @@ export default function CardDetailPage() {
               </div>
             )}
             <RecentSales sales={data.sales || []} />
-          </div>
-          <div className="min-w-0 md:col-start-1 md:row-start-2">
-            <CardShare cardId={chosen?.id || card.id} name={card.name} message={`¡Mira esta carta en Carpetazo! ${card.name}${best ? ` desde ${formatCLP(best.price)}` : ''}`} showToast={showToast}>
-              <ReportButton targetType="card" targetId={chosen?.id || best?.id || card.id} label="Reportar esta publicación" className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl text-sm font-bold text-slate-500 transition-colors hover:bg-slate-50 hover:text-red-600" />
-            </CardShare>
           </div>
         </div>
 

@@ -93,11 +93,11 @@ export const HELP_TOPICS = {
     intro: 'Para anotar lo que vendiste en persona (feria, torneo, junta) y descontarlo del stock.',
     steps: [
       'Toca las cartas que vendiste: cada toque suma una copia. Con − y + ajustas la cantidad.',
-      'Si la vendiste a otro precio, escríbelo debajo de la carta.',
-      'Abajo ves cuántas cartas y el total de la venta.',
+      'Cada carta conserva su precio publicado. Toca «Editar total» para escribir cuánto cobrarás por todo el lote.',
+      'Revisa el total y confirma la venta.',
       'Toca «Vender» y confirma: el stock baja y la venta queda en tu historial como «Presencial».'
     ],
-    tip: 'No es un pedido y no cambia los precios de mercado. Una vez registrada, el stock se corrige a mano si te equivocaste.'
+    tip: 'El historial guarda el total que cobraste; el valor de mercado considera el precio publicado de cada carta, sin repartir el descuento. No aparece en «Últimas ventas». Una vez registrada, el stock se corrige a mano si te equivocaste.'
   },
   folderSolicitudes: {
     title: 'Solicitudes de esta carpeta',

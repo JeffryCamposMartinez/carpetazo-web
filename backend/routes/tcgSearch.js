@@ -5,7 +5,7 @@ import { indexedNames, searchTcgIndex } from '../core/tcgSearchIndex.js';
 import { buildVocabulary, hasVocabulary, suggestQuery } from '../core/cardSuggest.js';
 import { likeEscape, nameMatch } from '../core/cardSearch.js';
 import { bulkPublishedRanges } from '../core/editionDates.js';
-import { PRODUCT_ID, loadCatalogCard } from '../core/catalogPage.js';
+import { PRODUCT_ID, loadCatalogCard, loadCatalogSales } from '../core/catalogPage.js';
 import { bumpMetric, searchKey } from '../core/metrics.js';
 
 const router = express.Router();
@@ -229,6 +229,30 @@ router.get('/api/tcg/card/:productId', async (req, res) => {
     return res.json({ success: true, ...found });
   } catch (error) {
     console.error('Error cargando la ficha del catálogo:', error.message);
+    return res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Historial de precios registrados en Carpetazo (sin datos de mercado externo).
+router.get('/api/tcg/card/:productId/price-history', async (req, res) => {
+  if (!PRODUCT_ID.test(req.params.productId)) return badRequest(res, 'Carta inválida');
+  try {
+    const productId = Number(req.params.productId);
+    const card = await prisma.catalogCard.findFirst({ where: { productId, kind: 'card' }, select: { game: { select: { name: true } } } });
+    if (!card) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
+    const since = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+    const [snapshots, sales] = await Promise.all([
+      prisma.cardPriceSnapshot.findMany({ where: { tcg: card.game.name, tcgId: String(productId), day: { gte: since } }, orderBy: { day: 'asc' }, select: { day: true, lowest: true, offers: true } }),
+      loadCatalogSales(prisma, productId, card.game.name, 365, 250),
+    ]);
+    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+    return res.json({
+      success: true,
+      points: snapshots.map((row) => ({ day: row.day.toISOString().slice(0, 10), price: Math.round(row.lowest), offers: row.offers, type: 'publicado' })),
+      sales: sales.map((sale) => ({ day: new Date(sale.at).toISOString().slice(0, 10), price: sale.price, quantity: sale.quantity, source: sale.source })),
+    });
+  } catch (error) {
+    console.error('Error cargando el historial del catálogo:', error.message);
     return res.status(500).json({ success: false, message: 'Error interno' });
   }
 });

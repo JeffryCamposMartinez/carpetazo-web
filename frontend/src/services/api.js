@@ -138,6 +138,7 @@ export const api = {
   getSellers: (queryString = '') => listingShared('/sellers', queryString),
   getFeatured: () => listingShared('/home/featured'),
   getCardPriceHistory: (id) => apiFetch('/cards/' + encodeURIComponent(id) + '/price-history'),
+  getCatalogCardPriceHistory: (productId) => apiFetch('/tcg/card/' + encodeURIComponent(productId) + '/price-history'),
   getCardOffers: (id) => apiFetch('/cards/' + encodeURIComponent(id) + '/offers'),
   getRecentCards: (limit = 12) => apiFetch('/cards/recent?limit=' + limit),
   searchCards: (queryString = '') => searchCardsShared(queryString),

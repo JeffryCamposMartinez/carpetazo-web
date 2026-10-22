@@ -433,6 +433,7 @@ function HistoryRow({ order, open, onToggle }) {
             {order.inPerson
               ? <span>Venta presencial registrada: {fullDate(order.createdAt)}</span>
               : <><span>Recibido: {fullDate(order.createdAt)}</span><span>{done ? 'Venta confirmada' : 'Rechazado'}: {fullDate(order.updatedAt)}</span></>}
+            {order.inPerson && order.discountAmount !== 0 && <span>Subtotal publicado {clp(order.subtotal)} · {order.discountAmount > 0 ? `descuento ${clp(order.discountAmount)}` : `ajuste +${clp(Math.abs(order.discountAmount))}`}{order.adjustmentType === 'percent' ? ` (${order.adjustmentValue}%)` : ''}</span>}
           </div>
           <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {(order.items || []).map((item, index) => (
@@ -703,7 +704,7 @@ function History({ orders, hasMore = false, onLoadMore, loadingMore = false }) {
 // Una venta presencial se muestra en el historial como una venta cerrada más (con la etiqueta «Presencial»)
 const inPersonAsOrder = (sale) => ({
   id: `presencial-${sale.id}`, inPerson: true, code: 'Presencial', status: 'completed', folderId: sale.folderId, folderName: sale.folderName,
-  createdAt: sale.createdAt, updatedAt: sale.createdAt, total: sale.total,
+  createdAt: sale.createdAt, updatedAt: sale.createdAt, total: sale.total, subtotal: sale.subtotal, adjustmentType: sale.adjustmentType, adjustmentValue: sale.adjustmentValue, discountAmount: sale.discountAmount,
   items: (sale.items || []).map((line) => ({ id: line.cardId, name: line.name, language: line.language, imageUrl: line.imageUrl, quantity: line.quantity, price: line.unitPrice }))
 });
 

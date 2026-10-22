@@ -19,9 +19,9 @@ const CIRCLE = 'flex h-12 w-12 items-center justify-center rounded-full text-whi
 
 // Compartir la carta: enlace para copiar y WhatsApp, Facebook, X o el menú nativo del celular.
 // `children` va al pie de la tarjeta (el botón de reportar).
-export default function CardShare({ cardId, name, message, showToast, children }) {
+export default function CardShare({ cardId, shareUrl, name, message, showToast, children }) {
   const [copied, setCopied] = useState(false);
-  const url = siteUrl(`/carta/${cardId}`);
+  const url = shareUrl ? siteUrl(shareUrl) : siteUrl(`/carta/${cardId}`);
   const shown = url.replace(/^https?:\/\//, '');
   // Mensaje que acompaña el enlace en todas las redes (la página puede pasar uno con el precio)
   const text = message || `Mira ${name} en Carpetazo`;

@@ -103,6 +103,26 @@ export const loadSales = async ({ tcg = null, tcgIds = null, days = 180 } = {}) 
   return rows.map((row) => ({ ...row, unit: Number(row.unit), buyerKey: row.buyerId || (row.createdIpHash ? `ip:${row.createdIpHash}` : `name:${String(row.buyerName || '').toLowerCase()}`) }));
 };
 
+// Ventas presenciales declaradas por el vendedor. Solo conserva precios publicados por línea;
+// no tiene comprador verificado y por eso se usa como señal separada, nunca en «Últimas ventas».
+export const loadInPersonPriceSignals = async ({ tcg = null, tcgIds = null, days = 180 } = {}) => {
+  const rows = await prisma.$queryRaw`
+    SELECT s."userId" AS "sellerId", s."createdAt" AS "at",
+           (line->>'unitPrice')::float AS "unit",
+           CASE WHEN line->>'quantity' ~ '^[0-9]{1,4}$' THEN (line->>'quantity')::int ELSE 1 END AS "quantity",
+           line->>'tcgId' AS "tcgId", line->>'tcg' AS "tcg",
+           u."createdAt" AS "sellerCreatedAt"
+    FROM "InPersonSale" s
+    LEFT JOIN "User" u ON u."id" = s."userId"
+    CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(s."items"::jsonb) = 'array' THEN s."items"::jsonb ELSE '[]'::jsonb END) AS line
+    WHERE s."createdAt" > now() - make_interval(days => ${days}::int)
+      AND line->>'unitPrice' ~ '^[0-9]+(\\.[0-9]+)?$'
+      AND line->>'tcg' IS NOT NULL
+      AND (${tcg}::text IS NULL OR line->>'tcg' = ${tcg})
+      AND (${tcgIds}::text[] IS NULL OR line->>'tcgId' = ANY(${tcgIds}))`;
+  return rows.map((row) => ({ ...row, unit: Number(row.unit), quantity: Number(row.quantity) || 1, inPerson: true }));
+};
+
 // Pedido creado (comprador) y confirmado (vendedor) desde la misma conexión: es una señal de autoventa, no una prueba (en una feria
 // ambos pueden compartir WiFi). Solo se usa para el precio de referencia; el pedido, el stock y «Últimas ventas» no cambian.
 export const sameConnection = (sale) => Boolean(sale.createdIpHash && sale.completedIpHash && sale.createdIpHash === sale.completedIpHash);

@@ -21,7 +21,7 @@ const withImages = async (sales) => {
   return sales.map((sale) => ({ ...sale, items: (Array.isArray(sale.items) ? sale.items : []).map((line) => (line.imageUrl ? line : { ...line, imageUrl: byId.get(line.cardId) || null })) }));
 };
 
-const publicSale = (sale) => ({ id: sale.id, folderId: sale.folderId, folderName: sale.folderName, items: sale.items, units: sale.units, total: sale.total, createdAt: sale.createdAt });
+const publicSale = (sale) => ({ id: sale.id, folderId: sale.folderId, folderName: sale.folderName, items: sale.items, units: sale.units, total: sale.total, subtotal: sale.subtotal, adjustmentType: sale.adjustmentType, adjustmentValue: sale.adjustmentValue, discountAmount: sale.discountAmount, createdAt: sale.createdAt });
 
 // Dueño de la carpeta: 404 si no existe o no es suya (no se distingue para no revelar carpetas ajenas)
 const ownedFolder = async (req, folderId) => {
@@ -57,29 +57,26 @@ router.get('/api/folders/:id/in-person-sales', authenticateToken, async (req, re
   }
 });
 
-// Cuerpo: { requestId, items: [{ cardId, quantity, unitPrice? }] }. El total, los nombres y el stock los calcula el servidor.
+// Cuerpo: { requestId, items: [{ cardId, quantity }], adjustment }. Precios publicados, totales y stock se resuelven en el servidor.
 router.post('/api/folders/:id/in-person-sales', authenticateToken, async (req, res) => {
   try {
     const owned = await ownedFolder(req, req.params.id);
     if (!owned) return res.status(404).json({ success: false, message: 'Carpeta no encontrada' });
 
-    const { requestId, items } = req.body || {};
+    const { requestId, items, adjustment = { type: 'none', value: 0 } } = req.body || {};
     if (typeof requestId !== 'string' || !/^[A-Za-z0-9_-]{8,64}$/.test(requestId)) return badRequest(res, 'Solicitud inválida');
     if (!Array.isArray(items) || items.length === 0 || items.length > MAX_LINES) return badRequest(res, 'Elige entre 1 y ' + MAX_LINES + ' cartas');
+    if (!adjustment || !['none', 'fixed', 'percent'].includes(adjustment.type) || typeof adjustment.value !== 'number' || !Number.isFinite(adjustment.value)) return badRequest(res, 'Ajuste inválido');
+    if ((adjustment.type === 'none' && adjustment.value !== 0) || (adjustment.type === 'fixed' && (!Number.isInteger(adjustment.value) || adjustment.value < 0 || adjustment.value > MAX_PRICE)) || (adjustment.type === 'percent' && (adjustment.value < 0 || adjustment.value > 100 || Math.round(adjustment.value * 100) !== adjustment.value * 100))) return badRequest(res, 'Ajuste inválido');
     const lines = [];
     const seen = new Set();
     for (const item of items) {
-      // Solo números y textos reales: un arreglo u objeto no se convierte (Number([1]) sería 1)
       const quantity = item?.quantity;
-      const hasPrice = item?.unitPrice !== undefined && item?.unitPrice !== null && item?.unitPrice !== '';
-      const unitPrice = hasPrice ? item.unitPrice : null;
       if (typeof item?.cardId !== 'string' || !isUuid(item.cardId) || seen.has(item.cardId)) return badRequest(res, 'Carta inválida');
       if (typeof quantity !== 'number') return badRequest(res, 'Cantidad inválida');
-      if (hasPrice && typeof unitPrice !== 'number') return badRequest(res, 'Precio inválido');
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY) return badRequest(res, 'Cantidad inválida');
-      if (hasPrice && (!Number.isInteger(unitPrice) || unitPrice < 0 || unitPrice > MAX_PRICE)) return badRequest(res, 'Precio inválido');
       seen.add(item.cardId);
-      lines.push({ cardId: item.cardId, quantity, unitPrice });
+      lines.push({ cardId: item.cardId, quantity });
     }
 
     const sale = await prisma.$transaction(async (tx) => {
@@ -94,16 +91,21 @@ router.post('/api/folders/:id/in-person-sales', authenticateToken, async (req, r
       const sold = [];
       for (const line of lines) {
         const card = byId.get(line.cardId);
-        const unitPrice = line.unitPrice ?? card.price;
-        if (unitPrice === null || unitPrice === undefined) throw Object.assign(new Error('Falta el precio de ' + card.name), { status: 400, exposeMessage: true });
+        const unitPrice = card.price;
+        if (unitPrice === null || unitPrice === undefined || !Number.isInteger(Number(unitPrice)) || Number(unitPrice) < 0 || Number(unitPrice) > MAX_PRICE) throw Object.assign(new Error('Falta un precio publicado válido para ' + card.name), { status: 400, exposeMessage: true });
         // Baja el stock solo si alcanza: sin dos ventas simultáneas de la última unidad
         const updated = await tx.card.updateMany({ where: { id: card.id, folderId: owned.folder.id, stock: { gte: line.quantity } }, data: { stock: { decrement: line.quantity } } });
         if (updated.count === 0) throw Object.assign(new Error('No queda stock suficiente de ' + card.name), { status: 409, exposeMessage: true });
-        sold.push({ cardId: card.id, tcgId: card.tcgId, name: card.name, language: card.language, imageUrl: card.imageUrl, quantity: line.quantity, unitPrice });
+        const tcg = owned.folder.tcg;
+        sold.push({ cardId: card.id, tcgId: card.tcgId, tcg, name: card.name, language: card.language, imageUrl: card.imageUrl, quantity: line.quantity, unitPrice: Number(unitPrice) });
       }
       const units = sold.reduce((sum, line) => sum + line.quantity, 0);
-      const total = sold.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);
-      const created = await tx.inPersonSale.create({ data: { userId: owned.user.id, folderId: owned.folder.id, folderName: owned.folder.name, requestId, items: sold, units, total } });
+      const subtotal = sold.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);
+      const discountAmount = adjustment.type === 'fixed' ? subtotal - adjustment.value : adjustment.type === 'percent' ? Math.round(subtotal * adjustment.value / 100) : 0;
+      if (adjustment.type === 'fixed' && (adjustment.value < 0 || adjustment.value > MAX_PRICE)) throw Object.assign(new Error('Monto final inválido'), { status: 400, exposeMessage: true });
+      if (adjustment.type === 'percent' && (discountAmount < 0 || discountAmount > subtotal)) throw Object.assign(new Error('Descuento inválido'), { status: 400, exposeMessage: true });
+      const total = adjustment.type === 'fixed' ? adjustment.value : subtotal - discountAmount;
+      const created = await tx.inPersonSale.create({ data: { userId: owned.user.id, folderId: owned.folder.id, folderName: owned.folder.name, requestId, items: sold, units, subtotal, adjustmentType: adjustment.type, adjustmentValue: adjustment.value, discountAmount, total } });
       return { sale: created, duplicate: false };
     });
 

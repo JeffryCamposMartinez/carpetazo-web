@@ -1,0 +1,5 @@
+ALTER TABLE "InPersonSale"
+ADD COLUMN "subtotal" DOUBLE PRECISION,
+ADD COLUMN "adjustmentType" TEXT,
+ADD COLUMN "adjustmentValue" DOUBLE PRECISION,
+ADD COLUMN "discountAmount" DOUBLE PRECISION;

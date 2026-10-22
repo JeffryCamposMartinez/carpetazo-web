@@ -432,9 +432,15 @@ const [isSearching, setIsSearching] = useState(false);
   // Enlace directo desde el menú de la cuenta: /carpeta/:id?tab=sales&view=presencial abre la venta presencial de esta carpeta
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get('tab') !== 'sales') return;
-    setActiveTab('sales');
-    if (params.get('view') === 'presencial') setSalesView('presencial');
+    if (params.get('tab') === 'sales') {
+      setActiveTab('sales');
+      if (params.get('view') === 'presencial') setSalesView('presencial');
+      return;
+    }
+    if (params.get('tab') === 'catalog') {
+      setActiveTab('catalog');
+      setCatQuery(params.get('q') || '');
+    }
   }, [location.search, id]);
   const [cards, setCards] = useState([]);
 

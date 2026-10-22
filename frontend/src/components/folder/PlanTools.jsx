@@ -6,7 +6,7 @@ import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 import SvgIcon from '../ui/SvgIcon';
 
 const SOURCES = [['direct', 'Directo'], ['internal', 'Desde Carpetazo'], ['external', 'Otros sitios']];
-const buttonClass = 'inline-flex h-10 [@media(pointer:coarse)]:h-11 items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-4 text-sm font-extrabold text-[#12315f] transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] disabled:opacity-60';
+const buttonClass = 'inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-blue-200 bg-white px-3 text-xs font-extrabold text-[#12315f] transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] disabled:opacity-60 sm:h-10 sm:gap-2 sm:px-4 sm:text-sm';
 const dayLabel = (day) => new Date(day + 'T12:00:00').toLocaleDateString('es-CL', { day: 'numeric', month: 'short' });
 
 // Detalle de visitas de mis carpetas: total, por día, de dónde llegan y por carpeta (planes Premium en adelante)
@@ -88,14 +88,14 @@ export default function PlanTools({ plan, children }) {
   };
 
   return (
-    <div className="mb-5 -mt-2">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="mb-3 -mt-1 sm:mb-5 sm:-mt-2">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
         {plan.inventoryExport
-          ? <button type="button" onClick={exportInventory} disabled={exporting} className={buttonClass}>{exporting ? <ButtonSpinner tone="dark" /> : <SvgIcon name="download" translate="no" aria-hidden="true" className="text-[19px]" />}Exportar inventario (CSV)</button>
-          : <Link to="/planes" className={buttonClass} title="Disponible desde el plan Entusiasta"><SvgIcon name="lock" translate="no" aria-hidden="true" className="text-[19px]" />Exportar inventario · Entusiasta</Link>}
+          ? <button type="button" onClick={exportInventory} disabled={exporting} className={buttonClass}>{exporting ? <ButtonSpinner tone="dark" /> : <SvgIcon name="download" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" />}<span className="sm:hidden">Exportar CSV</span><span className="hidden sm:inline">Exportar inventario (CSV)</span></button>
+          : <Link to="/planes" className={buttonClass} title="Disponible desde el plan Entusiasta"><SvgIcon name="lock" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" /><span className="sm:hidden">Exportar · Entusiasta</span><span className="hidden sm:inline">Exportar inventario · Entusiasta</span></Link>}
         {plan.visitsDetail
-          ? <button type="button" onClick={() => setVisitsOpen((open) => !open)} aria-expanded={visitsOpen} className={buttonClass}><SvgIcon name="monitoring" translate="no" aria-hidden="true" className="text-[19px]" />{visitsOpen ? 'Ocultar visitas' : 'Detalle de visitas'}</button>
-          : <Link to="/planes" className={buttonClass} title="Disponible desde el plan Premium"><SvgIcon name="lock" translate="no" aria-hidden="true" className="text-[19px]" />Detalle de visitas · Premium</Link>}
+          ? <button type="button" onClick={() => setVisitsOpen((open) => !open)} aria-expanded={visitsOpen} className={buttonClass}><SvgIcon name="monitoring" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" /><span className="sm:hidden">{visitsOpen ? 'Ocultar' : 'Visitas'}</span><span className="hidden sm:inline">{visitsOpen ? 'Ocultar visitas' : 'Detalle de visitas'}</span></button>
+          : <Link to="/planes" className={buttonClass} title="Disponible desde el plan Premium"><SvgIcon name="lock" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" /><span className="sm:hidden">Visitas · Premium</span><span className="hidden sm:inline">Detalle de visitas · Premium</span></Link>}
         {children}
       </div>
       {plan.visitsDetail && visitsOpen && <VisitsDetail />}

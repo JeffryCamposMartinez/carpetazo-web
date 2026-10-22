@@ -747,6 +747,10 @@ model InPersonSale {
   items      Json
   units      Int
   total      Float
+  subtotal   Float?
+  adjustmentType  String?
+  adjustmentValue Float?
+  discountAmount  Float?
   createdAt  DateTime @default(now())
 
   @@unique([userId, requestId])

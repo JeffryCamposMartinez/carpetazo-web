@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import SvgIcon from '../ui/SvgIcon';
+import FolderBinder from './FolderBinder';
 
 // Elige la carpeta de la que se hace una venta presencial (desde el menú de la cuenta)
 export default function InPersonFolderPicker({ loadFolders, onClose, onPick }) {
@@ -14,8 +15,10 @@ export default function InPersonFolderPicker({ loadFolders, onClose, onPick }) {
     loadFolders()
       .then((list) => {
         if (cancelled) return;
-        setFolders(list);
-        if (list.length === 1) onPickRef.current(list[0]); // con una sola carpeta no hay nada que elegir
+        // Solo se puede registrar una venta desde una carpeta que tenga cartas.
+        const stockedFolders = list.filter((folder) => Number(folder._count?.cards ?? folder.cardsCount ?? 0) > 0);
+        setFolders(stockedFolders);
+        if (stockedFolders.length === 1) onPickRef.current(stockedFolders[0]); // con una sola carpeta no hay nada que elegir
       })
       .catch(() => { if (!cancelled) { setFailed(true); setFolders([]); } });
     return () => { cancelled = true; };
@@ -49,18 +52,13 @@ export default function InPersonFolderPicker({ loadFolders, onClose, onPick }) {
           ) : failed ? (
             <p className="p-6 text-center text-sm font-semibold text-red-700">No pudimos cargar tus carpetas. Inténtalo de nuevo.</p>
           ) : folders.length === 0 ? (
-            <p className="p-6 text-center text-sm font-semibold text-slate-600">Aún no tienes carpetas. Crea una en «Mis carpetas» para registrar ventas.</p>
+            <p className="p-6 text-center text-sm font-semibold text-slate-600">No tienes carpetas con cartas todavía. Agrega cartas en «Mis carpetas» para registrar una venta.</p>
           ) : (
-            <ul className="flex flex-col gap-1">
+            <ul className="grid grid-cols-2 gap-3 p-1">
               {folders.map((folder) => (
                 <li key={folder.id}>
-                  <button type="button" onClick={() => onPick(folder)} className="flex min-h-14 w-full items-center gap-3 rounded-2xl px-3 text-left ring-1 ring-slate-900/5 transition-[background-color,transform] duration-150 active:scale-[0.99] hover:bg-blue-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#e0f2fe] text-[#0369a1]"><SvgIcon name="folder" translate="no" aria-hidden="true" className="text-[22px]" /></span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[15px] font-extrabold text-[#12315f]">{folder.name}</span>
-                      <span className="block truncate text-xs font-semibold text-slate-500">{folder.tcg} · {folder._count?.cards ?? 0} {folder._count?.cards === 1 ? 'carta' : 'cartas'}</span>
-                    </span>
-                    <SvgIcon name="chevron_right" translate="no" aria-hidden="true" className="text-[20px] text-slate-400" />
+                  <button type="button" onClick={() => onPick(folder)} aria-label={`Registrar venta desde ${folder.name}, ${folder._count?.cards ?? folder.cardsCount} cartas`} className="group w-full rounded-2xl p-2 text-left transition-colors hover:bg-blue-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
+                    <FolderBinder folder={{ ...folder, cardsCount: Number(folder._count?.cards ?? folder.cardsCount ?? 0) }} />
                   </button>
                 </li>
               ))}

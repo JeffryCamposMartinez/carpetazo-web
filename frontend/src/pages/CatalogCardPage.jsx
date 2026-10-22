@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/ToastProvider';
 import LoadableImage from '../components/ui/LoadableImage';
 import SvgIcon from '../components/ui/SvgIcon';
+import CardShare from '../components/cards/CardShare';
+import CatalogPriceHistory from '../components/cards/CatalogPriceHistory';
 import usePageMeta from '../hooks/usePageMeta';
 import { catalogLink } from '../utils/catalogLink';
 
@@ -84,7 +86,7 @@ export default function CatalogCardPage() {
     );
   }
 
-  const details = [['Juego', card.gameLabel], ['Edición', card.set], ['Número', card.number], ['Rareza', card.rarity]].filter(([, value]) => value);
+  const details = [['Juego', card.gameLabel], ['Edición', card.set], ['Rareza', card.rarity], ['Número', card.number]].filter(([, value]) => value);
   const best = offers.find((offer) => Number(offer.price) > 0);
 
   return (
@@ -97,13 +99,16 @@ export default function CatalogCardPage() {
         </nav>
 
         <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[minmax(0,21rem)_minmax(0,1fr)] md:items-start lg:gap-10">
-          <div className="mx-auto w-full max-w-[12.5rem] sm:max-w-[16rem] md:max-w-none">
+          <div className="mx-auto w-full min-w-0 max-w-[12.5rem] sm:max-w-[16rem] md:col-start-1 md:row-start-1 md:max-w-none">
             <div className="relative aspect-[63/88] overflow-hidden rounded-2xl bg-white p-2 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.7)]">
               <LoadableImage src={card.imageUrl} fallbackSrc={card.productId && card.game !== 'Mitos y Leyendas' ? `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(card.productId))}_400w.jpg` : undefined} alt={card.name} rotateLandscape className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-lg object-contain" />
             </div>
+            <div className="mt-2">
+              <CardShare shareUrl={card.path} name={card.name} message={`¡Mira ${card.name} en Carpetazo!`} showToast={showToast} />
+            </div>
           </div>
 
-          <div className="min-w-0 space-y-4">
+          <div className="min-w-0 space-y-4 md:col-start-2 md:row-span-2 md:row-start-1">
             <h1 className="text-2xl font-extrabold leading-tight text-[#12315f] [text-wrap:balance] md:text-3xl">{card.name}</h1>
 
             <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-900/5">
@@ -146,6 +151,7 @@ export default function CatalogCardPage() {
                 ))}
               </dl>
             )}
+            <CatalogPriceHistory productId={card.productId} />
             {card.text && (
               <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-900/5">
                 <p className="text-xs font-bold text-slate-500">Texto de la carta</p>

@@ -61,6 +61,32 @@ export default function Dashboard() {
   const [copiedFolderId, setCopiedFolderId] = useState(null);
   const tabsScrollRef = useRef(null);
   const [tabsFade, setTabsFade] = useState({ start: false, end: false });
+  const [cardSearchQuery, setCardSearchQuery] = useState('');
+  const [cardSearchResults, setCardSearchResults] = useState([]);
+  const [cardSearchLoading, setCardSearchLoading] = useState(false);
+  const [cardSearchFailed, setCardSearchFailed] = useState(false);
+
+  useEffect(() => {
+    const query = cardSearchQuery.trim();
+    if (activeTab !== 'carpetas' || query.length < 2) {
+      setCardSearchResults([]);
+      setCardSearchLoading(false);
+      setCardSearchFailed(false);
+      return undefined;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setCardSearchLoading(true);
+      setCardSearchFailed(false);
+      api.getMyCards(`q=${encodeURIComponent(query)}&scope=all`)
+        .then((result) => {
+          if (!cancelled) setCardSearchResults(result.success ? result.cards || [] : []);
+        })
+        .catch(() => { if (!cancelled) { setCardSearchResults([]); setCardSearchFailed(true); } })
+        .finally(() => { if (!cancelled) setCardSearchLoading(false); });
+    }, 250);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [activeTab, cardSearchQuery]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -527,12 +553,12 @@ export default function Dashboard() {
         <div className={folders.length > 0 ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-8 xl:gap-10' : undefined}>
           <div className="min-w-0">
             {planState?.plan && (
-              <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-blue-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-2xl border border-blue-200 bg-white p-3 shadow-sm sm:mb-5 sm:flex sm:gap-3 sm:p-4">
                 <div>
                   <p className="text-xs font-black uppercase tracking-wider text-slate-500">Plan {planState.plan.name}</p>
-                  <p className="mt-1 font-bold text-[#12315f]">{planState.usage?.folders || 0} de {planState.plan.folders === null ? 'carpetas ilimitadas' : `${planState.plan.folders} carpetas`}</p>
+                  <p className="mt-0.5 font-bold text-[#12315f] sm:mt-1">{planState.usage?.folders || 0} de {planState.plan.folders === null ? 'carpetas ilimitadas' : `${planState.plan.folders} carpetas`}</p>
                 </div>
-                <Link to="/planes" className="inline-flex h-10 [@media(pointer:coarse)]:h-11 items-center justify-center rounded-xl bg-[#12315f] px-4 text-sm font-extrabold text-white hover:bg-[#1e40af]">Ver mi plan</Link>
+                <Link to="/planes" className="inline-flex h-9 items-center justify-center rounded-xl bg-[#12315f] px-3 text-xs font-extrabold text-white hover:bg-[#1e40af] sm:h-10 sm:px-4 sm:text-sm">Ver mi plan</Link>
               </div>
             )}
             {planState?.plan && folders.length > 0 ? (
@@ -545,6 +571,34 @@ export default function Dashboard() {
               </div>
             )}
             {folders.length > 0 && <FolderSummary variant="strip" folderCount={folders.length} publicCount={publicCount} cardCount={totalCards} weeklyVisits={weeklyVisits} pendingCount={pendingCount} onOpenRequests={() => changeTab('solicitudes')} />}
+            <section className="mb-4 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200 sm:mb-5 sm:p-4" aria-label="Buscar cartas en mis carpetas">
+              <label className="flex h-10 items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 focus-within:border-[#1e40af] focus-within:ring-2 focus-within:ring-blue-100 sm:h-12 sm:gap-3">
+                <SvgIcon name="search" translate="no" aria-hidden="true" className="text-[22px] text-slate-500" />
+                <input type="text" value={cardSearchQuery} onChange={(event) => setCardSearchQuery(event.target.value.slice(0, 80))} placeholder="Buscar una carta de mis carpetas…" aria-label="Buscar cartas en mis carpetas" className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-semibold text-[#12315f] outline-none placeholder:font-medium placeholder:text-slate-400 focus:ring-0" />
+                {cardSearchQuery && <button type="button" onClick={() => setCardSearchQuery('')} aria-label="Limpiar búsqueda" className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:bg-slate-200"><SvgIcon name="close" translate="no" aria-hidden="true" /></button>}
+              </label>
+              {!cardSearchQuery && <p className="mt-2 px-1 text-xs font-medium text-slate-500">Busca solo entre las cartas que agregaste a tus carpetas.</p>}
+              {cardSearchQuery.trim().length > 0 && (
+                <div className="mt-3">
+                  {cardSearchQuery.trim().length < 2 ? <p className="px-1 text-xs font-medium text-slate-500">Escribe al menos 2 letras para buscar.</p>
+                    : cardSearchLoading ? <p className="px-1 py-2 text-sm font-semibold text-slate-500">Buscando en tus carpetas…</p>
+                      : cardSearchFailed ? <p role="status" className="px-1 py-2 text-sm font-semibold text-red-700">No pudimos buscar. Inténtalo de nuevo.</p>
+                        : cardSearchResults.length === 0 ? <p className="px-1 py-2 text-sm font-semibold text-slate-500">No encontramos cartas con ese nombre.</p>
+                          : <ul className="max-h-72 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-100">
+                            {cardSearchResults.map((card) => (
+                              <li key={card.id}>
+                                <button type="button" onClick={() => navigate(`/carpeta/${card.folderId}?tab=catalog&q=${encodeURIComponent(card.name)}`)} className="flex min-h-[4.5rem] w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-blue-50 focus:outline-none focus-visible:bg-blue-50">
+                                  {card.imageUrl ? <img src={card.imageUrl} alt="" loading="lazy" className="h-12 w-9 shrink-0 rounded-md bg-slate-100 object-cover" /> : <span className="flex h-12 w-9 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-400"><SvgIcon name="style" translate="no" aria-hidden="true" /></span>}
+                                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-extrabold text-[#12315f]">{card.name}</span><span className="block truncate text-xs font-medium text-slate-500">{card.folderName} · {card.tcg}</span></span>
+                                  <span className="shrink-0 text-xs font-bold text-slate-500">{card.stock} disp.</span>
+                                  <SvgIcon name="chevron_right" translate="no" aria-hidden="true" className="shrink-0 text-[18px] text-slate-400" />
+                                </button>
+                              </li>
+                            ))}
+                          </ul>}
+                </div>
+              )}
+            </section>
           {/* Móvil: la acción primaria es un botón, no un banner; junto al resumen de lo que ya hay */}
             <div className="mb-5 flex items-center justify-between gap-3 sm:hidden">
             <p className="min-w-0 truncate text-sm font-semibold text-slate-600">

@@ -15,7 +15,8 @@ const dateLabel = (value) => new Date(value).toLocaleString('es-CL', { day: '2-d
 export default function InPersonSale({ folderId, cards, setCards, showToast }) {
   const [query, setQuery] = useState('');
   const [onlyPicked, setOnlyPicked] = useState(false);
-  const [picked, setPicked] = useState({}); // cardId → { quantity, price (texto) }
+  const [picked, setPicked] = useState({}); // cardId → { quantity }
+  const [finalTotalInput, setFinalTotalInput] = useState(null);
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState([]);
@@ -25,14 +26,20 @@ export default function InPersonSale({ folderId, cards, setCards, showToast }) {
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
   const available = useMemo(() => cards.filter((card) => Number(card.stock) > 0), [cards]);
-  const unitPrice = (card) => {
-    const typed = picked[card.id]?.price;
-    return typed !== undefined && typed !== '' ? Number(typed) : Number(card.price || 0);
-  };
   const lines = available.filter((card) => picked[card.id]?.quantity > 0);
   const units = lines.reduce((sum, card) => sum + picked[card.id].quantity, 0);
-  const total = lines.reduce((sum, card) => sum + picked[card.id].quantity * unitPrice(card), 0);
-  const invalid = lines.some((card) => !Number.isInteger(unitPrice(card)) || unitPrice(card) < 0);
+  const subtotal = lines.reduce((sum, card) => sum + picked[card.id].quantity * Number(card.price ?? 0), 0);
+  const hasFinalTotal = finalTotalInput !== null;
+  const finalTotal = hasFinalTotal ? Number(finalTotalInput || 0) : subtotal;
+  const total = finalTotal;
+  const discount = subtotal - total;
+  const invalid = lines.some((card) => card.price === null || card.price === undefined || !Number.isInteger(Number(card.price)) || Number(card.price) < 0)
+    || (hasFinalTotal && (finalTotalInput === '' || !Number.isInteger(finalTotal) || finalTotal < 0 || finalTotal > 100000000));
+  useEffect(() => {
+    if (lines.length === 0) {
+      setFinalTotalInput(null);
+    }
+  }, [lines.length]);
   const shown = useMemo(() => {
     const text = query.trim().toLowerCase();
     return available.filter((card) => (!onlyPicked || picked[card.id]?.quantity > 0) && (!text || `${card.name} ${card.pseudoName || ''}`.toLowerCase().includes(text)));
@@ -41,23 +48,24 @@ export default function InPersonSale({ folderId, cards, setCards, showToast }) {
   const setQuantity = (card, quantity) => setPicked((previous) => {
     const next = { ...previous };
     const value = Math.max(0, Math.min(Number(card.stock), quantity));
-    if (value === 0) delete next[card.id]; else next[card.id] = { price: '', ...previous[card.id], quantity: value };
+    if (value === 0) delete next[card.id]; else next[card.id] = { ...previous[card.id], quantity: value };
     return next;
   });
-  const setPrice = (card, price) => setPicked((previous) => ({ ...previous, [card.id]: { quantity: 1, ...previous[card.id], price } }));
 
   const sell = async () => {
     setSaving(true);
     try {
       const response = await api.createInPersonSale(folderId, {
         requestId: requestId.current,
-        items: lines.map((card) => ({ cardId: card.id, quantity: picked[card.id].quantity, unitPrice: unitPrice(card) }))
+        adjustment: finalTotalInput === null ? { type: 'none', value: 0 } : { type: 'fixed', value: finalTotal },
+        items: lines.map((card) => ({ cardId: card.id, quantity: picked[card.id].quantity }))
       });
       if (response.stocks && Object.keys(response.stocks).length) setCards((previous) => previous.map((card) => (card.id in response.stocks ? { ...card, stock: response.stocks[card.id] } : card)));
       showToast(`Venta registrada: ${response.sale.units} ${response.sale.units === 1 ? 'carta' : 'cartas'} por ${formatClp(response.sale.total)}`, 'success');
       setPicked({});
       setQuery('');
       setOnlyPicked(false);
+      setFinalTotalInput(null);
       requestId.current = newRequestId();
       loadHistory();
     } catch (error) {
@@ -101,7 +109,7 @@ export default function InPersonSale({ folderId, cards, setCards, showToast }) {
                   {quantity > 0 && <span className="absolute right-1.5 top-1.5 flex h-8 min-w-8 items-center justify-center rounded-full bg-[#ffcb05] px-2 font-['Space_Grotesk'] text-sm font-bold text-[#1a2b4b] shadow-md">×{quantity}</span>}
                 </button>
                 <p className="mt-2 line-clamp-2 min-h-[2.5rem] text-sm font-extrabold leading-snug text-[#12315f]">{card.name}</p>
-                <p className="text-xs font-semibold text-slate-500">{card.price ? formatClp(Number(card.price)) : 'Sin precio'}</p>
+                <p className="text-xs font-semibold text-slate-500">{card.price !== null && card.price !== undefined ? `${formatClp(Number(card.price))} · precio publicado` : 'Sin precio publicado'}</p>
                 {quantity > 0 ? (
                   <div className="mt-2 flex flex-col gap-2">
                     <div className="flex items-center justify-between rounded-full bg-slate-100 p-0.5">
@@ -109,10 +117,7 @@ export default function InPersonSale({ folderId, cards, setCards, showToast }) {
                       <span className="text-sm font-extrabold tabular-nums text-[#12315f]" aria-live="polite">{quantity}</span>
                       <button type="button" onClick={() => setQuantity(card, quantity + 1)} disabled={atMax} aria-label={`Agregar una ${card.name}`} className={`${PRESS} flex h-10 w-10 items-center justify-center rounded-full text-[#12315f] disabled:opacity-30 [@media(hover:hover)]:hover:bg-white`}><SvgIcon name="add" translate="no" aria-hidden="true" className="text-[20px]" /></button>
                     </div>
-                    <label className="flex items-center gap-1.5 rounded-xl border-2 border-[#12315f]/15 bg-white px-2.5 text-xs font-bold text-slate-500 focus-within:border-[#facc15] focus-within:ring-2 focus-within:ring-[#facc15]/25">
-                      <span>$</span><span className="sr-only">Precio de venta de {card.name}</span>
-                      <input type="number" inputMode="numeric" min="0" step="1" value={picked[card.id]?.price ?? ''} onChange={(event) => setPrice(card, event.target.value)} placeholder={String(card.price ?? '')} className="h-9 min-w-0 flex-1 bg-transparent text-sm font-extrabold text-[#12315f] outline-none" />
-                    </label>
+                    <p className="rounded-xl bg-slate-50 px-2.5 py-2 text-xs font-semibold text-slate-500">{formatClp(Number(card.price || 0))} por carta</p>
                   </div>
                 ) : null}
               </li>
@@ -133,6 +138,7 @@ export default function InPersonSale({ folderId, cards, setCards, showToast }) {
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="font-['Space_Grotesk'] text-lg font-bold tabular-nums text-[#1a2b4b]">{formatClp(sale.total)}</p>
+                  {sale.subtotal !== null && sale.subtotal !== undefined && sale.discountAmount !== 0 && <p className="text-xs text-slate-500">Subtotal {formatClp(sale.subtotal)} · {sale.discountAmount > 0 ? `−${formatClp(sale.discountAmount)}` : `+${formatClp(Math.abs(sale.discountAmount))}`}{sale.adjustmentType === 'percent' ? ` (${sale.adjustmentValue}%)` : ''}</p>}
                   <p className="text-xs text-slate-500">{dateLabel(sale.createdAt)}</p>
                 </div>
               </li>
@@ -144,7 +150,18 @@ export default function InPersonSale({ folderId, cards, setCards, showToast }) {
       {lines.length > 0 && (
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 pl-3 pr-[5.5rem] md:pr-3 [padding-bottom:max(0.75rem,env(safe-area-inset-bottom))]">
           <div className="pointer-events-auto mx-auto flex max-w-3xl items-center justify-between gap-2 rounded-2xl bg-[#1a2b4b] p-2.5 pl-4 text-white sm:gap-3 sm:p-3 sm:pl-5 shadow-[0_1px_2px_rgba(8,18,42,0.3),0_16px_32px_-12px_rgba(8,18,42,0.8)]">
-            <p className="min-w-0 whitespace-nowrap text-sm text-blue-200"><span className="tabular-nums">{units}</span> {units === 1 ? 'carta' : 'cartas'}<span className="block font-['Space_Grotesk'] text-xl font-bold leading-tight tabular-nums text-white sm:text-2xl">{formatClp(total)}</span></p>
+            <div className="min-w-0 text-sm text-blue-200">
+              <span className="tabular-nums">{units}</span> {units === 1 ? 'carta' : 'cartas'}
+              <label className="group mt-1 flex w-fit cursor-text flex-col rounded-xl border-2 border-[#ffcb05] bg-[#ffcb05]/10 px-2.5 py-1.5 transition-colors hover:bg-[#ffcb05]/20 focus-within:bg-[#ffcb05]/20 focus-within:ring-2 focus-within:ring-[#ffcb05]/40">
+                <span className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wide text-[#ffdf70]">
+                  <SvgIcon name="edit" translate="no" aria-hidden="true" className="text-[14px]" /> Toca para cambiar
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="font-['Space_Grotesk'] text-xl font-bold text-white sm:text-2xl">$</span>
+                  <input type="number" inputMode="numeric" min="0" max="100000000" step="1" value={finalTotalInput ?? String(subtotal)} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setFinalTotalInput(event.target.value)} aria-label="Subtotal editable de la venta" className="w-36 min-w-0 border-0 bg-transparent p-0 font-['Space_Grotesk'] text-xl font-bold leading-tight tabular-nums text-white outline-none sm:text-2xl" />
+                </span>
+              </label>
+            </div>
             <div className="flex shrink-0 gap-2">
               <button type="button" onClick={() => setPicked({})} aria-label="Limpiar selección" className={`${PRESS} flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold text-blue-100 sm:w-auto sm:px-4 [@media(hover:hover)]:hover:bg-white/10`}><SvgIcon name="close" translate="no" aria-hidden="true" className="text-[20px] sm:hidden" /><span className="hidden sm:inline">Limpiar</span></button>
               <button type="button" disabled={invalid || saving} onClick={() => setConfirming(true)} className={`${PRESS} flex h-12 items-center gap-2 rounded-full bg-[#ffcb05] px-4 text-sm font-extrabold text-[#1a2b4b] shadow-sm disabled:opacity-50 sm:px-6`}>
@@ -158,7 +175,7 @@ export default function InPersonSale({ folderId, cards, setCards, showToast }) {
       <ConfirmModal
         isOpen={confirming}
         title="Registrar venta"
-        message={`${units} ${units === 1 ? 'carta' : 'cartas'} por ${formatClp(total)}. Se descontarán del stock de esta carpeta.`}
+        message={`${units} ${units === 1 ? 'carta' : 'cartas'}. Subtotal publicado: ${formatClp(subtotal)}${discount > 0 ? `. Descuento: ${formatClp(discount)}` : ''}. Total final: ${formatClp(total)}. Se descontarán del stock de esta carpeta.`}
         confirmText={saving ? 'Registrando…' : 'Confirmar venta'}
         isDestructive={false}
         onConfirm={() => { if (!saving) sell(); }}

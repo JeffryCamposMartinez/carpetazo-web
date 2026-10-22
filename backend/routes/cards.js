@@ -9,9 +9,10 @@ import { CARD_SEARCH_TCG_ALIASES, sameCardMatch } from '../core/listing.js';
 import { isValidComuna } from '../core/chileData.js';
 import { PUBLIC_PLAN_RELATIONS_SELECT, withPublicPlanBadge } from '../core/publicSeller.js';
 import { isVerifiedSeller } from '../core/sellerTrust.js';
+import { loadCatalogSales } from '../core/catalogPage.js';
 import { badRequest } from '../core/validation.js';
 import { bumpMetric, searchKey } from '../core/metrics.js';
-import { eligibleSales, loadLiveOffers, loadSales, marketAnchors, offersAnchor, referenceFromSales, referenceSales, suspiciousOffers } from '../core/priceIntegrity.js';
+import { eligibleSales, loadInPersonPriceSignals, loadLiveOffers, loadSales, marketAnchors, offersAnchor, referenceFromSales, referenceSales, suspiciousOffers } from '../core/priceIntegrity.js';
 
 const router = express.Router();
 
@@ -39,7 +40,7 @@ router.delete('/api/cards/:id', authenticateToken, async (req, res) => {
 // Mis cartas para mandarlas por el chat: de carpetas públicas (scope=public) o no públicas (scope=private), con filtro por juego y nombre
 router.get('/api/cards/mine', authenticateToken, async (req, res) => {
   try {
-    const scope = req.query.scope === 'private' ? 'private' : 'public';
+    const scope = ['private', 'all'].includes(req.query.scope) ? req.query.scope : 'public';
     const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
     const tcgRaw = typeof req.query.tcg === 'string' ? req.query.tcg.trim() : '';
     const tcg = CARD_SEARCH_TCG_ALIASES[tcgRaw] || tcgRaw;
@@ -49,22 +50,22 @@ router.get('/api/cards/mine', authenticateToken, async (req, res) => {
 
     const where = {
       moderationState: 'visible',
-      folder: { userId: user.id, isPublic: scope === 'public', moderationState: 'visible', ...(tcg ? { tcg } : {}) },
+      folder: { userId: user.id, ...(scope === 'all' ? {} : { isPublic: scope === 'public' }), moderationState: 'visible', ...(tcg ? { tcg } : {}) },
       ...(q ? { name: { contains: q, mode: 'insensitive' } } : {})
     };
     const [cards, groups] = await Promise.all([
       prisma.card.findMany({
         where, orderBy: [{ createdAt: 'desc' }], take: 80,
-        select: { id: true, name: true, imageUrl: true, price: true, stock: true, data: true, folder: { select: { name: true, tcg: true } } }
+        select: { id: true, name: true, imageUrl: true, price: true, stock: true, data: true, folder: { select: { id: true, name: true, tcg: true } } }
       }),
       // Juegos disponibles en esta lista (sin el filtro de juego) para armar el filtro
-      prisma.folder.findMany({ where: { userId: user.id, isPublic: scope === 'public', moderationState: 'visible', cards: { some: { moderationState: 'visible' } } }, select: { tcg: true }, distinct: ['tcg'] })
+      prisma.folder.findMany({ where: { userId: user.id, ...(scope === 'all' ? {} : { isPublic: scope === 'public' }), moderationState: 'visible', cards: { some: { moderationState: 'visible' } } }, select: { tcg: true }, distinct: ['tcg'] })
     ]);
     res.set('Cache-Control', 'private, no-store');
     res.json({
       success: true,
       tcgs: groups.map((group) => group.tcg).filter(Boolean).sort(),
-      cards: cards.map(({ data, folder, ...card }) => ({ ...card, tcg: folder.tcg, folderName: folder.name, set: data && typeof data === 'object' && typeof data.set === 'string' ? data.set.slice(0, 80) : null }))
+      cards: cards.map(({ data, folder, ...card }) => ({ ...card, tcg: folder.tcg, folderId: folder.id, folderName: folder.name, set: data && typeof data === 'object' && typeof data.set === 'string' ? data.set.slice(0, 80) : null }))
     });
   } catch (error) {
     console.error('Error listing my cards:', error);
@@ -125,12 +126,19 @@ const REFERENCE_MIN_SELLERS = 3;
 const REFERENCE_MAX_IDS = 60;
 const REFERENCE_SALES_DAYS = 180;
 const roundClp = (value) => Math.max(10, Math.round(Number(value) / 10) * 10);
-// { [tcgId]: { clp, sales } | { clp, sellers } } solo para las cartas que alcanzan el mínimo de vendedores y compradores distintos.
+const median = (values) => {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+};
+// { [tcgId]: { clp, sales } | { clp, sellers } | { clp, inPersonSales } }.
 // Defensas contra la manipulación (ver core/priceIntegrity.js): una venta solo cuenta si está cerca de lo que piden otros vendedores,
 // la referencia se calcula con un valor por vendedor, y las publicaciones sospechosas (muy baratas, de cuentas nuevas) no cuentan.
 const mylReferencePrices = async (ids) => {
-  const [sales, offers] = await Promise.all([
+  const [sales, inPersonSignals, offers] = await Promise.all([
     loadSales({ tcg: 'Mitos y Leyendas', tcgIds: ids, days: REFERENCE_SALES_DAYS }),
+    loadInPersonPriceSignals({ tcg: 'Mitos y Leyendas', tcgIds: ids, days: REFERENCE_SALES_DAYS }),
     loadLiveOffers({ tcg: 'Mitos y Leyendas', tcgIds: ids })
   ]);
   const prices = {};
@@ -138,6 +146,20 @@ const mylReferencePrices = async (ids) => {
     const cardOffers = offers.filter((offer) => offer.tcgId === id);
     const bySales = referenceFromSales(referenceSales(sales.filter((sale) => sale.tcgId === id), offersAnchor(cardOffers)));
     if (bySales) { prices[id] = { clp: roundClp(bySales.value), sales: bySales.sales }; continue; }
+    // Declaraciones presenciales: precio publicado por unidad, agrupado por vendedor. No se presentan
+    // como compras verificadas; exigen tres vendedores y pasan el mismo filtro de distancia al ancla.
+    const declared = inPersonSignals.filter((sale) => sale.tcgId === id && sale.unit > 0);
+    const declarationAnchor = offersAnchor(cardOffers) || (declared.length ? median(declared.map((sale) => sale.unit)) : null);
+    const eligibleDeclarations = declarationAnchor
+      ? declared.filter((sale) => sale.unit >= declarationAnchor * 0.25 && sale.unit <= declarationAnchor * 4)
+      : declared;
+    const perSellerPrices = new Map();
+    for (const sale of eligibleDeclarations) perSellerPrices.set(sale.sellerId, [...(perSellerPrices.get(sale.sellerId) || []), sale.unit]);
+    if (perSellerPrices.size >= REFERENCE_MIN_SELLERS) {
+      const declaredValue = median([...perSellerPrices.values()].map((values) => median(values)));
+      prices[id] = { clp: roundClp(declaredValue), sellers: perSellerPrices.size, inPersonSales: eligibleDeclarations.length };
+      continue;
+    }
     const flagged = suspiciousOffers(cardOffers);
     const fair = cardOffers.filter((offer) => !flagged.has(offer.cardId));
     const sellers = new Set(fair.map((offer) => offer.userId)).size;
@@ -234,17 +256,15 @@ router.get('/api/cards/:id/price-history', async (req, res) => {
     if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) return badRequest(res, 'Carta inválida');
     const card = await prisma.card.findFirst({ where: { id: req.params.id, ...visibleCardWhere }, select: { tcgId: true, folder: { select: { tcg: true } } } });
     if (!card) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
-    const since = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
+    const since = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
     const rows = await prisma.cardPriceSnapshot.findMany({ where: { tcg: card.folder.tcg, tcgId: card.tcgId, day: { gte: since } }, orderBy: { day: 'asc' }, select: { day: true, lowest: true, offers: true } });
-    // Precio de mercado de TCGplayer (solo Pokémon) y ventas reales completadas de la carta, en el mismo período
-    const market = card.folder.tcg === 'Pokemon' ? await prisma.cardMarketSnapshot.findMany({ where: { tcgId: card.tcgId, day: { gte: since } }, orderBy: { day: 'asc' }, select: { day: true, clp: true } }) : [];
-    const sales = (await recentSales(card.tcgId, card.folder.tcg)).filter((sale) => new Date(sale.at) >= since);
+    // Solo señales de Carpetazo: precio publicado aquí y ventas confirmadas de la carta.
+    const sales = await loadCatalogSales(prisma, card.tcgId, card.folder.tcg, 365, 250);
     res.set('Cache-Control', 'public, max-age=300');
     res.json({
       success: true,
       points: rows.map((row) => ({ day: row.day.toISOString().slice(0, 10), lowest: row.lowest, offers: row.offers })),
-      market: market.map((row) => ({ day: row.day.toISOString().slice(0, 10), clp: row.clp })),
-      sales: sales.map((sale) => ({ day: new Date(sale.at).toISOString().slice(0, 10), price: sale.price, quantity: sale.quantity })),
+      sales: sales.map((sale) => ({ day: new Date(sale.at).toISOString().slice(0, 10), price: sale.price, quantity: sale.quantity, source: sale.source })),
     });
   } catch (error) {
     console.error('Error loading price history:', error);
