@@ -29,7 +29,7 @@ function Avatar({ seller }) {
 
 // La búsqueda, el orden y la página se resuelven en el servidor (24 vendedores por página)
 export default function SellersPage() {
-  usePageMeta({ title: 'Vendedores de cartas TCG en Chile | Carpetazo', description: 'Encuentra vendedores y tiendas de cartas TCG en Chile, por comuna y por cantidad de cartas a la venta.', path: '/vendedores' });
+  usePageMeta({ title: 'Vendedores de cartas TCG en Chile | Carpetazo', description: 'Encuentra personas y tiendas registradas en Carpetazo, filtra por comuna y descubre sus cartas publicadas.', path: '/vendedores' });
   const [result, setResult] = useState({ sellers: [], total: 0, pages: 1 });
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -67,7 +67,7 @@ export default function SellersPage() {
       <div className="relative z-10 min-h-[100svh] w-full bg-blue-100 px-4 pb-8 pt-8 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x md:border-outline-variant/30 md:px-12 md:pt-14">
         <header className="mb-5">
           <div className="flex items-center gap-3"><h1 className="text-3xl font-extrabold tracking-tight text-[#12315f] md:text-4xl">Vendedores</h1><HelpTip topic="vendedores" /></div>
-          <p className="mt-1 max-w-2xl text-sm text-slate-600 md:text-base">Personas y tiendas con carpetas públicas. Las visitas suman todas sus carpetas.</p>
+          <p className="mt-1 max-w-2xl text-sm text-slate-600 md:text-base">Personas y tiendas registradas en Carpetazo. Las cifras muestran sus carpetas y cartas públicas.</p>
         </header>
 
         <div className="lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:items-start lg:gap-8">

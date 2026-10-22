@@ -26,6 +26,51 @@ const effectivePlanSql = Prisma.sql`COALESCE(
 )`;
 const withPlanBadge = ({ planKey, ...seller }) => ({ ...seller, planBadge: publicPlanBadge(planKey) });
 
+// El directorio /vendedores incluye cuentas registradas aunque todavía no publiquen
+// carpetas. Las cifras siguen contando únicamente contenido público y visible.
+const queryRegisteredSellers = ({ like, comuna = null, sort, limit, offset }) => {
+  const filter = Prisma.sql`u."username" IS NOT NULL
+    AND u."role" <> 'deleted'
+    AND NOT EXISTS (
+      SELECT 1 FROM "Sanction" s
+      WHERE s."userId" = u."id" AND s."type" = 'ban' AND s."status" = 'active'
+        AND (s."expiresAt" IS NULL OR s."expiresAt" > ${utcNowSql})
+    )
+    ${like ? Prisma.sql`AND (u."name" ILIKE ${like} OR u."username" ILIKE ${like})` : Prisma.empty}
+    ${comuna ? Prisma.sql`AND u."publicComuna" = ${comuna}` : Prisma.empty}`;
+  const order = sort === 'name' ? Prisma.sql`LOWER(COALESCE(u."name", u."username")) ASC` : sort === 'cards' ? Prisma.sql`cards DESC, visits DESC` : Prisma.sql`visits DESC, cards DESC`;
+  return Promise.all([
+    prisma.$queryRaw`
+      WITH public_folders AS (
+        SELECT f."id", f."userId", f."tcg", f."totalVisits", COALESCE(c.cnt, 0)::int AS cards
+        FROM "Folder" f
+        LEFT JOIN (
+          SELECT "folderId", COUNT(*) AS cnt FROM "Card"
+          WHERE "moderationState" IN ('visible', 'image_hidden') GROUP BY "folderId"
+        ) c ON c."folderId" = f."id"
+        WHERE f."isPublic" = true AND f."moderationState" = 'visible'
+          AND EXISTS (SELECT 1 FROM "Card" pc WHERE pc."folderId" = f."id" AND pc."moderationState" IN ('visible', 'image_hidden'))
+      ), seller_stats AS (
+        SELECT "userId", COUNT(*)::int AS folders, SUM(cards)::int AS cards,
+               SUM("totalVisits")::int AS visits, ARRAY_AGG(DISTINCT tcg) AS tcgs
+        FROM public_folders GROUP BY "userId"
+      )
+      SELECT u."name", u."username", u."photoURL", u."publicComuna", u."publicRegion",
+             (u."emailVerified" AND u."photoURL" IS NOT NULL AND u."publicComuna" IS NOT NULL AND COALESCE(TRIM(u."phone"), '') <> '') AS verified,
+             ${effectivePlanSql} AS "planKey",
+             COALESCE(ss.folders, 0)::int AS folders,
+             COALESCE(ss.cards, 0)::int AS cards,
+             COALESCE(ss.visits, 0)::int AS visits,
+             COALESCE(ss.tcgs, ARRAY[]::text[]) AS tcgs
+      FROM "User" u
+      LEFT JOIN seller_stats ss ON ss."userId" = u."id"
+      WHERE ${filter}
+      ORDER BY ${order}
+      LIMIT ${limit} OFFSET ${offset}`,
+    prisma.$queryRaw`SELECT COUNT(*)::int AS n FROM "User" u WHERE ${filter}`
+  ]);
+};
+
 // Vendedores = dueños de carpetas públicas, con sus cifras sumadas
 const querySellers = ({ like, comuna = null, sort, limit, offset }) => {
   const filter = Prisma.sql`1 = 1
@@ -66,7 +111,7 @@ router.get('/api/sellers', async (req, res) => {
     const page = Number.parseInt(req.query.page, 10) || 1;
     const comuna = typeof req.query.comuna === 'string' ? req.query.comuna.trim() : '';
     if (!validListText(q) || !['visits', 'cards', 'name'].includes(sort) || page < 1 || page > 1000 || (comuna && !isValidComuna(comuna))) return badRequest(res, 'Búsqueda inválida');
-    const [rows, totalRows] = await querySellers({ like: q ? likePattern(q) : null, comuna: comuna || null, sort, limit: SELLERS_PAGE_SIZE, offset: (page - 1) * SELLERS_PAGE_SIZE });
+    const [rows, totalRows] = await queryRegisteredSellers({ like: q ? likePattern(q) : null, comuna: comuna || null, sort, limit: SELLERS_PAGE_SIZE, offset: (page - 1) * SELLERS_PAGE_SIZE });
     const total = totalRows[0]?.n || 0;
     res.json({ success: true, sellers: rows.map(withPlanBadge), total, page, pages: Math.max(1, Math.ceil(total / SELLERS_PAGE_SIZE)) });
   } catch (error) {
