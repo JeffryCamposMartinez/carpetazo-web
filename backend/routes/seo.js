@@ -256,7 +256,13 @@ let catalogTotal = { at: 0, value: 0 };
 const catalogWhere = { kind: 'card', imageKey: { not: null } };
 
 const catalogCount = async () => {
-  if (Date.now() - catalogTotal.at > 60 * 60 * 1000) catalogTotal = { at: Date.now(), value: await prisma.catalogCard.count({ where: catalogWhere }) };
+  if (Date.now() - catalogTotal.at > 60 * 60 * 1000 || catalogTotal.value === 0) {
+    const value = await prisma.catalogCard.count({ where: catalogWhere });
+    // Un catálogo vacío no se mantiene en caché: permite que las primeras cartas
+    // agregadas aparezcan inmediatamente en el índice y en el sitemap.
+    catalogTotal = value > 0 ? { at: Date.now(), value } : { at: 0, value: 0 };
+    return value;
+  }
   return catalogTotal.value;
 };
 

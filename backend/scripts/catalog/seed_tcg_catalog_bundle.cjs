@@ -46,9 +46,12 @@ const normalized = (raw) => ({
 
 const shouldRun = () => {
   if (process.env.SEED_TCG_CATALOG === '0') return false;
+  const host = databaseHost();
   // Localhost covers development and the CI PostgreSQL service. Production Coolify
-  // uses an internal service hostname or a remote host, so it continues below.
-  return !LOCAL_HOSTS.has(databaseHost());
+  // uses an internal service hostname or a remote host. Only CI may opt in to
+  // seeding its disposable local database.
+  if (LOCAL_HOSTS.has(host)) return process.env.CI === 'true' && process.env.SEED_TCG_CATALOG === '1';
+  return true;
 };
 
 (async () => {

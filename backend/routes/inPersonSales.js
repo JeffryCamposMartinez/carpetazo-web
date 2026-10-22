@@ -57,7 +57,7 @@ router.get('/api/folders/:id/in-person-sales', authenticateToken, async (req, re
   }
 });
 
-// Cuerpo: { requestId, items: [{ cardId, quantity }], adjustment }. Precios publicados, totales y stock se resuelven en el servidor.
+// Cuerpo: { requestId, items: [{ cardId, quantity, unitPrice? }], adjustment }. El vendedor puede registrar el precio acordado en persona; totales y stock se resuelven en el servidor.
 router.post('/api/folders/:id/in-person-sales', authenticateToken, async (req, res) => {
   try {
     const owned = await ownedFolder(req, req.params.id);
@@ -75,8 +75,10 @@ router.post('/api/folders/:id/in-person-sales', authenticateToken, async (req, r
       if (typeof item?.cardId !== 'string' || !isUuid(item.cardId) || seen.has(item.cardId)) return badRequest(res, 'Carta inválida');
       if (typeof quantity !== 'number') return badRequest(res, 'Cantidad inválida');
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY) return badRequest(res, 'Cantidad inválida');
+      const hasUnitPrice = Object.prototype.hasOwnProperty.call(item, 'unitPrice');
+      if (hasUnitPrice && (typeof item.unitPrice !== 'number' || !Number.isInteger(item.unitPrice) || item.unitPrice < 0 || item.unitPrice > MAX_PRICE)) return badRequest(res, 'Precio inválido');
       seen.add(item.cardId);
-      lines.push({ cardId: item.cardId, quantity });
+      lines.push({ cardId: item.cardId, quantity, ...(hasUnitPrice ? { unitPrice: item.unitPrice } : {}) });
     }
 
     const sale = await prisma.$transaction(async (tx) => {
@@ -91,13 +93,13 @@ router.post('/api/folders/:id/in-person-sales', authenticateToken, async (req, r
       const sold = [];
       for (const line of lines) {
         const card = byId.get(line.cardId);
-        const unitPrice = card.price;
-        if (unitPrice === null || unitPrice === undefined || !Number.isInteger(Number(unitPrice)) || Number(unitPrice) < 0 || Number(unitPrice) > MAX_PRICE) throw Object.assign(new Error('Falta un precio publicado válido para ' + card.name), { status: 400, exposeMessage: true });
+        const unitPrice = line.unitPrice === undefined ? card.price : line.unitPrice;
+        if (unitPrice === null || unitPrice === undefined || !Number.isInteger(unitPrice) || unitPrice < 0 || unitPrice > MAX_PRICE) throw Object.assign(new Error('Falta un precio válido para ' + card.name), { status: 400, exposeMessage: true });
         // Baja el stock solo si alcanza: sin dos ventas simultáneas de la última unidad
         const updated = await tx.card.updateMany({ where: { id: card.id, folderId: owned.folder.id, stock: { gte: line.quantity } }, data: { stock: { decrement: line.quantity } } });
         if (updated.count === 0) throw Object.assign(new Error('No queda stock suficiente de ' + card.name), { status: 409, exposeMessage: true });
         const tcg = owned.folder.tcg;
-        sold.push({ cardId: card.id, tcgId: card.tcgId, tcg, name: card.name, language: card.language, imageUrl: card.imageUrl, quantity: line.quantity, unitPrice: Number(unitPrice) });
+        sold.push({ cardId: card.id, tcgId: card.tcgId, tcg, name: card.name, language: card.language, imageUrl: card.imageUrl, quantity: line.quantity, unitPrice });
       }
       const units = sold.reduce((sum, line) => sum + line.quantity, 0);
       const subtotal = sold.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);

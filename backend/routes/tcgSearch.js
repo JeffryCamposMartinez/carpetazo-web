@@ -103,8 +103,12 @@ router.get('/api/tcg/suggest', async (req, res) => {
   if (query.length < 3 || query.length > 80) return badRequest(res, 'Búsqueda inválida');
   try {
     if (!hasVocabulary()) {
-      const mylNames = await prisma.tcgProduct.findMany({ distinct: ['name'], select: { name: true } }).catch(() => []);
-      buildVocabulary([...indexedNames(), ...mylNames.map((card) => card.name)]);
+      const names = indexedNames();
+      const [mylNames, catalogNames] = await Promise.all([
+        prisma.tcgProduct.findMany({ distinct: ['name'], select: { name: true } }).catch(() => []),
+        names.length ? Promise.resolve([]) : prisma.catalogCard.findMany({ where: { kind: 'card' }, distinct: ['name'], select: { name: true } }).catch(() => []),
+      ]);
+      buildVocabulary([...names, ...mylNames.map((card) => card.name), ...catalogNames.map((card) => card.name)]);
     }
     res.set('Cache-Control', 'public, max-age=300');
     return res.json({ success: true, suggestion: suggestQuery(query) });

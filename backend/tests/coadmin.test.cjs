@@ -50,7 +50,7 @@ const { prisma, call, ok } = require('./fixtures.cjs');
     // ---- No puede actuar sobre administradores ni sobre la propietaria ----
     for (const [label, who] of [['un administrador', 'jeffry'], ['la cuenta propietaria', 'jerry']]) {
       for (const [action, body] of [['role', { role: 'user' }], ['suspend', { reason: 'intento no permitido', days: 1 }], ['close', { reason: 'intento no permitido' }], ['restore', { note: 'intento no permitido' }]]) {
-        r = await call('POST', `/admin/team/${id(who)}/${action}`, 'ale', { ...body, confirmUsername: NAMES[who] });
+        r = await call('POST', `/admin/team/${id(who)}/${action}`, 'ale', { ...body, confirmUsername: touched[who].username });
         ok(`el co-administrador no puede ${action} sobre ${label} → 403`, r.status === 403, String(r.status));
       }
     }

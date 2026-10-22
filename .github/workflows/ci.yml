@@ -93,6 +93,9 @@ jobs:
       - name: Prepare database
         run: npm run build
         working-directory: backend
+        env:
+          CI: 'true'
+          SEED_TCG_CATALOG: '1'
 
       - name: Run session tests
         run: npm run test:session
