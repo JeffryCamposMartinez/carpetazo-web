@@ -9,7 +9,7 @@ const BADGE_STYLE = {
 
 export const PLAN_BADGE_HINT = 'Esta insignia muestra el plan contratado en Carpetazo. No reemplaza la verificación de identidad del vendedor.';
 
-export default function PlanBadge({ badge, compact = false, className = '' }) {
+export default function PlanBadge({ badge, compact = false, iconRight = false, className = '' }) {
   const style = badge?.key ? BADGE_STYLE[badge.key] : null;
   if (!style) return null;
   return (
@@ -18,10 +18,11 @@ export default function PlanBadge({ badge, compact = false, className = '' }) {
       aria-label={`Plan ${badge.label}`}
       className={`inline-flex shrink-0 items-center rounded-full border font-black uppercase tracking-wide ${compact ? 'h-6 gap-0.5 px-1.5 text-[10px]' : 'min-h-7 gap-1 px-2.5 py-1 text-[11px]'} ${style.classes} ${className}`}
     >
+      {iconRight && badge.label}
       {style.image
         ? <img src={style.image} alt="" aria-hidden="true" className={`${compact ? 'h-5 w-5' : 'h-6 w-6'} object-contain`} />
         : <SvgIcon name={style.icon} translate="no" aria-hidden="true" className={`${compact ? 'text-[14px]' : 'text-[16px]'}`} />}
-      {badge.label}
+      {!iconRight && badge.label}
     </span>
   );
 }

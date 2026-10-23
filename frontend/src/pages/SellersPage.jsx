@@ -95,7 +95,10 @@ export default function SellersPage() {
                   <Avatar seller={seller} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-base font-extrabold text-[#12315f]">{seller.name}</p>
-                    <div className="mt-0.5 flex min-w-0 items-center gap-1.5"><p className="truncate text-xs font-semibold text-slate-500">{seller.username ? `@${seller.username}` : 'Vendedor'}</p><PlanBadge badge={seller.planBadge} compact /></div>
+                    <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
+                      <p className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-500">{seller.username ? `@${seller.username}` : 'Vendedor'}</p>
+                      <PlanBadge badge={seller.planBadge} iconRight className="min-h-10 gap-1.5 px-2.5 text-xs [&>img]:!h-10 [&>img]:!w-10" />
+                    </div>
                     <LocationLine comuna={seller.publicComuna} region={seller.publicRegion} className="mt-0.5 text-xs font-semibold text-[#1e40af]" />
                     <p className="mt-1.5 text-xs font-semibold tabular-nums text-slate-600">
                       {formatNumber(seller.folders)} {seller.folders === 1 ? 'carpeta' : 'carpetas'} · {formatNumber(seller.cards)} {seller.cards === 1 ? 'carta' : 'cartas'} · {formatNumber(seller.visits)} {seller.visits === 1 ? 'visita' : 'visitas'}
