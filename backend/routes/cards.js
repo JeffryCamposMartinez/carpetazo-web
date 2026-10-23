@@ -407,7 +407,6 @@ router.get('/api/cards/search', async (req, res) => {
       cards: cards.map(({ data, _boost, folder, ...card }) => ({
         ...card,
         folder: { id: folder.id, name: folder.name, tcg: folder.tcg, user: folder.user },
-        priorityLevel: _boost || 0,
         language: data && typeof data === 'object' ? data.language || null : null,
         set: data && typeof data === 'object' ? data.set || null : null,
       })),

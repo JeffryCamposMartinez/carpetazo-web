@@ -6,7 +6,6 @@ import SvgIcon from '../ui/SvgIcon';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 const NEW_WINDOW_MS = 72 * 60 * 60 * 1000;
-const priorityLabel = (level) => level >= 2 ? 'Prioridad Tienda' : level === 1 ? 'Prioridad Legendario' : null;
 
 const SURFACE = 'bg-white ring-1 ring-slate-900/5 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.4)]';
 const LIFT = 'transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.985] [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:shadow-[0_2px_4px_rgba(26,43,75,0.08),0_18px_32px_-16px_rgba(26,43,75,0.5)] motion-reduce:transition-none motion-reduce:[@media(hover:hover)]:hover:translate-y-0';
@@ -90,7 +89,6 @@ export default function CardTile({ card, index, view, wanted, onWish }) {
               <PriceTag price={card.price} />
               {isNew && <span className="rounded-full bg-[#12315f] px-2 py-0.5 text-xs font-extrabold text-white">Nueva</span>}
               {card.featured && <span className="rounded-full bg-[#facc15] px-2 py-0.5 text-xs font-extrabold text-[#12315f]">Destacado</span>}
-              {priorityLabel(card.priorityLevel) && <span title="La prioridad del plan mejora la posición de esta carta en los resultados" className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-extrabold text-emerald-900">{priorityLabel(card.priorityLevel)}</span>}
               <span className="flex flex-wrap items-center gap-1.5"><Availability stock={card.stock} /><LanguageChip language={card.language} /></span>
             </span>
           </span>
@@ -105,11 +103,10 @@ export default function CardTile({ card, index, view, wanted, onWish }) {
       <Link to={`/carta/${card.id}`} className={`group flex h-full flex-col overflow-hidden rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${SURFACE} ${LIFT}`}>
         <span className="relative block w-full overflow-hidden bg-slate-100" style={{ aspectRatio: cardRatio(card.folder?.tcg) }}>
           <CardImage card={card} className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-md object-contain" />
-          {(isNew || card.featured || priorityLabel(card.priorityLevel)) && (
+          {(isNew || card.featured) && (
             <span className="absolute left-2 top-2 flex flex-wrap gap-1">
               {isNew && <span className="rounded-full bg-[#12315f] px-2 py-0.5 text-xs font-extrabold text-white shadow">Nueva</span>}
               {card.featured && <span className="rounded-full bg-[#facc15] px-2 py-0.5 text-xs font-extrabold text-[#12315f] shadow">Destacado</span>}
-              {priorityLabel(card.priorityLevel) && <span title="La prioridad del plan mejora la posición de esta carta en los resultados" className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-extrabold text-emerald-900 shadow">{priorityLabel(card.priorityLevel)}</span>}
             </span>
           )}
           <span className="absolute bottom-2 left-2 -rotate-1"><PriceTag price={card.price} /></span>
