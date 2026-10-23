@@ -7,7 +7,6 @@ import ListingToolbar from '../components/ui/ListingToolbar';
 import LocationLine from '../components/ui/LocationLine';
 import usePageMeta from '../hooks/usePageMeta';
 import EmptyState from '../components/ui/EmptyState';
-import VerifiedBadge from '../components/ui/VerifiedBadge';
 import PlanBadge from '../components/ui/PlanBadge';
 import SvgIcon from '../components/ui/SvgIcon';
 
@@ -95,7 +94,7 @@ export default function SellersPage() {
                 <>
                   <Avatar seller={seller} />
                   <div className="min-w-0 flex-1">
-                    <p className="flex min-w-0 items-center gap-1 text-base font-extrabold text-[#12315f]"><span className="truncate">{seller.name}</span>{seller.verified && <VerifiedBadge size={18} />}</p>
+                    <p className="truncate text-base font-extrabold text-[#12315f]">{seller.name}</p>
                     <div className="mt-0.5 flex min-w-0 items-center gap-1.5"><p className="truncate text-xs font-semibold text-slate-500">{seller.username ? `@${seller.username}` : 'Vendedor'}</p><PlanBadge badge={seller.planBadge} compact /></div>
                     <LocationLine comuna={seller.publicComuna} region={seller.publicRegion} className="mt-0.5 text-xs font-semibold text-[#1e40af]" />
                     <p className="mt-1.5 text-xs font-semibold tabular-nums text-slate-600">

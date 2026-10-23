@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import ReportButton from '../moderation/ReportButton';
 import LocationLine from '../ui/LocationLine';
 import PlanBadge from '../ui/PlanBadge';
-import VerifiedBadge from '../ui/VerifiedBadge';
 import SvgIcon from '../ui/SvgIcon';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
@@ -27,7 +26,7 @@ function OfferRow({ offer, isBest, isChosen }) {
         <SellerAvatar user={user} />
         <div className="min-w-0 flex-1">
           {user.username
-            ? <Link to={`/${user.username}`} className="flex items-center gap-1 text-[15px] font-extrabold text-[#12315f] hover:underline focus:outline-none focus-visible:underline"><span className="truncate">{name}</span>{user.verified && <VerifiedBadge size={17} />}</Link>
+            ? <Link to={`/${user.username}`} className="block truncate text-[15px] font-extrabold text-[#12315f] hover:underline focus:outline-none focus-visible:underline">{name}</Link>
             : <p className="truncate text-[15px] font-extrabold text-[#12315f]">{name}</p>}
           <PlanBadge badge={user.planBadge} compact className="mt-1" />
           <p className="truncate text-xs text-slate-500">Carpeta {offer.folder.name}</p>

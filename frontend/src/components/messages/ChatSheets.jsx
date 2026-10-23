@@ -5,7 +5,6 @@ import Avatar from './Avatar';
 import Sheet from './Sheet';
 import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 import EmptyState from '../ui/EmptyState';
-import VerifiedBadge from '../ui/VerifiedBadge';
 import { MAX_PINNED, fullStamp, personOf, summaryOf } from './messageUtils';
 import SvgIcon from '../ui/SvgIcon';
 
@@ -122,7 +121,7 @@ export function NewChatSheet({ open, onClose, onPick, myUsername = '' }) {
                   <button type="button" onClick={() => onPick({ username: seller.username, name: seller.name, photoURL: seller.photoURL })} className={`${ROW} gap-3 py-2`}>
                     <Avatar name={seller.name} src={seller.photoURL} size={44} />
                     <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-1 text-slate-900"><span className="truncate">{seller.name}</span>{seller.verified && <VerifiedBadge size={16} />}</span>
+                      <span className="block truncate text-slate-900">{seller.name}</span>
                       <span className="block truncate text-xs font-medium text-slate-500">@{seller.username}{seller.publicComuna ? ` · ${seller.publicComuna}` : ''}</span>
                     </span>
                   </button>

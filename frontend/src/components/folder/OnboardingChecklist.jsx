@@ -12,7 +12,7 @@ const hiddenKey = (uid) => `carpetazo:onboarding-hidden:${uid}`;
 const readHidden = (uid) => { try { return localStorage.getItem(hiddenKey(uid)) === '1'; } catch (_error) { return false; } };
 
 const COPY = {
-  profile: { icon: 'account_circle', title: 'Completa tu perfil', text: (step) => `Agrega tu ${step.missing?.join(' y ') || 'foto y comuna'}: los compradores confían más en perfiles completos y obtienes la insignia de verificado.`, cta: 'Ir a mi perfil' },
+  profile: { icon: 'account_circle', title: 'Completa tu perfil', text: (step) => `Agrega tu ${step.missing?.join(' y ') || 'foto y comuna'} para que los compradores conozcan mejor tu perfil.`, cta: 'Ir a mi perfil' },
   folder: { icon: 'create_new_folder', title: 'Crea tu primera carpeta', text: () => 'Elige el juego y un nombre, por ejemplo «Pokémon en venta».', cta: 'Crear carpeta' },
   cards: { icon: 'style', title: 'Agrega tus primeras cartas', text: (step) => `Búscalas por nombre, ponles precio y cantidad. Llevas ${step.count || 0} de ${step.goal}.`, cta: 'Agregar cartas' },
   share: { icon: 'ios_share', title: 'Comparte tu carpeta', text: () => 'Manda el enlace por WhatsApp o Instagram: se ve con una vista previa de tus cartas.', cta: 'Compartir enlace' }

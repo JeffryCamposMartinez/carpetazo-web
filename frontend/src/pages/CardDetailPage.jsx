@@ -8,7 +8,6 @@ import LoadableImage from '../components/ui/LoadableImage';
 import CardLightbox from '../components/ui/CardLightbox';
 import CardOffers from '../components/cards/CardOffers';
 import CardShare from '../components/cards/CardShare';
-import VerifiedBadge from '../components/ui/VerifiedBadge';
 import { CardAvailability, RecentSales, TcgplayerRange } from '../components/cards/CardMarketInfo';
 import ReportButton from '../components/moderation/ReportButton';
 import useCardPriceRanges from '../hooks/useCardPriceRanges';
@@ -156,7 +155,7 @@ export default function CardDetailPage() {
                 <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-slate-600">
                   Vendido por
                   {best.folder.user?.username
-                    ? <Link to={`/${best.folder.user.username}`} className="inline-flex items-center gap-0.5 font-extrabold text-[#1e40af] hover:underline">{best.folder.user.name || best.folder.user.username}{best.folder.user.verified && <VerifiedBadge size={16} />}</Link>
+                    ? <Link to={`/${best.folder.user.username}`} className="font-extrabold text-[#1e40af] hover:underline">{best.folder.user.name || best.folder.user.username}</Link>
                     : <span className="font-extrabold text-[#12315f]">{best.folder.user?.name || 'un vendedor'}</span>}
                   <span className="text-slate-400">·</span>
                   <span>{offers.length === 1 ? 'único vendedor' : `y ${offers.length - 1} ${offers.length - 1 === 1 ? 'vendedor más' : 'vendedores más'}`}</span>

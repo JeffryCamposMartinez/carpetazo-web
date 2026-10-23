@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import Avatar from './Avatar';
 import Sheet from './Sheet';
-import VerifiedBadge from '../ui/VerifiedBadge';
 import { lastSeenLabel } from './messageUtils';
 import SvgIcon from '../ui/SvgIcon';
 
@@ -31,7 +30,7 @@ export default function ContactInfo({ open, onClose, partner, settings, blockedB
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6">
         <div className="flex flex-col items-center px-5 pb-4 pt-2 text-center">
           <Avatar name={partner.name} src={partner.photoURL} size={96} online={Boolean(presence?.online)} />
-          <h3 className="mt-3 flex items-center gap-1.5 text-xl font-extrabold text-[#12315f]">{partner.name}{partner.verified && <VerifiedBadge size={20} />}</h3>
+          <h3 className="mt-3 text-xl font-extrabold text-[#12315f]">{partner.name}</h3>
           {partner.username && <p className="text-sm font-semibold text-slate-500">@{partner.username}</p>}
           {partner.publicComuna && <p className="mt-0.5 flex items-center gap-1 text-sm text-slate-500"><SvgIcon name="location_on" translate="no" aria-hidden="true" className="text-[16px]" />{partner.publicComuna}</p>}
           {status && <p className={`mt-1 text-sm font-semibold ${presence?.online ? 'text-emerald-600' : 'text-slate-500'}`}>{status}</p>}

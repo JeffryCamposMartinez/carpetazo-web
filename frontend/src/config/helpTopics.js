@@ -26,7 +26,7 @@ export const HELP_TOPICS = {
     steps: [
       'Busca por nombre o usuario, y filtra por comuna.',
       'Toca un vendedor para ver su perfil, sus carpetas y sus reseñas.',
-      'La insignia azul indica una cuenta verificada y PRO o Tienda indican su plan.'
+      'Las insignias PRO o Tienda indican el plan del vendedor.'
     ]
   },
   misCarpetas: {

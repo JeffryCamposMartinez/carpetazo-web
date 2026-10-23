@@ -4,7 +4,6 @@ import { api } from '../../services/api';
 import useConversation from '../../hooks/useConversation';
 import { useToast } from '../ui/ToastProvider';
 import { ReportSheet } from '../moderation/ReportButton';
-import VerifiedBadge from '../ui/VerifiedBadge';
 import EmptyState from '../ui/EmptyState';
 import Avatar from './Avatar';
 import Composer from './Composer';
@@ -217,7 +216,7 @@ export default function ConversationView({
           <button type="button" onClick={() => setInfo(true)} className={`flex min-w-0 flex-1 items-center gap-3 rounded-xl py-1.5 text-left transition-colors hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] ${showBack ? '' : 'pl-3'}`} aria-label={`Datos de ${name}`}>
             <Avatar name={name} src={avatar} size={40} online={Boolean(presence?.online)} />
             <span className="min-w-0">
-              <span className="flex items-center gap-1 text-[16px] font-extrabold leading-tight"><span className="truncate">{name}</span>{partner?.verified && <VerifiedBadge size={17} color="#93c5fd" />}</span>
+              <span className="block truncate text-[16px] font-extrabold leading-tight">{name}</span>
               <span className={`block truncate text-[12.5px] font-semibold leading-tight ${remoteTyping ? 'text-[#facc15]' : 'text-blue-100'}`} aria-live="polite">{status || (username ? `@${username}` : '')}</span>
             </span>
           </button>

@@ -1,5 +1,4 @@
 import { getCardStyle } from './profileStyles';
-import { VERIFIED_HINT } from '../ui/VerifiedBadge';
 import SvgIcon from '../ui/SvgIcon';
 
 // "~20 min", "~3 h", "~2 días": tiempo típico que tarda en contestar
@@ -16,7 +15,7 @@ const memberSinceLabel = (date) => {
 };
 
 // Franja de confianza bajo la presentación: reseñas, carpetas, cartas y nivel, con datos reales del vendedor
-export default function ProfileTrustStrip({ completedSales = 0, folders, memberSince, profileLevel, publicTheme, responseTime, reviewSummary, totalCards, verified }) {
+export default function ProfileTrustStrip({ completedSales = 0, folders, memberSince, profileLevel, publicTheme, responseTime, reviewSummary, totalCards }) {
   const reviews = reviewSummary || { count: 0, showAverage: false };
   const items = [
     reviews.showAverage
@@ -29,7 +28,6 @@ export default function ProfileTrustStrip({ completedSales = 0, folders, memberS
 
   // Señales que se calculan con datos reales de la plataforma: solo aparecen las que existen
   const chips = [
-    verified && { icon: 'verified', filled: true, label: 'Vendedor verificado', hint: VERIFIED_HINT },
     responseTime && { icon: 'schedule', label: `Suele responder en ${formatResponseTime(responseTime.medianMinutes)}`, hint: 'Tiempo típico en contestar los mensajes de los últimos 90 días.' },
     completedSales > 0 && { icon: 'task_alt', label: `${completedSales.toLocaleString('es-CL')} ${completedSales === 1 ? 'venta confirmada' : 'ventas confirmadas'}`, hint: 'Pedidos que el vendedor confirmó como concretados en Carpetazo.' },
     memberSinceLabel(memberSince) && { icon: 'calendar_month', label: `En Carpetazo desde ${memberSinceLabel(memberSince)}` }

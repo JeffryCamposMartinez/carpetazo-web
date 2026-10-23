@@ -6,7 +6,6 @@ import { getCardStyle } from './profileStyles';
 import { readableOn } from '../../utils/color';
 import LoadingState from '../ui/LoadingState';
 import PlanBadge from '../ui/PlanBadge';
-import VerifiedBadge from '../ui/VerifiedBadge';
 import SvgIcon from '../ui/SvgIcon';
 import usePlan from '../../hooks/usePlan';
 
@@ -81,7 +80,6 @@ export default function ProfileHero({
               <div className="min-w-0">
                 <h1 className={`break-words font-black leading-[1.05] ${isPosterLayout ? 'drop-shadow-[0_3px_14px_rgba(0,0,0,0.55)]' : ''}`} style={{ color: heroTheme.text, fontSize: displayNameSize }}>
                   {displayName}
-                  {seller?.verified && <VerifiedBadge size={Math.max(22, Math.round(parseFloat(displayNameSize) * 0.6) || 24)} color={heroTheme.primary} className="ml-2" />}
                 </h1>
                 <p className="mt-1.5 text-[15px] font-bold leading-snug" style={{ color: heroTheme.primary }}>@{seller?.username}</p>
                 {seller?.planBadge && <PlanBadge badge={seller.planBadge} className="mt-2" />}
