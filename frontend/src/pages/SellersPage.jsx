@@ -77,7 +77,7 @@ export default function SellersPage() {
             <ListingToolbar total={result.total} loading={loading} failed={failed} one="vendedor" many="vendedores" comuna={comuna} onComuna={(value) => { setComuna(value); setPage(1); }} sort={sort} onSort={(value) => { setSort(value); setPage(1); }} sortOptions={SORTS} onClear={comuna || query ? () => { setQuery(''); setComuna(''); setPage(1); } : undefined} />
 
         {loading ? (
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+          <ul className="grid auto-rows-fr grid-cols-1 items-stretch gap-3 sm:grid-cols-2 2xl:grid-cols-3">
             {Array.from({ length: 6 }, (_, i) => <li key={i} className="skeleton h-28 rounded-2xl" />)}
           </ul>
         ) : failed ? (
@@ -106,9 +106,9 @@ export default function SellersPage() {
                   <SvgIcon name="chevron_right" translate="no" className="text-[22px] text-slate-400" />
                 </>
               );
-              const rowClass = 'flex min-w-0 items-center gap-3 rounded-2xl bg-white p-3 sm:gap-4 sm:p-4 shadow-sm ring-1 ring-slate-900/5';
+              const rowClass = 'flex h-full min-h-[7.75rem] min-w-0 items-center gap-3 rounded-2xl bg-white p-3 sm:gap-4 sm:p-4 shadow-sm ring-1 ring-slate-900/5';
               return (
-                <li key={seller.key} className="min-w-0">
+                <li key={seller.key} className="h-full min-w-0">
                   {seller.username ? (
                     <Link to={`/${seller.username}`} className={`${rowClass} transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]`}>{body}</Link>
                   ) : (
