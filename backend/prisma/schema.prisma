@@ -720,10 +720,11 @@ model Feedback {
   id            String    @id @default(uuid())
   userId        String
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  kind          String // complaint | suggestion
+  kind          String // complaint | suggestion | support
   title         String
   message       String
   status        String    @default("open") // open | corrected
+  priority      Boolean   @default(false)
   moderatorNote String?
   correctedById String?
   correctedAt   DateTime?
@@ -731,6 +732,7 @@ model Feedback {
   updatedAt     DateTime  @updatedAt
 
   @@index([status, createdAt])
+  @@index([priority, status, createdAt])
   @@index([userId, createdAt])
 }
 

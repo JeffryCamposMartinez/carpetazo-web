@@ -293,22 +293,9 @@ const CARD_SEARCH_SELECT = {
   stock: true,
   createdAt: true,
   data: true,
-  folder: { select: { id: true, name: true, tcg: true, user: { select: { name: true, username: true, photoURL: true, publicComuna: true } } } },
+  folder: { select: { id: true, name: true, tcg: true, userId: true, user: { select: { name: true, username: true, photoURL: true, publicComuna: true } } } },
 };
-// «Más reciente» con prioridad en los listados: las cartas de planes Pro y Tienda se ordenan como si se hubieran publicado antes (BOOST_HOURS por nivel).
-// Solo cambia el orden dentro de las RANKING_POOL más nuevas y no oculta nada; esas cartas se entregan marcadas como destacadas.
-const BOOST_HOURS = { 1: 6, 2: 24 };
-const boostedRecentPage = async (where, page, boosts) => {
-  const pool = await prisma.card.findMany({ where, orderBy: [{ createdAt: 'desc' }], take: RANKING_POOL, select: { id: true, createdAt: true, folder: { select: { userId: true } } } });
-  const level = new Map(pool.map((card) => [card.id, boosts.get(card.folder.userId) || 0]));
-  const effective = (card) => card.createdAt.getTime() + (BOOST_HOURS[level.get(card.id)] || 0) * 3600 * 1000;
-  const ordered = [...pool].sort((a, b) => effective(b) - effective(a));
-  const pageIds = ordered.slice((page - 1) * CARD_SEARCH_PAGE_SIZE, page * CARD_SEARCH_PAGE_SIZE).map((card) => card.id);
-  const rows = pageIds.length ? await prisma.card.findMany({ where: { id: { in: pageIds } }, select: CARD_SEARCH_SELECT }) : [];
-  const byId = new Map(rows.map((card) => [card.id, card]));
-  return pageIds.map((id) => (byId.has(id) ? { ...byId.get(id), _boost: level.get(id) } : null)).filter(Boolean);
-};
-const rankedCardPage = async (where, sort, page) => {
+const rankedCardSlice = async (where, sort, skip, take) => {
   const pool = await prisma.card.findMany({ where, orderBy: [{ createdAt: 'desc' }], take: RANKING_POOL, select: { id: true, tcgId: true, createdAt: true } });
   const score = new Map(); // id de la carta → puntaje (mayor = antes)
   if (sort === 'best_selling') {
@@ -335,10 +322,38 @@ const rankedCardPage = async (where, sort, page) => {
     pool.forEach((card) => score.set(card.id, published.get(String(card.tcgId)) ?? -Infinity));
   }
   const ordered = [...pool].sort((a, b) => (score.get(b.id) - score.get(a.id)) || (b.createdAt - a.createdAt));
-  const pageIds = ordered.slice((page - 1) * CARD_SEARCH_PAGE_SIZE, page * CARD_SEARCH_PAGE_SIZE).map((card) => card.id);
+  const pageIds = ordered.slice(skip, skip + take).map((card) => card.id);
   const rows = pageIds.length ? await prisma.card.findMany({ where: { id: { in: pageIds } }, select: CARD_SEARCH_SELECT }) : [];
   const byId = new Map(rows.map((card) => [card.id, card]));
   return pageIds.map((id) => byId.get(id)).filter(Boolean);
+};
+const cardSlice = (where, sort, skip, take) => RANKED_SORTS.has(sort)
+  ? rankedCardSlice(where, sort, skip, take)
+  : prisma.card.findMany({ where, orderBy: CARD_SEARCH_SORTS[sort], skip, take, select: CARD_SEARCH_SELECT });
+
+// La prioridad de plan se aplica a todos los ordenamientos y páginas, conservando el orden seleccionado dentro de cada nivel.
+const prioritizedCardPage = async (where, sort, skip, take, boosts) => {
+  const priorityUsers = [...boosts.keys()];
+  if (!priorityUsers.length) return cardSlice(where, sort, skip, take);
+  const storeUsers = priorityUsers.filter((id) => boosts.get(id) === 2);
+  const legendUsers = priorityUsers.filter((id) => boosts.get(id) === 1);
+  const groups = [
+    ...(storeUsers.length ? [{ level: 2, where: { ...where, folder: { ...where.folder, userId: { in: storeUsers } } } }] : []),
+    ...(legendUsers.length ? [{ level: 1, where: { ...where, folder: { ...where.folder, userId: { in: legendUsers } } } }] : []),
+    { level: 0, where: { ...where, folder: { ...where.folder, userId: { notIn: priorityUsers } } } }
+  ];
+  const counts = await Promise.all(groups.map(({ where: groupWhere }) => prisma.card.count({ where: groupWhere })));
+  const cards = [];
+  let offset = skip;
+  for (let index = 0; index < groups.length && cards.length < take; index += 1) {
+    const groupCount = counts[index];
+    if (offset >= groupCount) { offset -= groupCount; continue; }
+    const amount = Math.min(take - cards.length, groupCount - offset);
+    const rows = await cardSlice(groups[index].where, sort, offset, amount);
+    cards.push(...rows.map((card) => ({ ...card, _boost: boosts.get(card.folder.userId) || 0 })));
+    offset = 0;
+  }
+  return cards;
 };
 router.get('/api/cards/search', async (req, res) => {
   try {
@@ -374,21 +389,11 @@ router.get('/api/cards/search', async (req, res) => {
       delete where.AND;
       where.OR = [nameMatch(q), { name: { in: similarNames } }];
     }
-    const boosts = sort === 'recent' ? await userBoostLevels(prisma) : new Map();
-    const [total, cards] = RANKED_SORTS.has(sort)
-      ? [await prisma.card.count({ where }), await rankedCardPage(where, sort, page)]
-      : boosts.size
-        ? [await prisma.card.count({ where }), await boostedRecentPage(where, page, boosts)]
-        : await prisma.$transaction([
-        prisma.card.count({ where }),
-        prisma.card.findMany({
-          where,
-          orderBy: CARD_SEARCH_SORTS[sort],
-          skip: (page - 1) * CARD_SEARCH_PAGE_SIZE,
-          take: CARD_SEARCH_PAGE_SIZE,
-          select: CARD_SEARCH_SELECT,
-        }),
-      ]);
+    const boosts = await userBoostLevels(prisma);
+    const [total, cards] = await Promise.all([
+      prisma.card.count({ where }),
+      prioritizedCardPage(where, sort, (page - 1) * CARD_SEARCH_PAGE_SIZE, CARD_SEARCH_PAGE_SIZE, boosts)
+    ]);
 
     // Lo que se busca y nadie tiene a la venta (solo el texto, sin datos de la persona): muestra qué cartas faltan en el mercado
     if (total === 0 && page === 1 && !seller && !comuna && searchKey(q)) bumpMetric('search_no_offers', searchKey(q));
@@ -399,9 +404,10 @@ router.get('/api/cards/search', async (req, res) => {
       total,
       page,
       pages: Math.max(1, Math.ceil(total / CARD_SEARCH_PAGE_SIZE)),
-      cards: cards.map(({ data, _boost, ...card }) => ({
+      cards: cards.map(({ data, _boost, folder, ...card }) => ({
         ...card,
-        featured: Boolean(_boost),
+        folder: { id: folder.id, name: folder.name, tcg: folder.tcg, user: folder.user },
+        priorityLevel: _boost || 0,
         language: data && typeof data === 'object' ? data.language || null : null,
         set: data && typeof data === 'object' ? data.set || null : null,
       })),

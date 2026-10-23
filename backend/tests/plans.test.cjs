@@ -6,9 +6,10 @@ const { prisma, call, ok } = require('./fixtures.cjs');
     let r = await call('GET', '/plans');
     const byKey = Object.fromEntries((r.j?.plans || []).map((plan) => [plan.key, plan]));
     ok('catálogo público de cinco planes', r.status === 200 && Object.keys(byKey).length === 5);
-    ok('Free y Entusiasta tienen 54 cartas', byKey.free?.uniqueCardsPerFolder === 54 && byKey.enthusiast?.uniqueCardsPerFolder === 54);
+    ok('Free tiene 45 cartas y Entusiasta 54', byKey.free?.uniqueCardsPerFolder === 45 && byKey.enthusiast?.uniqueCardsPerFolder === 54);
+    ok('copias por carta: 10, 20, 40, 80 e ilimitadas', byKey.free?.copiesPerCard === 10 && byKey.enthusiast?.copiesPerCard === 20 && byKey.premium?.copiesPerCard === 40 && byKey.pro?.copiesPerCard === 80 && byKey.store?.copiesPerCard === null);
     ok('los planes tienen 1, 3, 8 y 20 carpetas', byKey.free?.folders === 1 && byKey.enthusiast?.folders === 3 && byKey.premium?.folders === 8 && byKey.pro?.folders === 20);
-    ok('Premium tiene 72 cartas y Pro cuesta $4.990', byKey.premium?.uniqueCardsPerFolder === 72 && byKey.premium?.priceClp === 2990 && byKey.pro?.priceClp === 4990);
+    ok('Premium cuesta $1.990 y Pro $3.990', byKey.premium?.uniqueCardsPerFolder === 72 && byKey.premium?.priceClp === 1990 && byKey.pro?.priceClp === 3990);
     ok('Tienda es ilimitado', byKey.store?.folders === null && byKey.store?.copiesPerCard === null);
 
     r = await call('POST', '/billing/test-plan', 'nobuyer', { planKey: 'free' });
@@ -21,17 +22,17 @@ const { prisma, call, ok } = require('./fixtures.cjs');
 
     const fid = pokemon.j.folder.id;
     const userId = (await prisma.user.findUnique({ where: { firebaseUid: 'cztest-nobuyer' }, select: { id: true } })).id;
-    await prisma.card.createMany({ data: Array.from({ length: 53 }, (_, index) => ({ folderId: fid, tcgId: `plan-seed-${index}`, name: `Carta ${index}`, stock: 1, language: 'English', data: { language: 'English' } })) });
+    await prisma.card.createMany({ data: Array.from({ length: 44 }, (_, index) => ({ folderId: fid, tcgId: `plan-seed-${index}`, name: `Carta ${index}`, stock: 1, language: 'English', data: { language: 'English' } })) });
     const add = (folderId, tcgId, stock = 1, language = 'English') => call('POST', `/folders/${folderId}/cards`, 'nobuyer', { tcgId, name: tcgId, price: 100, stock, data: { language } });
     r = await add(fid, 'plan-last');
-    ok('Free permite la carta única 54', r.status === 200, JSON.stringify(r.j));
+    ok('Free permite la carta única 45', r.status === 200, JSON.stringify(r.j));
     const lastCardId = r.j.card.id;
     r = await add(fid, 'plan-over');
-    ok('Free bloquea la carta única 55', r.status === 409 && r.j.code === 'plan_unique_card_limit', JSON.stringify(r.j));
-    r = await call('PUT', `/folders/${fid}/cards/${lastCardId}`, 'nobuyer', { stock: 25 });
-    ok('Free permite 25 copias', r.status === 200 && r.j.card.stock === 25, JSON.stringify(r.j));
-    r = await call('PUT', `/folders/${fid}/cards/${lastCardId}`, 'nobuyer', { stock: 26 });
-    ok('Free bloquea 26 copias', r.status === 409 && r.j.code === 'plan_copy_limit', JSON.stringify(r.j));
+    ok('Free bloquea la carta única 46', r.status === 409 && r.j.code === 'plan_unique_card_limit', JSON.stringify(r.j));
+    r = await call('PUT', `/folders/${fid}/cards/${lastCardId}`, 'nobuyer', { stock: 10 });
+    ok('Común permite 10 copias', r.status === 200 && r.j.card.stock === 10, JSON.stringify(r.j));
+    r = await call('PUT', `/folders/${fid}/cards/${lastCardId}`, 'nobuyer', { stock: 11 });
+    ok('Común bloquea 11 copias', r.status === 409 && r.j.code === 'plan_copy_limit', JSON.stringify(r.j));
 
     r = await call('POST', '/billing/test-plan', 'nobuyer', { planKey: 'enthusiast' });
     ok('activar Entusiasta', r.status === 200 && r.j.plan?.folders === 3 && !('foldersPerTcg' in r.j.plan));
@@ -43,14 +44,14 @@ const { prisma, call, ok } = require('./fixtures.cjs');
     ok('Entusiasta bloquea la cuarta carpeta total', r.status === 409 && r.j.code === 'plan_folder_limit', JSON.stringify(r.j));
 
     r = await call('POST', '/billing/test-plan', 'nobuyer', { planKey: 'premium' });
-    ok('activar Premium con 8 carpetas y 72/50', r.status === 200 && r.j.plan?.folders === 8 && r.j.plan?.uniqueCardsPerFolder === 72 && r.j.plan?.copiesPerCard === 50);
+    ok('activar Premium con 8 carpetas y 72/40', r.status === 200 && r.j.plan?.folders === 8 && r.j.plan?.uniqueCardsPerFolder === 72 && r.j.plan?.copiesPerCard === 40);
     const publicProfile = await call('GET', '/users/cztest_nobuyer');
     ok('el perfil público muestra la insignia Premium sin datos de cobro', publicProfile.status === 200 && publicProfile.j.user?.planBadge?.key === 'premium' && !/subscription|grant|priceClp/i.test(JSON.stringify(publicProfile.j.user)));
-    r = await call('PUT', `/folders/${fid}/cards/${lastCardId}`, 'nobuyer', { stock: 50 });
-    ok('Premium permite 50 copias', r.status === 200 && r.j.card.stock === 50, JSON.stringify(r.j));
+    r = await call('PUT', `/folders/${fid}/cards/${lastCardId}`, 'nobuyer', { stock: 40 });
+    ok('Épico permite 40 copias', r.status === 200 && r.j.card.stock === 40, JSON.stringify(r.j));
 
     r = await call('POST', '/billing/test-plan', 'nobuyer', { planKey: 'pro' });
-    ok('activar Pro con 20 carpetas por $4.990', r.status === 200 && r.j.plan?.folders === 20 && r.j.plan?.priceClp === 4990);
+    ok('activar Legendario con 20 carpetas, 80 copias y $3.990', r.status === 200 && r.j.plan?.folders === 20 && r.j.plan?.copiesPerCard === 80 && r.j.plan?.priceClp === 3990);
 
     r = await call('POST', '/billing/test-plan', 'nobuyer', { planKey: 'store' });
     ok('activar Tienda ilimitado', r.status === 200 && r.j.plan?.folders === null && r.j.plan?.copiesPerCard === null);
@@ -76,7 +77,7 @@ const { prisma, call, ok } = require('./fixtures.cjs');
     ok('las concesiones pertenecen al usuario de prueba', (await prisma.planGrant.count({ where: { userId } })) >= 2);
 
     await prisma.planGrant.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } });
-    const overdue = await prisma.subscription.create({ data: { userId, planKey: 'premium', status: 'past_due', priceClp: 2990, currentPeriodEnd: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000) } });
+    const overdue = await prisma.subscription.create({ data: { userId, planKey: 'premium', status: 'past_due', priceClp: 1990, currentPeriodEnd: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000) } });
     r = await call('GET', '/billing/me', 'nobuyer');
     ok('una mora vencida vuelve a Free', r.status === 200 && r.j.plan?.key === 'free' && r.j.source === 'default');
     await prisma.subscription.update({ where: { id: overdue.id }, data: { currentPeriodEnd: new Date() } });

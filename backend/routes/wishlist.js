@@ -2,7 +2,7 @@
 import express from 'express';
 import { authenticateToken, currentUserId } from '../core/auth.js';
 import { prisma } from '../core/db.js';
-import { PlanLimitError, PlanFeatureError, getEffectivePlan, sendPlanError } from '../core/entitlements.js';
+import { PlanLimitError, PlanFeatureError, getEffectivePlan, lockPlanUser, sendPlanError } from '../core/entitlements.js';
 import { badRequest, hasControlChars, isAllowedStoredImageUrl, isOptionalText, isShortText, isValidPrice } from '../core/validation.js';
 import { rawMylId, storedMylId } from '../core/mylIdentity.js';
 
@@ -65,15 +65,15 @@ const parseWishlistFields = (body) => {
 // Listas de la persona con la cantidad de cartas de cada una; si aún no tiene ninguna, se crea la primera (activa)
 const WISHLIST_LIST_SELECT = { id: true, name: true, isActive: true, _count: { select: { items: true } } };
 const publicList = (list) => ({ id: list.id, name: list.name, isActive: list.isActive, count: list._count.items });
-const ensureLists = async (userId) => {
-  const lists = await prisma.wishlist.findMany({ where: { userId }, orderBy: { createdAt: 'asc' }, select: WISHLIST_LIST_SELECT });
+const ensureLists = async (userId, db = prisma) => {
+  const lists = await db.wishlist.findMany({ where: { userId }, orderBy: { createdAt: 'asc' }, select: WISHLIST_LIST_SELECT });
   if (lists.length > 0) return lists;
   try {
-    await prisma.wishlist.create({ data: { userId, name: DEFAULT_LIST_NAME, isActive: true } });
+    await db.wishlist.create({ data: { userId, name: DEFAULT_LIST_NAME, isActive: true } });
   } catch (error) {
     if (error?.code !== 'P2002') throw error; // otra petición la creó al mismo tiempo (índice único de la lista activa)
   }
-  return prisma.wishlist.findMany({ where: { userId }, orderBy: { createdAt: 'asc' }, select: WISHLIST_LIST_SELECT });
+  return db.wishlist.findMany({ where: { userId }, orderBy: { createdAt: 'asc' }, select: WISHLIST_LIST_SELECT });
 };
 const listName = (value) => (typeof value === 'string' && isShortText(value, 40) && !hasControlChars(value) ? value.trim() : null);
 
@@ -81,10 +81,16 @@ router.get('/api/wishlist/me', authenticateToken, async (req, res) => {
   try {
     const userId = await currentUserId(req);
     if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-    const lists = await ensureLists(userId);
-    const { plan } = await getEffectivePlan(prisma, userId);
-    const items = await prisma.wishlistItem.findMany({ where: { userId }, orderBy: { createdAt: 'asc' }, take: WISHLIST_MAX_ITEMS * WISHLIST_MAX_LISTS, select: WISHLIST_OWN_SELECT });
-    res.json({ success: true, lists: lists.map(publicList), items, limit: plan.wishlistItems, maxLists: plan.wishlistLists });
+    const result = await prisma.$transaction(async (tx) => {
+      await lockPlanUser(tx, userId);
+      const [lists, { plan }, items] = await Promise.all([
+        ensureLists(userId, tx),
+        getEffectivePlan(tx, userId),
+        tx.wishlistItem.findMany({ where: { userId }, orderBy: { createdAt: 'asc' }, take: WISHLIST_MAX_ITEMS * WISHLIST_MAX_LISTS, select: WISHLIST_OWN_SELECT })
+      ]);
+      return { lists, plan, items };
+    });
+    res.json({ success: true, lists: result.lists.map(publicList), items: result.items, limit: result.plan.wishlistItems, maxLists: result.plan.wishlistLists });
   } catch (error) {
     console.error('Error loading wishlist:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
@@ -175,28 +181,30 @@ router.post('/api/wishlist', authenticateToken, async (req, res) => {
     // Lista de destino: la elegida (debe ser suya) o, si no se indica, la activa
     const requestedList = req.body?.wishlistId;
     if (requestedList !== undefined && (typeof requestedList !== 'string' || requestedList.length > 40)) return badRequest(res, 'Lista inválida');
-    const lists = await ensureLists(userId);
-    const target = requestedList !== undefined ? lists.find((list) => list.id === requestedList) : lists.find((list) => list.isActive) || lists[0];
-    if (!target) return res.status(404).json({ success: false, message: 'Lista no encontrada' });
-    const wishlistId = target.id;
-    // El máximo de cartas por lista lo fija el plan; quien ya tiene más (de un plan anterior) las conserva, pero no agrega otra
-    const { plan } = await getEffectivePlan(prisma, userId);
-
-    const item = await prisma.$transaction(async (tx) => {
+    // El bloqueo serializa altas de listas y cartas para que dos solicitudes simultáneas no superen los topes.
+    const result = await prisma.$transaction(async (tx) => {
+      await lockPlanUser(tx, userId);
+      const lists = await ensureLists(userId, tx);
+      const target = requestedList !== undefined ? lists.find((list) => list.id === requestedList) : lists.find((list) => list.isActive) || lists[0];
+      if (!target) return { missingList: true };
+      const wishlistId = target.id;
+      // El máximo de cartas por lista lo fija el plan; quien ya tiene más (de un plan anterior) las conserva, pero no agrega otra
+      const { plan } = await getEffectivePlan(tx, userId);
       const existing = identity.productId
         ? await tx.wishlistItem.findUnique({ where: { wishlistId_productId: { wishlistId, productId: identity.productId } } })
         : await tx.wishlistItem.findFirst({ where: { wishlistId, productId: null, detail: identity.detail, name: { equals: identity.name, mode: 'insensitive' } } });
       if (existing) {
         // La misma carta no se duplica: se suma a la cantidad que ya buscaba
         const quantity = Math.min(99, existing.quantity + (parsed.data.quantity ?? 1));
-        return tx.wishlistItem.update({ where: { id: existing.id }, data: { ...parsed.data, quantity }, select: WISHLIST_OWN_SELECT });
+        return { item: await tx.wishlistItem.update({ where: { id: existing.id }, data: { ...parsed.data, quantity }, select: WISHLIST_OWN_SELECT }) };
       }
       const current = await tx.wishlistItem.count({ where: { wishlistId } });
-      if (current >= plan.wishlistItems) return { full: current };
-      return tx.wishlistItem.create({ data: { userId, wishlistId, ...identity, ...parsed.data }, select: WISHLIST_OWN_SELECT });
+      if (current >= plan.wishlistItems) return { full: current, plan };
+      return { item: await tx.wishlistItem.create({ data: { userId, wishlistId, ...identity, ...parsed.data }, select: WISHLIST_OWN_SELECT }) };
     });
-    if (item.full !== undefined) return sendPlanError(res, new PlanFeatureError('wishlistItems', plan.key, { current: item.full, limit: plan.wishlistItems }));
-    res.json({ success: true, item });
+    if (result.missingList) return res.status(404).json({ success: false, message: 'Lista no encontrada' });
+    if (result.full !== undefined) return sendPlanError(res, new PlanFeatureError('wishlistItems', result.plan.key, { current: result.full, limit: result.plan.wishlistItems }));
+    res.json({ success: true, item: result.item });
   } catch (error) {
     if (error instanceof PlanLimitError) return sendPlanError(res, error);
     console.error('Error adding wishlist item:', error);
@@ -240,12 +248,17 @@ router.post('/api/wishlists', authenticateToken, async (req, res) => {
     if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     const name = listName(req.body?.name);
     if (!name) return badRequest(res, 'Escribe un nombre de hasta 40 caracteres');
-    const lists = await ensureLists(userId);
-    // El máximo lo fija el plan; quien ya tiene más listas (de un plan anterior) las conserva, pero no crea otra
-    const { plan } = await getEffectivePlan(prisma, userId);
-    if (lists.length >= plan.wishlistLists) return sendPlanError(res, new PlanFeatureError('wishlistLists', plan.key, { current: lists.length, limit: plan.wishlistLists }));
-    const list = await prisma.wishlist.create({ data: { userId, name, isActive: false }, select: WISHLIST_LIST_SELECT });
-    res.json({ success: true, list: publicList(list) });
+    const result = await prisma.$transaction(async (tx) => {
+      await lockPlanUser(tx, userId);
+      const lists = await ensureLists(userId, tx);
+      // El máximo lo fija el plan; quien ya tiene más listas (de un plan anterior) las conserva, pero no crea otra
+      const { plan } = await getEffectivePlan(tx, userId);
+      if (lists.length >= plan.wishlistLists) return { full: lists.length, plan };
+      const list = await tx.wishlist.create({ data: { userId, name, isActive: false }, select: WISHLIST_LIST_SELECT });
+      return { list };
+    });
+    if (result.full !== undefined) return sendPlanError(res, new PlanFeatureError('wishlistLists', result.plan.key, { current: result.full, limit: result.plan.wishlistLists }));
+    res.json({ success: true, list: publicList(result.list) });
   } catch (error) {
     console.error('Error creating wishlist:', error);
     res.status(500).json({ success: false, message: 'Error interno' });

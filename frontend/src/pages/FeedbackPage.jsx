@@ -5,13 +5,15 @@ import { api } from '../services/api';
 import usePageMeta from '../hooks/usePageMeta';
 import { ButtonSpinner } from '../components/ui/LoadingState';
 import SvgIcon from '../components/ui/SvgIcon';
+import usePlan from '../hooks/usePlan';
 
-const KIND_LABELS = { complaint: 'Reclamo', suggestion: 'Sugerencia' };
-const STATUS_LABELS = { open: 'Pendiente de revisión', corrected: 'Marcada como corregida' };
+const KIND_LABELS = { complaint: 'Reclamo', suggestion: 'Sugerencia', support: 'Soporte' };
+const STATUS_LABELS = { open: 'Pendiente de revisión', corrected: 'Respondida' };
 const dateTime = (value) => (value ? new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value)) : '');
 
 export default function FeedbackPage() {
   const { currentUser } = useAuth();
+  const { plan } = usePlan();
   const [form, setForm] = useState({ kind: 'suggestion', title: '', message: '' });
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,7 +40,7 @@ export default function FeedbackPage() {
       const response = await api.createFeedback(form);
       setItems((previous) => [response.feedback, ...previous]);
       setForm({ kind: form.kind, title: '', message: '' });
-      setNotice({ type: 'success', text: 'Gracias. Tu mensaje quedó enviado al equipo de Carpetazo.' });
+      setNotice({ type: 'success', text: response.feedback.priority ? 'Consulta enviada con prioridad. El equipo la verá antes en su bandeja.' : 'Gracias. Tu mensaje quedó enviado al equipo de Carpetazo.' });
     } catch (error) {
       setNotice({ type: 'error', text: error.message || 'No se pudo enviar. Inténtalo nuevamente.' });
     } finally {
@@ -70,6 +72,7 @@ export default function FeedbackPage() {
               <p className="mt-1 text-sm leading-relaxed text-slate-600">Cuéntanos qué ocurrió o qué mejorarías. El equipo revisará tu mensaje desde Moderación.</p>
             </div>
           </div>
+          {form.kind === 'support' && <p className="mt-4 rounded-2xl border border-[#dbe3f0] bg-[#f3f7fd] px-4 py-3 text-sm leading-relaxed text-[#12315f]">{plan?.prioritySupport ? 'Tu plan incluye soporte prioritario: esta consulta quedará marcada y aparecerá antes en la bandeja del equipo.' : 'Tu consulta llegará al equipo de soporte. Los planes Legendario y Tienda la reciben con prioridad en su bandeja.'}</p>}
 
           {notice && <p role={notice.type === 'error' ? 'alert' : 'status'} className={`mt-5 rounded-xl px-4 py-3 text-sm font-bold ${notice.type === 'error' ? 'bg-red-50 text-red-700 ring-1 ring-red-100' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'}`}>{notice.text}</p>}
 
@@ -78,6 +81,7 @@ export default function FeedbackPage() {
               <select value={form.kind} onChange={(event) => setForm((previous) => ({ ...previous, kind: event.target.value }))} className="mt-1.5 h-11 w-full rounded-xl border border-[#b9c7e0] bg-white px-3 text-sm font-semibold text-[#12315f] outline-none focus:border-[#1e40af] focus:ring-2 focus:ring-[#1e40af]/15">
                 <option value="suggestion">Sugerencia</option>
                 <option value="complaint">Reclamo</option>
+                <option value="support">Consulta de soporte</option>
               </select>
             </label>
             <label className="block text-sm font-bold text-[#12315f]">Asunto
@@ -100,9 +104,9 @@ export default function FeedbackPage() {
           {loading ? <p className="py-8 text-center text-sm font-semibold text-slate-500">Cargando…</p> : items.length === 0 ? <p className="py-8 text-center text-sm font-semibold text-slate-500">Aún no has enviado reclamos ni sugerencias.</p> : (
             <ul className="mt-4 space-y-3">
               {items.map((item) => <li key={item.id} className="rounded-2xl border border-[#dbe3f0] p-3.5">
-                <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-black uppercase tracking-wide text-[#1e40af]">{KIND_LABELS[item.kind] || item.kind}</span><span className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${item.status === 'corrected' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{STATUS_LABELS[item.status] || item.status}</span></div>
+                <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-black uppercase tracking-wide text-[#1e40af]">{KIND_LABELS[item.kind] || item.kind}</span><span className="flex flex-wrap items-center gap-1.5">{item.priority && <span className="rounded-full bg-[#fff3bf] px-2 py-0.5 text-[11px] font-extrabold text-[#12315f]">Prioritario</span>}<span className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${item.status === 'corrected' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{STATUS_LABELS[item.status] || item.status}</span></span></div>
                 <h3 className="mt-1.5 text-sm font-extrabold text-[#12315f]">{item.title}</h3><p className="mt-1 line-clamp-4 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">{item.message}</p><p className="mt-2 text-xs font-semibold text-slate-400">Enviado el {dateTime(item.createdAt)}</p>
-                {item.moderatorNote && <p className="mt-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">Nota del equipo: {item.moderatorNote}</p>}
+                {item.moderatorNote && <p className="mt-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">Respuesta del equipo: {item.moderatorNote}</p>}
               </li>)}
             </ul>
           )}

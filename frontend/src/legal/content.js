@@ -337,7 +337,7 @@ export const termsBlocks = [
  },
  {
   "t": "p",
-  "x": "17.6. **Cómo cancelar.** Puedes cancelar cuando quieras desde **Mi cuenta → Plan** o desde **Mi plan**, con una confirmación. Al cancelar **no se te vuelve a cobrar** y conservas tu plan **hasta el final del período que ya pagaste**; después tu cuenta vuelve al plan Free. Una suscripción cancelada no se reactiva: para volver a un plan pagado se contrata de nuevo. **No se devuelve el período ya iniciado**, salvo que la ley (por ejemplo, el derecho a retracto) o un error de cobro de Carpetazo lo exijan."
+  "x": "17.6. **Cómo cancelar.** Puedes cancelar cuando quieras desde **Mi cuenta → Plan** o desde **Mi plan**, con una confirmación. Al cancelar **no se te vuelve a cobrar** y conservas tu plan **hasta el final del período que ya pagaste**; después tu cuenta vuelve al plan Común. Una suscripción cancelada no se reactiva: para volver a un plan pagado se contrata de nuevo. **No se devuelve el período ya iniciado**, salvo que la ley (por ejemplo, el derecho a retracto) o un error de cobro de Carpetazo lo exijan."
  },
  {
   "t": "p",
@@ -345,7 +345,7 @@ export const termsBlocks = [
  },
  {
   "t": "p",
-  "x": "17.8. **Pagos rechazados o atrasados.** Si un cobro no se puede realizar, Mercado Pago lo reintenta. Mientras tanto conservas tu plan por un máximo de **7 días**; si el pago no se regulariza, tu cuenta vuelve al plan Free."
+  "x": "17.8. **Pagos rechazados o atrasados.** Si un cobro no se puede realizar, Mercado Pago lo reintenta. Mientras tanto conservas tu plan por un máximo de **7 días**; si el pago no se regulariza, tu cuenta vuelve al plan Común."
  },
  {
   "t": "p",

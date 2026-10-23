@@ -2,11 +2,12 @@
 import express from 'express';
 import { authenticateToken, currentUserId, requireStaff } from '../core/auth.js';
 import { prisma } from '../core/db.js';
-import { userIdsWithFeature } from '../core/entitlements.js';
+import { getEffectivePlan, lockPlanUser } from '../core/entitlements.js';
+import { notifyUser } from '../core/staffNotice.js';
 import { badRequest, hasControlChars, isUuid } from '../core/validation.js';
 
 const router = express.Router();
-const KINDS = ['complaint', 'suggestion'];
+const KINDS = ['complaint', 'suggestion', 'support'];
 const STATUSES = ['open', 'corrected', 'all'];
 const TITLE_MAX = 120;
 const MESSAGE_MAX = 3000;
@@ -21,14 +22,14 @@ const publicFeedback = (row) => ({
   title: row.title,
   message: row.message,
   status: row.status,
+  priority: Boolean(row.priority),
   moderatorNote: row.moderatorNote || null,
   correctedAt: row.correctedAt,
   createdAt: row.createdAt
 });
 
-const adminFeedback = (row, priorityIds = new Set()) => ({
+const adminFeedback = (row) => ({
   ...publicFeedback(row),
-  priority: priorityIds.has(row.userId),
   user: row.user ? { username: row.user.username, name: row.user.name } : null
 });
 
@@ -37,11 +38,15 @@ router.post('/api/feedback', authenticateToken, async (req, res) => {
     const kind = req.body?.kind;
     const title = clean(req.body?.title, TITLE_MAX);
     const message = clean(req.body?.message, MESSAGE_MAX);
-    if (!KINDS.includes(kind)) return badRequest(res, 'Selecciona si es un reclamo o una sugerencia');
+    if (!KINDS.includes(kind)) return badRequest(res, 'Selecciona si es un reclamo, una sugerencia o una consulta de soporte');
     if (!textOk(req.body?.title, TITLE_MAX, 3) || !textOk(req.body?.message, MESSAGE_MAX, 10)) return badRequest(res, 'Completa un asunto y un mensaje válido');
     const userId = await currentUserId(req);
     if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-    const row = await prisma.feedback.create({ data: { userId, kind, title, message } });
+    const row = await prisma.$transaction(async (tx) => {
+      await lockPlanUser(tx, userId);
+      const { plan } = await getEffectivePlan(tx, userId);
+      return tx.feedback.create({ data: { userId, kind, title, message, priority: kind === 'support' && plan.prioritySupport } });
+    });
     res.status(201).json({ success: true, feedback: publicFeedback(row) });
   } catch (error) {
     console.error('Error creating feedback:', error);
@@ -67,15 +72,13 @@ router.get('/api/admin/feedback', authenticateToken, requireStaff(1), async (req
     const kind = KINDS.includes(req.query.kind) ? req.query.kind : null;
     const page = Math.max(1, Math.min(100, Number.parseInt(req.query.page, 10) || 1));
     const where = { ...(status !== 'all' ? { status } : {}), ...(kind ? { kind } : {}) };
-    // Soporte prioritario (planes Pro y Tienda): en la bandeja de pendientes, sus mensajes van primero y llevan una marca
-    const priorityIds = new Set(await userIdsWithFeature(prisma, 'prioritySupport'));
+    // La prioridad se guarda al crear una consulta de soporte para conservar su lugar aunque después cambie el plan.
     const listOptions = { orderBy: status === 'open' ? { createdAt: 'asc' } : { createdAt: 'desc' }, include: { user: { select: { username: true, name: true } } } };
     const offset = (page - 1) * PAGE_SIZE;
     const listRows = async () => {
-      if (status !== 'open' || !priorityIds.size) return prisma.feedback.findMany({ where, ...listOptions, skip: offset, take: PAGE_SIZE });
-      const ids = [...priorityIds];
-      const first = { ...where, userId: { in: ids } };
-      const rest = { ...where, userId: { notIn: ids } };
+      if (status !== 'open') return prisma.feedback.findMany({ where, ...listOptions, skip: offset, take: PAGE_SIZE });
+      const first = { ...where, priority: true };
+      const rest = { ...where, priority: false };
       const firstCount = await prisma.feedback.count({ where: first });
       if (offset >= firstCount) return prisma.feedback.findMany({ where: rest, ...listOptions, skip: offset - firstCount, take: PAGE_SIZE });
       const head = await prisma.feedback.findMany({ where: first, ...listOptions, skip: offset, take: PAGE_SIZE });
@@ -92,7 +95,7 @@ router.get('/api/admin/feedback', authenticateToken, requireStaff(1), async (req
       pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
       total,
       counts: Object.fromEntries(counts.map((row) => [row.status, row._count._all])),
-      feedback: rows.map((row) => adminFeedback(row, priorityIds))
+      feedback: rows.map(adminFeedback)
     });
   } catch (error) {
     console.error('Error loading admin feedback:', error);
@@ -108,13 +111,20 @@ router.post('/api/admin/feedback/:id/corrected', authenticateToken, requireStaff
     const note = rawNote === undefined || rawNote === null ? null : clean(rawNote, NOTE_MAX) || null;
     const actorId = await currentUserId(req);
     const updated = await prisma.$transaction(async (tx) => {
+      const existing = await tx.feedback.findUnique({ where: { id: req.params.id }, select: { kind: true, status: true } });
+      if (existing?.status !== 'open') return null;
+      if (existing?.kind === 'support' && !note) return { missingSupportReply: true };
       const claimed = await tx.feedback.updateMany({ where: { id: req.params.id, status: 'open' }, data: { status: 'corrected', moderatorNote: note, correctedById: actorId, correctedAt: new Date() } });
       if (claimed.count !== 1) return null;
       const row = await tx.feedback.findUnique({ where: { id: req.params.id } });
       await tx.moderationAudit.create({ data: { actorId, action: 'feedback.corrected', targetType: 'feedback', targetId: req.params.id, note } });
       return row;
     });
+    if (updated?.missingSupportReply) return badRequest(res, 'Escribe una respuesta antes de cerrar esta consulta de soporte');
     if (!updated) return res.status(409).json({ success: false, message: 'Esta entrada ya estaba corregida' });
+    if (updated.kind === 'support') {
+      await notifyUser({ actorId, targetId: updated.userId, title: 'Respondimos tu consulta de soporte', summary: 'Recibiste una respuesta a tu consulta de soporte.', message: note });
+    }
     res.json({ success: true, feedback: publicFeedback(updated) });
   } catch (error) {
     console.error('Error correcting feedback:', error);

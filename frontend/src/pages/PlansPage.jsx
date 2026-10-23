@@ -14,7 +14,7 @@ const number = (value) => value === null ? 'Ilimitadas' : Number(value).toLocale
 export default function PlansPage() {
   usePageMeta({
     title: 'Planes para colecciones de cartas TCG | Carpetazo',
-    description: 'Compara los planes Free, Entusiasta, Premium, Pro y Tienda de Carpetazo para organizar y vender tus cartas TCG.',
+    description: 'Compara los planes Común, Raro, Épico, Legendario y Tienda de Carpetazo para organizar y vender tus cartas TCG.',
     path: '/planes'
   });
   const { currentUser } = useAuth();
@@ -113,7 +113,7 @@ export default function PlansPage() {
       return;
     }
     if (managing && !billing?.testMode) {
-      if (plan.key === 'free') return goToSubscription(); // volver a Free es cancelar, y eso se hace solo desde «Tu suscripción»
+      if (plan.key === 'free') return goToSubscription(); // volver a Común es cancelar, y eso se hace solo desde «Tu suscripción»
       if (plan.key === sub.planKey) return applyChange(plan); // deshace un cambio programado
       return setChangeTarget(plan);
     }
@@ -124,7 +124,7 @@ export default function PlansPage() {
         setBilling(previous => ({ ...previous, ...next }));
         showToast(`Plan ${plan.name} activado para pruebas locales`, 'success');
       } else if (plan.key === 'free') {
-        showToast(billing?.source === 'grant' ? 'Tu plan lo asignó el equipo de Carpetazo: no es una suscripción y no hay nada que cancelar.' : 'Ya estás en el plan Free: no tienes una suscripción que cancelar.', 'info');
+        showToast(billing?.source === 'grant' ? 'Tu plan lo asignó el equipo de Carpetazo: no es una suscripción y no hay nada que cancelar.' : 'Ya estás en el plan Común: no tienes una suscripción que cancelar.', 'info');
       } else {
         api.trackMetric('plan_cta', plan.key);
         const response = await api.createSubscriptionCheckout(plan.key);
@@ -150,14 +150,14 @@ export default function PlansPage() {
   const usage = billing?.usage;
   const suggestedKey = plans.find((item) => item.key === plan?.key)?.key || plans[0]?.key; // abre en tu plan; sin plan o sin sesión, en el primero
   return (
-    <div className="mx-auto w-full max-w-[1500px] flex-1 bg-[#DBEAFE] px-4 py-7 sm:px-7 sm:py-9 lg:px-12">
-      <header className="mx-auto max-w-3xl text-center">
-        <h1 className="text-balance text-3xl font-black tracking-tight text-[#12315f] sm:text-4xl">El espacio que necesita tu colección</h1>
-        <p className="mx-auto mt-2 max-w-xl text-pretty text-sm font-medium text-slate-600 sm:text-base">Empieza gratis y crece cuando tu colección lo pida. Elige un plan y mira qué suma respecto al anterior.</p>
+    <div className="mx-auto w-full max-w-[1500px] flex-1 bg-[#DBEAFE] px-4 py-7 sm:px-7 sm:py-9 lg:px-12 xl:py-4">
+      <header className="mx-auto max-w-3xl text-center xl:max-w-5xl">
+        <h1 className="text-balance text-3xl font-black tracking-tight text-[#12315f] sm:text-4xl xl:text-3xl">El espacio que necesita tu colección</h1>
+        <p className="mx-auto mt-2 max-w-xl text-pretty text-sm font-medium text-slate-600 sm:text-base xl:mt-1 xl:text-sm">Empieza gratis y crece cuando tu colección lo pida. Elige un plan y mira qué suma respecto al anterior.</p>
       </header>
 
       {currentUser && plan && (
-        <section className="mx-auto mt-5 flex max-w-4xl flex-wrap items-center gap-x-4 gap-y-1.5 rounded-2xl bg-white px-4 py-2.5 text-sm shadow-sm ring-1 ring-[#12315f]/10">
+        <section className="mx-auto mt-5 flex max-w-4xl flex-wrap items-center gap-x-4 gap-y-1.5 rounded-2xl bg-white px-4 py-2.5 text-sm shadow-sm ring-1 ring-[#12315f]/10 xl:mt-3 xl:max-w-5xl xl:flex-nowrap xl:py-2">
           <p className="flex items-center gap-2 font-bold text-slate-500">Tu plan <span className="rounded-full bg-[#facc15] px-3 py-0.5 text-sm font-black text-[#12315f]">{plan.name}</span></p>
           <p className="min-w-0 flex-1 basis-56 text-[13px] font-semibold text-slate-600">
             {billing.source === 'grant'

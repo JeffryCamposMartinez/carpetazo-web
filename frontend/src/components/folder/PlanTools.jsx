@@ -9,7 +9,7 @@ const SOURCES = [['direct', 'Directo'], ['internal', 'Desde Carpetazo'], ['exter
 const buttonClass = 'inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-blue-200 bg-white px-3 text-xs font-extrabold text-[#12315f] transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] disabled:opacity-60 sm:h-10 sm:gap-2 sm:px-4 sm:text-sm';
 const dayLabel = (day) => new Date(day + 'T12:00:00').toLocaleDateString('es-CL', { day: 'numeric', month: 'short' });
 
-// Detalle de visitas de mis carpetas: total, por día, de dónde llegan y por carpeta (planes Premium en adelante)
+// Detalle de visitas de mis carpetas: total, por día, de dónde llegan y por carpeta (planes Épico en adelante)
 function VisitsDetail() {
   const [days, setDays] = useState(30);
   const [data, setData] = useState(null);
@@ -92,10 +92,10 @@ export default function PlanTools({ plan, children }) {
       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
         {plan.inventoryExport
           ? <button type="button" onClick={exportInventory} disabled={exporting} className={buttonClass}>{exporting ? <ButtonSpinner tone="dark" /> : <SvgIcon name="download" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" />}<span className="sm:hidden">Exportar CSV</span><span className="hidden sm:inline">Exportar inventario (CSV)</span></button>
-          : <Link to="/planes" className={buttonClass} title="Disponible desde el plan Entusiasta"><SvgIcon name="lock" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" /><span className="sm:hidden">Exportar · Entusiasta</span><span className="hidden sm:inline">Exportar inventario · Entusiasta</span></Link>}
+          : <Link to="/planes" className={buttonClass} title="Disponible desde el plan Raro"><SvgIcon name="lock" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" /><span className="sm:hidden">Exportar · Raro</span><span className="hidden sm:inline">Exportar inventario · Raro</span></Link>}
         {plan.visitsDetail
           ? <button type="button" onClick={() => setVisitsOpen((open) => !open)} aria-expanded={visitsOpen} className={buttonClass}><SvgIcon name="monitoring" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" /><span className="sm:hidden">{visitsOpen ? 'Ocultar' : 'Visitas'}</span><span className="hidden sm:inline">{visitsOpen ? 'Ocultar visitas' : 'Detalle de visitas'}</span></button>
-          : <Link to="/planes" className={buttonClass} title="Disponible desde el plan Premium"><SvgIcon name="lock" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" /><span className="sm:hidden">Visitas · Premium</span><span className="hidden sm:inline">Detalle de visitas · Premium</span></Link>}
+          : <Link to="/planes" className={buttonClass} title="Disponible desde el plan Épico"><SvgIcon name="lock" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" /><span className="sm:hidden">Visitas · Épico</span><span className="hidden sm:inline">Detalle de visitas · Épico</span></Link>}
         {children}
       </div>
       {plan.visitsDetail && visitsOpen && <VisitsDetail />}

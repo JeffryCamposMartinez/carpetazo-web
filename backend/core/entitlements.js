@@ -25,12 +25,12 @@ export class PlanLimitError extends Error {
 const FEATURE_MESSAGES = {
   wishlistLists: 'Alcanzaste el máximo de listas de deseos de tu plan.',
   wishlistItems: 'Esta lista alcanzó el máximo de cartas de tu plan.',
-  profileBanner: 'El banner del perfil está disponible desde el plan Entusiasta.',
-  profileStudio: 'El Estudio de perfil (estilos y fondo) está disponible desde el plan Premium.',
+  profileBanner: 'El banner del perfil está disponible desde el plan Raro.',
+  profileStudio: 'El Estudio de perfil (estilos y fondo) está disponible desde el plan Épico.',
   socialLinks: 'Alcanzaste el máximo de redes sociales de tu plan.',
   featuredCards: 'Alcanzaste el máximo de cartas destacadas de tu plan.',
-  visitsDetail: 'El detalle de visitas está disponible desde el plan Premium.',
-  inventoryExport: 'Exportar tu inventario está disponible desde el plan Entusiasta.'
+  visitsDetail: 'El detalle de visitas está disponible desde el plan Épico.',
+  inventoryExport: 'Exportar tu inventario está disponible desde el plan Raro.'
 };
 export class PlanFeatureError extends PlanLimitError {
   constructor(feature, planKey, { current = null, limit = null } = {}) {
@@ -95,28 +95,60 @@ export const getEffectivePlan = async (db, userId, now = new Date()) => {
   return { plan: PLANS.free, source: 'default' };
 };
 
-// Personas cuyo plan vigente incluye una función sí/no (por ejemplo `prioritySupport`), para ordenar bandejas sin consultar el plan de cada una.
-// shortcut: no mira cancelaciones programadas ni períodos de gracia; sirve para priorizar, no para dar acceso. Si hiciera falta exactitud, usar getEffectivePlan.
-export const userIdsWithFeature = async (db, feature, now = new Date()) => {
-  const keys = Object.values(PLANS).filter((plan) => plan[feature] && !plan.adminOnly).map((plan) => plan.key);
-  const [grants, subscriptions] = await Promise.all([
-    db.planGrant.findMany({ where: { revokedAt: null, planKey: { in: keys }, startsAt: { lte: now }, OR: [{ endsAt: null }, { endsAt: { gt: now } }] }, select: { userId: true } }),
-    db.subscription.findMany({ where: { status: { in: ACTIVE_SUBSCRIPTION_STATES }, planKey: { in: keys } }, select: { userId: true } })
+// Resuelve el plan efectivo en lote para que los distintivos y prioridades respeten concesiones,
+// períodos de gracia, cancelaciones y cambios programados igual que las cuotas de escritura.
+const effectivePlanKeys = async (db, now = new Date()) => {
+  const [grants, subscriptions, scheduled] = await Promise.all([
+    db.planGrant.findMany({
+      where: { revokedAt: null, planKey: { not: 'free' }, startsAt: { lte: new Date(now.getTime() + 2000) }, OR: [{ endsAt: null }, { endsAt: { gt: now } }] },
+      orderBy: { createdAt: 'desc' }, select: { userId: true, planKey: true }
+    }),
+    db.subscription.findMany({
+      where: { status: { in: ACTIVE_SUBSCRIPTION_STATES } }, orderBy: { updatedAt: 'desc' },
+      select: { userId: true, planKey: true, status: true, currentPeriodEnd: true, updatedAt: true, cancelAtPeriodEnd: true }
+    }),
+    db.subscription.findMany({ where: { status: 'scheduled' }, orderBy: { createdAt: 'desc' }, select: { userId: true, planKey: true } })
   ]);
-  return [...new Set([...grants, ...subscriptions].map((row) => row.userId))];
+  const result = new Map();
+  const resolved = new Set();
+  for (const grant of grants) {
+    if (resolved.has(grant.userId)) continue;
+    if (validPlanKey(grant.planKey)) {
+      resolved.add(grant.userId);
+      result.set(grant.userId, grant.planKey);
+    }
+  }
+  const scheduledByUser = new Map();
+  for (const row of scheduled) if (!scheduledByUser.has(row.userId)) scheduledByUser.set(row.userId, row.planKey);
+  for (const subscription of subscriptions) {
+    if (resolved.has(subscription.userId)) continue;
+    if (subscription.cancelAtPeriodEnd && subscription.currentPeriodEnd && subscription.currentPeriodEnd <= now) continue;
+    resolved.add(subscription.userId);
+    if (!validPlanKey(subscription.planKey)) continue;
+    const graceBase = subscription.currentPeriodEnd || subscription.updatedAt;
+    const graceUntil = subscription.status === 'past_due' ? new Date(graceBase.getTime() + PAST_DUE_GRACE_MS) : null;
+    if (subscription.status === 'past_due' && graceUntil <= now) continue;
+    const scheduledKey = scheduledByUser.get(subscription.userId);
+    const scheduledIsDue = validPlanKey(scheduledKey) && subscription.currentPeriodEnd && subscription.currentPeriodEnd <= now;
+    result.set(subscription.userId, scheduledIsDue ? scheduledKey : subscription.planKey);
+  }
+  return result;
 };
 
-// Nivel de prioridad en los listados de cada vendedor (`listingBoost` de su plan): Map idPersona → nivel. Mismo atajo que userIdsWithFeature.
+// Personas cuyo plan efectivo incluye una función sí/no (por ejemplo `prioritySupport`).
+export const userIdsWithFeature = async (db, feature, now = new Date()) => {
+  const keys = await effectivePlanKeys(db, now);
+  return [...keys].filter(([, key]) => PLANS[key]?.[feature] && !PLANS[key]?.adminOnly).map(([userId]) => userId);
+};
+
+// Nivel de prioridad en los listados de cada vendedor (`listingBoost` de su plan): Map idPersona → nivel.
 export const userBoostLevels = async (db, now = new Date()) => {
-  const levels = Object.values(PLANS).filter((plan) => plan.listingBoost > 0 && !plan.adminOnly);
-  const boostOf = (planKey) => levels.find((plan) => plan.key === planKey)?.listingBoost || 0;
-  const keys = levels.map((plan) => plan.key);
-  const [grants, subscriptions] = await Promise.all([
-    db.planGrant.findMany({ where: { revokedAt: null, planKey: { in: keys }, startsAt: { lte: now }, OR: [{ endsAt: null }, { endsAt: { gt: now } }] }, select: { userId: true, planKey: true } }),
-    db.subscription.findMany({ where: { status: { in: ACTIVE_SUBSCRIPTION_STATES }, planKey: { in: keys } }, select: { userId: true, planKey: true } })
-  ]);
+  const keys = await effectivePlanKeys(db, now);
   const map = new Map();
-  for (const row of [...grants, ...subscriptions]) map.set(row.userId, Math.max(map.get(row.userId) || 0, boostOf(row.planKey)));
+  for (const [userId, key] of keys) {
+    const plan = PLANS[key];
+    if (plan?.listingBoost > 0 && !plan.adminOnly) map.set(userId, plan.listingBoost);
+  }
   return map;
 };
 

@@ -63,7 +63,7 @@ export default function PlanManager({ username, setError, onChanged }) {
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-sm font-bold text-slate-700">Plan
           <Select value={planKey} onChange={(event) => setPlanKey(event.target.value)} className={`${field} h-12`}>
-            {(plans.length ? plans : [{ key: 'premium', name: 'Premium' }]).filter((plan) => plan.key !== 'free').map((plan) => <option key={plan.key} value={plan.key}>{plan.name} · {money(plan.priceClp)}</option>)}
+            {(plans.length ? plans : [{ key: 'premium', name: 'Épico' }]).filter((plan) => plan.key !== 'free').map((plan) => <option key={plan.key} value={plan.key}>{plan.name} · {money(plan.priceClp)}</option>)}
           </Select>
         </label>
         <label className="block text-sm font-bold text-slate-700">Días (vacío: sin fecha de término)
@@ -85,7 +85,7 @@ export default function PlanManager({ username, setError, onChanged }) {
         isOpen={Boolean(pending)}
         title={pending === 'auto' ? 'Quitar el plan asignado' : 'Asignar plan'}
         message={pending === 'auto'
-          ? `@${username} vuelve a su plan automático (${state.subscription ? 'su suscripción' : 'Free'}). No se borra nada de lo que ya tiene. Quedará en la auditoría.`
+          ? `@${username} vuelve a su plan automático (${state.subscription ? 'su suscripción' : 'Común'}). No se borra nada de lo que ya tiene. Quedará en la auditoría.`
           : `@${username} pasará a ${plans.find((plan) => plan.key === pending)?.name || pending} ${days ? `por ${days} días` : 'sin fecha de término'}, sin cobro. Quedará en la auditoría.`}
         confirmText={pending === 'auto' ? 'Quitar plan' : 'Asignar plan'}
         cancelText="Volver"

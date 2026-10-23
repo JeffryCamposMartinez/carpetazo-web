@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+ <defs>
+  <linearGradient id="rare-fire" x1="32" y1="25" x2="32" y2="43" gradientUnits="userSpaceOnUse"><stop stop-color="#D9FF70"/><stop offset=".48" stop-color="#65D64A"/><stop offset="1" stop-color="#168A45"/></linearGradient>
+  <linearGradient id="rare-core" x1="32" y1="32" x2="32" y2="42" gradientUnits="userSpaceOnUse"><stop stop-color="#F0FFD1"/><stop offset="1" stop-color="#A6F45B"/></linearGradient>
+ </defs>
+ <rect x="4" y="4" width="56" height="56" rx="19" fill="#D7F8EB"/>
+ <g>
+  <g transform="rotate(-135 32 32)">
+  <path d="M13 21a4 4 0 0 1 4-4h24l12 15-12 15H17a4 4 0 0 1-4-4V21Z" fill="#fff" stroke="#19365E" stroke-width="2.8" stroke-linejoin="round"/>
+  <path d="M17 19h18" stroke="#32C993" stroke-width="3.1" stroke-linecap="round"/>
+  <circle cx="44" cy="32" r="3.1" fill="#fff" stroke="#19365E" stroke-width="2.2"/>
+  </g>
+  <g transform="translate(28 26) scale(.075)">
+   <path fill="url(#rare-fire)" d="M133 22c8 35-8 48-1 72 5 17 21 26 26 43 6-13 8-28 4-44 31 26 49 60 43 94-7 42-40 68-83 68-45 0-77-29-77-71 0-31 17-56 37-78-2 26 6 39 18 45-2-35 18-66 33-91z"/>
+   <path fill="url(#rare-core)" d="M128 112c3 20-9 31-6 47 2 10 10 16 15 24 4-9 4-19 2-27 18 16 29 33 26 51-3 22-19 35-39 35-22 0-38-15-38-37 0-17 9-30 22-43-1 14 3 21 10 25-1-18 5-36 8-48z"/>
+  </g>
+ </g>
+</svg>

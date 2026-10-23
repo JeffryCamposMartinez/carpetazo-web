@@ -3,7 +3,7 @@ import { api } from '../../services/api';
 import { Badge, EmptyState, ErrorBox, Pills, ROW, ROW_HOVER, Spinner, dateTime } from './shared';
 import SvgIcon from '../ui/SvgIcon';
 
-const KIND_LABELS = { complaint: 'Reclamo', suggestion: 'Sugerencia' };
+const KIND_LABELS = { complaint: 'Reclamo', suggestion: 'Sugerencia', support: 'Soporte' };
 const STATUS_LABELS = { open: 'Pendientes', corrected: 'Corregidas', all: 'Todas' };
 
 // Bandeja de mensajes enviados desde «Reclamos y sugerencias». Soporte puede leerla; moderadores y administradores pueden cerrarla.
@@ -13,6 +13,7 @@ export default function FeedbackPanel({ level = 1 }) {
   const [data, setData] = useState(null);
   const [message, setMessage] = useState('');
   const [busyId, setBusyId] = useState('');
+  const [replies, setReplies] = useState({});
 
   const load = useCallback(() => {
     setData(null);
@@ -25,12 +26,14 @@ export default function FeedbackPanel({ level = 1 }) {
   useEffect(() => { load(); }, [load]);
 
   const correct = async (id) => {
+    const note = replies[id]?.trim() || '';
     setBusyId(id);
     setMessage('');
     try {
-      await api.correctFeedback(id);
+      await api.correctFeedback(id, note || undefined);
       if (status === 'open') setData((previous) => previous ? { ...previous, total: Math.max(0, previous.total - 1), feedback: previous.feedback.filter((item) => item.id !== id), counts: { ...previous.counts, open: Math.max(0, (previous.counts?.open || 0) - 1), corrected: (previous.counts?.corrected || 0) + 1 } } : previous);
-      else setData((previous) => previous ? { ...previous, feedback: previous.feedback.map((item) => item.id === id ? { ...item, status: 'corrected', correctedAt: new Date().toISOString() } : item) } : previous);
+      else setData((previous) => previous ? { ...previous, feedback: previous.feedback.map((item) => item.id === id ? { ...item, status: 'corrected', moderatorNote: note || item.moderatorNote, correctedAt: new Date().toISOString() } : item) } : previous);
+      setReplies((previous) => { const next = { ...previous }; delete next[id]; return next; });
     } catch (error) {
       setMessage(error.message || 'No se pudo marcar como corregida.');
     } finally {
@@ -43,7 +46,7 @@ export default function FeedbackPanel({ level = 1 }) {
       <ErrorBox>{message}</ErrorBox>
       <div className="flex flex-wrap gap-2">
         <Pills label="Estado de las entradas" value={status} onChange={setStatus} options={Object.entries(STATUS_LABELS)} counts={data?.counts} />
-        <Pills label="Tipo de entrada" value={kind} onChange={setKind} options={[['all', 'Todos'], ['complaint', 'Reclamos'], ['suggestion', 'Sugerencias']]} />
+        <Pills label="Tipo de entrada" value={kind} onChange={setKind} options={[['all', 'Todos'], ['complaint', 'Reclamos'], ['suggestion', 'Sugerencias'], ['support', 'Soporte']]} />
       </div>
       {!data ? <Spinner label="Cargando mensajes" /> : data.feedback.length === 0 ? (
         <EmptyState icon="task_alt" title={status === 'open' ? 'No hay entradas pendientes' : 'No hay entradas para mostrar'}>Cuando alguien envíe un reclamo o sugerencia aparecerá aquí.</EmptyState>
@@ -53,14 +56,14 @@ export default function FeedbackPanel({ level = 1 }) {
             <li key={item.id} className={`${ROW} ${ROW_HOVER} p-4`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2"><Badge className={item.kind === 'complaint' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-[#1e40af]'}>{KIND_LABELS[item.kind] || item.kind}</Badge>{item.priority && <Badge className="bg-[#facc15] text-[#12315f]">Prioritario · plan Pro o Tienda</Badge>}<span className="text-xs font-semibold text-slate-500">{dateTime(item.createdAt)} · @{item.user?.username || 'usuario'}</span></div>
+                  <div className="flex flex-wrap items-center gap-2"><Badge className={item.kind === 'complaint' ? 'bg-amber-100 text-amber-800' : item.kind === 'support' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-[#1e40af]'}>{KIND_LABELS[item.kind] || item.kind}</Badge>{item.priority && <Badge className="bg-[#facc15] text-[#12315f]">Prioritario · plan Legendario o Tienda</Badge>}<span className="text-xs font-semibold text-slate-500">{dateTime(item.createdAt)} · @{item.user?.username || 'usuario'}</span></div>
                   <h3 className="mt-2 text-base font-extrabold text-[#12315f]">{item.title}</h3>
                   <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{item.message}</p>
-                  {item.moderatorNote && <p className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">Nota del equipo: {item.moderatorNote}</p>}
+                  {item.moderatorNote && <p className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">Respuesta del equipo: {item.moderatorNote}</p>}
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">
                   <Badge className={item.status === 'corrected' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}>{item.status === 'corrected' ? 'Corregida' : 'Pendiente'}</Badge>
-                  {item.status === 'open' && level >= 2 && <button type="button" onClick={() => correct(item.id)} disabled={busyId === item.id} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#12315f] px-3.5 text-xs font-extrabold text-white transition-[background-color,transform] hover:bg-[#1e40af] active:scale-[0.97] disabled:cursor-wait disabled:opacity-60">{busyId === item.id ? 'Guardando…' : <><SvgIcon name="check_circle" translate="no" aria-hidden="true" className="text-[17px]" /> Marcar corregida</>}</button>}
+                  {item.status === 'open' && level >= 2 && <div className="flex w-full flex-col items-end gap-2">{item.kind === 'support' && <textarea maxLength={1000} value={replies[item.id] || ''} onChange={(event) => setReplies((previous) => ({ ...previous, [item.id]: event.target.value }))} placeholder="Escribe la respuesta que recibirá la persona…" aria-label="Respuesta de soporte" className="min-h-24 w-full rounded-xl border border-[#b9c7e0] p-3 text-sm text-[#12315f] outline-none focus:border-[#1e40af] focus:ring-2 focus:ring-[#1e40af]/15" />}<button type="button" onClick={() => correct(item.id)} disabled={busyId === item.id || (item.kind === 'support' && !(replies[item.id] || '').trim())} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#12315f] px-3.5 text-xs font-extrabold text-white transition-[background-color,transform] hover:bg-[#1e40af] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50">{busyId === item.id ? 'Guardando…' : <><SvgIcon name="check_circle" translate="no" aria-hidden="true" className="text-[17px]" /> {item.kind === 'support' ? 'Enviar respuesta y cerrar' : 'Marcar corregida'}</>}</button></div>}
                   {item.status === 'open' && level < 2 && <span className="text-xs font-semibold text-slate-500">Solo lectura</span>}
                 </div>
               </div>

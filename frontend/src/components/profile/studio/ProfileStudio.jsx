@@ -19,7 +19,7 @@ export default function ProfileStudio({
   setThemePanelTab, socialLinks, themeDirty, themePanelTab, totalCards
 }) {
   const { plan } = usePlan();
-  const studioLocked = Boolean(plan) && !plan.profileStudio; // estilos y fondo son de Premium en adelante; los interruptores de contacto («Redes») son libres
+  const studioLocked = Boolean(plan) && !plan.profileStudio; // estilos y fondo son de Épico en adelante; los interruptores de contacto («Redes») son libres
   const panelRef = useRef(null);
   const bodyRef = useRef(null);
   const closeRef = useRef(() => setThemePanelOpen(false));
@@ -106,8 +106,8 @@ export default function ProfileStudio({
           {studioLocked && themePanelTab !== 'social' && (
             <div className="rounded-2xl border border-dashed p-6 text-center" style={{ borderColor: STUDIO.line }}>
               <Symbol name="lock" className="text-[30px]" />
-              <h3 className="mt-2 text-lg font-bold" style={{ fontFamily: STUDIO.heading }}>El Estudio de perfil es de Premium</h3>
-              <p className="mx-auto mt-1 max-w-sm text-sm" style={{ color: STUDIO.muted }}>Con el plan Premium eliges colores, letra, tarjetas, escena y orden de tu perfil. En «Redes» puedes elegir qué contactos se muestran, en cualquier plan.</p>
+              <h3 className="mt-2 text-lg font-bold" style={{ fontFamily: STUDIO.heading }}>El Estudio de perfil es de Épico</h3>
+              <p className="mx-auto mt-1 max-w-sm text-sm" style={{ color: STUDIO.muted }}>Con el plan Épico eliges colores, letra, tarjetas, escena y orden de tu perfil. En «Redes» puedes elegir qué contactos se muestran, en cualquier plan.</p>
               <Link to="/planes" className="mt-4 inline-flex min-h-11 items-center rounded-[10px] bg-[#12283f] px-5 text-sm font-bold text-white">Ver planes</Link>
             </div>
           )}

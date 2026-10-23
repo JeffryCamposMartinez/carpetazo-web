@@ -153,7 +153,7 @@ export function PlansTeaser() {
           <div>
             <h2 className={`${H2} text-[#12315f]`}>Gratis para empezar, planes para crecer</h2>
             <p className="mt-2 max-w-[56ch] text-[15px] leading-relaxed text-slate-700 md:mt-3 md:text-base">
-              {free ? `Con el plan Free tienes ${free.folders} ${free.folders === 1 ? 'carpeta' : 'carpetas'} de hasta ${free.uniqueCardsPerFolder} cartas únicas.` : 'Empiezas sin pagar nada.'}
+              {free ? `Con el plan Común tienes ${free.folders} ${free.folders === 1 ? 'carpeta' : 'carpetas'} de hasta ${free.uniqueCardsPerFolder} cartas únicas.` : 'Empiezas sin pagar nada.'}
               {cheapest ? ` Cuando tu colección crezca, los planes parten desde ${money(cheapest.priceClp)} al mes.` : ' Cuando tu colección crezca, puedes elegir un plan con más espacio.'}
             </p>
           </div>

@@ -36,8 +36,8 @@ export default function SubscriptionPanel({ billing, plans, busy, onCancel, onUn
         <div><dt className="font-bold text-slate-500">Estado</dt><dd className={`text-base font-black ${pastDue ? 'text-red-700' : ending ? 'text-amber-700' : 'text-emerald-700'}`}>{pastDue ? 'Pago pendiente' : ending ? 'Cancelada, activa hasta el fin del período' : 'Activa'}</dd></div>
       </dl>
 
-      {pastDue && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-900">No pudimos cobrar tu último pago. Mercado Pago lo reintentará; si no se regulariza, tu cuenta volverá al plan Free.</p>}
-      {ending && <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">No se te volverá a cobrar. Conservas {billing.plan.name} hasta el {endDate}; después tu cuenta vuelve a Free. Si cambias de idea, elige un plan abajo para contratar de nuevo.</p>}
+      {pastDue && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-900">No pudimos cobrar tu último pago. Mercado Pago lo reintentará; si no se regulariza, tu cuenta volverá al plan Común.</p>}
+      {ending && <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">No se te volverá a cobrar. Conservas {billing.plan.name} hasta el {endDate}; después tu cuenta vuelve a Común. Si cambias de idea, elige un plan abajo para contratar de nuevo.</p>}
       {scheduled && !ending && (
         <div className="mt-4 flex flex-col gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-[#12315f] sm:flex-row sm:items-center sm:justify-between">
           <span>Cambio programado: el {formatDate(scheduled.effectiveAt)} pasas a <strong>{scheduledPlan?.name || scheduled.planKey}</strong> ({money(scheduled.priceClp)}/mes). Hasta entonces mantienes {billing.plan.name}.</span>
@@ -57,7 +57,7 @@ export default function SubscriptionPanel({ billing, plans, busy, onCancel, onUn
       <ConfirmModal
         isOpen={confirming}
         title="¿Cancelar tu suscripción?"
-        message={`No se te volverá a cobrar. Conservas ${billing.plan.name} hasta el ${endDate || 'fin del período pagado'} y después tu cuenta vuelve a Free (tus cartas y carpetas no se borran). Para volver a un plan pagado tendrás que contratarlo de nuevo.`}
+        message={`No se te volverá a cobrar. Conservas ${billing.plan.name} hasta el ${endDate || 'fin del período pagado'} y después tu cuenta vuelve a Común (tus cartas y carpetas no se borran). Para volver a un plan pagado tendrás que contratarlo de nuevo.`}
         confirmText="Sí, cancelar suscripción"
         cancelText="Mantener mi suscripción"
         onCancel={() => setConfirming(false)}

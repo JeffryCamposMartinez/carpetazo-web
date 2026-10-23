@@ -5,7 +5,7 @@ import { authenticateToken, isAdminEmail, optionalAuth, optionalStaff } from '..
 import { isValidComuna, regionOfComuna } from '../core/chileData.js';
 import { decodeContent } from '../core/chat.js';
 import { prisma } from '../core/db.js';
-import { PlanFeatureError, PlanLimitError, getEffectivePlan, sendPlanError } from '../core/entitlements.js';
+import { PlanFeatureError, PlanLimitError, getEffectivePlan, lockPlanUser, sendPlanError } from '../core/entitlements.js';
 import { acceptedCache, getLegalStatus } from '../core/legal.js';
 import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/publicSeller.js';
 import { deleteR2ObjectByPublicUrl } from '../core/r2.js';
@@ -211,21 +211,6 @@ router.put('/api/users/me', authenticateToken, async (req, res) => {
       updateData.publicTheme = sanitizePublicTheme(updateData.publicTheme);
     }
 
-    // Banner, Estudio de perfil y redes dependen del plan. Lo que ya está guardado se conserva y siempre se puede quitar; lo nuevo exige el plan.
-    if (storedImages) {
-      const { plan } = await getEffectivePlan(prisma, storedImages.id);
-      const isNew = (field) => updateData[field] !== undefined && updateData[field] !== null && updateData[field] !== '' && updateData[field] !== storedImages[field];
-      if (isNew('bannerBase64') && !plan.profileBanner) throw new PlanFeatureError('profileBanner', plan.key);
-      if (isNew('wallpaperBase64') && !plan.profileStudio) throw new PlanFeatureError('profileStudio', plan.key);
-      if (updateData.publicTheme !== undefined && !plan.profileStudio && publicThemeStyleChanged(updateData.publicTheme, storedImages.publicTheme)) {
-        throw new PlanFeatureError('profileStudio', plan.key);
-      }
-      const socialFields = Object.keys(SOCIAL_DOMAINS);
-      const socialBefore = socialFields.filter((field) => storedImages[field]).length;
-      const socialAfter = socialFields.filter((field) => (updateData[field] !== undefined ? updateData[field] : storedImages[field])).length;
-      if (socialAfter > socialBefore && socialAfter > plan.socialLinks) throw new PlanFeatureError('socialLinks', plan.key, { current: socialBefore, limit: plan.socialLinks });
-    }
-
     if (updateData.addresses !== undefined) {
       updateData.addresses = sanitizeProfileAddresses(updateData.addresses);
       // La ubicación se muestra siempre en el perfil y sirve para buscar vendedores
@@ -243,9 +228,29 @@ router.put('/api/users/me', authenticateToken, async (req, res) => {
         : {};
     }
 
-    const user = await prisma.user.update({
-      where: { firebaseUid },
-      data: updateData
+    const user = await prisma.$transaction(async (tx) => {
+      if (storedImages?.id) {
+        // Evita que cambios simultáneos de perfil o plan superen las cuotas de banner, estudio y redes.
+        await lockPlanUser(tx, storedImages.id);
+        const currentProfile = await tx.user.findUnique({
+          where: { id: storedImages.id },
+          select: { id: true, bannerBase64: true, wallpaperBase64: true, publicTheme: true, facebookUrl: true, instagramUrl: true, youtubeUrl: true }
+        });
+        if (currentProfile) {
+          const { plan } = await getEffectivePlan(tx, currentProfile.id);
+          const isNew = (field) => updateData[field] !== undefined && updateData[field] !== null && updateData[field] !== '' && updateData[field] !== currentProfile[field];
+          if (isNew('bannerBase64') && !plan.profileBanner) throw new PlanFeatureError('profileBanner', plan.key);
+          if (isNew('wallpaperBase64') && !plan.profileStudio) throw new PlanFeatureError('profileStudio', plan.key);
+          if (updateData.publicTheme !== undefined && !plan.profileStudio && publicThemeStyleChanged(updateData.publicTheme, currentProfile.publicTheme)) {
+            throw new PlanFeatureError('profileStudio', plan.key);
+          }
+          const socialFields = Object.keys(SOCIAL_DOMAINS);
+          const socialBefore = socialFields.filter((field) => currentProfile[field]).length;
+          const socialAfter = socialFields.filter((field) => (updateData[field] !== undefined ? updateData[field] : currentProfile[field])).length;
+          if (socialAfter > socialBefore && socialAfter > plan.socialLinks) throw new PlanFeatureError('socialLinks', plan.key, { current: socialBefore, limit: plan.socialLinks });
+        }
+      }
+      return tx.user.update({ where: { firebaseUid }, data: updateData });
     });
 
     if (updateData.bio) moderationHooks.flagText?.('profile_text', user.id, updateData.bio, 'bio', null);

@@ -63,9 +63,9 @@ const webhook = (id) => fetch(`${B}/billing/mercadopago/webhook`, { method: 'POS
     }
     r = await call('POST', '/billing/change-plan', 'nobuyer', { planKey: 'pro' });
     ok('cambiar a Pro: responde 200 y avisa la fecha del cambio', r.status === 200 && !!r.j.effectiveAt, JSON.stringify(r.j).slice(0, 140));
-    ok('el nuevo precio se envía a Mercado Pago para el próximo cobro', (await mpLog()).some((e) => e.method === 'PUT' && e.path === `/preapproval/${s1.providerSubscriptionId}` && e.body.auto_recurring?.transaction_amount === 4990));
+    ok('el nuevo precio se envía a Mercado Pago para el próximo cobro', (await mpLog()).some((e) => e.method === 'PUT' && e.path === `/preapproval/${s1.providerSubscriptionId}` && e.body.auto_recurring?.transaction_amount === 3990));
     r = await call('GET', '/billing/me', 'nobuyer');
-    ok('hasta el próximo cobro se mantiene el plan pagado', r.status === 200 && r.j.plan?.key === 'enthusiast' && r.j.scheduledChange?.planKey === 'pro' && r.j.scheduledChange?.priceClp === 4990, JSON.stringify({ plan: r.j.plan?.key, sc: r.j.scheduledChange }));
+    ok('hasta el próximo cobro se mantiene el plan pagado', r.status === 200 && r.j.plan?.key === 'enthusiast' && r.j.scheduledChange?.planKey === 'pro' && r.j.scheduledChange?.priceClp === 3990, JSON.stringify({ plan: r.j.plan?.key, sc: r.j.scheduledChange }));
     ok('la fila del cambio programado no aparece como suscripción', !(r.j.subscriptions || []).some((row) => row.status === 'scheduled'));
     r = await call('POST', '/billing/checkout', 'nobuyer', { planKey: 'pro' });
     ok('no se paga una segunda suscripción: se usa «cambiar de plan» → 409', r.status === 409 && r.j.code === 'subscription_exists', String(r.status));
@@ -89,7 +89,7 @@ const webhook = (id) => fetch(`${B}/billing/mercadopago/webhook`, { method: 'POS
     await mpSet(s1.providerSubscriptionId, { status: 'authorized', next_payment_date: new Date(oldEnd.getTime() + 30 * DAY).toISOString() });
     r = await webhook(s1.providerSubscriptionId);
     const renewed = await prisma.subscription.findUnique({ where: { id: s1.id } });
-    ok('con el nuevo cobro la suscripción pasa a Pro a $4.990 y se limpia el cambio', r.status === 200 && renewed.planKey === 'pro' && renewed.priceClp === 4990 && (await prisma.subscription.count({ where: { userId, status: 'scheduled' } })) === 0, JSON.stringify({ k: renewed.planKey, p: renewed.priceClp }));
+    ok('con el nuevo cobro la suscripción pasa a Pro a $3.990 y se limpia el cambio', r.status === 200 && renewed.planKey === 'pro' && renewed.priceClp === 3990 && (await prisma.subscription.count({ where: { userId, status: 'scheduled' } })) === 0, JSON.stringify({ k: renewed.planKey, p: renewed.priceClp }));
     ok('el período avanza al nuevo cobro', renewed.currentPeriodEnd.getTime() === oldEnd.getTime() + 30 * DAY);
 
     // Mora sin pagar: no se cambia de plan
@@ -100,7 +100,7 @@ const webhook = (id) => fetch(`${B}/billing/mercadopago/webhook`, { method: 'POS
     // La suscripción nueva reemplaza a la que solo esperaba terminar
     await reset();
     const old = await sub({ cancelAtPeriodEnd: true });
-    const fresh = await sub({ planKey: 'premium', status: 'pending', priceClp: 2990, cancelAtPeriodEnd: false, currentPeriodEnd: null, nextPaymentAt: null });
+    const fresh = await sub({ planKey: 'premium', status: 'pending', priceClp: 1990, cancelAtPeriodEnd: false, currentPeriodEnd: null, nextPaymentAt: null });
     await mpSet(fresh.providerSubscriptionId, { status: 'authorized', next_payment_date: new Date(Date.now() + 30 * DAY).toISOString() });
     r = await webhook(fresh.providerSubscriptionId);
     ok('al autorizarse la nueva, la anterior (ya cancelada) caduca', r.status === 200 && (await prisma.subscription.findUnique({ where: { id: fresh.id } })).status === 'active' && (await prisma.subscription.findUnique({ where: { id: old.id } })).status === 'expired');

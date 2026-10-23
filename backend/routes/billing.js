@@ -109,7 +109,11 @@ router.post('/api/billing/checkout', authenticateToken, async (req, res) => {
       }
     }
     const id = crypto.randomUUID();
-    const providerPlanId = String(process.env[planEnvKey(plan.key)] || '').trim() || null;
+    // Premium y Pro usan el monto del catálogo directamente: los planes preaprobados
+    // de Mercado Pago pueden conservar el precio anterior aunque cambie el catálogo.
+    const providerPlanId = ['premium', 'pro'].includes(plan.key)
+      ? null
+      : String(process.env[planEnvKey(plan.key)] || '').trim() || null;
     const existing = await prisma.$transaction(async (tx) => {
       await lockPlanUser(tx, user.id);
       const found = await tx.subscription.findFirst({

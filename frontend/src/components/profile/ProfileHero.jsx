@@ -18,7 +18,7 @@ export default function ProfileHero({
   ownerButtonClass, primaryAddress, publicTheme, savingBio, savingImage, seller, setIsEditingBio, setTempBio,
   setThemePanelOpen, tempBio, themePanelOpen
 }) {
-  // El banner es de Entusiasta en adelante y el fondo de página (Estudio) de Premium; mientras no se conozca el plan se deja intentar y decide el servidor
+  // El banner es de Raro en adelante y el fondo de página (Estudio) de Épico; mientras no se conozca el plan se deja intentar y decide el servidor
   const { plan } = usePlan();
   const bannerLocked = Boolean(plan) && !plan.profileBanner;
   const wallpaperLocked = Boolean(plan) && !plan.profileStudio;
@@ -45,9 +45,9 @@ export default function ProfileHero({
             <span className="sm:hidden">Estilo</span>
           </button>
           {bannerLocked ? (
-            <Link to="/planes" className={ownerButtonClass} title="El banner está disponible desde el plan Entusiasta" aria-label="Banner: disponible desde el plan Entusiasta">
+            <Link to="/planes" className={ownerButtonClass} title="El banner está disponible desde el plan Raro" aria-label="Banner: disponible desde el plan Raro">
               <SvgIcon name="lock" translate="no" className="text-[19px]" />
-              <span className="hidden sm:inline">Banner · Entusiasta</span>
+              <span className="hidden sm:inline">Banner · Raro</span>
             </Link>
           ) : (
             <label className={`${ownerButtonClass} cursor-pointer`} title="Imagen de fondo de tu presentación">
@@ -57,9 +57,9 @@ export default function ProfileHero({
             </label>
           )}
           {wallpaperLocked ? (
-            <Link to="/planes" className={ownerButtonClass} title="El fondo de página está disponible desde el plan Premium" aria-label="Fondo de página: disponible desde el plan Premium">
+            <Link to="/planes" className={ownerButtonClass} title="El fondo de página está disponible desde el plan Épico" aria-label="Fondo de página: disponible desde el plan Épico">
               <SvgIcon name="lock" translate="no" className="text-[19px]" />
-              <span className="hidden sm:inline">Fondo · Premium</span>
+              <span className="hidden sm:inline">Fondo · Épico</span>
             </Link>
           ) : (
             <label className={`${ownerButtonClass} cursor-pointer`} title="Imagen de fondo de toda la página">
