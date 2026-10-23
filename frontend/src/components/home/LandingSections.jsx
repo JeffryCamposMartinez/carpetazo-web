@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import SvgIcon from '../ui/SvgIcon';
+import SocialBrandIcon from '../ui/SocialBrandIcon';
 
 const BUY_STEPS = [
   'Busca una carta o una carpeta.',
@@ -129,6 +130,41 @@ export function Games() {
             </li>
           ))}
         </ul>
+      </div>
+    </section>
+  );
+}
+
+export function SocialLinks({ networks = [] }) {
+  return (
+    <section className={`relative overflow-hidden bg-gradient-to-br from-[#102a56] via-[#1e40af] to-[#0f766e] text-white ${SECTION}`}>
+      <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-24 h-80 w-80 rounded-full bg-sky-300/20 blur-3xl" />
+      <div className="relative mx-auto grid w-full max-w-[1200px] items-center gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-12">
+        <div>
+          <p className="text-sm font-extrabold uppercase tracking-[0.16em] text-[#facc15]">Comunidad Carpetazo</p>
+          <h2 className="mt-2 max-w-[20ch] text-balance text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl">Síguenos en redes sociales</h2>
+          <p className="mt-3 max-w-[52ch] text-[15px] leading-relaxed text-blue-50/90 md:mt-4 md:text-lg">Conéctate con Carpetazo para enterarte de novedades, cartas y noticias de la comunidad.</p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            {networks.length > 0 ? networks.map((network) => (
+              <a key={network.name} href={network.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center gap-2.5 rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-[#12315f] shadow-sm transition-[transform,background-color] duration-150 hover:-translate-y-0.5 hover:bg-blue-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#facc15] active:scale-[0.97]">
+                <SocialBrandIcon network={network.name} className="h-5 w-5" />
+                {network.name}
+                <SvgIcon name="open_in_new" translate="no" aria-hidden="true" className="text-base text-slate-400" />
+              </a>
+            )) : <p className="text-sm font-semibold text-white/80">Próximamente en redes sociales.</p>}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          {networks.length > 0 ? networks.map((network, index) => (
+            <a key={network.name} href={network.url} target="_blank" rel="noopener noreferrer" style={{ '--social-delay': `${index * 45}ms` }} className="group flex min-h-24 items-center gap-3 rounded-2xl bg-white/10 p-4 ring-1 ring-inset ring-white/20 backdrop-blur-sm transition-[transform,background-color] duration-200 hover:-translate-y-1 hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] sm:min-h-28 sm:p-5">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm sm:h-14 sm:w-14"><SocialBrandIcon network={network.name} className="h-7 w-7 sm:h-8 sm:w-8" /></span>
+              <span className="min-w-0"><span className="block truncate text-base font-extrabold sm:text-lg">{network.name}</span><span className="mt-0.5 block text-xs font-semibold text-blue-100/80 sm:text-sm">Síguenos</span></span>
+              <SvgIcon name="open_in_new" translate="no" aria-hidden="true" className="ml-auto shrink-0 text-base text-white/70 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </a>
+          )) : (
+            <div className="col-span-2 flex min-h-32 items-center justify-center rounded-2xl bg-white/10 px-5 text-center text-sm font-semibold text-white/80 ring-1 ring-inset ring-white/20">Las redes sociales configuradas aparecerán aquí.</div>
+          )}
+        </div>
       </div>
     </section>
   );

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { api } from '../../services/api';
+import SocialBrandIcon from '../ui/SocialBrandIcon';
 
 const DEFAULT_SETTINGS = {
   tagline: 'Compra, vende y comparte tu colección de cartas TCG en todo Chile.',
@@ -113,10 +114,10 @@ export default function Footer() {
 
   // Social list
   const socialItems = [
-    { name: 'Facebook', url: settings.facebookUrl, icon: FacebookIcon },
-    { name: 'Instagram', url: settings.instagramUrl, icon: InstagramIcon },
-    { name: 'WhatsApp', url: settings.whatsappUrl, icon: WhatsAppIcon },
-    { name: 'Discord', url: settings.discordUrl, icon: DiscordIcon },
+    { name: 'Facebook', url: settings.facebookUrl },
+    { name: 'Instagram', url: settings.instagramUrl },
+    { name: 'WhatsApp', url: settings.whatsappUrl },
+    { name: 'Discord', url: settings.discordUrl },
     { name: 'Twitter / X', url: settings.twitterUrl, icon: null },
     { name: 'TikTok', url: settings.tiktokUrl, icon: null },
   ].filter((item) => Boolean(item.url && item.url.trim()));
@@ -168,8 +169,6 @@ export default function Footer() {
             {socialItems.length > 0 && (
               <div className="flex items-center gap-2 pt-0.5">
                 {socialItems.map((social) => {
-                  const Icon = social.icon;
-                  if (!Icon) return null;
                   return (
                     <a
                       key={social.name}
@@ -183,7 +182,7 @@ export default function Footer() {
                           : 'text-slate-300 bg-white/10 hover:bg-white/20 hover:text-white'
                       }`}
                     >
-                      <Icon className="w-3.5 h-3.5" />
+                      <SocialBrandIcon network={social.name} className="h-3.5 w-3.5" />
                     </a>
                   );
                 })}
@@ -282,7 +281,7 @@ export default function Footer() {
               }`}
               style={{ color: themedFooterStyle ? 'inherit' : undefined }}
             >
-              Síguenos
+              Síguenos en redes sociales
             </h3>
 
             <div className="flex flex-col gap-1 text-xs">
@@ -293,10 +292,11 @@ export default function Footer() {
                     href={social.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`transition-colors duration-150 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] rounded py-0.5 ${
+                    className={`inline-flex items-center gap-2 transition-colors duration-150 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] rounded py-0.5 ${
                       isLight ? 'text-slate-600 hover:text-blue-700' : 'text-slate-300 hover:text-white'
                     }`}
                   >
+                    <SocialBrandIcon network={social.name} className="h-3.5 w-3.5 shrink-0" />
                     {social.name}
                   </a>
                 ))

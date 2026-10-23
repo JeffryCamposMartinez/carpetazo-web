@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import usePageMeta from '../hooks/usePageMeta';
 import SvgIcon from '../components/ui/SvgIcon';
-import { FinalCta, Features, Games, HowItWorks, PlansTeaser } from '../components/home/LandingSections';
+import SocialBrandIcon from '../components/ui/SocialBrandIcon';
+import { api } from '../services/api';
+import { FinalCta, Features, Games, HowItWorks, PlansTeaser, SocialLinks } from '../components/home/LandingSections';
 
 const MARQUEE_GAMES = [
   { tcg: 'Magic', img: '/images/4k/magic.webp', logo: '/images/logos/magic.webp', scale: 'scale-[1.8]' },
@@ -19,6 +21,27 @@ const MARQUEE_ITEMS = [...MARQUEE_GAMES, ...MARQUEE_GAMES, ...MARQUEE_GAMES, ...
 export default function LandingPage() {
   usePageMeta({ title: 'Vende tus cartas TCG en Chile | Carpetazo', description: 'Arma tu carpeta de cartas, comparte el enlace y recibe pedidos de compradores de todo Chile. Gratis, con perfil de vendedor, mensajes y panel de pedidos.', path: '/bienvenida' });
   const { loginWithGoogle, currentUser } = useAuth();
+  const [socialNetworks, setSocialNetworks] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.getFooterSettings().then((response) => {
+      if (cancelled || !response?.settings) return;
+      const configured = [
+        ['Facebook', 'facebookUrl'], ['Instagram', 'instagramUrl'],
+        ['WhatsApp', 'whatsappUrl'], ['Discord', 'discordUrl'],
+        ['X / Twitter', 'twitterUrl'], ['TikTok', 'tiktokUrl'],
+      ].flatMap(([name, field]) => {
+        const url = String(response.settings[field] || '').trim();
+        if (!url) return [];
+        try { if (!['https:', 'http:'].includes(new URL(url).protocol)) return []; }
+        catch { return []; }
+        return [{ name, url }];
+      });
+      setSocialNetworks(configured);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   // Detecta hover en el carrusel cuando el puntero está quieto sobre él y las cartas se desplazan debajo (solo en dispositivos con puntero y mientras el mouse está dentro del carrusel)
   const marqueeRef = useRef(null);
@@ -135,6 +158,15 @@ export default function LandingPage() {
             <p style={{ '--d': '330ms' }} className="lp-rise mt-3 text-xs font-semibold text-[#12315f]/80 sm:mt-4 sm:text-sm">
               ¿Buscas a alguien en particular? <Link to="/vendedores" className="font-extrabold text-[#1e40af] underline underline-offset-4 transition-colors hover:text-[#12315f]">Mira los vendedores</Link>
             </p>
+            {socialNetworks.length > 0 && (
+              <div className="lp-rise mt-4 flex flex-wrap items-center justify-center gap-2.5 sm:mt-5" aria-label="Redes sociales oficiales de Carpetazo">
+                {socialNetworks.map((network) => (
+                  <a key={network.name} href={network.url} target="_blank" rel="noopener noreferrer" aria-label={`Visitar Carpetazo en ${network.name}`} title={network.name} className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-[#12315f]/10 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] sm:h-10 sm:w-10">
+                    <SocialBrandIcon network={network.name} className="h-5 w-5 sm:h-[22px] sm:w-[22px]" />
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
 
           <div ref={marqueeRef} className="relative mt-2 w-full overflow-hidden pb-10 pt-3 md:mt-4 md:pb-16 md:pt-4">
@@ -183,6 +215,7 @@ export default function LandingPage() {
         <HowItWorks />
         <Features />
         <Games />
+        <SocialLinks networks={socialNetworks} />
         <PlansTeaser />
         <FinalCta primaryCta={primaryCta} />
       </div>

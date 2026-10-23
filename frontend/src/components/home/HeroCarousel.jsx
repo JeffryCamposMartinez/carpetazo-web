@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import HomeHero from './HomeHero';
 import SvgIcon from '../ui/SvgIcon';
+import SocialBrandIcon from '../ui/SocialBrandIcon';
+import { api } from '../../services/api';
 
 // Cada banner dice qué se puede hacer en el sitio, con lo que existe hoy. Los paneles de la derecha son ejemplos ilustrativos de la pantalla real.
 const THEMES = {
@@ -11,13 +13,15 @@ const THEMES = {
   orders: { bg: 'from-[#7c2d12] via-[#ea580c] to-[#db2777]', glow: ['bg-[#facc15]/35', 'bg-rose-300/30'], text: 'text-orange-50/90' },
   search: { bg: 'from-[#14532d] via-[#15803d] to-[#4d7c0f]', glow: ['bg-lime-300/30', 'bg-[#facc15]/25'], text: 'text-green-50/90' },
   wish: { bg: 'from-[#881337] via-[#e11d48] to-[#f59e0b]', glow: ['bg-[#facc15]/35', 'bg-pink-300/30'], text: 'text-rose-50/90' },
+  social: { bg: 'from-[#102a56] via-[#1e40af] to-[#0f766e]', glow: ['bg-sky-300/30', 'bg-[#facc15]/25'], text: 'text-blue-50/90' },
 };
 
 const money = (value) => `$${value.toLocaleString('es-CL')}`;
+const SLIDE_ORDER = ['marketplace', 'search', 'filters', 'sell', 'orders', 'wish', 'social'];
 
 function Panel({ children, label }) {
   return (
-    <div className="w-full max-w-[22rem] -rotate-2 justify-self-center rounded-2xl bg-white p-4 text-[#12315f] shadow-[0_24px_40px_-18px_rgba(2,12,40,0.7)] ring-1 ring-white/60">
+    <div className="w-full max-w-[22rem] -rotate-2 justify-self-center rounded-xl bg-white p-4 text-[#12315f] shadow-[0_24px_40px_-18px_rgba(2,12,40,0.7)] ring-1 ring-white/60">
       {children}
       <p className="mt-3 text-center text-[11px] font-semibold text-slate-400">{label}</p>
     </div>
@@ -76,7 +80,7 @@ function FiltersPanel() {
         ))}
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2">
-        {[CARDS.riftbound, CARDS.onepiece, CARDS.magic].map((card) => <img key={card.name} src={card.src} alt="" loading="lazy" className="aspect-[5/7] w-full rounded-lg object-cover shadow-sm ring-1 ring-black/10" />)}
+        {[CARDS.riftbound, CARDS.onepiece, CARDS.magic].map((card) => <img key={card.name} src={card.src} alt="" loading="lazy" className="aspect-[5/7] w-full rounded-md object-contain shadow-sm ring-1 ring-black/10" />)}
       </div>
     </Panel>
   );
@@ -126,19 +130,91 @@ function WishPanel() {
   );
 }
 
-const VISUALS = { sell: SellPanel, filters: FiltersPanel, orders: OrdersPanel, search: SearchPanel, wish: WishPanel };
+function SocialPanel({ items = [] }) {
+  return (
+    <Panel label="Redes oficiales de Carpetazo">
+      <div className="mb-3 flex justify-center">
+        <img src="/images/logos/logo_completo.webp" alt="Carpetazo.cl" loading="lazy" className="h-20 w-auto max-w-[220px] object-contain" />
+      </div>
+      {items.length > 0 ? (
+        <ul className="grid grid-cols-2 gap-2">
+          {items.map((item) => (
+            <li key={item.name}>
+              <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex min-h-14 items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-sm font-bold text-[#12315f] transition-colors hover:bg-blue-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white shadow-sm"><SocialBrandIcon network={item.name} className="h-[18px] w-[18px]" /></span>
+                <span className="min-w-0 break-words">{item.name}</span>
+                <SvgIcon name="open_in_new" translate="no" aria-hidden="true" className="ml-auto shrink-0 text-[14px] text-slate-400" />
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="rounded-xl bg-blue-50 px-4 py-5 text-center text-sm font-semibold text-slate-500">Próximamente en redes sociales.</div>
+      )}
+    </Panel>
+  );
+}
 
-function InfoSlide({ theme, title, text, points, cta, to, secondary }) {
+function MobileArtwork({ theme, items = [] }) {
+  const imageClass = 'h-[76px] w-[55px] shrink-0 rounded-md bg-[#0B1E45] object-contain shadow-lg ring-2 ring-white/80';
+  if (theme === 'sell') return (
+    <div className="flex h-[82px] items-center justify-center overflow-hidden" aria-hidden="true">
+      {[CARDS.pokemon, CARDS.yugioh, CARDS.mitos].map((card, index) => <img key={card.name} src={card.src} alt="" loading="lazy" className={`${imageClass} ${index === 0 ? 'translate-x-3 rotate-[-13deg]' : index === 1 ? 'z-10 -translate-y-1' : '-translate-x-3 rotate-[13deg]'}`} />)}
+      <span className="ml-3 rounded-full bg-white/15 px-3 py-2 text-xs font-extrabold text-white ring-1 ring-white/30">Precio · stock · pedidos</span>
+    </div>
+  );
+  if (theme === 'filters') return (
+    <div className="mx-auto w-full max-w-[290px] rounded-xl bg-white/12 p-2.5 ring-1 ring-white/25" aria-hidden="true">
+      <div className="mb-2 flex items-center gap-2 rounded-md bg-white px-2.5 py-1.5 text-[11px] font-bold text-[#12315f]/65"><SvgIcon name="search" translate="no" className="text-base text-[#1e40af]" />Nombre de carta…</div>
+      <div className="flex items-center justify-center gap-2">{[CARDS.riftbound, CARDS.onepiece, CARDS.magic].map((card) => <img key={card.name} src={card.src} alt="" loading="lazy" className="h-[63px] w-[45px] shrink-0 rounded-sm bg-[#0B1E45] object-contain ring-1 ring-white/70" />)}<span className="rounded-full bg-[#facc15] px-2 py-1 text-[10px] font-black text-[#12315f]">+ filtros</span></div>
+    </div>
+  );
+  if (theme === 'orders') return (
+    <div className="mx-auto flex w-full max-w-[290px] items-center justify-between rounded-xl bg-white px-3 py-2 text-[#12315f] shadow-lg" aria-hidden="true">
+      <div className="flex -space-x-2">{[CARDS.yugioh, CARDS.riftbound, CARDS.pokemon].map((card) => <img key={card.name} src={card.src} alt="" loading="lazy" className="h-[58px] w-[42px] rounded-sm bg-[#0B1E45] object-contain ring-2 ring-white" />)}</div>
+      <div className="pl-3 text-right"><span className="block text-[10px] font-bold text-slate-500">PEDIDO ARMADO</span><span className="block text-sm font-black">$9.500</span><span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600"><SvgIcon name="check_circle" translate="no" className="text-sm" />Listo para enviar</span></div>
+    </div>
+  );
+  if (theme === 'search') return (
+    <div className="flex h-[82px] items-center justify-center gap-3" aria-hidden="true">
+      <img src={CARDS.magic.src} alt="" loading="lazy" className="h-[76px] w-[55px] rotate-[-7deg] rounded-md bg-[#0B1E45] object-contain shadow-lg ring-2 ring-white/80" />
+      <div className="rounded-xl bg-white px-4 py-2 text-[#12315f] shadow-lg"><span className="block text-[10px] font-bold text-slate-500">DISPONIBLE EN</span><span className="block text-lg font-black">3 carpetas</span></div>
+      <img src={CARDS.yugioh.src} alt="" loading="lazy" className="h-[64px] w-[46px] rotate-[8deg] rounded-md bg-[#0B1E45] object-contain shadow-lg ring-2 ring-white/80" />
+    </div>
+  );
+  if (theme === 'wish') return (
+    <div className="flex h-[82px] items-center justify-center gap-2.5" aria-hidden="true">
+      {[CARDS.onepiece, CARDS.mitos, CARDS.riftbound].map((card, index) => <div key={card.name} className={`relative ${index === 1 ? '-translate-y-1' : ''}`}><img src={card.src} alt="" loading="lazy" className="h-[73px] w-[52px] rounded-md bg-[#0B1E45] object-contain shadow-lg ring-2 ring-white/80" />{index === 1 && <span className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[#facc15] text-[#12315f] shadow"><SvgIcon name="favorite" translate="no" className="text-[17px]" /></span>}</div>)}
+      <span className="rounded-full bg-white/15 px-3 py-2 text-xs font-extrabold ring-1 ring-white/30">Aviso de precio</span>
+    </div>
+  );
+  return (
+    <div className="flex h-[112px] items-center justify-center gap-2.5" aria-hidden="true">
+      <div className="flex max-w-[210px] flex-col flex-wrap items-center justify-center gap-1.5 rounded-xl bg-white/10 p-2 ring-1 ring-white/20">
+        <img src="/images/logos/logo_completo.webp" alt="Carpetazo.cl" loading="lazy" className="h-[76px] w-[86px] object-contain" />
+        <div className="flex flex-wrap justify-center gap-1.5">
+        {items.length > 0 ? items.map((item) => <span key={item.name} className="flex h-8 w-8 items-center justify-center rounded-full bg-white"><SocialBrandIcon network={item.name} className="h-[18px] w-[18px]" /></span>) : <span className="text-xs font-bold text-white/80">Redes de Carpetazo</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const VISUALS = { sell: SellPanel, filters: FiltersPanel, orders: OrdersPanel, search: SearchPanel, wish: WishPanel, social: SocialPanel };
+
+function InfoSlide({ theme, title, text, points, cta, to, secondary, socialItems = [] }) {
   const { bg, glow: [glow, glow2], text: tone } = THEMES[theme];
   const Visual = VISUALS[theme];
+  const reverse = theme === 'filters' || theme === 'search';
   return (
-    <div className={`relative isolate flex h-full w-full select-none flex-col justify-center gap-5 overflow-hidden bg-gradient-to-br ${bg} px-6 py-7 text-left text-white md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:items-center md:gap-10 md:px-12 lg:px-16`}>
+    <div className={`relative isolate flex h-full w-full select-none flex-col justify-center gap-2.5 overflow-hidden bg-gradient-to-br ${bg} px-5 py-4 text-left text-white md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-10 md:px-12 md:py-7 lg:px-16`}>
       <div aria-hidden="true" className={`pointer-events-none absolute -right-16 -top-20 -z-10 h-72 w-72 rounded-full blur-3xl ${glow}`} />
       <div aria-hidden="true" className={`pointer-events-none absolute -bottom-24 left-1/3 -z-10 h-64 w-64 rounded-full blur-3xl ${glow2}`} />
-      <div>
-        <h2 className="max-w-[22ch] text-balance text-[clamp(1.5rem,5.6vw,1.9rem)] font-extrabold leading-[1.1] tracking-tight md:text-[clamp(1.95rem,3.1vw,3rem)]">{title}</h2>
-        <p className={`mt-3 max-w-[48ch] text-[13px] leading-relaxed ${tone} md:mt-4 md:text-[clamp(0.95rem,1.25vw,1.125rem)]`}>{text}</p>
-        <div className="mt-5 flex flex-wrap items-center gap-2.5">
+      <div className="md:hidden"><MobileArtwork theme={theme} items={socialItems} /></div>
+      <div className={reverse ? 'md:order-2' : 'md:order-1'}>
+        <h2 className="max-w-[22ch] text-balance text-[clamp(1.35rem,5.6vw,1.75rem)] font-extrabold leading-[1.08] tracking-tight md:text-[clamp(1.95rem,3.1vw,3rem)]">{title}</h2>
+        <p className={`mt-2 max-w-[48ch] text-[12px] leading-relaxed ${tone} md:mt-4 md:text-[clamp(0.95rem,1.25vw,1.125rem)]`}>{text}</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2.5 md:mt-5">
           <Link to={to} className="inline-flex h-11 items-center rounded-full bg-[#facc15] px-6 text-sm font-extrabold text-[#0B1E45] transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 md:h-12 md:px-7 md:text-[15px]">{cta}</Link>
           {secondary && <Link to={secondary.to} className="inline-flex h-11 items-center rounded-full bg-white/10 px-5 text-sm font-bold ring-1 ring-inset ring-white/30 transition-colors hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 md:h-12 md:px-6 md:text-[15px]">{secondary.label}</Link>}
         </div>
@@ -147,16 +223,53 @@ function InfoSlide({ theme, title, text, points, cta, to, secondary }) {
             <li key={label} className="flex items-center gap-2"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#facc15]/20 text-[#facc15]"><SvgIcon name={icon} translate="no" className="text-[16px]" /></span>{label}</li>
           ))}
         </ul>
+        {theme === 'social' && (
+          <ul className="mt-4 flex flex-wrap gap-2 md:hidden">
+            {socialItems.length > 0 ? socialItems.map((item) => (
+              <li key={item.name}>
+                <a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-white/15 px-3 text-xs font-bold text-white ring-1 ring-inset ring-white/25 transition-colors hover:bg-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+                  <SocialBrandIcon network={item.name} className="h-[15px] w-[15px]" />{item.name}
+                </a>
+              </li>
+            )) : <li className="text-sm font-semibold text-white/80">Próximamente en redes sociales.</li>}
+          </ul>
+        )}
       </div>
-      <div className="hidden md:block"><Visual /></div>
+      <div className={`hidden md:block ${reverse ? 'md:order-1' : 'md:order-2'}`}><Visual items={socialItems} /></div>
     </div>
   );
 }
 
 export default function HeroCarousel() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [socialItems, setSocialItems] = useState([]);
   const { currentUser } = useAuth();
   const sellTo = currentUser ? '/dashboard' : '/bienvenida';
+
+  useEffect(() => {
+    let cancelled = false;
+    api.getFooterSettings().then((response) => {
+      if (cancelled || !response?.settings) return;
+      const configured = [
+        ['Facebook', 'facebookUrl'],
+        ['Instagram', 'instagramUrl'],
+        ['WhatsApp', 'whatsappUrl'],
+        ['Discord', 'discordUrl'],
+        ['X / Twitter', 'twitterUrl'],
+        ['TikTok', 'tiktokUrl'],
+      ].flatMap(([name, field]) => {
+        const url = String(response.settings[field] || '').trim();
+        if (!url) return [];
+        try {
+          const parsed = new URL(url);
+          if (!['https:', 'http:'].includes(parsed.protocol)) return [];
+        } catch { return []; }
+        return [{ name, url }];
+      });
+      setSocialItems(configured);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   // El gesto se guarda en una referencia: así no se vuelve a renderizar el carrusel en cada movimiento del dedo o del mouse
   const gesture = useRef({ startX: null, endX: null, dragging: false });
@@ -267,19 +380,36 @@ export default function HeroCarousel() {
         />
       ),
     },
-  ];
+    {
+      id: 'social',
+      content: (
+        <InfoSlide
+          theme="social"
+          title="Síguenos en redes sociales"
+          text="Conéctate con Carpetazo para enterarte de novedades, cartas y noticias de la comunidad."
+          points={[
+            { icon: 'campaign', label: 'Novedades de Carpetazo' },
+            { icon: 'groups', label: 'Contenido para coleccionistas' },
+          ]}
+          cta="Ver carpetas"
+          to="/carpetas"
+          socialItems={socialItems}
+        />
+      ),
+    },
+  ].sort((a, b) => SLIDE_ORDER.indexOf(a.id) - SLIDE_ORDER.indexOf(b.id));
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
-    }, 15000);
+    }, 10227);
     return () => clearInterval(timer);
   }, [slides.length, currentSlide]);
 
   return (
     <div className="w-full max-w-[1280px] mb-6 flex flex-col items-center">
       <div
-        className="w-full relative overflow-hidden rounded-3xl h-[350px] sm:h-[clamp(360px,46vh,470px)] select-none cursor-grab active:cursor-grabbing"
+        className="w-full relative overflow-hidden rounded-lg h-[390px] min-[420px]:h-[410px] sm:h-[clamp(360px,46vh,470px)] select-none cursor-grab active:cursor-grabbing"
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
@@ -289,7 +419,7 @@ export default function HeroCarousel() {
         onMouseLeave={onMouseLeave}
       >
         <div
-          className="flex transition-transform duration-700 ease-in-out h-full"
+          className="flex h-full transition-transform duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
           style={{ transform: `translateX(-${currentSlide * 100}%)` }}
         >
           {slides.map((slide) => (
@@ -304,7 +434,10 @@ export default function HeroCarousel() {
           ))}
         </div>
       </div>
-      <div className="flex gap-3 justify-center mt-6">
+      <div key={`progress-${currentSlide}`} aria-hidden="true" className="mt-5 h-[6px] w-full overflow-hidden rounded-full bg-[#12315f]/15">
+        <div className="h-full w-full origin-left rounded-full bg-[#facc15] animate-carousel-progress" />
+      </div>
+      <div className="flex gap-3 justify-center mt-3">
         {slides.map((slide, idx) => (
           <button
             key={slide.id}

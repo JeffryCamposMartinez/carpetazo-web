@@ -24,7 +24,7 @@ function Fan({ compact }) {
             className={`hero-card shrink-0 ${width} ${index > 0 ? (compact ? '-ml-[7vw]' : '-ml-[1.4vw]') : ''}`}
             style={{ zIndex: card.z, '--r': `${card.rotate}deg`, '--s': card.scale, '--y': `${card.lift}px`, animationDelay: `${card.delay}ms` }}
           >
-            <div className="relative overflow-hidden rounded-xl bg-[#13306b] shadow-[0_18px_36px_-14px_rgba(0,0,0,0.75)] ring-1 ring-white/25" style={{ aspectRatio: '63 / 88' }}>
+            <div className="relative overflow-hidden rounded-md bg-[#13306b] shadow-[0_18px_36px_-14px_rgba(0,0,0,0.75)] ring-1 ring-white/25" style={{ aspectRatio: '63 / 88' }}>
               <LoadableImage src={card.src} alt={card.name} decoding="async" compact className="h-full w-full object-cover" />
             </div>
           </div>
@@ -48,7 +48,7 @@ export default function HomeHero({ compact = false }) {
       <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-16 -z-10 h-72 w-72 rounded-full bg-[#facc15]/30 blur-3xl" />
       <div aria-hidden="true" className="pointer-events-none absolute -bottom-20 left-1/4 -z-10 h-64 w-64 rounded-full bg-sky-400/30 blur-3xl" />
       <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[url('/images/leather.png')] opacity-25 mix-blend-overlay max-sm:hidden" />
-      <div aria-hidden="true" className={`pointer-events-none absolute z-40 border-2 border-dashed border-white/15 ${compact ? 'inset-2 rounded-[18px]' : 'inset-3.5 rounded-[24px]'}`} />
+      <div aria-hidden="true" className={`pointer-events-none absolute z-40 border-2 border-dashed border-white/15 ${compact ? 'inset-2 rounded-lg' : 'inset-3.5 rounded-xl'}`} />
 
       {compact ? (
         <div className="flex h-full flex-col">

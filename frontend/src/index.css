@@ -152,6 +152,8 @@ body.public-profile-active::after {
 }
 
 @keyframes lp-rise { from { opacity: 0; transform: translateY(14px); } }
+@keyframes carousel-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.animate-carousel-progress { animation: carousel-progress 10.227s linear forwards; }
 @media (prefers-reduced-motion: no-preference) {
   .lp-rise { animation: lp-rise 650ms cubic-bezier(0.23, 1, 0.32, 1) var(--d, 0ms) both; }
 }
