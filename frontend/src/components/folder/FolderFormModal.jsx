@@ -23,7 +23,7 @@ export default function FolderFormModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="folder-dialog-title"
-        className="grid w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl md:grid-cols-[1fr_1.15fr]"
+        className="grid max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl md:grid-cols-[1fr_1.15fr]"
         onClick={e => e.stopPropagation()}
       >
         <div className="hidden items-center justify-center bg-[#DBEAFE] p-8 md:flex">
@@ -39,15 +39,15 @@ export default function FolderFormModal({
           </div>
         </div>
 
-        <form onSubmit={isEdit ? submitEditFolder : handleCreateFolder} className="flex flex-col gap-5 p-6 sm:p-8">
+        <form onSubmit={isEdit ? submitEditFolder : handleCreateFolder} className="flex min-h-0 flex-col gap-2.5 overflow-y-auto p-4 sm:gap-4 sm:p-7">
           <div className="flex items-start justify-between gap-4">
-            <h3 id="folder-dialog-title" className="text-2xl font-extrabold text-[#1a2b4b]">{isEdit ? 'Editar carpeta' : 'Nueva carpeta'}</h3>
-            <button type="button" onClick={close} aria-label="Cerrar" className="-mr-2 -mt-1 flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100">
+            <h3 id="folder-dialog-title" className="text-xl font-extrabold text-[#1a2b4b] sm:text-2xl">{isEdit ? 'Editar carpeta' : 'Nueva carpeta'}</h3>
+            <button type="button" onClick={close} aria-label="Cerrar" className="-mr-2 -mt-1 flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100">
               <SvgIcon name="close" translate="no" className="text-xl" />
             </button>
           </div>
 
-          <label className="flex flex-col gap-2">
+          <label className="flex flex-col gap-1.5">
             <span className="flex justify-between text-sm font-bold text-[#1a2b4b]">
               Nombre <span className="font-normal text-slate-400 tabular-nums">{name.length}/22</span>
             </span>
@@ -57,16 +57,16 @@ export default function FolderFormModal({
               placeholder="Ej: Ventas de la semana"
               value={name}
               onChange={(e) => (isEdit ? setEditFolderName(e.target.value) : setNewFolderName(e.target.value))}
-              className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 font-semibold text-[#1a2b4b] focus:border-[#1e40af] focus:outline-none focus:ring-2 focus:ring-[#1e40af]/30"
+              className="h-10 w-full rounded-xl border border-slate-300 bg-white px-4 font-semibold text-[#1a2b4b] focus:border-[#1e40af] focus:outline-none focus:ring-2 focus:ring-[#1e40af]/30"
               autoFocus
               required
             />
           </label>
 
           {!isEdit && (
-            <fieldset className="flex flex-col gap-2">
-              <legend className="mb-2 text-sm font-bold text-[#1a2b4b]">Juego</legend>
-              <div className="grid grid-cols-2 gap-2">
+            <fieldset className="flex flex-col gap-1">
+              <legend className="mb-0.5 text-sm font-bold text-[#1a2b4b]">Juego</legend>
+              <div className="grid grid-cols-2 gap-1">
                 {TCG_OPTIONS.map(([value, label]) => {
                   const locked = !AVAILABLE_TCGS.includes(value);
                   return (
@@ -76,7 +76,7 @@ export default function FolderFormModal({
                       disabled={locked}
                       aria-pressed={newFolderTcg === value}
                       onClick={() => setNewFolderTcg(value)}
-                      className={`flex h-11 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-bold ring-1 transition-colors ${locked ? 'cursor-not-allowed bg-slate-100 text-slate-400 ring-slate-200' : newFolderTcg === value ? 'bg-[#1e40af] text-white ring-[#1e40af]' : 'bg-white text-slate-700 ring-slate-300 hover:bg-slate-50'}`}
+                      className={`flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-bold ring-1 transition-colors ${locked ? 'cursor-not-allowed bg-slate-100 text-slate-400 ring-slate-200' : newFolderTcg === value ? 'bg-[#1e40af] text-white ring-[#1e40af]' : 'bg-white text-slate-700 ring-slate-300 hover:bg-slate-50'}`}
                     >
                       {label}
                       {locked && <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-extrabold text-slate-500">Pronto</span>}
@@ -85,13 +85,13 @@ export default function FolderFormModal({
                 })}
               </div>
               <p className="text-xs text-slate-500">El juego no se puede cambiar después.</p>
-              {plan && <p className={`rounded-lg px-3 py-2 text-xs font-bold ${totalReached ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-[#1e40af]'}`}>{totalUsed} de {plan.folders === null ? '∞' : plan.folders} carpetas</p>}
+              {plan && <p className={`rounded-lg px-3 py-1 text-xs font-bold ${totalReached ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-[#1e40af]'}`}>{totalUsed} de {plan.folders === null ? '∞' : plan.folders} carpetas</p>}
             </fieldset>
           )}
 
           <fieldset>
-            <legend className="mb-3 text-sm font-bold text-[#1a2b4b]">Color</legend>
-            <div className="flex flex-wrap gap-3">
+            <legend className="mb-1.5 text-sm font-bold text-[#1a2b4b]">Color</legend>
+            <div className="flex flex-wrap gap-2">
               {FOLDER_COLORS.map(c => (
                 <button
                   key={c.id}
@@ -99,7 +99,7 @@ export default function FolderFormModal({
                   onClick={() => (isEdit ? setEditFolderColor(c.id) : setNewFolderColor(c.id))}
                   aria-pressed={color === c.id}
                   aria-label={`Color ${COLOR_NAMES[c.id] || c.id}`}
-                  className={`h-10 w-10 rounded-full ring-offset-2 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${color === c.id ? 'scale-110 ring-2 ring-[#1a2b4b]' : 'hover:scale-110'}`}
+                  className={`h-8 w-8 rounded-full ring-offset-2 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${color === c.id ? 'scale-110 ring-2 ring-[#1a2b4b]' : 'hover:scale-110'}`}
                   style={{ backgroundColor: c.hex }}
                 />
               ))}
@@ -108,32 +108,32 @@ export default function FolderFormModal({
 
           {!isEdit && (
             <fieldset>
-              <legend className="mb-2 text-sm font-bold text-[#1a2b4b]">Visibilidad</legend>
-              <div className="grid grid-cols-2 gap-2">
+              <legend className="mb-1 text-sm font-bold text-[#1a2b4b]">Visibilidad</legend>
+              <div className="grid grid-cols-2 gap-1">
                 {[[false, 'lock', 'Privada', 'Solo tú la ves'], [true, 'public', 'Pública', 'La pueden ver los compradores']].map(([value, icon, label, hint]) => (
                   <button
                     key={label}
                     type="button"
                     aria-pressed={newFolderPublic === value}
                     onClick={() => setNewFolderPublic(value)}
-                    className={`flex min-h-[4.25rem] flex-col items-start gap-0.5 rounded-xl px-3 py-2 text-left ring-1 transition-colors ${newFolderPublic === value ? 'bg-[#1e40af] text-white ring-[#1e40af]' : 'bg-white text-slate-700 ring-slate-300 hover:bg-slate-50'}`}
+                    className={`flex min-h-[3.5rem] flex-col items-start gap-0.5 rounded-xl px-2.5 py-1 text-left ring-1 transition-colors ${newFolderPublic === value ? 'bg-[#1e40af] text-white ring-[#1e40af]' : 'bg-white text-slate-700 ring-slate-300 hover:bg-slate-50'}`}
                   >
                     <span className="flex items-center gap-1.5 text-sm font-bold"><SvgIcon name={icon} translate="no" aria-hidden="true" className="text-[18px]" />{label}</span>
                     <span className={`text-xs ${newFolderPublic === value ? 'text-white/85' : 'text-slate-500'}`}>{hint}</span>
                   </button>
                 ))}
               </div>
-              <p className="mt-1.5 text-xs text-slate-500">Puedes cambiarla cuando quieras desde el menú de la carpeta.</p>
+              <p className="mt-1 text-xs text-slate-500">Puedes cambiarla cuando quieras desde el menú de la carpeta.</p>
             </fieldset>
           )}
 
-          <div className="mt-auto flex justify-end gap-3 pt-2">
-            {quotaReached && <Link to="/planes" onClick={close} className="mr-auto inline-flex h-11 items-center rounded-xl px-3 text-sm font-extrabold text-[#1e40af] hover:bg-blue-50">Mejorar plan</Link>}
-            <button type="button" onClick={close} className="h-11 rounded-xl px-5 font-bold text-slate-600 hover:bg-slate-100">Cancelar</button>
+          <div className="mt-auto flex justify-end gap-2 pt-0.5">
+            {quotaReached && <Link to="/planes" onClick={close} className="mr-auto inline-flex h-9 items-center rounded-xl px-3 text-sm font-extrabold text-[#1e40af] hover:bg-blue-50">Mejorar plan</Link>}
+            <button type="button" onClick={close} className="h-9 rounded-xl px-4 font-bold text-slate-600 hover:bg-slate-100">Cancelar</button>
             <button
               type="submit"
               disabled={isCreating || quotaReached}
-              className="flex h-11 items-center gap-2 rounded-xl bg-[#1e40af] px-6 font-bold text-white shadow-md hover:bg-[#1e3a8a] disabled:opacity-60"
+              className="flex h-9 items-center gap-2 rounded-xl bg-[#1e40af] px-5 font-bold text-white shadow-md hover:bg-[#1e3a8a] disabled:opacity-60"
             >
               {isEdit ? 'Guardar cambios' : isCreating ? 'Creando…' : 'Crear carpeta'}
             </button>
