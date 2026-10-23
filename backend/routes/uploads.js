@@ -32,7 +32,7 @@ router.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
     if (!error) return next();
 
     if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ success: false, message: 'La imagen debe pesar menos de 10 MB.' });
+      return res.status(400).json({ success: false, message: 'La imagen optimizada supera el tamaño permitido. Prueba con una imagen de menor resolución.' });
     }
 
     return res.status(400).json({ success: false, message: error.message === 'Sube una imagen válida.' ? error.message : 'No se pudo leer la imagen.' });
@@ -43,8 +43,8 @@ router.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
       return res.status(400).json({ success: false, message: 'No se envió ninguna imagen.' });
     }
 
-    const type = req.body.type; // 'avatar', 'banner', 'wallpaper', 'message' or 'card'
-    if (!['avatar', 'banner', 'wallpaper', 'message', 'card'].includes(type)) {
+    const type = req.body.type; // 'avatar', 'banner', 'wallpaper', 'message', 'card' or 'feedback'
+    if (!['avatar', 'banner', 'wallpaper', 'message', 'card', 'feedback'].includes(type)) {
       return res.status(400).json({ success: false, message: 'Tipo de imagen inválido.' });
     }
 
@@ -52,6 +52,7 @@ router.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
     const isWallpaper = type === 'wallpaper';
     const isMessageImage = type === 'message';
     const isCardImage = type === 'card';
+    const isFeedbackImage = type === 'feedback';
     // El banner y el fondo del perfil dependen del plan (el banner desde Entusiasta; el fondo, parte del Estudio, desde Premium)
     if (isBanner || isWallpaper) {
       const owner = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
@@ -111,7 +112,7 @@ router.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
     const storeProcessed = (async () => {
       // Tamaño máximo según dónde se muestra (sin agrandar las pequeñas) y calidad 82: misma vista, una fracción del peso.
       // rotate() aplica la orientación de la cámara (las fotos del celular ya no quedan giradas) y descarta los metadatos
-      const MAX_SIDE = { avatar: 512, banner: 1920, wallpaper: 2560, message: 1600, card: 1200 };
+      const MAX_SIDE = { avatar: 512, banner: 1920, wallpaper: 2560, message: 1600, card: 1200, feedback: 1600 };
       const processedBuffer = await sharp(req.file.buffer, { limitInputPixels: 80_000_000 }).rotate()
         .resize({ width: MAX_SIDE[type], height: MAX_SIDE[type], fit: 'inside', withoutEnlargement: true })
         .webp({ quality: 82 }).toBuffer();
@@ -163,9 +164,15 @@ router.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
         return res.status(400).json({ success: false, message: blockedMessage });
       }
 
+      // Las imágenes de reclamos deben superar el filtro automático; si no hay veredicto, no se aceptan.
+      if (isFeedbackImage && !['clear', 'review'].includes(scan.verdict)) {
+        await deleteR2ObjectByPublicUrl(publicUrl, req.user.sub);
+        return res.status(503).json({ success: false, message: 'No pudimos revisar la imagen ahora. Intenta nuevamente en unos minutos.' });
+      }
+
       // Sin servicio disponible: una cuenta con buen historial publica; una nueva o con antecedentes queda pendiente de revisión
       let hold = false;
-      if (scan.verdict === 'unavailable') {
+      if (scan.verdict === 'unavailable' && !isFeedbackImage) {
         if (!(await isTrustedUploader(prisma, uploader))) {
           if (isCardImage) {
             await deleteR2ObjectByPublicUrl(publicUrl, req.user.sub);
@@ -181,18 +188,19 @@ router.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
           ? { wallpaperBase64: publicUrl }
           : { photoURL: publicUrl };
 
-      if (!isMessageImage && !isCardImage) {
+      if (!isMessageImage && !isCardImage && !isFeedbackImage) {
         await prisma.user.update({
           where: { firebaseUid: req.user.sub },
           data: updateData
         });
       }
+      const storedVerdict = hold ? 'pending' : scan.verdict === 'unavailable' ? 'unscanned' : scan.verdict;
+      const remembered = hashBank.remember({ url: publicUrl, hash: prepared.hash, userId: uploader?.id || null, sha256: prepared.sha256, verdict: storedVerdict, provider: scan.provider });
+      if (isFeedbackImage) await remembered;
+      else remembered.catch(() => {});
       published = true;
 
-      const storedVerdict = hold ? 'pending' : scan.verdict === 'unavailable' ? 'unscanned' : scan.verdict;
-      hashBank.remember({ url: publicUrl, hash: prepared.hash, userId: uploader?.id || null, sha256: prepared.sha256, verdict: storedVerdict, provider: scan.provider }).catch(() => {});
-
-      if (!isMessageImage && !isCardImage) {
+      if (!isMessageImage && !isCardImage && !isFeedbackImage) {
         if (hold) await moderationHooks.holdImage({ userId: uploader.id, type, url: publicUrl, reasonCode: 'auto.image_pending', hide: true });
         else if (scan.verdict === 'review') await moderationHooks.holdImage({ userId: uploader.id, type, url: publicUrl, reasonCode: 'auto.image_review', hide: false });
       }
@@ -203,11 +211,11 @@ router.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
           ? uploader?.wallpaperBase64
           : uploader?.photoURL;
 
-      if (!isMessageImage && !isCardImage && previousImageUrl && previousImageUrl !== publicUrl) {
+      if (!isMessageImage && !isCardImage && !isFeedbackImage && previousImageUrl && previousImageUrl !== publicUrl) {
         await deleteR2ObjectByPublicUrl(previousImageUrl, req.user.sub);
       }
 
-      res.json({ success: true, url: publicUrl, dominantColor, complementaryColor, ...(hold ? { pending: true } : {}) });
+      res.json({ success: true, url: publicUrl, dominantColor, complementaryColor, ...(hold ? { pending: true } : {}), ...(isFeedbackImage ? { reviewRequired: scan.verdict === 'review' } : {}) });
     } catch (error) {
       if (!published) await deleteR2ObjectByPublicUrl(publicUrl, req.user.sub);
       throw error;

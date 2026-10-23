@@ -376,8 +376,8 @@ export default function FolderAddTab({
               </div>
               {showCardDetails && (
                 <div className={`text-center border-t border-gray-100 w-full ${gridCols <= 2 ? 'p-2' : gridCols === 3 ? 'p-3' : gridCols === 4 ? 'p-2' : 'p-1'}`}>
-                  <p className={`font-bold text-gray-900 truncate ${gridCols === 1 ? 'text-base' : gridCols === 2 ? 'text-xl' : gridCols === 3 ? 'text-base' : gridCols === 4 ? 'text-sm' : 'text-xs'}`}>{cardLabel(card)}</p>
-                  <p className={`text-gray-500 truncate mt-1 ${gridCols === 1 ? 'text-xs' : gridCols === 2 ? 'text-lg' : gridCols === 3 ? 'text-sm' : gridCols === 4 ? 'text-xs' : 'text-[10px]'}`}>{getCardSetName(card)}</p>
+                  <p className={`w-full whitespace-normal break-words text-center font-bold leading-tight text-gray-900 ${gridCols === 1 ? 'text-sm' : gridCols === 2 ? 'text-[13px]' : gridCols === 3 ? 'text-xs' : gridCols === 4 ? 'text-[11px]' : 'text-[10px]'}`}>{cardLabel(card)}</p>
+                  <p className={`mt-1 w-full whitespace-normal break-words text-center leading-tight text-gray-500 ${gridCols === 1 ? 'text-xs' : gridCols === 2 ? 'text-[11px]' : gridCols === 3 ? 'text-[10px]' : 'text-[9px]'}`}>{getCardSetName(card)}</p>
                   {referenceGame && <ReferencePriceLine variants={variantsFor(card)}className={`mt-0.5 ${gridCols === 1 ? 'text-sm' : gridCols === 2 ? 'text-lg' : gridCols === 3 ? 'text-sm' : 'text-xs'}`} />}
                 </div>
               )}

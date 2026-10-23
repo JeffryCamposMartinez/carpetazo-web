@@ -723,6 +723,7 @@ model Feedback {
   kind          String // complaint | suggestion | support
   title         String
   message       String
+  attachments   Json      @default("[]")
   status        String    @default("open") // open | corrected
   priority      Boolean   @default(false)
   moderatorNote String?

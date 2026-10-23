@@ -4,7 +4,8 @@ import { authenticateToken, currentUserId, requireStaff } from '../core/auth.js'
 import { prisma } from '../core/db.js';
 import { getEffectivePlan, lockPlanUser } from '../core/entitlements.js';
 import { notifyUser } from '../core/staffNotice.js';
-import { badRequest, hasControlChars, isUuid } from '../core/validation.js';
+import { badRequest, isUuid } from '../core/validation.js';
+import { getR2KeyFromPublicUrl, userR2Prefix } from '../core/r2.js';
 
 const router = express.Router();
 const KINDS = ['complaint', 'suggestion', 'support'];
@@ -12,15 +13,19 @@ const STATUSES = ['open', 'corrected', 'all'];
 const TITLE_MAX = 120;
 const MESSAGE_MAX = 3000;
 const NOTE_MAX = 1000;
+const ATTACHMENT_MAX = 3;
 const PAGE_SIZE = 30;
 
 const clean = (value, max) => (typeof value === 'string' ? value.replace(/\r\n/g, '\n').trim().slice(0, max) : '');
-const textOk = (value, max, min = 1) => typeof value === 'string' && !hasControlChars(value) && clean(value, max + 1).length >= min && clean(value, max + 1).length <= max;
+// En mensajes se aceptan saltos de línea y tabulaciones; se bloquean los demás controles no imprimibles.
+const hasDisallowedControls = (value) => /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(value);
+const textOk = (value, max, min = 1) => typeof value === 'string' && !hasDisallowedControls(value) && clean(value, max + 1).length >= min && clean(value, max + 1).length <= max;
 const publicFeedback = (row) => ({
   id: row.id,
   kind: row.kind,
   title: row.title,
   message: row.message,
+  attachments: Array.isArray(row.attachments) ? row.attachments : [],
   status: row.status,
   priority: Boolean(row.priority),
   moderatorNote: row.moderatorNote || null,
@@ -42,10 +47,23 @@ router.post('/api/feedback', authenticateToken, async (req, res) => {
     if (!textOk(req.body?.title, TITLE_MAX, 3) || !textOk(req.body?.message, MESSAGE_MAX, 10)) return badRequest(res, 'Completa un asunto y un mensaje válido');
     const userId = await currentUserId(req);
     if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const rawAttachments = req.body?.attachments ?? [];
+    if (!Array.isArray(rawAttachments) || rawAttachments.length > ATTACHMENT_MAX || rawAttachments.some((url) => typeof url !== 'string')) return badRequest(res, `Puedes adjuntar hasta ${ATTACHMENT_MAX} imágenes`);
+    const attachmentUrls = [...new Set(rawAttachments)];
+    if (attachmentUrls.length !== rawAttachments.length) return badRequest(res, 'Hay imágenes repetidas');
+    const ownerPrefix = userR2Prefix(req.user.sub) + 'feedback/';
+    const attachments = [];
+    for (const url of attachmentUrls) {
+      const key = getR2KeyFromPublicUrl(url);
+      if (!key || !key.startsWith(ownerPrefix) || !/^[a-f0-9]{32}\.webp$/.test(key.slice(ownerPrefix.length))) return badRequest(res, 'Una de las imágenes adjuntas no es válida');
+      const scanned = await prisma.imageHash.findUnique({ where: { url }, select: { userId: true, verdict: true } });
+      if (!scanned || scanned.userId !== userId || !['clear', 'review'].includes(scanned.verdict)) return badRequest(res, 'Vuelve a subir una de las imágenes para aplicar el filtro de seguridad');
+      attachments.push({ url, reviewRequired: scanned.verdict === 'review' });
+    }
     const row = await prisma.$transaction(async (tx) => {
       await lockPlanUser(tx, userId);
       const { plan } = await getEffectivePlan(tx, userId);
-      return tx.feedback.create({ data: { userId, kind, title, message, priority: kind === 'support' && plan.prioritySupport } });
+      return tx.feedback.create({ data: { userId, kind, title, message, attachments, priority: kind === 'support' && plan.prioritySupport } });
     });
     res.status(201).json({ success: true, feedback: publicFeedback(row) });
   } catch (error) {
