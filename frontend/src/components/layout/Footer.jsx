@@ -120,7 +120,7 @@ export default function Footer() {
     { name: 'Discord', url: settings.discordUrl },
     { name: 'Twitter / X', url: settings.twitterUrl, icon: null },
     { name: 'TikTok', url: settings.tiktokUrl, icon: null },
-  ].filter((item) => Boolean(item.url && item.url.trim()));
+  ].filter((item) => /^https:\/\//i.test(item.url || ''));
 
   const infoLinks = settings.infoLinks && settings.infoLinks.length > 0
     ? settings.infoLinks
@@ -237,17 +237,14 @@ export default function Footer() {
             </h3>
 
             <nav aria-label="Enlaces de información" className="flex flex-col gap-1 text-xs">
-              {infoLinks.map((item, idx) => (
-                <Link
-                  key={idx}
-                  to={item.url}
-                  className={`transition-colors duration-150 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] rounded py-0.5 ${
-                    isLight ? 'text-slate-600 hover:text-blue-700' : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
+              {infoLinks.filter((item) => /^(https:\/\/|\/(?!\/))/i.test(item.url || '')).map((item, idx) => {
+                const className = `transition-colors duration-150 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] rounded py-0.5 ${
+                  isLight ? 'text-slate-600 hover:text-blue-700' : 'text-slate-300 hover:text-white'
+                }`;
+                return item.url.startsWith('/')
+                  ? <Link key={idx} to={item.url} className={className}>{item.label}</Link>
+                  : <a key={idx} href={item.url} target="_blank" rel="noopener noreferrer" className={className}>{item.label}</a>;
+              })}
             </nav>
           </div>
 

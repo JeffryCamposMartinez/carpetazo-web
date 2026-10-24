@@ -10,7 +10,7 @@ import { hashEmail, hashIp } from '../core/hashing.js';
 import { LEGAL_CURRENT } from '../core/legal.js';
 import { escapeHtml, sendUserEmail } from '../core/mail.js';
 import { badRequest, isOptionalText, isShortText, isUuid, validUsername } from '../core/validation.js';
-import { getFooterSettings, saveFooterSettings } from '../core/footerSettings.js';
+import { FooterValidationError, getFooterSettings, saveFooterSettings } from '../core/footerSettings.js';
 
 const router = express.Router();
 
@@ -370,6 +370,7 @@ router.put('/api/admin/site/footer', authenticateToken, requireStaff(2), async (
     }).catch(() => {});
     res.json({ success: true, settings: updated });
   } catch (error) {
+    if (error instanceof FooterValidationError) return badRequest(res, error.message);
     console.error('Error saving footer settings:', error);
     res.status(500).json({ success: false, message: 'Error interno al guardar la configuración' });
   }

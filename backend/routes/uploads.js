@@ -53,7 +53,7 @@ router.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
     const isMessageImage = type === 'message';
     const isCardImage = type === 'card';
     const isFeedbackImage = type === 'feedback';
-    // El banner y el fondo del perfil dependen del plan (el banner desde Entusiasta; el fondo, parte del Estudio, desde Premium)
+    // El banner y el fondo del perfil dependen del plan (el banner desde Raro; el fondo, parte del Estudio, desde Épico)
     if (isBanner || isWallpaper) {
       const owner = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
       if (owner) assertFeature((await getEffectivePlan(prisma, owner.id)).plan, isBanner ? 'profileBanner' : 'profileStudio');

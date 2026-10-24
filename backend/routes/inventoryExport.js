@@ -1,4 +1,4 @@
-// Exportar mi inventario (CSV): las cartas de mis carpetas, todas o de una. Es una función de plan (Entusiasta en adelante).
+// Exportar mi inventario (CSV): las cartas de mis carpetas, todas o de una. Es una función de plan (Raro en adelante).
 import express from 'express';
 import { authenticateToken } from '../core/auth.js';
 import { prisma } from '../core/db.js';

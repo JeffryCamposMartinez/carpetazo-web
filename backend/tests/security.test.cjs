@@ -29,7 +29,7 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     ok('cambiar otra vez la foto → 200', r.status === 200, String(r.status));
     ok('...y SÍ se borra la foto anterior propia', (await r2Log()).some((entry) => entry.op === 'delete' && entry.key === firstOwn));
 
-    // 1b) Portada: se guarda también su copia para celular (_m) y al cambiarla se borran las dos (el banner es de Entusiasta en adelante)
+    // 1b) Portada: se guarda también su copia para celular (_m) y al cambiarla se borran las dos (el banner es de Raro en adelante)
     await call('POST', '/billing/test-plan', 'ignacio', { planKey: 'enthusiast' }, '10.72.0.1');
     r = await upload('ignacio', await picture(203), 'banner');
     ok('subir una portada → 200', r.status === 200, String(r.status));
