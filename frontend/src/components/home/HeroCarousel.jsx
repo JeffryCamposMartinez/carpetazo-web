@@ -55,7 +55,7 @@ function CardRow({ card, detail, end }) {
 function SellPanel() {
   const rows = [[CARDS.pokemon, 1, 38000], [CARDS.yugioh, 2, 6000], [CARDS.mitos, 3, 2500]];
   return (
-    <Panel label="Ejemplo de una carpeta" className="max-w-[24rem] rotate-1 rounded-[1.5rem] border-t-4 border-[#facc15]">
+    <Panel label="Ejemplo de una carpeta" className="max-w-[24rem] rotate-1 rounded-[1.5rem]">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-sm font-black">Mi carpeta</span>
         <span className="inline-flex items-center gap-1 rounded-full bg-[#facc15] px-2.5 py-1 text-[11px] font-extrabold"><SvgIcon name="link" translate="no" className="text-[14px]" />Compartir</span>
@@ -104,7 +104,7 @@ function OrdersPanel() {
 function SearchPanel() {
   const rows = [[CARDS.magic, 3, 120000], [CARDS.yugioh, 5, 6000], [CARDS.mitos, 2, 2500]];
   return (
-    <Panel label="Ejemplo de una búsqueda en Cartas" className="max-w-[22rem] -rotate-3 rounded-[1.5rem] border-b-4 border-emerald-500/40">
+    <Panel label="Ejemplo de una búsqueda en Cartas" className="max-w-[22rem] -rotate-3 rounded-[1.5rem]">
       <div className="flex items-center gap-2 rounded-xl bg-blue-50 px-3 py-2.5 text-[13px] font-semibold text-[#12315f]/70"><SvgIcon name="search" translate="no" className="text-[18px] text-[#1e40af]" />Buscar en todas las carpetas…</div>
       <ul className="mt-2 divide-y divide-blue-50">
         {rows.map(([card, sellers, price]) => (
@@ -148,7 +148,7 @@ function SocialPanel({ items = [] }) {
           ))}
         </ul>
       ) : (
-        <div className="rounded-xl bg-blue-50 px-4 py-5 text-center text-sm font-semibold text-slate-500">Próximamente en redes sociales.</div>
+        <div className="rounded-xl bg-blue-50 px-4 py-5 text-center text-sm font-semibold text-[#12315f]/70">Próximamente en redes sociales.</div>
       )}
     </Panel>
   );

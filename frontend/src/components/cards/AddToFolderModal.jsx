@@ -18,7 +18,7 @@ const LANGUAGE_OPTIONS = [{ value: 'English', label: 'Inglés' }, { value: 'Span
 const label = 'mb-1 block text-sm font-extrabold text-[#12315f]';
 const box = 'flex h-12 w-full items-center rounded-xl border-2 border-[#12315f]/15 bg-white shadow-sm transition-[border-color,box-shadow] duration-150 focus-within:border-[#1e40af] focus-within:shadow-[0_0_0_3px_rgba(30,64,175,0.15)]';
 const bare = 'min-w-0 flex-1 border-0 bg-transparent px-3 shadow-none focus:border-0 focus:shadow-none focus:ring-0 focus:ring-offset-0 text-base font-bold text-[#12315f] outline-none placeholder:font-medium placeholder:text-slate-500 sm:text-[15px]';
-const stepButton = 'flex h-full w-10 shrink-0 items-center justify-center text-[#1e40af] transition-colors hover:bg-blue-50 active:bg-blue-100 disabled:text-slate-300 disabled:hover:bg-transparent focus-visible:outline-none focus-visible:bg-blue-50';
+const stepButton = 'flex h-full w-10 shrink-0 items-center justify-center text-[#1e40af] transition-colors hover:bg-blue-50 active:bg-blue-100 disabled:text-[#12315f]/30 disabled:hover:bg-transparent focus-visible:outline-none focus-visible:bg-blue-50';
 
 const productIdOf = (card) => String(card.tcgProductId || card.payload?.productId || card.payload?.external?.productId || '').replace(/^(tcgcsv|myl):/, '');
 
