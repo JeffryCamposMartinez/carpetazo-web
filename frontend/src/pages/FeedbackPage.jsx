@@ -6,6 +6,7 @@ import usePageMeta from '../hooks/usePageMeta';
 import { ButtonSpinner } from '../components/ui/LoadingState';
 import SvgIcon from '../components/ui/SvgIcon';
 import usePlan from '../hooks/usePlan';
+import { useToast } from '../components/ui/ToastProvider';
 
 const KIND_LABELS = { complaint: 'Reclamo', suggestion: 'Sugerencia', support: 'Soporte' };
 const STATUS_LABELS = { open: 'Pendiente de revisión', corrected: 'Respondida' };
@@ -29,6 +30,7 @@ const compressFeedbackImage = async (file) => {
 export default function FeedbackPage() {
   const { currentUser } = useAuth();
   const { plan } = usePlan();
+  const { showToast } = useToast();
   const [form, setForm] = useState({ kind: 'suggestion', title: '', message: '' });
   const [attachments, setAttachments] = useState([]);
   const [items, setItems] = useState([]);
@@ -67,7 +69,7 @@ export default function FeedbackPage() {
       setForm({ kind: form.kind, title: '', message: '' });
       attachments.forEach((attachment) => URL.revokeObjectURL(attachment.preview));
       setAttachments([]);
-      setNotice({ type: 'success', text: response.feedback.priority ? 'Consulta enviada con prioridad. El equipo la verá antes en su bandeja.' : 'Gracias. Tu mensaje quedó enviado al equipo de Carpetazo.' });
+      showToast(response.feedback.priority ? 'Consulta enviada con prioridad. El equipo la verá antes en su bandeja.' : '¡Mensaje enviado! Gracias por ayudar a mejorar Carpetazo.', 'success');
     } catch (error) {
       setNotice({ type: 'error', text: error.message || 'No se pudo enviar. Inténtalo nuevamente.' });
     } finally {
@@ -141,7 +143,7 @@ export default function FeedbackPage() {
             </label>
             <div>
               <span className="block text-sm font-bold text-[#12315f]">Imágenes <span className="font-medium text-slate-400">(opcional)</span></span>
-              <p className="mt-1 text-xs text-slate-500">Adjunta hasta 3 imágenes, sin límite de peso para el archivo original. Se optimizan a WebP en tu navegador y luego se envían a R2 tras pasar el filtro automático.</p>
+              <p className="mt-1 text-xs text-slate-500">Adjunta hasta 3 imágenes para ayudarnos a entender mejor tu mensaje.</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 {attachments.map((attachment) => (
                   <div key={attachment.id} className="relative h-16 w-16 overflow-hidden rounded-xl border border-[#b9c7e0] bg-slate-50">
