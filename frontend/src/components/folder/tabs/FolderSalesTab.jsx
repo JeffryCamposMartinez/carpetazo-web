@@ -5,7 +5,7 @@ import OrdersTab from '../../orders/OrdersTab';
 import InPersonSale from './InPersonSale';
 
 export default function FolderSalesTab({
-  cards, copyBuyerLink, folderId, folderOrders, handleOrderUpdated, ordersLoading, salesView, setCards, setSalesView, showToast
+  cards, copyBuyerLink, folderId, folderOrders, handleOrderUpdated, isActive, ordersLoading, salesView, setCards, setInPersonToolbarVisible, setSalesView, showScrollTop, showToast
 }) {
     const pendingCount = folderOrders.filter(o => o.status === 'pending').length;
     // Ventas presenciales de esta carpeta: se suman al historial
@@ -43,7 +43,7 @@ export default function FolderSalesTab({
           ]}
         />
         {salesView === 'presencial' ? (
-          <InPersonSale folderId={folderId} cards={cards} setCards={setCards} showToast={showToast} />
+          <InPersonSale active={isActive} folderId={folderId} cards={cards} onToolbarVisibilityChange={setInPersonToolbarVisible} showScrollTop={showScrollTop} setCards={setCards} showToast={showToast} />
         ) : (
           <OrdersTab
             showToast={showToast}

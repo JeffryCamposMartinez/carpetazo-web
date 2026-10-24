@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../../../services/api';
 import { formatClp } from '../../../services/tcgcsvPrices';
 import { cardRatio } from '../../../utils/cardShape';
@@ -12,7 +13,7 @@ const newRequestId = () => (globalThis.crypto?.randomUUID?.() || `${Date.now()}$
 const dateLabel = (value) => new Date(value).toLocaleString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
 // Venta presencial: se eligen las cartas vendidas en persona, se suma el total y al confirmar baja el stock de la carpeta.
-export default function InPersonSale({ folderId, cards, setCards, showToast }) {
+export default function InPersonSale({ active = true, folderId, cards, onToolbarVisibilityChange, setCards, showScrollTop, showToast }) {
   const [query, setQuery] = useState('');
   const [onlyPicked, setOnlyPicked] = useState(false);
   const [picked, setPicked] = useState({}); // cardId → { quantity }
@@ -20,6 +21,7 @@ export default function InPersonSale({ folderId, cards, setCards, showToast }) {
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState([]);
+  const [footerOffset, setFooterOffset] = useState(0);
   const requestId = useRef(newRequestId()); // se conserva si el envío falla: reintentar no registra dos veces
 
   const loadHistory = useCallback(() => api.getInPersonSales(folderId).then((response) => setHistory(response.sales || [])).catch(() => {}), [folderId]);
@@ -35,6 +37,39 @@ export default function InPersonSale({ folderId, cards, setCards, showToast }) {
   const discount = subtotal - total;
   const invalid = lines.some((card) => card.price === null || card.price === undefined || !Number.isInteger(Number(card.price)) || Number(card.price) < 0)
     || (hasFinalTotal && (finalTotalInput === '' || !Number.isInteger(finalTotal) || finalTotal < 0 || finalTotal > 100000000));
+  useEffect(() => {
+    onToolbarVisibilityChange?.(active && lines.length > 0);
+    return () => onToolbarVisibilityChange?.(false);
+  }, [active, lines.length, onToolbarVisibilityChange]);
+
+  useEffect(() => {
+    if (!active || lines.length === 0) {
+      setFooterOffset(0);
+      return undefined;
+    }
+    const footer = document.querySelector('footer');
+    if (!footer) return undefined;
+    let frame = 0;
+    const updateOffset = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const rect = footer.getBoundingClientRect();
+        const visibleHeight = Math.max(0, Math.min(window.innerHeight - rect.top, rect.height));
+        setFooterOffset(Math.ceil(visibleHeight));
+      });
+    };
+    window.addEventListener('scroll', updateOffset, { passive: true });
+    window.addEventListener('resize', updateOffset);
+    const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateOffset) : null;
+    resizeObserver?.observe(footer);
+    updateOffset();
+    return () => {
+      window.removeEventListener('scroll', updateOffset);
+      window.removeEventListener('resize', updateOffset);
+      resizeObserver?.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [active, lines.length]);
   useEffect(() => {
     if (lines.length === 0) {
       setFinalTotalInput(null);
@@ -77,7 +112,7 @@ export default function InPersonSale({ folderId, cards, setCards, showToast }) {
   };
 
   return (
-    <div className={`flex flex-col gap-4 ${lines.length ? 'pb-28' : ''}`}>
+    <div className={`flex flex-col gap-3 sm:gap-4 ${lines.length ? 'pb-[10rem] md:pb-32' : ''}`}>
       <section className={`${SURFACE} flex items-center gap-2 p-2 sm:gap-3 sm:p-2.5`} title="Toca las cartas que vendiste en persona. Al confirmar se descuentan del stock de esta carpeta; no es un pedido ni cambia los precios de mercado.">
         <h2 className="sr-only">Venta presencial: toca las cartas que vendiste en persona; al confirmar se descuentan del stock de esta carpeta</h2>
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#ffcb05] text-[#1a2b4b]"><SvgIcon name="payments" translate="no" aria-hidden="true" className="text-[22px]" /></span>
@@ -147,30 +182,36 @@ export default function InPersonSale({ folderId, cards, setCards, showToast }) {
         </section>
       )}
 
-      {lines.length > 0 && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 pl-3 pr-[5.5rem] md:pr-3 [padding-bottom:max(0.75rem,env(safe-area-inset-bottom))]">
-          <div className="pointer-events-auto mx-auto flex max-w-3xl items-center justify-between gap-2 rounded-2xl bg-[#1a2b4b] p-2.5 pl-4 text-white sm:gap-3 sm:p-3 sm:pl-5 shadow-[0_1px_2px_rgba(8,18,42,0.3),0_16px_32px_-12px_rgba(8,18,42,0.8)]">
-            <div className="min-w-0 text-sm text-blue-200">
-              <span className="tabular-nums">{units}</span> {units === 1 ? 'carta' : 'cartas'}
-              <label className="group mt-1 flex w-fit cursor-text flex-col rounded-xl border-2 border-[#ffcb05] bg-[#ffcb05]/10 px-2.5 py-1.5 transition-colors hover:bg-[#ffcb05]/20 focus-within:bg-[#ffcb05]/20 focus-within:ring-2 focus-within:ring-[#ffcb05]/40">
-                <span className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wide text-[#ffdf70]">
+      {active && lines.length > 0 && createPortal((
+        <div style={{ bottom: `calc(${footerOffset}px + env(safe-area-inset-bottom))` }} className="pointer-events-none fixed inset-x-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-[bottom] duration-150 ease-out sm:px-4">
+          <div className="mx-auto flex max-w-3xl flex-col items-end gap-3">
+            {showScrollTop && (
+              <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Volver arriba" className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border-2 border-white/20 bg-[#1e40af] text-white shadow-lg transition-transform hover:scale-110 active:scale-95 lg:hidden">
+                <SvgIcon name="arrow_upward" translate="no" aria-hidden="true" className="text-2xl" />
+              </button>
+            )}
+          <div className="pointer-events-auto grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)] items-center gap-1 rounded-xl bg-[#1a2b4b] p-2.5 text-white shadow-[0_1px_2px_rgba(8,18,42,0.3),0_16px_32px_-12px_rgba(8,18,42,0.8)] sm:gap-3 sm:rounded-2xl sm:p-3 sm:px-4">
+            <div className="flex min-w-0 items-center justify-center gap-0.5 whitespace-nowrap text-[11px] text-blue-200 sm:gap-1 sm:text-sm"><span className="tabular-nums">{units}</span>&nbsp;{units === 1 ? 'carta' : 'cartas'}
+              <button type="button" onClick={() => setPicked({})} aria-label="Limpiar selección" className={`${PRESS} flex h-8 w-6 shrink-0 items-center justify-center rounded-full text-sm font-bold text-blue-100 sm:h-10 sm:w-8 [@media(hover:hover)]:hover:bg-white/10`}><SvgIcon name="close" translate="no" aria-hidden="true" className="text-[18px]" /></button>
+            </div>
+            <label className="group mx-auto flex h-14 w-full max-w-[8rem] min-w-0 cursor-text flex-col justify-center rounded-lg border-2 border-[#ffcb05] bg-[#ffcb05]/10 px-1.5 py-1.5 transition-colors hover:bg-[#ffcb05]/20 focus-within:bg-[#ffcb05]/20 focus-within:ring-2 focus-within:ring-[#ffcb05]/40 sm:h-[4.25rem] sm:max-w-none sm:w-fit sm:rounded-xl sm:px-2.5 sm:py-2">
+                <span className="flex items-center justify-center gap-0.5 whitespace-nowrap text-[7px] font-extrabold uppercase tracking-wide text-[#ffdf70] sm:gap-1.5 sm:text-[10px]">
                   <SvgIcon name="edit" translate="no" aria-hidden="true" className="text-[14px]" /> Toca para cambiar
                 </span>
-                <span className="flex items-center gap-1">
-                  <span className="font-['Space_Grotesk'] text-xl font-bold text-white sm:text-2xl">$</span>
-                  <input type="number" inputMode="numeric" min="0" max="100000000" step="1" value={finalTotalInput ?? String(subtotal)} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setFinalTotalInput(event.target.value)} aria-label="Subtotal editable de la venta" className="w-36 min-w-0 border-0 bg-transparent p-0 font-['Space_Grotesk'] text-xl font-bold leading-tight tabular-nums text-white outline-none sm:text-2xl" />
+                <span className="flex items-center justify-center gap-1">
+                  <span className="font-['Space_Grotesk'] text-base font-bold text-white sm:text-2xl">$</span>
+                  <input type="number" inputMode="numeric" min="0" max="100000000" step="1" value={finalTotalInput ?? String(subtotal)} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setFinalTotalInput(event.target.value)} aria-label="Subtotal editable de la venta" className="w-[5rem] min-w-0 border-0 bg-transparent p-0 font-['Space_Grotesk'] text-base font-bold leading-tight tabular-nums text-white outline-none sm:w-36 sm:text-2xl" />
                 </span>
-              </label>
-            </div>
-            <div className="flex shrink-0 gap-2">
-              <button type="button" onClick={() => setPicked({})} aria-label="Limpiar selección" className={`${PRESS} flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold text-blue-100 sm:w-auto sm:px-4 [@media(hover:hover)]:hover:bg-white/10`}><SvgIcon name="close" translate="no" aria-hidden="true" className="text-[20px] sm:hidden" /><span className="hidden sm:inline">Limpiar</span></button>
-              <button type="button" disabled={invalid || saving} onClick={() => setConfirming(true)} className={`${PRESS} flex h-12 items-center gap-2 rounded-full bg-[#ffcb05] px-4 text-sm font-extrabold text-[#1a2b4b] shadow-sm disabled:opacity-50 sm:px-6`}>
+            </label>
+            <div className="flex justify-end">
+              <button type="button" disabled={invalid || saving} onClick={() => setConfirming(true)} className={`${PRESS} flex h-14 min-w-[4.5rem] items-center justify-center gap-1 rounded-lg bg-[#ffcb05] px-3 text-sm font-extrabold text-[#1a2b4b] shadow-sm disabled:opacity-50 sm:h-[4.25rem] sm:min-w-[6.5rem] sm:gap-2 sm:rounded-lg sm:px-6 sm:text-base`}>
                 <SvgIcon name="check_circle" translate="no" aria-hidden="true" className="hidden text-[20px] sm:block" /> Vender
               </button>
             </div>
           </div>
+          </div>
         </div>
-      )}
+      ), document.body)}
 
       <ConfirmModal
         isOpen={confirming}
