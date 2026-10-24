@@ -143,7 +143,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           
           {/* Columna 1: Logo, Lema y Redes */}
-          <div className="flex flex-col items-start gap-2.5">
+          <div className="flex flex-col items-center gap-2.5 text-center">
             <Link
               to="/bienvenida"
               className="inline-block transition-transform duration-150 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] rounded-xl"
@@ -157,7 +157,7 @@ export default function Footer() {
 
             {settings.tagline && (
               <p
-                className={`text-xs leading-relaxed max-w-xs ${
+                className={`max-w-xs text-xs leading-relaxed ${
                   isLight ? 'text-slate-600' : 'text-slate-400'
                 }`}
                 style={{ color: themedFooterStyle ? 'inherit' : undefined, opacity: themedFooterStyle ? 0.9 : undefined }}

@@ -124,6 +124,28 @@
     width: 6px;
   }
 
+  .profile-sales-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--sales-scrollbar-thumb) var(--sales-scrollbar-track);
+  }
+  .profile-sales-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  .profile-sales-scrollbar::-webkit-scrollbar-track {
+    background: var(--sales-scrollbar-track);
+    border-radius: 999px;
+  }
+  .profile-sales-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--sales-scrollbar-thumb);
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+  }
+  .profile-sales-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--sales-scrollbar-thumb-hover);
+    background-clip: padding-box;
+  }
+
 @layer utilities {
   .nav-effect-desktop {
     @apply text-white/80 bg-transparent px-5 py-2 rounded-xl transition-all duration-300 font-bold text-sm;

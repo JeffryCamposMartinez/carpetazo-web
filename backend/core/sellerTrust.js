@@ -61,3 +61,31 @@ export const clearResponseStatsCache = () => cache.clear();
 
 // Ventas confirmadas (pedidos completados) del vendedor
 export const getCompletedSales = (sellerId) => prisma.order.count({ where: { sellerId, status: 'completed' } });
+// Historial público resumido: solo fecha y artículos vendidos, sin datos del comprador ni del pedido.
+export const getRecentCompletedSales = async (sellerId, take = 5) => {
+  const orders = await prisma.order.findMany({
+    where: { sellerId, status: 'completed' },
+    orderBy: { updatedAt: 'desc' },
+    take,
+    select: { updatedAt: true, items: true }
+  });
+  const cardIds = [...new Set(orders.flatMap((order) => (Array.isArray(order.items) ? order.items : []).map((item) => String(item?.id || '')).filter(Boolean)))];
+  const cards = cardIds.length
+    ? await prisma.card.findMany({ where: { id: { in: cardIds } }, select: { id: true, imageUrl: true } })
+    : [];
+  const images = new Map(cards.map((card) => [card.id, card.imageUrl]));
+
+  return orders.map((order) => ({
+    completedAt: order.updatedAt,
+    items: (Array.isArray(order.items) ? order.items : []).map((item) => {
+      const quantity = Math.max(1, Number(item?.quantity ?? item?.q) || 1);
+      const unitPrice = Math.max(0, Number(item?.price) || 0);
+      return {
+        name: typeof item?.name === 'string' ? item.name : 'Carta',
+        quantity,
+        unitPrice,
+        imageUrl: images.get(String(item?.id || '')) || null
+      };
+    })
+  }));
+};

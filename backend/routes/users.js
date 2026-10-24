@@ -9,7 +9,7 @@ import { PlanFeatureError, PlanLimitError, getEffectivePlan, lockPlanUser, sendP
 import { acceptedCache, getLegalStatus } from '../core/legal.js';
 import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/publicSeller.js';
 import { deleteR2ObjectByPublicUrl } from '../core/r2.js';
-import { getCompletedSales, getResponseStats } from '../core/sellerTrust.js';
+import { getCompletedSales, getRecentCompletedSales, getResponseStats } from '../core/sellerTrust.js';
 import { SOCIAL_DOMAINS, publicThemeStyleChanged, badRequest, checkImageField, checkSocialField, hasControlChars, isAllowedStoredImageUrl, isOptionalText, isShortText, normalizeUsername, isValidPhone, isValidRut, sanitizePublicTheme, usernameProblem, validUsername } from '../core/validation.js';
 import { moderationHooks, restrictions } from '../moderation/services.js';
 
@@ -432,11 +432,13 @@ router.get('/api/users/:username', optionalAuth, optionalStaff, async (req, res)
       select: { id: true, name: true, imageUrl: true, price: true, stock: true, moderationState: true, folderId: true, folder: { select: { name: true } } }
     });
     const featuredCards = featured.map(({ moderationState, folder, ...card }) => ({ ...card, imageUrl: moderationState === 'image_hidden' ? null : card.imageUrl, folderName: folder.name }));
-    const [reviewSummary, responseTime, completedSales] = await Promise.all([getReviewSummary(seller.id), getResponseStats(seller.id), getCompletedSales(seller.id)]);
+    const [reviewSummary, responseTime, completedSales, recentSales] = await Promise.all([getReviewSummary(seller.id), getResponseStats(seller.id), getCompletedSales(seller.id), getRecentCompletedSales(seller.id)]);
     res.json({ success: true, user: {
       ...toPublicSeller(seller, req.user?.sub, reviewSummary),
       responseTime,
       completedSales,
+      lastSaleAt: recentSales[0]?.completedAt || null,
+      recentSales,
       folders: publicFolders,
       featuredCards,
       canViewPrivateFolders: req.staffLevel >= 2

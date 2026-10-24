@@ -287,7 +287,7 @@ export default function SellerProfile() {
       <ProfileHero {...profileHeroProps} />
 
       {/* Confianza: reseñas, carpetas, cartas y nivel de un vistazo */}
-      <ProfileTrustStrip completedSales={seller?.completedSales} folders={folders.length} memberSince={seller?.createdAt} profileLevel={profileLevel} publicTheme={publicTheme} responseTime={seller?.responseTime} reviewSummary={seller?.reviewSummary} totalCards={totalCards} />
+      <ProfileTrustStrip completedSales={seller?.completedSales} folders={folders.length} lastSaleAt={seller?.lastSaleAt} memberSince={seller?.createdAt} profileLevel={profileLevel} publicTheme={publicTheme} recentSales={seller?.recentSales} responseTime={seller?.responseTime} reviewSummary={seller?.reviewSummary} totalCards={totalCards} />
 
       {/* Módulos: el orden y el ancho salen de la distribución elegida */}
       <ProfileModules {...profileModulesProps} />
