@@ -36,6 +36,7 @@ export default function InPersonSale({ active = true, folderId, cards, onToolbar
   const finalTotal = hasFinalTotal ? Number(finalTotalInput || 0) : subtotal;
   const total = finalTotal;
   const discount = subtotal - total;
+  const missingPrice = lines.some((card) => card.price === null || card.price === undefined);
   const invalid = lines.some((card) => card.price === null || card.price === undefined || !Number.isInteger(Number(card.price)) || Number(card.price) < 0)
     || (hasFinalTotal && (finalTotalInput === '' || !Number.isInteger(finalTotal) || finalTotal < 0 || finalTotal > 100000000));
   useEffect(() => {
@@ -200,6 +201,7 @@ export default function InPersonSale({ active = true, folderId, cards, onToolbar
                 <SvgIcon name="arrow_upward" translate="no" aria-hidden="true" className="text-2xl" />
               </button>
             )}
+          {missingPrice && <p role="alert" className="pointer-events-auto w-full rounded-xl bg-[#ffcb05] px-3 py-2 text-center text-xs font-bold text-[#1a2b4b] shadow-lg">Una carta elegida no tiene precio publicado. Ponle precio en la pestaña Carpeta o quítala para vender.</p>}
           <div className="pointer-events-auto grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)] items-center gap-1 rounded-xl bg-[#1a2b4b] p-2.5 text-white shadow-[0_1px_2px_rgba(8,18,42,0.3),0_16px_32px_-12px_rgba(8,18,42,0.8)] sm:gap-3 sm:rounded-2xl sm:p-3 sm:px-4">
             <div className="flex min-w-0 items-center justify-center gap-0.5 whitespace-nowrap text-xs font-semibold text-blue-100 sm:gap-1 sm:text-sm"><span className="tabular-nums">{units}</span>&nbsp;{units === 1 ? 'carta' : 'cartas'}
               <button type="button" onClick={() => setPicked({})} aria-label="Limpiar selección" className={`${PRESS} flex h-8 w-6 shrink-0 items-center justify-center rounded-full text-sm font-bold text-blue-100 sm:h-10 sm:w-8 [@media(hover:hover)]:hover:bg-white/10`}><SvgIcon name="close" translate="no" aria-hidden="true" className="text-[18px]" /></button>
@@ -226,7 +228,16 @@ export default function InPersonSale({ active = true, folderId, cards, onToolbar
       <ConfirmModal
         isOpen={confirming}
         title="Registrar venta"
-        message={`${units} ${units === 1 ? 'carta' : 'cartas'}. Subtotal publicado: ${formatClp(subtotal)}${discount > 0 ? `. Descuento: ${formatClp(discount)}` : ''}. Total final: ${formatClp(total)}. Se descontarán del stock de esta carpeta.`}
+        message={(
+          <>
+            <span className="block font-bold text-white">{units} {units === 1 ? 'carta' : 'cartas'}</span>
+            <span className="mt-2 block">Subtotal publicado: {formatClp(subtotal)}</span>
+            {discount > 0 && <span className="block">Descuento: −{formatClp(discount)}</span>}
+            {discount < 0 && <span className="block">Recargo: +{formatClp(-discount)}</span>}
+            <span className="mt-1 block text-base font-extrabold text-[#ffdf70]">Total final: {formatClp(total)}</span>
+            <span className="mt-2 block text-xs">Se descontarán del stock de esta carpeta.</span>
+          </>
+        )}
         confirmText={saving ? 'Registrando…' : 'Confirmar venta'}
         isDestructive={false}
         onConfirm={() => { if (!saving) sell(); }}
