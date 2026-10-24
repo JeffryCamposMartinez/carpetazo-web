@@ -1,5 +1,6 @@
 // Señales de confianza de un vendedor, calculadas solo con datos reales de la plataforma.
 import { prisma } from './db.js';
+import { r2PublicUrl } from './tcgCatalogImport.js';
 
 // Vendedor verificado: correo confirmado por Firebase y perfil completo (foto, comuna y WhatsApp). No es una verificación de identidad.
 export const isVerifiedSeller = (user) => Boolean(
@@ -73,7 +74,25 @@ export const getRecentCompletedSales = async (sellerId, take = 5) => {
   const cards = cardIds.length
     ? await prisma.card.findMany({ where: { id: { in: cardIds } }, select: { id: true, imageUrl: true } })
     : [];
-  const images = new Map(cards.map((card) => [card.id, card.imageUrl]));
+  const images = new Map(cards.filter((card) => card.imageUrl).map((card) => [card.id, card.imageUrl]));
+
+  // Si la carta ya no está en la carpeta (se agotó y se quitó), se busca su imagen por su identificador en otras cartas o en el catálogo
+  const lines = orders.flatMap((order) => (Array.isArray(order.items) ? order.items : []));
+  const lost = lines.filter((item) => !images.has(String(item?.id || '')) && typeof item?.tcgId === 'string' && item.tcgId);
+  const byTcgId = new Map();
+  if (lost.length) {
+    const tcgIds = [...new Set(lost.map((item) => item.tcgId))].slice(0, 60);
+    const twins = await prisma.card.findMany({ where: { tcgId: { in: tcgIds }, imageUrl: { not: null } }, select: { tcgId: true, imageUrl: true }, distinct: ['tcgId'] });
+    twins.forEach((card) => byTcgId.set(card.tcgId, card.imageUrl));
+    const productIds = tcgIds.filter((id) => !byTcgId.has(id)).map((id) => /^(?:tcgcsv:)?(\d{1,9})$/.exec(id)?.[1]).filter(Boolean).map(Number);
+    if (productIds.length) {
+      const catalog = await prisma.catalogCard.findMany({ where: { productId: { in: productIds } }, select: { productId: true, imageKey: true, thumbKey: true } });
+      for (const row of catalog) {
+        const url = r2PublicUrl(row.imageKey || row.thumbKey);
+        if (url) tcgIds.filter((id) => id.replace(/^(?:tcgcsv|myl):/, '') === String(row.productId)).forEach((id) => byTcgId.set(id, url));
+      }
+    }
+  }
 
   return orders.map((order) => ({
     completedAt: order.updatedAt,
@@ -84,7 +103,7 @@ export const getRecentCompletedSales = async (sellerId, take = 5) => {
         name: typeof item?.name === 'string' ? item.name : 'Carta',
         quantity,
         unitPrice,
-        imageUrl: images.get(String(item?.id || '')) || null
+        imageUrl: images.get(String(item?.id || '')) || byTcgId.get(item?.tcgId) || null
       };
     })
   }));
