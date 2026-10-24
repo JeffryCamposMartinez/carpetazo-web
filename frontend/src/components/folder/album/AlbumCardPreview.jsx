@@ -59,9 +59,9 @@ export default function AlbumCardPreview({
       <div className="w-full md:w-[52%] h-[46%] md:h-full bg-black/20 flex items-center justify-center p-2 md:p-8 relative" onClick={(e) => e.stopPropagation()}>
         {isDesktop && <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-black/80 to-transparent pointer-events-none z-10" />}
         <div className="absolute inset-3 md:inset-6 rounded-2xl border border-white/10 bg-white/[0.03] shadow-[inset_0_0_28px_rgba(255,255,255,0.04)]" />
-        <div className="absolute right-1 top-[62%] z-30 flex w-[44%] -translate-y-1/2 flex-col items-start gap-2 md:hidden">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="rounded-full border border-yellow-300/30 bg-yellow-300/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-yellow-200">
+        <div className="absolute right-4 top-[62%] z-30 flex w-[42%] min-w-0 -translate-y-1/2 flex-col items-start gap-2 md:hidden">
+          <div className="flex max-w-full flex-wrap items-center gap-1.5">
+            <span className="max-w-full truncate whitespace-nowrap rounded-full border border-yellow-300/30 bg-yellow-300/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.05em] text-yellow-200">
               {tcg || 'Carta'}
             </span>
             {(tcg === 'Mitos y Leyendas' ? previewCard.set : previewCard.number) && (
