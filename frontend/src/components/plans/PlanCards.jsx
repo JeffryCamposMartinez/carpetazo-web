@@ -35,7 +35,7 @@ const PERK_DETAILS = {
   studio: 'Personaliza la apariencia de tu perfil eligiendo estilos y un fondo.',
   visits: 'Consulta el detalle de las visitas que recibe tu perfil y tus carpetas.',
   export: 'Descarga tu inventario en un archivo CSV para revisarlo en una hoja de cálculo.',
-  boost: 'Tus cartas aparecen primero en las búsquedas públicas de cartas en venta: Tienda, luego Legendario y después los demás planes. Se mantiene el orden elegido dentro de cada nivel.',
+  boost: 'Aumenta la probabilidad de que tus cartas aparezcan antes en las búsquedas públicas. La posición rota entre vendedores y no se garantiza un primer lugar.',
   support: 'Envía consultas desde Reclamos y sugerencias. Con Legendario o Tienda quedan marcadas como prioritarias y aparecen antes en la bandeja del equipo.'
 };
 
@@ -57,7 +57,7 @@ function UpgradeMark() {
 
 // Lo que trae el plan y qué mejora respecto al anterior.
 function perksOf(plan, prev) {
-  const boostLabel = ['', 'Prioridad en los listados', 'Mayor prioridad en los listados'];
+  const boostLabel = ['', 'Más posibilidades de aparecer antes', 'Alta posibilidad de aparecer antes'];
   const wishlistText = prev
     ? `${plan.wishlistLists} listas de deseos de hasta ${plan.wishlistItems} cartas`
     : `${plan.wishlistLists} ${plan.wishlistLists === 1 ? 'lista' : 'listas'} de deseos de ${plan.wishlistItems} cartas`;

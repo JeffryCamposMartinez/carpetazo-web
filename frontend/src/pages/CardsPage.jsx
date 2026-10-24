@@ -46,6 +46,7 @@ export default function CardsPage() {
   const [failed, setFailed] = useState(false);
   const [view, setView] = useState(readView);
   const [isWide, setIsWide] = useState(() => window.matchMedia('(min-width: 1024px)').matches);
+  const [searchRotation, setSearchRotation] = useState(() => Math.random().toString(36).slice(2, 12));
 
   // En pantallas anchas siempre es cuadrícula; la lista es solo para el celular y la tablet
   useEffect(() => {
@@ -61,6 +62,7 @@ export default function CardsPage() {
   };
 
   const updateParams = (changes, { resetPage = true } = {}) => {
+    if (resetPage) setSearchRotation(Math.random().toString(36).slice(2, 12));
     const next = new URLSearchParams(searchParams);
     Object.entries({ ...changes, ...(resetPage ? { page: '' } : {}) }).forEach(([key, value]) => {
       if (value) next.set(key, value); else next.delete(key);
@@ -88,12 +90,13 @@ export default function CardsPage() {
     if (comuna) params.set('comuna', comuna);
     if (sort !== 'recent') params.set('sort', sort);
     if (page > 1) params.set('page', String(page));
+    params.set('rotation', searchRotation);
     api.searchCards(params.toString())
       .then((res) => { if (!cancelled) startTransition(() => setResult(res.success ? res : EMPTY)); })
       .catch(() => { if (!cancelled) { setFailed(true); setResult(EMPTY); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [urlQuery, tcg, seller, comuna, sort, page]);
+  }, [urlQuery, tcg, seller, comuna, sort, page, searchRotation]);
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   const goToPage = (next) => {
@@ -103,7 +106,7 @@ export default function CardsPage() {
   // Al cambiar de juego primero se sube a la primera carta y después cambia la lista
   const changeTcg = (value) => scrollToTopThen(() => updateParams({ tcg: value }));
 
-  const clearAll = () => { setQueryInput(''); setSearchParams(new URLSearchParams(sort !== 'recent' ? { sort } : {}), { replace: true }); };
+  const clearAll = () => { setQueryInput(''); setSearchRotation(Math.random().toString(36).slice(2, 12)); setSearchParams(new URLSearchParams(sort !== 'recent' ? { sort } : {}), { replace: true }); };
 
   // Lo que hizo la persona en esta pantalla manda; si no hizo nada con esa carta, vale lo que ya tenía en sus listas
   const wantedState = (card) => (wanted[card.id] !== undefined ? wanted[card.id] : (wishlistIndex.get(wishlistKeyOf(wishlistPayloadFromCard(card, card.folder?.tcg))) || false));

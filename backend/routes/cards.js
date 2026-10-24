@@ -331,16 +331,39 @@ const cardSlice = (where, sort, skip, take) => RANKED_SORTS.has(sort)
   ? rankedCardSlice(where, sort, skip, take)
   : prisma.card.findMany({ where, orderBy: CARD_SEARCH_SORTS[sort], skip, take, select: CARD_SEARCH_SELECT });
 
-// La prioridad de plan se aplica a todos los ordenamientos y páginas, conservando el orden seleccionado dentro de cada nivel.
-const prioritizedCardPage = async (where, sort, skip, take, boosts) => {
-  const priorityUsers = [...boosts.keys()];
-  if (!priorityUsers.length) return cardSlice(where, sort, skip, take);
-  const storeUsers = priorityUsers.filter((id) => boosts.get(id) === 2);
-  const legendUsers = priorityUsers.filter((id) => boosts.get(id) === 1);
+const stableChance = (value) => {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) / 4294967296;
+};
+
+// Cada búsqueda asigna una posición probable por vendedor. El resultado se mantiene estable
+// entre páginas durante la sesión, pero cambia al abrir una búsqueda nueva.
+const randomizedBoosts = (boosts, seed) => {
+  const map = new Map();
+  for (const [userId, level] of boosts) {
+    const chance = stableChance(`${seed}:${userId}`);
+    if (level === 2) map.set(userId, chance < 0.7 ? 2 : chance < 0.85 ? 1 : 0);
+    else if (level === 1) map.set(userId, chance < 0.55 ? 1 : 0);
+  }
+  return map;
+};
+
+// La prioridad del plan mejora la posición con probabilidad, sin garantizar el primer lugar.
+const prioritizedCardPage = async (where, sort, skip, take, boosts, seed) => {
+  if (!boosts.size) return cardSlice(where, sort, skip, take);
+  const randomized = randomizedBoosts(boosts, seed);
+  const storeUsers = [...randomized].filter(([, level]) => level === 2).map(([id]) => id);
+  const legendUsers = [...randomized].filter(([, level]) => level === 1).map(([id]) => id);
+  if (!storeUsers.length && !legendUsers.length) return cardSlice(where, sort, skip, take);
+  const prioritizedUsers = [...storeUsers, ...legendUsers];
   const groups = [
     ...(storeUsers.length ? [{ level: 2, where: { ...where, folder: { ...where.folder, userId: { in: storeUsers } } } }] : []),
     ...(legendUsers.length ? [{ level: 1, where: { ...where, folder: { ...where.folder, userId: { in: legendUsers } } } }] : []),
-    { level: 0, where: { ...where, folder: { ...where.folder, userId: { notIn: priorityUsers } } } }
+    { level: 0, where: { ...where, folder: { ...where.folder, userId: { notIn: prioritizedUsers } } } }
   ];
   const counts = await Promise.all(groups.map(({ where: groupWhere }) => prisma.card.count({ where: groupWhere })));
   const cards = [];
@@ -350,7 +373,7 @@ const prioritizedCardPage = async (where, sort, skip, take, boosts) => {
     if (offset >= groupCount) { offset -= groupCount; continue; }
     const amount = Math.min(take - cards.length, groupCount - offset);
     const rows = await cardSlice(groups[index].where, sort, offset, amount);
-    cards.push(...rows.map((card) => ({ ...card, _boost: boosts.get(card.folder.userId) || 0 })));
+    cards.push(...rows.map((card) => ({ ...card, _boost: randomized.get(card.folder.userId) || 0 })));
     offset = 0;
   }
   return cards;
@@ -363,6 +386,9 @@ router.get('/api/cards/search', async (req, res) => {
     const tcg = CARD_SEARCH_TCG_ALIASES[tcgRaw] || tcgRaw;
     const sort = typeof req.query.sort === 'string' ? req.query.sort : 'recent';
     const seller = typeof req.query.seller === 'string' ? req.query.seller.trim().toLowerCase() : '';
+    const rotation = typeof req.query.rotation === 'string' && /^[a-z0-9]{6,16}$/i.test(req.query.rotation)
+      ? req.query.rotation
+      : `legacy-${Math.floor(Date.now() / 60_000)}`;
     const page = Number.parseInt(req.query.page, 10) || 1;
     const comuna = typeof req.query.comuna === 'string' ? req.query.comuna.trim() : '';
     if (comuna && !isValidComuna(comuna)) return badRequest(res, 'Búsqueda inválida');
@@ -392,7 +418,7 @@ router.get('/api/cards/search', async (req, res) => {
     const boosts = await userBoostLevels(prisma);
     const [total, cards] = await Promise.all([
       prisma.card.count({ where }),
-      prioritizedCardPage(where, sort, (page - 1) * CARD_SEARCH_PAGE_SIZE, CARD_SEARCH_PAGE_SIZE, boosts)
+      prioritizedCardPage(where, sort, (page - 1) * CARD_SEARCH_PAGE_SIZE, CARD_SEARCH_PAGE_SIZE, boosts, `${rotation}:${q}:${tcg}:${seller}:${comuna}:${sort}`)
     ]);
 
     // Lo que se busca y nadie tiene a la venta (solo el texto, sin datos de la persona): muestra qué cartas faltan en el mercado
