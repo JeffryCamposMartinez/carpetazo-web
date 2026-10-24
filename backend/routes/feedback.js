@@ -140,9 +140,12 @@ router.post('/api/admin/feedback/:id/corrected', authenticateToken, requireStaff
     });
     if (updated?.missingSupportReply) return badRequest(res, 'Escribe una respuesta antes de cerrar esta consulta de soporte');
     if (!updated) return res.status(409).json({ success: false, message: 'Esta entrada ya estaba corregida' });
-    if (updated.kind === 'support') {
-      await notifyUser({ actorId, targetId: updated.userId, title: 'Respondimos tu consulta de soporte', summary: 'Recibiste una respuesta a tu consulta de soporte.', message: note });
-    }
+    const notice = updated.kind === 'support'
+      ? { title: 'Respondimos tu consulta de soporte', summary: 'Recibiste una respuesta a tu consulta de soporte.' }
+      : updated.kind === 'complaint'
+        ? { title: 'Revisamos tu reclamo', summary: 'El equipo de Carpetazo marcó tu reclamo como atendido.' }
+        : { title: 'Revisamos tu sugerencia', summary: 'El equipo de Carpetazo revisó y marcó tu sugerencia como atendida.' };
+    await notifyUser({ actorId, targetId: updated.userId, ...notice, message: note || '' });
     res.json({ success: true, feedback: publicFeedback(updated) });
   } catch (error) {
     console.error('Error correcting feedback:', error);

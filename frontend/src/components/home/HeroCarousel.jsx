@@ -17,11 +17,11 @@ const THEMES = {
 };
 
 const money = (value) => `$${value.toLocaleString('es-CL')}`;
-const SLIDE_ORDER = ['marketplace', 'search', 'filters', 'sell', 'orders', 'wish', 'social'];
+const SLIDE_ORDER = ['marketplace', 'social', 'feedback', 'search', 'filters', 'sell', 'orders', 'wish'];
 
-function Panel({ children, label }) {
+function Panel({ children, label, className = '' }) {
   return (
-    <div className="w-full max-w-[22rem] -rotate-2 justify-self-center rounded-xl bg-white p-4 text-[#12315f] shadow-[0_24px_40px_-18px_rgba(2,12,40,0.7)] ring-1 ring-white/60">
+    <div className={`w-full max-w-[22rem] justify-self-center rounded-xl bg-white p-4 text-[#12315f] shadow-[0_24px_40px_-18px_rgba(2,12,40,0.7)] ring-1 ring-white/60 ${className}`}>
       {children}
       <p className="mt-3 text-center text-[11px] font-semibold text-slate-400">{label}</p>
     </div>
@@ -55,7 +55,7 @@ function CardRow({ card, detail, end }) {
 function SellPanel() {
   const rows = [[CARDS.pokemon, 1, 38000], [CARDS.yugioh, 2, 6000], [CARDS.mitos, 3, 2500]];
   return (
-    <Panel label="Ejemplo de una carpeta">
+    <Panel label="Ejemplo de una carpeta" className="max-w-[24rem] rotate-1 rounded-[1.5rem] border-t-4 border-[#facc15]">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-sm font-black">Mi carpeta</span>
         <span className="inline-flex items-center gap-1 rounded-full bg-[#facc15] px-2.5 py-1 text-[11px] font-extrabold"><SvgIcon name="link" translate="no" className="text-[14px]" />Compartir</span>
@@ -72,7 +72,7 @@ function SellPanel() {
 function FiltersPanel() {
   const chips = [['Edición', true], ['Idioma', true], ['Tipo', false], ['Raza', false], ['Coste', false]];
   return (
-    <Panel label="Ejemplo de búsqueda y filtros">
+    <Panel label="Ejemplo de búsqueda y filtros" className="max-w-[21rem] rotate-2 rounded-[1.75rem] ring-2 ring-violet-200/80">
       <div className="flex items-center gap-2 rounded-xl bg-blue-50 px-3 py-2.5 text-[13px] font-semibold text-[#12315f]/70"><SvgIcon name="search" translate="no" className="text-[18px] text-[#1e40af]" />Buscar carta…</div>
       <div className="mt-3 flex flex-wrap gap-1.5">
         {chips.map(([label, on]) => (
@@ -89,23 +89,22 @@ function FiltersPanel() {
 function OrdersPanel() {
   const rows = [[CARDS.yugioh, 2, 6000], [CARDS.riftbound, 1, 3500]];
   return (
-    <Panel label="Ejemplo de un pedido">
-      <div className="mb-2 flex items-center gap-2 text-sm font-black"><SvgIcon name="shopping_cart" translate="no" className="text-[18px] text-[#1e40af]" />Tu pedido</div>
-      <ul className="divide-y divide-blue-50">
-        {rows.map(([card, qty, price]) => (
-          <CardRow key={card.name} card={card} detail={`${qty} × ${money(price)}`} end={<span className="text-[13px] font-black tabular-nums">{money(qty * price)}</span>} />
-        ))}
-      </ul>
-      <div className="mt-1 flex items-center justify-between border-t-2 border-[#12315f]/10 pt-2.5"><span className="text-sm font-black">Total</span><span className="text-lg font-black tabular-nums">{money(rows.reduce((sum, [, qty, price]) => sum + qty * price, 0))}</span></div>
-      <div className="mt-3 flex items-center justify-between rounded-xl bg-[#fff7d1] px-3 py-2 text-xs font-bold"><span>Código del pedido</span><span className="rounded-md bg-white px-2 py-0.5 font-black">se lo enviamos al vendedor</span></div>
-    </Panel>
+    <div className="w-full max-w-[23rem] justify-self-center overflow-hidden rounded-2xl bg-white text-[#12315f] shadow-[0_24px_40px_-18px_rgba(2,12,40,0.7)] ring-1 ring-white/60">
+      <div className="flex items-center justify-between bg-[#12315f] px-4 py-3 text-white"><span className="flex items-center gap-2 text-sm font-black"><SvgIcon name="shopping_cart" translate="no" className="text-[19px] text-[#facc15]" />Pedido listo</span><span className="rounded-full bg-emerald-400/15 px-2.5 py-1 text-[10px] font-extrabold text-emerald-700 ring-1 ring-emerald-500/20">GENERADO</span></div>
+      <div className="p-4">
+        <ul className="divide-y divide-blue-50">{rows.map(([card, qty, price]) => <CardRow key={card.name} card={card} detail={`${qty} × ${money(price)}`} end={<span className="text-[13px] font-black tabular-nums">{money(qty * price)}</span>} />)}</ul>
+        <div className="mt-1 flex items-center justify-between border-t-2 border-[#12315f]/10 pt-2.5"><span className="text-sm font-black">Total</span><span className="text-lg font-black tabular-nums">{money(rows.reduce((sum, [, qty, price]) => sum + qty * price, 0))}</span></div>
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-dashed border-[#1e40af]/30 bg-blue-50 px-3 py-2 text-xs font-bold"><SvgIcon name="confirmation_number" translate="no" className="text-[17px] text-[#1e40af]" /><span>Código listo para enviar al vendedor</span></div>
+      </div>
+      <p className="border-t border-slate-100 px-4 py-2 text-center text-[11px] font-semibold text-slate-400">Ejemplo de un pedido</p>
+    </div>
   );
 }
 
 function SearchPanel() {
   const rows = [[CARDS.magic, 3, 120000], [CARDS.yugioh, 5, 6000], [CARDS.mitos, 2, 2500]];
   return (
-    <Panel label="Ejemplo de una búsqueda en Cartas">
+    <Panel label="Ejemplo de una búsqueda en Cartas" className="max-w-[22rem] -rotate-3 rounded-[1.5rem] border-b-4 border-emerald-500/40">
       <div className="flex items-center gap-2 rounded-xl bg-blue-50 px-3 py-2.5 text-[13px] font-semibold text-[#12315f]/70"><SvgIcon name="search" translate="no" className="text-[18px] text-[#1e40af]" />Buscar en todas las carpetas…</div>
       <ul className="mt-2 divide-y divide-blue-50">
         {rows.map(([card, sellers, price]) => (
@@ -119,7 +118,7 @@ function SearchPanel() {
 function WishPanel() {
   const rows = [[CARDS.magic, '$120.000', false], [CARDS.onepiece, '$4.000', false], [CARDS.riftbound, '$3.500', true]];
   return (
-    <Panel label="Ejemplo de una lista de deseos">
+    <Panel label="Ejemplo de una lista de deseos" className="max-w-[21rem] rotate-2 rounded-[1.5rem] border border-rose-100">
       <div className="mb-2 flex items-center gap-2 text-sm font-black"><SvgIcon name="favorite" translate="no" className="text-[18px] text-rose-500" />Mi lista de deseos</div>
       <ul className="divide-y divide-blue-50">
         {rows.map(([card, max, hit]) => (
@@ -152,6 +151,34 @@ function SocialPanel({ items = [] }) {
         <div className="rounded-xl bg-blue-50 px-4 py-5 text-center text-sm font-semibold text-slate-500">Próximamente en redes sociales.</div>
       )}
     </Panel>
+  );
+}
+
+function FeedbackArtwork() {
+  return (
+    <div className="relative mx-auto flex h-[92px] w-full max-w-[330px] items-center justify-center md:h-[245px] md:max-w-[430px]" aria-hidden="true">
+      <div className="absolute left-4 top-1 w-[68%] -rotate-3 rounded-xl bg-white p-2.5 text-[#12315f] shadow-xl ring-1 ring-white/70 md:left-3 md:top-8 md:rotate-[-6deg] md:rounded-2xl md:p-5">
+        <div className="flex items-center gap-2 text-[11px] font-extrabold md:text-sm"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#fff4bf] text-[#12315f] md:h-10 md:w-10"><SvgIcon name="lightbulb" translate="no" className="text-[18px] md:text-[24px]" /></span>Una idea para Carpetazo</div>
+        <div className="mt-2 space-y-1.5 md:mt-3 md:space-y-2"><span className="block h-1.5 w-[90%] rounded-full bg-blue-100 md:h-2" /><span className="block h-1.5 w-[72%] rounded-full bg-blue-100 md:h-2" /><span className="block h-1.5 w-[54%] rounded-full bg-blue-100 md:h-2" /></div>
+        <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-[#e9f8ef] px-2 py-0.5 text-[9px] font-extrabold text-emerald-700 md:mt-3 md:px-2.5 md:py-1 md:text-xs"><SvgIcon name="check_circle" translate="no" className="text-[13px]" />Recibida</div>
+      </div>
+      <div className="absolute bottom-0 right-2 flex h-10 w-10 rotate-6 items-center justify-center rounded-xl bg-[#facc15] text-[#12315f] shadow-lg ring-4 ring-white/20 md:bottom-5 md:right-4 md:h-16 md:w-16 md:rounded-3xl"><SvgIcon name="forum" translate="no" className="text-[23px] md:text-[35px]" /></div>
+    </div>
+  );
+}
+
+function FeedbackSlide() {
+  return (
+    <div className="relative isolate flex h-full w-full flex-col justify-center gap-1 overflow-hidden bg-gradient-to-br from-[#12315f] via-[#1e40af] to-[#147d78] px-5 py-3 text-left text-white md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:items-center md:gap-8 md:px-12 md:py-7 lg:px-16">
+      <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-20 -z-10 h-72 w-72 rounded-full bg-[#facc15]/20 blur-3xl" />
+      <div className="order-1 md:order-1">
+        <span className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-white/12 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#facc15] ring-1 ring-white/15 md:mb-3 md:text-xs"><SvgIcon name="campaign" translate="no" className="text-[15px]" />Carpetazo mejora contigo</span>
+        <h2 className="max-w-[22ch] text-balance text-[clamp(1.35rem,5.6vw,1.75rem)] font-extrabold leading-[1.08] tracking-tight md:text-[clamp(1.95rem,3.1vw,3rem)]">¿Tienes una idea para la web?</h2>
+        <p className="mt-1.5 max-w-[48ch] text-[12px] leading-relaxed text-blue-50/90 md:mt-4 md:text-[clamp(0.95rem,1.25vw,1.125rem)]">Cuéntanos qué función te gustaría ver, qué mejorarías o si encontraste algo que debamos corregir. Leemos tus comentarios.</p>
+        <Link to="/sugerencias" className="mt-2 inline-flex h-10 items-center gap-2 rounded-full bg-[#facc15] px-5 text-sm font-extrabold text-[#12315f] transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 md:mt-5 md:h-12 md:px-7 md:text-[15px]"><SvgIcon name="feedback" translate="no" className="text-[18px]" />Enviar sugerencia</Link>
+      </div>
+      <div className="order-2 md:order-2"><FeedbackArtwork /></div>
+    </div>
   );
 }
 
@@ -190,11 +217,8 @@ function MobileArtwork({ theme, items = [] }) {
   );
   return (
     <div className="flex h-[112px] items-center justify-center gap-2.5" aria-hidden="true">
-      <div className="flex max-w-[210px] flex-col flex-wrap items-center justify-center gap-1.5 rounded-xl bg-white/10 p-2 ring-1 ring-white/20">
-        <img src="/images/logos/logo_completo.webp" alt="Carpetazo.cl" loading="lazy" className="h-[76px] w-[86px] object-contain" />
-        <div className="flex flex-wrap justify-center gap-1.5">
-        {items.length > 0 ? items.map((item) => <span key={item.name} className="flex h-8 w-8 items-center justify-center rounded-full bg-white"><SocialBrandIcon network={item.name} className="h-[18px] w-[18px]" /></span>) : <span className="text-xs font-bold text-white/80">Redes de Carpetazo</span>}
-        </div>
+      <div className="flex h-[98px] w-[116px] flex-col items-center justify-center rounded-2xl bg-white/10 p-2 ring-1 ring-white/30 shadow-[0_12px_28px_-16px_rgba(0,0,0,0.7)]">
+        <img src="/images/logos/logo_completo.webp" alt="Carpetazo.cl" loading="lazy" className="h-[82px] w-[96px] object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.3)]" />
       </div>
     </div>
   );
@@ -205,16 +229,18 @@ const VISUALS = { sell: SellPanel, filters: FiltersPanel, orders: OrdersPanel, s
 function InfoSlide({ theme, title, text, points, cta, to, secondary, socialItems = [] }) {
   const { bg, glow: [glow, glow2], text: tone } = THEMES[theme];
   const Visual = VISUALS[theme];
-  const reverse = theme === 'filters' || theme === 'search';
+  const reverse = theme === 'search' || theme === 'orders';
+  const centeredSocial = theme === 'social';
+  const mobileArtworkFirst = theme === 'search' || theme === 'sell';
   return (
     <div className={`relative isolate flex h-full w-full select-none flex-col justify-center gap-2.5 overflow-hidden bg-gradient-to-br ${bg} px-5 py-4 text-left text-white md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-10 md:px-12 md:py-7 lg:px-16`}>
       <div aria-hidden="true" className={`pointer-events-none absolute -right-16 -top-20 -z-10 h-72 w-72 rounded-full blur-3xl ${glow}`} />
       <div aria-hidden="true" className={`pointer-events-none absolute -bottom-24 left-1/3 -z-10 h-64 w-64 rounded-full blur-3xl ${glow2}`} />
-      <div className="md:hidden"><MobileArtwork theme={theme} items={socialItems} /></div>
-      <div className={reverse ? 'md:order-2' : 'md:order-1'}>
-        <h2 className="max-w-[22ch] text-balance text-[clamp(1.35rem,5.6vw,1.75rem)] font-extrabold leading-[1.08] tracking-tight md:text-[clamp(1.95rem,3.1vw,3rem)]">{title}</h2>
-        <p className={`mt-2 max-w-[48ch] text-[12px] leading-relaxed ${tone} md:mt-4 md:text-[clamp(0.95rem,1.25vw,1.125rem)]`}>{text}</p>
-        <div className="mt-3 flex flex-wrap items-center gap-2.5 md:mt-5">
+      <div className={`md:hidden ${mobileArtworkFirst ? 'order-1' : 'order-2'} ${theme === 'orders' ? 'mx-auto w-full max-w-[310px]' : ''}`}><MobileArtwork theme={theme} items={socialItems} /></div>
+      <div className={`${mobileArtworkFirst ? 'order-2' : 'order-1'} ${reverse ? 'md:order-2' : 'md:order-1'} ${centeredSocial ? 'text-center md:text-left' : ''}`}>
+        <h2 className={`max-w-[22ch] text-balance text-[clamp(1.35rem,5.6vw,1.75rem)] font-extrabold leading-[1.08] tracking-tight md:text-[clamp(1.95rem,3.1vw,3rem)] ${centeredSocial ? 'mx-auto md:mx-0' : ''}`}>{title}</h2>
+        <p className={`mt-2 max-w-[48ch] text-[12px] leading-relaxed ${tone} md:mt-4 md:text-[clamp(0.95rem,1.25vw,1.125rem)] ${centeredSocial ? 'mx-auto md:mx-0' : ''}`}>{text}</p>
+        <div className={`mt-3 flex flex-wrap items-center gap-2.5 md:mt-5 ${centeredSocial ? 'justify-center md:justify-start' : ''}`}>
           <Link to={to} className="inline-flex h-11 items-center rounded-full bg-[#facc15] px-6 text-sm font-extrabold text-[#0B1E45] transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 md:h-12 md:px-7 md:text-[15px]">{cta}</Link>
           {secondary && <Link to={secondary.to} className="inline-flex h-11 items-center rounded-full bg-white/10 px-5 text-sm font-bold ring-1 ring-inset ring-white/30 transition-colors hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 md:h-12 md:px-6 md:text-[15px]">{secondary.label}</Link>}
         </div>
@@ -224,18 +250,18 @@ function InfoSlide({ theme, title, text, points, cta, to, secondary, socialItems
           ))}
         </ul>
         {theme === 'social' && (
-          <ul className="mt-4 flex flex-wrap gap-2 md:hidden">
-            {socialItems.length > 0 ? socialItems.map((item) => (
+          <ul className="mt-3 flex flex-wrap justify-center gap-2 md:hidden">
+            {socialItems.map((item) => (
               <li key={item.name}>
-                <a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-white/15 px-3 text-xs font-bold text-white ring-1 ring-inset ring-white/25 transition-colors hover:bg-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
-                  <SocialBrandIcon network={item.name} className="h-[15px] w-[15px]" />{item.name}
+                <a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 min-w-[132px] items-center justify-center gap-2 rounded-full bg-white/15 px-4 text-xs font-extrabold text-white ring-1 ring-inset ring-white/35 shadow-sm transition-[transform,background-color] hover:-translate-y-0.5 hover:bg-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+                  <SocialBrandIcon network={item.name} className="h-[16px] w-[16px]" />{item.name}
                 </a>
               </li>
-            )) : <li className="text-sm font-semibold text-white/80">Próximamente en redes sociales.</li>}
+            ))}
           </ul>
         )}
       </div>
-      <div className={`hidden md:block ${reverse ? 'md:order-1' : 'md:order-2'}`}><Visual items={socialItems} /></div>
+      <div className={`hidden md:block ${reverse ? 'md:order-1' : 'md:order-2'} ${theme === 'orders' ? 'md:scale-[1.03]' : ''}`}><Visual items={socialItems} /></div>
     </div>
   );
 }
@@ -397,6 +423,7 @@ export default function HeroCarousel() {
         />
       ),
     },
+    { id: 'feedback', content: <FeedbackSlide /> },
   ].sort((a, b) => SLIDE_ORDER.indexOf(a.id) - SLIDE_ORDER.indexOf(b.id));
 
   useEffect(() => {

@@ -151,7 +151,7 @@ export default function Footer() {
               <img
                 src="/images/logos/logo_completo.webp"
                 alt="Carpetazo.cl"
-                className="h-8 w-auto object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]"
+                className="h-12 w-auto object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] sm:h-14"
               />
             </Link>
 
@@ -166,28 +166,6 @@ export default function Footer() {
               </p>
             )}
 
-            {socialItems.length > 0 && (
-              <div className="flex items-center gap-2 pt-0.5">
-                {socialItems.map((social) => {
-                  return (
-                    <a
-                      key={social.name}
-                      href={social.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={social.name}
-                      className={`inline-flex h-7 w-7 items-center justify-center rounded-full transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] ${
-                        isLight
-                          ? 'text-slate-700 bg-slate-100 hover:bg-slate-200 hover:text-blue-700'
-                          : 'text-slate-300 bg-white/10 hover:bg-white/20 hover:text-white'
-                      }`}
-                    >
-                      <SocialBrandIcon network={social.name} className="h-3.5 w-3.5" />
-                    </a>
-                  );
-                })}
-              </div>
-            )}
           </div>
 
           {/* Columna 2: Contacto / Ubícanos */}
