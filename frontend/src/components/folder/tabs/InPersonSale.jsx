@@ -22,6 +22,7 @@ export default function InPersonSale({ active = true, folderId, cards, onToolbar
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState([]);
   const [footerOffset, setFooterOffset] = useState(0);
+  const [keyboardInset, setKeyboardInset] = useState(0);
   const requestId = useRef(newRequestId()); // se conserva si el envío falla: reintentar no registra dos veces
 
   const loadHistory = useCallback(() => api.getInPersonSales(folderId).then((response) => setHistory(response.sales || [])).catch(() => {}), [folderId]);
@@ -41,6 +42,17 @@ export default function InPersonSale({ active = true, folderId, cards, onToolbar
     onToolbarVisibilityChange?.(active && lines.length > 0);
     return () => onToolbarVisibilityChange?.(false);
   }, [active, lines.length, onToolbarVisibilityChange]);
+
+  // En el celular el teclado tapa la barra fija: se sube lo que ocupa el teclado (visualViewport) para que el precio quede a la vista
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!active || lines.length === 0 || !viewport) return undefined;
+    const update = () => setKeyboardInset(Math.max(0, Math.round(window.innerHeight - viewport.height - viewport.offsetTop)));
+    viewport.addEventListener('resize', update);
+    viewport.addEventListener('scroll', update);
+    update();
+    return () => { viewport.removeEventListener('resize', update); viewport.removeEventListener('scroll', update); setKeyboardInset(0); };
+  }, [active, lines.length]);
 
   useEffect(() => {
     if (!active || lines.length === 0) {
@@ -183,7 +195,7 @@ export default function InPersonSale({ active = true, folderId, cards, onToolbar
       )}
 
       {active && lines.length > 0 && createPortal((
-        <div style={{ bottom: `calc(${footerOffset}px + env(safe-area-inset-bottom))` }} className="pointer-events-none fixed inset-x-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-[bottom] duration-150 ease-out sm:px-4">
+        <div style={{ bottom: keyboardInset > 0 ? `${keyboardInset}px` : `calc(${footerOffset}px + env(safe-area-inset-bottom))` }} className="pointer-events-none fixed inset-x-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-[bottom] duration-150 ease-out sm:px-4">
           <div className="mx-auto flex max-w-3xl flex-col items-end gap-3">
             {showScrollTop && (
               <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Volver arriba" className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border-2 border-white/20 bg-[#1e40af] text-white shadow-lg transition-transform hover:scale-110 active:scale-95 lg:hidden">
