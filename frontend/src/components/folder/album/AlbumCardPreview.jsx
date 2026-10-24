@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import SvgIcon from '../../ui/SvgIcon';
 // Vista ampliada de una carta dentro del álbum: imagen a un lado y datos al otro.
 export default function AlbumCardPreview({
-  fetchedAbility, fetchingAbility, isDesktop, previewCard, previewSubtitle, renderCardActions,
+  isDesktop, previewCard, previewSubtitle, renderCardActions,
   setActiveCardId, setPreviewCard, tcg
 }) {
   return (
@@ -144,17 +144,7 @@ export default function AlbumCardPreview({
                       <span className="block text-[11px] md:text-sm font-extrabold text-white leading-tight">{previewCard.cost}</span>
                     </p>
                   )}
-                </div><div className="w-full bg-black/45 p-2 md:p-4 rounded-2xl border border-white/10 shadow-inner overflow-y-auto custom-scrollbar flex-shrink">
-                <p className="flex flex-col">
-                  <strong className="flex items-center gap-1.5 text-yellow-100/80 text-[9px] md:text-sm uppercase tracking-wider mb-1 md:mb-2">
-                    <SvgIcon name="auto_fix_high" translate="no" className="text-[14px] md:text-[16px]" />
-                    Habilidad
-                  </strong> 
-                  <span className="font-medium text-white text-[10px] md:text-sm leading-snug md:leading-relaxed whitespace-pre-wrap">
-                  {fetchingAbility ? 'Buscando habilidad ancestral...' : (fetchedAbility || 'Sin habilidad registrada')}
-                  </span>
-                </p>
-              </div>
+                </div>
             </>
           ) : (
             <div className="grid grid-cols-2 gap-x-3 gap-y-2 md:gap-y-3 text-xs md:text-base bg-black/40 p-3 md:p-5 rounded-xl border border-white/5 shadow-inner">

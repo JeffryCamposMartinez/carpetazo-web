@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { api } from '../../services/api';
 import AlbumPage from './album/AlbumPage';
 import { DRAG_PAGE_TURN_EDGE_RATIO, DRAG_PAGE_TURN_HOLD_MS } from './album/albumDrag';
 import { DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from './dragScroll';
@@ -7,35 +6,9 @@ import AlbumCardPreview from './album/AlbumCardPreview';
 import AlbumPagination from './album/AlbumPagination';
 import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 import EmptyState from '../ui/EmptyState';
-import { rawMylId } from '../../utils/mylIdentity';
 import SvgIcon from '../ui/SvgIcon';
 import { NO_IMAGE_CARD_URL, onCardImageError, tcgplayerCardImage } from '../../utils/cardShape';
 
-
-const stripHtml = (value = '') => String(value || '').replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
-
-const getExtDataValue = (extData, fieldName) => {
-  if (Array.isArray(extData)) {
-    return extData.find(item => String(item?.name || '').toLowerCase() === fieldName.toLowerCase())?.value || '';
-  }
-  if (extData && typeof extData === 'object') {
-    return extData[fieldName] || extData[fieldName.toLowerCase()] || '';
-  }
-  return '';
-};
-
-const getCardAbilityText = (card) => {
-  if (!card) return '';
-  return stripHtml(
-    card.effect ||
-    card.ability ||
-    card.text ||
-    getExtDataValue(card.extData, 'Effect') ||
-    getExtDataValue(card.extData, 'Ability') ||
-    getExtDataValue(card.extData, 'Text') ||
-    getExtDataValue(card.extData, 'Habilidad')
-  );
-};
 
 export default function AlbumView({ cards = [], renderCardActions, renderCardOverlays, binderColor = '#2f7336', emptyMessage, topRightControls, tcg, reorderEnabled = false, onReorderCard, selectable = false, selectedIds, onToggleSelect }) {
   const [currentPage, setCurrentPage] = useState(0);
@@ -46,8 +19,6 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
   const pageTurnEasing = isDesktop ? 'cubic-bezier(0.4, 0.0, 0.2, 1)' : 'cubic-bezier(0.65, 0, 0.35, 1)';
   const [activeCardId, setActiveCardId] = useState(null);
     const [previewCard, setPreviewCard] = useState(null);
-  const [fetchedAbility, setFetchedAbility] = useState(null);
-  const [fetchingAbility, setFetchingAbility] = useState(false);
   const [targetPage, setTargetPage] = useState(null);
   const [turnDirection, setTurnDirection] = useState(null);
   // Todas las páginas se montan una sola vez; mientras se preparan se muestra "Cargando álbum…"
@@ -279,41 +250,6 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
   };
 
   useEffect(() => {
-    if (previewCard && tcg === 'Mitos y Leyendas') {
-      const embeddedAbility = getCardAbilityText(previewCard);
-      if (embeddedAbility) {
-        setFetchedAbility(embeddedAbility);
-        setFetchingAbility(false);
-        return;
-      }
-
-      const fetchAbility = async () => {
-        setFetchingAbility(true);
-        setFetchedAbility(null);
-        try {
-          const json = await api.searchTcgProducts(previewCard.name);
-          if (json.success && json.data) {
-            const previewTcgId = rawMylId(previewCard.tcgId || previewCard.apiId || '');
-            let match = json.data.find(c => String(c.productId || '') === previewTcgId);
-            if (!match) match = json.data.find(c => c.name.toLowerCase() === previewCard.name.toLowerCase());
-            const ability = getCardAbilityText({ ...match, extData: match?.extData });
-            if (ability) {
-              setFetchedAbility(ability);
-            } else {
-              setFetchedAbility('Sin habilidad (Carta Vainilla)');
-            }
-          }
-        } catch (err) {
-          setFetchedAbility('Error al cargar habilidad');
-        } finally {
-          setFetchingAbility(false);
-        }
-      };
-      fetchAbility();
-    }
-  }, [previewCard, tcg]);
-
-  useEffect(() => {
 
     const handleKeyDown = (e) => {
       // Ignore if typing in an input to prevent interfering with search
@@ -429,7 +365,7 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
     setDropPreviewIndex, setPreviewCard, targetPage, totalPages, touchAlbumCardIdRef, touchAlbumDropIndexRef,
     touchStartPosRef, turnDirection, warmAnchors, warmRadius };
 
-  const albumCardPreviewProps = { fetchedAbility, fetchingAbility, isDesktop, previewCard, previewSubtitle,
+  const albumCardPreviewProps = { isDesktop, previewCard, previewSubtitle,
     renderCardActions, setActiveCardId, setPreviewCard, tcg };
 
   const albumPaginationProps = { currentPage, getPaginationItems, handleNext, handlePrev, jumpToPage, targetPage,
