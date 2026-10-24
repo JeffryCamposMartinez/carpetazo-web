@@ -84,7 +84,7 @@ export const getRecentCompletedSales = async (sellerId, take = 5) => {
     const tcgIds = [...new Set(lost.map((item) => item.tcgId))].slice(0, 60);
     const twins = await prisma.card.findMany({ where: { tcgId: { in: tcgIds }, imageUrl: { not: null } }, select: { tcgId: true, imageUrl: true }, distinct: ['tcgId'] });
     twins.forEach((card) => byTcgId.set(card.tcgId, card.imageUrl));
-    const productIds = tcgIds.filter((id) => !byTcgId.has(id)).map((id) => /^(?:tcgcsv:)?(\d{1,9})$/.exec(id)?.[1]).filter(Boolean).map(Number);
+    const productIds = tcgIds.filter((id) => !byTcgId.has(id)).map((id) => /^(?:(?:tcgcsv|myl):)?(\d{1,9})$/.exec(id)?.[1]).filter(Boolean).map(Number);
     if (productIds.length) {
       const catalog = await prisma.catalogCard.findMany({ where: { productId: { in: productIds } }, select: { productId: true, imageKey: true, thumbKey: true } });
       for (const row of catalog) {
