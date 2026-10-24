@@ -59,21 +59,21 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
           {dragHandleProps && (
             <div
               {...dragHandleProps}
-              className={`${compact ? 'top-0.5 left-0.5 w-12 h-12' : 'top-1 left-1 w-14 h-14'} absolute z-10 rounded-full bg-[#1e40af] text-white border-[3px] border-white shadow-[0_1px_5px_rgba(0,0,0,0.4)] p-0 leading-none flex items-center justify-center cursor-grab active:cursor-grabbing active:scale-95 hover:bg-[#1d4ed8] opacity-100 transition-[background-color,transform]`}
+              className={`${compact ? 'top-1 left-1 h-8 w-8 border-2 sm:h-9 sm:w-9' : 'top-1 left-1 h-11 w-11 border-[3px]'} absolute z-10 rounded-full bg-[#1e40af] text-white shadow-[0_1px_5px_rgba(0,0,0,0.4)] p-0 leading-none flex items-center justify-center cursor-grab active:cursor-grabbing active:scale-95 hover:bg-[#1d4ed8] opacity-100 transition-[background-color,transform]`}
               style={{ touchAction: 'none' }}
               title="Mantén y arrastra para ordenar"
             >
-              <SvgIcon name="open_with" translate="no" className="block text-[27px]" />
+              <SvgIcon name="open_with" translate="no" className={compact ? 'block text-[18px] sm:text-[20px]' : 'block text-[23px]'} />
             </div>
           )}
           {/* En pantallas táctiles no hay «pasar el mouse»: el botón de eliminar queda siempre a la vista */}
           <button
             onClick={() => onDelete(card.id)}
-            className={`${compact ? 'top-0.5 right-0.5 w-12 h-12' : 'top-1 right-1 w-14 h-14'} absolute z-10 flex items-center justify-center rounded-full bg-red-600 hover:bg-red-700 text-white opacity-100 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity shadow-sm`}
+            className={`${compact ? 'top-1 right-1 h-8 w-8 sm:h-9 sm:w-9' : 'top-1 right-1 h-11 w-11'} absolute z-10 flex items-center justify-center rounded-full bg-red-600 hover:bg-red-700 text-white opacity-100 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity shadow-sm`}
             title="Eliminar carta"
             aria-label={`Eliminar ${card.name}`}
           >
-            <SvgIcon name="delete" translate="no" className="text-[25px]" />
+            <SvgIcon name="delete" translate="no" className={compact ? 'text-[17px] sm:text-[19px]' : 'text-[22px]'} />
           </button>
         </>
       )}
