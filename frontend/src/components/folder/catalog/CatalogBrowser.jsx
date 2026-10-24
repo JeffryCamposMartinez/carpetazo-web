@@ -16,7 +16,7 @@ export default function CatalogBrowser({
   setSelectedType, setSortBy, setViewMode, sortBy, sortedCards, viewMode, wanted
 }) {
   return (
-      <div className="relative z-10 flex min-h-[calc(100svh-230px)] w-full flex-col overflow-hidden rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] md:rounded-[2rem]">
+      <div className="relative z-10 flex min-h-[calc(100svh-230px)] w-full flex-col overflow-hidden rounded-[1.6rem] border border-white/70 bg-[var(--t-panel,#DBEAFE)] shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] md:rounded-[2rem]">
         <div className="relative z-20 flex flex-1 flex-col px-3 pb-3 pt-2 text-gray-900 sm:px-6 md:px-8 md:py-8">
           <div className="mb-1 rounded-2xl bg-white p-2 shadow-sm ring-1 ring-slate-900/5 md:mb-5 md:p-3">
             <form onSubmit={(event) => event.preventDefault()} className="flex flex-col gap-2 md:gap-3">
@@ -29,7 +29,7 @@ export default function CatalogBrowser({
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Buscar carta por nombre"
                     aria-label="Buscar carta"
-                    className="h-10 w-full rounded-full border border-slate-200 bg-slate-50 pl-11 pr-3 text-sm font-medium text-slate-900 transition focus:border-[#1e40af] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#facc15]/70 md:h-11 md:pr-4"
+                    className="h-10 w-full rounded-full border border-slate-200 bg-slate-50 pl-11 pr-3 text-sm font-medium text-slate-900 transition focus:border-[#1e40af] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--t-accent,#facc15)] md:h-11 md:pr-4"
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -192,7 +192,7 @@ export default function CatalogBrowser({
                           <button
                             onClick={() => addToCart(card)}
                             disabled={availableStock <= 0}
-                            className="w-6 h-6 flex items-center justify-center bg-[#2563eb] rounded shadow-sm text-white hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors"
+                            className="w-6 h-6 flex items-center justify-center bg-[var(--t-primary,#2563eb)] rounded shadow-sm text-[var(--t-on-primary,#fff)] hover:brightness-110 disabled:opacity-50 transition-colors"
                           >
                             <SvgIcon name="add" translate="no" className="text-[16px]" />
                           </button>
@@ -201,7 +201,7 @@ export default function CatalogBrowser({
                         <button
                           onClick={() => addToCart(card)}
                           disabled={availableStock <= 0}
-                          className="w-full flex items-center justify-center gap-1 bg-[#2563eb] hover:bg-[#1d4ed8] text-white py-1.5 rounded-md font-bold transition-all disabled:opacity-50 shadow-sm text-[10px]"
+                          className="w-full flex items-center justify-center gap-1 bg-[var(--t-primary,#2563eb)] hover:brightness-110 text-[var(--t-on-primary,#fff)] py-1.5 rounded-md font-bold transition-all disabled:opacity-50 shadow-sm text-[10px]"
                         >
                           <SvgIcon name="shopping_cart" translate="no" className="text-[14px]" />
                           {availableStock <= 0 ? 'Agotado' : 'Agregar'}

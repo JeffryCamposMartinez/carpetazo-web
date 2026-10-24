@@ -16,6 +16,10 @@ import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 import EmptyState from '../components/ui/EmptyState';
 import { formatCardSearchQuery } from '../utils/cardCodeSearch';
 import SvgIcon from '../components/ui/SvgIcon';
+import usePublicProfileBackdrop from '../hooks/usePublicProfileBackdrop';
+import { defaultPublicTheme, getEffectClassName, getFontStack, getProfileBackgroundStyle, getSideBackgroundStyle, resolveSurfaceTheme } from '../components/profile/profileStyles';
+import { loadThemeFonts } from '../utils/themeFonts';
+import { readableOn } from '../utils/color';
 
 const isLocalhostWithProductionApi = () => {
   if (typeof window === 'undefined') return false;
@@ -493,6 +497,18 @@ function PublicCatalog() {
   }, [filteredCards, sortBy]);
 
   const sellerPublicTheme = sellerData?.publicTheme && typeof sellerData.publicTheme === 'object' ? sellerData.publicTheme : {};
+  // La carpeta se ve con la personalización del perfil público de quien la vende (colores, fuentes y fondo)
+  const theme = useMemo(() => resolveSurfaceTheme({ ...defaultPublicTheme, ...sellerPublicTheme }), [sellerPublicTheme]);
+  usePublicProfileBackdrop({ enabled: Boolean(sellerData), wallpaper: sellerData?.wallpaperBase64, surface: theme.surface, primary: theme.primary });
+  useEffect(() => { loadThemeFonts(['Inter', theme.font, theme.bodyFont]); }, [theme.font, theme.bodyFont]);
+  const themeVars = {
+    '--t-primary': theme.primary, '--t-on-primary': readableOn(theme.primary),
+    '--t-accent': theme.accent, '--t-on-accent': readableOn(theme.accent),
+    '--t-panel': `color-mix(in srgb, ${theme.primary} 14%, #ffffff)`,
+    '--t-cover': `color-mix(in srgb, ${theme.primary} 35%, #0a1a38)`,
+    '--seller-font': getFontStack(theme.font),
+    fontFamily: getFontStack(theme.bodyFont)
+  };
   const socialEnabled = useCallback((field) => sellerPublicTheme[field] !== 'off', [sellerPublicTheme]);
   const visibleContactOptions = useMemo(() => {
     if (!sellerData || !folderData) return [];
@@ -613,7 +629,9 @@ function PublicCatalog() {
     totalStock, visibleContactOptions };
 
   return (
-    <>
+    <div className="[&_h1]:[font-family:var(--seller-font)]" style={themeVars}>
+      <div className="mx-auto w-full max-w-[1470px] xl:px-4 2xl:px-6" style={getSideBackgroundStyle(theme)}>
+      <div className={`relative min-h-[100svh] w-full ${getEffectClassName(theme)}`} style={getProfileBackgroundStyle(theme)}>
       <div className="w-full max-w-[1470px] mx-auto px-3 py-3 sm:px-6 sm:py-6 lg:px-8">
       {/* Portada de la carpeta: nombre, vendedor, contacto y cifras */}
       <CatalogCover {...catalogCoverProps} />
@@ -629,12 +647,12 @@ function PublicCatalog() {
 
       <button 
         onClick={() => setIsCartOpen(true)}
-        className="fixed bottom-[80px] right-[max(1rem,env(safe-area-inset-right))] z-30 flex min-h-14 items-center gap-2 rounded-full bg-primary px-4 py-3 text-on-primary shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-transform hover:scale-105 md:bottom-8 md:right-8"
+        className="fixed bottom-[80px] right-[max(1rem,env(safe-area-inset-right))] z-30 flex min-h-14 items-center gap-2 rounded-full bg-[var(--t-accent)] px-4 py-3 text-[var(--t-on-accent)] shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-transform hover:scale-105 md:bottom-8 md:right-8"
       >
         <SvgIcon name="shopping_cart" translate="no" data-icon="shopping_cart" />
         {cartItemsCount > 0 ? (
           <>
-            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1 text-xs font-bold text-primary">{cartItemsCount}</span>
+            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1 text-xs font-bold text-[#12315f]">{cartItemsCount}</span>
             <span className="hidden text-xs font-black leading-tight min-[390px]:block">{formatCLP(cartTotal)}</span>
           </>
         ) : (
@@ -658,7 +676,7 @@ function PublicCatalog() {
           onClick={scrollCatalogTop}
           title="Subir al inicio"
           aria-label="Subir al inicio"
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#1e40af] text-white shadow-lg ring-2 ring-white/30 transition-all hover:-translate-y-0.5 hover:bg-blue-800 hover:shadow-xl md:h-12 md:w-12"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--t-primary)] text-[var(--t-on-primary)] shadow-lg ring-2 ring-white/30 transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-xl md:h-12 md:w-12"
         >
           <SvgIcon name="arrow_upward" translate="no" className="text-[25px] md:text-[27px]" />
         </button>
@@ -666,12 +684,14 @@ function PublicCatalog() {
 
         <CatalogBrowser {...catalogBrowserProps} />
       </div>
+      </div>
+      </div>
 
       {/* Cart Drawer */}
       {isCartOpen && (
         <CatalogCartDrawer {...catalogCartDrawerProps} />
       )}
-    </>
+    </div>
   );
 }
 

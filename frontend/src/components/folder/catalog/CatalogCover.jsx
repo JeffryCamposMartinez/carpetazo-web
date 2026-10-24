@@ -37,11 +37,11 @@ export default function CatalogCover({
     { value: formatCount(totalStock), label: totalStock === 1 ? 'copia' : 'copias' },
   ];
   return (
-    <section className="relative mb-3 overflow-hidden rounded-[1.6rem] bg-[#0f2b57] text-white shadow-[0_22px_55px_-30px_rgba(15,23,42,0.8)] ring-1 ring-white/10 md:mb-5 md:rounded-[2rem]">
+    <section className="relative mb-3 overflow-hidden rounded-[1.6rem] bg-[var(--t-cover,#0f2b57)] text-white shadow-[0_22px_55px_-30px_rgba(15,23,42,0.8)] ring-1 ring-white/10 md:mb-5 md:rounded-[2rem]">
       {sellerData?.bannerBase64 && (
         <div className="absolute inset-0 z-0 opacity-45" style={{ backgroundImage: `url(${bannerForScreen(sellerData.bannerBase64)})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
       )}
-      <div className="absolute inset-0 z-[1] bg-gradient-to-br from-[#0f2b57]/95 via-[#12315f]/85 to-[#1e40af]/70" />
+      <div className="absolute inset-0 z-[1] " style={{ backgroundImage: 'linear-gradient(135deg, color-mix(in srgb, var(--t-cover, #0f2b57) 95%, transparent), color-mix(in srgb, var(--t-cover, #12315f) 80%, var(--t-primary, #1e40af)), color-mix(in srgb, var(--t-primary, #1e40af) 70%, transparent))' }} />
 
       <div className="relative z-10 flex flex-col gap-2.5 p-3 md:gap-6 md:p-8">
         <div className="flex flex-col gap-2.5 md:flex-row md:items-start md:justify-between md:gap-8">
@@ -54,7 +54,7 @@ export default function CatalogCover({
             </div>
 
             <div className="mt-2 flex items-center gap-2.5 md:mt-4 md:gap-3">
-              <Link to={sellerPath} className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full border-2 border-[#facc15] bg-white shadow-lg transition-transform hover:scale-105 md:h-14 md:w-14" aria-label="Ver perfil del vendedor">
+              <Link to={sellerPath} className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full border-2 border-[var(--t-accent,#facc15)] bg-white shadow-lg transition-transform hover:scale-105 md:h-14 md:w-14" aria-label="Ver perfil del vendedor">
                 {(sellerData?.avatarBase64 || sellerData?.photoURL) ? (
                   <img src={sellerData?.avatarBase64 || sellerData?.photoURL} alt="" className="h-full w-full object-cover" />
                 ) : (
@@ -65,12 +65,12 @@ export default function CatalogCover({
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                   <Link to={sellerPath} className="truncate text-base font-extrabold hover:underline md:text-lg">{sellerData?.displayName || 'Vendedor anónimo'}</Link>
                   {sellerData?.reviewSummary?.showAverage ? (
-                    <Link to={`${sellerPath}#resenas`} className="flex items-center gap-1.5 text-xs font-bold text-[#facc15] hover:underline" title="Ver reseñas">
+                    <Link to={`${sellerPath}#resenas`} className="flex items-center gap-1.5 text-xs font-bold text-[var(--t-accent,#facc15)] hover:underline" title="Ver reseñas">
                       <Stars value={sellerData.reviewSummary.average} size={14} />
                       {sellerData.reviewSummary.average.toFixed(1)} · {sellerData.reviewSummary.count} {sellerData.reviewSummary.count === 1 ? 'reseña' : 'reseñas'}
                     </Link>
                   ) : sellerData?.reviewSummary?.count > 0 ? (
-                    <Link to={`${sellerPath}#resenas`} className="text-xs font-bold text-[#facc15] hover:underline" title="Ver reseñas">
+                    <Link to={`${sellerPath}#resenas`} className="text-xs font-bold text-[var(--t-accent,#facc15)] hover:underline" title="Ver reseñas">
                       {sellerData.reviewSummary.count} {sellerData.reviewSummary.count === 1 ? 'reseña' : 'reseñas'}
                     </Link>
                   ) : (
@@ -83,25 +83,25 @@ export default function CatalogCover({
                       <SvgIcon name="location_on" translate="no" className="text-[15px]" />{locationText}
                     </span>
                   )}
-                  <Link to={sellerPath} className="inline-flex min-h-6 items-center font-bold text-[#facc15] hover:underline">Ver más del vendedor</Link>
+                  <Link to={sellerPath} className="inline-flex min-h-6 items-center font-bold text-[var(--t-accent,#facc15)] hover:underline">Ver más del vendedor</Link>
                 </div>
               </div>
             </div>
-            {sellerData?.bio && <p className="mt-3 hidden line-clamp-2 max-w-xl md:block border-l-2 border-[#facc15]/70 pl-3 text-sm italic text-blue-100">"{sellerData.bio}"</p>}
+            {sellerData?.bio && <p className="mt-3 hidden line-clamp-2 max-w-xl md:block border-l-2 border-[var(--t-accent,#facc15)]/70 pl-3 text-sm italic text-blue-100">"{sellerData.bio}"</p>}
           </div>
 
           <div className="flex items-center gap-2 md:flex-wrap md:justify-end md:pt-1">
             {isOwner && (
               <Link
                 to={`/carpeta/${folderData.id}`}
-                className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#facc15] px-4 py-2.5 text-sm font-extrabold text-[#12315f] shadow-md transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-white/70 md:flex-none md:px-5"
+                className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[var(--t-accent,#facc15)] px-4 py-2.5 text-sm font-extrabold text-[var(--t-on-accent,#12315f)] shadow-md transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-white/70 md:flex-none md:px-5"
               >
                 <SvgIcon name="add_circle" translate="no" className="text-[20px]" />
                 <span className="md:hidden">Agregar cartas</span><span className="hidden md:inline">Agregar cartas a tu carpeta</span>
               </Link>
             )}
             {messageOption && (
-              <button type="button" onClick={messageOption.onClick || contactSeller} className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#facc15] px-4 py-2.5 text-sm font-extrabold text-[#12315f] shadow-md transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-white/70 md:flex-none md:px-5">
+              <button type="button" onClick={messageOption.onClick || contactSeller} className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[var(--t-accent,#facc15)] px-4 py-2.5 text-sm font-extrabold text-[var(--t-on-accent,#12315f)] shadow-md transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-white/70 md:flex-none md:px-5">
                 <ContactIcon type="message" className="h-4 w-4" />
                 Contactar vendedor
               </button>
@@ -116,7 +116,7 @@ export default function CatalogCover({
                   rel="noopener noreferrer"
                   aria-label={contact.label}
                   title={contact.label}
-                  className={`flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md ring-2 ring-white/40 transition hover:-translate-y-0.5 hover:scale-105 ${socialClass[contact.id] || 'text-[#1a2b4b] hover:ring-[#facc15]'}`}
+                  className={`flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md ring-2 ring-white/40 transition hover:-translate-y-0.5 hover:scale-105 ${socialClass[contact.id] || 'text-[#1a2b4b] hover:ring-[var(--t-accent,#facc15)]'}`}
                 >
                   <ContactIcon type={contact.id} className="h-5 w-5" />
                 </a>

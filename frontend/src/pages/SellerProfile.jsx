@@ -9,6 +9,7 @@ import { getDisplayScale, getEffectClassName, getFontStack, getProfileBackground
 import ProfileAvatar from '../components/profile/ProfileAvatar';
 import useProfileImages from '../hooks/useProfileImages';
 import useProfileTheme from '../hooks/useProfileTheme';
+import usePublicProfileBackdrop from '../hooks/usePublicProfileBackdrop';
 import ProfileStudio from '../components/profile/studio/ProfileStudio';
 import ProfileTrustStrip from '../components/profile/ProfileTrustStrip';
 import { ProfileContactBar, ProfileLoading, ProfileUnavailable } from '../components/profile/ProfileStates';
@@ -104,47 +105,7 @@ export default function SellerProfile() {
     if (sellerUsername) loadSeller();
   }, [sellerUsername]);
 
-  useEffect(() => {
-    document.body.classList.add('public-profile-active');
-    
-    const originalBodyBg = document.body.style.backgroundColor;
-    document.body.style.backgroundColor = publicTheme.surface || '#1a2b4b';
-
-    let metaThemeColor = document.querySelector("meta[name=theme-color]");
-    let originalMetaColor = '';
-    if (metaThemeColor) {
-      originalMetaColor = metaThemeColor.getAttribute("content");
-      metaThemeColor.setAttribute("content", publicTheme.primary || '#1a2b4b');
-    } else {
-      metaThemeColor = document.createElement('meta');
-      metaThemeColor.name = "theme-color";
-      metaThemeColor.content = publicTheme.primary || '#1a2b4b';
-      document.head.appendChild(metaThemeColor);
-    }
-
-    if (seller?.wallpaperBase64) {
-      document.documentElement.style.setProperty('--seller-bg', `url(${seller.wallpaperBase64})`);
-      document.documentElement.style.setProperty('--seller-overlay', 'transparent');
-    } else {
-      document.documentElement.style.removeProperty('--seller-bg');
-      document.documentElement.style.removeProperty('--seller-overlay');
-    }
-    
-    return () => {
-      document.body.classList.remove('public-profile-active');
-      document.documentElement.style.removeProperty('--seller-bg');
-      document.documentElement.style.removeProperty('--seller-overlay');
-      document.body.style.backgroundColor = originalBodyBg;
-      
-      if (metaThemeColor) {
-        if (originalMetaColor) {
-          metaThemeColor.setAttribute("content", originalMetaColor);
-        } else {
-          metaThemeColor.remove();
-        }
-      }
-    };
-  }, [seller?.wallpaperBase64, publicTheme.surface, publicTheme.primary]);
+  usePublicProfileBackdrop({ wallpaper: seller?.wallpaperBase64, surface: publicTheme.surface, primary: publicTheme.primary });
 
   const handleSaveBio = async () => {
     if (!isOwner) return;
