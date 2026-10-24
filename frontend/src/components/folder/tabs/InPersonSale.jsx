@@ -150,23 +150,21 @@ export default function InPersonSale({ active = true, folderId, cards, onToolbar
             const atMax = quantity >= Number(card.stock);
             return (
               <li key={card.id} className={`flex min-w-0 flex-col rounded-2xl bg-white p-2 transition-shadow duration-200 ${quantity ? 'shadow-[0_10px_24px_-14px_rgba(30,64,175,0.55)] ring-2 ring-[#1e40af]' : 'ring-1 ring-slate-900/5 shadow-[0_1px_2px_rgba(26,43,75,0.06)]'}`}>
-                <button type="button" onClick={() => setQuantity(card, quantity + 1)} disabled={atMax} aria-label={`Vender una ${card.name}`} className={`${PRESS} group relative block w-full overflow-hidden rounded-xl bg-slate-50 disabled:cursor-default`} style={{ aspectRatio: cardRatio(null, '63 / 88') }}>
-                  <SafeImage src={card.imageUrl} alt="" className="absolute inset-0 h-full w-full object-contain" />
-                  <span className="absolute left-1.5 top-1.5 rounded-full bg-[#12315f]/90 px-2 py-0.5 text-[11px] font-extrabold text-white">Stock {card.stock}</span>
-                  {quantity > 0 && <span className="absolute right-1.5 top-1.5 flex h-8 min-w-8 items-center justify-center rounded-full bg-[#ffcb05] px-2 font-['Space_Grotesk'] text-sm font-bold text-[#1a2b4b] shadow-md">×{quantity}</span>}
-                </button>
-                <p className="mt-2 line-clamp-2 min-h-[2.5rem] text-sm font-extrabold leading-snug text-[#12315f]">{card.name}</p>
-                <p className="text-xs font-semibold text-slate-500">{card.price !== null && card.price !== undefined ? `${formatClp(Number(card.price))} · precio publicado` : 'Sin precio publicado'}</p>
-                {quantity > 0 ? (
-                  <div className="mt-2 flex flex-col gap-2">
-                    <div className="flex items-center justify-between rounded-full bg-slate-100 p-0.5">
-                      <button type="button" onClick={() => setQuantity(card, quantity - 1)} aria-label={`Quitar una ${card.name}`} className={`${PRESS} flex h-10 w-10 items-center justify-center rounded-full text-[#12315f] [@media(hover:hover)]:hover:bg-white`}><SvgIcon name="remove" translate="no" aria-hidden="true" className="text-[20px]" /></button>
-                      <span className="text-sm font-extrabold tabular-nums text-[#12315f]" aria-live="polite">{quantity}</span>
-                      <button type="button" onClick={() => setQuantity(card, quantity + 1)} disabled={atMax} aria-label={`Agregar una ${card.name}`} className={`${PRESS} flex h-10 w-10 items-center justify-center rounded-full text-[#12315f] disabled:opacity-30 [@media(hover:hover)]:hover:bg-white`}><SvgIcon name="add" translate="no" aria-hidden="true" className="text-[20px]" /></button>
+                <div className="relative">
+                  <button type="button" onClick={() => setQuantity(card, quantity + 1)} disabled={atMax} aria-label={`Vender una ${card.name}`} className={`${PRESS} group relative block w-full overflow-hidden rounded-xl bg-slate-50 disabled:cursor-default`} style={{ aspectRatio: cardRatio(null, '63 / 88') }}>
+                    <SafeImage src={card.imageUrl} alt="" className="absolute inset-0 h-full w-full object-contain" />
+                    <span className="absolute left-1.5 top-1.5 rounded-full bg-[#12315f]/90 px-2 py-0.5 text-[11px] font-extrabold text-white">Stock {card.stock}</span>
+                    </button>
+                  {quantity > 0 && (
+                    <div className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-between rounded-full bg-[#12315f]/95 p-0.5 text-white shadow-lg backdrop-blur-sm">
+                      <button type="button" onClick={() => setQuantity(card, quantity - 1)} aria-label={`Quitar una ${card.name}`} className={`${PRESS} flex h-11 w-11 items-center justify-center rounded-full [@media(hover:hover)]:hover:bg-white/15`}><SvgIcon name="remove" translate="no" aria-hidden="true" className="text-[22px]" /></button>
+                      <span className="text-base font-extrabold tabular-nums" aria-live="polite">{quantity}</span>
+                      <button type="button" onClick={() => setQuantity(card, quantity + 1)} disabled={atMax} aria-label={`Agregar una ${card.name}`} className={`${PRESS} flex h-11 w-11 items-center justify-center rounded-full disabled:opacity-30 [@media(hover:hover)]:hover:bg-white/15`}><SvgIcon name="add" translate="no" aria-hidden="true" className="text-[22px]" /></button>
                     </div>
-                    <p className="rounded-xl bg-slate-50 px-2.5 py-2 text-xs font-semibold text-slate-500">{formatClp(Number(card.price || 0))} por carta</p>
-                  </div>
-                ) : null}
+                  )}
+                </div>
+                <p className="mt-2 line-clamp-2 min-h-[2.5rem] text-sm font-extrabold leading-snug text-[#12315f]">{card.name}</p>
+                <p className="text-xs font-semibold text-slate-500">{card.price === null || card.price === undefined ? 'Sin precio publicado' : quantity > 1 ? `${quantity} × ${formatClp(Number(card.price))} = ${formatClp(quantity * Number(card.price))}` : `${formatClp(Number(card.price))} · precio publicado`}</p>
               </li>
             );
           })}
@@ -203,16 +201,16 @@ export default function InPersonSale({ active = true, folderId, cards, onToolbar
               </button>
             )}
           <div className="pointer-events-auto grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)] items-center gap-1 rounded-xl bg-[#1a2b4b] p-2.5 text-white shadow-[0_1px_2px_rgba(8,18,42,0.3),0_16px_32px_-12px_rgba(8,18,42,0.8)] sm:gap-3 sm:rounded-2xl sm:p-3 sm:px-4">
-            <div className="flex min-w-0 items-center justify-center gap-0.5 whitespace-nowrap text-[11px] text-blue-200 sm:gap-1 sm:text-sm"><span className="tabular-nums">{units}</span>&nbsp;{units === 1 ? 'carta' : 'cartas'}
+            <div className="flex min-w-0 items-center justify-center gap-0.5 whitespace-nowrap text-xs font-semibold text-blue-100 sm:gap-1 sm:text-sm"><span className="tabular-nums">{units}</span>&nbsp;{units === 1 ? 'carta' : 'cartas'}
               <button type="button" onClick={() => setPicked({})} aria-label="Limpiar selección" className={`${PRESS} flex h-8 w-6 shrink-0 items-center justify-center rounded-full text-sm font-bold text-blue-100 sm:h-10 sm:w-8 [@media(hover:hover)]:hover:bg-white/10`}><SvgIcon name="close" translate="no" aria-hidden="true" className="text-[18px]" /></button>
             </div>
             <label className="group mx-auto flex h-14 w-full max-w-[8rem] min-w-0 cursor-text flex-col justify-center rounded-lg border-2 border-[#ffcb05] bg-[#ffcb05]/10 px-1.5 py-1.5 transition-colors hover:bg-[#ffcb05]/20 focus-within:bg-[#ffcb05]/20 focus-within:ring-2 focus-within:ring-[#ffcb05]/40 sm:h-[4.25rem] sm:max-w-none sm:w-fit sm:rounded-xl sm:px-2.5 sm:py-2">
-                <span className="flex items-center justify-center gap-0.5 whitespace-nowrap text-[7px] font-extrabold uppercase tracking-wide text-[#ffdf70] sm:gap-1.5 sm:text-[10px]">
-                  <SvgIcon name="edit" translate="no" aria-hidden="true" className="text-[14px]" /> Toca para cambiar
+                <span className="flex items-center justify-center gap-0.5 whitespace-nowrap text-[10px] font-bold text-[#ffdf70] sm:gap-1.5 sm:text-[11px] sm:font-extrabold sm:uppercase sm:tracking-wide">
+                  <SvgIcon name="edit" translate="no" aria-hidden="true" className="text-[13px]" /> {hasFinalTotal && discount !== 0 ? `Subtotal ${formatClp(subtotal)}` : 'Toca para editar'}
                 </span>
                 <span className="flex items-center justify-center gap-1">
                   <span className="font-['Space_Grotesk'] text-base font-bold text-white sm:text-2xl">$</span>
-                  <input type="number" inputMode="numeric" min="0" max="100000000" step="1" value={finalTotalInput ?? String(subtotal)} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setFinalTotalInput(event.target.value)} aria-label="Subtotal editable de la venta" className="w-[5rem] min-w-0 border-0 bg-transparent p-0 font-['Space_Grotesk'] text-base font-bold leading-tight tabular-nums text-white outline-none sm:w-36 sm:text-2xl" />
+                  <input type="number" inputMode="numeric" min="0" max="100000000" step="1" value={finalTotalInput ?? String(subtotal)} enterKeyHint="done" onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setFinalTotalInput(event.target.value)} aria-label="Subtotal editable de la venta" className="w-[5rem] min-w-0 border-0 bg-transparent p-0 font-['Space_Grotesk'] text-base font-bold leading-tight tabular-nums text-white outline-none sm:w-36 sm:text-2xl" />
                 </span>
             </label>
             <div className="flex justify-end">
