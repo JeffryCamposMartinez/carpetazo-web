@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../services/api';
 import { Badge, EmptyState, ErrorBox, Pills, ROW, ROW_HOVER, Spinner, dateTime } from './shared';
 import SvgIcon from '../ui/SvgIcon';
+import ThemedSelect from '../ui/ThemedSelect';
 
 const KIND_LABELS = { complaint: 'Reclamo', suggestion: 'Sugerencia', support: 'Soporte' };
 const STATUS_LABELS = { open: 'Pendientes', corrected: 'Corregidas', all: 'Todas' };
@@ -10,10 +11,16 @@ const STATUS_LABELS = { open: 'Pendientes', corrected: 'Corregidas', all: 'Todas
 export default function FeedbackPanel({ level = 1 }) {
   const [status, setStatus] = useState('open');
   const [kind, setKind] = useState('all');
+  const [dateOrder, setDateOrder] = useState('newest');
   const [data, setData] = useState(null);
   const [message, setMessage] = useState('');
   const [busyId, setBusyId] = useState('');
   const [replies, setReplies] = useState({});
+  const sortedFeedback = useMemo(() => [...(data?.feedback || [])].sort((a, b) => {
+    const dateA = Date.parse(a.createdAt) || 0;
+    const dateB = Date.parse(b.createdAt) || 0;
+    return dateOrder === 'oldest' ? dateA - dateB : dateB - dateA;
+  }), [data?.feedback, dateOrder]);
 
   const load = useCallback(() => {
     setData(null);
@@ -47,12 +54,24 @@ export default function FeedbackPanel({ level = 1 }) {
       <div className="flex flex-wrap gap-2">
         <Pills label="Estado de las entradas" value={status} onChange={setStatus} options={Object.entries(STATUS_LABELS)} counts={data?.counts} />
         <Pills label="Tipo de entrada" value={kind} onChange={setKind} options={[['all', 'Todos'], ['complaint', 'Reclamos'], ['suggestion', 'Sugerencias'], ['support', 'Soporte']]} />
+        <div className="inline-flex items-center gap-2 rounded-xl bg-[#e6ecf7] p-1">
+          <span className="pl-2 text-xs font-extrabold uppercase tracking-wide text-[#12315f]/70">Ordenar</span>
+          <ThemedSelect
+            value={dateOrder}
+            onChange={setDateOrder}
+            ariaLabel="Ordenar reclamos y sugerencias por fecha"
+            icon="calendar_month"
+            className="w-[178px]"
+            buttonClassName="!min-h-10 !rounded-lg !border-[#12315f]/15 !px-3 !text-sm !shadow-sm"
+            options={[{ value: 'newest', label: 'Más recientes' }, { value: 'oldest', label: 'Más antiguas' }]}
+          />
+        </div>
       </div>
       {!data ? <Spinner label="Cargando mensajes" /> : data.feedback.length === 0 ? (
         <EmptyState icon="task_alt" title={status === 'open' ? 'No hay entradas pendientes' : 'No hay entradas para mostrar'}>Cuando alguien envíe un reclamo o sugerencia aparecerá aquí.</EmptyState>
       ) : (
         <ul className="space-y-2">
-          {data.feedback.map((item) => (
+          {sortedFeedback.map((item) => (
             <li key={item.id} className={`${ROW} ${ROW_HOVER} p-4`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
