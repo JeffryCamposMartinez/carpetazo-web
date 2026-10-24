@@ -154,6 +154,7 @@ const [isSearching, setIsSearching] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [hasMoreGroups, setHasMoreGroups] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [inPersonToolbarVisible, setInPersonToolbarVisible] = useState(false);
   const folderTcgConfig = getTcgConfig(folderData?.tcg);
   const isTcgcsvSearch = Boolean(tcgcsvCategoryId(searchCategory, searchLang)); // Pokémon, One Piece y Magic se buscan directo en TCGCSV
   const isMylFolder = folderTcgConfig.categoryId === '99' || searchCategory === '99';
@@ -1000,8 +1001,8 @@ const [isSearching, setIsSearching] = useState(false);
     </div>
   );
 
-  const folderSalesTabProps = { cards, copyBuyerLink, folderId: id, folderOrders, handleOrderUpdated, ordersLoading, salesView,
-    setCards, setSalesView, showToast };
+  const folderSalesTabProps = { cards, copyBuyerLink, folderId: id, folderOrders, handleOrderUpdated, isActive: activeTab === 'sales', ordersLoading, salesView,
+    setCards, setSalesView, setInPersonToolbarVisible, showScrollTop, showToast };
 
   const folderCatalogTabProps = { availableSets, cards, catQuery, catSet, catalogDragFloatingPreview,
     catalogDragFloatingPreviewRef, cardDetailsMode, catalogGridClass, catalogGridColumns, catalogGridDense, catalogViewMode,
@@ -1091,7 +1092,7 @@ const [isSearching, setIsSearching] = useState(false);
       </div>
     
       {/* Scroll to top button */}
-      {showScrollTop && (
+      {showScrollTop && !inPersonToolbarVisible && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-[max(1.5rem,env(safe-area-inset-right))] bg-[#1e40af] text-white w-14 h-14 rounded-full shadow-lg hover:bg-blue-800 transition-all z-50 flex items-center justify-center transform hover:scale-110 active:scale-95 border-2 border-white/20 lg:hidden"
