@@ -95,7 +95,7 @@ export function DetailPane({ label, children }) {
   // En el teléfono el fondo no se desplaza mientras el detalle está abierto
   useBodyScrollLock(window.matchMedia('(max-width: 1279px)').matches);
   return (
-    <section aria-label={label} className="mod-detail-in fixed inset-0 z-[70] flex flex-col overflow-hidden bg-white pt-[env(safe-area-inset-top)] xl:pt-0 xl:sticky xl:inset-auto xl:top-4 xl:z-0 xl:max-h-[calc(100vh-2rem)] xl:rounded-2xl xl:border xl:border-[#dbe3f0] xl:shadow-[0_8px_30px_-12px_rgba(18,49,95,0.25)]">
+    <section aria-label={label} className="mod-detail-in fixed inset-0 z-[70] flex flex-col overflow-hidden bg-white text-slate-800 pt-[env(safe-area-inset-top)] xl:pt-0 xl:sticky xl:inset-auto xl:top-4 xl:z-0 xl:max-h-[calc(100vh-2rem)] xl:rounded-2xl xl:border xl:border-[#dbe3f0] xl:shadow-[0_8px_30px_-12px_rgba(18,49,95,0.25)]">
       {children}
     </section>
   );

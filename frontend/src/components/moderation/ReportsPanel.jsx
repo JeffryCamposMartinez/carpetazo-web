@@ -168,7 +168,7 @@ function ReportDetail({ id, level, onClose, onChanged, onOpenPerson }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <DetailHeader title={report ? (TYPE_LABELS[report.targetType] || report.targetType) : 'Cargando…'} subtitle={report ? report.shortCode : undefined} onClose={onClose} />
-      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 pb-10">
+      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 pb-10 text-slate-800">
         {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-200">{error}</p>}
         {!data && !error && <LoadingState label="Cargando el reporte…" />}
         {report && (
