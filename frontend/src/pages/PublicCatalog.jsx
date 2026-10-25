@@ -19,6 +19,7 @@ import SvgIcon from '../components/ui/SvgIcon';
 import usePublicProfileBackdrop from '../hooks/usePublicProfileBackdrop';
 import { defaultPublicTheme, getEffectClassName, getFontStack, getProfileBackgroundStyle, getSideBackgroundStyle, resolveSurfaceTheme } from '../components/profile/profileStyles';
 import { loadThemeFonts } from '../utils/themeFonts';
+import { matchesEdition } from '../utils/editionFamilies';
 import { readableOn } from '../utils/color';
 
 const isLocalhostWithProductionApi = () => {
@@ -447,7 +448,7 @@ function PublicCatalog() {
       return races.includes(appliedFilters.mylRace);
     })
     .filter(card => folderData?.tcg !== 'Mitos y Leyendas' || appliedFilters.mylCost === '' || String(card.cost ?? card.manaCost ?? '') === String(appliedFilters.mylCost))
-    .filter(card => appliedFilters.set === '' || card.set === appliedFilters.set)
+    .filter(card => matchesEdition(card.set, appliedFilters.set))
     .filter(card => quickRarity === '' || card.rarity === quickRarity)
     .filter(card => !onlyAvailable || Number(card.stock || 0) > 0)
     .filter(card => {

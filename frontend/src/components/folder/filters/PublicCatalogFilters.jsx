@@ -8,6 +8,7 @@ import LorcanaFilters from './LorcanaFilters';
 import DigimonFilters from './DigimonFilters';
 import ThemedSelect from '../../ui/ThemedSelect';
 import Select from '../../ui/Select';
+import { withEditionFamilies } from '../../../utils/editionFamilies';
 
 const normalize = (value) => (value || '').toString().trim();
 
@@ -53,7 +54,7 @@ const EditionDropdown = ({
     <ThemedSelect
       value={searchSet || ''}
       onChange={(next) => onSelectSet(next)}
-      options={[{ value: '', label: 'Todas las ediciones' }, ...availableSets.map((setName) => ({ value: setName, label: setName }))]}
+      options={[{ value: '', label: 'Todas las ediciones' }, ...withEditionFamilies(availableSets.map((setName) => ({ value: setName, label: setName })))]}
       placeholder="Todas las ediciones"
       ariaLabel="Edición"
       searchable

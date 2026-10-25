@@ -9,6 +9,7 @@ import DigimonFilters from './DigimonFilters';
 import React from 'react';
 import ThemedSelect from '../../ui/ThemedSelect';
 import Select from '../../ui/Select';
+import { EDITION_FAMILY_PREFIX, withEditionFamilies } from '../../../utils/editionFamilies';
 
 const typeTabsByTcg = {
   Pokemon: [
@@ -54,8 +55,8 @@ const EditionDropdown = ({
   <div className={`relative w-full ${wrapperClassName}`}>
     <ThemedSelect
       value={searchSet === '' || searchSet == null ? '' : String(searchSet)}
-      onChange={(next) => onSelectSet(filteredSearchSets.find((set) => String(set.groupId) === next)?.groupId ?? '')}
-      options={[{ value: '', label }, ...filteredSearchSets.map((set) => ({ value: String(set.groupId), label: set.name }))]}
+      onChange={(next) => onSelectSet(next.startsWith(EDITION_FAMILY_PREFIX) ? next : filteredSearchSets.find((set) => String(set.groupId) === next)?.groupId ?? '')}
+      options={[{ value: '', label }, ...withEditionFamilies(filteredSearchSets.map((set) => ({ value: String(set.groupId), label: set.name })))]}
       placeholder={label}
       ariaLabel={label}
       searchable

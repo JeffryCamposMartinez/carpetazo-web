@@ -7,6 +7,7 @@ import { prisma } from '../core/db.js';
 import { badRequest, isAllowedProxyImageUrl } from '../core/validation.js';
 import { MYL_ID_PREFIX, rawMylId } from '../core/mylIdentity.js';
 import { likeEscape, nameDistance, nameMatch, searchFragments, similarCardName } from '../core/cardSearch.js';
+import { editionFamilyGroupIds, isEditionFamily, isKnownEditionFamily } from '../core/editionFamilies.js';
 
 const router = express.Router();
 const gzipAsync = promisify(gzip);
@@ -238,7 +239,7 @@ router.get('/api/tcg/cards', async (req, res) => {
 // --- TCGCSV LOCAL DB ---
 // Identificadores de las rutas del catálogo: solo enteros positivos (groupId también admite "otros")
 router.param('categoryId', (req, res, next, value) => (/^\d{1,9}$/.test(value) ? next() : badRequest(res, 'Juego inválido')));
-router.param('groupId', (req, res, next, value) => (/^\d{1,9}$/.test(value) || value === 'otros' ? next() : badRequest(res, 'Edición inválida')));
+router.param('groupId', (req, res, next, value) => (/^\d{1,9}$/.test(value) || value === 'otros' || isKnownEditionFamily(value) ? next() : badRequest(res, 'Edición inválida')));
 
 router.get('/api/tcg/categories', async (req, res) => {
   try {
@@ -497,6 +498,9 @@ router.get('/api/tcg/:categoryId/:groupId/products', async (req, res) => {
       const groups = await prisma.tcgGroup.findMany({ where: { categoryId: parseInt(categoryId) }, select: { groupId: true } });
       const groupIds = groups.map(g => g.groupId);
       whereClause.groupId = { notIn: groupIds };
+    } else if (isEditionFamily(groupId)) {
+      if (!isKnownEditionFamily(groupId)) return res.status(400).json({ success: false, message: 'Edición inválida' });
+      whereClause.groupId = { in: await editionFamilyGroupIds(prisma, parseInt(categoryId), groupId) };
     } else {
       whereClause.groupId = parseInt(groupId);
     }
@@ -592,6 +596,9 @@ router.get('/api/tcg/search', async (req, res) => {
         const groups = await prisma.tcgGroup.findMany({ where: { categoryId: parseInt(categoryId) }, select: { groupId: true } });
         const groupIds = groups.map(g => g.groupId);
         whereClause.groupId = { notIn: groupIds };
+      } else if (isEditionFamily(groupId)) {
+        if (!isKnownEditionFamily(groupId) || !categoryId) return badRequest(res, 'Búsqueda inválida');
+        whereClause.groupId = { in: await editionFamilyGroupIds(prisma, parseInt(categoryId), groupId) };
       } else {
         whereClause.groupId = parseInt(groupId);
       }
