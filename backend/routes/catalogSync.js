@@ -71,15 +71,15 @@ const mylItems = async (run, section, page) => {
 
 router.get('/api/admin/catalog-sync', authenticateToken, requireStaff(2), readLimit, async (req, res) => {
   try {
-    const isMyl = req.query.game === MYL_GAME;
-    const source = isMyl ? 'myl' : 'tcgplayer';
-    const runs = await prisma.catalogSyncRun.findMany({ where: { source, dryRun: false, status: { not: 'running' } }, orderBy: { startedAt: 'desc' }, take: RUNS });
-    const running = await prisma.catalogSyncRun.findFirst({ where: { source, status: 'running', startedAt: { gt: new Date(Date.now() - 3 * 3600 * 1000) } }, select: { startedAt: true } });
-    const selected = typeof req.query.run === 'string' && UUID.test(req.query.run) ? runs.find((run) => run.id === req.query.run) : runs[0];
     const game = gameOf(req.query);
+    // Sin juego elegido se ven las corridas de las dos fuentes (TCGplayer y Mitos y Leyendas); con un juego de TCGplayer o con Mitos y Leyendas, solo las suyas
+    const sources = req.query.game === MYL_GAME ? ['myl'] : game ? ['tcgplayer'] : ['tcgplayer', 'myl'];
+    const runs = await prisma.catalogSyncRun.findMany({ where: { source: { in: sources }, dryRun: false, status: { not: 'running' } }, orderBy: { startedAt: 'desc' }, take: RUNS * sources.length });
+    const running = await prisma.catalogSyncRun.findFirst({ where: { source: { in: sources }, status: 'running', startedAt: { gt: new Date(Date.now() - 3 * 3600 * 1000) } }, select: { startedAt: true } });
+    const selected = typeof req.query.run === 'string' && UUID.test(req.query.run) ? runs.find((run) => run.id === req.query.run) || runs[0] : runs[0];
     const games = [...await prisma.catalogGame.findMany({ select: { categoryId: true, name: true }, orderBy: { name: 'asc' } }), { categoryId: MYL_GAME, name: MYL_NAME }];
     let counts = null;
-    if (selected && isMyl) counts = await mylCounts(selected);
+    if (selected?.source === 'myl') counts = await mylCounts(selected);
     else if (selected) {
       const [cards, products, filled, changes] = await Promise.all([
         prisma.catalogCard.count({ where: whereFor(selected, 'cards', game) }),
@@ -92,7 +92,7 @@ router.get('/api/admin/catalog-sync', authenticateToken, requireStaff(2), readLi
     res.json({
       success: true, running: Boolean(running), counts, games, selectedId: selected?.id || null,
       // Del resumen de Mitos y Leyendas solo salen las cifras, no las listas (esas van por la ruta de detalle)
-      runs: runs.map((run) => ({ id: run.id, startedAt: run.startedAt, finishedAt: run.finishedAt, status: run.status, summary: run.source === 'myl' ? { ...summaryOf(run), lists: undefined } : run.summary })),
+      runs: runs.map((run) => ({ id: run.id, source: run.source, startedAt: run.startedAt, finishedAt: run.finishedAt, status: run.status, summary: run.source === 'myl' ? { ...summaryOf(run), lists: undefined } : run.summary })),
     });
   } catch (error) {
     console.error('Error cargando el reporte de sincronización:', error);

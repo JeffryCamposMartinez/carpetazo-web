@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../services/api';
 import { ButtonSpinner } from '../ui/LoadingState';
 import SvgIcon from '../ui/SvgIcon';
+import ThemedSelect from '../ui/ThemedSelect';
 import { EmptyState, ErrorBox, ListSkeleton, Pills, ROW, dateTime } from './shared';
 
 const MYL = 'myl'; // valor del filtro «Mitos y Leyendas» (se sincroniza con mazos.cl, no con TCGplayer)
@@ -67,7 +68,6 @@ export default function CatalogSyncPanel() {
   const [list, setList] = useState(null);
   const [error, setError] = useState('');
   const [loadingMore, setLoadingMore] = useState(false);
-  const isMyl = game === MYL;
 
   useEffect(() => {
     api.getCatalogSync(runId, game).then((res) => {
@@ -83,9 +83,12 @@ export default function CatalogSyncPanel() {
   }, [runId, section, game]);
   useEffect(() => { setList(null); load(1, false); }, [load]);
 
-  const changeGame = (next) => { setGame(next); setRunId(''); setList(null); if (next !== MYL && section === 'noEdition') setSection('cards'); };
+  const changeGame = (next) => { setGame(next); setRunId(''); setList(null); };
 
   const run = overview?.runs?.find((item) => item.id === runId);
+  // Mitos y Leyendas: cuando se filtra por ese juego o cuando la corrida elegida (en «Todos los juegos») es de mazos.cl
+  const isMyl = game === MYL || run?.source === 'myl';
+  useEffect(() => { if (!isMyl && section === 'noEdition') setSection('cards'); }, [isMyl, section]);
   const summary = run?.summary || {};
   const counts = overview?.counts;
   const [statusLabel, statusDot] = STATUS[run?.status] || ['', 'bg-slate-300'];
@@ -112,18 +115,32 @@ export default function CatalogSyncPanel() {
         <>
           <div className="mb-4 flex flex-wrap items-end gap-3">
             {!noRuns && (
-              <label className="block text-sm font-bold text-slate-700">Corrida
-                <select value={runId} onChange={(event) => setRunId(event.target.value)} className="mt-1 block h-11 rounded-xl border border-slate-300 bg-white px-3 text-[15px] font-semibold text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-                  {overview.runs.map((item) => <option key={item.id} value={item.id}>{dateTime(item.startedAt)}</option>)}
-                </select>
-              </label>
+              <div className="inline-flex items-center gap-2 rounded-xl bg-[#e6ecf7] p-1">
+                <span className="pl-2 text-xs font-extrabold uppercase tracking-wide text-[#12315f]/70">Corrida</span>
+                <ThemedSelect
+                  value={runId}
+                  onChange={setRunId}
+                  ariaLabel="Corrida de la sincronización"
+                  icon="history"
+                  className="w-[330px] max-w-full"
+                  listMinWidth={330}
+                  buttonClassName="!min-h-10 !rounded-lg !border-[#12315f]/15 !px-3 !text-sm !shadow-sm"
+                  options={overview.runs.map((item) => ({ value: item.id, label: `${dateTime(item.startedAt)}${game === '' ? ` · ${item.source === 'myl' ? 'Mitos y Leyendas' : 'TCGplayer'}` : ''}` }))}
+                />
+              </div>
             )}
-            <label className="block text-sm font-bold text-slate-700">Juego
-              <select value={game} onChange={(event) => changeGame(event.target.value)} className="mt-1 block h-11 rounded-xl border border-slate-300 bg-white px-3 text-[15px] font-semibold text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-                <option value="">Todos los juegos</option>
-                {(overview.games || []).map((item) => <option key={item.categoryId} value={item.categoryId}>{item.name}</option>)}
-              </select>
-            </label>
+            <div className="inline-flex items-center gap-2 rounded-xl bg-[#e6ecf7] p-1">
+              <span className="pl-2 text-xs font-extrabold uppercase tracking-wide text-[#12315f]/70">Juego</span>
+              <ThemedSelect
+                value={game}
+                onChange={changeGame}
+                ariaLabel="Juego"
+                icon="sports_esports"
+                className="w-[210px]"
+                buttonClassName="!min-h-10 !rounded-lg !border-[#12315f]/15 !px-3 !text-sm !shadow-sm"
+                options={[{ value: '', label: 'Todos los juegos' }, ...(overview.games || []).map((item) => ({ value: String(item.categoryId), label: item.name }))]}
+              />
+            </div>
             {run && <p className="flex items-center gap-2 pb-2.5 text-sm font-bold text-slate-700"><span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${statusDot}`} />{statusLabel}{summary.seconds !== undefined && <span className="font-semibold text-slate-500">· {duration(summary.seconds)}</span>}</p>}
             {overview.running && <p className="pb-2.5 text-sm font-bold text-[#1e40af]">Hay una corrida en curso ahora.</p>}
           </div>
