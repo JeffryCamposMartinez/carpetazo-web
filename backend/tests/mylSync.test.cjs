@@ -66,6 +66,7 @@ const load = (file) => import(pathToFileURL(path.join(root, file)).href);
   const wipe = async () => {
     const dbBlock = await prisma.tcgBlock.findFirst({ where: { categoryId: 99, name: BLOCK.name } });
     await prisma.tcgProduct.deleteMany({ where: { productId: { startsWith: '9000' } } });
+    await prisma.mylSyncFinding.deleteMany({ where: { productId: { startsWith: '9000' } } });
     if (dbBlock) {
       await prisma.tcgPhysicalProduct.deleteMany({ where: { blockId: dbBlock.id } });
       await prisma.tcgGroup.deleteMany({ where: { blockId: dbBlock.id } });
@@ -104,6 +105,9 @@ const load = (file) => import(pathToFileURL(path.join(root, file)).href);
     ok('la imagen sube con la misma ruta que CarpetazoUpdate', A.imageUrl.endsWith('/CZTEST_Bloque_DB/CZTEST_Bloque_Images/Kit_%20Uno/Carta%20A/Carta%20A.webp') && uploads.has('Carpetazo.cl/Mitos_y_Leyendas/CZTEST_Bloque_DB/CZTEST_Bloque_Images/Kit_ Uno/Carta A/Carta A.webp'));
     ok('dos cartas con el mismo nombre: la segunda lleva «2» en su carpeta', C.imageUrl.includes('/Repetida%202/Repetida.webp') && uploads.has('Carpetazo.cl/Mitos_y_Leyendas/CZTEST_Bloque_DB/CZTEST_Bloque_Images/Kit_ Uno/Repetida 2/Repetida.webp'), `${B.imageUrl} | ${C.imageUrl}`);
     ok('si la imagen falla, la carta entra igual sin imagen', B.imageUrl === '' && result.imagesFailed === 1);
+    ok('la carta sin edición queda como hallazgo para revisar', (await prisma.mylSyncFinding.count({ where: { kind: 'noEdition', productId: '9000005' } })) === 1);
+    const first = await prisma.catalogSyncRun.findFirst({ where: { source: 'myl', startedAt: { gte: t0 } }, orderBy: { startedAt: 'desc' } });
+    ok('el resumen de la corrida guarda las listas que muestra el panel', first.summary.lists.cards.length === 4 && first.summary.lists.cards[0].block === 'CZTEST Bloque' && first.summary.lists.editions.length === 2 && first.summary.lists.products.length === 2 && first.summary.noEdition === 1, JSON.stringify(first.summary).slice(0, 300));
     ok('queda registrada la corrida de Mitos y Leyendas (no se mezcla con TCGplayer)', (await prisma.catalogSyncRun.count({ where: { source: 'myl', startedAt: { gte: t0 }, status: 'partial' } })) === 1);
 
     failing.clear();
@@ -113,14 +117,22 @@ const load = (file) => import(pathToFileURL(path.join(root, file)).href);
     data = { ...data, products: [mk(9000001, 'Carta A', { cost: 7 }), data.products[1], data.products[2]] };
     result = await run();
     ok('una corrección de mazos.cl se cuenta pero no se aplica', result.corrections === 1 && (await row(9000001)).extData.find((x) => x.name === 'Cost').value === '2');
+    let finding = await prisma.mylSyncFinding.findMany({ where: { kind: 'correction', productId: '9000001' } });
+    ok('la corrección queda guardada con el antes y el después', finding.length === 1 && finding[0].before.Cost === '2' && finding[0].after.Cost === '7');
+    await run();
+    ok('repetir la corrida no duplica el hallazgo', (await prisma.mylSyncFinding.count({ where: { kind: 'correction', productId: '9000001' } })) === 1);
 
     await prisma.tcgProduct.update({ where: { productId: '9000004' }, data: { extData: D.extData.filter((x) => x.name !== 'Effect') } });
     result = await run();
     ok('un dato en blanco se completa solo', result.filledData === 1 && (await row(9000004)).extData.some((x) => x.name === 'Effect' && x.value === 'Texto'), JSON.stringify(result));
 
+    data = { ...data, catalog: [data.catalog[0], mk(9000005, 'Sin Edición', { edition: { name: 'Edición Dos' } })] };
+    await run();
+    ok('cuando la carta consigue edición entra y deja de estar pendiente', (await row(9000005)) !== null && (await prisma.mylSyncFinding.count({ where: { kind: 'noEdition', productId: '9000005' } })) === 0);
+
     data = { products: [], catalog: [] };
     await run();
-    ok('nunca borra: lo que mazos.cl ya no trae sigue en la base', (await prisma.tcgProduct.count({ where: { productId: { startsWith: '9000' } } })) === 4);
+    ok('nunca borra: lo que mazos.cl ya no trae sigue en la base', (await prisma.tcgProduct.count({ where: { productId: { startsWith: '9000' } } })) === 5);
 
     data = { products: [mk(9000006, 'Carta F')], catalog: [] };
     await prisma.catalogSyncRun.create({ data: { status: 'running', source: 'myl' } });

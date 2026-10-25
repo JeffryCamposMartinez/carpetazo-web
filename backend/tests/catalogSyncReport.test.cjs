@@ -63,6 +63,29 @@ const END = T('2031-10-01T04:09:00Z');
     ok('la lista de otro juego queda vacía', r.j.total === 0);
     r = await call('GET', `${base}/${run.id}/cards?game=abc`, 'jeffry');
     ok('un juego inválido se ignora (sin filtro)', r.status === 200 && r.j.total === 2);
+    // --- Mitos y Leyendas (mazos.cl): su propia lista de corridas, con las listas guardadas en el resumen y los hallazgos aparte
+    const mylCards = Array.from({ length: 50 }, (_, n) => ({ id: 9100000 + n, name: `CZTEST Myl ${n}`, block: 'CZTEST Bloque', edition: 'Edición Uno', product: 'Kit', imageUrl: null }));
+    const mylRun = await prisma.catalogSyncRun.create({ data: { startedAt: T('2031-10-03T05:00:00Z'), finishedAt: T('2031-10-03T05:08:00Z'), status: 'ok', source: 'myl', summary: { newCards: 50, newEditions: 1, newProducts: 1, filled: 1, imagesUploaded: 50, seconds: 480, lists: { cards: mylCards, editions: [{ name: 'Edición Uno', block: 'CZTEST Bloque' }], products: [{ name: 'Kit', block: 'CZTEST Bloque' }], filled: [{ id: 9100099, name: 'CZTEST Completada', block: 'CZTEST Bloque', imageUrl: null, what: 'datos' }] } } } });
+    runs.push(mylRun.id);
+    await prisma.mylSyncFinding.createMany({ data: [
+      { kind: 'correction', productId: '9100000', name: 'CZTEST Myl 0', blockName: 'CZTEST Bloque', digest: 'cztest-a', before: { Cost: '1' }, after: { Cost: '2' }, createdAt: T('2031-10-03T05:03:00Z') },
+      { kind: 'noEdition', productId: '9100001', name: 'CZTEST Sin Edición', blockName: 'CZTEST Bloque', digest: 'sin-edicion' },
+    ] });
+    r = await call('GET', `${base}?game=myl`, 'jeffry');
+    ok('Mitos y Leyendas: solo sus corridas, con cifras y sin las listas completas', r.status === 200 && r.j.runs.length === 1 && r.j.runs[0].id === mylRun.id && r.j.counts.cards === 50 && r.j.counts.products === 2 && r.j.counts.filled === 1 && r.j.counts.changes === 1 && r.j.counts.noEdition === 1 && r.j.runs[0].summary.lists === undefined, JSON.stringify(r.j.counts));
+    ok('el filtro de juegos ofrece Mitos y Leyendas', (await call('GET', base, 'jeffry')).j.games.some((g) => g.categoryId === 'myl'));
+    ok('la lista de TCGplayer no mezcla la corrida de Mitos y Leyendas', !(await call('GET', base, 'jeffry')).j.runs.some((item) => item.id === mylRun.id));
+    r = await call('GET', `${base}/${mylRun.id}/cards`, 'jeffry');
+    ok('Mitos y Leyendas: cartas nuevas paginadas', r.status === 200 && r.j.total === 50 && r.j.items.length === 48 && r.j.pages === 2 && r.j.items[0].game === 'Mitos y Leyendas');
+    r = await call('GET', `${base}/${mylRun.id}/products`, 'jeffry');
+    ok('Mitos y Leyendas: ediciones y productos nuevos', r.j.total === 2 && r.j.items.some((i) => i.detail.startsWith('Edición nueva')) && r.j.items.some((i) => i.detail.startsWith('Producto nuevo')));
+    r = await call('GET', `${base}/${mylRun.id}/filled`, 'jeffry');
+    ok('Mitos y Leyendas: completadas', r.j.total === 1 && r.j.items[0].name === 'CZTEST Completada');
+    r = await call('GET', `${base}/${mylRun.id}/changes`, 'jeffry');
+    ok('Mitos y Leyendas: correcciones con el antes y el después', r.j.total === 1 && r.j.items[0].before.Cost === '1' && r.j.items[0].after.Cost === '2' && r.j.items[0].card.name === 'CZTEST Myl 0');
+    r = await call('GET', `${base}/${mylRun.id}/noEdition`, 'jeffry');
+    ok('Mitos y Leyendas: cartas sin edición', r.j.total === 1 && r.j.items[0].card.name === 'CZTEST Sin Edición');
+    ok('«sin edición» no existe para una corrida de TCGplayer', (await call('GET', `${base}/${run.id}/noEdition`, 'jeffry')).status === 400);
     ok('sección inválida → 400', (await call('GET', `${base}/${run.id}/usuarios`, 'jeffry')).status === 400);
     ok('id inválido → 400', (await call('GET', `${base}/nope/cards`, 'jeffry')).status === 400);
     ok('página fuera de rango → 400', (await call('GET', `${base}/${run.id}/cards?page=0`, 'jeffry')).status === 400 || (await call('GET', `${base}/${run.id}/cards?page=99999`, 'jeffry')).status === 400);
@@ -72,6 +95,7 @@ const END = T('2031-10-01T04:09:00Z');
   } catch (error) {
     ok('el reporte no lanzó errores inesperados', false, error.stack);
   } finally {
+    await prisma.mylSyncFinding.deleteMany({ where: { productId: { startsWith: '9100' } } });
     await prisma.catalogChange.deleteMany({ where: { categoryId: GAME_ID } });
     await prisma.catalogSyncRun.deleteMany({ where: { id: { in: runs } } });
     await prisma.catalogCard.deleteMany({ where: { categoryId: GAME_ID } });

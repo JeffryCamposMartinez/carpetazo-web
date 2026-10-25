@@ -17,6 +17,9 @@ const CHUNK = 100; // cartas nuevas por escritura en la base
 const IMAGE_HOSTS = new Set(['cdn.mazos.cl', 'codicetcg.b-cdn.net']); // de dónde se aceptan imágenes
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_FILLS_PER_RUN = 2000;
+const MAX_LISTED = 600; // elementos que cada lista del resumen de la corrida guarda para el panel (el total siempre se cuenta completo)
+
+const listed = (list, item) => { if (list.length < MAX_LISTED) list.push(item); };
 
 const pool = async (list, size, task) => {
   let cursor = 0;
@@ -51,6 +54,18 @@ const acquireRun = async (db, dryRun) => {
   // Un solo recorrido a la vez; una corrida que quedó "running" hace más de 3 horas se considera muerta
   const rows = await db.$queryRaw`INSERT INTO "CatalogSyncRun" ("id","status","dryRun","source","startedAt") SELECT gen_random_uuid()::text,'running',false,'myl',(now() AT TIME ZONE 'UTC') WHERE NOT EXISTS (SELECT 1 FROM "CatalogSyncRun" WHERE "source"='myl' AND "status"='running' AND "startedAt" > (now() AT TIME ZONE 'UTC') - interval '3 hours') RETURNING "id"`;
   return rows[0] || null;
+};
+
+const digestOf = (value) => createHash('sha1').update(JSON.stringify(value)).digest('hex');
+const mapValues = (object, pick) => Object.fromEntries(Object.entries(object).map(([key, value]) => [key, pick(value)]));
+
+// Deja para revisar a mano lo que mazos.cl corrigió y las cartas nuevas sin edición. Lo ya guardado no se repite (misma carta y mismo cambio).
+const saveFindings = async (db, block, report) => {
+  const rows = [
+    ...report.correcciones.map((item) => ({ kind: 'correction', productId: item.id, name: item.name, blockName: block.name, digest: digestOf(item.changes), before: mapValues(item.changes, (change) => change.before), after: mapValues(item.changes, (change) => change.after) })),
+    ...report.nuevasSinEdicion.map((item) => ({ kind: 'noEdition', productId: item.id, name: item.name, blockName: block.name, digest: 'sin-edicion' })),
+  ];
+  for (let i = 0; i < rows.length; i += 500) await db.mylSyncFinding.createMany({ data: rows.slice(i, i + 500), skipDuplicates: true });
 };
 
 // Lo que mazos.cl dice de un bloque: cartas de cada producto y el catálogo completo (Imperio no tiene productos)
@@ -105,7 +120,7 @@ export async function runMylSync(options = {}) {
     if (Date.now() > deadline) return 'tiempo máximo';
     return '';
   };
-  const total = { newCards: 0, noEdition: 0, newEditions: 0, newProducts: 0, filledData: 0, imagesUploaded: 0, imagesFilled: 0, imagesFailed: 0, corrections: 0, stopped: '' };
+  const total = { newCards: 0, noEdition: 0, newEditions: 0, newProducts: 0, filledData: 0, filled: 0, imagesUploaded: 0, imagesFilled: 0, imagesFailed: 0, corrections: 0, stopped: '', lists: { cards: [], products: [], editions: [], filled: [] } };
   const perBlock = {};
   let status = 'ok';
   try {
@@ -126,6 +141,7 @@ export async function runMylSync(options = {}) {
         perBlock[block.name] = { cartasEnMazos: report.cartasEnMazos, nuevas: report.nuevas.length, sinEdicion: report.nuevasSinEdicion.length, correcciones: report.correcciones.length, porCompletar: report.porCompletar };
         log(`${block.name}: ${report.cartasEnMazos} cartas en mazos.cl · ${report.nuevas.length} nuevas (${report.nuevasSinEdicion.length} sin edición) · ${report.correcciones.length} correcciones · por completar ${JSON.stringify(report.porCompletar)}`);
         if (dryRun) continue;
+        await saveFindings(db, block, report);
         await applyBlock({ db, block, cards, state, upload, fetchImage, budget, outOfBudget, total, log });
         total.stopped ||= outOfBudget();
       } catch (error) {
@@ -158,6 +174,7 @@ async function applyBlock({ db, block, cards, state, upload, fetchImage, budget,
       const created = await db.tcgGroup.create({ data: { groupId: nextGroupId++, name, blockId: dbBlock.id, categoryId: MYL_CATEGORY, publishedOn: new Date(), modifiedOn: new Date() } });
       groupIdByName.set(cleanName(name), created.groupId);
       total.newEditions += 1;
+      listed(total.lists.editions, { name, block: block.name });
     }
   }
   const physicalIdByName = new Map(physical.map((product) => [product.name, product.id]));
@@ -169,6 +186,7 @@ async function applyBlock({ db, block, cards, state, upload, fetchImage, budget,
       const created = await db.tcgPhysicalProduct.create({ data: { name, blockId: dbBlock.id, categoryId: MYL_CATEGORY } });
       physicalIdByName.set(name, created.id);
       total.newProducts += 1;
+      listed(total.lists.products, { name, block: block.name });
     }
   }
 
@@ -213,13 +231,16 @@ async function applyBlock({ db, block, cards, state, upload, fetchImage, budget,
       const name = String(entry.json.name).trim();
       const editionName = String(entry.json.edition.name).replace(/^[^\p{L}\p{N}]+/u, '').trim();
       const imageUrl = await uploadImage(entry, 'imagesUploaded');
-      rows.push({ productId: id, name, cleanName: cleanName(name), imageUrl, extData: cardExtData(entry.json), groupId: groupIdByName.get(cleanName(editionName)), categoryId: MYL_CATEGORY, physicalProductId: physicalIdByName.get([...entry.products][0]), _products: [...entry.products] });
+      rows.push({ productId: id, name, cleanName: cleanName(name), imageUrl, extData: cardExtData(entry.json), groupId: groupIdByName.get(cleanName(editionName)), categoryId: MYL_CATEGORY, physicalProductId: physicalIdByName.get([...entry.products][0]), _products: [...entry.products], _edition: editionName });
     });
     await db.$transaction(async (tx) => {
-      await tx.tcgProduct.createMany({ data: rows.map(({ _products, ...row }) => row), skipDuplicates: true });
+      await tx.tcgProduct.createMany({ data: rows.map(({ _products, _edition, ...row }) => row), skipDuplicates: true });
       await tx.tcgProductPhysicalProduct.createMany({ data: rows.flatMap((row) => row._products.map((name) => ({ productId: row.productId, physicalProductId: physicalIdByName.get(name) }))), skipDuplicates: true });
     });
     total.newCards += rows.length;
+    for (const row of rows) listed(total.lists.cards, { id: row.productId, name: row.name, block: block.name, edition: row._edition, product: row._products[0], imageUrl: row.imageUrl || null });
+    // Una carta que antes no tenía edición y ya entró deja de estar pendiente
+    await db.mylSyncFinding.deleteMany({ where: { kind: 'noEdition', productId: { in: rows.map((row) => row.productId) } } });
   }
 
   // Cartas que ya estaban: completar datos en blanco y, si les falta, la imagen
@@ -245,6 +266,11 @@ async function applyBlock({ db, block, cards, state, upload, fetchImage, budget,
       const imageUrl = await uploadImage(entry, 'imagesFilled');
       if (imageUrl) data.imageUrl = imageUrl;
     }
-    if (Object.keys(data).length) { await db.tcgProduct.update({ where: { productId: current.productId }, data }); fills += 1; }
+    if (Object.keys(data).length) {
+      await db.tcgProduct.update({ where: { productId: current.productId }, data });
+      fills += 1;
+      total.filled += 1;
+      listed(total.lists.filled, { id: current.productId, name: current.name, block: block.name, imageUrl: data.imageUrl || current.imageUrl || null, what: [data.imageUrl ? 'imagen' : '', dataKeys.length ? 'datos' : ''].filter(Boolean).join(' y ') });
+    }
   }
 }
