@@ -48,25 +48,27 @@ export default function CatalogSyncPanel() {
   const [overview, setOverview] = useState(null);
   const [runId, setRunId] = useState('');
   const [section, setSection] = useState('cards');
+  const [game, setGame] = useState(''); // '' = todos los juegos
   const [list, setList] = useState(null);
   const [error, setError] = useState('');
   const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
-    api.getCatalogSync(runId).then((res) => { setOverview(res); if (!runId && res.selectedId) setRunId(res.selectedId); }).catch((err) => { setOverview({ runs: [], counts: null }); setError(err.message || 'No se pudo cargar el reporte.'); });
-  }, [runId]);
+    api.getCatalogSync(runId, game).then((res) => { setOverview(res); if (!runId && res.selectedId) setRunId(res.selectedId); }).catch((err) => { setOverview({ runs: [], counts: null }); setError(err.message || 'No se pudo cargar el reporte.'); });
+  }, [runId, game]);
 
   const load = useCallback((page, append) => {
     if (!runId) return Promise.resolve();
-    return api.getCatalogSyncItems(runId, section, page).then((res) => setList((prev) => (append && prev ? { ...res, items: [...prev.items, ...res.items] } : res))).catch((err) => { setError(err.message || 'No se pudo cargar la lista.'); setList({ items: [], total: 0, page: 1, pages: 1 }); });
-  }, [runId, section]);
+    return api.getCatalogSyncItems(runId, section, page, game).then((res) => setList((prev) => (append && prev ? { ...res, items: [...prev.items, ...res.items] } : res))).catch((err) => { setError(err.message || 'No se pudo cargar la lista.'); setList({ items: [], total: 0, page: 1, pages: 1 }); });
+  }, [runId, section, game]);
   useEffect(() => { setList(null); load(1, false); }, [load]);
 
   const run = overview?.runs?.find((item) => item.id === runId);
   const summary = run?.summary || {};
   const counts = overview?.counts;
   const [statusLabel, statusDot] = STATUS[run?.status] || ['', 'bg-slate-300'];
-  const tiles = [['Cartas nuevas', counts?.cards], ['Productos nuevos', counts?.products], ['Imágenes subidas', summary.imagesUploaded], ['Correcciones por revisar', counts?.changes]];
+  // La cifra de imágenes subidas es de toda la corrida; al elegir un juego se muestran las imágenes completadas de ese juego
+  const tiles = [['Cartas nuevas', counts?.cards], ['Productos nuevos', counts?.products], game ? ['Imágenes completadas', counts?.filled] : ['Imágenes subidas', summary.imagesUploaded], ['Correcciones por revisar', counts?.changes]];
 
   if (overview && overview.runs.length === 0) {
     return <EmptyState icon="sync" title="Todavía no hay corridas">{overview.running ? 'La primera sincronización está en curso. Cuando termine, aparecerá aquí.' : 'Cuando la tarea nocturna de Coolify corra por primera vez, aquí verás lo que entró.'}</EmptyState>;
@@ -81,6 +83,12 @@ export default function CatalogSyncPanel() {
             <label className="block text-sm font-bold text-slate-700">Corrida
               <select value={runId} onChange={(event) => setRunId(event.target.value)} className="mt-1 block h-11 rounded-xl border border-slate-300 bg-white px-3 text-[15px] font-semibold text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
                 {overview.runs.map((item) => <option key={item.id} value={item.id}>{dateTime(item.startedAt)}</option>)}
+              </select>
+            </label>
+            <label className="block text-sm font-bold text-slate-700">Juego
+              <select value={game} onChange={(event) => setGame(event.target.value)} className="mt-1 block h-11 rounded-xl border border-slate-300 bg-white px-3 text-[15px] font-semibold text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
+                <option value="">Todos los juegos</option>
+                {(overview.games || []).map((item) => <option key={item.categoryId} value={item.categoryId}>{item.name}</option>)}
               </select>
             </label>
             {run && <p className="flex items-center gap-2 pb-2.5 text-sm font-bold text-slate-700"><span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${statusDot}`} />{statusLabel}{summary.seconds !== undefined && <span className="font-semibold text-slate-500">· {duration(summary.seconds)}</span>}</p>}

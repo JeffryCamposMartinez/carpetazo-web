@@ -16,12 +16,15 @@ const readLimit = routeLimiter(60 * 1000, 120);
 
 // Filas que esta corrida creó o a las que les completó la imagen, según el tipo de sección
 const windowOf = (run) => ({ gte: run.startedAt, lte: run.finishedAt || new Date() });
-const whereFor = (run, section) => {
+const whereFor = (run, section, game) => {
   const range = windowOf(run);
-  if (section === 'cards') return { kind: 'card', createdAt: range };
-  if (section === 'products') return { kind: 'product', createdAt: range };
-  return { createdAt: { lt: run.startedAt }, updatedAt: range, imageKey: { not: null } }; // filled
+  const byGame = game ? { categoryId: game } : {};
+  if (section === 'cards') return { kind: 'card', createdAt: range, ...byGame };
+  if (section === 'products') return { kind: 'product', createdAt: range, ...byGame };
+  return { createdAt: { lt: run.startedAt }, updatedAt: range, imageKey: { not: null }, ...byGame }; // filled
 };
+// Filtro opcional por juego (categoryId de TCGplayer); sin él se ven todos
+const gameOf = (query) => (typeof query.game === 'string' && /^\d{1,9}$/.test(query.game) ? Number(query.game) : null);
 const SELECT = { productId: true, name: true, number: true, rarity: true, kind: true, imageKey: true, thumbKey: true, set: { select: { name: true } }, game: { select: { name: true } } };
 const cardView = (row) => ({
   productId: row.productId, name: row.name, number: row.number, rarity: row.rarity, kind: row.kind, game: row.game?.name || '', edition: row.set?.name || '',
@@ -33,18 +36,20 @@ router.get('/api/admin/catalog-sync', authenticateToken, requireStaff(2), readLi
     const runs = await prisma.catalogSyncRun.findMany({ where: { dryRun: false, status: { not: 'running' } }, orderBy: { startedAt: 'desc' }, take: RUNS });
     const running = await prisma.catalogSyncRun.findFirst({ where: { status: 'running', startedAt: { gt: new Date(Date.now() - 3 * 3600 * 1000) } }, select: { startedAt: true } });
     const selected = typeof req.query.run === 'string' && UUID.test(req.query.run) ? runs.find((run) => run.id === req.query.run) : runs[0];
+    const game = gameOf(req.query);
+    const games = await prisma.catalogGame.findMany({ select: { categoryId: true, name: true }, orderBy: { name: 'asc' } });
     let counts = null;
     if (selected) {
       const [cards, products, filled, changes] = await Promise.all([
-        prisma.catalogCard.count({ where: whereFor(selected, 'cards') }),
-        prisma.catalogCard.count({ where: whereFor(selected, 'products') }),
-        prisma.catalogCard.count({ where: whereFor(selected, 'filled') }),
-        prisma.catalogChange.count({ where: { createdAt: windowOf(selected) } }),
+        prisma.catalogCard.count({ where: whereFor(selected, 'cards', game) }),
+        prisma.catalogCard.count({ where: whereFor(selected, 'products', game) }),
+        prisma.catalogCard.count({ where: whereFor(selected, 'filled', game) }),
+        prisma.catalogChange.count({ where: { createdAt: windowOf(selected), ...(game ? { categoryId: game } : {}) } }),
       ]);
       counts = { cards, products, filled, changes };
     }
     res.json({
-      success: true, running: Boolean(running), counts, selectedId: selected?.id || null,
+      success: true, running: Boolean(running), counts, games, selectedId: selected?.id || null,
       runs: runs.map((run) => ({ id: run.id, startedAt: run.startedAt, finishedAt: run.finishedAt, status: run.status, summary: run.summary })),
     });
   } catch (error) {
@@ -60,14 +65,15 @@ router.get('/api/admin/catalog-sync/:id/:section', authenticateToken, requireSta
   try {
     const run = await prisma.catalogSyncRun.findUnique({ where: { id } });
     if (!run || run.dryRun) return res.status(404).json({ success: false, message: 'Corrida no encontrada' });
+    const game = gameOf(req.query);
     if (section === 'changes') {
-      const where = { createdAt: windowOf(run) };
+      const where = { createdAt: windowOf(run), ...(game ? { categoryId: game } : {}) };
       const [total, rows] = await Promise.all([prisma.catalogChange.count({ where }), prisma.catalogChange.findMany({ where, orderBy: [{ categoryId: 'asc' }, { productId: 'asc' }], skip: (page - 1) * PAGE, take: PAGE })]);
       const cards = await prisma.catalogCard.findMany({ where: { productId: { in: rows.map((row) => row.productId) } }, select: SELECT });
       const byId = new Map(cards.map((card) => [card.productId, cardView(card)]));
       return res.json({ success: true, total, page, pages: Math.max(1, Math.ceil(total / PAGE)), items: rows.map((row) => ({ id: row.id, status: row.status, before: row.before, after: row.after, card: byId.get(row.productId) || null })) });
     }
-    const where = whereFor(run, section);
+    const where = whereFor(run, section, game);
     const [total, rows] = await Promise.all([
       prisma.catalogCard.count({ where }),
       prisma.catalogCard.findMany({ where, orderBy: [{ categoryId: 'asc' }, { groupId: 'asc' }, { name: 'asc' }, { productId: 'asc' }], skip: (page - 1) * PAGE, take: PAGE, select: SELECT }),

@@ -52,6 +52,17 @@ const END = T('2031-10-01T04:09:00Z');
     r = await call('GET', `${base}/${run.id}/changes`, 'jeffry');
     ok('correcciones: el antes, el después y la carta', r.j.total === 1 && r.j.items[0].before.name === 'CZTEST Carta Antigua' && r.j.items[0].after.name === 'CZTEST Carta Antigua v2' && r.j.items[0].card?.name === 'CZTEST Carta Antigua');
     ok('no expone usuarios, correos ni rutas internas de R2', !/@test\.local|firebaseUid|"imageKey"|"thumbKey"|"dataKey"/.test(JSON.stringify((await call('GET', `${base}/${run.id}/cards`, 'jeffry')).j)));
+    // --- Filtro por juego
+    r = await call('GET', `${base}?run=${run.id}&game=${GAME_ID}`, 'jeffry');
+    ok('el filtro por juego conserva las cifras del juego y lista los juegos', r.j.counts.cards === 2 && r.j.games.some((g) => g.categoryId === GAME_ID));
+    r = await call('GET', `${base}?run=${run.id}&game=1`, 'jeffry');
+    ok('otro juego no ve las cartas de este', r.j.counts.cards === 0 && r.j.counts.changes === 0);
+    r = await call('GET', `${base}/${run.id}/cards?game=${GAME_ID}`, 'jeffry');
+    ok('la lista también se filtra por juego', r.j.total === 2);
+    r = await call('GET', `${base}/${run.id}/cards?game=1`, 'jeffry');
+    ok('la lista de otro juego queda vacía', r.j.total === 0);
+    r = await call('GET', `${base}/${run.id}/cards?game=abc`, 'jeffry');
+    ok('un juego inválido se ignora (sin filtro)', r.status === 200 && r.j.total === 2);
     ok('sección inválida → 400', (await call('GET', `${base}/${run.id}/usuarios`, 'jeffry')).status === 400);
     ok('id inválido → 400', (await call('GET', `${base}/nope/cards`, 'jeffry')).status === 400);
     ok('página fuera de rango → 400', (await call('GET', `${base}/${run.id}/cards?page=0`, 'jeffry')).status === 400 || (await call('GET', `${base}/${run.id}/cards?page=99999`, 'jeffry')).status === 400);
