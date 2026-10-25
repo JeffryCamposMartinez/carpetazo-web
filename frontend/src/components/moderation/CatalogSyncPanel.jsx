@@ -3,6 +3,7 @@ import { api } from '../../services/api';
 import { ButtonSpinner } from '../ui/LoadingState';
 import SvgIcon from '../ui/SvgIcon';
 import ThemedSelect from '../ui/ThemedSelect';
+import LoadableImage from '../ui/LoadableImage';
 import { EmptyState, ErrorBox, ListSkeleton, Pills, ROW, dateTime } from './shared';
 
 const MYL = 'myl'; // valor del filtro «Mitos y Leyendas» (se sincroniza con mazos.cl, no con TCGplayer)
@@ -29,9 +30,9 @@ const duration = (seconds) => (seconds === undefined ? '' : seconds < 60 ? `${se
 function CardTile({ item }) {
   return (
     <li className="min-w-0">
-      <div className="aspect-[5/7] overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200">
+      <div className="relative aspect-[5/7] overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200">
         {item.imageUrl
-          ? <img src={item.imageUrl} alt={item.name} loading="lazy" className="h-full w-full object-contain" />
+          ? <LoadableImage src={item.imageUrl} alt={item.name} loading="lazy" className="h-full w-full object-contain" />
           : <div className="flex h-full w-full flex-col items-center justify-center gap-1 px-2 text-center text-xs font-semibold text-slate-500"><SvgIcon name="image_not_supported" translate="no" aria-hidden="true" className="text-[28px]" />Sin imagen todavía</div>}
       </div>
       <p className="mt-1.5 line-clamp-2 text-[13px] font-extrabold leading-tight text-[#12315f]">{item.name}</p>
