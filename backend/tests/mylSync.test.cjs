@@ -89,9 +89,10 @@ const load = (file) => import(pathToFileURL(path.join(root, file)).href);
     };
     const uploads = new Map();
     const failing = new Set([imageOf(9000002)]);
+    const blocked = new Set();
     const run = (extra = {}) => load('core/mylSync/sync.js').then(({ runMylSync }) => runMylSync({
       blocks: [BLOCK], client, log: () => {}, upload: async (key, body) => { uploads.set(key, body); },
-      fetchImage: async (url) => { if (failing.has(url)) throw new Error('falla simulada'); return Buffer.from(url); }, ...extra,
+      fetchImage: async (url) => { if (blocked.has(url)) throw Object.assign(new Error('origen no permitido'), { code: 'ORIGIN_NOT_ALLOWED' }); if (failing.has(url)) throw new Error('falla simulada'); return Buffer.from(url); }, ...extra,
     }));
     const row = (id) => prisma.tcgProduct.findUnique({ where: { productId: String(id) }, include: { group: true, physicalProduct: true } });
 
@@ -113,6 +114,13 @@ const load = (file) => import(pathToFileURL(path.join(root, file)).href);
     failing.clear();
     result = await run();
     ok('la noche siguiente completa la imagen que faltaba y no repite lo que ya entró', result.newCards === 0 && result.imagesFilled === 1 && (await row(9000002)).imageUrl.includes('/Repetida/Repetida.webp'), JSON.stringify(result));
+    blocked.add(imageOf(9000003));
+    await prisma.tcgProduct.update({ where: { productId: '9000003' }, data: { imageUrl: '' } });
+    result = await run();
+    ok('una imagen de un origen no permitido no marca la corrida como incompleta', result.imagesBlocked === 1 && result.imagesFailed === 0 && result.status !== 'partial', JSON.stringify({ b: result.imagesBlocked, f: result.imagesFailed, s: result.status }));
+    blocked.clear();
+    result = await run();
+    ok('cuando el origen se permite, la imagen se completa', (await row(9000003)).imageUrl !== '');
 
     data = { ...data, products: [mk(9000001, 'Carta A', { cost: 7 }), data.products[1], data.products[2]] };
     result = await run();

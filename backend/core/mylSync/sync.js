@@ -28,13 +28,16 @@ const pool = async (list, size, task) => {
   }));
 };
 
+// Un origen que no está en la lista no se reintenta ni cuenta como falla: la carta queda sin imagen hasta que alguien la suba o se permita ese origen
+const notAllowed = () => Object.assign(new Error('Imagen de un origen no permitido'), { code: 'ORIGIN_NOT_ALLOWED' });
+
 // Imagen de una carta: solo https y hosts de mazos.cl; si no viene en WebP se convierte
 export const fetchCardImage = async (url) => {
   const parsed = new URL(String(url));
-  if (parsed.protocol !== 'https:' || !IMAGE_HOSTS.has(parsed.hostname)) throw new Error('Imagen de un origen no permitido');
+  if (parsed.protocol !== 'https:' || !IMAGE_HOSTS.has(parsed.hostname)) throw notAllowed();
   const response = await fetch(parsed, { signal: AbortSignal.timeout(30000) });
   if (!response.ok) throw new Error(`La imagen respondió ${response.status}`);
-  if (!IMAGE_HOSTS.has(new URL(response.url).hostname)) throw new Error('Redirección a un origen no permitido');
+  if (!IMAGE_HOSTS.has(new URL(response.url).hostname)) throw notAllowed();
   const buffer = Buffer.from(await response.arrayBuffer());
   if (buffer.length <= 1024 || buffer.length > MAX_IMAGE_BYTES) throw new Error('Imagen vacía o demasiado grande');
   return /webp/i.test(response.headers.get('content-type') || '') ? buffer : sharp(buffer).webp({ quality: 82 }).toBuffer();
@@ -120,7 +123,7 @@ export async function runMylSync(options = {}) {
     if (Date.now() > deadline) return 'tiempo máximo';
     return '';
   };
-  const total = { newCards: 0, noEdition: 0, newEditions: 0, newProducts: 0, filledData: 0, filled: 0, imagesUploaded: 0, imagesFilled: 0, imagesFailed: 0, corrections: 0, stopped: '', lists: { cards: [], products: [], editions: [], filled: [] } };
+  const total = { newCards: 0, noEdition: 0, newEditions: 0, newProducts: 0, filledData: 0, filled: 0, imagesUploaded: 0, imagesFilled: 0, imagesFailed: 0, imagesBlocked: 0, corrections: 0, stopped: '', lists: { cards: [], products: [], editions: [], filled: [] } };
   const perBlock = {};
   let status = 'ok';
   try {
@@ -155,7 +158,7 @@ export async function runMylSync(options = {}) {
     const seconds = Math.round((Date.now() - started) / 1000);
     if (total.stopped || total.imagesFailed) status = status === 'failed' ? status : 'partial';
     if (run.id) await db.catalogSyncRun.update({ where: { id: run.id }, data: { status, finishedAt: new Date(), summary: { ...total, blocks: perBlock, seconds } } });
-    log(`\nFin (${status}) en ${seconds} s: ${total.newCards} cartas nuevas, ${total.imagesUploaded} imágenes subidas, ${total.imagesFilled} imágenes completadas, ${total.filledData} datos completados, ${total.corrections} correcciones por revisar.${total.stopped ? ` Se detuvo por ${total.stopped}; sigue la próxima noche.` : ''}`);
+    log(`\nFin (${status}) en ${seconds} s: ${total.newCards} cartas nuevas, ${total.imagesUploaded} imágenes subidas, ${total.imagesFilled} imágenes completadas, ${total.filledData} datos completados, ${total.corrections} correcciones por revisar${total.imagesBlocked ? `, ${total.imagesBlocked} imágenes de un origen no permitido (sin reintento)` : ''}.${total.stopped ? ` Se detuvo por ${total.stopped}; sigue la próxima noche.` : ''}`);
   }
   return { status, ...total, blocks: perBlock };
 }
@@ -217,7 +220,7 @@ async function applyBlock({ db, block, cards, state, upload, fetchImage, budget,
       total[counter] += 1;
       return r2PublicUrl(key);
     } catch (error) {
-      total.imagesFailed += 1;
+      if (error.code === 'ORIGIN_NOT_ALLOWED') total.imagesBlocked += 1; else total.imagesFailed += 1;
       log(`  imagen de «${entry.json.name}» (${entry.json.id}): ${error.message}`);
       return '';
     }
