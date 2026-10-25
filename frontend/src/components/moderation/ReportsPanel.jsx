@@ -55,17 +55,30 @@ const parseMessage = (content) => {
   return { text: typeof content === 'string' ? content : '', image: typeof content === 'string' && content.startsWith('data:image/') ? content : null };
 };
 
+const OPEN_LINK = 'inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[#1e40af] px-4 text-xs font-extrabold text-white transition-colors hover:bg-blue-800';
+// Lleva a la carta o carpeta reportada (si ya fue ocultada o quitada, la página pública puede no mostrarla)
+function OpenReported({ report }) {
+  const { targetType, targetId, snapshot } = report;
+  const links = [];
+  if (['card', 'card_image'].includes(targetType)) {
+    links.push(['Ver carta', `/carta/${targetId}`, 'style']);
+    if (snapshot?.folderId) links.push(['Ver carpeta', `/c/${snapshot.folderId}`, 'folder_open']);
+  } else if (targetType === 'folder') links.push(['Ver carpeta', `/c/${targetId}`, 'folder_open']);
+  if (!links.length) return null;
+  return <div className="mt-2 flex flex-wrap gap-2">{links.map(([label, to, icon]) => <Link key={label} to={to} target="_blank" rel="noopener noreferrer" className={OPEN_LINK}><SvgIcon name={icon} translate="no" aria-hidden="true" className="text-[16px]" />{label}</Link>)}</div>;
+}
+
 function SnapshotView({ report }) {
   const { targetType, snapshot, reasonCode } = report;
   const minor = reasonCode.endsWith('.minor_risk');
   if (!snapshot) return null;
-  const line = (label, value) => (value != null ? <p className="text-sm"><span className="font-bold text-slate-500">{label}:</span> <span className="break-words">{String(value)}</span></p> : null);
+  const line = (label, value) => (value != null ? <p className="text-sm"><span className="font-bold text-slate-500">{label}:</span> <span className="break-words font-semibold text-slate-800">{String(value)}</span></p> : null);
   if (['profile_image', 'profile_banner', 'profile_wallpaper'].includes(targetType)) return <SafeImage src={snapshot.value} hardBlock={minor} />;
-  if (targetType === 'card_image') return <div className="space-y-2">{line('Carta', snapshot.name)}<SafeImage src={snapshot.imageUrl} hardBlock={minor} /></div>;
+  if (targetType === 'card_image') return <div className="space-y-2">{line('Carta', snapshot.name)}{line('Carpeta', snapshot.folderName)}<SafeImage src={snapshot.imageUrl} hardBlock={minor} /><OpenReported report={report} /></div>;
   if (targetType === 'profile_text') return <div className="space-y-1">{line('Nombre', snapshot.name)}{line('Usuario', snapshot.username)}{line('Biografía', snapshot.bio)}{line('Facebook', snapshot.facebookUrl)}{line('Instagram', snapshot.instagramUrl)}{line('YouTube', snapshot.youtubeUrl)}</div>;
   if (targetType === 'user') return <div className="space-y-1">{line('Usuario', snapshot.username)}{line('Nombre', snapshot.name)}{line('Biografía', snapshot.bio)}{line('Alta', snapshot.createdAt && dateTime(snapshot.createdAt))}</div>;
-  if (targetType === 'folder') return <div className="space-y-1">{line('Nombre', snapshot.name)}{line('Descripción', snapshot.description)}{line('Juego', snapshot.tcg)}{line('Cartas', snapshot.cardCount)}{line('Dueño', snapshot.ownerUsername)}</div>;
-  if (targetType === 'card') return <div className="space-y-1">{line('Carta', snapshot.name)}{line('Carpeta', snapshot.folderName)}{line('Precio', snapshot.price)}{line('Stock', snapshot.stock)}</div>;
+  if (targetType === 'folder') return <div className="space-y-1">{line('Nombre', snapshot.name)}{line('Descripción', snapshot.description)}{line('Juego', snapshot.tcg)}{line('Cartas', snapshot.cardCount)}{line('Dueño', snapshot.ownerUsername)}<OpenReported report={report} /></div>;
+  if (targetType === 'card') return <div className="space-y-1">{line('Carta', snapshot.name)}{line('Carpeta', snapshot.folderName)}{line('Precio', snapshot.price != null ? `$${Number(snapshot.price).toLocaleString('es-CL')}` : null)}{line('Stock', snapshot.stock)}{snapshot.imageUrl && (report.automatic ? <img src={snapshot.imageUrl} alt={snapshot.name} referrerPolicy="no-referrer" className="mt-2 max-h-56 rounded-xl bg-slate-100 object-contain" /> : <SafeImage src={snapshot.imageUrl} hardBlock={minor} />)}<OpenReported report={report} /></div>;
   if (targetType === 'review') return <div className="space-y-1">{line('Calificación', `${snapshot.rating} de 5`)}{line('Comentario', snapshot.comment)}{line('Vendedor', snapshot.sellerUsername)}{line('Autor', snapshot.reviewerUsername)}</div>;
   if (targetType === 'order') return <div className="space-y-1">{line('Código', snapshot.code)}{line('Carpeta', snapshot.folderName)}{line('Total', snapshot.total)}{line('Estado', snapshot.status)}{line('Creado', snapshot.createdAt && dateTime(snapshot.createdAt))}{line('Actualizado', snapshot.updatedAt && dateTime(snapshot.updatedAt))}{Array.isArray(snapshot.items) && <ul className="text-sm">{snapshot.items.map((item, index) => <li key={index}>· {item.quantity || 1} × {item.name || item.id}</li>)}</ul>}</div>;
   if (targetType === 'wishlist_item') return <div className="space-y-1">{line('Carta', snapshot.name)}{line('Detalle', snapshot.detail)}{line('Nota', snapshot.note)}</div>;
