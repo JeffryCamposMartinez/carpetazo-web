@@ -99,9 +99,11 @@ export default function CatalogCardPage() {
         </nav>
 
         <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[minmax(0,21rem)_minmax(0,1fr)] md:items-start lg:gap-10">
-          <div className="mx-auto w-full min-w-0 max-w-[12.5rem] sm:max-w-[16rem] md:col-start-1 md:row-start-1 md:max-w-none">
-            <div className="relative aspect-[63/88] overflow-hidden rounded-2xl bg-white p-2 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.7)]">
-              <LoadableImage src={card.imageUrl} fallbackSrc={card.productId && card.game !== 'Mitos y Leyendas' ? `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(card.productId))}_400w.jpg` : undefined} alt={card.name} rotateLandscape className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-lg object-contain" />
+          <div className="min-w-0 md:col-start-1 md:row-start-1">
+            <div className="mx-auto w-full max-w-[12.5rem] sm:max-w-[16rem] md:max-w-none">
+              <div className="relative aspect-[63/88] overflow-hidden rounded-2xl bg-white p-2 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.7)]">
+                <LoadableImage src={card.imageUrl} fallbackSrc={card.productId && card.game !== 'Mitos y Leyendas' ? `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(card.productId))}_400w.jpg` : undefined} alt={card.name} rotateLandscape className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-lg object-contain" />
+              </div>
             </div>
             <div className="mt-2">
               <CardShare shareUrl={card.path} name={card.name} message={`¡Mira ${card.name} en Carpetazo!`} showToast={showToast} />
