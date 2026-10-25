@@ -104,7 +104,7 @@ const pool = async (list, size, task) => {
 const acquireRun = async (db, dryRun) => {
   if (dryRun) return { id: null };
   // Un solo recorrido a la vez; una corrida que quedó "running" hace más de 3 horas se considera muerta
-  const rows = await db.$queryRaw`INSERT INTO "CatalogSyncRun" ("id","status","dryRun","startedAt") SELECT gen_random_uuid()::text,'running',false,(now() AT TIME ZONE 'UTC') WHERE NOT EXISTS (SELECT 1 FROM "CatalogSyncRun" WHERE "status"='running' AND "startedAt" > (now() AT TIME ZONE 'UTC') - interval '3 hours') RETURNING "id"`;
+  const rows = await db.$queryRaw`INSERT INTO "CatalogSyncRun" ("id","status","dryRun","startedAt") SELECT gen_random_uuid()::text,'running',false,(now() AT TIME ZONE 'UTC') WHERE NOT EXISTS (SELECT 1 FROM "CatalogSyncRun" WHERE "source"='tcgplayer' AND "status"='running' AND "startedAt" > (now() AT TIME ZONE 'UTC') - interval '3 hours') RETURNING "id"`;
   return rows[0] || null;
 };
 

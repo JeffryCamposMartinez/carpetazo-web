@@ -342,6 +342,7 @@ model CatalogSyncRun {
   finishedAt DateTime?
   status     String // running | ok | partial | failed
   dryRun     Boolean   @default(false)
+  source     String    @default("tcgplayer") // tcgplayer | myl (mazos.cl)
   summary    Json?
 }
 

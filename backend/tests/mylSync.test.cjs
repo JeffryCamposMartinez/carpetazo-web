@@ -2,7 +2,7 @@
 // Son funciones puras: no usa red ni base.
 const path = require('path');
 const { pathToFileURL } = require('url');
-const { ok } = require('./fixtures.cjs');
+const { ok, prisma } = require('./fixtures.cjs');
 
 const root = path.join(__dirname, '..');
 const load = (file) => import(pathToFileURL(path.join(root, file)).href);
@@ -58,4 +58,76 @@ const load = (file) => import(pathToFileURL(path.join(root, file)).href);
   ok('una carta nueva sin edición se informa aparte y no inventa una edición', noEdition.nuevasSinEdicion.length === 1 && noEdition.edicionesNuevas.length === 0 && noEdition.productosNuevos.join('|') === 'QQ');
   const existingOnly = plan.planBlock(block, plan.collectBlock({ productCards: [], catalogCards: [card(40, { collectorCode: 'ZZ-40-1' })] }), { existingById: new Map([['40', stored(card(40, { collectorCode: 'ZZ-40-1' }))]]), groupNames: new Set(), productNames: new Set(), blockCardIds: new Set() });
   ok('las cartas que ya están no generan productos ni ediciones nuevas', existingOnly.productosNuevos.length === 0 && existingOnly.edicionesNuevas.length === 0);
+
+  // --- Sincronización completa contra la base local (mazos.cl y R2 simulados; bloque propio de la prueba)
+  const t0 = new Date();
+  const BLOCK = { key: 'cztest', name: 'CZTEST Bloque', folder: 'CZTEST_Bloque' };
+  const hadCategory = Boolean(await prisma.tcgCategory.findUnique({ where: { categoryId: 99 } }));
+  const wipe = async () => {
+    const dbBlock = await prisma.tcgBlock.findFirst({ where: { categoryId: 99, name: BLOCK.name } });
+    await prisma.tcgProduct.deleteMany({ where: { productId: { startsWith: '9000' } } });
+    if (dbBlock) {
+      await prisma.tcgPhysicalProduct.deleteMany({ where: { blockId: dbBlock.id } });
+      await prisma.tcgGroup.deleteMany({ where: { blockId: dbBlock.id } });
+      await prisma.tcgBlock.delete({ where: { id: dbBlock.id } });
+    }
+    await prisma.catalogSyncRun.deleteMany({ where: { source: 'myl', startedAt: { gte: t0 } } });
+    if (!hadCategory) await prisma.tcgCategory.deleteMany({ where: { categoryId: 99 } });
+  };
+  try {
+    await wipe();
+    if (!hadCategory) await prisma.tcgCategory.create({ data: { categoryId: 99, name: 'Mitos y Leyendas', modifiedOn: new Date() } });
+    await prisma.tcgBlock.create({ data: { categoryId: 99, name: BLOCK.name } });
+    const imageOf = (n) => `https://cdn.mazos.cl/CZTEST/${n}.webp`;
+    const mk = (id, name, extra = {}) => ({ id: Number(id), name, slug: name.toLowerCase(), type: 'ALIADO', cost: 2, attack: 1, race: ['Sombra'], frequency: 'VASALLO', collectorCode: `CZ-${id}-9`, effect: 'Texto', edition: { name: '💛 Edición Uno' }, imageUrl: imageOf(id), ...extra });
+    let data = { products: [mk(9000001, 'Carta A'), mk(9000002, 'Repetida'), mk(9000003, 'Repetida')], catalog: [mk(9000004, 'Carta D', { edition: { name: 'Edición Dos' }, collectorCode: 'ZZ-4-1' }), mk(9000005, 'Sin Edición', { edition: null })] };
+    const client = {
+      products: async () => [{ id: 1, name: 'Kit: Uno' }],
+      productCards: async () => data.products,
+      catalog: async function* () { yield { page: 1, pages: 1, cards: [...data.products, ...data.catalog] }; },
+    };
+    const uploads = new Map();
+    const failing = new Set([imageOf(9000002)]);
+    const run = (extra = {}) => load('core/mylSync/sync.js').then(({ runMylSync }) => runMylSync({
+      blocks: [BLOCK], client, log: () => {}, upload: async (key, body) => { uploads.set(key, body); },
+      fetchImage: async (url) => { if (failing.has(url)) throw new Error('falla simulada'); return Buffer.from(url); }, ...extra,
+    }));
+    const row = (id) => prisma.tcgProduct.findUnique({ where: { productId: String(id) }, include: { group: true, physicalProduct: true } });
+
+    await run({ dryRun: true });
+    ok('simular no escribe nada', (await prisma.tcgProduct.count({ where: { productId: { startsWith: '9000' } } })) === 0 && uploads.size === 0);
+
+    let result = await run();
+    const A = await row(9000001); const B = await row(9000002); const C = await row(9000003); const D = await row(9000004);
+    ok('entran las cartas nuevas con su edición (sin el emoji) y su producto', result.newCards === 4 && A.group.name === 'Edición Uno' && D.group.name === 'Edición Dos' && A.physicalProduct.name === 'Kit_ Uno' && D.physicalProduct.name === 'ZZ', JSON.stringify(result));
+    ok('la carta sin edición no entra y se informa', (await row(9000005)) === null && result.noEdition === 1);
+    ok('la imagen sube con la misma ruta que CarpetazoUpdate', A.imageUrl.endsWith('/CZTEST_Bloque_DB/CZTEST_Bloque_Images/Kit_%20Uno/Carta%20A/Carta%20A.webp') && uploads.has('Carpetazo.cl/Mitos_y_Leyendas/CZTEST_Bloque_DB/CZTEST_Bloque_Images/Kit_ Uno/Carta A/Carta A.webp'));
+    ok('dos cartas con el mismo nombre: la segunda lleva «2» en su carpeta', C.imageUrl.includes('/Repetida%202/Repetida.webp') && uploads.has('Carpetazo.cl/Mitos_y_Leyendas/CZTEST_Bloque_DB/CZTEST_Bloque_Images/Kit_ Uno/Repetida 2/Repetida.webp'), `${B.imageUrl} | ${C.imageUrl}`);
+    ok('si la imagen falla, la carta entra igual sin imagen', B.imageUrl === '' && result.imagesFailed === 1);
+    ok('queda registrada la corrida de Mitos y Leyendas (no se mezcla con TCGplayer)', (await prisma.catalogSyncRun.count({ where: { source: 'myl', startedAt: { gte: t0 }, status: 'partial' } })) === 1);
+
+    failing.clear();
+    result = await run();
+    ok('la noche siguiente completa la imagen que faltaba y no repite lo que ya entró', result.newCards === 0 && result.imagesFilled === 1 && (await row(9000002)).imageUrl.includes('/Repetida/Repetida.webp'), JSON.stringify(result));
+
+    data = { ...data, products: [mk(9000001, 'Carta A', { cost: 7 }), data.products[1], data.products[2]] };
+    result = await run();
+    ok('una corrección de mazos.cl se cuenta pero no se aplica', result.corrections === 1 && (await row(9000001)).extData.find((x) => x.name === 'Cost').value === '2');
+
+    await prisma.tcgProduct.update({ where: { productId: '9000004' }, data: { extData: D.extData.filter((x) => x.name !== 'Effect') } });
+    result = await run();
+    ok('un dato en blanco se completa solo', result.filledData === 1 && (await row(9000004)).extData.some((x) => x.name === 'Effect' && x.value === 'Texto'), JSON.stringify(result));
+
+    data = { products: [], catalog: [] };
+    await run();
+    ok('nunca borra: lo que mazos.cl ya no trae sigue en la base', (await prisma.tcgProduct.count({ where: { productId: { startsWith: '9000' } } })) === 4);
+
+    data = { products: [mk(9000006, 'Carta F')], catalog: [] };
+    await prisma.catalogSyncRun.create({ data: { status: 'running', source: 'myl' } });
+    result = await run();
+    ok('con otra corrida en curso no hace nada (candado)', result.status === 'skipped' && (await row(9000006)) === null);
+    await prisma.catalogSyncRun.deleteMany({ where: { source: 'myl', status: 'running' } });
+  } finally {
+    await wipe();
+  }
 })().catch((error) => { ok('la prueba de Mitos y Leyendas no lanzó errores inesperados', false, error.stack); });

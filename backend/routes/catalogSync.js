@@ -33,8 +33,8 @@ const cardView = (row) => ({
 
 router.get('/api/admin/catalog-sync', authenticateToken, requireStaff(2), readLimit, async (req, res) => {
   try {
-    const runs = await prisma.catalogSyncRun.findMany({ where: { dryRun: false, status: { not: 'running' } }, orderBy: { startedAt: 'desc' }, take: RUNS });
-    const running = await prisma.catalogSyncRun.findFirst({ where: { status: 'running', startedAt: { gt: new Date(Date.now() - 3 * 3600 * 1000) } }, select: { startedAt: true } });
+    const runs = await prisma.catalogSyncRun.findMany({ where: { source: 'tcgplayer', dryRun: false, status: { not: 'running' } }, orderBy: { startedAt: 'desc' }, take: RUNS });
+    const running = await prisma.catalogSyncRun.findFirst({ where: { source: 'tcgplayer', status: 'running', startedAt: { gt: new Date(Date.now() - 3 * 3600 * 1000) } }, select: { startedAt: true } });
     const selected = typeof req.query.run === 'string' && UUID.test(req.query.run) ? runs.find((run) => run.id === req.query.run) : runs[0];
     const game = gameOf(req.query);
     const games = await prisma.catalogGame.findMany({ select: { categoryId: true, name: true }, orderBy: { name: 'asc' } });
@@ -64,7 +64,7 @@ router.get('/api/admin/catalog-sync/:id/:section', authenticateToken, requireSta
   if (!UUID.test(id) || !SECTIONS.has(section) || page < 1 || page > 2000) return badRequest(res, 'Consulta inválida');
   try {
     const run = await prisma.catalogSyncRun.findUnique({ where: { id } });
-    if (!run || run.dryRun) return res.status(404).json({ success: false, message: 'Corrida no encontrada' });
+    if (!run || run.dryRun || run.source !== 'tcgplayer') return res.status(404).json({ success: false, message: 'Corrida no encontrada' });
     const game = gameOf(req.query);
     if (section === 'changes') {
       const where = { createdAt: windowOf(run), ...(game ? { categoryId: game } : {}) };
