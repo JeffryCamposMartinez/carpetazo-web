@@ -48,7 +48,10 @@ const mylCounts = async (run) => {
   ]);
   return { cards: summary.newCards || 0, products: (summary.newProducts || 0) + (summary.newEditions || 0), filled: summary.filled || 0, changes, noEdition };
 };
+// Una corrida de antes de que se guardaran las listas solo tiene cifras: el panel avisa que su detalle no existe
 const mylItems = async (run, section, page) => {
+  const detailMissing = !summaryOf(run).lists && ['cards', 'products', 'filled'].includes(section);
+  if (detailMissing) return { ...paged(0, page, []), detailMissing: true };
   if (section === 'cards') return paged(summaryOf(run).newCards || 0, page, slice(listOf(run, 'cards'), page).map((item) => ({ productId: String(item.id), name: item.name, game: MYL_NAME, edition: [item.block, item.edition].filter(Boolean).join(' · '), number: '', imageUrl: item.imageUrl || null })));
   if (section === 'filled') return paged(summaryOf(run).filled || 0, page, slice(listOf(run, 'filled'), page).map((item) => ({ productId: String(item.id), name: item.name, game: MYL_NAME, edition: [item.block, item.what && `completó ${item.what}`].filter(Boolean).join(' · '), number: '', imageUrl: item.imageUrl || null })));
   if (section === 'products') {

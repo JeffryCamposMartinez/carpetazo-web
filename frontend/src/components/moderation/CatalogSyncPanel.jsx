@@ -140,7 +140,7 @@ export default function CatalogSyncPanel() {
               </dl>
               <Pills label="Qué entró" value={section} onChange={setSection} options={sections} counts={counts ? { cards: counts.cards, products: counts.products, filled: counts.filled, changes: counts.changes, noEdition: counts.noEdition } : undefined} />
               {list === null ? <ListSkeleton rows={3} label="Cargando" /> : list.items.length === 0 ? (
-                <EmptyState icon="inventory_2" title="Nada en esta sección">{empty[section]}</EmptyState>
+                <EmptyState icon="inventory_2" title={list.detailMissing ? 'Esta corrida no guardó el detalle' : 'Nada en esta sección'}>{list.detailMissing ? 'Corrió antes de que el panel guardara la lista de lo que entró; las cifras de arriba son correctas. Desde la próxima corrida verás aquí cada carta.' : empty[section]}</EmptyState>
               ) : (
                 <>
                   {asList
