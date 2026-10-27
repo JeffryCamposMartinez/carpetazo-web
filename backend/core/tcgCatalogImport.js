@@ -10,7 +10,7 @@ const MAX_GAMES = 100;
 const MYL_CATEGORY_ID = 99; // Mitos y Leyendas tiene su propio catálogo y su propia carga
 const SEGMENT = /^[^\\/\u0000-\u001f]{1,120}$/;
 const FOLDER = /^[A-Za-z0-9_\-]{1,60}$/;
-const SOURCE_IMAGE_HOSTS = new Set(['tcgplayer-cdn.tcgplayer.com', 'product-images.tcgplayer.com']);
+const SOURCE_IMAGE_HOSTS = new Set(['tcgplayer-cdn.tcgplayer.com', 'product-images.tcgplayer.com', 'assets.tcgdex.net']);
 
 // --- Textos y valores -----------------------------------------------------------------------------------------------
 

@@ -83,7 +83,7 @@ export const planItems = (products) => {
   return items;
 };
 
-const defaultUpload = async (key, body, type) => {
+export const defaultUpload = async (key, body, type) => {
   const md5 = createHash('md5').update(body).digest('hex');
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const result = await r2Client.send(new PutObjectCommand({ Bucket: process.env.R2_BUCKET_NAME, Key: key, Body: body, ContentType: type, CacheControl: CACHE_CONTROL }));
@@ -92,9 +92,9 @@ const defaultUpload = async (key, body, type) => {
   throw new Error('La verificación de integridad (MD5) no coincide');
 };
 
-const defaultImages = async (imageUrl) => convertImage(await fetchBestImage(imageUrl));
+export const defaultImages = async (imageUrl) => convertImage(await fetchBestImage(imageUrl));
 
-const pool = async (list, size, task) => {
+export const pool = async (list, size, task) => {
   let cursor = 0;
   await Promise.all(Array.from({ length: Math.min(size, list.length) }, async () => {
     while (cursor < list.length) await task(list[cursor++]);

@@ -3,7 +3,7 @@ import sharp from 'sharp';
 import { sleep } from './tcgcsv.js';
 
 const USER_AGENT = 'Carpetazo.cl/1.0 (sincronizacion de catalogo)';
-const ALLOWED_HOSTS = new Set(['tcgplayer-cdn.tcgplayer.com', 'product-images.tcgplayer.com']);
+const ALLOWED_HOSTS = new Set(['tcgplayer-cdn.tcgplayer.com', 'product-images.tcgplayer.com', 'assets.tcgdex.net']);
 const MAX_BYTES = 25 * 1024 * 1024;
 const THUMB_WIDTH = 400;
 
