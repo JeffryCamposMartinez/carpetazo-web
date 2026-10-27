@@ -330,6 +330,7 @@ const [isSearching, setIsSearching] = useState(false);
   const [stock, setStock] = useState('1');
   const [pseudoName, setPseudoName] = useState('');
   const [language, setLanguage] = useState('English');
+  const [condition, setCondition] = useState(''); // estado de la carta que se agrega (1 a 5 estrellas; vacío = sin indicar)
   // Al seleccionar una carta, el idioma parte igual al idioma de esa carta (no al del filtro actual)
   useEffect(() => {
     if (selectedCard?.cardLanguage) setLanguage(selectedCard.cardLanguage);
@@ -603,10 +604,11 @@ const [isSearching, setIsSearching] = useState(false);
   }, [searchCategory, searchLang]);
 
   // --- MANEJO DE CATÁLOGO LOGIC ---
-  const handleUpdateCard = async (cardIdToUpdate, newPrice, newStock, newLanguage) => {
+  const handleUpdateCard = async (cardIdToUpdate, newPrice, newStock, newLanguage, newCondition) => {
     try {
       const payload = { price: parseFloat(newPrice), stock: parseInt(newStock) };
       if (newLanguage) payload.data = { language: newLanguage };
+      if (newCondition !== undefined) payload.condition = newCondition;
       await api.updateCard(id, cardIdToUpdate, payload);
       // Optimistic update locally
       setCards(prev => prev.map(c => c.id === cardIdToUpdate ? {
@@ -614,6 +616,7 @@ const [isSearching, setIsSearching] = useState(false);
         price: payload.price,
         stock: payload.stock,
         ...(newLanguage ? { language: newLanguage, data: { ...(c.data || {}), language: newLanguage } } : {}),
+        ...(newCondition !== undefined ? { condition: newCondition } : {}),
       } : c));
       showToast('Carta actualizada correctamente', 'success');
     } catch (error) {
@@ -898,7 +901,8 @@ const [isSearching, setIsSearching] = useState(false);
     try {
       const targetTcgId = storedCardId(folderData?.tcg, normalizeTcgProductId(selectedCard.productId || selectedCard.id || selectedCard.tcgProductId));
       const targetLanguage = isMylFolder ? 'Spanish' : normalizeCardLanguage(language);
-      const existingCard = cards.find(c => normalizeTcgProductId(c.tcgId) === targetTcgId && cardLanguageOf(c) === targetLanguage);
+      const targetCondition = condition === '' ? null : Number(condition);
+      const existingCard = cards.find(c => normalizeTcgProductId(c.tcgId) === targetTcgId && cardLanguageOf(c) === targetLanguage && (c.condition ?? null) === targetCondition);
       
       if (existingCard) {
         const newStock = existingCard.stock + cardStock;
@@ -911,6 +915,7 @@ const [isSearching, setIsSearching] = useState(false);
           name: selectedCard.name,
           price: parseFloat(price),
           stock: cardStock,
+          condition: targetCondition,
           imageUrl: selectedCard.imageUrl || '',
           data: {
             pseudoName: isBatchAdding ? '' : pseudoName.trim(),
@@ -1017,12 +1022,12 @@ const [isSearching, setIsSearching] = useState(false);
     availableSets, decreaseQueueItemQuantity, fileInputRef, filterCounts, filterRarity, filterType,
     filteredSearchSets, folderData, getCardSelectionKey, getCardSetName, getProxyImageUrl, gridCols,
     handleImageUpload, handleResultCardClick, handleRightClickResultCard, handleSaveCard, handleSearchAPI,
-    hasMoreGroups, hasSearchedAPI, isBatchAdding, isMylFolder, isSaving, isSearching, isSetDropdownOpen, language,
+    hasMoreGroups, hasSearchedAPI, isBatchAdding, isMylFolder, isSaving, isSearching, isSetDropdownOpen, language, condition,
     multiSelectMode, mylCost, mylRace, mylType, magicFilters, observerTarget, opFilters, price, rbFilters, lcFilters, dgFilters, ygFilters, pseudoName, queueScrollRef, removeQueueItem,
     resetCardForm, scrollToTopIfNeeded, searchBlock, searchCategory, searchLang, searchPhysicalProduct, searchQuery,
     searchResults, searchSet, selectedCard, selectedExistingCard, selectedQueue, selectedQueueCountByCard,
     selectedSupertype, selectedType, setActiveQueueItemId, setFilterRarity, setFilterType, setGridCols,
-    setIsSetDropdownOpen, setLanguage, setMylCost, setMylRace, setMagicFilters, setMylType, setOpFilters, setPrice, setRbFilters, setLcFilters, setDgFilters, setYgFilters, setPseudoName, setSearchBlock,
+    setIsSetDropdownOpen, setLanguage, setCondition, setMylCost, setMylRace, setMagicFilters, setMylType, setOpFilters, setPrice, setRbFilters, setLcFilters, setDgFilters, setYgFilters, setPseudoName, setSearchBlock,
     setSearchLang, setSearchPhysicalProduct, setSearchQuery: handleSearchQueryChange, setSearchSet, setSelectedCard, setSelectedQueue,
     setSelectedSupertype, setSelectedType, setShowCardDetails, setStock, showCardDetails, showScrollTop,
     startQueuedAdd, stock, toggleMultiSelectMode, totalQueuedCards, visibleCount, cardsCount: cards.length };

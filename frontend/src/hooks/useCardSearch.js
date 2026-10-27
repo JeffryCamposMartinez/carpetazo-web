@@ -54,7 +54,7 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
         imageUrl: p.imageUrl || `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(p.productId))}_400w.jpg`,
         categoryId: catId === ONE_PIECE_CATEGORY ? ONE_PIECE_CATEGORY : 1,
         catId,
-        cardLanguage: catId === 85 ? 'Japanese' : 'English',
+        cardLanguage: catId === 85 ? 'Japanese' : catId === 100 ? 'Spanish' : 'English',
         groupId: p.groupId,
         group: { id: p.groupId, name: group?.name || '', publishedOn: group?.publishedOn },
         extData: { ...ext, localId: ext.Number, ...(catId === ONE_PIECE_CATEGORY ? onePieceExt(ext, group, p.name) : catId === MAGIC_CATEGORY ? magicExt(ext, group, p.name, magicMeta) : catId === RIFTBOUND_CATEGORY ? riftboundExt(ext, group, p.name) : catId === YUGIOH_CATEGORY ? yugiohExt(ext, group, p.name, magicMeta) : catId === LORCANA_CATEGORY ? lorcanaExt(ext, group, p.name) : catId === DIGIMON_CATEGORY ? digimonExt(ext, group, p.name) : classifyTcgcsvCard(p.name, ext)) },

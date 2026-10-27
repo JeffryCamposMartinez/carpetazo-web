@@ -9,6 +9,7 @@ const getAllowedProxyImageHosts = () => {
     'images.pokemontcg.io',
     'api.pokemontcg.io',
     'tcgplayer-cdn.tcgplayer.com',
+    'assets.tcgdex.net',
     'tor.myl.cl',
     'www.myl.cl',
     'myl.cl'
@@ -122,6 +123,9 @@ export const isShortText = (value, max) => typeof value === 'string' && value.tr
 export const isOptionalText = (value, max) => value === undefined || value === null || (typeof value === 'string' && value.length <= max && !hasDeceptiveChars(value));
 export const isValidPrice = (value) => value === undefined || value === null || value === '' || (Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 100000000);
 export const isValidStock = (value) => value === undefined || (Number.isInteger(Number(value)) && Number(value) >= 0 && Number(value) <= 100000);
+// Estado de la carta: de 1 (dañada) a 5 (perfecta); vacío o null = sin estado
+export const isValidCondition = (value) => value === undefined || value === null || value === '' || ((typeof value === 'number' || typeof value === 'string') && Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= 5);
+export const normalizedCondition = (value) => (value === undefined || value === null || value === '' ? null : Number(value));
 export const isSmallObject = (value, maxBytes = 20000) => value === undefined || value === null
   || (typeof value === 'object' && !Array.isArray(value) && JSON.stringify(value).length <= maxBytes);
 export const badRequest = (res, message) => res.status(400).json({ success: false, message });

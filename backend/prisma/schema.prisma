@@ -95,6 +95,7 @@ model Card {
   price           Float?
   stock           Int      @default(1)
   language        String   @default("English")
+  condition       Int? // estado de la carta, de 1 (dañada) a 5 (perfecta); vacío = sin estado
   data            Json?
   moderationState String   @default("visible") // visible | image_hidden | hidden | removed
   featuredAt      DateTime? // carta destacada en el perfil público (el máximo lo fija el plan)

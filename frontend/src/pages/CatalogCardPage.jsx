@@ -172,7 +172,7 @@ export default function CatalogCardPage() {
                   <Link to={`/carta/${offer.id}`} className="flex items-center justify-between gap-3 px-4 py-3 transition-colors duration-150 hover:bg-slate-50 focus:outline-none focus-visible:bg-slate-50">
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-extrabold text-[#12315f]">{offer.seller.name || offer.seller.username || 'Vendedor'}</span>
-                      <span className="block truncate text-xs text-slate-500">{[offer.seller.comuna, offer.language, `${offer.stock} ${offer.stock === 1 ? 'unidad' : 'unidades'}`].filter(Boolean).join(' · ')}</span>
+                      <span className="block truncate text-xs text-slate-500">{[offer.seller.comuna, offer.language, offer.condition ? '★'.repeat(offer.condition) : null, `${offer.stock} ${offer.stock === 1 ? 'unidad' : 'unidades'}`].filter(Boolean).join(' · ')}</span>
                     </span>
                     <span className="shrink-0 text-base font-black tabular-nums text-[#12315f]">{offer.price ? formatCLP(offer.price) : 'Consultar'}</span>
                   </Link>

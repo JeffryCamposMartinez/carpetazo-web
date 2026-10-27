@@ -1,3 +1,4 @@
+import ConditionStars from '../ui/ConditionStars';
 import { Link } from 'react-router-dom';
 import LoadableImage from '../ui/LoadableImage';
 import { cardFill, cardRatio, tcgplayerCardImage } from '../../utils/cardShape';
@@ -9,6 +10,12 @@ const NEW_WINDOW_MS = 72 * 60 * 60 * 1000;
 
 const SURFACE = 'bg-white ring-1 ring-slate-900/5 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.4)]';
 const LIFT = 'transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.985] [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:shadow-[0_2px_4px_rgba(26,43,75,0.08),0_18px_32px_-16px_rgba(26,43,75,0.5)] motion-reduce:transition-none motion-reduce:[@media(hover:hover)]:hover:translate-y-0';
+
+// Estado de la carta (estrellas) sobre la imagen, arriba del precio
+function StateTag({ condition }) {
+  if (!condition) return null;
+  return <span className="inline-flex rounded-md bg-[#12315f]/90 px-1.5 py-0.5 shadow-[0_2px_5px_rgba(8,18,42,0.3)]"><ConditionStars value={condition} /></span>;
+}
 
 // Etiqueta de precio pegada a la carta, como en una tienda
 function PriceTag({ price, size = 'md' }) {
@@ -80,6 +87,7 @@ export default function CardTile({ card, index, view, wanted, onWish }) {
         <Link to={`/carta/${card.id}`} className={`group flex gap-3 rounded-2xl p-2.5 pr-14 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${SURFACE} ${LIFT}`}>
           <span className="relative block w-[5.5rem] shrink-0 overflow-hidden rounded-xl bg-slate-100" style={{ aspectRatio: cardRatio(card.folder?.tcg) }}>
             <CardImage card={card} className="absolute inset-1.5 h-[calc(100%-0.75rem)] w-[calc(100%-0.75rem)] rounded-md object-contain" />
+            <span className="absolute bottom-1.5 left-1.5"><StateTag condition={card.condition} /></span>
           </span>
           <span className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">
             <span className="line-clamp-2 text-[15px] font-extrabold leading-tight text-[#12315f]">{card.name}</span>
@@ -109,7 +117,7 @@ export default function CardTile({ card, index, view, wanted, onWish }) {
               {card.featured && <span className="rounded-full bg-[#facc15] px-2 py-0.5 text-xs font-extrabold text-[#12315f] shadow">Destacado</span>}
             </span>
           )}
-          <span className="absolute bottom-2 left-2 -rotate-1"><PriceTag price={card.price} /></span>
+          <span className="absolute bottom-2 left-2 flex flex-col items-start gap-1"><StateTag condition={card.condition} /><span className="-rotate-1"><PriceTag price={card.price} /></span></span>
         </span>
         <span className="flex flex-1 flex-col gap-1 p-3">
           <span className="line-clamp-2 text-sm font-extrabold leading-tight text-[#12315f] sm:text-[15px]">{card.name}</span>

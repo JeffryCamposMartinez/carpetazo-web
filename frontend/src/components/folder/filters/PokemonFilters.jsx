@@ -195,13 +195,13 @@ export default function PokemonFilters({
                 buttonClassName="py-2 text-sm font-bold"
                 value={searchLang}
                 onChange={onLangChange}
-                options={[{ value: 'en', label: 'Inglés' }, { value: 'ja', label: 'Japonés' }]}
+                options={[{ value: 'en', label: 'Inglés' }, { value: 'ja', label: 'Japonés' }, { value: 'es', label: 'Español' }]}
               />
               <ThemedSelect
                 className="hidden w-36 shrink-0 sm:block"
                 value={searchLang}
                 onChange={onLangChange}
-                options={[{ value: 'en', label: 'Inglés' }, { value: 'ja', label: 'Japonés' }]}
+                options={[{ value: 'en', label: 'Inglés' }, { value: 'ja', label: 'Japonés' }, { value: 'es', label: 'Español' }]}
               />
             </>
           )}

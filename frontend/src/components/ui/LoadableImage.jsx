@@ -14,6 +14,9 @@ export function LoadingMark({ still = false, compact = false, className = 'absol
   );
 }
 
+// La imagen «Image Coming Soon» de TCGplayer sí carga (no da error) y es apaisada (400×229): se trata como una imagen que no existe
+const isTcgplayerPlaceholder = (image) => image.naturalHeight > 0 && Math.abs(image.naturalWidth / image.naturalHeight - 400 / 229) < 0.02;
+
 const NEAR_PX = 900; // se empieza a descargar la imagen cuando falta esta distancia para verla
 const MAX_RETRIES = 1;
 const RETRY_DELAY_MS = 1000;
@@ -51,6 +54,7 @@ export default function LoadableImage({ src, fallbackSrc, alt, className = '', c
   useEffect(() => {
     // Si la imagen ya estaba en caché, `load` pudo haber ocurrido antes de enlazar el evento
     if (near && ref.current?.complete && ref.current.naturalWidth > 0) {
+      if (activeSrc !== NO_IMAGE_CARD_URL && isTcgplayerPlaceholder(ref.current)) { handleError({ currentTarget: ref.current }); return; }
       setIsLandscape(rotateLandscape && activeSrc !== NO_IMAGE_CARD_URL && ref.current.naturalWidth > ref.current.naturalHeight);
       setState('loaded');
     }
@@ -58,6 +62,7 @@ export default function LoadableImage({ src, fallbackSrc, alt, className = '', c
 
   const handleLoad = (event) => {
     const image = event.currentTarget;
+    if (activeSrc !== NO_IMAGE_CARD_URL && isTcgplayerPlaceholder(image)) { handleError(event); return; }
     setIsLandscape(rotateLandscape && activeSrc !== NO_IMAGE_CARD_URL && image.naturalWidth > image.naturalHeight);
     setState('loaded');
     onLoad?.(event);

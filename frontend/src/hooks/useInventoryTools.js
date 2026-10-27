@@ -81,6 +81,7 @@ export default function useInventoryTools({ folderId, cards, setCards, filteredC
         ...(change.price !== undefined ? { price: change.price } : {}),
         ...(change.stock !== undefined ? { stock: change.stock } : {}),
         ...(change.language ? { language: change.language, data: { ...(card.data || {}), language: change.language } } : {}),
+        ...(change.condition !== undefined ? { condition: change.condition } : {}),
       };
     }));
   };
@@ -122,6 +123,7 @@ export default function useInventoryTools({ folderId, cards, setCards, filteredC
       price: Number(draft.price),
       stock: Number(draft.stock),
       ...(draft.language ? { language: draft.language } : {}),
+      ...(draft.condition !== undefined ? { condition: draft.condition } : {}),
     }));
     if (updates.length === 0) return false;
     const invalid = updates.some((item) => !Number.isFinite(item.price) || item.price < 0 || item.price > MAX_PRICE || !Number.isInteger(item.stock) || item.stock < 0);

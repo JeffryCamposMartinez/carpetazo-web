@@ -3,6 +3,7 @@ import LoadableImage from '../ui/LoadableImage';
 import { Link } from 'react-router-dom';
 import Select from '../ui/Select';
 import SvgIcon from '../ui/SvgIcon';
+import { CARD_CONDITIONS } from '../../config/cardConditions';
 
 const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, onToggleFeatured, compact = false, detailLevel = 'none', dense = false, showLanguage = false, selectable = false, selected = false, onToggleSelect, onPreview, onDraftChange }) => {
   // 'full': nombre, edición, stock, precio e idioma · 'basic': solo stock y precio · 'none': solo la carta
@@ -12,6 +13,8 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
   const [price, setPrice] = useState(card.price);
   const [stock, setStock] = useState(card.stock);
   const [language, setLanguage] = useState(card.language || 'English');
+  const [condition, setCondition] = useState(card.condition ? String(card.condition) : '');
+  const conditionValue = condition === '' ? null : Number(condition);
   // En pantallas angostas o cuadrícula densa el idioma se muestra abreviado para que se lea completo
   const shortLang = dense || (typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches);
   const [saving, setSaving] = useState(false);
@@ -20,22 +23,23 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
     setPrice(card.price);
     setStock(card.stock);
     setLanguage(card.language || 'English');
-  }, [card.price, card.stock, card.language]);
+    setCondition(card.condition ? String(card.condition) : '');
+  }, [card.price, card.stock, card.language, card.condition]);
 
   const handleSave = async () => {
     setSaving(true);
-    await onUpdate(card.id, price, stock, showLanguage ? language : undefined);
+    await onUpdate(card.id, price, stock, showLanguage ? language : undefined, conditionValue);
     setSaving(false);
   };
 
-  const hasChanges = price != card.price || stock != card.stock || (showLanguage && language !== (card.language || 'English'));
+  const hasChanges = price != card.price || stock != card.stock || (showLanguage && language !== (card.language || 'English')) || conditionValue !== (card.condition ?? null);
 
   // Avisa al inventario qué cartas tienen cambios sin guardar (para «Guardar todos los cambios»)
   useEffect(() => {
     if (!onDraftChange) return undefined;
-    onDraftChange(card.id, showDetails && hasChanges ? { price, stock, ...(showLanguage ? { language } : {}) } : null);
+    onDraftChange(card.id, showDetails && hasChanges ? { price, stock, condition: conditionValue, ...(showLanguage ? { language } : {}) } : null);
     return undefined;
-  }, [onDraftChange, card.id, showDetails, hasChanges, price, stock, language, showLanguage]);
+  }, [onDraftChange, card.id, showDetails, hasChanges, price, stock, language, showLanguage, condition]);
   useEffect(() => () => { if (onDraftChange) onDraftChange(card.id, null); }, [onDraftChange, card.id]);
 
   const saveOnEnter = (event) => { if (event.key === 'Enter' && hasChanges && !saving) { event.preventDefault(); handleSave(); } };
@@ -151,6 +155,23 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
               <input type="number" min="0" value={price} onChange={e => setPrice(e.target.value)} onKeyDown={saveOnEnter} className={`w-full h-7 ${dense ? 'pl-4 pr-1 text-[11px]' : 'pl-6 pr-2 text-xs'} bg-white focus:outline-none font-bold rounded-md border border-gray-300 shadow-sm text-right text-gray-900 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`} />
             </div>
           </div>
+          {showInfo && (
+            <div className={`w-full bg-gray-50 ${dense ? 'px-1.5 py-1' : 'px-2 py-1.5'} rounded-lg border border-gray-200 shadow-sm ${compact ? 'flex flex-col gap-1' : 'flex justify-between items-center'}`}>
+              <label className={`${dense ? 'text-[9px]' : 'text-[10px]'} text-gray-500 uppercase tracking-wider font-bold`}>Estado</label>
+              <div className={`relative ${compact ? 'w-full' : 'w-24'}`}>
+                <Select
+                  value={condition}
+                  onChange={e => setCondition(e.target.value)}
+                  buttonClassName={dense ? '!h-7 !min-h-7 !gap-0 !rounded-md !border !px-1.5 !text-[11px] [&_svg]:!text-[16px]' : undefined}
+                  style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none', backgroundImage: 'none', padding: 0, paddingLeft: dense ? '0.375rem' : '0.5rem', paddingRight: '1.25rem', lineHeight: '1.625rem' }}
+                  className={`block w-full h-7 ${dense ? 'text-[11px]' : 'text-xs'} bg-white focus:outline-none focus:border-[#1e40af] font-bold rounded-md border border-gray-300 shadow-sm text-gray-900 cursor-pointer truncate`}
+                >
+                  <option value="">—</option>
+                  {CARD_CONDITIONS.map((item) => <option key={item.value} value={String(item.value)}>{'★'.repeat(item.value)}{shortLang ? '' : ` ${item.label}`}</option>)}
+                </Select>
+              </div>
+            </div>
+          )}
           {showLanguage && showInfo && (
             <div className={`w-full bg-gray-50 ${dense ? 'px-1.5 py-1' : 'px-2 py-1.5'} rounded-lg border border-gray-200 shadow-sm ${compact ? 'flex flex-col gap-1' : 'flex justify-between items-center'}`}>
               <label className={`${dense ? 'text-[9px]' : 'text-[10px]'} text-gray-500 uppercase tracking-wider font-bold`}>Idioma</label>

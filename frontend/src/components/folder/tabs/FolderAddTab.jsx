@@ -1,3 +1,4 @@
+import { CARD_CONDITIONS } from '../../../config/cardConditions';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import AddCardFullscreen from '../AddCardFullscreen';
 import CardLightbox from '../../ui/CardLightbox';
@@ -25,12 +26,12 @@ export default function FolderAddTab({
   decreaseQueueItemQuantity, fileInputRef, filterCounts, filterRarity, filterType, filteredSearchSets,
   folderData, getCardSelectionKey, getCardSetName, getProxyImageUrl, gridCols, handleImageUpload,
   handleResultCardClick, handleRightClickResultCard, handleSaveCard, handleSearchAPI, hasMoreGroups,
-  hasSearchedAPI, isBatchAdding, isMylFolder, isSaving, isSearching, isSetDropdownOpen, language,
+  hasSearchedAPI, isBatchAdding, isMylFolder, isSaving, isSearching, isSetDropdownOpen, language, condition,
   multiSelectMode, mylCost, mylRace, mylType, magicFilters, observerTarget, opFilters, price, pseudoName, rbFilters, lcFilters, dgFilters, ygFilters, queueScrollRef,
   removeQueueItem, resetCardForm, scrollToTopIfNeeded, searchBlock, searchCategory, searchLang,
   searchPhysicalProduct, searchQuery, searchResults, searchSet, selectedCard, selectedExistingCard,
   selectedQueue, selectedQueueCountByCard, selectedSupertype, selectedType, setActiveQueueItemId, setMagicFilters, setOpFilters, setRbFilters, setLcFilters, setDgFilters, setYgFilters,
-  setFilterRarity, setFilterType, setGridCols, setIsSetDropdownOpen, setLanguage, setMylCost, setMylRace,
+  setFilterRarity, setFilterType, setGridCols, setIsSetDropdownOpen, setLanguage, setCondition, setMylCost, setMylRace,
   setMylType, setPrice, setPseudoName, setSearchBlock, setSearchLang, setSearchPhysicalProduct,
   setSearchQuery, setSearchSet, setSelectedCard, setSelectedQueue, setSelectedSupertype, setSelectedType,
   setShowCardDetails, setStock, showCardDetails, showScrollTop, startQueuedAdd, stock, toggleMultiSelectMode,
@@ -62,12 +63,11 @@ export default function FolderAddTab({
   };
   // Carta de la ficha en pantalla grande (al tocar su imagen)
   const [zoomedCard, setZoomedCard] = useState(null);
-  // Foto propia: solo si la carta no tiene imagen (el catálogo no la tiene y la de respaldo no carga) o si ya subiste una
-  const [failedPreview, setFailedPreview] = useState(null);
+  const [, setFailedPreview] = useState(null);
   const [fullscreen, setFullscreen] = useState(false);
   useEffect(() => { if (!selectedCard) setFullscreen(false); }, [selectedCard]); // al guardar o limpiar la carta se cierra
   const previewSrc = selectedCard ? getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl) : '';
-  const canUploadPhoto = Boolean(selectedCard) && Boolean(selectedCard.isCustomImage || (selectedCard.hasImage !== true && (!selectedCard.imageUrl || failedPreview === previewSrc)));
+  const canUploadPhoto = Boolean(selectedCard); // foto propia para cualquier carta, tenga o no imagen en el catálogo
   const zoomList = useMemo(() => (zoomedCard ? [{ id: 'zoom', tcg: folderData?.tcg, name: zoomedCard.name, imageUrl: getProxyImageUrl(zoomedCard.tcgProductId || zoomedCard.id, zoomedCard.imageUrl), set: getCardSetName(zoomedCard), rarity: zoomedCard.rarity || getExtDataValue(zoomedCard.extData, 'Rarity') }] : []), [zoomedCard]); // eslint-disable-line react-hooks/exhaustive-deps
   // Datos y botón para guardar la carta: están en el panel y también en la pantalla completa
   const renderFormBody = () => (
@@ -112,6 +112,15 @@ export default function FolderAddTab({
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Estado de la carta: de 1 a 5 estrellas */}
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Estado de la carta</label>
+                <Select value={condition} onChange={(e) => setCondition(e.target.value)} className="w-full" buttonClassName="!min-h-10 !h-10 !rounded-lg !px-3 !text-sm">
+                  <option value="">Sin indicar</option>
+                  {CARD_CONDITIONS.map((item) => <option key={item.value} value={String(item.value)}>{'★'.repeat(item.value)} {item.label}</option>)}
+                </Select>
               </div>
 
               {/* Fila 2: Idioma y Alias / Apodo juntos */}

@@ -14,7 +14,7 @@ export default function useCardPriceRanges(card, language) {
     if (!applies) { setState({ status: 'idle', ranges: [] }); return undefined; }
     let active = true;
     setState({ status: 'loading', ranges: [] });
-    const lang = /jap/i.test(language || '') ? 'ja' : 'en';
+    const lang = /jap/i.test(language || '') ? 'ja' : /spa|esp/i.test(language || '') ? 'es' : 'en'; // en español, la edición y el precio son los de la carta inglesa
     (async () => {
       try {
         const [groups, rate] = await Promise.all([fetchPokemonGroups(lang), fetchUsdClpRate()]);

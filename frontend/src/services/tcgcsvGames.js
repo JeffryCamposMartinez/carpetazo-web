@@ -1,5 +1,5 @@
 import { catalogJson } from './tcgcsvFetch';
-import { withLooseMatch } from './tcgcsvPokemon';
+import { pokemonCategoryForLang, withLooseMatch } from './tcgcsvPokemon';
 import { ONE_PIECE_CATEGORY, filterOnePieceCards, onePieceExt, onePieceGroupLabel, onePieceMatchesQuery } from './tcgcsvOnePiece';
 import { MAGIC_CATEGORY, MAGIC_MARKER, filterMagicCards, loadMagicMeta, magicExt, magicGroupLabel, magicMatchesQuery } from './tcgcsvMagic';
 import { YUGIOH_CATEGORY, YUGIOH_MARKER, filterYugiohCards, loadYugiohMeta, yugiohExt, yugiohGroupLabel, yugiohMatchesQuery } from './tcgcsvYugioh';
@@ -11,7 +11,7 @@ import { sortCatalogGroupsNewestFirst } from './catalogOrdering';
 // Juegos que se buscan directo en TCGCSV. `searchCategory` es el valor de la carpeta: '1' = Pokémon, '68' = One Piece, 'magic' = Magic, 'riftbound' = Riftbound, 'yugioh' = Yu-Gi-Oh!.
 // Devuelve la categoría de TCGCSV (Pokémon: 3 en inglés y 85 en japonés) o null si el juego se busca en la base de Carpetazo.
 export const tcgcsvCategoryId = (searchCategory, lang) => {
-  if (searchCategory === '1') return lang === 'ja' ? 85 : 3;
+  if (searchCategory === '1') return pokemonCategoryForLang(lang);
   if (searchCategory === String(ONE_PIECE_CATEGORY)) return ONE_PIECE_CATEGORY;
   if (searchCategory === MAGIC_MARKER) return MAGIC_CATEGORY;
   if (searchCategory === RIFTBOUND_MARKER) return RIFTBOUND_CATEGORY;

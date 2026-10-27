@@ -37,6 +37,7 @@ export default function CardsPage() {
   const tcg = searchParams.get('tcg') || '';
   const seller = (searchParams.get('seller') || '').toLowerCase();
   const comuna = searchParams.get('comuna') || '';
+  const condition = /^[1-5]$/.test(searchParams.get('condition') || '') ? searchParams.get('condition') : ''; // estado mínimo
   const sort = SORT_VALUES.includes(searchParams.get('sort')) ? searchParams.get('sort') : 'recent';
   const page = Math.max(1, Number.parseInt(searchParams.get('page'), 10) || 1);
 
@@ -88,6 +89,7 @@ export default function CardsPage() {
     if (tcg) params.set('tcg', tcg);
     if (seller) params.set('seller', seller);
     if (comuna) params.set('comuna', comuna);
+    if (condition) params.set('condition', condition);
     if (sort !== 'recent') params.set('sort', sort);
     if (page > 1) params.set('page', String(page));
     params.set('rotation', searchRotation);
@@ -96,7 +98,7 @@ export default function CardsPage() {
       .catch(() => { if (!cancelled) { setFailed(true); setResult(EMPTY); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [urlQuery, tcg, seller, comuna, sort, page, searchRotation]);
+  }, [urlQuery, tcg, seller, comuna, condition, sort, page, searchRotation]);
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   const goToPage = (next) => {
@@ -137,7 +139,7 @@ export default function CardsPage() {
     }
   };
 
-  const hasFilters = Boolean(urlQuery || tcg || seller || comuna);
+  const hasFilters = Boolean(urlQuery || tcg || seller || comuna || condition);
   const gridClass = effectiveView === 'list'
     ? 'grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3'
     : 'grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5';
@@ -162,6 +164,8 @@ export default function CardsPage() {
               onSort={(value) => updateParams({ sort: value === 'recent' ? '' : value })}
               onTcg={changeTcg}
               comuna={comuna}
+              condition={condition}
+              onCondition={(value) => updateParams({ condition: value })}
               onComuna={() => updateParams({ comuna: '' })}
               onComunaChange={(value) => updateParams({ comuna: value })}
               onSeller={() => updateParams({ seller: '' })}

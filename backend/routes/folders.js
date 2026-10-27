@@ -5,15 +5,16 @@ import { prisma } from '../core/db.js';
 import { isValidComuna } from '../core/chileData.js';
 import { folderFilterSql, folderOrderSql, likePattern, loadPublicFolders, tcgVariants, validListText } from '../core/listing.js';
 import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/publicSeller.js';
-import { badRequest, cleanCardData, isAllowedStoredImageUrl, isOptionalText, isShortText, isSmallObject, isUuid, isValidPrice, isValidStock } from '../core/validation.js';
+import { badRequest, cleanCardData, isAllowedStoredImageUrl, isOptionalText, isShortText, isSmallObject, isUuid, isValidCondition, isValidPrice, isValidStock, normalizedCondition } from '../core/validation.js';
 import { r2PublicUrl } from '../core/tcgCatalogImport.js';
-import { catalogImageUrl, proposeCatalogPhoto } from '../core/catalogPhotos.js';
+import { proposeCatalogPhoto } from '../core/catalogPhotos.js';
 import { isMylTcg, storedCardId } from '../core/mylIdentity.js';
 import { bulkPublishedRanges, reliablePublishedOn } from '../core/editionDates.js';
 import { PlanLimitError, assertFeature, assertCanAddUniqueCard, assertCanCreateFolder, assertStockChange, getEffectivePlan, getPlanState, lockPlanUser, sendPlanError } from '../core/entitlements.js';
 
+// Una carta se identifica por su id, idioma y estado: la misma carta en otro estado es otra fila (con su propio precio y stock)
+const identityKey = (tcgId, language, condition) => `${tcgId}\u0000${language}\u0000${condition ?? ''}`;
 const router = express.Router();
-const OWN_CARD_PHOTO = /\/card\/[0-9a-f]{32}\.webp$/;
 const CARD_LANGUAGES = ['English', 'Spanish', 'Japanese'];
 const normalizedLanguage = (tcg, value) => (isMylTcg(tcg) ? 'Spanish' : CARD_LANGUAGES.includes(value) ? value : 'English');
 
@@ -27,8 +28,8 @@ router.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res)
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     
-    const { price, stock, data } = req.body || {};
-    if (!isValidPrice(price) || !isValidStock(stock) || !isSmallObject(data)) {
+    const { price, stock, data, condition } = req.body || {};
+    if (!isValidPrice(price) || !isValidStock(stock) || !isSmallObject(data) || !isValidCondition(condition)) {
       return badRequest(res, 'Datos de carta inválidos');
     }
     if (data?.language !== undefined && !CARD_LANGUAGES.includes(data.language)) {
@@ -47,16 +48,18 @@ router.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res)
         assertStockChange(plan, current.stock, nextStock);
         dataToUpdate.stock = nextStock;
       }
+      const merged = data !== undefined ? cleanCardData({ ...(current.data && typeof current.data === 'object' ? current.data : {}), ...data }) : null;
+      const nextLanguage = data !== undefined ? normalizedLanguage(folder.tcg, merged?.language || current.language) : current.language;
+      const nextCondition = condition === undefined ? current.condition : normalizedCondition(condition);
+      if (nextLanguage !== current.language || nextCondition !== current.condition) {
+        const conflict = await tx.card.findFirst({ where: { folderId: folder.id, tcgId: current.tcgId, language: nextLanguage, condition: nextCondition, id: { not: current.id } }, select: { id: true } });
+        if (conflict) throw new PlanLimitError('card_identity_conflict', { planKey: plan.key });
+      }
       if (data !== undefined) {
-        const merged = cleanCardData({ ...(current.data && typeof current.data === 'object' ? current.data : {}), ...data });
-        const nextLanguage = normalizedLanguage(folder.tcg, merged?.language || current.language);
-        if (nextLanguage !== current.language) {
-          const conflict = await tx.card.findFirst({ where: { folderId: folder.id, tcgId: current.tcgId, language: nextLanguage, id: { not: current.id } }, select: { id: true } });
-          if (conflict) throw new PlanLimitError('card_identity_conflict', { planKey: plan.key });
-        }
         dataToUpdate.language = nextLanguage;
         dataToUpdate.data = { ...(merged || {}), language: nextLanguage };
       }
+      if (condition !== undefined) dataToUpdate.condition = nextCondition;
       return tx.card.update({ where: { id: current.id }, data: dataToUpdate });
     });
     if (!card) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
@@ -105,7 +108,7 @@ const loadOwnFolder = async (req, res) => {
   return { owner, folder };
 };
 
-// PUT precio, stock e idioma de varias cartas a la vez: { updates: [{ id, price?, stock?, language? }] }
+// PUT precio, stock, idioma y estado de varias cartas a la vez: { updates: [{ id, price?, stock?, language?, condition? }] }
 router.put('/api/folders/:id/cards-bulk', authenticateToken, async (req, res) => {
   try {
     const own = await loadOwnFolder(req, res);
@@ -115,26 +118,28 @@ router.put('/api/folders/:id/cards-bulk', authenticateToken, async (req, res) =>
       item && typeof item === 'object'
       && isStrictPrice(item.price) && isValidStock(item.stock) && (item.stock === undefined || item.stock !== null && item.stock !== '')
       && (item.language === undefined || CARD_LANGUAGES.includes(item.language))
-      && (item.price !== undefined || item.stock !== undefined || item.language !== undefined)
+      && isValidCondition(item.condition)
+      && (item.price !== undefined || item.stock !== undefined || item.language !== undefined || item.condition !== undefined)
     ));
     if (!valid) return badRequest(res, 'Datos de cartas inválidos');
 
     const result = await prisma.$transaction(async (tx) => {
       await lockPlanUser(tx, own.owner.id);
       const [cards, allCards, effective] = await Promise.all([
-        tx.card.findMany({ where: { folderId: own.folder.id, id: { in: updates.map((item) => item.id) } }, select: { id: true, tcgId: true, language: true, stock: true, data: true, moderationState: true } }),
-        tx.card.findMany({ where: { folderId: own.folder.id }, select: { id: true, tcgId: true, language: true } }),
+        tx.card.findMany({ where: { folderId: own.folder.id, id: { in: updates.map((item) => item.id) } }, select: { id: true, tcgId: true, language: true, condition: true, stock: true, data: true, moderationState: true } }),
+        tx.card.findMany({ where: { folderId: own.folder.id }, select: { id: true, tcgId: true, language: true, condition: true } }),
         getEffectivePlan(tx, own.owner.id)
       ]);
       if (cards.length !== updates.length) throw Object.assign(new Error('La selección incluye cartas que no son de esta carpeta'), { status: 400 });
       const byId = new Map(cards.map((card) => [card.id, card]));
       const editable = updates.filter((item) => byId.get(item.id).moderationState !== 'hidden');
       const editableIds = new Set(editable.map((item) => item.id));
-      const occupied = new Set(allCards.filter((card) => !editableIds.has(card.id)).map((card) => `${card.tcgId}\u0000${card.language}`));
+      const occupied = new Set(allCards.filter((card) => !editableIds.has(card.id)).map((card) => identityKey(card.tcgId, card.language, card.condition)));
       for (const item of editable) {
         const current = byId.get(item.id);
         const nextLanguage = normalizedLanguage(own.folder.tcg, item.language || current.language);
-        const identity = `${current.tcgId}\u0000${nextLanguage}`;
+        const nextCondition = item.condition === undefined ? current.condition : normalizedCondition(item.condition);
+        const identity = identityKey(current.tcgId, nextLanguage, nextCondition);
         if (occupied.has(identity)) throw new PlanLimitError('card_identity_conflict', { planKey: effective.plan.key });
         occupied.add(identity);
         const data = {};
@@ -144,6 +149,7 @@ router.put('/api/folders/:id/cards-bulk', authenticateToken, async (req, res) =>
           assertStockChange(effective.plan, current.stock, nextStock);
           data.stock = nextStock;
         }
+        if (item.condition !== undefined) data.condition = nextCondition;
         if (item.language !== undefined) {
           data.language = nextLanguage;
           data.data = cleanCardData({ ...(current.data && typeof current.data === 'object' ? current.data : {}), language: nextLanguage });
@@ -193,18 +199,18 @@ router.post('/api/folders/:id/cards-bulk/move', authenticateToken, async (req, r
     const count = await prisma.$transaction(async (tx) => {
       await lockPlanUser(tx, own.owner.id);
       const [cards, targetCards, effective] = await Promise.all([
-        tx.card.findMany({ where: { folderId: own.folder.id, id: { in: ids } }, select: { id: true, tcgId: true, language: true, stock: true, data: true } }),
-        tx.card.findMany({ where: { folderId: target.id }, select: { id: true, tcgId: true, language: true, stock: true } }),
+        tx.card.findMany({ where: { folderId: own.folder.id, id: { in: ids } }, select: { id: true, tcgId: true, language: true, condition: true, stock: true, data: true } }),
+        tx.card.findMany({ where: { folderId: target.id }, select: { id: true, tcgId: true, language: true, condition: true, stock: true } }),
         getEffectivePlan(tx, own.owner.id)
       ]);
       if (cards.length !== ids.length) throw Object.assign(new Error('La selección incluye cartas que no son de esta carpeta'), { status: 400 });
-      const targetByIdentity = new Map(targetCards.map((card) => [`${card.tcgId}\u0000${card.language}`, card]));
-      const newIdentities = new Set(cards.map((card) => `${card.tcgId}\u0000${card.language}`).filter((identity) => !targetByIdentity.has(identity)));
+      const targetByIdentity = new Map(targetCards.map((card) => [identityKey(card.tcgId, card.language, card.condition), card]));
+      const newIdentities = new Set(cards.map((card) => identityKey(card.tcgId, card.language, card.condition)).filter((identity) => !targetByIdentity.has(identity)));
       if (effective.plan.uniqueCardsPerFolder !== null && targetCards.length + newIdentities.size > effective.plan.uniqueCardsPerFolder) {
         throw new PlanLimitError('plan_unique_card_limit', { current: targetCards.length, limit: effective.plan.uniqueCardsPerFolder, planKey: effective.plan.key, details: { requested: targetCards.length + newIdentities.size } });
       }
       for (const card of cards) {
-        const identity = `${card.tcgId}\u0000${card.language}`;
+        const identity = identityKey(card.tcgId, card.language, card.condition);
         const existing = targetByIdentity.get(identity);
         if (existing) {
           const nextStock = existing.stock + card.stock;
@@ -590,8 +596,8 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     
-    const { tcgId, name, imageUrl, price, stock, data } = req.body || {};
-    if (!isShortText(String(tcgId ?? ''), 100) || !isShortText(name, 300) || !isValidPrice(price) || !isValidStock(stock) || !isSmallObject(data)) {
+    const { tcgId, name, imageUrl, price, stock, data, condition } = req.body || {};
+    if (!isShortText(String(tcgId ?? ''), 100) || !isShortText(name, 300) || !isValidPrice(price) || !isValidStock(stock) || !isSmallObject(data) || !isValidCondition(condition)) {
       return badRequest(res, 'Datos de carta inválidos');
     }
     if (data?.language !== undefined && !CARD_LANGUAGES.includes(data.language)) {
@@ -604,17 +610,17 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
     const normalizedTcgId = storedCardId(folder.tcg, tcgId);
     if (!normalizedTcgId) return badRequest(res, 'Identificador de carta inválido');
       
-    // Una foto propia solo vale para cartas sin imagen en el catálogo: si ya tiene una, se usa la oficial
-    let cardImageUrl = imageUrl;
-    if (imageUrl && OWN_CARD_PHOTO.test(imageUrl)) cardImageUrl = (await catalogImageUrl(prisma, folder.tcg, normalizedTcgId).catch(() => null)) || imageUrl;
+    // La foto propia vale para cualquier carta, tenga o no imagen en el catálogo
+    const cardImageUrl = imageUrl;
 
     const cardLanguage = normalizedLanguage(folder.tcg, data?.language);
+    const cardCondition = normalizedCondition(condition);
     const requestedStock = stock !== undefined ? parseInt(stock, 10) : 1;
     const card = await prisma.$transaction(async (tx) => {
       await lockPlanUser(tx, user.id);
       const stillOwned = await tx.folder.findFirst({ where: { id: folder.id, userId: user.id }, select: { id: true } });
       if (!stillOwned) throw Object.assign(new Error('Not authorized'), { status: 403 });
-      const existing = await tx.card.findFirst({ where: { folderId: folder.id, tcgId: normalizedTcgId, language: cardLanguage }, select: { id: true } });
+      const existing = await tx.card.findFirst({ where: { folderId: folder.id, tcgId: normalizedTcgId, language: cardLanguage, condition: cardCondition }, select: { id: true } });
       if (existing) {
         const { plan } = await getEffectivePlan(tx, user.id);
         throw new PlanLimitError('card_identity_conflict', { planKey: plan.key, details: { existingCardId: existing.id } });
@@ -628,6 +634,7 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
           price: parseFloat(price) || null,
           stock: requestedStock,
           language: cardLanguage,
+          condition: cardCondition,
           data: { ...(cleanCardData(data) || {}), language: cardLanguage },
           folderId: folder.id
         }

@@ -1,3 +1,4 @@
+import ConditionStars from '../ui/ConditionStars';
 import LoadableImage from '../ui/LoadableImage';
 import { cardFit, cardRatio, isYugioh } from '../../utils/cardShape';
 import { Link } from 'react-router-dom';
@@ -81,6 +82,7 @@ export default function CatalogCard({ tcg, card, availableStock, cartQuantity, o
             {card.pseudoName && <span className="text-gray-500 font-normal text-[11px] ml-1.5 align-middle">({card.pseudoName})</span>}
           </h3>
           <div className="flex items-center gap-1 shrink-0">
+            <ConditionStars value={card.condition} />
             {!isMyl && (
               <span className="px-1.5 py-0.5 rounded-sm bg-[#ffcb05]/20 text-[#1a2b4b] text-[9px] uppercase font-extrabold border border-[#ffcb05]/40" title={card.language || 'English'}>
                 {langBadge}

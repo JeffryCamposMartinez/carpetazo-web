@@ -7,6 +7,7 @@ import { likeEscape, nameMatch } from '../core/cardSearch.js';
 import { bulkPublishedRanges } from '../core/editionDates.js';
 import { PRODUCT_ID, loadCatalogCard, loadCatalogSales } from '../core/catalogPage.js';
 import { bumpMetric, searchKey } from '../core/metrics.js';
+import { TCGDEX_CATEGORY } from '../core/tcgSync/tcgdex.js';
 
 const router = express.Router();
 const r2PublicUrl = (key) => {
@@ -106,7 +107,7 @@ router.get('/api/tcg/suggest', async (req, res) => {
       const names = indexedNames();
       const [mylNames, catalogNames] = await Promise.all([
         prisma.tcgProduct.findMany({ distinct: ['name'], select: { name: true } }).catch(() => []),
-        names.length ? Promise.resolve([]) : prisma.catalogCard.findMany({ where: { kind: 'card' }, distinct: ['name'], select: { name: true } }).catch(() => []),
+        names.length ? Promise.resolve([]) : prisma.catalogCard.findMany({ where: { kind: 'card', categoryId: { not: TCGDEX_CATEGORY } }, distinct: ['name'], select: { name: true } }).catch(() => []),
       ]);
       buildVocabulary([...names, ...mylNames.map((card) => card.name), ...catalogNames.map((card) => card.name)]);
     }
@@ -139,6 +140,7 @@ router.get('/api/tcg/search-index', async (req, res) => {
   const gameWhere = games.length ? { game: { name: { in: games } } } : {};
   const where = {
     kind: 'card',
+    categoryId: { not: TCGDEX_CATEGORY }, // las cartas en español son solo otra imagen de las inglesas: no salen como cartas aparte
     ...gameWhere,
     OR: [
       { cleanName: { contains: likeEscape(value) } },

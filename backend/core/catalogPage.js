@@ -65,7 +65,7 @@ export async function loadCatalogCard(db, productId) {
       where: { tcgId: String(productId), ...visibleOffer },
       orderBy: [{ price: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
       take: OFFERS_SHOWN,
-      select: { id: true, price: true, stock: true, language: true, folder: { select: { id: true, user: { select: { name: true, username: true, publicComuna: true } } } } },
+      select: { id: true, price: true, stock: true, language: true, condition: true, folder: { select: { id: true, user: { select: { name: true, username: true, publicComuna: true } } } } },
     }),
     // Otras impresiones de la misma carta (otra edición): enlaces internos útiles para quien busca y para los buscadores
     db.catalogCard.findMany({
@@ -77,7 +77,7 @@ export async function loadCatalogCard(db, productId) {
   return {
     card: { ...view(row), categoryId: row.categoryId, text: cardText(row.attributes) },
     offers: offers.map((offer) => ({
-      id: offer.id, price: offer.price, stock: offer.stock, language: offer.language,
+      id: offer.id, price: offer.price, stock: offer.stock, language: offer.language, condition: offer.condition,
       seller: { name: offer.folder.user?.name || offer.folder.user?.username || null, username: offer.folder.user?.username || null, comuna: offer.folder.user?.publicComuna || null },
     })),
     low: prices.length ? Math.min(...prices) : null,

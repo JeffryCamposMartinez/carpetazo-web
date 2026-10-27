@@ -38,7 +38,8 @@ export const classifyTcgcsvCard = (name, ext) => {
   return { category, types: nameTypes };
 };
 
-export const pokemonCategoryForLang = (lang) => (lang === 'ja' ? 85 : 3);
+// Español (100): las cartas inglesas que tienen versión en español, con su imagen en español (lo arma el catálogo local)
+export const pokemonCategoryForLang = (lang) => (lang === 'ja' ? 85 : lang === 'es' ? 100 : 3);
 
 const groupsCache = new Map();
 const productsCache = new Map();
@@ -96,7 +97,7 @@ export const fetchPokemonGroupCards = async (lang, group, signal) => {
       number: ext.Number,
       imageUrl: product.imageUrl || `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(product.productId))}_400w.jpg`,
       setName: group.name,
-      language: catId === 85 ? 'Japonés' : 'Inglés',
+      language: catId === 85 ? 'Japonés' : catId === 100 ? 'Español' : 'Inglés',
       ...classifyTcgcsvCard(product.name, ext),
     }));
   // Mismo orden que al agregar cartas a una carpeta: por número dentro de la edición (001, 002…)

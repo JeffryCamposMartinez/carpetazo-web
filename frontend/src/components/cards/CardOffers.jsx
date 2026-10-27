@@ -1,3 +1,4 @@
+import ConditionStars from '../ui/ConditionStars';
 import { Link } from 'react-router-dom';
 import ReportButton from '../moderation/ReportButton';
 import LocationLine from '../ui/LocationLine';
@@ -41,6 +42,7 @@ function OfferRow({ offer, isBest, isChosen }) {
         {isBest && <span className="rounded-full bg-[#facc15] px-2.5 py-0.5 text-[11px] font-extrabold text-[#12315f]">Mejor precio</span>}
         {isChosen && <span className="rounded-full bg-[#dbeafe] px-2.5 py-0.5 text-[11px] font-extrabold text-[#1e40af]">La que tocaste</span>}
         {offer.language && <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-600">{LANGUAGES[offer.language] || offer.language}</span>}
+        <ConditionStars value={offer.condition} withName />
         <ReportButton targetType="card" targetId={offer.id} label="Reportar" className="inline-flex h-9 items-center rounded-lg px-2 text-xs font-bold text-slate-500 hover:bg-slate-100" />
         <Link to={`/c/${offer.folder.id}`} className="ml-auto flex h-11 items-center justify-center gap-1.5 rounded-xl bg-[#1e40af] px-4 text-sm font-bold text-white transition-[background-color,transform] duration-150 hover:bg-[#12315f] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2">
           <SvgIcon name="folder_open" translate="no" aria-hidden="true" className="text-[20px]" />

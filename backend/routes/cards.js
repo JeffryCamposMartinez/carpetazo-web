@@ -224,7 +224,7 @@ router.get('/api/cards/:id/offers', async (req, res) => {
       where: { ...visibleCardWhere, ...sameCardMatch(card), folder: { ...visibleCardWhere.folder, tcg: card.folder.tcg } },
       orderBy: [{ price: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
       take: OFFERS_MAX,
-      select: { id: true, price: true, stock: true, data: true, folder: { select: { id: true, name: true, user: { select: { name: true, username: true, photoURL: true, publicComuna: true, emailVerified: true, phone: true, ...PUBLIC_PLAN_RELATIONS_SELECT } } } } },
+      select: { id: true, price: true, stock: true, condition: true, data: true, folder: { select: { id: true, name: true, user: { select: { name: true, username: true, photoURL: true, publicComuna: true, emailVerified: true, phone: true, ...PUBLIC_PLAN_RELATIONS_SELECT } } } } },
     });
     const sales = await recentSales(card.tcgId, card.folder.tcg);
     const reference = card.folder.tcg === 'Mitos y Leyendas' ? (await mylReferencePrices([card.tcgId]))[card.tcgId] || null : null;
@@ -279,6 +279,8 @@ const CARD_SEARCH_SORTS = {
   recent: [{ createdAt: 'desc' }],
   price_asc: [{ price: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
   price_desc: [{ price: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
+  condition_desc: [{ condition: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
+  condition_asc: [{ condition: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
 };
 // «Más vendidos» y «Última edición» dependen de las ventas y del catálogo, no de una columna: se ordenan en memoria
 // sobre las cartas que coinciden (las RANKING_POOL más nuevas) y se entrega solo la página pedida.
@@ -291,6 +293,7 @@ const CARD_SEARCH_SELECT = {
   imageUrl: true,
   price: true,
   stock: true,
+  condition: true,
   createdAt: true,
   data: true,
   folder: { select: { id: true, name: true, tcg: true, userId: true, user: { select: { name: true, username: true, photoURL: true, publicComuna: true } } } },
@@ -392,6 +395,8 @@ router.get('/api/cards/search', async (req, res) => {
     const page = Number.parseInt(req.query.page, 10) || 1;
     const comuna = typeof req.query.comuna === 'string' ? req.query.comuna.trim() : '';
     if (comuna && !isValidComuna(comuna)) return badRequest(res, 'Búsqueda inválida');
+    const minCondition = typeof req.query.condition === 'string' ? req.query.condition : ''; // estado mínimo (1 a 5 estrellas)
+    if (minCondition && !/^[1-5]$/.test(minCondition)) return badRequest(res, 'Búsqueda inválida');
     if (seller && !/^[a-z0-9_]{3,40}$/.test(seller)) return badRequest(res, 'Búsqueda inválida');
     if (q.length > 80 || tcg.length > 60 || /[\u0000-\u001f]/.test(q + tcg) || !(Object.hasOwn(CARD_SEARCH_SORTS, sort) || RANKED_SORTS.has(sort)) || page < 1 || page > 1000) {
       return badRequest(res, 'Búsqueda inválida');
@@ -400,6 +405,7 @@ router.get('/api/cards/search', async (req, res) => {
     const where = {
       stock: { gt: 0 },
       moderationState: 'visible',
+      ...(minCondition ? { condition: { gte: Number(minCondition) } } : {}),
       folder: { isPublic: true, ...(tcg ? { tcg } : {}), ...(seller || comuna ? { user: { ...(seller ? { username: seller } : {}), ...(comuna ? { publicComuna: comuna } : {}) } } : {}) },
       ...(q ? nameMatch(q) : {}),
     };
@@ -418,7 +424,7 @@ router.get('/api/cards/search', async (req, res) => {
     const boosts = await userBoostLevels(prisma);
     const [total, cards] = await Promise.all([
       prisma.card.count({ where }),
-      prioritizedCardPage(where, sort, (page - 1) * CARD_SEARCH_PAGE_SIZE, CARD_SEARCH_PAGE_SIZE, boosts, `${rotation}:${q}:${tcg}:${seller}:${comuna}:${sort}`)
+      prioritizedCardPage(where, sort, (page - 1) * CARD_SEARCH_PAGE_SIZE, CARD_SEARCH_PAGE_SIZE, boosts, `${rotation}:${q}:${tcg}:${seller}:${comuna}:${minCondition}:${sort}`)
     ]);
 
     // Lo que se busca y nadie tiene a la venta (solo el texto, sin datos de la persona): muestra qué cartas faltan en el mercado

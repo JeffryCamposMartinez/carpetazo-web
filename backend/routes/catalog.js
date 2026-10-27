@@ -7,6 +7,7 @@ import { prisma } from '../core/db.js';
 import { badRequest, isAllowedProxyImageUrl } from '../core/validation.js';
 import { MYL_ID_PREFIX, rawMylId } from '../core/mylIdentity.js';
 import { likeEscape, nameDistance, nameMatch, searchFragments, similarCardName } from '../core/cardSearch.js';
+import { TCGDEX_CATEGORY, numberKey, tcgdexJson, usableCards } from '../core/tcgSync/tcgdex.js';
 import { editionFamilyGroupIds, isEditionFamily, isKnownEditionFamily } from '../core/editionFamilies.js';
 
 const router = express.Router();
@@ -265,6 +266,54 @@ router.get('/api/tcg/:categoryId/groups', async (req, res) => {
   }
 });
 
+// Cartas en español de una edición de TCGdex, por número: es el respaldo cuando la imagen todavía no está en la base ni en R2 (se guarda 6 horas)
+// Respaldo de TCGplayer (TCGCSV) para el idioma Español: lo que todavía no está en la base (una edición recién publicada) se pide en vivo; usa la misma caché que /api/tcgcsv
+const tcgcsvResults = async (tcgcsvPath) => {
+  const hit = tcgcsvCache.get(tcgcsvPath);
+  const entry = hit && Date.now() - hit.at < TCGCSV_TTL_MS ? hit : await loadTcgcsv(tcgcsvPath);
+  const json = JSON.parse(entry.body);
+  return Array.isArray(json.results) ? json.results : [];
+};
+// Cartas que TCGdex tiene en español y TCGplayer no (el enlace con las inglesas las dejó marcadas, TcgplayerLinked = '0'): salen solas, con su nombre e imagen de TCGdex y sin precio.
+// Por edición en español: cuántas son y a qué edición inglesa pertenece la mayoría de sus cartas enlazadas (null si ninguna)
+const SPANISH_GROUP_BASE = 9000000;
+const spanishOnlySets = async () => (await prisma.$queryRaw`SELECT "groupId", MODE() WITHIN GROUP (ORDER BY ("attributes"->>'TcgplayerGroupId')::int) AS "english" FROM "CatalogCard" WHERE "categoryId" = ${TCGDEX_CATEGORY} AND "imageKey" IS NOT NULL GROUP BY "groupId" HAVING COUNT(*) FILTER (WHERE "attributes"->>'TcgplayerLinked' = '0') > 0`);
+const spanishOnlyCards = (groupIds) => (groupIds.length ? prisma.catalogCard.findMany({
+  where: { categoryId: TCGDEX_CATEGORY, groupId: { in: groupIds }, imageKey: { not: null }, attributes: { path: ['TcgplayerLinked'], equals: '0' } },
+  orderBy: [{ number: 'asc' }, { productId: 'asc' }],
+  select: { productId: true, name: true, number: true, imageKey: true, attributes: true, groupId: true, set: { select: { name: true, publishedOn: true } } },
+}) : []);
+const spanishOnlyView = (card, groupId, group) => ({
+  productId: card.productId, categoryId: TCGDEX_CATEGORY, groupId, name: card.name, hasImage: true, imageUrl: r2PublicUrl(card.imageKey), number: card.number, rarity: null,
+  extendedData: [{ name: 'Number', value: card.number }, { name: 'Language', value: 'es' }], group: group || card.set, game: 'Pokémon (Español)',
+});
+const NO_IMAGE_KEY = 'Carpetazo.cl/Sin_Imagen/Carpetazo_TCG_Sin_Imagen.webp';
+const TCGDEX_SET_TTL_MS = 6 * 60 * 60 * 1000;
+const tcgdexSetCache = new Map();
+const within = (promise) => Promise.race([promise, new Promise((_resolve, reject) => setTimeout(() => reject(new Error('TCGdex tardó demasiado')), 5000))]);
+const tcgdexSetImages = async (setId) => {
+  const hit = tcgdexSetCache.get(setId);
+  if (hit && Date.now() - hit.at < TCGDEX_SET_TTL_MS) return hit.images;
+  const detail = await within(tcgdexJson(`/sets/${encodeURIComponent(setId)}`, 0));
+  const images = new Map();
+  for (const card of usableCards(detail)) images.set(numberKey(card.localId), images.has(numberKey(card.localId)) ? null : `${card.image}/high.webp`); // número repetido: no se adivina
+  if (tcgdexSetCache.size >= 300) tcgdexSetCache.delete(tcgdexSetCache.keys().next().value);
+  tcgdexSetCache.set(setId, { at: Date.now(), images });
+  return images;
+};
+
+// Qué edición de TCGdex es una edición de TCGplayer, cuando la base todavía no las enlazó: por el nombre (el de TCGdex en inglés) y, si no, por la sigla
+const setNorm = (text) => String(text || '').toLowerCase().replace(/[^a-z0-9]/g, '').replace(/([a-z])0+(\d)/g, '$1$2');
+let tcgdexIndex = null;
+const tcgdexSetIndex = async () => {
+  if (tcgdexIndex && Date.now() - tcgdexIndex.at < TCGDEX_SET_TTL_MS) return tcgdexIndex;
+  const [es, en] = await Promise.all([within(tcgdexJson('/sets', 0, 'es')), within(tcgdexJson('/sets', 0, 'en'))]);
+  tcgdexIndex = { at: Date.now(), byId: new Map((es || []).map((set) => [setNorm(set.id), set.id])), byName: new Map((en || []).map((set) => [setNorm(set.name), set.id])) };
+  return tcgdexIndex;
+};
+const tcgdexSetFor = (index, set) => index.byName.get(setNorm(String(set.name).split(': ').slice(1).join(': '))) || index.byName.get(setNorm(set.name))
+  || (String(set.abbreviation || '').length >= 3 ? index.byId.get(setNorm(set.abbreviation)) : undefined) || null; // las siglas cortas («PR») sirven a muchas ediciones: no se usan
+
 // Catálogo local de cartas TCGplayer. Las pantallas de carpetas/deseadas usan
 // esta ruta para no descargar cada edición desde TCGCSV en cada búsqueda.
 router.get('/api/tcg/catalog/:categoryId/:groupId/cards', async (req, res) => {
@@ -272,12 +321,44 @@ router.get('/api/tcg/catalog/:categoryId/:groupId/cards', async (req, res) => {
     const categoryId = Number.parseInt(req.params.categoryId, 10);
     const groupId = Number.parseInt(req.params.groupId, 10);
     if (!Number.isInteger(categoryId) || !Number.isInteger(groupId)) return badRequest(res, 'Edición inválida');
-    const rows = await prisma.catalogCard.findMany({
-      where: { categoryId, groupId, kind: 'card' },
+    // Pokémon en español: las cartas inglesas de la edición (datos y precio de TCGplayer) que tienen su versión en español, con la imagen en español
+    const spanish = categoryId === TCGDEX_CATEGORY;
+    if (spanish && groupId >= SPANISH_GROUP_BASE) {
+      res.set('Cache-Control', 'public, max-age=1800, stale-while-revalidate=7200');
+      return res.json({ success: true, source: 'database', data: (await spanishOnlyCards([groupId])).map((card) => spanishOnlyView(card, groupId)) });
+    }
+    const spanishImages = new Map();
+    const tcgdexImages = new Map();
+    let liveGroup = null; // edición de TCGplayer que aún no está en la base
+    if (spanish) {
+      const links = await prisma.catalogCard.findMany({ where: { categoryId: TCGDEX_CATEGORY, imageKey: { not: null }, attributes: { path: ['TcgplayerGroupId'], equals: String(groupId) } }, select: { attributes: true, imageKey: true, groupId: true }, orderBy: { productId: 'asc' } });
+      for (const link of links) if (!spanishImages.has(Number(link.attributes.TcgplayerProductId))) spanishImages.set(Number(link.attributes.TcgplayerProductId), link.imageKey);
+      // Lo que no está en la base ni en R2 se completa con la imagen de TCGdex (los datos y el precio siguen siendo de TCGplayer)
+      const setIds = (await prisma.catalogSet.findMany({ where: { groupId: { in: [...new Set(links.map((link) => link.groupId))] } }, select: { abbreviation: true } })).map((set) => set.abbreviation).filter(Boolean);
+      let own = await prisma.catalogSet.findUnique({ where: { groupId }, select: { name: true, abbreviation: true } });
+      if (!own) {
+        liveGroup = (await tcgcsvResults('/tcgplayer/3/groups').catch(() => [])).find((item) => item.groupId === groupId) || null;
+        own = liveGroup;
+      }
+      const mapped = own ? await tcgdexSetIndex().then((index) => tcgdexSetFor(index, own)).catch(() => null) : null;
+      for (const setId of new Set([...setIds, mapped].filter(Boolean))) {
+        try { for (const [key, url] of await tcgdexSetImages(setId)) if (url && !tcgdexImages.has(key)) tcgdexImages.set(key, url); } catch (error) { console.error('TCGdex no respondió:', error.message); }
+      }
+    }
+    let rows = await prisma.catalogCard.findMany({
+      where: spanish ? { groupId, kind: 'card' } : { categoryId, groupId, kind: 'card' },
       orderBy: [{ number: 'asc' }, { name: 'asc' }, { productId: 'asc' }],
       select: { productId: true, categoryId: true, groupId: true, name: true, number: true, rarity: true, imageKey: true, sourceImageUrl: true, attributes: true, set: { select: { name: true, publishedOn: true } }, game: { select: { name: true } } },
     });
+    if (liveGroup && rows.length === 0) {
+      rows = (await tcgcsvResults(`/tcgplayer/3/${groupId}/products`).catch(() => [])).map((product) => {
+        const ext = Object.fromEntries((product.extendedData || []).filter((item) => item?.name).map((item) => [item.name, String(item.value ?? '')]));
+        return { productId: product.productId, categoryId: 3, groupId, name: product.name, number: ext.Number || null, rarity: ext.Rarity || null, imageKey: null, sourceImageUrl: null, attributes: ext, set: { name: liveGroup.name, publishedOn: liveGroup.publishedOn }, game: { name: 'Pokémon' } };
+      }).filter((card) => card.number);
+    }
     const data = rows.map((card) => {
+      // Sin versión en español (ni en la base, ni en R2, ni en TCGdex): sale igual, con «Sin imagen», para poder agregarla con foto propia
+      if (spanish) { card.imageKey = spanishImages.get(card.productId) || null; card.sourceImageUrl = card.imageKey ? null : tcgdexImages.get(numberKey(card.number)) || r2PublicUrl(NO_IMAGE_KEY); }
       const attributes = card.attributes && typeof card.attributes === 'object' && !Array.isArray(card.attributes) ? card.attributes : {};
       const extendedData = Object.entries(attributes).map(([name, value]) => ({ name, value: String(value ?? '') }));
       if (card.number && !extendedData.some((item) => item.name === 'Number')) extendedData.push({ name: 'Number', value: card.number });
@@ -286,11 +367,17 @@ router.get('/api/tcg/catalog/:categoryId/:groupId/cards', async (req, res) => {
         // R2 es la fuente principal. Solo si todavía no se subió la imagen
         // se entrega la URL de respaldo de la importación (o el CDN de la
         // carta) sin consultar el endpoint remoto de productos.
-        hasImage: Boolean(card.imageKey), // sin imagen propia en R2: la persona puede subir una foto
+        hasImage: Boolean(card.imageKey) || (spanish && card.sourceImageUrl !== r2PublicUrl(NO_IMAGE_KEY)), // sin imagen propia en R2: la persona puede subir una foto
         imageUrl: r2PublicUrl(card.imageKey) || card.sourceImageUrl || `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(card.productId))}_400w.jpg`, number: card.number, rarity: card.rarity,
         extendedData, group: card.set, game: card.game.name,
       };
     });
+    if (spanish) {
+      // Las cartas solo en español de la edición en español que corresponde a esta edición inglesa
+      const sameSet = (await spanishOnlySets().catch(() => [])).filter((item) => item.english === groupId).map((item) => item.groupId);
+      const englishSet = sameSet.length ? await prisma.catalogSet.findUnique({ where: { groupId }, select: { name: true, publishedOn: true } }) : null;
+      if (englishSet) data.push(...(await spanishOnlyCards(sameSet)).map((card) => spanishOnlyView(card, groupId, englishSet)));
+    }
     res.set('Cache-Control', 'public, max-age=1800, stale-while-revalidate=7200');
     return res.json({ success: true, source: 'database', data });
   } catch (error) {
@@ -305,11 +392,24 @@ router.get('/api/tcg/catalog/sets', async (req, res) => {
   const categoryId = Number.parseInt(String(req.query.categoryId || ''), 10);
   if (!Number.isInteger(categoryId) || categoryId <= 0) return badRequest(res, 'Categoría inválida');
   try {
+    // Pokémon en español: todas las ediciones de TCGplayer (las cartas sin versión en español salen con «Sin imagen»)
     const sets = await prisma.catalogSet.findMany({
-      where: { categoryId, cards: { some: { kind: 'card' } } },
+      where: { categoryId: categoryId === TCGDEX_CATEGORY ? 3 : categoryId, cards: { some: { kind: 'card' } } },
       orderBy: [{ publishedOn: 'desc' }, { name: 'asc' }, { groupId: 'desc' }],
       select: { groupId: true, categoryId: true, name: true, abbreviation: true, publishedOn: true, modifiedOn: true },
     });
+    if (categoryId === TCGDEX_CATEGORY) {
+      // Ediciones de TCGplayer que todavía no están en la base (la sincronización nocturna las agrega)
+      const known = new Set((await prisma.catalogSet.findMany({ where: { categoryId: 3 }, select: { groupId: true } })).map((set) => set.groupId));
+      const live = await tcgcsvResults('/tcgplayer/3/groups').catch(() => []);
+      const recent = Date.now() - 45 * 24 * 3600 * 1000; // las antiguas que no están en la base son solo sellado
+      for (const group of live) if (!known.has(group.groupId) && new Date(group.publishedOn).getTime() > recent && new Date(group.publishedOn) <= new Date()) sets.unshift({ groupId: group.groupId, categoryId: 3, name: group.name, abbreviation: group.abbreviation || null, publishedOn: group.publishedOn, modifiedOn: group.modifiedOn });
+    }
+    if (categoryId === TCGDEX_CATEGORY) {
+      // Ediciones en español sin edición inglesa equivalente: salen con su propio nombre
+      const orphans = (await spanishOnlySets().catch(() => [])).filter((item) => item.english === null).map((item) => item.groupId);
+      if (orphans.length) sets.push(...await prisma.catalogSet.findMany({ where: { groupId: { in: orphans } }, select: { groupId: true, categoryId: true, name: true, abbreviation: true, publishedOn: true, modifiedOn: true } }));
+    }
     res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=1800');
     return res.json({ success: true, source: 'database', data: sets });
   } catch (error) {

@@ -58,7 +58,7 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     ok('la misma persona no genera otra propuesta para la misma carta', (await proposals()).length === 1);
     r = await add(folder, 'seller', IDS.conImagen, photoA);
     ok('carta que ya tiene imagen: no hay propuesta', r.status === 200 && (await proposals({ productId: IDS.conImagen })).length === 0);
-    ok('carta que ya tiene imagen: se queda con la oficial, no con la foto propia', r.status === 200 && !String(r.j?.card?.imageUrl || '').includes('/Usuarios/') && String(r.j?.card?.imageUrl || '').startsWith('https://pub-cztest.r2.dev/'), String(r.j?.card?.imageUrl));
+    ok('carta que ya tiene imagen: se guarda con la foto propia', r.status === 200 && String(r.j?.card?.imageUrl || '').includes('/Usuarios/'), String(r.j?.card?.imageUrl));
     ok('un producto (no carta): no hay propuesta', (await add(folder, 'seller', IDS.producto, photoA)).status === 200 && (await proposals({ productId: IDS.producto })).length === 0);
     ok('carta agregada sin foto: no hay propuesta', (await add(folder, 'seller', IDS.otra, undefined)).status === 200 && (await proposals({ productId: IDS.otra })).length === 0);
     const jerryPhoto = await upload('jerry', await picture(2));

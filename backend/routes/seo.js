@@ -7,6 +7,7 @@ import { restrictions } from '../moderation/services.js';
 import { isAllowedProxyImageUrl, isUuid } from '../core/validation.js';
 import { PRODUCT_ID, catalogPath, loadCatalogCard, slugOf } from '../core/catalogPage.js';
 import { botFamily, bumpMetric } from '../core/metrics.js';
+import { TCGDEX_CATEGORY } from '../core/tcgSync/tcgdex.js';
 
 const router = express.Router();
 const SITE = 'https://carpetazo.cl';
@@ -253,7 +254,7 @@ const CATALOG_CHUNK = 40000;
 const CATALOG_TTL_MS = 6 * 60 * 60 * 1000;
 const catalogChunks = new Map(); // número -> { at, xml }
 let catalogTotal = { at: 0, value: 0 };
-const catalogWhere = { kind: 'card', imageKey: { not: null } };
+const catalogWhere = { kind: 'card', categoryId: { not: TCGDEX_CATEGORY }, imageKey: { not: null } };
 
 const catalogCount = async () => {
   if (Date.now() - catalogTotal.at > 60 * 60 * 1000 || catalogTotal.value === 0) {
