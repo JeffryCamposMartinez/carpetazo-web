@@ -7,6 +7,7 @@ import LoadableImage from '../ui/LoadableImage';
 import { EmptyState, ErrorBox, ListSkeleton, Pills, ROW, dateTime } from './shared';
 
 const MYL = 'myl'; // valor del filtro «Mitos y Leyendas» (se sincroniza con mazos.cl, no con TCGplayer)
+const SOURCE_NAME = { myl: 'Mitos y Leyendas', tcgdex: 'Pokémon (Español)' };
 const STATUS = { ok: ['Completa', 'bg-emerald-600'], partial: ['Incompleta (sigue la próxima noche)', 'bg-amber-500'], failed: ['Fallida', 'bg-red-600'] };
 const SECTIONS = [['cards', 'Cartas nuevas'], ['products', 'Productos nuevos'], ['filled', 'Imágenes completadas'], ['changes', 'Correcciones']];
 const MYL_SECTIONS = [['cards', 'Cartas nuevas'], ['products', 'Productos y ediciones'], ['filled', 'Completadas'], ['changes', 'Correcciones'], ['noEdition', 'Sin edición']];
@@ -96,7 +97,7 @@ export default function CatalogSyncPanel() {
   // La cifra de imágenes subidas es de toda la corrida; al elegir un juego de TCGplayer se muestran las imágenes completadas de ese juego
   const tiles = isMyl
     ? [['Cartas nuevas', counts?.cards], ['Productos y ediciones nuevos', counts?.products], ['Imágenes subidas', summary.imagesUploaded], ['Correcciones por revisar', counts?.changes]]
-    : [['Cartas nuevas', counts?.cards], ['Productos nuevos', counts?.products], game ? ['Imágenes completadas', counts?.filled] : ['Imágenes subidas', summary.imagesUploaded], ['Correcciones por revisar', counts?.changes]];
+    : [['Cartas nuevas', counts?.cards], ['Productos nuevos', counts?.products], game && run?.source !== 'tcgdex' ? ['Imágenes completadas', counts?.filled] : ['Imágenes subidas', summary.imagesUploaded ?? summary.images], ['Correcciones por revisar', counts?.changes]];
   const sections = isMyl ? MYL_SECTIONS : SECTIONS;
   const empty = isMyl ? MYL_EMPTY : EMPTY;
   const noRuns = overview && overview.runs.length === 0;
@@ -126,7 +127,7 @@ export default function CatalogSyncPanel() {
                   className="w-[330px] max-w-full"
                   listMinWidth={330}
                   buttonClassName="!min-h-10 !rounded-lg !border-[#12315f]/15 !px-3 !text-sm !shadow-sm"
-                  options={overview.runs.map((item) => ({ value: item.id, label: `${dateTime(item.startedAt)}${game === '' ? ` · ${item.source === 'myl' ? 'Mitos y Leyendas' : 'TCGplayer'}` : ''}` }))}
+                  options={overview.runs.map((item) => ({ value: item.id, label: `${dateTime(item.startedAt)}${game === '' ? ` · ${SOURCE_NAME[item.source] || 'TCGplayer'}` : ''}` }))}
                 />
               </div>
             )}

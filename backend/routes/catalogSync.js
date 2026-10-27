@@ -7,6 +7,7 @@ import { prisma } from '../core/db.js';
 import { routeLimiter } from '../core/limits.js';
 import { badRequest } from '../core/validation.js';
 import { r2PublicUrl } from '../core/tcgCatalogImport.js';
+import { TCGDEX_CATEGORY } from '../core/tcgSync/tcgdex.js';
 
 const router = express.Router();
 const PAGE = 48;
@@ -20,9 +21,11 @@ const readLimit = routeLimiter(60 * 1000, 120);
 
 // Filas que esta corrida creó o a las que les completó la imagen, según el tipo de sección
 const windowOf = (run) => ({ gte: run.startedAt, lte: run.finishedAt || new Date() });
+// Las cartas en español (TCGdex) tienen su propia corrida: la de TCGplayer no las cuenta y la de TCGdex solo cuenta las suyas
+const gameFilter = (run, game) => (game ? { categoryId: game } : { categoryId: run.source === 'tcgdex' ? TCGDEX_CATEGORY : { not: TCGDEX_CATEGORY } });
 const whereFor = (run, section, game) => {
   const range = windowOf(run);
-  const byGame = game ? { categoryId: game } : {};
+  const byGame = gameFilter(run, game);
   if (section === 'cards') return { kind: 'card', createdAt: range, ...byGame };
   if (section === 'products') return { kind: 'product', createdAt: range, ...byGame };
   return { createdAt: { lt: run.startedAt }, updatedAt: range, imageKey: { not: null }, ...byGame }; // filled
@@ -72,8 +75,8 @@ const mylItems = async (run, section, page) => {
 router.get('/api/admin/catalog-sync', authenticateToken, requireStaff(2), readLimit, async (req, res) => {
   try {
     const game = gameOf(req.query);
-    // Sin juego elegido se ven las corridas de las dos fuentes (TCGplayer y Mitos y Leyendas); con un juego de TCGplayer o con Mitos y Leyendas, solo las suyas
-    const sources = req.query.game === MYL_GAME ? ['myl'] : game ? ['tcgplayer'] : ['tcgplayer', 'myl'];
+    // Sin juego elegido se ven las corridas de las tres fuentes (TCGplayer, cartas en español de TCGdex y Mitos y Leyendas); con un juego, solo las suyas
+    const sources = req.query.game === MYL_GAME ? ['myl'] : game === TCGDEX_CATEGORY ? ['tcgdex'] : game ? ['tcgplayer'] : ['tcgplayer', 'tcgdex', 'myl'];
     const runs = await prisma.catalogSyncRun.findMany({ where: { source: { in: sources }, dryRun: false, status: { not: 'running' } }, orderBy: { startedAt: 'desc' }, take: RUNS * sources.length });
     const running = await prisma.catalogSyncRun.findFirst({ where: { source: { in: sources }, status: 'running', startedAt: { gt: new Date(Date.now() - 3 * 3600 * 1000) } }, select: { startedAt: true } });
     const selected = typeof req.query.run === 'string' && UUID.test(req.query.run) ? runs.find((run) => run.id === req.query.run) || runs[0] : runs[0];
@@ -85,7 +88,7 @@ router.get('/api/admin/catalog-sync', authenticateToken, requireStaff(2), readLi
         prisma.catalogCard.count({ where: whereFor(selected, 'cards', game) }),
         prisma.catalogCard.count({ where: whereFor(selected, 'products', game) }),
         prisma.catalogCard.count({ where: whereFor(selected, 'filled', game) }),
-        prisma.catalogChange.count({ where: { createdAt: windowOf(selected), ...(game ? { categoryId: game } : {}) } }),
+        prisma.catalogChange.count({ where: { createdAt: windowOf(selected), ...gameFilter(selected, game) } }),
       ]);
       counts = { cards, products, filled, changes };
     }
@@ -108,10 +111,10 @@ router.get('/api/admin/catalog-sync/:id/:section', authenticateToken, requireSta
     const run = await prisma.catalogSyncRun.findUnique({ where: { id } });
     if (!run || run.dryRun) return res.status(404).json({ success: false, message: 'Corrida no encontrada' });
     if (run.source === 'myl') return res.json(await mylItems(run, section, page));
-    if (run.source !== 'tcgplayer' || !SECTIONS.has(section)) return section === 'noEdition' ? badRequest(res, 'Consulta inválida') : res.status(404).json({ success: false, message: 'Corrida no encontrada' });
+    if ((run.source !== 'tcgplayer' && run.source !== 'tcgdex') || !SECTIONS.has(section)) return section === 'noEdition' ? badRequest(res, 'Consulta inválida') : res.status(404).json({ success: false, message: 'Corrida no encontrada' });
     const game = gameOf(req.query);
     if (section === 'changes') {
-      const where = { createdAt: windowOf(run), ...(game ? { categoryId: game } : {}) };
+      const where = { createdAt: windowOf(run), ...gameFilter(run, game) };
       const [total, rows] = await Promise.all([prisma.catalogChange.count({ where }), prisma.catalogChange.findMany({ where, orderBy: [{ categoryId: 'asc' }, { productId: 'asc' }], skip: (page - 1) * PAGE, take: PAGE })]);
       const cards = await prisma.catalogCard.findMany({ where: { productId: { in: rows.map((row) => row.productId) } }, select: SELECT });
       const byId = new Map(cards.map((card) => [card.productId, cardView(card)]));
