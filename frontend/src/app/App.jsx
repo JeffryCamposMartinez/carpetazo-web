@@ -4,6 +4,7 @@ import { AuthProvider } from '../contexts/AuthContext';
 import Header from '../components/layout/Header';
 import ScrollToTop from '../components/layout/ScrollToTop';
 import ValidationBubble from '../components/ui/ValidationBubble';
+import TooltipLayer from '../components/ui/TooltipLayer';
 import Footer from '../components/layout/Footer';
 import ErrorBoundary from '../components/ui/ErrorBoundary';
 import AcceptTermsGate from '../components/auth/AcceptTermsGate';
@@ -67,6 +68,7 @@ function App() {
         <BrowserRouter>
           <ScrollToTop />
           <ValidationBubble />
+          <TooltipLayer />
           <div className="flex flex-col min-h-[100svh] w-full relative">
             <a
               href="#contenido"
