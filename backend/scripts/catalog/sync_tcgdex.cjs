@@ -4,12 +4,16 @@
 // Solo agrega las cartas que faltan (con imagen en español); lo que ya existe no se toca.
 //   --dry-run          no escribe nada (ni R2 ni la base): cuenta qué haría
 //   --image-cap=20000  tope de imágenes por corrida
-//   --max-minutes=55   tiempo máximo; al cumplirse termina limpio y lo que falte entra en la próxima corrida
+//   --max-minutes=45   tiempo máximo de descarga; después se enlazan las cartas con las inglesas y lo que falte entra en la próxima corrida
 //   --limit-sets=3     solo las primeras N ediciones (para pruebas)
 //   --link-only        no descarga nada: solo enlaza las cartas en español con las inglesas (de ahí salen los datos y el precio)
 const args = process.argv.slice(2);
 const opt = (name) => { const hit = args.find((arg) => arg.startsWith(`--${name}=`)); return hit ? hit.slice(name.length + 3) : undefined; };
 const number = (value, fallback) => (Number.isFinite(Number(value)) && Number(value) > 0 ? Number(value) : fallback);
+
+const maxMinutes = number(opt('max-minutes'), 45);
+// Si algo se queda esperando (una descarga o R2), el proceso termina solo antes de que Coolify lo corte; la corrida queda libre pasados 75 minutos
+setTimeout(() => { console.error('Se acabó el tiempo de la corrida: se cierra.'); process.exit(1); }, (maxMinutes + 12) * 60000).unref();
 
 (async () => {
   await import('../../core/env.js');
@@ -20,7 +24,7 @@ const number = (value, fallback) => (Number.isFinite(Number(value)) && Number(va
     const result = await runTcgdexSync({
       dryRun: args.includes('--dry-run'),
       imageCap: number(opt('image-cap'), 20000),
-      maxMinutes: number(opt('max-minutes'), 55),
+      maxMinutes,
       limitSets: number(opt('limit-sets'), 0),
     });
     return result.status === 'failed' ? 1 : 0;

@@ -36,7 +36,7 @@ export const usableCards = (detail) => (Array.isArray(detail?.cards) ? detail.ca
 
 const acquireRun = async (db, dryRun) => {
   if (dryRun) return { id: null };
-  const rows = await db.$queryRaw`INSERT INTO "CatalogSyncRun" ("id","status","dryRun","source","startedAt") SELECT gen_random_uuid()::text,'running',false,'tcgdex',(now() AT TIME ZONE 'UTC') WHERE NOT EXISTS (SELECT 1 FROM "CatalogSyncRun" WHERE "source"='tcgdex' AND "status"='running' AND "startedAt" > (now() AT TIME ZONE 'UTC') - interval '3 hours') RETURNING "id"`;
+  const rows = await db.$queryRaw`INSERT INTO "CatalogSyncRun" ("id","status","dryRun","source","startedAt") SELECT gen_random_uuid()::text,'running',false,'tcgdex',(now() AT TIME ZONE 'UTC') WHERE NOT EXISTS (SELECT 1 FROM "CatalogSyncRun" WHERE "source"='tcgdex' AND "status"='running' AND "startedAt" > (now() AT TIME ZONE 'UTC') - interval '75 minutes') RETURNING "id"`;
   return rows[0] || null;
 };
 
@@ -114,7 +114,7 @@ export async function runTcgdexSync(options = {}) {
 
   if (!dryRun && !options.upload && !hasR2Config()) throw new Error('Falta la configuración de R2 (R2_*).');
   const run = await acquireRun(db, dryRun);
-  if (!run) { log('Ya hay una corrida de TCGdex en curso (o terminó hace menos de 3 horas sin cerrarse). No se hace nada.'); return { skipped: true, ...total }; }
+  if (!run) { log('Ya hay una corrida de TCGdex en curso (o empezó hace menos de 75 minutos sin cerrarse). No se hace nada.'); return { skipped: true, ...total }; }
   log(`Cartas en español (TCGdex)${dryRun ? ' (PRUEBA: no se escribe nada)' : ''}: tope ${imageCap} imágenes, ${maxMinutes} min`);
 
   let status = 'ok';
