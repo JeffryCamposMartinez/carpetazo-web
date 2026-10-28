@@ -4,7 +4,8 @@ import { fetchGroupPrices, fetchUsdClpRate, usdToClp } from '../services/tcgcsvP
 
 const MYL_BATCH = 60;
 const mylId = (card) => String(card.productId || card.id || card.tcgProductId || '');
-const catOf = (card) => card.catId || (card.cardLanguage === 'Japanese' ? 85 : 3);
+// Español (100) usa las cartas y los precios de las inglesas de TCGplayer (categoría 3)
+const catOf = (card) => (card.catId === 100 ? 3 : card.catId) || (card.cardLanguage === 'Japanese' ? 85 : 3);
 
 // Precio referencial en pesos de las cartas a la vista.
 // Pokémon: precio de mercado de TCGplayer (TCGCSV) convertido con el dólar. Mitos y Leyendas: mediana de lo que piden los vendedores en Carpetazo.

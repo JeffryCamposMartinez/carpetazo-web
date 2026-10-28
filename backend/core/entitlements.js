@@ -6,7 +6,7 @@ const QUOTA_MESSAGES = {
   plan_folder_limit: 'Alcanzaste el máximo de carpetas de tu plan.',
   plan_unique_card_limit: 'Esta carpeta alcanzó el máximo de cartas únicas de tu plan.',
   plan_copy_limit: 'Alcanzaste el máximo de copias de esta carta para tu plan.',
-  card_identity_conflict: 'Esta carta ya existe en la carpeta con el mismo idioma.'
+  card_identity_conflict: 'Esta carta ya existe en la carpeta con el mismo idioma y estado.'
 };
 
 export class PlanLimitError extends Error {

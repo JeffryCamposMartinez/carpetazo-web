@@ -82,6 +82,13 @@ const r2Log = async () => (await (await fetch(B + '/__test/r2-log')).json()).log
     r = await call('POST', '/users/discard-card-photo', 'seller', { url: 'https://evil.example.com/x.webp' });
     ok('una dirección ajena no se descarta', r.status === 400);
 
+    // Una carta en español conserva su imagen en español en la carpeta (no la cambia por la inglesa del catálogo)
+    r = await call('POST', `/folders/${folder}/cards`, 'seller', { tcgId: '98001003', name: 'CZTEST Español', price: 1000, stock: 1, imageUrl: 'https://assets.tcgdex.net/es/cz/cztest/1/high.webp', data: { catalogOrder: 2, language: 'Spanish' } });
+    ok('se guarda una carta en español con su imagen de TCGdex', r.status === 200 && r.j.card?.language === 'Spanish', JSON.stringify(r.j).slice(0, 200));
+    view = await call('GET', `/folders/${folder}`);
+    const spanishShown = (view.j?.folder?.cards || []).find((entry) => String(entry.tcgId) === '98001003');
+    ok('la carpeta muestra la imagen en español de esa carta', spanishShown?.imageUrl === 'https://assets.tcgdex.net/es/cz/cztest/1/high.webp', String(spanishShown?.imageUrl));
+
     // La limpieza diaria de archivos sin uso no toca las fotos de una galería
     const { findOrphanFiles } = await import('../core/orphanFiles.js');
     const old = new Date(Date.now() - 30 * 24 * 3600 * 1000);

@@ -27,7 +27,7 @@ function RequestRow({ request, onDecided, setError }) {
       const entries = await Promise.all(PHOTOS.map(async ([kind]) => [kind, URL.createObjectURL(await api.verificationPhoto(request.id, kind))]));
       setPhotos(Object.fromEntries(entries));
     } catch (error) {
-      setError(error.message || 'No se pudieron mostrar las fotos.');
+      setError('No se pudieron mostrar los documentos. Intenta de nuevo; si sigue fallando, avisa al administrador.');
     } finally {
       setLoadingPhotos(false);
     }

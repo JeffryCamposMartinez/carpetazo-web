@@ -149,7 +149,7 @@ export default function CardDetailPage() {
               <ul className="mx-auto mt-2.5 flex max-w-[16rem] flex-wrap justify-center gap-2 md:max-w-none" aria-label="Fotos de esta carta">
                 {gallery.map((url, index) => (
                   <li key={url}>
-                    <button type="button" onClick={() => setActiveImage(index)} aria-label={`Ver la foto ${index + 1} de ${gallery.length}`} aria-pressed={activeImage === index} className={`relative block h-16 w-12 overflow-hidden rounded-lg bg-white ring-2 transition-[box-shadow,transform] duration-150 active:scale-[0.95] sm:h-[4.5rem] sm:w-[3.25rem] ${activeImage === index ? 'ring-[#1e40af]' : 'ring-transparent [@media(hover:hover)]:hover:ring-[#1e40af]/40'}`}>
+                    <button type="button" onClick={() => setActiveImage(index)} aria-label={`Ver la foto ${index + 1} de ${gallery.length}`} aria-pressed={activeImage === index} className={`relative block h-[3.75rem] w-11 overflow-hidden rounded-lg bg-white ring-2 transition-[box-shadow,transform] duration-150 active:scale-[0.95] sm:h-[4.5rem] sm:w-[3.25rem] ${activeImage === index ? 'ring-[#1e40af]' : 'ring-transparent [@media(hover:hover)]:hover:ring-[#1e40af]/40'}`}>
                       <img src={url} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
                     </button>
                   </li>
