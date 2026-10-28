@@ -96,7 +96,12 @@ export default function CardDetailPage() {
       }
     } : undefined
   } : {});
-  const lightboxCards = useMemo(() => (card ? [{ id: card.id, name: card.name, imageUrl: card.imageUrl, tcg: card.tcg }] : []), [card]);
+  // Portada y fotos extra de la copia: se pueden recorrer con las miniaturas y en pantalla grande
+  const gallery = useMemo(() => (card ? [card.imageUrl, ...(card.photos || []).map((photo) => photo.url)].filter(Boolean) : []), [card]);
+  const [activeImage, setActiveImage] = useState(0);
+  useEffect(() => { setActiveImage(0); }, [card?.id]);
+  const shownImage = gallery[activeImage] || card?.imageUrl;
+  const lightboxCards = useMemo(() => (card ? gallery.map((url, index) => ({ id: `${card.id}:${index}`, name: card.name, imageUrl: url, tcg: card.tcg })) : []), [card, gallery]);
 
   const addToWishlist = async () => {
     if (!currentUser) { navigate('/bienvenida'); return; }
@@ -137,9 +142,20 @@ export default function CardDetailPage() {
           <div className="min-w-0 md:col-start-1 md:row-start-1">
             <div className="mx-auto w-full max-w-[12.5rem] sm:max-w-[16rem] md:max-w-none">
               <button type="button" onClick={() => setZoom(true)} aria-label={`Ver ${card.name} en pantalla grande`} className="relative block w-full cursor-zoom-in overflow-hidden rounded-2xl bg-white p-2 shadow-[0_18px_40px_-24px_rgba(26,43,75,0.6)] ring-1 ring-slate-900/5 transition-transform duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]" style={{ aspectRatio: cardRatio(card.tcg), ...(isYugioh(card.tcg) ? { padding: 0, borderRadius: '3px' } : {}) }}>
-                <LoadableImage src={card.imageUrl} alt={card.name} rotateLandscape className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-lg object-contain" style={cardFill(card.tcg)} />
+                <LoadableImage src={shownImage} alt={card.name} rotateLandscape className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-lg object-contain" style={cardFill(card.tcg)} />
               </button>
             </div>
+            {gallery.length > 1 && (
+              <ul className="mx-auto mt-2.5 flex max-w-[16rem] flex-wrap justify-center gap-2 md:max-w-none" aria-label="Fotos de esta carta">
+                {gallery.map((url, index) => (
+                  <li key={url}>
+                    <button type="button" onClick={() => setActiveImage(index)} aria-label={`Ver la foto ${index + 1} de ${gallery.length}`} aria-pressed={activeImage === index} className={`relative block h-16 w-12 overflow-hidden rounded-lg bg-white ring-2 transition-[box-shadow,transform] duration-150 active:scale-[0.95] sm:h-[4.5rem] sm:w-[3.25rem] ${activeImage === index ? 'ring-[#1e40af]' : 'ring-transparent [@media(hover:hover)]:hover:ring-[#1e40af]/40'}`}>
+                      <img src={url} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
             <div className="mt-2">
               <CardShare cardId={chosen?.id || card.id} name={card.name} message={`¡Mira esta carta en Carpetazo! ${card.name}${best ? ` desde ${formatCLP(best.price)}` : ''}`} showToast={showToast}>
                 <ReportButton targetType="card" targetId={chosen?.id || best?.id || card.id} label="Reportar esta publicación" className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl text-sm font-bold text-slate-500 transition-colors hover:bg-slate-50 hover:text-red-600" />
@@ -214,7 +230,7 @@ export default function CardDetailPage() {
         <CardOffers offers={offers} chosenId={cardId} />
       </div>
 
-      {zoom && <CardLightbox cards={lightboxCards} cardId={card.id} onChange={() => {}} onClose={() => setZoom(false)} describe={() => ({ subtitle: [card.set, card.rarity].filter(Boolean).join(' • '), chips: [] })} />}
+      {zoom && <CardLightbox cards={lightboxCards} cardId={`${card.id}:${activeImage}`} onChange={(id) => setActiveImage(Number(String(id).split(':').pop()) || 0)} onClose={() => setZoom(false)} describe={() => ({ subtitle: [card.set, card.rarity].filter(Boolean).join(' • '), chips: [] })} />}
     </div>
   );
 }

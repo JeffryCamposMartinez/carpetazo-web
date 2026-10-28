@@ -625,6 +625,9 @@ const [isSearching, setIsSearching] = useState(false);
     }
   };
 
+  // Galería de la carta: el modal ya guardó las fotos en el servidor, aquí se refleja en la pantalla
+  const handleCardPhotos = (cardId, photos) => setCards(prev => prev.map(c => c.id === cardId ? { ...c, photos } : c));
+
   // Destacar una carta en el perfil público (el máximo lo fija el plan; el servidor responde con el motivo si no se puede)
   const handleToggleFeatured = async (cardId, featured) => {
     try {
@@ -1013,7 +1016,7 @@ const [isSearching, setIsSearching] = useState(false);
     catalogDragFloatingPreviewRef, cardDetailsMode, catalogGridClass, catalogGridColumns, catalogGridDense, catalogViewMode,
     clearCatalogFilters, currentFolderId: id, inventory, copyBuyerLink, cycleCardDetailsMode, cycleCatalogGridDensity, draggedCatalogCardId, dropCatalogIndex,
     filteredCatSets, filteredCatalog, folderData, getCatalogDragHandleProps, getCatalogDropProps,
-    handleCatalogReorder, handleDeleteRequest, handleToggleFeatured, handleUpdateCard, hasCatalogFilters, hasUnsavedCatalogOrder,
+    handleCatalogReorder, handleDeleteRequest, handleToggleFeatured, handleUpdateCard, handleCardPhotos, hasCatalogFilters, hasUnsavedCatalogOrder,
     isCatSetDropdownOpen, isMylFolder, openBuyerPreview, previewCatalog, saveCatalogOrder, savingCatalogOrder,
     scrollToTopIfNeeded, setActiveTab, setCatQuery, setCatSet, setCatalogViewMode, setIsCatSetDropdownOpen,
     showScrollTop };

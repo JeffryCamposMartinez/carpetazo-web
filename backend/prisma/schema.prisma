@@ -98,6 +98,7 @@ model Card {
   stock           Int      @default(1)
   language        String   @default("English")
   condition       Int? // estado de la carta, de 1 (dañada) a 5 (perfecta); vacío = sin estado
+  photos          CardPhoto[]
   data            Json?
   moderationState String   @default("visible") // visible | image_hidden | hidden | removed
   featuredAt      DateTime? // carta destacada en el perfil público (el máximo lo fija el plan)
@@ -899,4 +900,16 @@ model IdentityVerification {
   @@index([userId, createdAt])
   @@index([status, createdAt])
   @@index([rut])
+}
+
+// Galería de una carta: fotos extra de esa copia (hasta 5, para cualquier plan), además de su portada (Card.imageUrl)
+model CardPhoto {
+  id        String   @id @default(uuid())
+  cardId    String
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  url       String
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([cardId, position])
 }

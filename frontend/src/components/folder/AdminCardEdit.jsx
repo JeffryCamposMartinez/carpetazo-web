@@ -4,8 +4,9 @@ import { Link } from 'react-router-dom';
 import Select from '../ui/Select';
 import SvgIcon from '../ui/SvgIcon';
 import { CARD_CONDITIONS } from '../../config/cardConditions';
+import CardPhotosModal from '../cards/CardPhotosModal';
 
-const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, onToggleFeatured, compact = false, detailLevel = 'none', dense = false, showLanguage = false, selectable = false, selected = false, onToggleSelect, onPreview, onDraftChange }) => {
+const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, onToggleFeatured, compact = false, detailLevel = 'none', dense = false, showLanguage = false, folderId = '', onPhotosChange = null, selectable = false, selected = false, onToggleSelect, onPreview, onDraftChange }) => {
   // 'full': nombre, edición, stock, precio e idioma · 'basic': solo stock y precio · 'none': solo la carta
   const showDetails = detailLevel !== 'none';
   const showInfo = detailLevel === 'full';
@@ -13,6 +14,7 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
   const [price, setPrice] = useState(card.price);
   const [stock, setStock] = useState(card.stock);
   const [language, setLanguage] = useState(card.language || 'English');
+  const [photosOpen, setPhotosOpen] = useState(false);
   const [condition, setCondition] = useState(card.condition ? String(card.condition) : '');
   const conditionValue = condition === '' ? null : Number(condition);
   // En pantallas angostas o cuadrícula densa el idioma se muestra abreviado para que se lea completo
@@ -79,6 +81,18 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
           >
             <SvgIcon name="delete" translate="no" className={compact ? 'text-[17px] sm:text-[19px]' : 'text-[22px]'} />
           </button>
+          {onPhotosChange && (
+            <button
+              type="button"
+              onClick={() => setPhotosOpen(true)}
+              className={`${compact ? 'top-10 right-1 h-8 min-w-8 sm:top-11 sm:h-9 sm:min-w-9' : 'top-14 right-1 h-11 min-w-11'} absolute z-10 flex items-center justify-center gap-0.5 rounded-full bg-[#12315f] px-1.5 text-white shadow-[0_1px_5px_rgba(0,0,0,0.4)] transition-[background-color,transform] duration-150 hover:bg-[#1e40af] active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]`}
+              title="Fotos de tu carta"
+              aria-label={`Fotos de ${card.name}: ${card.photos?.length || 0} de 5`}
+            >
+              <SvgIcon name="photo_camera" translate="no" className={compact ? 'text-[16px] sm:text-[18px]' : 'text-[22px]'} />
+              {card.photos?.length > 0 && <span className="text-[11px] font-extrabold leading-none">{card.photos.length}</span>}
+            </button>
+          )}
         </>
       )}
       <div className={`${compact && !showDetails ? 'p-1.5' : compact ? (dense ? 'p-1.5' : 'p-2.5') : 'p-4'} flex flex-col items-center flex-1`}>
@@ -206,6 +220,7 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
           {saving ? 'Guardando...' : hasChanges ? 'Guardar' : 'Guardado'}
         </button>
       )}
+      {photosOpen && onPhotosChange && <CardPhotosModal folderId={folderId} card={card} onClose={() => setPhotosOpen(false)} onChange={onPhotosChange} />}
     </div>
   );
 }, (prev, next) => (
@@ -221,6 +236,8 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
   && prev.onDraftChange === next.onDraftChange
   && prev.onUpdate === next.onUpdate
   && prev.onDelete === next.onDelete
+  && prev.folderId === next.folderId
+  && prev.onPhotosChange === next.onPhotosChange
   && prev.dragHandleProps === next.dragHandleProps
 ));
 

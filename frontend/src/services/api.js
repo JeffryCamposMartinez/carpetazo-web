@@ -207,6 +207,8 @@ export const api = {
   getOpsMetrics: (days) => apiFetch('/admin/ops/metrics?days=' + encodeURIComponent(days)),
   getCatalogSync: (run, game) => apiFetch('/admin/catalog-sync?' + new URLSearchParams({ ...(run ? { run } : {}), ...(game ? { game } : {}) })),
   getCatalogSyncItems: (run, section, page = 1, game) => apiFetch('/admin/catalog-sync/' + encodeURIComponent(run) + '/' + encodeURIComponent(section) + '?' + new URLSearchParams({ page, ...(game ? { game } : {}) })),
+  addCardPhoto: (folderId, cardId, url) => apiFetch('/folders/' + encodeURIComponent(folderId) + '/cards/' + encodeURIComponent(cardId) + '/photos', { method: 'POST', body: JSON.stringify({ url }) }),
+  deleteCardPhoto: (folderId, cardId, photoId) => apiFetch('/folders/' + encodeURIComponent(folderId) + '/cards/' + encodeURIComponent(cardId) + '/photos/' + encodeURIComponent(photoId), { method: 'DELETE' }),
   getVerification: () => apiFetch('/verification/me'),
   submitVerification: (formData) => apiFetch('/verification/request', { method: 'POST', body: formData, isMultipart: true }),
   getVerifications: (status = 'pending') => apiFetch('/admin/verifications?status=' + encodeURIComponent(status)),

@@ -489,17 +489,8 @@ const ProfilePage = () => {
                     <textarea value={profileData.bio} onChange={e => updateProfileField('bio', e.target.value.slice(0, 500))} placeholder="Cuéntale a la comunidad qué coleccionas, vendes o buscas..." className="min-h-32 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-[#1e40af] focus:ring-4 focus:ring-blue-100" />
                   </Field>
                   <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('general')} disabled={Boolean(savingKey) || usernameState.checking || usernameState.available === false}>{savingKey === 'general' ? 'Guardando...' : 'Guardar perfil'}</ActionButton></div>
-                </section>
-              )}
-
-              {activeTab === 'personal' && (
-                <section className="space-y-8">
-                  <IdentityVerification initialRut={profileData.rut} initialPhone={profileData.phone} formatRut={formatRut} isRutValid={validateRut} isPhoneValid={validatePhone} />
-                  <details className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[15px] font-extrabold text-[#12315f]">
-                      <span>Mis datos privados de contacto</span>
-                      <SvgIcon name="expand_more" translate="no" aria-hidden="true" className="text-[22px] transition-transform duration-150 group-open:rotate-180" />
-                    </summary>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <h3 className="text-[15px] font-extrabold text-[#12315f]">Mis datos privados de contacto</h3>
                     <p className="mt-2 text-sm font-semibold text-slate-600">Tu RUT y tu teléfono quedan guardados en tu cuenta aunque no te verifiques. Si te verificas, se bloquean con los datos del carnet.</p>
                     <div className="mt-4 space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
@@ -509,7 +500,13 @@ const ProfilePage = () => {
                   <div className="rounded-2xl bg-blue-50 p-4 text-sm font-semibold text-[#1a2b4b] ring-1 ring-blue-100">Estos datos no se muestran públicamente. Se guardan asociados solamente a tu usuario autenticado.</div>
                   <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('personal')} disabled={Boolean(savingKey) || !rutIsValid || !phoneIsValid}>{savingKey === 'personal' ? 'Guardando...' : 'Guardar datos privados'}</ActionButton></div>
                     </div>
-                  </details>
+                  </div>
+                </section>
+              )}
+
+              {activeTab === 'personal' && (
+                <section className="space-y-8">
+                  <IdentityVerification initialRut={profileData.rut} initialPhone={profileData.phone} formatRut={formatRut} isRutValid={validateRut} isPhoneValid={validatePhone} />
                 </section>
               )}
 

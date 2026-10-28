@@ -216,7 +216,7 @@ router.get('/api/cards/:id/offers', async (req, res) => {
     if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) return badRequest(res, 'Carta inválida');
     const card = await prisma.card.findFirst({
       where: { id: req.params.id, ...visibleCardWhere },
-      select: { id: true, tcgId: true, name: true, imageUrl: true, price: true, stock: true, data: true, folder: { select: { tcg: true } } },
+      select: { id: true, tcgId: true, name: true, imageUrl: true, price: true, stock: true, data: true, folder: { select: { tcg: true } }, photos: { select: { id: true, url: true }, orderBy: { position: 'asc' } } },
     });
     if (!card) return res.status(404).json({ success: false, message: 'Carta no encontrada' });
 
@@ -235,7 +235,7 @@ router.get('/api/cards/:id/offers', async (req, res) => {
     res.json({
       success: true,
       card: {
-        id: card.id, tcgId: card.tcgId, name: card.name, imageUrl: card.imageUrl, tcg: card.folder.tcg,
+        id: card.id, tcgId: card.tcgId, name: card.name, imageUrl: card.imageUrl, photos: card.photos, tcg: card.folder.tcg,
         set: field(card.data, 'set'), rarity: field(card.data, 'rarity'), number: field(card.data, 'number'), type: field(card.data, 'type'),
         race: field(card.data, 'race'), cost: field(card.data, 'cost'), effect: field(card.data, 'effect'),
       },

@@ -7,6 +7,7 @@ import { folderFilterSql, folderOrderSql, likePattern, loadPublicFolders, tcgVar
 import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/publicSeller.js';
 import { badRequest, cleanCardData, isAllowedStoredImageUrl, isOptionalText, isShortText, isSmallObject, isUuid, isValidCondition, isValidPrice, isValidStock, normalizedCondition } from '../core/validation.js';
 import { r2PublicUrl } from '../core/tcgCatalogImport.js';
+import { deleteR2ObjectByPublicUrl, getR2KeyFromPublicUrl, userR2Prefix } from '../core/r2.js';
 import { proposeCatalogPhoto } from '../core/catalogPhotos.js';
 import { isMylTcg, storedCardId } from '../core/mylIdentity.js';
 import { bulkPublishedRanges, reliablePublishedOn } from '../core/editionDates.js';
@@ -71,6 +72,61 @@ router.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res)
     if (error.status === 403) return res.status(403).json({ success: false, message: error.message });
     console.error('Error updating card:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// --- Galería de la carta: hasta 5 fotos extra por carta, para cualquier plan. La persona sube la foto con la subida de siempre (tipo «card») y aquí la agrega a su carta.
+const GALLERY_MAX = 5;
+const gallerySelect = { id: true, url: true };
+const loadOwnedCard = async (req, res) => {
+  if (!isUuid(req.params.id) || !isUuid(req.params.cardId)) { res.status(404).json({ success: false, message: 'Carta no encontrada' }); return null; }
+  const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
+  const card = user && await prisma.card.findFirst({ where: { id: req.params.cardId, folderId: req.params.id, folder: { userId: user.id } }, select: { id: true, imageUrl: true, moderationState: true } });
+  if (!card) { res.status(404).json({ success: false, message: 'Carta no encontrada' }); return null; }
+  return card;
+};
+
+router.post('/api/folders/:id/cards/:cardId/photos', authenticateToken, async (req, res) => {
+  try {
+    const card = await loadOwnedCard(req, res);
+    if (!card) return;
+    const url = typeof req.body?.url === 'string' ? req.body.url.trim() : '';
+    // Solo una foto de carta que esta misma persona subió: nunca la de otra persona ni un archivo cualquiera
+    const key = getR2KeyFromPublicUrl(url);
+    if (!url || url.length > 600 || !isAllowedStoredImageUrl(url) || !key || key.includes('..') || !key.startsWith(userR2Prefix(req.user.sub)) || !/\/card\/[0-9a-f]{32}\.webp$/.test(key)) {
+      return badRequest(res, 'Esa foto no es válida. Súbela de nuevo.');
+    }
+    const photos = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "Card" WHERE "id" = ${card.id} FOR UPDATE`; // dos subidas a la vez no pasan del máximo
+      const current = await tx.cardPhoto.findMany({ where: { cardId: card.id }, orderBy: { position: 'asc' }, select: { id: true, url: true, position: true } });
+      if (current.some((photo) => photo.url === url) || card.imageUrl === url) throw Object.assign(new Error('Esa foto ya está en la galería.'), { status: 409 });
+      if (current.length >= GALLERY_MAX) throw Object.assign(new Error(`Cada carta puede tener hasta ${GALLERY_MAX} fotos extra. Quita una para agregar otra.`), { status: 409 });
+      await tx.cardPhoto.create({ data: { cardId: card.id, url, position: (current.at(-1)?.position ?? -1) + 1 } });
+      return tx.cardPhoto.findMany({ where: { cardId: card.id }, orderBy: { position: 'asc' }, select: gallerySelect });
+    });
+    res.json({ success: true, photos });
+  } catch (error) {
+    if (error.status === 409) return res.status(409).json({ success: false, message: error.message });
+    console.error('Error agregando una foto a la carta:', error);
+    res.status(500).json({ success: false, message: 'No se pudo agregar la foto.' });
+  }
+});
+
+router.delete('/api/folders/:id/cards/:cardId/photos/:photoId', authenticateToken, async (req, res) => {
+  try {
+    const card = await loadOwnedCard(req, res);
+    if (!card) return;
+    if (!isUuid(req.params.photoId)) return res.status(404).json({ success: false, message: 'Foto no encontrada' });
+    const photo = await prisma.cardPhoto.findFirst({ where: { id: req.params.photoId, cardId: card.id } });
+    if (!photo) return res.status(404).json({ success: false, message: 'Foto no encontrada' });
+    await prisma.cardPhoto.delete({ where: { id: photo.id } });
+    // El archivo se borra de R2 solo si ninguna otra carta (ni una portada) lo sigue usando
+    const stillUsed = await prisma.cardPhoto.count({ where: { url: photo.url } }) + await prisma.card.count({ where: { imageUrl: photo.url } });
+    if (!stillUsed) await deleteR2ObjectByPublicUrl(photo.url, req.user.sub);
+    res.json({ success: true, photos: await prisma.cardPhoto.findMany({ where: { cardId: card.id }, orderBy: { position: 'asc' }, select: gallerySelect }) });
+  } catch (error) {
+    console.error('Error quitando una foto de la carta:', error);
+    res.status(500).json({ success: false, message: 'No se pudo quitar la foto.' });
   }
 });
 
@@ -433,7 +489,8 @@ router.get('/api/folders/:id', optionalAuth, optionalStaff, async (req, res) => 
       include: {
         cards: {
           where: { moderationState: { in: ['visible', 'image_hidden'] } },
-          orderBy: { createdAt: 'asc' }
+          orderBy: { createdAt: 'asc' },
+          include: { photos: { select: { id: true, url: true }, orderBy: { position: 'asc' } } }
         },
         user: { select: PUBLIC_SELLER_SELECT }
       }
