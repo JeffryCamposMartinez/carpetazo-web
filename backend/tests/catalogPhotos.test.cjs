@@ -58,6 +58,13 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     ok('la misma persona no genera otra propuesta para la misma carta', (await proposals()).length === 1);
     r = await add(folder, 'seller', IDS.conImagen, photoA);
     ok('carta que ya tiene imagen: no hay propuesta', r.status === 200 && (await proposals({ productId: IDS.conImagen })).length === 0);
+    const photoFolder = await call('GET', `/folders/${folder}`);
+    const ownCardShown = (photoFolder.j?.folder?.cards || []).find((entry) => String(entry.tcgId) === String(IDS.conImagen));
+    ok('la carpeta pública muestra la foto propia aunque el catálogo tenga imagen', photoFolder.status === 200 && String(ownCardShown?.imageUrl || '').includes('/Usuarios/'), String(ownCardShown?.imageUrl));
+    const ownView = await call('GET', `/folders/${folder}`, 'seller');
+    ok('la carpeta del dueño también la muestra', String((ownView.j?.folder?.cards || []).find((entry) => String(entry.tcgId) === String(IDS.conImagen))?.imageUrl || '').includes('/Usuarios/'));
+    const noImageShown = (photoFolder.j?.folder?.cards || []).find((entry) => String(entry.tcgId) === String(IDS.sinImagen));
+    ok('la carta sin imagen en el catálogo también muestra la foto propia en la carpeta', String(noImageShown?.imageUrl || '').includes('/Usuarios/'), String(noImageShown?.imageUrl));
     ok('carta que ya tiene imagen: se guarda con la foto propia', r.status === 200 && String(r.j?.card?.imageUrl || '').includes('/Usuarios/'), String(r.j?.card?.imageUrl));
     ok('un producto (no carta): no hay propuesta', (await add(folder, 'seller', IDS.producto, photoA)).status === 200 && (await proposals({ productId: IDS.producto })).length === 0);
     ok('carta agregada sin foto: no hay propuesta', (await add(folder, 'seller', IDS.otra, undefined)).status === 200 && (await proposals({ productId: IDS.otra })).length === 0);
@@ -111,7 +118,7 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     ok('aprobar de nuevo → 404 (ya no está pendiente)', (await call('POST', `${route}/${mine.id}/approve`, 'jeffry')).status === 404);
     const folderView = await call('GET', `/folders/${folder}`, null);
     const shown = (folderView.j.folder?.cards || folderView.j.cards || []).find((c) => String(c.tcgId) === String(IDS.sinImagen));
-    ok('la carpeta pública ya muestra la imagen del catálogo para todos', Boolean(shown) && shown.imageUrl === `https://pub-cztest.r2.dev/${expected.split('/').map((part) => encodeURIComponent(part).replace(/['()*!]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase())).join('/')}`, shown?.imageUrl);
+    ok('después de aprobar, la carpeta de quien subió la foto sigue mostrando su foto', Boolean(shown) && String(shown.imageUrl).includes('/Usuarios/'), shown?.imageUrl);
     ok('nuevas fotos para una carta que ya tiene imagen no se proponen', (await add(aleFolder, 'ale', IDS.sinImagen, alePhoto)).status !== 500 && (await proposals({ productId: IDS.sinImagen })).length === 2);
 
     // --- Rechazar

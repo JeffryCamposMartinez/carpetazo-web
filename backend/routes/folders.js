@@ -12,6 +12,8 @@ import { isMylTcg, storedCardId } from '../core/mylIdentity.js';
 import { bulkPublishedRanges, reliablePublishedOn } from '../core/editionDates.js';
 import { PlanLimitError, assertFeature, assertCanAddUniqueCard, assertCanCreateFolder, assertStockChange, getEffectivePlan, getPlanState, lockPlanUser, sendPlanError } from '../core/entitlements.js';
 
+// Foto que la persona subió a su carta: se ve en su carpeta (para ella y para el público) aunque el catálogo tenga imagen
+const OWN_CARD_PHOTO = /\/Usuarios\/[^/]+\/card\/[0-9a-f]{32}\.webp$/;
 // Una carta se identifica por su id, idioma y estado: la misma carta en otro estado es otra fila (con su propio precio y stock)
 const identityKey = (tcgId, language, condition) => `${tcgId}\u0000${language}\u0000${condition ?? ''}`;
 const router = express.Router();
@@ -473,7 +475,7 @@ router.get('/api/folders/:id', optionalAuth, optionalStaff, async (req, res) => 
     }
     const cards = visibleCards.map((card) => ({
       ...card,
-      imageUrl: imageByProductId.get(Number(card.tcgId)) || card.imageUrl,
+      imageUrl: (card.imageUrl && OWN_CARD_PHOTO.test(card.imageUrl) ? card.imageUrl : imageByProductId.get(Number(card.tcgId))) || card.imageUrl,
       editionDate: editionByTcgId.get(String(card.tcgId)) || null,
       ...(isFolderOwner ? { soldUnits: soldByTcgId.get(card.tcgId) || 0 } : {}),
       data: cleanCardData(card.data),

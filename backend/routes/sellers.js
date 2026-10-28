@@ -56,7 +56,7 @@ const queryRegisteredSellers = ({ like, comuna = null, sort, limit, offset }) =>
         FROM public_folders GROUP BY "userId"
       )
       SELECT u."name", u."username", u."photoURL", u."publicComuna", u."publicRegion",
-             (u."emailVerified" AND u."photoURL" IS NOT NULL AND u."publicComuna" IS NOT NULL AND COALESCE(TRIM(u."phone"), '') <> '') AS verified,
+             (u."identityVerifiedAt" IS NOT NULL) AS verified,
              ${effectivePlanSql} AS "planKey",
              COALESCE(ss.folders, 0)::int AS folders,
              COALESCE(ss.cards, 0)::int AS cards,
@@ -87,7 +87,7 @@ const querySellers = ({ like, comuna = null, sort, limit, offset }) => {
   return Promise.all([
     prisma.$queryRaw`
       SELECT u."name", u."username", u."photoURL", u."publicComuna", u."publicRegion",
-             (u."emailVerified" AND u."username" IS NOT NULL AND u."photoURL" IS NOT NULL AND u."publicComuna" IS NOT NULL AND COALESCE(TRIM(u."phone"), '') <> '') AS verified,
+             (u."identityVerifiedAt" IS NOT NULL) AS verified,
              ${effectivePlanSql} AS "planKey",
              COUNT(f."id")::int AS folders,
              COALESCE(SUM(c.cnt), 0)::int AS cards,

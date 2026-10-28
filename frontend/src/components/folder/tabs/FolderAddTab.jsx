@@ -75,7 +75,7 @@ export default function FolderAddTab({
               <div className="text-center px-1">
                 <p className="font-extrabold text-gray-900 leading-snug text-[15px]">{cardLabel(selectedCard)}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{getCardSetName(selectedCard)} • {selectedCard.rarity || getExtDataValue(selectedCard.extData, 'Rarity')}</p>
-                {selectedCard.isCustomImage && <p className="text-xs text-gray-500 mt-1">Si esta carta no tiene imagen en el catálogo, Moderación podrá usar tu foto para mostrarla a todos.</p>}
+                {selectedCard.isCustomImage && <p className="text-xs text-gray-500 mt-1">Tu foto se verá en tu carpeta, para ti y para quien la visite. Si esta carta no tiene imagen en el catálogo, también se la enviamos a Moderación para que pase a ser la imagen de esa carta para todos.</p>}
                 {isBatchAdding && (
                   <p className="text-xs font-bold text-[#1e40af] mt-1">
                     Carta {selectedQueue.findIndex(item => item.queueId === activeQueueItemId) + 1} de {selectedQueue.length}

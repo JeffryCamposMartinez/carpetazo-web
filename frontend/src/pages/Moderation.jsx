@@ -17,6 +17,7 @@ import TeamPanel from '../components/moderation/TeamPanel';
 import CatalogImportPanel from '../components/moderation/CatalogImportPanel';
 import FeedbackPanel from '../components/moderation/FeedbackPanel';
 import CatalogPhotosPanel from '../components/moderation/CatalogPhotosPanel';
+import VerificationsPanel from '../components/moderation/VerificationsPanel';
 import CatalogSyncPanel from '../components/moderation/CatalogSyncPanel';
 import ModNav from '../components/moderation/ModNav';
 import LoadingState from '../components/ui/LoadingState';
@@ -34,6 +35,7 @@ const TABS = [
   { id: 'appeals', group: 'queue', label: 'Apelaciones', icon: 'gavel', min: 1, blurb: 'Personas que piden revisar una medida o una decisión sobre su contenido.' },
   { id: 'feedback', group: 'queue', label: 'Reclamos y sugerencias', shortLabel: 'Sugerencias', icon: 'feedback', min: 1, blurb: 'Mensajes de la comunidad para mejorar el sitio o informar un problema.' },
   { id: 'photos', group: 'queue', label: 'Fotos de cartas', shortLabel: 'Fotos', icon: 'photo_library', min: 2, blurb: 'Fotos que la comunidad subió a cartas del catálogo sin imagen: si apruebas una, esa carta tendrá imagen para todos.' },
+  { id: 'verifications', group: 'queue', label: 'Verificaciones', shortLabel: 'Verificar', icon: 'verified_user', min: 2, blurb: 'Personas que piden verificar su identidad con su RUT, su carnet y una foto de su rostro: revisa y aprueba o rechaza.' },
   { id: 'people', group: 'people', label: 'Personas y medidas', shortLabel: 'Personas', icon: 'groups', min: 1, blurb: 'Busca una cuenta, revisa su historial y aplica o levanta medidas.' },
   { id: 'account', group: 'people', label: 'Cuenta completa', shortLabel: 'Cuenta', icon: 'badge', min: 3, blurb: 'Todos los datos de una persona, sus planes con todas las fechas, y cambiarlos avisándole con un mensaje.' },
   { id: 'team', group: 'people', label: 'Equipo y administradores', shortLabel: 'Equipo', icon: 'admin_panel_settings', min: 3, blurb: 'Quién es del equipo y cómo dar el rol de administrador a otra persona, con doble confirmación.' },
@@ -87,7 +89,7 @@ export default function Moderation() {
 
   const navItems = TABS.filter((item) => level >= item.min).map((item) => ({
     ...item,
-    count: item.id === 'reports' ? summary?.reports : item.id === 'cases' ? summary?.cases : item.id === 'appeals' ? summary?.appeals : item.id === 'feedback' ? summary?.feedback : item.id === 'photos' ? summary?.catalogPhotos : item.id === 'people' ? summary?.pendingBans : 0,
+    count: item.id === 'reports' ? summary?.reports : item.id === 'cases' ? summary?.cases : item.id === 'appeals' ? summary?.appeals : item.id === 'feedback' ? summary?.feedback : item.id === 'photos' ? summary?.catalogPhotos : item.id === 'verifications' ? summary?.verifications : item.id === 'people' ? summary?.pendingBans : 0,
     alert: item.id === 'reports' && (summary?.criticalReports || 0) > 0
   }));
   const current = navItems.find((item) => item.id === tab) || navItems[0];
@@ -152,6 +154,7 @@ export default function Moderation() {
               {tab === 'appeals' && <AppealsPanel level={level} />}
               {tab === 'feedback' && <FeedbackPanel level={level} />}
               {tab === 'photos' && level >= 2 && <CatalogPhotosPanel />}
+              {tab === 'verifications' && level >= 2 && <VerificationsPanel />}
               {tab === 'team' && level >= 3 && <TeamPanel />}
               {tab === 'reviews' && level >= 3 && <ReviewsPanel />}
               {tab === 'metrics' && level >= 3 && <MetricsPanel />}

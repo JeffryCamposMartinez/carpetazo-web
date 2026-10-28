@@ -160,6 +160,12 @@ router.put('/api/users/me', authenticateToken, async (req, res) => {
       const stored = await prisma.user.findUnique({ where: { firebaseUid }, select: { [field]: true } });
       if (stored?.[field] !== value) return res.status(400).json({ success: false, error: message });
     }
+    if (updateData.rut !== undefined || updateData.phone !== undefined) {
+      const locked = await prisma.user.findUnique({ where: { firebaseUid }, select: { identityVerifiedAt: true, rut: true, phone: true } });
+      if (locked?.identityVerifiedAt && ((updateData.rut !== undefined && updateData.rut !== locked.rut) || (updateData.phone !== undefined && updateData.phone !== locked.phone))) {
+        return res.status(400).json({ success: false, error: 'Tu RUT y tu teléfono están verificados y no se pueden cambiar. Escríbenos si necesitas corregirlos.' });
+      }
+    }
     if (updateData.username !== undefined) {
       const username = validUsername(updateData.username);
       // Nombres antiguos que no cumplen la política se conservan mientras no se cambien

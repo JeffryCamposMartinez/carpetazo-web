@@ -40,7 +40,9 @@ model User {
   showLastSeen             Boolean            @default(true)
   showReadReceipts         Boolean            @default(true) // si se apaga, ni esta persona ni las demás ven el ✓✓ amarillo entre ellas
   notifyWishlistEmail      Boolean            @default(true) // avisos por correo de su lista de deseos (se puede apagar desde el correo o desde la lista)
-  emailVerified            Boolean            @default(false) // Firebase confirmó el correo (se actualiza al iniciar sesión); alimenta la insignia de vendedor verificado
+  emailVerified            Boolean            @default(false) // Firebase confirmó el correo (se actualiza al iniciar sesión)
+  identityVerifiedAt       DateTime? // Moderación revisó su carnet y su rostro: es lo que muestra la insignia de verificado
+  identityVerifications    IdentityVerification[]
   onboardingSharedAt       DateTime? // cuando compartió el enlace de su carpeta desde la guía de primeros pasos
   onboardingNudgeAt        DateTime? // cuando se le envió el recordatorio único de «publica tus primeras cartas»
   pushSubscriptions        PushSubscription[]
@@ -876,4 +878,25 @@ model FolderVisitDay {
 
   @@id([folderId, day, source])
   @@index([day])
+}
+
+// Solicitudes de verificación de identidad: RUT, teléfono y tres fotos (carnet por ambos lados y rostro) cifradas en R2. Solo Moderación las ve.
+model IdentityVerification {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status       String    @default("pending") // pending | approved | rejected
+  rut          String
+  phone        String
+  frontKey     String
+  backKey      String
+  selfieKey    String
+  reason       String? // motivo del rechazo: lo ve la persona para corregirlo
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([rut])
 }

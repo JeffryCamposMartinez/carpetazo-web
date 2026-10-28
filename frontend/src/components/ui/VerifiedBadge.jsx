@@ -1,12 +1,12 @@
 import SvgIcon from './SvgIcon';
-// Insignia de vendedor verificado: correo confirmado y perfil completo (foto, comuna y WhatsApp). No es una verificación de identidad.
-export const VERIFIED_HINT = 'Correo confirmado y perfil completo (foto, comuna y WhatsApp). No es una verificación de identidad.';
+// Insignia de verificado: Moderación revisó el carnet y el rostro de la persona (perfil › Verificación).
+export const VERIFIED_HINT = 'Moderación revisó su carnet y su rostro.';
 
 export default function VerifiedBadge({ size = 18, color = '#1e40af', className = '' }) {
   return (
-    <span title={`Vendedor verificado: ${VERIFIED_HINT}`} className={`inline-flex shrink-0 align-middle ${className}`}>
+    <span title={`Identidad verificada: ${VERIFIED_HINT}`} className={`inline-flex shrink-0 align-middle ${className}`}>
       <SvgIcon name="verified" translate="no" aria-hidden="true" style={{ fontSize: size, color, fontVariationSettings: "'FILL' 1" }} />
-      <span className="sr-only">Vendedor verificado</span>
+      <span className="sr-only">Identidad verificada</span>
     </span>
   );
 }

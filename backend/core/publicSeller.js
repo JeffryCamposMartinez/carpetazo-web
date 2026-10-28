@@ -37,7 +37,7 @@ export const PUBLIC_SELLER_SELECT = {
   instagramUrl: true,
   youtubeUrl: true,
   phone: true,
-  emailVerified: true, // solo para calcular la insignia de verificado; el serializador devuelve únicamente `verified`
+  identityVerifiedAt: true, // solo para calcular la insignia de verificado; el serializador devuelve únicamente `verified`
   createdAt: true,
   firebaseUid: true, // solo para calcular isOwner; el serializador lo elimina
   ...PUBLIC_PLAN_RELATIONS_SELECT

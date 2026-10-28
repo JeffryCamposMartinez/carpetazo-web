@@ -10,22 +10,19 @@ const MIN = 60 * 1000;
   try {
     const fx = fixtures();
 
-    // ---- Verificado: correo confirmado + foto + comuna + WhatsApp
+    // ---- Verificado: solo con la identidad revisada por Moderación (correo y perfil completo ya no bastan)
     const seller = await prisma.user.findUnique({ where: { firebaseUid: U.seller }, select: { id: true, username: true, emailVerified: true } });
     ok('al iniciar sesión se guarda que Firebase confirmó el correo', seller.emailVerified === true);
     let r = await call('GET', '/users/' + NAMES.seller);
-    ok('perfil público: sin foto, comuna ni teléfono → no verificado', r.status === 200 && r.j.user.verified === false, JSON.stringify(r.j.user?.verified));
+    ok('perfil público: sin identidad verificada → no verificado', r.status === 200 && r.j.user.verified === false, JSON.stringify(r.j.user?.verified));
     await prisma.user.update({ where: { id: seller.id }, data: { photoURL: 'https://lh3.googleusercontent.com/a/cztest', publicComuna: 'Santiago', phone: '+56911112222' } });
     r = await call('GET', '/users/' + NAMES.seller);
-    ok('con perfil completo y correo verificado → verificado', r.j.user.verified === true);
+    ok('correo confirmado y perfil completo no bastan: sigue sin verificar', r.j.user.verified === false);
+    await prisma.user.update({ where: { id: seller.id }, data: { identityVerifiedAt: new Date() } });
+    r = await call('GET', '/users/' + NAMES.seller);
+    ok('con la identidad verificada por Moderación → verificado', r.j.user.verified === true);
     ok('el perfil público muestra la insignia del plan sin exponer datos internos', r.j.user.planBadge?.key === 'store' && !/planGrants|subscriptions|priceClp/.test(JSON.stringify(r.j.user)), JSON.stringify(r.j.user.planBadge));
-    ok('el perfil público no revela el estado interno del correo', !JSON.stringify(r.j).includes('emailVerified'));
-    await prisma.user.update({ where: { id: seller.id }, data: { emailVerified: false } });
-    r = await call('GET', '/users/' + NAMES.seller);
-    ok('sin correo verificado → no verificado', r.j.user.verified === false);
-    await prisma.user.update({ where: { id: seller.id }, data: { emailVerified: true, phone: '  ' } });
-    r = await call('GET', '/users/' + NAMES.seller);
-    ok('teléfono vacío → no verificado', r.j.user.verified === false);
+    ok('el perfil público no revela el estado interno del correo ni la fecha de verificación', !JSON.stringify(r.j).includes('emailVerified') && !JSON.stringify(r.j).includes('identityVerifiedAt'));
     await prisma.user.update({ where: { id: seller.id }, data: { phone: '+56911112222' } });
 
     r = await call('GET', '/cards/' + fx.cardId + '/offers');

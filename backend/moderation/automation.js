@@ -210,16 +210,17 @@ export const registerAutomation = (app, deps) => {
   // ============ Contadores para el menú del panel (cualquier integrante del equipo) ============
   app.get('/api/admin/summary', authenticateToken, requireStaff(1), async (_req, res) => {
     try {
-      const [reports, critical, cases, appeals, pendingBans, feedback, catalogPhotos] = await Promise.all([
+      const [reports, critical, cases, appeals, pendingBans, feedback, catalogPhotos, verifications] = await Promise.all([
         prisma.report.count({ where: { status: 'open' } }),
         prisma.report.count({ where: { status: 'open', severity: 'S1' } }),
         prisma.fraudCase.count({ where: { status: { not: 'resolved' } } }),
         prisma.appeal.count({ where: { status: 'open' } }),
         prisma.sanction.count({ where: { status: 'pending_approval' } }),
         prisma.feedback.count({ where: { status: 'open' } }),
-        prisma.catalogImageProposal.count({ where: { status: 'pending' } })
+        prisma.catalogImageProposal.count({ where: { status: 'pending' } }),
+        prisma.identityVerification.count({ where: { status: 'pending' } })
       ]);
-      res.json({ success: true, reports, criticalReports: critical, cases, appeals, pendingBans, feedback, catalogPhotos });
+      res.json({ success: true, reports, criticalReports: critical, cases, appeals, pendingBans, feedback, catalogPhotos, verifications });
     } catch (error) {
       console.error('Error loading summary:', error);
       res.status(500).json({ success: false, message: 'Error interno' });

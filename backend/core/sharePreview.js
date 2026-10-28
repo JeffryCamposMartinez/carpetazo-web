@@ -196,7 +196,7 @@ export const loadSellerPreview = async (username) => {
   if (!USERNAME.test(username || '')) return null;
   const user = await prisma.user.findFirst({
     where: { username, NOT: { role: 'deleted' } },
-    select: { id: true, name: true, username: true, photoURL: true, publicComuna: true, phone: true, emailVerified: true, updatedAt: true }
+    select: { id: true, name: true, username: true, photoURL: true, publicComuna: true, identityVerifiedAt: true, updatedAt: true }
   });
   if (!user || (await restrictions.restrictionsFor(user.id)).has('ban')) return null;
   const [folders, cards, reviews] = await Promise.all([

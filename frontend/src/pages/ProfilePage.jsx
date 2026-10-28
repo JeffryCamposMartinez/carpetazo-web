@@ -15,6 +15,7 @@ import Select from '../components/ui/Select';
 import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
 import { siteUrl } from '../utils/siteUrl';
 import SvgIcon from '../components/ui/SvgIcon';
+import IdentityVerification from '../components/profile/IdentityVerification';
 
 const chileBanks = [
   'Banco de Chile - Edwards',
@@ -66,7 +67,7 @@ const emptyProfile = {
 
 const tabs = [
   { id: 'general', label: 'Perfil', icon: 'person', description: 'Tu identidad pública y cómo te ven otros usuarios.' },
-  { id: 'personal', label: 'Privado', icon: 'badge', description: 'Datos privados para contacto, compras y validaciones.' },
+  { id: 'personal', label: 'Verificación', icon: 'verified_user', description: 'Verifica tu identidad para dar más confianza al comprar y vender.' },
   { id: 'addresses', label: 'Ubicación', icon: 'location_on', description: 'Tu región y comuna: se muestran en tu perfil público para que te encuentren.' },
   { id: 'payments', label: 'Pagos', icon: 'account_balance', description: 'Datos bancarios para recibir ventas.' },
   { id: 'social', label: 'Redes', icon: 'share', description: 'Enlaces visibles en tu perfil público.' },
@@ -492,13 +493,23 @@ const ProfilePage = () => {
               )}
 
               {activeTab === 'personal' && (
-                <section className="space-y-6">
+                <section className="space-y-8">
+                  <IdentityVerification initialRut={profileData.rut} initialPhone={profileData.phone} formatRut={formatRut} isRutValid={validateRut} isPhoneValid={validatePhone} />
+                  <details className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[15px] font-extrabold text-[#12315f]">
+                      <span>Mis datos privados de contacto</span>
+                      <SvgIcon name="expand_more" translate="no" aria-hidden="true" className="text-[22px] transition-transform duration-150 group-open:rotate-180" />
+                    </summary>
+                    <p className="mt-2 text-sm font-semibold text-slate-600">Tu RUT y tu teléfono quedan guardados en tu cuenta aunque no te verifiques. Si te verificas, se bloquean con los datos del carnet.</p>
+                    <div className="mt-4 space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
                     <Field label="RUT" hint={!rutIsValid ? 'El RUT ingresado no es válido.' : 'Dato privado, solo para operaciones internas.'}><TextInput value={profileData.rut} onChange={e => updateProfileField('rut', formatRut(e.target.value))} placeholder="12345678-9" autoComplete="off" autoCapitalize="characters" autoCorrect="off" spellCheck={false} className={!rutIsValid ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : ''} /></Field>
                     <Field label="Teléfono" hint={!phoneIsValid ? 'Usa solo números, con + o espacios. Ej.: +56 9 1234 5678.' : undefined}><TextInput value={profileData.phone} onChange={e => updateProfileField('phone', e.target.value)} placeholder="+56 9 1234 5678" type="tel" inputMode="tel" autoComplete="tel" className={!phoneIsValid ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : ''} /></Field>
                   </div>
                   <div className="rounded-2xl bg-blue-50 p-4 text-sm font-semibold text-[#1a2b4b] ring-1 ring-blue-100">Estos datos no se muestran públicamente. Se guardan asociados solamente a tu usuario autenticado.</div>
                   <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('personal')} disabled={Boolean(savingKey) || !rutIsValid || !phoneIsValid}>{savingKey === 'personal' ? 'Guardando...' : 'Guardar datos privados'}</ActionButton></div>
+                    </div>
+                  </details>
                 </section>
               )}
 

@@ -207,7 +207,7 @@ const visibleCardWhere = { stock: { gt: 0 }, moderationState: 'visible', folder:
 // El vendedor de una oferta: solo datos públicos y si está verificado (el correo y el teléfono no salen)
 const publicOfferUser = (user) => {
   const verified = isVerifiedSeller(user);
-  const { emailVerified: _email, phone: _phone, ...safe } = withPublicPlanBadge(user);
+  const { identityVerifiedAt: _verifiedAt, emailVerified: _email, phone: _phone, ...safe } = withPublicPlanBadge(user);
   return { ...safe, verified };
 };
 
@@ -224,7 +224,7 @@ router.get('/api/cards/:id/offers', async (req, res) => {
       where: { ...visibleCardWhere, ...sameCardMatch(card), folder: { ...visibleCardWhere.folder, tcg: card.folder.tcg } },
       orderBy: [{ price: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
       take: OFFERS_MAX,
-      select: { id: true, price: true, stock: true, condition: true, data: true, folder: { select: { id: true, name: true, user: { select: { name: true, username: true, photoURL: true, publicComuna: true, emailVerified: true, phone: true, ...PUBLIC_PLAN_RELATIONS_SELECT } } } } },
+      select: { id: true, price: true, stock: true, condition: true, data: true, folder: { select: { id: true, name: true, user: { select: { name: true, username: true, photoURL: true, publicComuna: true, identityVerifiedAt: true, ...PUBLIC_PLAN_RELATIONS_SELECT } } } } },
     });
     const sales = await recentSales(card.tcgId, card.folder.tcg);
     const reference = card.folder.tcg === 'Mitos y Leyendas' ? (await mylReferencePrices([card.tcgId]))[card.tcgId] || null : null;

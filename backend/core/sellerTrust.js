@@ -2,10 +2,8 @@
 import { prisma } from './db.js';
 import { r2PublicUrl } from './tcgCatalogImport.js';
 
-// Vendedor verificado: correo confirmado por Firebase y perfil completo (foto, comuna y WhatsApp). No es una verificación de identidad.
-export const isVerifiedSeller = (user) => Boolean(
-  user && user.emailVerified && user.username && user.photoURL && user.publicComuna && typeof user.phone === 'string' && user.phone.trim()
-);
+// Verificado: Moderación revisó el carnet y el rostro de la persona (routes/verification.js)
+export const isVerifiedSeller = (user) => Boolean(user?.identityVerifiedAt);
 
 // Tiempo de respuesta: se mira cada vez que alguien le escribió (sin otro mensaje en las 12 horas anteriores) y cuánto tardó el vendedor en contestar.
 const WINDOW_DAYS = 90;
