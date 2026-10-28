@@ -131,11 +131,13 @@ export default function FolderAddTab({
                 {!isMylFolder && (
                   <div className={isBatchAdding ? 'w-full' : 'w-32 shrink-0'}>
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Idioma</label>
-                    <Select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full" buttonClassName="!min-h-10 !h-10 !rounded-lg !px-3 !text-sm">
+                    {/* En Pokémon el idioma lo manda el filtro de idioma de la búsqueda: aquí solo se muestra */}
+                    <Select value={searchCategory === '1' && selectedCard?.cardLanguage ? selectedCard.cardLanguage : language} onChange={(e) => setLanguage(e.target.value)} disabled={searchCategory === '1'} className="w-full" buttonClassName="!min-h-10 !h-10 !rounded-lg !px-3 !text-sm">
                       <option value="English">Inglés</option>
                       <option value="Spanish">Español</option>
                       <option value="Japanese">Japonés</option>
                     </Select>
+                    {searchCategory === '1' && <p className="mt-1 text-[11px] leading-tight text-gray-500">Se cambia en el filtro de idioma</p>}
                   </div>
                 )}
                 {!isBatchAdding && (
