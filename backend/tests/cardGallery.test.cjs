@@ -55,6 +55,38 @@ const r2Log = async () => (await (await fetch(B + '/__test/r2-log')).json()).log
     ok('al quitarla se borra su archivo de R2', (await r2Log()).some((entry) => entry.op === 'delete' && entry.key.endsWith(urls[0].split('/').pop())));
     r = await call('POST', route, 'seller', { url: urls[5] });
     ok('con espacio liberado vuelve a poder agregar', r.status === 200 && r.j.photos.length === 5);
+
+    // --- Fotos extra al agregar la carta, y descartar las que no se guardan
+    const keyName = (url) => url.split('/').pop();
+    const mine = [];
+    for (let k = 21; k < 28; k++) mine.push(await upload('seller', await picture(k)));
+    const newCard = (photos) => call('POST', `/folders/${folder}/cards`, 'seller', { tcgId: '98001002', name: 'CZTEST Galería 2', price: 1000, stock: 1, data: { catalogOrder: 1 }, photos });
+    r = await newCard(mine.slice(0, 6));
+    ok('más de 5 fotos extra al agregar la carta se rechaza', r.status === 400, JSON.stringify(r.j));
+    r = await newCard([mine[0], mine[0]]);
+    ok('fotos repetidas al agregar la carta se rechazan', r.status === 400);
+    r = await newCard([foreign]);
+    ok('la foto de otra persona al agregar la carta se rechaza', r.status === 400);
+    ok('nada de eso creó la carta', (await prisma.card.count({ where: { folderId: folder, tcgId: '98001002' } })) === 0);
+    r = await newCard(mine.slice(0, 2));
+    ok('al agregar la carta se guardan sus fotos extra, en orden', r.status === 200 && r.j.card?.photos?.length === 2 && r.j.card.photos[0].url === mine[0] && r.j.card.photos[1].url === mine[1], JSON.stringify(r.j));
+
+    const log0 = (await r2Log()).length;
+    r = await call('POST', '/users/discard-card-photo', 'seller', { url: mine[5] });
+    ok('una foto subida que no se guardó se descarta y se borra de R2', r.status === 200 && r.j.deleted === true && (await r2Log()).slice(log0).some((entry) => entry.op === 'delete' && entry.key.endsWith(keyName(mine[5]))), JSON.stringify(r.j));
+    const log1 = (await r2Log()).length;
+    r = await call('POST', '/users/discard-card-photo', 'seller', { url: mine[0] });
+    ok('una foto que ya está en una carta no se borra', r.status === 200 && r.j.deleted === false && !(await r2Log()).slice(log1).some((entry) => entry.op === 'delete'), JSON.stringify(r.j));
+    r = await call('POST', '/users/discard-card-photo', 'seller', { url: foreign });
+    ok('no se puede descartar la foto de otra persona', r.status === 400);
+    r = await call('POST', '/users/discard-card-photo', 'seller', { url: 'https://evil.example.com/x.webp' });
+    ok('una dirección ajena no se descarta', r.status === 400);
+
+    // La limpieza diaria de archivos sin uso no toca las fotos de una galería
+    const { findOrphanFiles } = await import('../core/orphanFiles.js');
+    const old = new Date(Date.now() - 30 * 24 * 3600 * 1000);
+    const orphans = await findOrphanFiles([{ key: new URL(mine[1]).pathname.replace(/^\//, ''), lastModified: old }, { key: new URL(urls[2]).pathname.replace(/^\//, ''), lastModified: old }]);
+    ok('la limpieza diaria no borra fotos de galería aunque tengan más de 7 días', orphans.length === 0, JSON.stringify(orphans));
   } catch (error) {
     ok('la galería no lanzó errores inesperados', false, error.stack);
   } finally {

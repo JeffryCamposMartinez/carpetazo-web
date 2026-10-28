@@ -78,6 +78,11 @@ router.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res)
 // --- Galería de la carta: hasta 5 fotos extra por carta, para cualquier plan. La persona sube la foto con la subida de siempre (tipo «card») y aquí la agrega a su carta.
 const GALLERY_MAX = 5;
 const gallerySelect = { id: true, url: true };
+// Solo una foto de carta que esta misma persona subió: nunca la de otra persona ni un archivo cualquiera
+const isOwnCardPhoto = (url, firebaseUid) => {
+  const key = getR2KeyFromPublicUrl(url);
+  return Boolean(url) && url.length <= 600 && isAllowedStoredImageUrl(url) && Boolean(key) && !key.includes('..') && key.startsWith(userR2Prefix(firebaseUid)) && /\/card\/[0-9a-f]{32}\.webp$/.test(key);
+};
 const loadOwnedCard = async (req, res) => {
   if (!isUuid(req.params.id) || !isUuid(req.params.cardId)) { res.status(404).json({ success: false, message: 'Carta no encontrada' }); return null; }
   const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
@@ -91,11 +96,7 @@ router.post('/api/folders/:id/cards/:cardId/photos', authenticateToken, async (r
     const card = await loadOwnedCard(req, res);
     if (!card) return;
     const url = typeof req.body?.url === 'string' ? req.body.url.trim() : '';
-    // Solo una foto de carta que esta misma persona subió: nunca la de otra persona ni un archivo cualquiera
-    const key = getR2KeyFromPublicUrl(url);
-    if (!url || url.length > 600 || !isAllowedStoredImageUrl(url) || !key || key.includes('..') || !key.startsWith(userR2Prefix(req.user.sub)) || !/\/card\/[0-9a-f]{32}\.webp$/.test(key)) {
-      return badRequest(res, 'Esa foto no es válida. Súbela de nuevo.');
-    }
+    if (!isOwnCardPhoto(url, req.user.sub)) return badRequest(res, 'Esa foto no es válida. Súbela de nuevo.');
     const photos = await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "Card" WHERE "id" = ${card.id} FOR UPDATE`; // dos subidas a la vez no pasan del máximo
       const current = await tx.cardPhoto.findMany({ where: { cardId: card.id }, orderBy: { position: 'asc' }, select: { id: true, url: true, position: true } });
@@ -655,7 +656,7 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     
-    const { tcgId, name, imageUrl, price, stock, data, condition } = req.body || {};
+    const { tcgId, name, imageUrl, price, stock, data, condition, photos } = req.body || {};
     if (!isShortText(String(tcgId ?? ''), 100) || !isShortText(name, 300) || !isValidPrice(price) || !isValidStock(stock) || !isSmallObject(data) || !isValidCondition(condition)) {
       return badRequest(res, 'Datos de carta inválidos');
     }
@@ -664,6 +665,12 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
     }
     if (imageUrl && !isAllowedStoredImageUrl(imageUrl)) {
       return res.status(400).json({ success: false, error: 'URL de imagen no permitida' });
+    }
+    // Fotos extra que se suben mientras se agrega la carta (hasta 5, propias y sin repetir)
+    const extraPhotos = photos === undefined ? [] : photos;
+    if (!Array.isArray(extraPhotos) || extraPhotos.length > GALLERY_MAX || new Set(extraPhotos).size !== extraPhotos.length
+      || !extraPhotos.every((url) => typeof url === 'string' && isOwnCardPhoto(url, req.user.sub))) {
+      return badRequest(res, 'Alguna de las fotos no es válida. Súbela de nuevo.');
     }
 
     const normalizedTcgId = storedCardId(folder.tcg, tcgId);
@@ -685,7 +692,7 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
         throw new PlanLimitError('card_identity_conflict', { planKey: plan.key, details: { existingCardId: existing.id } });
       }
       await assertCanAddUniqueCard(tx, user.id, folder.id, requestedStock);
-      return tx.card.create({
+      const created = await tx.card.create({
         data: {
           tcgId: normalizedTcgId,
           name,
@@ -695,9 +702,12 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
           language: cardLanguage,
           condition: cardCondition,
           data: { ...(cleanCardData(data) || {}), language: cardLanguage },
-          folderId: folder.id
-        }
+          folderId: folder.id,
+          ...(extraPhotos.length ? { photos: { create: extraPhotos.filter((url) => url !== cardImageUrl).map((url, position) => ({ url, position })) } } : {})
+        },
+        include: { photos: { select: gallerySelect, orderBy: { position: 'asc' } } }
       });
+      return created;
     });
     // Una foto propia en una carta del catálogo que no tiene imagen se ofrece sola a Moderación (no falla la carta si algo sale mal)
     await proposeCatalogPhoto(prisma, { userId: user.id, firebaseUid: req.user.sub, tcg: folder.tcg, tcgId: normalizedTcgId, imageUrl: cardImageUrl });

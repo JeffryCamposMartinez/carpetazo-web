@@ -21,11 +21,15 @@ const referencedNames = async (names) => {
     SELECT n FROM unnest(${names}::text[]) AS n
     WHERE EXISTS (SELECT 1 FROM "Message" m WHERE m."content" LIKE '%' || n || '%')
        OR EXISTS (SELECT 1 FROM "Card" c WHERE c."imageUrl" LIKE '%' || n || '%')
+       OR EXISTS (SELECT 1 FROM "CardPhoto" p WHERE p."url" LIKE '%' || n || '%')
        OR EXISTS (SELECT 1 FROM "WishlistItem" w WHERE w."imageUrl" LIKE '%' || n || '%')
        OR EXISTS (SELECT 1 FROM "Report" r WHERE r."snapshot"::text LIKE '%' || n || '%')
        OR EXISTS (SELECT 1 FROM "User" u WHERE u."photoURL" LIKE '%' || n || '%' OR u."bannerBase64" LIKE '%' || n || '%' OR u."wallpaperBase64" LIKE '%' || n || '%')`;
   return new Set(rows.map((row) => row.n));
 };
+
+// ¿Alguna carta, perfil, mensaje, lista de deseos o reporte usa este archivo? (nombre de 32 caracteres hexadecimales)
+export const isFileReferenced = async (name) => (await referencedNames([name])).size > 0;
 
 // De una lista de archivos ({ key, lastModified }), los que se pueden borrar sin romper nada
 export const findOrphanFiles = async (objects, now = Date.now()) => {

@@ -9,6 +9,9 @@ import { prisma } from '../core/db.js';
 import { PlanLimitError, assertFeature, getEffectivePlan, sendPlanError } from '../core/entitlements.js';
 import { deleteR2ObjectByPublicUrl, hasR2Config, r2Client, r2TestLog, userR2Prefix } from '../core/r2.js';
 import { isTrustedUploader, prepareImage } from '../moderation/imageScan.js';
+import { routeLimiter } from '../core/limits.js';
+import { isFileReferenced } from '../core/orphanFiles.js';
+import { getR2KeyFromPublicUrl } from '../core/r2.js';
 import { hashBank, imageScanner, moderationHooks } from '../moderation/services.js';
 
 const router = express.Router();
@@ -26,6 +29,23 @@ const upload = multer({
 
 // Solo en pruebas automáticas: qué se subió y qué se borró del R2 simulado (no existe en producción)
 if (r2TestLog) router.get('/api/__test/r2-log', (_req, res) => res.json({ log: r2TestLog }));
+
+// Quien subió una foto de carta y no la guardó (la quitó o cambió de carta) la descarta al tiro, sin esperar la limpieza diaria.
+// Solo borra una foto de carta de la propia carpeta del usuario que ninguna carta, perfil, mensaje ni reporte usa.
+router.post('/api/users/discard-card-photo', authenticateToken, routeLimiter(60 * 1000, 60), async (req, res) => {
+  try {
+    const url = typeof req.body?.url === 'string' ? req.body.url.trim() : '';
+    const key = getR2KeyFromPublicUrl(url);
+    const match = key && !key.includes('..') && key.startsWith(userR2Prefix(req.user.sub)) && /\/card\/([0-9a-f]{32})\.webp$/.exec(key);
+    if (!match) return res.status(400).json({ success: false, message: 'Foto inválida' });
+    if (await isFileReferenced(match[1])) return res.json({ success: true, deleted: false });
+    await deleteR2ObjectByPublicUrl(url, req.user.sub);
+    res.json({ success: true, deleted: true });
+  } catch (error) {
+    console.error('Error descartando una foto de carta:', error.message);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
 
 router.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
   upload.single('image')(req, res, (error) => {

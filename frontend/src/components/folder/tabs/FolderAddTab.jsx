@@ -1,4 +1,5 @@
 import { CARD_CONDITIONS } from '../../../config/cardConditions';
+import ExtraPhotosField from '../ExtraPhotosField';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import AddCardFullscreen from '../AddCardFullscreen';
 import CardLightbox from '../../ui/CardLightbox';
@@ -26,7 +27,7 @@ export default function FolderAddTab({
   decreaseQueueItemQuantity, fileInputRef, filterCounts, filterRarity, filterType, filteredSearchSets,
   folderData, getCardSelectionKey, getCardSetName, getProxyImageUrl, gridCols, handleImageUpload,
   handleResultCardClick, handleRightClickResultCard, handleSaveCard, handleSearchAPI, hasMoreGroups,
-  hasSearchedAPI, isBatchAdding, isMylFolder, isSaving, isSearching, isSetDropdownOpen, language, condition,
+  hasSearchedAPI, isBatchAdding, isMylFolder, isSaving, isSearching, isSetDropdownOpen, language, condition, extraPhotos, uploadingExtra, handleExtraPhotos, handleRemoveExtraPhoto,
   multiSelectMode, mylCost, mylRace, mylType, magicFilters, observerTarget, opFilters, price, pseudoName, rbFilters, lcFilters, dgFilters, ygFilters, queueScrollRef,
   removeQueueItem, resetCardForm, scrollToTopIfNeeded, searchBlock, searchCategory, searchLang,
   searchPhysicalProduct, searchQuery, searchResults, searchSet, selectedCard, selectedExistingCard,
@@ -122,6 +123,8 @@ export default function FolderAddTab({
                   {CARD_CONDITIONS.map((item) => <option key={item.value} value={String(item.value)}>{'★'.repeat(item.value)} {item.label}</option>)}
                 </Select>
               </div>
+
+              <ExtraPhotosField photos={extraPhotos} onAdd={handleExtraPhotos} onRemove={handleRemoveExtraPhoto} busy={uploadingExtra} disabled={isSaving} />
 
               {/* Fila 2: Idioma y Alias / Apodo juntos */}
               <div className="flex gap-3">

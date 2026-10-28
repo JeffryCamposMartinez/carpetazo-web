@@ -331,6 +331,43 @@ const [isSearching, setIsSearching] = useState(false);
   const [pseudoName, setPseudoName] = useState('');
   const [language, setLanguage] = useState('English');
   const [condition, setCondition] = useState(''); // estado de la carta que se agrega (1 a 5 estrellas; vacío = sin indicar)
+  // Fotos extra de la carta que se está agregando: ya subidas, todavía sin guardar. Si no se guardan (se quitan, se cambia de carta o se sale), se descartan en el servidor.
+  const [extraPhotos, setExtraPhotos] = useState([]);
+  const [uploadingExtra, setUploadingExtra] = useState(false);
+  const extraPhotosRef = useRef([]);
+  const extraKey = selectedCard ? String(selectedCard.productId || selectedCard.tcgProductId || selectedCard.id || '') : '';
+  useEffect(() => () => {
+    const pending = extraPhotosRef.current;
+    if (!pending.length) return;
+    pending.forEach((url) => api.discardCardPhoto(url).catch(() => {}));
+    extraPhotosRef.current = [];
+    setExtraPhotos([]);
+  }, [extraKey]);
+  const handleExtraPhotos = async (files) => {
+    const room = 5 - extraPhotosRef.current.length;
+    if (room <= 0 || !files.length) return;
+    setUploadingExtra(true);
+    try {
+      for (const file of files.slice(0, room)) {
+        if (!file.type.startsWith('image/')) { showToast('Sube solo imágenes', 'error'); continue; }
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('type', 'card');
+        const uploaded = await api.uploadImage(formData);
+        extraPhotosRef.current = [...extraPhotosRef.current, uploaded.url];
+        setExtraPhotos(extraPhotosRef.current);
+      }
+    } catch (error) {
+      showToast(error.message || 'No se pudo subir la foto.', 'error');
+    } finally {
+      setUploadingExtra(false);
+    }
+  };
+  const handleRemoveExtraPhoto = (url) => {
+    extraPhotosRef.current = extraPhotosRef.current.filter((item) => item !== url);
+    setExtraPhotos(extraPhotosRef.current);
+    api.discardCardPhoto(url).catch(() => {});
+  };
   // Al seleccionar una carta, el idioma parte igual al idioma de esa carta (no al del filtro actual)
   useEffect(() => {
     if (selectedCard?.cardLanguage) setLanguage(selectedCard.cardLanguage);
@@ -911,6 +948,13 @@ const [isSearching, setIsSearching] = useState(false);
         const newStock = existingCard.stock + cardStock;
         const newPrice = parseFloat(price);
         await api.updateCard(id, existingCard.id, { price: newPrice, stock: newStock });
+        // Las fotos extra pasan a la galería de esa carta; las que no caben (tope de 5) se descartan
+        const notAdded = [];
+        for (const url of extraPhotosRef.current) { try { await api.addCardPhoto(id, existingCard.id, url); } catch (_error) { notAdded.push(url); } }
+        notAdded.forEach((url) => api.discardCardPhoto(url).catch(() => {}));
+        if (notAdded.length) showToast('Algunas fotos no se agregaron: esa carta ya tiene 5 fotos extra.', 'info');
+        extraPhotosRef.current = [];
+        setExtraPhotos([]);
         showToast('¡Carta actualizada (se sumó el stock)!', 'success');
       } else {
         const cardData = {
@@ -919,6 +963,7 @@ const [isSearching, setIsSearching] = useState(false);
           price: parseFloat(price),
           stock: cardStock,
           condition: targetCondition,
+          ...(extraPhotosRef.current.length ? { photos: extraPhotosRef.current } : {}),
           imageUrl: selectedCard.imageUrl || '',
           data: {
             pseudoName: isBatchAdding ? '' : pseudoName.trim(),
@@ -936,6 +981,8 @@ const [isSearching, setIsSearching] = useState(false);
           }
         };
         await api.addCard(id, cardData);
+        extraPhotosRef.current = []; // ya quedaron guardadas con la carta
+        setExtraPhotos([]);
         showToast('¡Carta guardada en el catálogo exitosamente!', 'success');
         // Primera carta de la carpeta: se invita a publicarla y compartirla (una sola vez por carpeta)
         if (cards.length === 0) {
@@ -1025,7 +1072,7 @@ const [isSearching, setIsSearching] = useState(false);
     availableSets, decreaseQueueItemQuantity, fileInputRef, filterCounts, filterRarity, filterType,
     filteredSearchSets, folderData, getCardSelectionKey, getCardSetName, getProxyImageUrl, gridCols,
     handleImageUpload, handleResultCardClick, handleRightClickResultCard, handleSaveCard, handleSearchAPI,
-    hasMoreGroups, hasSearchedAPI, isBatchAdding, isMylFolder, isSaving, isSearching, isSetDropdownOpen, language, condition,
+    hasMoreGroups, hasSearchedAPI, isBatchAdding, isMylFolder, isSaving, isSearching, isSetDropdownOpen, language, condition, extraPhotos, uploadingExtra, handleExtraPhotos, handleRemoveExtraPhoto,
     multiSelectMode, mylCost, mylRace, mylType, magicFilters, observerTarget, opFilters, price, rbFilters, lcFilters, dgFilters, ygFilters, pseudoName, queueScrollRef, removeQueueItem,
     resetCardForm, scrollToTopIfNeeded, searchBlock, searchCategory, searchLang, searchPhysicalProduct, searchQuery,
     searchResults, searchSet, selectedCard, selectedExistingCard, selectedQueue, selectedQueueCountByCard,
