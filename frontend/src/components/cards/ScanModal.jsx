@@ -2,25 +2,28 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useImageSearch from '../../hooks/useImageSearch';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
+import useAutoCapture from '../../hooks/useAutoCapture';
 import { guideRect, isAligned } from '../../utils/cardGuide';
 import SvgIcon from '../ui/SvgIcon';
 import EmptyState from '../ui/EmptyState';
 import LoadingState from '../ui/LoadingState';
 
-const BTN_MAIN = 'inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#facc15] px-6 text-base font-extrabold text-[#12315f] shadow-[inset_0_-1px_0_rgba(0,0,0,0.12)] transition-[filter,transform] duration-150 hover:brightness-105 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1d3a] disabled:opacity-40 disabled:pointer-events-none';
+const MAX_MISSES = 3; // intentos sin reconocer antes de mostrar el aviso
 const CORNERS = ['left-0 top-0 border-l-4 border-t-4 rounded-tl-2xl', 'right-0 top-0 border-r-4 border-t-4 rounded-tr-2xl', 'bottom-0 left-0 border-b-4 border-l-4 rounded-bl-2xl', 'bottom-0 right-0 border-b-4 border-r-4 rounded-br-2xl'];
 
 // Nombre de la carta sin número ni variante: "Crispin - 133/142 (Cosmos Holo)" → "Crispin"
 const cleanName = (name) => String(name || '').split(' - ')[0].replace(/\s*[([][^)\]]*[)\]]/g, '').trim();
 
 // Buscar una carta con la cámara, en una hoja que cubre toda la pantalla en el celular y en un cuadro centrado en el computador.
-// Se reconoce en el propio dispositivo al tocar Capturar; con la carta reconocida se cierra y los resultados se muestran en Cartas.
+// La captura es automática: con la carta quieta dentro del marco se reconoce en el propio dispositivo; con la carta reconocida se cierra
+// y los resultados se muestran en Cartas. Si no la reconoce, vuelve a intentar sola.
 export default function ScanModal({ onClose }) {
   const navigate = useNavigate();
   const videoRef = useRef(null);
   const stageRef = useRef(null);
   const closeRef = useRef(null);
-  const { phase, corners, result, progress, error, startCamera, capture, retry } = useImageSearch(videoRef);
+  const { phase, corners, result, progress: download, error, startCamera, capture, retry } = useImageSearch(videoRef);
+  const [misses, setMisses] = useState(0);
   const [shown, setShown] = useState(false); // entrada suave
   const [ar, setAr] = useState(0.75); // proporción real del vídeo: el marco y la imagen coinciden
   const [box, setBox] = useState({ w: 0, h: 0 });
@@ -64,6 +67,17 @@ export default function ScanModal({ onClose }) {
   const camera = phase === 'camera';
   const guide = guideRect(ar);
   const aligned = camera && isAligned(corners, guide);
+  const steady = useAutoCapture({ videoRef, guide, active: camera, aligned, onCapture: capture });
+  // Si no la reconoce, la cámara se reabre sola para otro intento; después de varios se muestra el aviso
+  const missed = phase === 'done' && !best;
+  useEffect(() => {
+    if (!missed) return undefined;
+    setMisses((count) => count + 1);
+    const timer = setTimeout(() => { if (misses + 1 < MAX_MISSES) startCamera(); }, 1500);
+    return () => clearTimeout(timer);
+  }, [missed]); // eslint-disable-line react-hooks/exhaustive-deps
+  const retrying = missed && misses < MAX_MISSES;
+  const tryAgain = () => { setMisses(0); startCamera(); };
   // La imagen ocupa todo el espacio libre sin deformarse (la caja tiene siempre la proporción del vídeo)
   const fit = box.h && box.w / box.h > ar ? { height: box.h, width: box.h * ar } : { width: box.w, height: box.w / ar };
   const busyLabel = phase === 'loading' ? 'Preparando el buscador…' : 'Reconociendo la carta…';
@@ -87,25 +101,22 @@ export default function ScanModal({ onClose }) {
               {CORNERS.map((corner) => <span key={corner} className={`absolute h-10 w-10 transition-colors duration-150 ${aligned ? 'border-green-400' : 'border-[#facc15]'} ${corner}`} />)}
               {aligned && <span className="absolute inset-0 rounded-2xl bg-green-400/15 ring-2 ring-green-400" />}
             </div>
-            <p className="absolute inset-x-0 bottom-3 mx-auto w-fit max-w-[92%] rounded-full bg-[#0b1d3a]/85 px-4 py-1.5 text-center text-sm font-bold text-white" role="status">{aligned ? 'Bien encajada: toca Capturar' : 'Encaja la carta en el marco y toca Capturar'}</p>
+            <p className="absolute inset-x-0 bottom-3 mx-auto w-fit max-w-[92%] rounded-full bg-[#0b1d3a]/85 px-4 py-1.5 text-center text-sm font-bold text-white" role="status">{aligned ? 'Perfecto, no te muevas…' : 'Encaja la carta en el marco y mantenla quieta'}</p>
+            <div aria-hidden="true" className="absolute inset-x-6 bottom-0 h-1.5 overflow-hidden rounded-full bg-white/20"><div className="h-full rounded-full bg-[#facc15] transition-[width] duration-200 ease-linear" style={{ width: `${steady * 100}%` }} /></div>
           </div>
 
           {busy && (
             <div className="flex flex-col items-center px-6">
-              <LoadingState variant="section" tone="dark" label={busyLabel} hint={progress ? `Descargando el modelo: ${progress}% (solo la primera vez)` : undefined} />
+              <LoadingState variant="section" tone="dark" label={busyLabel} hint={download ? `Descargando el modelo: ${download}% (solo la primera vez)` : undefined} />
               {slow && <button type="button" onClick={retry} className="inline-flex h-12 items-center justify-center rounded-full border-2 border-white/70 px-8 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-white/10 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">Reintentar</button>}
             </div>
           )}
 
           {phase === 'error' && <div className="w-full px-4"><EmptyState variant="plain" tone="dark" icon="error" title="No pudimos usar la cámara" action={{ label: 'Intentar de nuevo', onClick: startCamera }} secondary={{ label: 'Cerrar', onClick: onClose }}>{error}</EmptyState></div>}
 
-          {phase === 'done' && !best && <div className="w-full px-4"><EmptyState variant="plain" tone="dark" icon="image_search" title="No encontramos esa carta" action={{ label: 'Probar de nuevo', onClick: startCamera }} secondary={{ label: 'Cerrar', onClick: onClose }}>Puede que no esté en el catálogo de Pokémon. Acércate, con buena luz y sin reflejos.</EmptyState></div>}
-        </div>
+          {retrying && <p className="px-8 text-center text-sm font-bold text-white" role="status">No la reconozco. Acércate, con buena luz y sin reflejos…</p>}
 
-        <div className="px-4 pt-3 sm:px-6">
-          <button type="button" className={BTN_MAIN} disabled={!camera} onClick={capture}>
-            <SvgIcon name="photo_camera" translate="no" aria-hidden="true" className="text-[26px]" />Capturar
-          </button>
+          {missed && !retrying && <div className="w-full px-4"><EmptyState variant="plain" tone="dark" icon="image_search" title="No encontramos esa carta" action={{ label: 'Probar de nuevo', onClick: tryAgain }} secondary={{ label: 'Cerrar', onClick: onClose }}>Puede que no esté en el catálogo de Pokémon. Acércate, con buena luz y sin reflejos.</EmptyState></div>}
         </div>
       </div>
     </div>
