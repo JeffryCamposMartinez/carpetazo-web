@@ -8,6 +8,12 @@ const BASE = import.meta.env.VITE_VISOR_BASE || '/visor/'
 const PATHS = { model: `${BASE}models/`, wasm: `${BASE}ort/`, index: `${BASE}index/`, ocr: `${BASE}ocr/` }
 const BACKEND = { device: 'wasm', dtype: 'q8' }
 
+// El motor (modelo, índice y workers) se conserva un rato al cerrar la hoja: abrirla otra vez no vuelve a cargar nada.
+// Pasado el tiempo sin usarse se libera para no ocupar memoria del teléfono.
+const IDLE_MS = 5 * 60 * 1000
+const shared = { scanner: null, timer: 0 }
+const releaseShared = () => { clearTimeout(shared.timer); shared.scanner?.dispose(); shared.scanner = null }
+
 const idle = { phase: 'idle', corners: null, result: null, manifest: null, progress: null, error: '' }
 
 export default function useImageSearch(videoRef, game) {
@@ -35,9 +41,16 @@ export default function useImageSearch(videoRef, game) {
 
   const engine = useCallback(() => {
     if (!scanner.current) {
-      scanner.current = new Scanner({ video: videoRef.current, onEvent: handle, paths: PATHS, backend: BACKEND })
-      // La cámara no reconoce sola: el reconocimiento empieza cuando la persona toca Capturar (así se asegura una buena imagen)
-      scanner.current.alignCheck = () => false
+      clearTimeout(shared.timer)
+      if (shared.scanner && !shared.scanner.disposed) {
+        scanner.current = shared.scanner
+        scanner.current.attach(videoRef.current, handle)
+      } else {
+        scanner.current = new Scanner({ video: videoRef.current, onEvent: handle, paths: PATHS, backend: BACKEND })
+        // El reconocimiento no arranca solo con el detector: lo pide la captura automática (useAutoCapture)
+        scanner.current.alignCheck = () => false
+        shared.scanner = scanner.current
+      }
     }
     return scanner.current
   }, [handle, videoRef])
@@ -52,7 +65,19 @@ export default function useImageSearch(videoRef, game) {
   // Al elegir otro juego se carga su paquete de inmediato
   useEffect(() => { scanner.current?.setGame(game) }, [game])
 
-  useEffect(() => () => { clearTimeout(watchdog.current); scanner.current?.dispose(); scanner.current = null }, [])
+  // Al cerrar: se apaga la cámara pero el motor queda cargado unos minutos (storage persistente: el navegador no borra lo descargado)
+  useEffect(() => {
+    navigator.storage?.persist?.().catch(() => {})
+    return () => {
+      clearTimeout(watchdog.current)
+      if (scanner.current) {
+        scanner.current.stop()
+        scanner.current = null
+        clearTimeout(shared.timer)
+        shared.timer = setTimeout(releaseShared, IDLE_MS)
+      }
+    }
+  }, [])
 
   const scanFile = useCallback(async (file) => {
     lastFile.current = file
@@ -100,7 +125,7 @@ export default function useImageSearch(videoRef, game) {
   const retry = useCallback(() => {
     const file = lastFile.current
     clearTimeout(watchdog.current)
-    scanner.current?.dispose()
+    releaseShared() // se descarta el motor compartido: workers nuevos
     scanner.current = null
     if (file) scanFile(file); else startCamera()
   }, [scanFile, startCamera])

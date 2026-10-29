@@ -28,6 +28,12 @@ export class Scanner {
     this.stats = { detectMs: [], embedMs: [], searchMs: [], cropMs: [], e2eMs: [] };
   }
 
+  /** Reutiliza el motor ya cargado (modelo, índice y workers) con otro elemento de vídeo y otro receptor de eventos. */
+  attach(video, onEvent) {
+    Object.assign(this, { video, onEvent });
+    this.camera = new Camera(video); this.camera.onEnded = () => { this.#stopLoop(); this.onEvent({ type: 'error', code: 'camera_ended', message: 'La cámara se detuvo.' }); };
+  }
+
   // ---- ciclo de vida ----------------------------------------------------------------------------------------------
 
   async start(game) {
