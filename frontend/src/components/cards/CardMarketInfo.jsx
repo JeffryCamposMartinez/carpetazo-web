@@ -2,7 +2,7 @@ import { formatClp } from '../../services/tcgcsvPrices';
 import EmptyState from '../ui/EmptyState';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
-const BOX = 'rounded-2xl bg-white p-4 ring-1 ring-slate-900/5';
+const BOX = 'rounded-2xl bg-white p-3 ring-1 ring-slate-900/5 md:p-4';
 
 // Referencia de TCGplayer (mínimo, mercado y máximo por acabado), en pesos
 export function TcgplayerRange({ status, ranges }) {
@@ -43,14 +43,14 @@ export function TcgplayerRange({ status, ranges }) {
 // Copias a la venta y vendedores
 export function CardAvailability({ stats }) {
   return (
-    <div className="grid grid-cols-2 gap-3">
-      <div className={BOX}>
+    <div className="grid grid-cols-2 gap-2 md:gap-3">
+      <div className={`${BOX} flex items-center justify-between gap-2 md:block`}>
         <p className="text-xs font-bold text-slate-500">Copias disponibles</p>
-        <p className="mt-0.5 text-2xl font-black tabular-nums text-[#12315f]">{stats.copies > 9999 ? '9999+' : stats.copies}</p>
+        <p className="text-xl font-black tabular-nums text-[#12315f] md:mt-0.5 md:text-2xl">{stats.copies > 9999 ? '9999+' : stats.copies}</p>
       </div>
-      <div className={BOX}>
+      <div className={`${BOX} flex items-center justify-between gap-2 md:block`}>
         <p className="text-xs font-bold text-slate-500">{stats.sellers === 1 ? 'Vendedor' : 'Vendedores'}</p>
-        <p className="mt-0.5 text-2xl font-black tabular-nums text-[#12315f]">{stats.sellers}</p>
+        <p className="text-xl font-black tabular-nums text-[#12315f] md:mt-0.5 md:text-2xl">{stats.sellers}</p>
       </div>
     </div>
   );

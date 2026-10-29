@@ -19,7 +19,8 @@ const CIRCLE = 'flex h-12 w-12 items-center justify-center rounded-full text-whi
 
 // Compartir la carta: enlace para copiar y WhatsApp, Facebook, X o el menú nativo del celular.
 // `children` va al pie de la tarjeta (el botón de reportar).
-export default function CardShare({ cardId, shareUrl, name, message, showToast, children }) {
+// `compact`: en el celular todo más pequeño (sin rótulos bajo los íconos); desde md es igual que siempre.
+export default function CardShare({ cardId, shareUrl, name, message, showToast, children, compact = false }) {
   const [copied, setCopied] = useState(false);
   const url = shareUrl ? siteUrl(shareUrl) : siteUrl(`/carta/${cardId}`);
   const shown = url.replace(/^https?:\/\//, '');
@@ -52,34 +53,34 @@ export default function CardShare({ cardId, shareUrl, name, message, showToast, 
   ];
 
   return (
-    <section aria-labelledby="share-title" className="rounded-2xl bg-white p-4 shadow-[0_1px_2px_rgba(26,43,75,0.06)] ring-1 ring-slate-900/5">
-      <h2 id="share-title" className="text-base font-extrabold text-[#12315f]">Compartir esta carta</h2>
+    <section aria-labelledby="share-title" className={`rounded-2xl bg-white shadow-[0_1px_2px_rgba(26,43,75,0.06)] ring-1 ring-slate-900/5 ${compact ? 'p-3 md:p-4' : 'p-4'}`}>
+      <h2 id="share-title" className={`font-extrabold text-[#12315f] ${compact ? 'text-sm md:text-base' : 'text-base'}`}>Compartir esta carta</h2>
 
-      <button type="button" onClick={copy} aria-label="Copiar enlace de la carta" className="mt-3 flex h-12 w-full items-center gap-2 rounded-xl bg-slate-50 pl-3 pr-1.5 text-left ring-1 ring-slate-200 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
+      <button type="button" onClick={copy} aria-label="Copiar enlace de la carta" className={`${compact ? 'mt-2 h-10 md:mt-3 md:h-12' : 'mt-3 h-12'} flex w-full items-center gap-2 rounded-xl bg-slate-50 pl-3 pr-1.5 text-left ring-1 ring-slate-200 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]`}>
         <SvgIcon name="link" translate="no" aria-hidden="true" className="text-[20px] text-slate-400" />
         <span className="min-w-0 flex-1 truncate text-xs text-slate-500">{shown}</span>
-        <span className={`flex h-9 shrink-0 items-center gap-1 rounded-lg px-3 text-sm font-bold transition-colors ${copied ? 'bg-emerald-600 text-white' : 'bg-[#1e40af] text-white'}`}>
+        <span className={`flex ${compact ? 'h-8 md:h-9' : 'h-9'} shrink-0 items-center gap-1 rounded-lg px-3 text-sm font-bold transition-colors ${copied ? 'bg-emerald-600 text-white' : 'bg-[#1e40af] text-white'}`}>
           <SvgIcon name={copied ? 'check' : 'content_copy'} translate="no" aria-hidden="true" className="text-[18px]" />
           {copied ? 'Copiado' : 'Copiar'}
         </span>
       </button>
 
-      <div className="mt-3 grid grid-cols-4 gap-2">
+      <div className={`grid grid-cols-4 gap-2 ${compact ? 'mt-2 md:mt-3' : 'mt-3'}`}>
         {networks.map(([label, icon, href, color, onClick]) => (
-          <a key={label} href={href} target="_blank" rel="noopener noreferrer" onClick={onClick} aria-label={`Compartir en ${label}`} className={TILE}>
-            <span className={`${CIRCLE} ${color}`}><BrandIcon name={icon} /></span>
-            {label}
+          <a key={label} href={href} target="_blank" rel="noopener noreferrer" onClick={onClick} aria-label={`Compartir en ${label}`} className={`${TILE} ${compact ? 'gap-0 md:gap-1.5' : ''}`}>
+            <span className={`${CIRCLE} ${compact ? '!h-10 !w-10 md:!h-12 md:!w-12' : ''} ${color}`}><BrandIcon name={icon} /></span>
+            <span className={compact ? 'hidden md:inline' : ''}>{label}</span>
           </a>
         ))}
         {typeof navigator !== 'undefined' && navigator.share ? (
-          <button type="button" onClick={nativeShare} aria-label="Más opciones para compartir" className={TILE}>
-            <span className={`${CIRCLE} bg-slate-500`}><SvgIcon name="share" translate="no" aria-hidden="true" className="text-[24px]" /></span>
-            Más
+          <button type="button" onClick={nativeShare} aria-label="Más opciones para compartir" className={`${TILE} ${compact ? 'gap-0 md:gap-1.5' : ''}`}>
+            <span className={`${CIRCLE} ${compact ? '!h-10 !w-10 md:!h-12 md:!w-12' : ''} bg-slate-500`}><SvgIcon name="share" translate="no" aria-hidden="true" className="text-[24px]" /></span>
+            <span className={compact ? 'hidden md:inline' : ''}>Más</span>
           </button>
         ) : null}
       </div>
 
-      {children && <div className="mt-3 border-t border-slate-100 pt-2">{children}</div>}
+      {children && <div className={`border-t border-slate-100 ${compact ? 'mt-2 pt-1 md:mt-3 md:pt-2' : 'mt-3 pt-2'}`}>{children}</div>}
     </section>
   );
 }

@@ -30,7 +30,7 @@ function Reference({ reference }) {
   if (!reference) return null;
   const basis = reference.sales ? `${reference.sales} ventas recientes en Carpetazo` : `lo que piden ${reference.sellers} vendedores en Carpetazo`;
   return (
-    <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-900/5">
+    <div className="rounded-2xl bg-white p-3 ring-1 ring-slate-900/5 md:p-4">
       <p className="text-xs font-bold text-slate-500">Precio referencial</p>
       <p className="mt-0.5 text-2xl font-black tabular-nums text-[#12315f]">{formatCLP(reference.clp)}</p>
       <p className="mt-0.5 text-xs text-slate-500">Mediana de {basis}. Es solo una guía.</p>
@@ -132,15 +132,15 @@ export default function CardDetailPage() {
   return (
     <div className="mx-auto w-full max-w-[1100px] px-3 py-3 sm:px-6 sm:py-6">
       <div className="rounded-[1.6rem] border border-white/70 bg-[#DBEAFE]/95 p-3 shadow-[0_35px_80px_-45px_rgba(15,23,42,0.8)] sm:p-6 md:rounded-[2rem] lg:p-8">
-        <nav aria-label="Ruta" className="mb-4 flex flex-wrap items-center gap-1.5 text-sm text-slate-600">
+        <nav aria-label="Ruta" className="mb-2 flex md:mb-4 flex-wrap items-center gap-1.5 text-sm text-slate-600">
           <Link to="/cartas" className="font-semibold text-[#1e40af] hover:underline">Cartas en venta</Link>
           <span aria-hidden="true">/</span>
           <span className="min-w-0 truncate">{card.name}</span>
         </nav>
 
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[minmax(0,21rem)_minmax(0,1fr)] md:items-start lg:gap-10">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-[minmax(0,21rem)_minmax(0,1fr)] md:grid-rows-[auto_1fr] md:items-start md:gap-x-6 md:gap-y-2 lg:gap-x-10">
           <div className="min-w-0 md:col-start-1 md:row-start-1">
-            <div className="mx-auto w-full max-w-[12.5rem] sm:max-w-[16rem] md:max-w-none">
+            <div className="mx-auto w-full max-w-[9rem] sm:max-w-[16rem] md:max-w-none">
               <button type="button" onClick={() => setZoom(true)} aria-label={`Ver ${card.name} en pantalla grande`} className="relative block w-full cursor-zoom-in overflow-hidden rounded-2xl bg-white p-2 shadow-[0_18px_40px_-24px_rgba(26,43,75,0.6)] ring-1 ring-slate-900/5 transition-transform duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]" style={{ aspectRatio: cardRatio(card.tcg), ...(isYugioh(card.tcg) ? { padding: 0, borderRadius: '3px' } : {}) }}>
                 <LoadableImage src={shownImage} alt={card.name} rotateLandscape className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-lg object-contain" style={cardFill(card.tcg)} />
               </button>
@@ -156,19 +156,23 @@ export default function CardDetailPage() {
                 ))}
               </ul>
             )}
-            <div className="mt-2">
-              <CardShare cardId={chosen?.id || card.id} name={card.name} message={`¡Mira esta carta en Carpetazo! ${card.name}${best ? ` desde ${formatCLP(best.price)}` : ''}`} showToast={showToast}>
-                <ReportButton targetType="card" targetId={chosen?.id || best?.id || card.id} label="Reportar esta publicación" className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl text-sm font-bold text-slate-500 transition-colors hover:bg-slate-50 hover:text-red-600" />
+          </div>
+
+          {/* En el celular va después de toda la información; desde md queda bajo la imagen */}
+          <div className="order-2 min-w-0 md:order-none md:col-start-1 md:row-start-2">
+            <div className="md:mt-2">
+              <CardShare compact cardId={chosen?.id || card.id} name={card.name} message={`¡Mira esta carta en Carpetazo! ${card.name}${best ? ` desde ${formatCLP(best.price)}` : ''}`} showToast={showToast}>
+                <ReportButton targetType="card" targetId={chosen?.id || best?.id || card.id} label="Reportar esta publicación" className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl text-sm font-bold text-slate-500 md:h-11 transition-colors hover:bg-slate-50 hover:text-red-600" />
               </CardShare>
             </div>
           </div>
 
-          <div className="min-w-0 space-y-4 md:col-start-2 md:row-span-2 md:row-start-1">
-            <h1 className="text-2xl font-extrabold leading-tight text-[#12315f] [text-wrap:balance] md:text-3xl">{card.name}</h1>
+          <div className="order-1 min-w-0 space-y-2.5 md:order-none md:col-start-2 md:row-span-2 md:row-start-1 md:space-y-4">
+            <h1 className="text-xl font-extrabold leading-tight text-[#12315f] [text-wrap:balance] md:text-3xl">{card.name}</h1>
 
-            <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-900/5">
+            <div className="rounded-2xl bg-white p-3 ring-1 ring-slate-900/5 md:p-4">
               <p className="text-xs font-bold text-slate-500">{offers.length > 1 ? 'Desde' : 'Precio'}</p>
-              <p className="mt-0.5 text-3xl font-black tabular-nums text-[#12315f]">{best ? formatCLP(best.price) : 'Consultar'}</p>
+              <p className="mt-0.5 text-2xl font-black tabular-nums text-[#12315f] md:text-3xl">{best ? formatCLP(best.price) : 'Consultar'}</p>
               {best && (
                 <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-slate-600">
                   Vendido por
@@ -185,14 +189,14 @@ export default function CardDetailPage() {
                   Ver más cartas de este vendedor
                 </Link>
               )}
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row md:mt-3">
                 {best && (
-                  <Link to={`/c/${best.folder.id}`} className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#facc15] sm:flex-1 px-4 text-[15px] font-extrabold text-[#12315f] transition-[background-color,transform] duration-150 hover:bg-[#eab308] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2">
+                  <Link to={`/c/${best.folder.id}`} className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl md:h-12 bg-[#facc15] sm:flex-1 px-4 text-[15px] font-extrabold text-[#12315f] transition-[background-color,transform] duration-150 hover:bg-[#eab308] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2">
                     <SvgIcon name="folder_open" translate="no" aria-hidden="true" className="text-[22px]" />
                     Ver la carpeta con el mejor precio
                   </Link>
                 )}
-                <button type="button" onClick={addToWishlist} aria-pressed={wished} className={`flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl px-4 text-[15px] font-bold ring-1 transition-[background-color,transform] duration-150 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${wished ? 'bg-[#facc15] text-[#12315f] ring-[#facc15]' : 'bg-white text-[#12315f] ring-slate-300 hover:bg-slate-50'}`}>
+                <button type="button" onClick={addToWishlist} aria-pressed={wished} className={`flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl md:h-12 px-4 text-[15px] font-bold ring-1 transition-[background-color,transform] duration-150 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${wished ? 'bg-[#facc15] text-[#12315f] ring-[#facc15]' : 'bg-white text-[#12315f] ring-slate-300 hover:bg-slate-50'}`}>
                   <SvgIcon name="favorite" translate="no" aria-hidden="true" className="text-[22px]" style={wished ? { fontVariationSettings: "'FILL' 1" } : undefined} />
                   {wished ? 'En tus deseadas' : 'Agregar a deseadas'}
                 </button>
@@ -203,7 +207,7 @@ export default function CardDetailPage() {
             <TcgplayerRange status={priceRanges.status} ranges={priceRanges.ranges} />
             <Reference reference={data.reference} />
             {details.length > 0 && (
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 rounded-2xl bg-white p-4 text-sm ring-1 ring-slate-900/5">
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-2xl bg-white p-3 text-sm md:gap-y-2.5 md:p-4 ring-1 ring-slate-900/5">
                 {details.map(([label, value]) => (
                   <div key={label} className="min-w-0">
                     <dt className="text-xs font-bold text-slate-500">{label}</dt>
@@ -218,7 +222,7 @@ export default function CardDetailPage() {
             )}
             <CatalogPriceHistory cardId={chosen?.id || card.id} />
             {card.effect && (
-              <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-900/5">
+              <div className="rounded-2xl bg-white p-3 ring-1 ring-slate-900/5 md:p-4">
                 <p className="text-xs font-bold text-slate-500">Habilidad</p>
                 <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-slate-700">{card.effect}</p>
               </div>
