@@ -23,13 +23,18 @@ export const clientIp = (req) => {
 };
 const keyByClient = (req) => ipKeyGenerator(clientIp(req));
 
+// IP de confianza sin límite de solicitudes (por ejemplo la del dueño haciendo tareas masivas): RATE_LIMIT_ALLOW_IPS=1.2.3.4,5.6.7.8
+// Solo direcciones IP exactas; se compara con la IP real del cliente (la que ve el servidor, no la de la red local).
+const allowedIps = new Set((process.env.RATE_LIMIT_ALLOW_IPS || '').split(',').map((value) => value.trim()).filter((value) => net.isIP(value)));
+const isAllowedIp = (req) => allowedIps.size > 0 && allowedIps.has(clientIp(req));
+
 const rateLimitMax = Number.parseInt(process.env.RATE_LIMIT_MAX || '2000', 10);
 
 export const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: Number.isFinite(rateLimitMax) && rateLimitMax > 0 ? rateLimitMax : 2000,
   // El catálogo de TCGCSV tiene su propio límite: una sola búsqueda de cartas pide decenas de ediciones y gastaba el cupo de toda la sesión
-  skip: (req) => req.method === 'OPTIONS' || req.path.startsWith('/tcgcsv/'),
+  skip: (req) => req.method === 'OPTIONS' || req.path.startsWith('/tcgcsv/') || isAllowedIp(req),
   keyGenerator: keyByClient,
   message: 'Demasiadas peticiones desde esta IP, por favor intenta de nuevo más tarde.',
   standardHeaders: true,
@@ -40,7 +45,7 @@ export const limiter = rateLimit({
 export const routeLimiter = (windowMs, max) => rateLimit({
   windowMs,
   max,
-  skip: (req) => req.method === 'OPTIONS',
+  skip: (req) => req.method === 'OPTIONS' || isAllowedIp(req),
   keyGenerator: keyByClient,
   message: { success: false, message: 'Demasiadas solicitudes, intenta de nuevo más tarde.' },
   standardHeaders: true,
