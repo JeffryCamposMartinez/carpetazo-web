@@ -14,7 +14,7 @@ const CORNERS = ['left-0 top-0 border-l-4 border-t-4 rounded-tl-2xl', 'right-0 t
 const cleanName = (name) => String(name || '').split(' - ')[0].replace(/\s*[([][^)\]]*[)\]]/g, '').trim();
 
 // Buscar una carta con la cámara, en una hoja que cubre toda la pantalla en el celular y en un cuadro centrado en el computador.
-// Se reconoce en el propio dispositivo; con la carta reconocida se cierra y los resultados se muestran en Cartas.
+// Se reconoce en el propio dispositivo al tocar Capturar; con la carta reconocida se cierra y los resultados se muestran en Cartas.
 export default function ScanModal({ onClose }) {
   const navigate = useNavigate();
   const videoRef = useRef(null);
@@ -87,7 +87,7 @@ export default function ScanModal({ onClose }) {
               {CORNERS.map((corner) => <span key={corner} className={`absolute h-10 w-10 transition-colors duration-150 ${aligned ? 'border-green-400' : 'border-[#facc15]'} ${corner}`} />)}
               {aligned && <span className="absolute inset-0 rounded-2xl bg-green-400/15 ring-2 ring-green-400" />}
             </div>
-            <p className="absolute inset-x-0 bottom-3 mx-auto w-fit max-w-[92%] rounded-full bg-[#0b1d3a]/85 px-4 py-1.5 text-center text-sm font-bold text-white" role="status">{aligned ? 'Perfecto, no te muevas…' : 'Encaja la carta en el marco, entera y quieta'}</p>
+            <p className="absolute inset-x-0 bottom-3 mx-auto w-fit max-w-[92%] rounded-full bg-[#0b1d3a]/85 px-4 py-1.5 text-center text-sm font-bold text-white" role="status">{aligned ? 'Bien encajada: toca Capturar' : 'Encaja la carta en el marco y toca Capturar'}</p>
           </div>
 
           {busy && (

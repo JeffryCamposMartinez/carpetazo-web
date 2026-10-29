@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Scanner } from '../visor/engine/scanner.js'
 import { IndexStore } from '../visor/engine/search.js'
-import { guideRect, isAligned } from '../utils/cardGuide'
+import { guideRect } from '../utils/cardGuide'
 
 const BASE = import.meta.env.VITE_VISOR_BASE || '/visor/'
 const PATHS = { model: `${BASE}models/`, wasm: `${BASE}ort/`, index: `${BASE}index/`, ocr: `${BASE}ocr/` }
@@ -35,8 +35,8 @@ export default function useImageSearch(videoRef) {
   const engine = useCallback(() => {
     if (!scanner.current) {
       scanner.current = new Scanner({ video: videoRef.current, onEvent: handle, paths: PATHS, backend: BACKEND })
-      // En la cámara solo se reconoce la carta que está dentro del marco
-      scanner.current.alignCheck = (corners) => { const v = videoRef.current; return isAligned(corners, guideRect(v.videoWidth / v.videoHeight || 0.75)) }
+      // La cámara no reconoce sola: el reconocimiento empieza cuando la persona toca Capturar (así se asegura una buena imagen)
+      scanner.current.alignCheck = () => false
     }
     return scanner.current
   }, [handle, videoRef])
