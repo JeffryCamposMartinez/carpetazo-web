@@ -141,8 +141,8 @@ export default function CardDetailPage() {
         <div className="grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-[minmax(0,21rem)_minmax(0,1fr)] md:grid-rows-[auto_1fr] md:items-start md:gap-x-6 md:gap-y-2 lg:gap-x-10">
           <div className="min-w-0 md:col-start-1 md:row-start-1">
             <div className="mx-auto w-full max-w-[9rem] sm:max-w-[16rem] md:max-w-none">
-              <button type="button" onClick={() => setZoom(true)} aria-label={`Ver ${card.name} en pantalla grande`} className="relative block w-full cursor-zoom-in overflow-hidden rounded-2xl bg-white p-2 shadow-[0_18px_40px_-24px_rgba(26,43,75,0.6)] ring-1 ring-slate-900/5 transition-transform duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]" style={{ aspectRatio: cardRatio(card.tcg), ...(isYugioh(card.tcg) ? { padding: 0, borderRadius: '3px' } : {}) }}>
-                <LoadableImage src={shownImage} alt={card.name} rotateLandscape className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-lg object-contain" style={cardFill(card.tcg)} />
+              <button type="button" onClick={() => setZoom(true)} aria-label={`Ver ${card.name} en pantalla grande`} className="relative block w-full cursor-zoom-in overflow-hidden rounded-2xl bg-white p-0.5 shadow-[0_18px_40px_-24px_rgba(26,43,75,0.6)] md:p-2 ring-1 ring-slate-900/5 transition-transform duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]" style={{ aspectRatio: cardRatio(card.tcg), ...(isYugioh(card.tcg) ? { padding: 0, borderRadius: '3px' } : {}) }}>
+                <LoadableImage src={shownImage} alt={card.name} rotateLandscape className="absolute inset-0.5 h-[calc(100%-0.25rem)] w-[calc(100%-0.25rem)] rounded-lg object-contain md:inset-2 md:h-[calc(100%-1rem)] md:w-[calc(100%-1rem)]" style={cardFill(card.tcg)} />
               </button>
             </div>
             {gallery.length > 1 && (
