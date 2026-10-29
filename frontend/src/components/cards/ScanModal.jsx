@@ -4,12 +4,16 @@ import useImageSearch from '../../hooks/useImageSearch';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import useAutoCapture from '../../hooks/useAutoCapture';
 import { guideRect, isAligned } from '../../utils/cardGuide';
+import { DEFAULT_SCAN_GAME, SCAN_GAMES } from '../../config/scanGames';
 import SvgIcon from '../ui/SvgIcon';
 import EmptyState from '../ui/EmptyState';
 import LoadingState from '../ui/LoadingState';
 
 const MAX_MISSES = 3; // intentos sin reconocer antes de mostrar el aviso
 const CORNERS = ['left-0 top-0 border-l-4 border-t-4 rounded-tl-2xl', 'right-0 top-0 border-r-4 border-t-4 rounded-tr-2xl', 'bottom-0 left-0 border-b-4 border-l-4 rounded-bl-2xl', 'bottom-0 right-0 border-b-4 border-r-4 rounded-br-2xl'];
+
+const GAME_KEY = 'carpetazo:scan-game'
+const readGame = () => { try { const saved = window.localStorage.getItem(GAME_KEY); return SCAN_GAMES.some((g) => g.pack === saved) ? saved : DEFAULT_SCAN_GAME } catch (_error) { return DEFAULT_SCAN_GAME } }
 
 // Nombre de la carta sin número ni variante: "Crispin - 133/142 (Cosmos Holo)" → "Crispin"
 const cleanName = (name) => String(name || '').split(' - ')[0].replace(/\s*[([][^)\]]*[)\]]/g, '').trim();
@@ -22,7 +26,8 @@ export default function ScanModal({ onClose }) {
   const videoRef = useRef(null);
   const stageRef = useRef(null);
   const closeRef = useRef(null);
-  const { phase, corners, result, progress: download, error, startCamera, capture, retry } = useImageSearch(videoRef);
+  const [game, setGame] = useState(readGame); // juego a reconocer
+  const { phase, corners, result, manifest, progress: download, error, startCamera, capture, retry } = useImageSearch(videoRef, game);
   const [misses, setMisses] = useState(0);
   const [shown, setShown] = useState(false); // entrada suave
   const [ar, setAr] = useState(0.75); // proporción real del vídeo: el marco y la imagen coinciden
@@ -61,8 +66,8 @@ export default function ScanModal({ onClose }) {
   useEffect(() => {
     if (phase !== 'done' || !best) return;
     onClose();
-    navigate(`/cartas?q=${encodeURIComponent(cleanName(best.name))}&tcg=${encodeURIComponent('Pokémon')}`);
-  }, [phase, best, navigate, onClose]);
+    navigate(`/cartas?q=${encodeURIComponent(cleanName(best.name))}&tcg=${encodeURIComponent(SCAN_GAMES.find((g) => g.pack === game)?.tcg || '')}`);
+  }, [phase, best, navigate, onClose]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const camera = phase === 'camera';
   const guide = guideRect(ar);
@@ -90,7 +95,13 @@ export default function ScanModal({ onClose }) {
             <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[24px]" />
           </button>
           <h2 className="min-w-0 flex-1 text-base font-extrabold leading-tight text-white">Buscar con la cámara</h2>
-          <span className="rounded-full bg-[#facc15] px-3 py-1 text-xs font-extrabold text-[#12315f]">Pokémon</span>
+        </div>
+
+        {/* Juego a reconocer: se recuerda para la próxima vez */}
+        <div role="radiogroup" aria-label="Juego a reconocer" className="flex gap-2 overflow-x-auto px-3 pb-2 [scrollbar-width:none] sm:px-4 [&::-webkit-scrollbar]:hidden">
+          {SCAN_GAMES.filter((g) => !manifest || manifest.games?.[g.pack]).map((g) => (
+            <button key={g.pack} type="button" role="radio" aria-checked={game === g.pack} onClick={() => { setGame(g.pack); setMisses(0); try { window.localStorage.setItem(GAME_KEY, g.pack); } catch (_error) { /* sin almacenamiento */ } }} className={`h-10 shrink-0 rounded-full px-4 text-sm font-extrabold transition-[background-color,color,transform] duration-150 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] ${game === g.pack ? 'bg-[#facc15] text-[#12315f]' : 'bg-white/10 text-white hover:bg-white/20'}`}>{g.tcg}</button>
+          ))}
         </div>
 
         <div ref={stageRef} className="relative flex min-h-0 flex-1 items-center justify-center">

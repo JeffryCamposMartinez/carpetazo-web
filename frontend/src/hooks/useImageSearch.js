@@ -7,14 +7,15 @@ import { guideRect } from '../utils/cardGuide'
 const BASE = import.meta.env.VITE_VISOR_BASE || '/visor/'
 const PATHS = { model: `${BASE}models/`, wasm: `${BASE}ort/`, index: `${BASE}index/`, ocr: `${BASE}ocr/` }
 const BACKEND = { device: 'wasm', dtype: 'q8' }
-const GAME = 'Pokemon'
 
 const idle = { phase: 'idle', corners: null, result: null, manifest: null, progress: null, error: '' }
 
-export default function useImageSearch(videoRef) {
+export default function useImageSearch(videoRef, game) {
   const [state, setState] = useState(idle)
   const scanner = useRef(null)
   const watchdog = useRef(0)
+  const gameRef = useRef(game)
+  gameRef.current = game
   const lastFile = useRef(null)
 
   const handle = useCallback((e) => {
@@ -48,6 +49,9 @@ export default function useImageSearch(videoRef) {
     return () => { live = false }
   }, [])
 
+  // Al elegir otro juego se carga su paquete de inmediato
+  useEffect(() => { scanner.current?.setGame(game) }, [game])
+
   useEffect(() => () => { clearTimeout(watchdog.current); scanner.current?.dispose(); scanner.current = null }, [])
 
   const scanFile = useCallback(async (file) => {
@@ -56,7 +60,7 @@ export default function useImageSearch(videoRef) {
     try {
       engine().stop()
       const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
-      await engine().scanImage(GAME, bitmap)
+      await engine().scanImage(gameRef.current, bitmap)
     } catch {
       setState((s) => ({ ...s, phase: 'error', error: 'No se pudo leer esa imagen. Prueba con otra foto.' }))
     }
@@ -68,7 +72,7 @@ export default function useImageSearch(videoRef) {
     setState((s) => ({ ...s, phase: 'camera', result: null, error: '' }))
     const current = engine()
     try {
-      await current.start(GAME)
+      await current.start(gameRef.current)
     } catch (error) {
       if (scanner.current !== current) return // un intento anterior que ya se descartó
       setState((s) => ({ ...s, phase: 'error', error: error.message || 'No se pudo abrir la cámara.' }))
@@ -86,7 +90,7 @@ export default function useImageSearch(videoRef) {
       const bitmap = await createImageBitmap(video, Math.round(g.x * vw), Math.round(g.y * vh), Math.round(g.w * vw), Math.round(g.h * vh))
       lastFile.current = null
       engine().stop()
-      await engine().scanImage(GAME, bitmap)
+      await engine().scanImage(gameRef.current, bitmap)
     } catch {
       setState((s) => ({ ...s, phase: 'error', error: 'No se pudo capturar la imagen. Intenta de nuevo.' }))
     }
