@@ -15,6 +15,7 @@ import SvgIcon from '../ui/SvgIcon';
 
 // Ventanas que solo se abren a pedido: su código se descarga al abrirlas, no en la primera carga de cada página
 const AuthModal = lazy(() => import('../auth/AuthModal'));
+const ScanModal = lazy(() => import('../cards/ScanModal'));
 const ReviewModal = lazy(() => import('../reviews/Reviews').then((module) => ({ default: module.ReviewModal })));
 
 export default function Header() {
@@ -73,6 +74,7 @@ export default function Header() {
 
   // Con el menú abierto, la página de atrás no se desplaza
   useBodyScrollLock(isMobileMenuOpen);
+  const [isScanOpen, setIsScanOpen] = useState(false); // buscar carta con la cámara (hoja a pantalla completa)
 
   // Arrastrar el panel hacia la izquierda lo cierra, como en una app nativa
   const onDrawerTouchStart = (e) => {
@@ -509,6 +511,15 @@ export default function Header() {
             className={`h-full min-w-0 flex-1 pl-4 pr-3 font-medium text-[#12315f] caret-[#1e40af] selection:bg-[#facc15]/60 text-ellipsis placeholder:font-normal placeholder:text-slate-500 !bg-transparent !border-0 !shadow-none !ring-0 !rounded-none focus:outline-none ${isMobile ? 'text-base' : 'text-[15px]'}`}
           />
           <button
+            type="button"
+            onClick={() => setIsScanOpen(true)}
+            aria-label="Buscar carta con la cámara"
+            title="Buscar con la cámara"
+            className="flex h-full shrink-0 items-center justify-center px-2.5 text-[#1e40af] transition-[color,transform] duration-150 hover:text-[#12315f] active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"
+          >
+            <SvgIcon name="photo_camera" translate="no" aria-hidden="true" className={isMobile ? 'text-[24px]' : 'text-[22px]'} />
+          </button>
+          <button
             type="submit"
             aria-label="Buscar"
             className={`relative flex shrink-0 items-center justify-center rounded-full bg-[#facc15] text-[#12315f] shadow-[inset_0_-1px_0_rgba(0,0,0,0.12)] transition-[transform,filter] duration-150 hover:brightness-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12315f] after:absolute after:-inset-1 after:content-[''] ${isMobile ? 'h-10 w-10' : 'h-9 w-9'}`}
@@ -722,6 +733,11 @@ export default function Header() {
           onClose={() => setIsInPersonPickerOpen(false)}
           onPick={(folder) => { setIsInPersonPickerOpen(false); navigate(`/carpeta/${folder.id}?tab=sales&view=presencial`); }}
         />
+      )}
+      {isScanOpen && (
+        <Suspense fallback={null}>
+          <ScanModal onClose={() => setIsScanOpen(false)} />
+        </Suspense>
       )}
       {/* Authentication Modal */}
       {isAuthModalOpen && (

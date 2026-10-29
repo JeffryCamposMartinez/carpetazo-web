@@ -34,6 +34,8 @@ export default defineConfig({
     drop: ['console', 'debugger'],
   },
   plugins: [react(), materialIconsSubset()],
+  worker: { format: 'es' }, // buscador por imagen: workers como módulos
+  optimizeDeps: { exclude: ['@huggingface/transformers'] },
   server: {
     allowedHosts: true,
     proxy: {

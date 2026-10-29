@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Recursos del buscador por imagen (modelo, índice, OCR): pesan ~90 MB, viven en R2 y se bajan al construir
+public/visor/
