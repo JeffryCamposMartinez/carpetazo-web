@@ -38,6 +38,7 @@ export default function CardsPage() {
   const seller = (searchParams.get('seller') || '').toLowerCase();
   const comuna = searchParams.get('comuna') || '';
   const condition = /^[1-5]$/.test(searchParams.get('condition') || '') ? searchParams.get('condition') : ''; // estado mínimo
+  const lang = ['es', 'en', 'ja'].includes(searchParams.get('lang')) ? searchParams.get('lang') : ''; // idioma de la carta
   const sort = SORT_VALUES.includes(searchParams.get('sort')) ? searchParams.get('sort') : 'recent';
   const page = Math.max(1, Number.parseInt(searchParams.get('page'), 10) || 1);
 
@@ -90,6 +91,7 @@ export default function CardsPage() {
     if (seller) params.set('seller', seller);
     if (comuna) params.set('comuna', comuna);
     if (condition) params.set('condition', condition);
+    if (lang) params.set('lang', lang);
     if (sort !== 'recent') params.set('sort', sort);
     if (page > 1) params.set('page', String(page));
     params.set('rotation', searchRotation);
@@ -98,7 +100,7 @@ export default function CardsPage() {
       .catch(() => { if (!cancelled) { setFailed(true); setResult(EMPTY); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [urlQuery, tcg, seller, comuna, condition, sort, page, searchRotation]);
+  }, [urlQuery, tcg, seller, comuna, condition, lang, sort, page, searchRotation]);
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   const goToPage = (next) => {
@@ -139,7 +141,7 @@ export default function CardsPage() {
     }
   };
 
-  const hasFilters = Boolean(urlQuery || tcg || seller || comuna || condition);
+  const hasFilters = Boolean(urlQuery || tcg || seller || comuna || condition || lang);
   const gridClass = effectiveView === 'list'
     ? 'grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3'
     : 'grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5';
@@ -166,6 +168,8 @@ export default function CardsPage() {
               comuna={comuna}
               condition={condition}
               onCondition={(value) => updateParams({ condition: value })}
+              lang={lang}
+              onLang={(value) => updateParams({ lang: value })}
               onComuna={() => updateParams({ comuna: '' })}
               onComunaChange={(value) => updateParams({ comuna: value })}
               onSeller={() => updateParams({ seller: '' })}
@@ -200,7 +204,7 @@ export default function CardsPage() {
               </ul>
             )}
 
-            <CardInfoResults query={urlQuery} game={tcg} sort={sort} hasOffers={result.total > 0} enabled={!loading && !failed && urlQuery.trim().length >= 2 && !seller && !comuna} />
+            <CardInfoResults query={urlQuery} game={tcg} sort={sort} lang={lang} hasOffers={result.total > 0} enabled={!loading && !failed && urlQuery.trim().length >= 2 && !seller && !comuna} />
 
             {!loading && !failed && <CardsPagination page={page} pages={result.pages} onPage={goToPage} />}
           </section>

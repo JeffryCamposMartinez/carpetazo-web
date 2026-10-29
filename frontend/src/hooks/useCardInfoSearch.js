@@ -39,7 +39,7 @@ const fromMyl = (product, game) => ({
 // Cartas de TCGCSV (y de la base de Mitos y Leyendas) que coinciden con un texto o se le parecen, solo para informar: no están a la venta.
 // Busca en un juego o en todos; en cada uno revisa las ediciones de la más nueva a la más vieja y sigue hasta llenar la página pedida.
 // La lista solo crece al final, así las cartas ya vistas no cambian de página.
-export default function useCardInfoSearch({ query, game, enabled, page, sort = '' }) {
+export default function useCardInfoSearch({ query, game, enabled, page, sort = '', lang = '' }) {
   const term = query.trim();
   const [state, setState] = useState({ results: [], searching: false, exhausted: false, pages: 1, total: 0 });
   const searchId = useRef(0);
@@ -101,20 +101,22 @@ export default function useCardInfoSearch({ query, game, enabled, page, sort = '
     // Índice local: una sola petición paginada sustituye el recorrido de ediciones externas.
     try {
       // Mitos y Leyendas (solo o dentro de «Todos») sale de su propio catálogo; el índice no lo tiene
-      if (!mylRef.current && (!game || game === 'Mitos y Leyendas')) {
+      if (!mylRef.current && (!game || game === 'Mitos y Leyendas') && (!lang || lang === 'es')) { // Mitos y Leyendas es solo en español
         const found = await scanGame('Mitos y Leyendas', signal).catch(() => ({ exact: [], similar: [] }));
         if (id !== searchId.current || signal.aborted) return;
         mylRef.current = [...found.exact, ...found.similar];
       }
       const myl = mylRef.current || [];
       if (game === 'Mitos y Leyendas') {
+        if (lang && lang !== 'es') { listRef.current = []; setState({ results: [], searching: false, exhausted: true, pages: 1, total: 0 }); loopRef.current = null; return; }
         listRef.current = myl;
         setState({ results: myl, searching: false, exhausted: true, pages: 1, total: myl.length });
         loopRef.current = null;
         return;
       }
       const indexGame = game === 'Pokémon' ? 'Pokemon,Pokemon_Japan' : game === 'Yu-Gi-Oh!' ? 'YuGiOh' : game === 'One Piece' ? 'One_Piece' : game === 'Lorcana' ? 'Disney_Lorcana' : game === 'Digimon' ? 'Digimon_Card_Game' : game;
-      const indexed = await api.searchTcgIndex(term, indexGame, wantedRef.current, sort, !game || game === 'Pokémon'); // con Pokémon (o Todos) también las cartas en español de TCGdex
+      const indexed = await api.searchTcgIndex(term, indexGame, wantedRef.current, sort, !game || game === 'Pokémon', lang); // con Pokémon (o Todos) también las cartas en español de TCGdex
+      if (id !== searchId.current || signal.aborted) return; // una respuesta de una búsqueda anterior (otro texto, juego o idioma) no pisa la actual
       if (indexed.available) {
         // El índice nombra los juegos con claves técnicas (Pokemon_Japan, One_Piece...): se muestran y se guardan con el nombre del sitio
         const indexedCards = (indexed.cards || []).map((card) => {
@@ -160,7 +162,7 @@ export default function useCardInfoSearch({ query, game, enabled, page, sort = '
     listRef.current = [];
     seenRef.current = new Set();
     setState({ results: [], searching: false, exhausted: false, pages: 1, total: 0 });
-  }, [enabled, term, gamesKey, sort]);
+  }, [enabled, term, gamesKey, sort, lang]);
 
   // Página pedida: se completa lo que falte
   useEffect(() => {
@@ -168,7 +170,7 @@ export default function useCardInfoSearch({ query, game, enabled, page, sort = '
     if (!enabled || term.length < 2 || loopRef.current === searchId.current) return;
     loopRef.current = searchId.current;
     fill(searchId.current, controllerRef.current.signal);
-  }, [enabled, term, gamesKey, page, sort]);
+  }, [enabled, term, gamesKey, page, sort, lang]);
 
   return state;
 }

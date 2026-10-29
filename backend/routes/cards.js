@@ -381,6 +381,8 @@ const prioritizedCardPage = async (where, sort, skip, take, boosts, seed) => {
   }
   return cards;
 };
+const CARD_SEARCH_LANGS = { es: 'Spanish', en: 'English', ja: 'Japanese' };
+
 router.get('/api/cards/search', async (req, res) => {
   try {
     // El buscador agrega «/» al escribir números («055/»): «Kangaskhan ex - 055» también debe aparecer
@@ -398,6 +400,9 @@ router.get('/api/cards/search', async (req, res) => {
     const minCondition = typeof req.query.condition === 'string' ? req.query.condition : ''; // estado mínimo (1 a 5 estrellas)
     if (minCondition && !/^[1-5]$/.test(minCondition)) return badRequest(res, 'Búsqueda inválida');
     if (seller && !/^[a-z0-9_]{3,40}$/.test(seller)) return badRequest(res, 'Búsqueda inválida');
+    const langRaw = typeof req.query.lang === 'string' ? req.query.lang : ''; // idioma de la carta: es | en | ja
+    if (langRaw && !Object.hasOwn(CARD_SEARCH_LANGS, langRaw)) return badRequest(res, 'Búsqueda inválida');
+    const language = CARD_SEARCH_LANGS[langRaw] || '';
     if (q.length > 80 || tcg.length > 60 || /[\u0000-\u001f]/.test(q + tcg) || !(Object.hasOwn(CARD_SEARCH_SORTS, sort) || RANKED_SORTS.has(sort)) || page < 1 || page > 1000) {
       return badRequest(res, 'Búsqueda inválida');
     }
@@ -406,6 +411,7 @@ router.get('/api/cards/search', async (req, res) => {
       stock: { gt: 0 },
       moderationState: 'visible',
       ...(minCondition ? { condition: { gte: Number(minCondition) } } : {}),
+      ...(language ? { language } : {}),
       folder: { isPublic: true, ...(tcg ? { tcg } : {}), ...(seller || comuna ? { user: { ...(seller ? { username: seller } : {}), ...(comuna ? { publicComuna: comuna } : {}) } } : {}) },
       ...(q ? nameMatch(q) : {}),
     };
@@ -424,7 +430,7 @@ router.get('/api/cards/search', async (req, res) => {
     const boosts = await userBoostLevels(prisma);
     const [total, cards] = await Promise.all([
       prisma.card.count({ where }),
-      prioritizedCardPage(where, sort, (page - 1) * CARD_SEARCH_PAGE_SIZE, CARD_SEARCH_PAGE_SIZE, boosts, `${rotation}:${q}:${tcg}:${seller}:${comuna}:${minCondition}:${sort}`)
+      prioritizedCardPage(where, sort, (page - 1) * CARD_SEARCH_PAGE_SIZE, CARD_SEARCH_PAGE_SIZE, boosts, `${rotation}:${q}:${tcg}:${seller}:${comuna}:${minCondition}:${language}:${sort}`)
     ]);
 
     // Lo que se busca y nadie tiene a la venta (solo el texto, sin datos de la persona): muestra qué cartas faltan en el mercado

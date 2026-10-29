@@ -131,8 +131,11 @@ router.get('/api/tcg/search-index', async (req, res) => {
   const value = clean(searchText);
   const byCode = !sort && isCodeQuery(searchText);
   // El listado informativo de /cartas pide además las cartas en español (TCGdex); el resto de los buscadores sigue sin ellas
-  const withSpanish = req.query.spanish === '1' && (!game || game.split(',').map((name) => name.trim()).includes('Pokemon'));
-  const cacheKey = `${value}|${game}|${page}|${sort}|${withSpanish ? 'es' : ''}`;
+  const gameNames = game ? game.split(',').map((name) => name.trim()) : [];
+  const spanishAllowed = !game || gameNames.includes('Pokemon'); // las cartas en español son de Pokémon
+  const lang = ['es', 'en', 'ja'].includes(req.query.lang) ? req.query.lang : ''; // idioma pedido (filtro de idioma de /cartas)
+  const withSpanish = (req.query.spanish === '1' || lang === 'es') && spanishAllowed;
+  const cacheKey = `${value}|${game}|${page}|${sort}|${withSpanish ? 'es' : ''}|${lang}`;
   const cached = cacheGet(cacheKey);
   if (cached) return res.json(cached);
   if (pendingSearches.has(cacheKey)) return res.json(await pendingSearches.get(cacheKey));
@@ -142,8 +145,12 @@ router.get('/api/tcg/search-index', async (req, res) => {
   const gameWhere = games.length ? { game: { name: { in: games } } } : {};
   const where = {
     kind: 'card',
-    // Las cartas en español son otra imagen de las inglesas: solo salen como cartas aparte si se piden (spanish=1)
-    ...(withSpanish ? { AND: [games.length ? { OR: [gameWhere, { categoryId: TCGDEX_CATEGORY }] } : {}] } : { categoryId: { not: TCGDEX_CATEGORY }, ...gameWhere }),
+    // Las cartas en español son otra imagen de las inglesas: solo salen como cartas aparte si se piden (spanish=1 o lang=es).
+    // Con idioma: español = TCGdex (100), japonés = 85 e inglés = el resto de TCGplayer.
+    ...(lang === 'es' ? { categoryId: withSpanish ? TCGDEX_CATEGORY : -1 }
+      : lang === 'ja' ? { categoryId: 85, ...gameWhere }
+      : lang === 'en' ? { categoryId: { notIn: [85, TCGDEX_CATEGORY] }, ...gameWhere }
+      : withSpanish ? { AND: [games.length ? { OR: [gameWhere, { categoryId: TCGDEX_CATEGORY }] } : {}] } : { categoryId: { not: TCGDEX_CATEGORY }, ...gameWhere }),
     OR: [
       { cleanName: { contains: likeEscape(value) } },
       nameMatch(searchText),
@@ -173,7 +180,7 @@ router.get('/api/tcg/search-index', async (req, res) => {
     let hydratedTotal = total;
     // La base es siempre la fuente de verdad. El índice solo aporta candidatos
     // para errores tipográficos; los datos finales se vuelven a leer desde DB.
-    if (total === 0) {
+    if (total === 0 && !lang) { // con un idioma pedido no se ofrecen parecidos: el índice no distingue idiomas
       const similar = searchTcgIndex({ query, game, page, limit });
       const ids = (similar.cards || []).map((card) => Number(card.productId)).filter(Number.isInteger);
       if (ids.length) {

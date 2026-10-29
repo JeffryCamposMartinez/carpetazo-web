@@ -23,9 +23,9 @@ const tcgplayerImage = (card) => {
 };
 
 // Cuando una carta no está a la venta: las que coinciden en el catálogo (TCGCSV), para ver su imagen y datos. No tienen precio ni compra.
-export default function CardInfoResults({ query, game, enabled, hasOffers = false, sort = '' }) {
+export default function CardInfoResults({ query, game, enabled, hasOffers = false, sort = '', lang = '' }) {
   const [page, setPage] = useState(1);
-  const { results, searching, exhausted, pages: indexedPages, total: indexedTotal } = useCardInfoSearch({ query, game, enabled, page, sort });
+  const { results, searching, exhausted, pages: indexedPages, total: indexedTotal } = useCardInfoSearch({ query, game, enabled, page, sort, lang });
   const { currentUser } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -36,7 +36,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
   const stateOf = (card) => (wished[card.id] !== undefined ? wished[card.id] : (wishlistIndex.get(wishlistKeyOf(card.payload)) || false));
   const [addTarget, setAddTarget] = useState(null);
 
-  useEffect(() => { setPage(1); }, [query, game, sort]);
+  useEffect(() => { setPage(1); }, [query, game, sort, lang]);
   // Si la última página quedó vacía porque ya no hay más ediciones, se vuelve a la última con cartas
   const known = indexedPages || Math.max(1, Math.ceil(results.length / INFO_PAGE));
   useEffect(() => { if (exhausted && page > known) setPage(known); }, [exhausted, page, known]);
