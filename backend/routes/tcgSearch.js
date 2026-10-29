@@ -130,7 +130,9 @@ router.get('/api/tcg/search-index', async (req, res) => {
   const searchText = /^\d+\/$/.test(query) ? query.slice(0, -1) : query; // «055/» se busca como «055»
   const value = clean(searchText);
   const byCode = !sort && isCodeQuery(searchText);
-  const cacheKey = `${value}|${game}|${page}|${sort}`;
+  // El listado informativo de /cartas pide además las cartas en español (TCGdex); el resto de los buscadores sigue sin ellas
+  const withSpanish = req.query.spanish === '1' && (!game || game.split(',').map((name) => name.trim()).includes('Pokemon'));
+  const cacheKey = `${value}|${game}|${page}|${sort}|${withSpanish ? 'es' : ''}`;
   const cached = cacheGet(cacheKey);
   if (cached) return res.json(cached);
   if (pendingSearches.has(cacheKey)) return res.json(await pendingSearches.get(cacheKey));
@@ -140,8 +142,8 @@ router.get('/api/tcg/search-index', async (req, res) => {
   const gameWhere = games.length ? { game: { name: { in: games } } } : {};
   const where = {
     kind: 'card',
-    categoryId: { not: TCGDEX_CATEGORY }, // las cartas en español son solo otra imagen de las inglesas: no salen como cartas aparte
-    ...gameWhere,
+    // Las cartas en español son otra imagen de las inglesas: solo salen como cartas aparte si se piden (spanish=1)
+    ...(withSpanish ? { AND: [games.length ? { OR: [gameWhere, { categoryId: TCGDEX_CATEGORY }] } : {}] } : { categoryId: { not: TCGDEX_CATEGORY }, ...gameWhere }),
     OR: [
       { cleanName: { contains: likeEscape(value) } },
       nameMatch(searchText),

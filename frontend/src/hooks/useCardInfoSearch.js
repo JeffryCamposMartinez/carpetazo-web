@@ -18,7 +18,7 @@ const BATCH = 3; // ediciones que se descargan a la vez
 const ROUND_EDITIONS = 24; // ediciones revisadas por juego en cada tanda; las tandas se repiten hasta llenar la página
 const SIMILAR_FROM = 4; // desde este largo del texto también se buscan nombres parecidos
 
-const INDEX_GAME_LABEL = { Pokemon: 'Pokémon', Pokemon_Japan: 'Pokémon', YuGiOh: 'Yu-Gi-Oh!', One_Piece: 'One Piece', OnePiece: 'One Piece', Disney_Lorcana: 'Lorcana', Digimon_Card_Game: 'Digimon' };
+const INDEX_GAME_LABEL = { 'Pokémon (Español)': 'Pokémon', Pokemon: 'Pokémon', Pokemon_Japan: 'Pokémon', YuGiOh: 'Yu-Gi-Oh!', One_Piece: 'One Piece', OnePiece: 'One Piece', Disney_Lorcana: 'Lorcana', Digimon_Card_Game: 'Digimon' };
 const label = (name, number) => (number && !name.includes(number) ? `${name} - ${number}` : name);
 
 const fromTcgcsv = (card, game, groupId) => ({
@@ -114,7 +114,7 @@ export default function useCardInfoSearch({ query, game, enabled, page, sort = '
         return;
       }
       const indexGame = game === 'Pokémon' ? 'Pokemon,Pokemon_Japan' : game === 'Yu-Gi-Oh!' ? 'YuGiOh' : game === 'One Piece' ? 'One_Piece' : game === 'Lorcana' ? 'Disney_Lorcana' : game === 'Digimon' ? 'Digimon_Card_Game' : game;
-      const indexed = await api.searchTcgIndex(term, indexGame, wantedRef.current, sort);
+      const indexed = await api.searchTcgIndex(term, indexGame, wantedRef.current, sort, !game || game === 'Pokémon'); // con Pokémon (o Todos) también las cartas en español de TCGdex
       if (indexed.available) {
         // El índice nombra los juegos con claves técnicas (Pokemon_Japan, One_Piece...): se muestran y se guardan con el nombre del sitio
         const indexedCards = (indexed.cards || []).map((card) => {
@@ -123,7 +123,7 @@ export default function useCardInfoSearch({ query, game, enabled, page, sort = '
             id: `tcg-db:${card.id}`, productId: card.productId, tcgProductId: card.productId, catId: card.categoryId,
             categoryId: card.categoryId, groupId: card.groupId, name: card.name, imageUrl: card.imageUrl,
             sourceImageUrl: card.sourceImageUrl, setName: card.setName || 'Catálogo',
-            language: card.categoryId === 85 ? 'Japonés' : 'Español', game: gameName,
+            language: card.categoryId === 85 ? 'Japonés' : card.categoryId === 100 ? 'Español' : 'Inglés', game: gameName,
             payload: { external: { categoryId: card.categoryId, productId: String(card.productId) }, productId: String(card.productId), name: card.name, imageUrl: card.imageUrl, detail: card.setName || 'Catálogo', game: gameName },
           };
         });
