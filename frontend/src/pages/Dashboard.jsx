@@ -9,6 +9,7 @@ import FolderSummary from '../components/folder/FolderSummary';
 import FolderFormModal from '../components/folder/FolderFormModal';
 import OnboardingChecklist from '../components/folder/OnboardingChecklist';
 import FolderGrid from '../components/folder/FolderGrid';
+import FolderShareSheet from '../components/folder/FolderShareSheet';
 import { useToast } from '../components/ui/ToastProvider';
 import { warmFolderPreview } from '../utils/sharePreview';
 import LoadingState, { ButtonSpinner } from '../components/ui/LoadingState';
@@ -59,6 +60,7 @@ export default function Dashboard() {
   const [pdfProgress, setPdfProgress] = useState({ loaded: 0, total: 1, generating: false });
   const [activeMenuFolderId, setActiveMenuFolderId] = useState(null);
   const [copiedFolderId, setCopiedFolderId] = useState(null);
+  const [shareSheetFolder, setShareSheetFolder] = useState(null); // carpeta que se está compartiendo (QR, enlace, redes)
   const tabsScrollRef = useRef(null);
   const [tabsFade, setTabsFade] = useState({ start: false, end: false });
   const [cardSearchQuery, setCardSearchQuery] = useState('');
@@ -395,31 +397,10 @@ export default function Dashboard() {
     }
   };
 
+  // Compartir: QR, enlace, redes y descarga del QR para imprimir (una carpeta privada ofrece publicarse primero)
   const handleShareFolder = (e, folder) => {
     e.stopPropagation();
-    // Una carpeta privada no se ve con el enlace (ni arma la vista previa en WhatsApp): se avisa en vez de compartir algo vacío
-    if (!folder.isPublic) { showToast('Esta carpeta es privada: quien abra el enlace no verá tus cartas ni la vista previa. Hazla pública para compartirla.', 'error'); return; }
-    const url = siteUrl(`/c/${folder.id}`);
-    warmFolderPreview(folder.id);
-    api.trackMetric('share_folder');
-
-    if (navigator.share) {
-      navigator.share({
-        title: `Catálogo de ${folder.name}`,
-        text: `¡Mira mi catálogo de cartas en Carpetazo!`,
-        url: url
-      }).catch(err => {
-        if (err.name !== 'AbortError') {
-          navigator.clipboard.writeText(url).then(() => {
-            showToast("Enlace copiado", "success"); flashCopied(folder.id);
-          }).catch(() => showToast('No se pudo copiar el enlace.', 'error'));
-        }
-      });
-    } else {
-      navigator.clipboard.writeText(url).then(() => {
-        showToast("Enlace copiado", "success"); flashCopied(folder.id);
-      }).catch((err) => { console.error("Error al copiar", err); showToast('No se pudo copiar el enlace.', 'error'); });
-    }
+    setShareSheetFolder(folder);
   };
 
   if (loading) {
@@ -660,6 +641,16 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {shareSheetFolder && (
+        <FolderShareSheet
+          folder={shareSheetFolder}
+          showToast={showToast}
+          onClose={() => setShareSheetFolder(null)}
+          onPublished={() => setFolders(prev => prev.map(f => (f.id === shareSheetFolder.id ? { ...f, isPublic: true } : f)))}
+          onPdf={() => { setGeneratingPdfFolder(shareSheetFolder.id); setPdfProgress({ loaded: 0, total: 1, generating: false }); }}
+        />
       )}
 
       {/* PDF Generator Components */}

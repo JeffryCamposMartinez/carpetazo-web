@@ -15,6 +15,7 @@ import FolderSalesTab from '../components/folder/tabs/FolderSalesTab';
 import FolderCatalogTab from '../components/folder/tabs/FolderCatalogTab';
 import FolderAddTab from '../components/folder/tabs/FolderAddTab';
 import FolderShareNotice from '../components/folder/FolderShareNotice';
+import FolderShareSheet from '../components/folder/FolderShareSheet';
 import useCardSearch from '../hooks/useCardSearch';
 import { DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from '../components/folder/dragScroll';
 import useCatalogOrder from '../hooks/useCatalogOrder';
@@ -67,6 +68,7 @@ export default function FolderPage() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const [folderData, setFolderData] = useState(null);
+  const [shareSheetOpen, setShareSheetOpen] = useState(false); // QR, enlace y redes para compartir la carpeta
   const [shareNoticeOpen, setShareNoticeOpen] = useState(false); // aviso para publicar y compartir tras la primera carta
   const [loadingFolder, setLoadingFolder] = useState(true);
   
@@ -807,19 +809,8 @@ const [isSearching, setIsSearching] = useState(false);
     window.open(`/c/${id}`, '_blank', 'noopener,noreferrer');
   };
 
-  const copyBuyerLink = async () => {
-    if (folderData && !folderData.isPublic) { showToast('Esta carpeta es privada: quien abra el enlace no verá tus cartas ni la vista previa. Hazla pública para compartirla.', 'error'); return; }
-    const url = siteUrl(`/c/${id}`);
-    warmFolderPreview(id);
-    try {
-      await navigator.clipboard.writeText(url);
-      api.trackMetric('share_folder');
-      showToast('Enlace público copiado', 'success');
-    } catch (error) {
-      console.error(error);
-      showToast('No se pudo copiar el enlace.', 'error');
-    }
-  };
+  // Compartir la carpeta: QR, enlace, redes y descarga del QR (si es privada, la hoja ofrece publicarla)
+  const copyBuyerLink = () => setShareSheetOpen(true);
 
   // --- AGREGAR AL CATÁLOGO LOGIC ---
   useEffect(() => {
@@ -1155,6 +1146,14 @@ const [isSearching, setIsSearching] = useState(false);
         >
           <SvgIcon name="arrow_upward" translate="no" className="text-2xl" />
         </button>
+      )}
+      {shareSheetOpen && folderData && (
+        <FolderShareSheet
+          folder={{ id, name: folderData.name, isPublic: folderData.isPublic }}
+          showToast={showToast}
+          onClose={() => setShareSheetOpen(false)}
+          onPublished={() => setFolderData((prev) => ({ ...prev, isPublic: true }))}
+        />
       )}
       {shareNoticeOpen && !isBatchAdding && (
         <FolderShareNotice
