@@ -1,39 +1,37 @@
 import { apiUrl } from '../services/api';
 import { formatWhatsAppNumber } from './contact';
 
-// PDF de la lista de deseos para compartir (por ejemplo en un grupo de WhatsApp): cada carta en grande, con su nombre, cuántas copias se buscan,
-// el precio que pagarías (si lo dejaste visible) y la nota que escribiste, para que quien la tenga sepa justo qué se busca.
-// Lleva la identidad de Carpetazo (azul, amarillo y el logo). jsPDF se descarga solo al exportar.
+// PDF de la lista de deseos para compartir (por ejemplo en un grupo de WhatsApp). Páginas oscuras de la identidad de Carpetazo
+// (azul marino, amarillo y el logo) con cada carta en una tarjeta blanca: foto grande con foco de luz y sombra, cuántas copias se buscan,
+// el precio que se pagaría (si se dejó visible), el idioma y la nota que escribió quien busca. jsPDF se descarga solo al exportar.
 const NAVY = [18, 49, 95];
-const NAVY_DEEP = [11, 30, 66];
+const INK = [11, 30, 66];
 const BLUE = [30, 64, 175];
 const YELLOW = [250, 204, 21];
-const PAGE_BG = [238, 243, 252];
-const PANEL = [246, 249, 255];
-const SHADOW = [208, 218, 238];
 const WHITE = [255, 255, 255];
+const SKY = [191, 209, 245];
+const MUTED = [100, 116, 139];
 const WHATSAPP = [37, 211, 102];
 const NOTE_BG = [255, 246, 209];
 const NOTE_INK = [92, 64, 8];
 const NOTE_LABEL = [166, 104, 4];
+const SPOT = [226, 235, 252];
 const SITE_URL = 'https://carpetazo.cl';
-const MUTED = [100, 116, 139];
 
 const PAGE_W = 210;
 const PAGE_H = 297;
 const MARGIN = 12;
 // Dos columnas y dos filas por página: cada carta ocupa casi todo el ancho de su mitad, y en el celular se lee sin hacer zoom
 const COLS = 2;
-const CARD_W = 74; // marco de cada carta
-const IMG_H = 79; // zona de la imagen
-const INFO_H = 30; // zona de nombre, edición y nota
-const FRAME_H = IMG_H + INFO_H;
-const GAP_X = 14;
+const CARD_W = 76;
+const GAP_X = 10;
 const GRID_X = (PAGE_W - (COLS * CARD_W + (COLS - 1) * GAP_X)) / 2;
+const IMG_H = 70; // zona de la foto; la de nombre y nota se ajusta a lo que haya que escribir
 const ROW_GAP = 4.5;
-const FOOTER_H = 11;
-const FIRST_HEADER_H = 40;
-const SLIM_HEADER_H = 16;
+const FOOTER_H = 12;
+const FIRST_HEADER_H = 50;
+const SLIM_HEADER_H = 14;
+const LANGUAGES = ['Inglés', 'Español', 'Japonés'];
 const LOGO_URL = '/images/logos/logo_completo.webp';
 const THUMB_CONCURRENCY = 6;
 
@@ -117,6 +115,15 @@ const fileLabel = (value) => String(value || '').replace(/[^\p{L}\p{N} ]/gu, '')
 
 const clp = (value) => `$${Math.round(Number(value)).toLocaleString('es-CL')}`;
 
+// «Prize Pack Series Cards - Inglés» -> edición y, aparte, el idioma si lo trae
+const splitDetail = (detail) => {
+  const text = pdfText(detail || '');
+  const parts = text.split(/\s-\s/);
+  const last = parts[parts.length - 1];
+  if (parts.length > 1 && LANGUAGES.includes(last)) return { set: parts.slice(0, -1).join(' - '), language: last };
+  return { set: text, language: LANGUAGES.includes(text) ? text : '' };
+};
+
 // items: cartas de la lista ya filtradas. filterLabel: texto del filtro aplicado ("Mitos y Leyendas" o "Todos los juegos").
 // phone: WhatsApp de quien busca; con él, tocar una carta del PDF abre su chat con un mensaje listo diciendo que la tiene.
 export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos', listName = '', phone = '', onProgress }) {
@@ -126,11 +133,11 @@ export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos'
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   doc.setProperties({ title: 'Cartas que busco' });
-  const now = new Date();
-  const dateLabel = new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
+  const dateLabel = new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
   const fill = (color) => doc.setFillColor(...color);
   const ink = (color) => doc.setTextColor(...color);
   const opacity = (value) => doc.setGState(new doc.GState({ opacity: value }));
+  const font = (style, size) => { doc.setFont('helvetica', style); doc.setFontSize(size); };
   const filtered = filterLabel !== 'Todos los juegos';
   const whatsapp = (() => { const number = formatWhatsAppNumber(phone); return number.length >= 10 && number.length <= 15 ? number : ''; })();
   const contactUrl = (item) => {
@@ -142,7 +149,7 @@ export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos'
   const copies = items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
   const withNotes = items.filter((item) => String(item.note || '').trim()).length;
 
-  // Texto que cabe en `width` mm: hasta `maxLines` líneas, con «...» si se corta
+  // Texto que cabe en `width` mm: hasta `maxLines` líneas, con «...» si se corta (usa la fuente activa)
   const fitLines = (text, width, maxLines) => {
     const lines = doc.splitTextToSize(pdfText(text), width);
     if (lines.length <= maxLines) return lines;
@@ -153,33 +160,39 @@ export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos'
     return cut;
   };
 
-  // Marca de agua: el logo grande y muy suave, centrado detrás de las cartas (sin enlace)
-  const WATERMARK_W = 124;
+  // ---- Fondo de cada página: degradado vertical de azul marino profundo a azul, círculos suaves y el logo como marca de agua
+  const WATERMARK_W = 118;
   const watermark = logo ? { w: WATERMARK_W, h: WATERMARK_W / logo.ratio } : null;
-  if (watermark) { watermark.x = (PAGE_W - watermark.w) / 2; watermark.y = (PAGE_H - watermark.h) / 2 + 6; }
+  if (watermark) { watermark.x = (PAGE_W - watermark.w) / 2; watermark.y = (PAGE_H - watermark.h) / 2 + 8; }
   const paintPage = () => {
-    fill(PAGE_BG);
-    doc.rect(0, 0, PAGE_W, PAGE_H, 'F');
-    if (!watermark) return;
-    opacity(0.09);
-    doc.addImage(logo.data, 'PNG', watermark.x, watermark.y, watermark.w, watermark.h);
+    const bands = 150;
+    for (let band = 0; band < bands; band += 1) {
+      const t = band / (bands - 1);
+      fill([Math.round(7 + 13 * t), Math.round(20 + 34 * t), Math.round(46 + 62 * t)]);
+      doc.rect(0, (PAGE_H / bands) * band, PAGE_W, PAGE_H / bands + 0.5, 'F');
+    }
+    opacity(0.07);
+    fill(YELLOW);
+    doc.circle(PAGE_W + 6, 70, 52, 'F');
+    doc.circle(-10, PAGE_H - 60, 48, 'F');
+    fill(SKY);
+    doc.circle(PAGE_W - 30, PAGE_H - 20, 30, 'F');
     opacity(1);
-  };
-
-  // Franja con degradado vertical (de azul marino profundo a azul), hecha con tiras finas
-  const gradientBand = (height) => {
-    const steps = Math.ceil(height / 0.6);
-    for (let step = 0; step < steps; step += 1) {
-      const t = step / Math.max(1, steps - 1);
-      fill(NAVY_DEEP.map((from, index) => Math.round(from + (BLUE[index] * 0.55 + NAVY[index] * 0.45 - from) * t)));
-      doc.rect(0, step * 0.6, PAGE_W, 0.7, 'F');
+    if (watermark) {
+      opacity(0.05);
+      doc.addImage(logo.data, 'PNG', watermark.x, watermark.y, watermark.w, watermark.h);
+      opacity(1);
     }
   };
 
   // Logo sobre un recuadro blanco: se lee igual sobre el azul oscuro
   const drawLogo = (x, y, size) => {
+    opacity(0.28);
+    fill(INK);
+    doc.roundedRect(x + 0.6, y + 0.9, size, size, size * 0.22, size * 0.22, 'F');
+    opacity(1);
     fill(WHITE);
-    doc.roundedRect(x, y, size, size, size * 0.2, size * 0.2, 'F');
+    doc.roundedRect(x, y, size, size, size * 0.22, size * 0.22, 'F');
     if (!logo) return;
     const box = size * 0.8;
     const width = logo.ratio >= 1 ? box : box * logo.ratio;
@@ -187,85 +200,241 @@ export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos'
     doc.addImage(logo.data, 'PNG', x + (size - width) / 2, y + (size - height) / 2, width, height);
   };
 
-  const pill = (x, y, height, label, background, color, size = 8.5, backgroundOpacity = 1) => {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(size);
-    const width = doc.getTextWidth(label) + height * 1.1;
+  // Pastilla de texto: devuelve su ancho
+  const pill = (x, y, height, label, background, color, size = 8, backgroundOpacity = 1) => {
+    font('bold', size);
+    const width = doc.getTextWidth(label) + height * 1.15;
     if (backgroundOpacity < 1) opacity(backgroundOpacity);
     fill(background);
     doc.roundedRect(x, y, width, height, height / 2, height / 2, 'F');
     if (backgroundOpacity < 1) opacity(1);
     ink(color);
-    doc.text(label, x + width / 2, y + height / 2 + size * 0.12, { align: 'center' });
+    doc.text(label, x + width / 2, y + height / 2 + size * 0.125, { align: 'center' });
     return width;
   };
 
+  // ---- Cabecera de la primera página: logo, título en dos colores, tres cifras y la invitación a escribir
   const firstHeader = () => {
-    gradientBand(FIRST_HEADER_H);
-    // Círculos decorativos en amarillo, muy suaves
-    opacity(0.1);
-    fill(YELLOW);
-    doc.circle(PAGE_W - 6, 4, 27, 'F');
-    doc.circle(PAGE_W - 44, FIRST_HEADER_H - 2, 9, 'F');
-    opacity(1);
-    fill(YELLOW);
-    doc.rect(0, FIRST_HEADER_H, PAGE_W, 1.8, 'F');
-    drawLogo(MARGIN, 8, 21);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(27);
+    drawLogo(MARGIN, 9, 21);
+    font('bold', 29);
+    const lead = 'Busco estas ';
     ink(WHITE);
-    doc.text('Busco estas cartas', MARGIN + 27, 19.5);
-    const heading = [listName, filtered && filterLabel].filter(Boolean).join(' - ');
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10.5);
-    ink([191, 209, 245]);
-    doc.text(heading ? pdfText(heading) : 'Si tienes alguna, escríbeme', MARGIN + 27, 26.5);
-    // Cifras: cartas, copias y, si hay, cuántas llevan nota
-    let chipX = MARGIN;
-    const chipY = 31.5;
-    chipX += pill(chipX, chipY, 6.4, `${items.length} ${items.length === 1 ? 'carta' : 'cartas'}`, YELLOW, NAVY) + 2.5;
-    chipX += pill(chipX, chipY, 6.4, `${copies} ${copies === 1 ? 'copia' : 'copias'}`, WHITE, WHITE, 8.5, 0.16) + 2.5;
-    if (withNotes) pill(chipX, chipY, 6.4, `${withNotes} con nota`, WHITE, WHITE, 8.5, 0.16);
-    // Invitación a escribir (cada carta del PDF abre el WhatsApp de quien la busca)
-    if (whatsapp) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      const label = 'Toca la carta que tengas';
-      const width = doc.getTextWidth(label) + 16;
-      const x = PAGE_W - MARGIN - width;
-      fill(WHATSAPP);
-      doc.roundedRect(x, 9, width, 9.5, 4.75, 4.75, 'F');
+    doc.text(lead, MARGIN + 27, 21.5);
+    ink(YELLOW);
+    doc.text('cartas', MARGIN + 27 + doc.getTextWidth(lead), 21.5);
+    const heading = [listName, filtered && filterLabel].filter(Boolean).join('  -  ');
+    font('normal', 10);
+    ink(SKY);
+    doc.text(pdfText(heading || dateLabel), MARGIN + 27, 28.5);
+    if (heading) { font('normal', 8.5); ink([130, 160, 215]); doc.text(pdfText(dateLabel), PAGE_W - MARGIN, 14, { align: 'right' }); }
+
+    // Cifras en tarjetas translúcidas: número grande y rótulo
+    const tiles = [[items.length, items.length === 1 ? 'carta' : 'cartas'], [copies, copies === 1 ? 'copia' : 'copias']];
+    if (withNotes) tiles.push([withNotes, 'con nota']);
+    let tileX = MARGIN;
+    const tileY = 35.5;
+    tiles.forEach(([value, label]) => {
+      font('bold', 15);
+      const numberW = doc.getTextWidth(String(value));
+      font('normal', 8);
+      const width = numberW + doc.getTextWidth(label) + 11;
+      opacity(0.13);
       fill(WHITE);
-      doc.circle(x + 5.2, 13.75, 2.4, 'F');
+      doc.roundedRect(tileX, tileY, width, 10.5, 3.2, 3.2, 'F');
+      opacity(1);
+      font('bold', 15);
+      ink(YELLOW);
+      doc.text(String(value), tileX + 4, tileY + 7.5);
+      font('normal', 8);
+      ink(SKY);
+      doc.text(label, tileX + 4 + numberW + 2.2, tileY + 7.2);
+      tileX += width + 3;
+    });
+
+    // Invitación: cada carta del PDF abre el WhatsApp de quien la busca
+    if (whatsapp) {
+      font('bold', 8.6);
+      const label = 'Toca la carta que tengas';
+      const width = doc.getTextWidth(label) + 17;
+      const x = PAGE_W - MARGIN - width;
+      opacity(0.3);
+      fill(INK);
+      doc.roundedRect(x + 0.5, tileY + 0.9, width, 10.5, 5.25, 5.25, 'F');
+      opacity(1);
       fill(WHATSAPP);
-      doc.circle(x + 5.2, 13.75, 1.3, 'F');
+      doc.roundedRect(x, tileY, width, 10.5, 5.25, 5.25, 'F');
+      fill(WHITE);
+      doc.circle(x + 6, tileY + 5.25, 2.9, 'F');
+      fill(WHATSAPP);
+      doc.circle(x + 6, tileY + 5.25, 1.5, 'F');
+      doc.triangle(x + 3.4, tileY + 9.2, x + 4.6, tileY + 6.9, x + 6, tileY + 8.4, 'F');
       ink(WHITE);
-      doc.text(label, x + 9.5, 15.1);
-    } else {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      ink([191, 209, 245]);
-      doc.text(pdfText(dateLabel), PAGE_W - MARGIN, 14, { align: 'right' });
+      doc.text(label, x + 11, tileY + 6.4);
     }
+    fill(YELLOW);
+    doc.rect(0, FIRST_HEADER_H, PAGE_W, 1.2, 'F');
   };
   const slimHeader = () => {
-    gradientBand(SLIM_HEADER_H);
-    fill(YELLOW);
-    doc.rect(0, SLIM_HEADER_H, PAGE_W, 1, 'F');
-    drawLogo(MARGIN, 3.2, 9.6);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
+    drawLogo(MARGIN, 2.6, 9.2);
+    font('bold', 13);
     ink(WHITE);
-    doc.text('Busco estas cartas', MARGIN + 13, 10.2);
+    doc.text('Busco ', MARGIN + 13, 9.7);
+    ink(YELLOW);
+    doc.text('estas cartas', MARGIN + 13 + doc.getTextWidth('Busco '), 9.7);
+    fill(YELLOW);
+    doc.rect(0, SLIM_HEADER_H, PAGE_W, 0.8, 'F');
   };
 
+  // ---- Medidas de cada tarjeta: líneas del nombre y de la nota, y alto de la zona de texto
+  const measure = (item) => {
+    font('bold', 9.8);
+    const nameLines = fitLines(item.name, CARD_W - 8, 2);
+    const note = String(item.note || '').trim();
+    font('italic', 8);
+    const noteLines = note ? fitLines(note, CARD_W - 15, 3) : [];
+    const { set, language } = splitDetail(item.detail);
+    const infoH = 2.6 + 1.1 + 2 + nameLines.length * 4.1 + (set || language ? 4.4 : 0) + (noteLines.length ? 2.2 + 5.6 + noteLines.length * 3.5 : 0) + 2.6;
+    return { nameLines, noteLines, set, language, infoH };
+  };
+
+  // ---- Una tarjeta: foto con foco de luz y sombra, cantidad, precio, nombre, edición, idioma y nota
+  const drawCard = (item, layout, x, top, frameH) => {
+    opacity(0.32);
+    fill(INK);
+    doc.roundedRect(x + 0.9, top + 1.6, CARD_W, frameH, 5, 5, 'F');
+    opacity(0.14);
+    doc.roundedRect(x + 1.8, top + 3, CARD_W, frameH, 5, 5, 'F');
+    opacity(1);
+    fill(WHITE);
+    doc.roundedRect(x, top, CARD_W, frameH, 5, 5, 'F');
+
+    // Zona de la foto: panel azul clarito con un foco de luz detrás de la carta
+    const pad = 2.4;
+    const boxW = CARD_W - pad * 2;
+    const boxH = IMG_H - pad * 2;
+    fill(SPOT);
+    doc.roundedRect(x + pad, top + pad, boxW, boxH, 3.4, 3.4, 'F');
+    opacity(0.55);
+    fill(WHITE);
+    doc.circle(x + CARD_W / 2, top + IMG_H / 2, boxW * 0.42, 'F');
+    opacity(0.5);
+    doc.circle(x + CARD_W / 2, top + IMG_H / 2, boxW * 0.3, 'F');
+    opacity(1);
+    const thumb = thumbs.get(item.id);
+    if (thumb) {
+      const ratio = thumb.ratio;
+      const maxW = boxW - 7;
+      const maxH = boxH - 6;
+      const width = ratio > maxW / maxH ? maxW : maxH * ratio;
+      const height = ratio > maxW / maxH ? maxW / ratio : maxH;
+      const ix = x + pad + (boxW - width) / 2;
+      const iy = top + pad + (boxH - height) / 2;
+      opacity(0.25);
+      fill(INK);
+      doc.roundedRect(ix + 0.8, iy + 1.3, width, height, 2.2, 2.2, 'F');
+      opacity(0.12);
+      doc.roundedRect(ix + 1.6, iy + 2.4, width, height, 2.2, 2.2, 'F');
+      opacity(1);
+      doc.addImage(thumb.data, 'JPEG', ix, iy, width, height);
+    } else {
+      font('bold', 11);
+      ink(MUTED);
+      doc.text(doc.splitTextToSize(pdfText(item.name), boxW - 10).slice(0, 4), x + CARD_W / 2, top + IMG_H / 2 - 4, { align: 'center' });
+    }
+
+    // Cantidad: un círculo amarillo con aro blanco dentro de la esquina del panel
+    const radius = 6.4;
+    const cx = x + CARD_W - pad - radius - 1.6;
+    const cy = top + pad + radius + 1.6;
+    opacity(0.25);
+    fill(INK);
+    doc.circle(cx + 0.4, cy + 0.9, radius + 1.2, 'F');
+    opacity(1);
+    fill(WHITE);
+    doc.circle(cx, cy, radius + 1.2, 'F');
+    fill(YELLOW);
+    doc.circle(cx, cy, radius, 'F');
+    font('bold', 14);
+    ink(NAVY);
+    doc.text(`x${Number(item.quantity) || 1}`, cx, cy + 2, { align: 'center' });
+
+    // Precio que se pagaría (solo si se dejó visible)
+    if (item.priceVisible && item.maxPrice != null && Number(item.maxPrice) > 0) {
+      pill(x + pad + 2.4, top + IMG_H - pad - 9.4, 6.8, `Pago hasta ${clp(item.maxPrice)}`, NAVY, WHITE, 8);
+    }
+
+    // Texto: una barrita amarilla, el nombre, la edición con el idioma y la nota
+    const textX = x + 4;
+    const textW = CARD_W - 8;
+    let ty = top + IMG_H + 2.6;
+    fill(YELLOW);
+    doc.roundedRect(textX, ty, 9, 1.1, 0.55, 0.55, 'F');
+    ty += 1.1 + 2 + 3.2;
+    font('bold', 9.8);
+    ink(NAVY);
+    layout.nameLines.forEach((line, index) => doc.text(line, textX, ty + index * 4.1));
+    ty += (layout.nameLines.length - 1) * 4.1;
+    if (layout.set || layout.language) {
+      ty += 4.1;
+      let setX = textX;
+      if (layout.language) {
+        font('bold', 6.6);
+        const tagW = doc.getTextWidth(layout.language.toUpperCase()) + 4;
+        fill(BLUE);
+        doc.roundedRect(textX, ty - 2.9, tagW, 3.9, 1.95, 1.95, 'F');
+        ink(WHITE);
+        doc.text(layout.language.toUpperCase(), textX + tagW / 2, ty - 0.15, { align: 'center' });
+        setX += tagW + 1.8;
+      }
+      if (layout.set) {
+        font('normal', 7.4);
+        ink(MUTED);
+        doc.text(fitLines(layout.set, textW - (setX - textX), 1)[0], setX, ty);
+      }
+    }
+    if (layout.noteLines.length) {
+      const boxH = 5.6 + layout.noteLines.length * 3.5;
+      const boxY = top + frameH - 2.6 - boxH;
+      fill(NOTE_BG);
+      doc.roundedRect(textX - 0.4, boxY, textW + 0.8, boxH, 2, 2, 'F');
+      fill(YELLOW);
+      doc.roundedRect(textX - 0.4, boxY, 1.8, boxH, 0.9, 0.9, 'F');
+      font('bold', 6.2);
+      ink(NOTE_LABEL);
+      doc.text('NOTA', textX + 3.4, boxY + 3.3);
+      font('italic', 8);
+      ink(NOTE_INK);
+      layout.noteLines.forEach((line, index) => doc.text(line, textX + 3.4, boxY + 6.6 + index * 3.5));
+    }
+
+    // Tocar la carta abre el WhatsApp de quien la busca con el mensaje ya escrito
+    if (whatsapp) doc.link(x, top, CARD_W, frameH, { url: contactUrl(item) });
+  };
+
+  // ---- Rótulo del juego: una banda translúcida con una barra amarilla, el nombre y la cantidad
+  const gameBanner = (name, count) => {
+    const h = 8;
+    opacity(0.14);
+    fill(WHITE);
+    doc.roundedRect(MARGIN, y, PAGE_W - MARGIN * 2, h, 4, 4, 'F');
+    opacity(1);
+    fill(YELLOW);
+    doc.roundedRect(MARGIN, y, 3.2, h, 1.6, 1.6, 'F');
+    font('bold', 11);
+    ink(WHITE);
+    doc.text(pdfText(name), MARGIN + 8, y + 5.5);
+    const label = `${count} ${count === 1 ? 'carta' : 'cartas'}`;
+    font('bold', 8);
+    pill(PAGE_W - MARGIN - 3 - (doc.getTextWidth(label) + 5.8 * 1.15), y + 1.1, 5.8, label, YELLOW, NAVY, 8);
+  };
+
+  // ---- Recorrido: las cartas se reparten en filas de dos; cada fila tiene el alto que pide su texto más largo
   paintPage();
   firstHeader();
-  let y = FIRST_HEADER_H + 7;
+  let y = FIRST_HEADER_H + 8;
   const limit = PAGE_H - FOOTER_H;
   const newPage = () => { doc.addPage(); paintPage(); slimHeader(); y = SLIM_HEADER_H + 7; };
 
-  // Cartas agrupadas por juego (solo se rotula cada juego si la lista mezcla varios)
   const groups = [];
   items.forEach((item) => {
     const name = item.game || 'Sin juego';
@@ -274,142 +443,40 @@ export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos'
     group.items.push(item);
   });
 
-  const drawCard = (item, x, top) => {
-    // Marco blanco con una sombra suave en dos capas
-    fill(SHADOW);
-    opacity(0.55);
-    doc.roundedRect(x + 0.9, top + 1.4, CARD_W, FRAME_H, 4.5, 4.5, 'F');
-    opacity(1);
-    fill(WHITE);
-    doc.roundedRect(x, top, CARD_W, FRAME_H, 4.5, 4.5, 'F');
-
-    // Zona de la imagen: un panel clarito y la carta lo más grande posible
-    const pad = 2.6;
-    const boxW = CARD_W - pad * 2;
-    const boxH = IMG_H - pad * 2;
-    fill(PANEL);
-    doc.roundedRect(x + pad, top + pad, boxW, boxH, 3, 3, 'F');
-    const thumb = thumbs.get(item.id);
-    if (thumb) {
-      const ratio = thumb.ratio;
-      const width = ratio > boxW / boxH ? boxW - 1 : (boxH - 1) * ratio;
-      const height = ratio > boxW / boxH ? (boxW - 1) / ratio : boxH - 1;
-      doc.addImage(thumb.data, 'JPEG', x + pad + (boxW - width) / 2, top + pad + (boxH - height) / 2, width, height);
-    } else {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      ink(MUTED);
-      doc.text(doc.splitTextToSize(pdfText(item.name), boxW - 10).slice(0, 4), x + CARD_W / 2, top + IMG_H / 2 - 4, { align: 'center' });
-    }
-
-    // Cantidad: un círculo amarillo sobre la esquina de la carta
-    const radius = 7;
-    const cx = x + CARD_W - 3;
-    const cy = top + 3;
-    fill(WHITE);
-    doc.circle(cx, cy, radius + 1.3, 'F');
-    fill(YELLOW);
-    doc.circle(cx, cy, radius, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14.5);
-    ink(NAVY);
-    doc.text(`x${Number(item.quantity) || 1}`, cx, cy + 2.1, { align: 'center' });
-
-    // Precio que se pagaría (solo si se dejó visible)
-    if (item.priceVisible && item.maxPrice != null && Number(item.maxPrice) > 0) {
-      pill(x + pad + 2, top + IMG_H - pad - 9, 6.6, `Hasta ${clp(item.maxPrice)}`, NAVY, WHITE, 8.2);
-    }
-
-    // Nombre (hasta dos líneas) y edición
-    let ty = top + IMG_H + 4.6;
-    const textX = x + 4;
-    const textW = CARD_W - 8;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.6);
-    ink(NAVY);
-    const nameLines = fitLines(item.name, textW, 2);
-    nameLines.forEach((line, index) => doc.text(line, textX, ty + index * 4.1));
-    ty += (nameLines.length - 1) * 4.1;
-    const detail = pdfText(item.detail || '');
-    if (detail) {
-      ty += 3.8;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.4);
-      ink(MUTED);
-      doc.text(fitLines(detail, textW, 1)[0], textX, ty);
-    }
-
-    // Nota de quien busca: en un recuadro amarillo con borde, para que se note
-    const note = String(item.note || '').trim();
-    if (note) {
-      const available = top + FRAME_H - 2.4 - (ty + 2.2);
-      const maxLines = Math.max(1, Math.min(3, Math.floor((available - 5.4) / 3.5)));
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(8);
-      const lines = fitLines(note, textW - 7, maxLines);
-      const boxH = 5.4 + lines.length * 3.5;
-      const boxY = top + FRAME_H - 2.4 - boxH;
-      fill(NOTE_BG);
-      doc.roundedRect(textX - 0.5, boxY, textW + 1, boxH, 1.8, 1.8, 'F');
-      fill(YELLOW);
-      doc.roundedRect(textX - 0.5, boxY, 1.7, boxH, 0.85, 0.85, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(6.2);
-      ink(NOTE_LABEL);
-      doc.text('NOTA', textX + 3, boxY + 3.2);
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(8);
-      ink(NOTE_INK);
-      lines.forEach((line, index) => doc.text(line, textX + 3, boxY + 6.4 + index * 3.5));
-    }
-
-    // Tocar la carta abre el WhatsApp de quien la busca con el mensaje ya escrito
-    if (whatsapp) doc.link(x, top, CARD_W, FRAME_H, { url: contactUrl(item) });
-  };
-
   groups.forEach((group) => {
+    const layouts = new Map(group.items.map((item) => [item.id, measure(item)]));
     if (groups.length > 1) {
-      if (y + 11 + FRAME_H > limit) newPage();
-      // Rótulo del juego: una línea con una pastilla al centro
-      fill([200, 212, 238]);
-      doc.rect(MARGIN, y + 4, PAGE_W - MARGIN * 2, 0.4, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10.5);
-      const label = `${pdfText(group.name)}  -  ${group.items.length} ${group.items.length === 1 ? 'carta' : 'cartas'}`;
-      const width = doc.getTextWidth(label) + 12;
-      fill(BLUE);
-      doc.roundedRect((PAGE_W - width) / 2, y, width, 8.4, 4.2, 4.2, 'F');
-      fill(YELLOW);
-      doc.circle((PAGE_W - width) / 2 + 4.6, y + 4.2, 1.1, 'F');
-      ink(WHITE);
-      doc.text(label, PAGE_W / 2 + 1.6, y + 5.6, { align: 'center' });
-      y += 14.5; // deja lugar al círculo de copias, que sobresale por arriba de la primera fila
+      if (y + 10.5 + IMG_H + 28 > limit) newPage();
+      gameBanner(group.name, group.items.length);
+      y += 10.5;
     }
-
     for (let start = 0; start < group.items.length; start += COLS) {
-      if (y + FRAME_H > limit) newPage();
-      group.items.slice(start, start + COLS).forEach((item, column) => drawCard(item, GRID_X + column * (CARD_W + GAP_X), y));
-      y += FRAME_H + ROW_GAP;
+      const row = group.items.slice(start, start + COLS);
+      const frameH = IMG_H + Math.max(...row.map((item) => layouts.get(item.id).infoH));
+      if (y + frameH > limit) newPage();
+      row.forEach((item, column) => drawCard(item, layouts.get(item.id), GRID_X + column * (CARD_W + GAP_X), y, frameH));
+      y += frameH + ROW_GAP;
     }
   });
 
-  // Pie en todas las páginas
+  // ---- Pie de todas las páginas: banda translúcida con el sitio, el texto de contacto y el número de página
   const pages = doc.getNumberOfPages();
   for (let page = 1; page <= pages; page += 1) {
     doc.setPage(page);
     // Solo el logo de la cabecera lleva al sitio: la marca de agua del fondo y el pie no se pueden tocar por error
-    if (page === 1) doc.link(MARGIN, 8, 21, 21, { url: SITE_URL });
-    else doc.link(MARGIN, 3.2, 9.6, 9.6, { url: SITE_URL });
-    fill([200, 212, 238]);
-    doc.rect(MARGIN, PAGE_H - 10.4, PAGE_W - MARGIN * 2, 0.35, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    ink(BLUE);
-    doc.text('carpetazo.cl', MARGIN, PAGE_H - 5.6);
-    doc.setFont('helvetica', 'normal');
-    ink(MUTED);
-    doc.text(whatsapp ? 'Toca la carta que tengas y escríbeme por WhatsApp' : pdfText(dateLabel), PAGE_W / 2, PAGE_H - 5.6, { align: 'center' });
-    if (pages > 1) doc.text(`${page} / ${pages}`, PAGE_W - MARGIN, PAGE_H - 5.6, { align: 'right' });
+    if (page === 1) doc.link(MARGIN, 9, 21, 21, { url: SITE_URL });
+    else doc.link(MARGIN, 2.6, 9.2, 9.2, { url: SITE_URL });
+    opacity(0.14);
+    fill(WHITE);
+    doc.roundedRect(MARGIN, PAGE_H - 10, PAGE_W - MARGIN * 2, 6.6, 3.3, 3.3, 'F');
+    opacity(1);
+    font('bold', 8.6);
+    ink(YELLOW);
+    doc.text('carpetazo.cl', MARGIN + 5, PAGE_H - 5.5);
+    font('normal', 8);
+    ink(SKY);
+    doc.text(whatsapp ? 'Toca la carta que tengas y escríbeme por WhatsApp' : 'El mercado de cartas TCG de Chile', PAGE_W / 2, PAGE_H - 5.5, { align: 'center' });
+    if (pages > 1) { font('bold', 8); ink(WHITE); doc.text(`${page} / ${pages}`, PAGE_W - MARGIN - 5, PAGE_H - 5.5, { align: 'right' }); }
   }
 
   const filterPart = [listName, filtered && filterLabel].map(fileLabel).filter(Boolean).map((part) => ` ${part}`).join('');
