@@ -8,7 +8,7 @@ import FolderAddSearchFilters from '../filters/FolderAddSearchFilters';
 import { SafeImage } from '../SafeImage';
 import { cardLabel, getExtDataValue } from '../folderCards';
 import { ReferencePriceBox, ReferencePriceLine } from '../ReferencePrice';
-import useReferencePrices from '../../../hooks/useReferencePrices';
+import useFinishSplit from '../../../hooks/useFinishSplit';
 import Select from '../../ui/Select';
 import { TCG_LABELS } from '../../../config/folderOptions';
 import { cardCorners, cardFit, cardRatio, isYugioh, tcgplayerCardImage } from '../../../utils/cardShape';
@@ -40,7 +40,9 @@ export default function FolderAddTab({
 }) {
   // Precio referencial (Pokémon: TCGplayer; Mitos y Leyendas: vendedores de Carpetazo) de las cartas a la vista y de la que se agrega
   const referenceGame = searchCategory === '1' ? 'pokemon' : searchCategory === '68' ? 'onepiece' : searchCategory === 'magic' ? 'magic' : searchCategory === 'riftbound' ? 'riftbound' : searchCategory === 'yugioh' ? 'yugioh' : searchCategory === 'lorcana' ? 'lorcana' : searchCategory === 'digimon' ? 'digimon' : searchCategory === '99' ? 'myl' : null;
-  const { variantsFor, source } = useReferencePrices(selectedCard ? [selectedCard, ...searchResults.slice(0, visibleCount)] : searchResults.slice(0, visibleCount), referenceGame);
+  // Un acabado distinto (Reverse Holofoil…) se muestra como otra carta; el hook solo separa Pokémon
+  const pageResults = useMemo(() => searchResults.slice(0, visibleCount), [searchResults, visibleCount]);
+  const { cards: visibleResults, variantsFor, source } = useFinishSplit(pageResults, referenceGame, selectedCard ? [selectedCard] : []);
   const selectedVariants = referenceGame && selectedCard ? variantsFor(selectedCard) : undefined;
   // Precio sugerido: al elegir una carta con precio de referencia, el campo se rellena solo con el más bajo (la persona lo cambia si quiere).
   // Una carta se rellena una sola vez y nunca se pisa un precio que la persona ya escribió.
@@ -76,6 +78,7 @@ export default function FolderAddTab({
               <div className="text-center px-1">
                 <p className="font-extrabold text-gray-900 leading-snug text-[15px]">{cardLabel(selectedCard)}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{getCardSetName(selectedCard)} • {selectedCard.rarity || getExtDataValue(selectedCard.extData, 'Rarity')}</p>
+                {selectedCard.finish && <p className="mt-0.5 text-xs font-extrabold text-[#1e40af]">Acabado: {selectedCard.finish}</p>}
                 {selectedCard.isCustomImage && <p className="text-xs text-gray-500 mt-1">Tu foto se verá en tu carpeta, para ti y para quien la visite. Si esta carta no tiene imagen en el catálogo, también se la enviamos a Moderación para que pase a ser la imagen de esa carta para todos.</p>}
                 {isBatchAdding && (
                   <p className="text-xs font-bold text-[#1e40af] mt-1">
@@ -202,7 +205,7 @@ export default function FolderAddTab({
     <div className="flex flex-col-reverse lg:flex-row gap-6">      {fullscreen && selectedCard && (
         <AddCardFullscreen
           card={selectedCard}
-          list={isBatchAdding ? [] : searchResults.slice(0, visibleCount)}
+          list={isBatchAdding ? [] : visibleResults}
           onPick={handleResultCardClick}
           onClose={() => setFullscreen(false)}
           imageSrc={previewSrc}
@@ -363,7 +366,7 @@ export default function FolderAddTab({
             <LoadingState className="col-span-full" label="Buscando cartas…" hint="Consultando el catálogo mundial." />
           ) : searchResults.length > 0 ? (
             <>
-            {searchResults.slice(0, visibleCount).map((card, index) => {
+            {visibleResults.map((card, index) => {
               const queuedCount = selectedQueueCountByCard[getCardSelectionKey(card)] || 0;
               const isCardSelected = selectedCard?.id === card.id || queuedCount > 0;
               return (
@@ -386,6 +389,7 @@ export default function FolderAddTab({
               )}
               {/* Cada juego tiene su proporción (Yu-Gi-Oh! es más angosta); la imagen entra entera, sin recortes */}
               <div className="relative w-full flex items-center justify-center bg-gray-50 overflow-hidden" style={{ aspectRatio: isMylFolder ? '709 / 1016' : cardRatio(folderData?.tcg) }}>
+                {card.finish && <span className="absolute bottom-1 left-1 right-1 z-10 truncate rounded-full bg-[#facc15] px-2 py-0.5 text-center text-[11px] font-extrabold text-[#12315f]">{card.finish}</span>}
                 <SafeImage src={card.imageUrl} fallbackSrc={tcgplayerCardImage({ ...card, tcg: folderData?.tcg })} alt={card.name} rotateLandscape style={cardFit(folderData?.tcg)} className="w-full h-full object-contain relative z-10 transition-opacity duration-300" fallbackType="grid" />
               </div>
               {showCardDetails && (

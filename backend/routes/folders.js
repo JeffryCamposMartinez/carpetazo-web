@@ -17,8 +17,9 @@ import { PlanLimitError, assertFeature, assertCanAddUniqueCard, assertCanCreateF
 const OWN_CARD_PHOTO = /\/Usuarios\/[^/]+\/card\/[0-9a-f]{32}\.webp$/;
 // Imagen en español de una carta (de TCGdex o ya guardada en R2): se ve igual que la propia foto, no se cambia por la imagen inglesa del catálogo
 const SPANISH_CARD_IMAGE = /^https:\/\/assets\.tcgdex\.net\/|\/Pokemon_Espanol\//;
-// Una carta se identifica por su id, idioma y estado: la misma carta en otro estado es otra fila (con su propio precio y stock)
-const identityKey = (tcgId, language, condition) => `${tcgId}\u0000${language}\u0000${condition ?? ''}`;
+// Una carta se identifica por su id, idioma, estado y acabado (Normal, Reverse Holofoil…): lo que cambie en alguno es otra fila (con su propio precio y stock)
+const finishOf = (data) => (data && typeof data === 'object' && typeof data.finish === 'string' ? data.finish : '');
+const identityKey = (tcgId, language, condition, data) => `${tcgId}\u0000${language}\u0000${condition ?? ''}\u0000${finishOf(data)}`;
 const router = express.Router();
 const CARD_LANGUAGES = ['English', 'Spanish', 'Japanese'];
 const normalizedLanguage = (tcg, value) => (isMylTcg(tcg) ? 'Spanish' : CARD_LANGUAGES.includes(value) ? value : 'English');
@@ -53,12 +54,12 @@ router.put('/api/folders/:id/cards/:cardId', authenticateToken, async (req, res)
         assertStockChange(plan, current.stock, nextStock);
         dataToUpdate.stock = nextStock;
       }
-      const merged = data !== undefined ? cleanCardData({ ...(current.data && typeof current.data === 'object' ? current.data : {}), ...data }) : null;
+      const merged = data !== undefined ? cleanCardData({ ...(current.data && typeof current.data === 'object' ? current.data : {}), ...data, finish: finishOf(current.data) || undefined }) : null;
       const nextLanguage = data !== undefined ? normalizedLanguage(folder.tcg, merged?.language || current.language) : current.language;
       const nextCondition = condition === undefined ? current.condition : normalizedCondition(condition);
       if (nextLanguage !== current.language || nextCondition !== current.condition) {
-        const conflict = await tx.card.findFirst({ where: { folderId: folder.id, tcgId: current.tcgId, language: nextLanguage, condition: nextCondition, id: { not: current.id } }, select: { id: true } });
-        if (conflict) throw new PlanLimitError('card_identity_conflict', { planKey: plan.key });
+        const sameIdentity = await tx.card.findMany({ where: { folderId: folder.id, tcgId: current.tcgId, language: nextLanguage, condition: nextCondition, id: { not: current.id } }, select: { data: true } });
+        if (sameIdentity.some((other) => finishOf(other.data) === finishOf(current.data))) throw new PlanLimitError('card_identity_conflict', { planKey: plan.key });
       }
       if (data !== undefined) {
         dataToUpdate.language = nextLanguage;
@@ -188,19 +189,19 @@ router.put('/api/folders/:id/cards-bulk', authenticateToken, async (req, res) =>
       await lockPlanUser(tx, own.owner.id);
       const [cards, allCards, effective] = await Promise.all([
         tx.card.findMany({ where: { folderId: own.folder.id, id: { in: updates.map((item) => item.id) } }, select: { id: true, tcgId: true, language: true, condition: true, stock: true, data: true, moderationState: true } }),
-        tx.card.findMany({ where: { folderId: own.folder.id }, select: { id: true, tcgId: true, language: true, condition: true } }),
+        tx.card.findMany({ where: { folderId: own.folder.id }, select: { id: true, tcgId: true, language: true, condition: true, data: true } }),
         getEffectivePlan(tx, own.owner.id)
       ]);
       if (cards.length !== updates.length) throw Object.assign(new Error('La selección incluye cartas que no son de esta carpeta'), { status: 400 });
       const byId = new Map(cards.map((card) => [card.id, card]));
       const editable = updates.filter((item) => byId.get(item.id).moderationState !== 'hidden');
       const editableIds = new Set(editable.map((item) => item.id));
-      const occupied = new Set(allCards.filter((card) => !editableIds.has(card.id)).map((card) => identityKey(card.tcgId, card.language, card.condition)));
+      const occupied = new Set(allCards.filter((card) => !editableIds.has(card.id)).map((card) => identityKey(card.tcgId, card.language, card.condition, card.data)));
       for (const item of editable) {
         const current = byId.get(item.id);
         const nextLanguage = normalizedLanguage(own.folder.tcg, item.language || current.language);
         const nextCondition = item.condition === undefined ? current.condition : normalizedCondition(item.condition);
-        const identity = identityKey(current.tcgId, nextLanguage, nextCondition);
+        const identity = identityKey(current.tcgId, nextLanguage, nextCondition, current.data);
         if (occupied.has(identity)) throw new PlanLimitError('card_identity_conflict', { planKey: effective.plan.key });
         occupied.add(identity);
         const data = {};
@@ -261,17 +262,17 @@ router.post('/api/folders/:id/cards-bulk/move', authenticateToken, async (req, r
       await lockPlanUser(tx, own.owner.id);
       const [cards, targetCards, effective] = await Promise.all([
         tx.card.findMany({ where: { folderId: own.folder.id, id: { in: ids } }, select: { id: true, tcgId: true, language: true, condition: true, stock: true, data: true } }),
-        tx.card.findMany({ where: { folderId: target.id }, select: { id: true, tcgId: true, language: true, condition: true, stock: true } }),
+        tx.card.findMany({ where: { folderId: target.id }, select: { id: true, tcgId: true, language: true, condition: true, stock: true, data: true } }),
         getEffectivePlan(tx, own.owner.id)
       ]);
       if (cards.length !== ids.length) throw Object.assign(new Error('La selección incluye cartas que no son de esta carpeta'), { status: 400 });
-      const targetByIdentity = new Map(targetCards.map((card) => [identityKey(card.tcgId, card.language, card.condition), card]));
-      const newIdentities = new Set(cards.map((card) => identityKey(card.tcgId, card.language, card.condition)).filter((identity) => !targetByIdentity.has(identity)));
+      const targetByIdentity = new Map(targetCards.map((card) => [identityKey(card.tcgId, card.language, card.condition, card.data), card]));
+      const newIdentities = new Set(cards.map((card) => identityKey(card.tcgId, card.language, card.condition, card.data)).filter((identity) => !targetByIdentity.has(identity)));
       if (effective.plan.uniqueCardsPerFolder !== null && targetCards.length + newIdentities.size > effective.plan.uniqueCardsPerFolder) {
         throw new PlanLimitError('plan_unique_card_limit', { current: targetCards.length, limit: effective.plan.uniqueCardsPerFolder, planKey: effective.plan.key, details: { requested: targetCards.length + newIdentities.size } });
       }
       for (const card of cards) {
-        const identity = identityKey(card.tcgId, card.language, card.condition);
+        const identity = identityKey(card.tcgId, card.language, card.condition, card.data);
         const existing = targetByIdentity.get(identity);
         if (existing) {
           const nextStock = existing.stock + card.stock;
@@ -665,6 +666,7 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
     if (data?.language !== undefined && !CARD_LANGUAGES.includes(data.language)) {
       return badRequest(res, 'Idioma de carta inválido');
     }
+    if (data?.finish !== undefined && !(typeof data.finish === 'string' && isShortText(data.finish, 40))) return badRequest(res, 'Acabado de carta inválido');
     if (imageUrl && !isAllowedStoredImageUrl(imageUrl)) {
       return res.status(400).json({ success: false, error: 'URL de imagen no permitida' });
     }
@@ -688,7 +690,8 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
       await lockPlanUser(tx, user.id);
       const stillOwned = await tx.folder.findFirst({ where: { id: folder.id, userId: user.id }, select: { id: true } });
       if (!stillOwned) throw Object.assign(new Error('Not authorized'), { status: 403 });
-      const existing = await tx.card.findFirst({ where: { folderId: folder.id, tcgId: normalizedTcgId, language: cardLanguage, condition: cardCondition }, select: { id: true } });
+      const sameCard = await tx.card.findMany({ where: { folderId: folder.id, tcgId: normalizedTcgId, language: cardLanguage, condition: cardCondition }, select: { id: true, data: true } });
+      const existing = sameCard.find((other) => finishOf(other.data) === finishOf(data));
       if (existing) {
         const { plan } = await getEffectivePlan(tx, user.id);
         throw new PlanLimitError('card_identity_conflict', { planKey: plan.key, details: { existingCardId: existing.id } });

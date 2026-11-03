@@ -9,16 +9,18 @@ import AddToFolderModal from './AddToFolderModal';
 import CardsPagination from './CardsPagination';
 import useWishlistIndex, { wishlistKeyOf } from '../../hooks/useWishlistIndex';
 import useCardInfoSearch, { INFO_PAGE } from '../../hooks/useCardInfoSearch';
-import useReferencePrices from '../../hooks/useReferencePrices';
+import useFinishSplit from '../../hooks/useFinishSplit';
 import { ReferencePriceLine } from '../folder/ReferencePrice';
 import { formatClp } from '../../services/tcgcsvPrices';
 import { cardFill, cardRatio } from '../../utils/cardShape';
 import SvgIcon from '../ui/SvgIcon';
 import { catalogLink } from '../../utils/catalogLink';
 
+const FinishBadge = ({ card }) => (card.finish ? <span className="absolute bottom-1.5 left-1.5 right-1.5 truncate rounded-full bg-[#facc15] px-2 py-0.5 text-center text-[11px] font-extrabold text-[#12315f]">{card.finish}</span> : null);
+
 const NOTE = 'Referencia del catálogo: esta ficha no es una oferta de venta.';
 const tcgplayerImage = (card) => {
-  const id = card?.tcgProductId || card?.productId || card?.payload?.external?.productId;
+  const id = card?.noImage ? '' : card?.tcgProductId || card?.productId || card?.payload?.external?.productId;
   return id ? `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(id))}_400w.jpg` : '';
 };
 
@@ -42,11 +44,12 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
   useEffect(() => { if (exhausted && page > known) setPage(known); }, [exhausted, page, known]);
 
   // El índice remoto ya devuelve la página solicitada; el fallback antiguo devuelve la lista acumulada.
-  const shown = indexedTotal > results.length || indexedPages > 1
+  const pageCards = indexedTotal > results.length || indexedPages > 1
     ? results
     : results.slice((page - 1) * INFO_PAGE, page * INFO_PAGE);
   // Precio de mercado de TCGplayer como referencia (Mitos y Leyendas no está en TCGplayer)
-  const { variantsFor } = useReferencePrices(shown.filter((card) => card.groupId), 'pokemon');
+  // Un acabado distinto (Reverse Holofoil…) se muestra como otra carta
+  const { cards: shown, variantsFor } = useFinishSplit(pageCards, 'pokemon');
 
   if (!enabled) return null;
 
@@ -103,6 +106,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
                 <div className="relative w-full overflow-hidden rounded-xl bg-slate-50" style={{ aspectRatio: cardRatio(card.game) }}>
                   <LoadableImage loading={index < 10 ? 'eager' : 'lazy'} src={card.imageUrl || tcgplayerImage(card)} fallbackSrc={card.imageUrl ? tcgplayerImage(card) : undefined} alt={card.name} rotateLandscape className="h-full w-full object-contain" style={cardFill(card.game)} />
                   <span className="absolute left-1.5 top-1.5 rounded-full bg-[#12315f]/90 px-2 py-0.5 text-[11px] font-extrabold text-white">{card.catId === 100 ? 'Catálogo · Español' : 'Catálogo'}</span>
+                  <FinishBadge card={card} />
                 </div>
                 <p className="mt-2 line-clamp-2 text-sm font-extrabold leading-snug text-[#12315f]">{card.name}</p>
                 <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{card.setName}</p>

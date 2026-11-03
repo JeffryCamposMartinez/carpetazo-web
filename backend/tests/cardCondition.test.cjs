@@ -19,6 +19,18 @@ const { prisma, call, ok } = require('./fixtures.cjs');
     ok('y sin estado también es otra fila', r.status === 200 && r.j.card?.condition === null);
     ok('quedan tres filas de la misma carta', (await prisma.card.count({ where: { folderId: a, tcgId: '98002001' } })) === 3);
 
+    // Acabado: el mismo id con otro acabado (Reverse Holofoil) es otra carta; repetir el acabado es un duplicado
+    r = await add(a, 3, { data: { finish: 'Reverse Holofoil' } });
+    ok('el mismo id con otro acabado es otra carta', r.status === 200 && r.j.card?.data?.finish === 'Reverse Holofoil', JSON.stringify(r.j).slice(0, 160));
+    const finishCard = r.j.card;
+    r = await add(a, 3, { data: { finish: 'Reverse Holofoil' } });
+    ok('repetir el mismo acabado es un duplicado', r.status === 409 || r.status === 403 || r.j.code === 'card_identity_conflict', JSON.stringify(r));
+    r = await add(a, 3, { data: { finish: 'x'.repeat(41) } });
+    ok('un acabado demasiado largo se rechaza', r.status === 400);
+    r = await call('PUT', `/folders/${a}/cards/${finishCard.id}`, 'seller', { price: 1500, data: { finish: 'Normal' } });
+    ok('editar no cambia el acabado', r.status === 200 && (await prisma.card.findUnique({ where: { id: finishCard.id } })).data.finish === 'Reverse Holofoil');
+    await prisma.card.delete({ where: { id: finishCard.id } });
+
     r = await add(a, 9, { tcgId: '98002002' });
     ok('un estado fuera de 1 a 5 se rechaza', r.status === 400, JSON.stringify(r));
     r = await add(a, 'abc', { tcgId: '98002002' });

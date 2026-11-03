@@ -19,7 +19,7 @@ export const cardFill = (tcg) => (isYugioh(tcg) ? { borderRadius: YUGIOH_RADIUS,
 export const NO_IMAGE_CARD_URL = 'https://pub-1ba0fdf5c93c4412abbc2b234780b3c6.r2.dev/Carpetazo.cl/Sin_Imagen/Carpetazo_TCG_Sin_Imagen.webp';
 
 export const tcgplayerCardImage = (card) => {
-  if (!card) return '';
+  if (!card || card.noImage) return '';
   if (typeof card !== 'object') {
     return /^\d+$/.test(String(card)) ? `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(card))}_400w.jpg` : '';
   }

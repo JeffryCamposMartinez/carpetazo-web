@@ -20,7 +20,7 @@ const box = 'flex h-12 w-full items-center rounded-xl border-2 border-[#12315f]/
 const bare = 'min-w-0 flex-1 border-0 bg-transparent px-3 shadow-none focus:border-0 focus:shadow-none focus:ring-0 focus:ring-offset-0 text-base font-bold text-[#12315f] outline-none placeholder:font-medium placeholder:text-slate-500 sm:text-[15px]';
 const stepButton = 'flex h-full w-10 shrink-0 items-center justify-center text-[#1e40af] transition-colors hover:bg-blue-50 active:bg-blue-100 disabled:text-[#12315f]/30 disabled:hover:bg-transparent focus-visible:outline-none focus-visible:bg-blue-50';
 
-const productIdOf = (card) => String(card.tcgProductId || card.payload?.productId || card.payload?.external?.productId || '').replace(/^(tcgcsv|myl):/, '');
+const productIdOf = (card) => String(card.baseProductId || card.tcgProductId || card.payload?.productId || card.payload?.external?.productId || '').replace(/^(tcgcsv|myl):/, '');
 
 // Con el plan de la persona: ¿le queda espacio para crear una carpeta más? (si no se sabe, se deja intentar: el servidor decide)
 const canCreateFolder = (planState) => {
@@ -82,7 +82,7 @@ export default function AddToFolderModal({ card, variants = [], onClose }) {
   const useReference = (clp, variant) => {
     setPrice(String(clp));
     const known = (variants || []).map((item) => item.name);
-    if (variant?.name && (!alias.trim() || known.includes(alias.trim()))) setAlias(variant.name);
+    if (variant?.name && (!alias.trim() || known.includes(alias.trim()))) setAlias(card.finish ? '' : variant.name); // el acabado ya queda guardado aparte
   };
 
   const submit = async (event) => {
@@ -105,7 +105,7 @@ export default function AddToFolderModal({ card, variants = [], onClose }) {
         price: Number(price),
         stock: Number(stock),
         imageUrl: card.imageUrl || '',
-        data: { pseudoName: alias.trim(), set: card.setName || 'Unknown', rarity: 'Unknown', language: folderTcg === 'Mitos y Leyendas' ? 'Spanish' : cardLanguage, number: '' }
+        data: { ...(card.finish ? { finish: card.finish } : {}), pseudoName: alias.trim(), set: card.setName || 'Unknown', rarity: 'Unknown', language: folderTcg === 'Mitos y Leyendas' ? 'Spanish' : cardLanguage, number: '' }
       });
       showToast(`${card.name} agregada a «${targetName || 'tu carpeta'}»${created ? ' (carpeta nueva)' : ''}`, { type: 'success', action: { label: 'Ver carpeta', run: () => navigate(`/carpeta/${targetId}`) } });
       onClose();

@@ -167,7 +167,8 @@ const [isSearching, setIsSearching] = useState(false);
     }
   };
 
-  const getCardSelectionKey = (card) => normalizeTcgProductId(card?.productId || card?.tcgProductId || card?.id || card?.name);
+  const getCardSelectionKey = (card) => `${normalizeTcgProductId(card?.baseProductId || card?.productId || card?.tcgProductId || card?.id || card?.name)}${card?.finish ? `~${card.finish}` : ''}`;
+  const finishOfCard = (card) => card?.data?.finish ?? card?.finish ?? '';
   const isBatchAdding = activeQueueItemId !== null;
   const selectedQueueCountByCard = selectedQueue.reduce((acc, item) => {
     const key = getCardSelectionKey(item.card);
@@ -930,10 +931,10 @@ const [isSearching, setIsSearching] = useState(false);
     setIsSaving(true);
     
     try {
-      const targetTcgId = storedCardId(folderData?.tcg, normalizeTcgProductId(selectedCard.productId || selectedCard.id || selectedCard.tcgProductId));
+      const targetTcgId = storedCardId(folderData?.tcg, normalizeTcgProductId(selectedCard.baseProductId || selectedCard.productId || selectedCard.id || selectedCard.tcgProductId));
       const targetLanguage = isMylFolder ? 'Spanish' : normalizeCardLanguage(language);
       const targetCondition = condition === '' ? null : Number(condition);
-      const existingCard = cards.find(c => normalizeTcgProductId(c.tcgId) === targetTcgId && cardLanguageOf(c) === targetLanguage && (c.condition ?? null) === targetCondition);
+      const existingCard = cards.find(c => normalizeTcgProductId(c.tcgId) === targetTcgId && cardLanguageOf(c) === targetLanguage && (c.condition ?? null) === targetCondition && finishOfCard(c) === (selectedCard.finish || ''));
       
       if (existingCard) {
         const newStock = existingCard.stock + cardStock;
@@ -957,6 +958,7 @@ const [isSearching, setIsSearching] = useState(false);
           ...(extraPhotosRef.current.length ? { photos: extraPhotosRef.current } : {}),
           imageUrl: selectedCard.imageUrl || '',
           data: {
+            ...(selectedCard.finish ? { finish: selectedCard.finish } : {}),
             pseudoName: isBatchAdding ? '' : pseudoName.trim(),
             set: getCardSetName(selectedCard) || 'Unknown',
             rarity: getExtDataValue(selectedCard.extData, 'Rarity') || getExtDataValue(selectedCard.extData, 'Card Number / Rarity') || getExtDataValue(selectedCard.extData, 'Frequency') || 'Unknown',
@@ -1023,11 +1025,11 @@ const [isSearching, setIsSearching] = useState(false);
   };
 
   const selectedCardTcgId = selectedCard
-    ? storedCardId(folderData?.tcg, normalizeTcgProductId(selectedCard.productId || selectedCard.id || selectedCard.tcgProductId))
+    ? storedCardId(folderData?.tcg, normalizeTcgProductId(selectedCard.baseProductId || selectedCard.productId || selectedCard.id || selectedCard.tcgProductId))
     : null;
   const selectedCardLanguage = isMylFolder ? 'Spanish' : normalizeCardLanguage(language);
   const selectedExistingCard = selectedCardTcgId
-    ? cards.find(c => normalizeTcgProductId(c.tcgId) === selectedCardTcgId && cardLanguageOf(c) === selectedCardLanguage)
+    ? cards.find(c => normalizeTcgProductId(c.tcgId) === selectedCardTcgId && cardLanguageOf(c) === selectedCardLanguage && finishOfCard(c) === (selectedCard.finish || ''))
     : null;
 
   if (loadingFolder) {

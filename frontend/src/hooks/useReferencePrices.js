@@ -71,7 +71,9 @@ export default function useReferencePrices(cards, game) {
     if (!pokemon || !card.groupId || !rate) return null;
     const prices = byGroup[`${catOf(card)}-${card.groupId}`];
     if (!prices) return null;
-    return (prices.get(String(card.tcgProductId || card.id)) || []).map((variant) => ({ name: variant.name, clp: usdToClp(variant.usd, rate) }));
+    return (prices.get(String(card.baseProductId || card.tcgProductId || card.id)) || [])
+      .filter((variant) => !card.finishLabel || variant.name === card.finishLabel)
+      .map((variant) => ({ name: variant.name, clp: usdToClp(variant.usd, rate) }));
   };
-  return { variantsFor, source: isMyl ? 'carpetazo' : 'tcgplayer' };
+  return { variantsFor, source: isMyl ? 'carpetazo' : 'tcgplayer', byGroup, rate };
 }
