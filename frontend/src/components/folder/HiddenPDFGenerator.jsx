@@ -77,7 +77,8 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
             setFolder(res.folder);
         }
         
-        const cardsData = sortCatalogCards((res?.folder?.cards || []).map(c => ({ ...c, ...(c.data || {}) })));
+        // Las cartas sin stock no se ofrecen en el PDF
+        const cardsData = sortCatalogCards((res?.folder?.cards || []).map(c => ({ ...c, ...(c.data || {}) })).filter(c => (c.stock || 0) > 0));
         const totalCards = cardsData.length;
         
         let loadedCount = 0;
