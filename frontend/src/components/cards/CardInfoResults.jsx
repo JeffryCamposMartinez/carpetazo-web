@@ -10,13 +10,13 @@ import CardsPagination from './CardsPagination';
 import useWishlistIndex, { wishlistKeyOf, withFinish } from '../../hooks/useWishlistIndex';
 import useCardInfoSearch, { INFO_PAGE } from '../../hooks/useCardInfoSearch';
 import useFinishSplit from '../../hooks/useFinishSplit';
+import FinishRibbon from '../ui/FinishRibbon';
 import { ReferencePriceLine } from '../folder/ReferencePrice';
 import { formatClp } from '../../services/tcgcsvPrices';
 import { cardFill, cardRatio } from '../../utils/cardShape';
 import SvgIcon from '../ui/SvgIcon';
 import { catalogLink } from '../../utils/catalogLink';
 
-const FinishBadge = ({ card }) => (card.finish ? <span className="absolute bottom-1.5 left-1.5 right-1.5 truncate rounded-full bg-[#facc15] px-2 py-0.5 text-center text-[11px] font-extrabold text-[#12315f]">{card.finish}</span> : null);
 
 const NOTE = 'Referencia del catálogo: esta ficha no es una oferta de venta.';
 const tcgplayerImage = (card) => {
@@ -106,7 +106,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
                 <div className="relative w-full overflow-hidden rounded-xl bg-slate-50" style={{ aspectRatio: cardRatio(card.game) }}>
                   <LoadableImage loading={index < 10 ? 'eager' : 'lazy'} src={card.imageUrl || tcgplayerImage(card)} fallbackSrc={card.imageUrl ? tcgplayerImage(card) : undefined} alt={card.name} rotateLandscape className="h-full w-full object-contain" style={cardFill(card.game)} />
                   <span className="absolute left-1.5 top-1.5 rounded-full bg-[#12315f]/90 px-2 py-0.5 text-[11px] font-extrabold text-white">{card.catId === 100 ? 'Catálogo · Español' : 'Catálogo'}</span>
-                  <FinishBadge card={card} />
+                  <FinishRibbon finish={card.finish} />
                 </div>
                 <p className="mt-2 line-clamp-2 text-sm font-extrabold leading-snug text-[#12315f]">{card.name}</p>
                 <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{card.setName}</p>

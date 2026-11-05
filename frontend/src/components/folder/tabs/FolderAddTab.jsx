@@ -9,6 +9,7 @@ import { SafeImage } from '../SafeImage';
 import { cardLabel, getExtDataValue } from '../folderCards';
 import { ReferencePriceBox, ReferencePriceLine } from '../ReferencePrice';
 import useFinishSplit from '../../../hooks/useFinishSplit';
+import FinishRibbon from '../../ui/FinishRibbon';
 import Select from '../../ui/Select';
 import { TCG_LABELS } from '../../../config/folderOptions';
 import { cardCorners, cardFit, cardRatio, isYugioh, tcgplayerCardImage } from '../../../utils/cardShape';
@@ -389,8 +390,8 @@ export default function FolderAddTab({
               )}
               {/* Cada juego tiene su proporción (Yu-Gi-Oh! es más angosta); la imagen entra entera, sin recortes */}
               <div className="relative w-full flex items-center justify-center bg-gray-50 overflow-hidden" style={{ aspectRatio: isMylFolder ? '709 / 1016' : cardRatio(folderData?.tcg) }}>
-                {card.finish && <span className="absolute bottom-1 left-1 right-1 z-10 truncate rounded-full bg-[#facc15] px-2 py-0.5 text-center text-[11px] font-extrabold text-[#12315f]">{card.finish}</span>}
                 <SafeImage src={card.imageUrl} fallbackSrc={tcgplayerCardImage({ ...card, tcg: folderData?.tcg })} alt={card.name} rotateLandscape style={cardFit(folderData?.tcg)} className="w-full h-full object-contain relative z-10 transition-opacity duration-300" fallbackType="grid" />
+                <FinishRibbon finish={card.finish} />
               </div>
               {showCardDetails && (
                 <div className={`text-center border-t border-gray-100 w-full ${gridCols <= 2 ? 'p-2' : gridCols === 3 ? 'p-3' : gridCols === 4 ? 'p-2' : 'p-1'}`}>

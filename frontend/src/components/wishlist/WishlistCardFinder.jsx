@@ -19,6 +19,7 @@ import { EMPTY_DG_FILTERS, countDigimonFilters } from '../../services/tcgcsvDigi
 import { EMPTY_YGO_FILTERS, countYugiohFilters } from '../../services/tcgcsvYugioh';
 import EmptyState from '../ui/EmptyState';
 import useFinishSplit from '../../hooks/useFinishSplit';
+import FinishRibbon from '../ui/FinishRibbon';
 import LoadingState from '../ui/LoadingState';
 
 // Juegos del sitio. Solo los marcados tienen buscador con filtros; el resto llegará pronto.
@@ -346,7 +347,7 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
                   <li key={row.key} className="flex min-w-0 flex-col gap-1.5 rounded-xl bg-white p-1.5 ring-1 ring-slate-200 sm:p-2">
                     <button type="button" onClick={() => setPreviewKey(row.key)} aria-label={`Ver ${row.label} en pantalla completa`} className="relative block aspect-[5/7] w-full cursor-zoom-in overflow-hidden rounded-lg bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]" style={{ aspectRatio: cardRatio(game, '5 / 7') }}>
                       <LoadableImage src={row.imageUrl} fallbackSrc={tcgplayerCardImage({ ...row.payload, game })} alt={row.label} loading="lazy" rotateLandscape className="h-full w-full object-contain" style={cardFill(game)} />
-                      {row.finish && <span className="absolute bottom-1 left-1 right-1 truncate rounded-full bg-[#facc15] px-2 py-0.5 text-center text-[11px] font-extrabold text-[#12315f]">{row.finish}</span>}
+                      <FinishRibbon finish={row.finish} />
                     </button>
                     <span className="min-w-0 px-0.5">
                       <span className="line-clamp-2 block text-[12px] font-bold leading-tight text-[#12315f] sm:text-[13px]" title={row.label}>{row.label}</span>
