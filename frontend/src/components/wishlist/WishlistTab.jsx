@@ -6,6 +6,7 @@ import WishlistFinderSheet from './WishlistFinderSheet';
 import CardLightbox from '../ui/CardLightbox';
 import { describeWishlistItem } from './wishlistLightbox';
 import LoadableImage from '../ui/LoadableImage';
+import FinishRibbon from '../ui/FinishRibbon';
 import WishlistLightboxActions from './WishlistLightboxActions';
 import WishlistAlerts from './WishlistAlerts';
 import WishlistLists from './WishlistLists';
@@ -19,6 +20,11 @@ const LIMIT_FALLBACK = 200;
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 
 // Administración de la lista de cartas deseadas (panel del jugador). Pensada primero para el móvil.
+// Acabado distinto del normal (Reverse Holofoil…): el id guardado lleva `~acabado` y el nombre del acabado cierra el detalle
+const finishOf = (item) => (item.productId?.includes('~') ? String(item.detail || '').split(' · ').pop() : '');
+// Sin imagen guardada (cartas agregadas antes): la de TCGplayer a partir del id, que es la misma para todos los acabados
+const thumbFallback = (item) => tcgplayerCardImage({ productId: item.productId?.match(/^tcgcsv:\d+:(\d+)/)?.[1] });
+
 export default function WishlistTab({ showToast = () => {} }) {
   const [allItems, setItems] = useState([]); // cartas de todas las listas
   const [lists, setLists] = useState([]);
@@ -375,10 +381,10 @@ export default function WishlistTab({ showToast = () => {} }) {
               <div className="grid grid-cols-[60px_minmax(0,1fr)] items-start gap-x-3 sm:flex sm:items-center">
                 {item.imageUrl ? (
                   <button type="button" onClick={() => setPreviewId(item.id)} aria-label={`Ver ${item.name} en grande`} className="relative row-span-2 block h-[84px] w-[60px] shrink-0 cursor-zoom-in overflow-hidden rounded-lg bg-slate-100 ring-1 ring-black/5 transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-                    <LoadableImage src={item.imageUrl} fallbackSrc={tcgplayerCardImage(item)} alt="" loading="lazy" compact rotateLandscape className="h-full w-full object-contain" />
+                    <LoadableImage src={item.imageUrl} fallbackSrc={thumbFallback(item)} alt="" loading="lazy" compact rotateLandscape className="h-full w-full object-contain" /><FinishRibbon finish={finishOf(item)} compact />
                   </button>
                 ) : (
-                  <button type="button" onClick={() => setPreviewId(item.id)} aria-label={`Ver ${item.name} en grande`} className="relative row-span-2 block h-[84px] w-[60px] shrink-0 cursor-zoom-in overflow-hidden rounded-lg bg-slate-100 ring-1 ring-black/5 transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"><LoadableImage src={item.imageUrl} fallbackSrc={tcgplayerCardImage(item)} alt="" loading="lazy" compact rotateLandscape className="h-full w-full object-contain" /></button>
+                  <button type="button" onClick={() => setPreviewId(item.id)} aria-label={`Ver ${item.name} en grande`} className="relative row-span-2 block h-[84px] w-[60px] shrink-0 cursor-zoom-in overflow-hidden rounded-lg bg-slate-100 ring-1 ring-black/5 transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"><LoadableImage src={item.imageUrl} fallbackSrc={thumbFallback(item)} alt="" loading="lazy" compact rotateLandscape className="h-full w-full object-contain" /><FinishRibbon finish={finishOf(item)} compact /></button>
                 )}
                 <div className="col-start-2 min-w-0 flex-1">
                   <p className="line-clamp-2 text-[15px] font-extrabold leading-tight text-[#12315f]">{item.name}</p>
