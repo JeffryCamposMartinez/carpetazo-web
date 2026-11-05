@@ -42,7 +42,7 @@ const cardLabel = (name, number) => (number && !name.includes(number) ? `${name}
 // Español (100) es la carta inglesa de TCGplayer (categoría 3) con la imagen en español
 const pokemonRow = (card, group) => ({
   key: `tcgcsv:${card.catId === 100 ? 3 : card.catId}:${card.productId}`,
-  id: `tcgcsv:${card.catId === 100 ? 3 : card.catId}:${card.productId}`, groupId: group?.groupId, catId: card.catId, productId: card.productId, // para consultar los acabados de la edición
+  id: `tcgcsv:${card.catId === 100 ? 3 : card.catId}:${card.productId}`, groupId: group?.groupId, catId: card.catId, productId: card.productId, tcgProductId: card.productId, // para consultar los acabados de la edición
   payload: { external: { categoryId: card.catId === 100 ? 3 : card.catId, productId: card.productId }, name: cardLabel(card.name, card.number), imageUrl: card.imageUrl, detail: `${card.setName} · ${card.language}`, game: 'Pokémon' },
   label: cardLabel(card.name, card.number),
   sub: `${card.setName} · ${card.language}`,
