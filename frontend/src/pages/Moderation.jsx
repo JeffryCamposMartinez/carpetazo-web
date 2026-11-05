@@ -14,7 +14,7 @@ import ToolsPanel from '../components/moderation/ToolsPanel';
 import FooterSettingsPanel from '../components/moderation/FooterSettingsPanel';
 import OperationsPanel from '../components/moderation/OperationsPanel';
 import TeamPanel from '../components/moderation/TeamPanel';
-import CatalogImportPanel from '../components/moderation/CatalogImportPanel';
+import MylCardsPanel from '../components/moderation/myl/MylCardsPanel';
 import FeedbackPanel from '../components/moderation/FeedbackPanel';
 import CatalogPhotosPanel from '../components/moderation/CatalogPhotosPanel';
 import VerificationsPanel from '../components/moderation/VerificationsPanel';
@@ -27,6 +27,7 @@ import SvgIcon from '../components/ui/SvgIcon';
 const GROUPS = [
   { id: 'queue', label: 'Cola de trabajo' },
   { id: 'people', label: 'Personas' },
+  { id: 'catalog', label: 'Catálogo' },
   { id: 'system', label: 'Sistema' }
 ];
 const TABS = [
@@ -42,13 +43,13 @@ const TABS = [
   { id: 'reviews', group: 'people', label: 'Reseñas marcadas', shortLabel: 'Reseñas', icon: 'reviews', min: 3, blurb: 'Reseñas reportadas o sospechosas, para aprobarlas o eliminarlas.' },
   { id: 'metrics', group: 'system', label: 'Métricas', icon: 'monitoring', min: 3, blurb: 'Cómo está funcionando la moderación: volumen, tiempos y resultados.' },
   { id: 'audit', group: 'system', label: 'Auditoría', icon: 'history', min: 3, blurb: 'Todo lo que se decide queda registrado, con quién lo hizo.' },
-  { id: 'catalog', group: 'system', label: 'Catálogo de cartas', shortLabel: 'Catálogo', icon: 'library_add', min: 3, blurb: 'Agrega cartas nuevas a la base cargando el archivo que genera Carpetazo Update.' },
+  { id: 'myl', group: 'catalog', label: 'Mitos y Leyendas', shortLabel: 'Mitos y Leyendas', icon: 'library_add', min: 99, blurb: 'Sube las cartas que faltan y corrige las que se subieron desde aquí: datos, edición e imagen. El barrido de las 2 am no las toca.' },
   { id: 'sync', group: 'system', label: 'Sincronización TCG', shortLabel: 'Sincronización', icon: 'sync', min: 2, blurb: 'Lo que entró en cada corrida nocturna con TCGplayer: cartas y productos nuevos, imágenes completadas y correcciones. Solo lectura.' },
   { id: 'operations', group: 'system', label: 'Operación', icon: 'ecg_heart', min: 3, blurb: 'Estado del sitio, errores del servidor y de la web, y embudo de actividad.' },
   { id: 'tools', group: 'system', label: 'Herramientas', icon: 'build', min: 3, blurb: 'Respaldo de la base, retención de datos y prueba del envío de correos.' },
   { id: 'footer', group: 'system', label: 'Pie de página', shortLabel: 'Pie de página', icon: 'view_agenda', min: 2, blurb: 'Personaliza los textos, enlaces, dirección y redes sociales del pie de página del sitio.' }
 ];
-const ROLE_LABELS = { 1: 'Soporte (solo lectura)', 2: 'Moderador', 3: 'Administrador' };
+const ROLE_LABELS = { 0: 'Editor de cartas de Mitos y Leyendas', 1: 'Soporte (solo lectura)', 2: 'Moderador', 3: 'Administrador' };
 
 // Los accesos de arriba llevan directo a lo que espera una decisión
 const QUEUE_LINKS = [
@@ -64,6 +65,7 @@ export default function Moderation() {
   const [tab, setTab] = useState('reports');
   const [summary, setSummary] = useState(null);
   const [level, setLevel] = useState(0);
+  const [mylAccess, setMylAccess] = useState(false); // administradores y las cuentas de editores de cartas de Mitos y Leyendas
   const [focusUsername, setFocusUsername] = useState('');
   const [focusReportId, setFocusReportId] = useState('');
   const [sanctionReportId, setSanctionReportId] = useState('');
@@ -71,23 +73,27 @@ export default function Moderation() {
   useEffect(() => {
     if (!currentUser) { setState('denied'); return undefined; }
     let cancelled = false;
-    api.get('/admin/me')
-      .then((res) => { if (!cancelled) { setLevel(res?.level || 0); setState(res?.isStaff ? 'ok' : 'denied'); } })
-      .catch(() => { if (!cancelled) setState('denied'); });
+    Promise.all([api.get('/admin/me').catch(() => null), api.get('/admin/myl-cards/access').then(() => true).catch(() => false)]).then(([me, myl]) => {
+      if (cancelled) return;
+      setLevel(me?.isStaff ? me.level || 0 : 0);
+      setMylAccess(myl);
+      if (!me?.isStaff && myl) setTab('myl');
+      setState(me?.isStaff || myl ? 'ok' : 'denied');
+    });
     return () => { cancelled = true; };
   }, [currentUser?.uid]);
 
   // Contadores del menú: se actualizan al cambiar de sección y cada minuto
   useEffect(() => {
-    if (state !== 'ok') return undefined;
+    if (state !== 'ok' || level === 0) return undefined;
     let cancelled = false;
     const load = () => api.getModerationSummary().then((res) => { if (!cancelled) setSummary(res); }).catch(() => {});
     load();
     const timer = window.setInterval(load, 60000);
     return () => { cancelled = true; window.clearInterval(timer); };
-  }, [state, tab]);
+  }, [state, tab, level]);
 
-  const navItems = TABS.filter((item) => level >= item.min).map((item) => ({
+  const navItems = TABS.filter((item) => (item.id === 'myl' ? mylAccess : level >= item.min)).map((item) => ({
     ...item,
     count: item.id === 'reports' ? summary?.reports : item.id === 'cases' ? summary?.cases : item.id === 'appeals' ? summary?.appeals : item.id === 'feedback' ? summary?.feedback : item.id === 'photos' ? summary?.catalogPhotos : item.id === 'verifications' ? summary?.verifications : item.id === 'people' ? summary?.pendingBans : 0,
     alert: item.id === 'reports' && (summary?.criticalReports || 0) > 0
@@ -125,7 +131,7 @@ export default function Moderation() {
               <p className="text-sm font-medium text-blue-100/90">{ROLE_LABELS[level]}</p>
             </div>
           </div>
-          <div className="hidden items-center gap-2 sm:flex" role="group" aria-label="Pendientes">
+          {level > 0 && <div className="hidden items-center gap-2 sm:flex" role="group" aria-label="Pendientes">
             {QUEUE_LINKS.map((link) => {
               const value = summary?.[link.field] || 0;
               const critical = link.tab === 'reports' && (summary?.criticalReports || 0) > 0;
@@ -136,7 +142,7 @@ export default function Moderation() {
                 </button>
               );
             })}
-          </div>
+          </div>}
         </header>
 
         <div className="lg:flex lg:items-stretch">
@@ -159,7 +165,7 @@ export default function Moderation() {
               {tab === 'reviews' && level >= 3 && <ReviewsPanel />}
               {tab === 'metrics' && level >= 3 && <MetricsPanel />}
               {tab === 'audit' && level >= 3 && <AuditPanel />}
-              {tab === 'catalog' && level >= 3 && <CatalogImportPanel />}
+              {tab === 'myl' && mylAccess && <MylCardsPanel />}
               {tab === 'sync' && level >= 2 && <CatalogSyncPanel />}
               {tab === 'operations' && level >= 3 && <OperationsPanel />}
               {tab === 'tools' && level >= 3 && <ToolsPanel />}

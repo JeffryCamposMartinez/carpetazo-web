@@ -67,6 +67,7 @@ export const apiFetch = async (endpoint, options = {}) => {
     const error = new Error(errorData.message || errorData.error || 'Error: ' + response.status);
     error.status = response.status;
     error.code = errorData.code;
+    error.duplicates = errorData.duplicates;
     error.plan = errorData.plan;
     error.current = errorData.current;
     error.limit = errorData.limit;
@@ -218,13 +219,13 @@ export const api = {
   rejectVerification: (id, reason) => apiFetch('/admin/verifications/' + encodeURIComponent(id) + '/reject', { method: 'POST', body: JSON.stringify({ reason }) }),
   getCatalogPhotos: () => apiFetch('/admin/catalog-photos'),
   approveCatalogPhoto: (id) => apiFetch('/admin/catalog-photos/' + encodeURIComponent(id) + '/approve', { method: 'POST' }),
+  getMylCardOptions: () => apiFetch('/admin/myl-cards/options'),
+  getMylCards: (q = '', page = 1, all = false) => apiFetch('/admin/myl-cards?q=' + encodeURIComponent(q) + '&page=' + page + (all ? '&all=1' : '')),
+  createMylCard: (body) => apiFetch('/admin/myl-cards', { method: 'POST', body: JSON.stringify(body) }),
+  updateMylCard: (productId, body) => apiFetch('/admin/myl-cards/' + encodeURIComponent(productId), { method: 'PUT', body: JSON.stringify(body) }),
   rejectCatalogPhoto: (id, note) => apiFetch('/admin/catalog-photos/' + encodeURIComponent(id) + '/reject', { method: 'POST', body: JSON.stringify({ note }) }),
   decideAppeal: (id, action, note) => apiFetch('/admin/appeals/' + encodeURIComponent(id) + '/decision', { method: 'POST', body: JSON.stringify({ action, note }) }),
   // Carga de cartas nuevas desde cartas_incrementales.json (solo administradores): primero se revisa, después se carga lo revisado
-  previewTcgCatalogImport: (fileName, data) => apiFetch('/admin/tcg-catalog-import/preview', { method: 'POST', body: JSON.stringify({ fileName, data }) }),
-  applyTcgCatalogImport: (fileName, data, digest) => apiFetch('/admin/tcg-catalog-import/apply', { method: 'POST', body: JSON.stringify({ fileName, data, digest }) }),
-  previewCatalogImport: (data, editionOverrides = {}) => apiFetch('/admin/catalog-import/preview', { method: 'POST', body: JSON.stringify({ fileName: 'cartas_incrementales.json', data, editionOverrides }) }),
-  applyCatalogImport: (data, digest, editionOverrides = {}) => apiFetch('/admin/catalog-import/apply', { method: 'POST', body: JSON.stringify({ fileName: 'cartas_incrementales.json', data, digest, editionOverrides }) }),
   getTeam: () => apiFetch('/admin/team'),
   searchTeamPeople: (q) => apiFetch('/admin/team/search?q=' + encodeURIComponent(q)),
   getTeamHistory: () => apiFetch('/admin/team/history'),
