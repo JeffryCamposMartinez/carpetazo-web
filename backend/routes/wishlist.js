@@ -5,6 +5,7 @@ import { prisma } from '../core/db.js';
 import { PlanLimitError, PlanFeatureError, getEffectivePlan, lockPlanUser, sendPlanError } from '../core/entitlements.js';
 import { badRequest, hasControlChars, isAllowedStoredImageUrl, isOptionalText, isShortText, isValidPrice } from '../core/validation.js';
 import { rawMylId, storedMylId } from '../core/mylIdentity.js';
+import { cardFinishSlug, finishSlug, splitWishKey } from '../core/wishlistKey.js';
 
 const router = express.Router();
 
@@ -108,7 +109,8 @@ router.get('/api/wishlist/matches', authenticateToken, async (req, res) => {
     // tcgId de la carta = id del producto (las del catálogo de Pokémon se guardan como `tcgcsv:<cat>:<id>`)
     const wanted = items.map((item) => ({
       ...item,
-      tcgId: item.categoryId === 99 ? storedMylId(item.productId) : String(item.productId).replace(/^tcgcsv:\d+:/, ''),
+      tcgId: item.categoryId === 99 ? storedMylId(item.productId) : splitWishKey(item.productId).base.replace(/^tcgcsv:\d+:/, ''),
+      finish: item.categoryId === 99 ? '' : splitWishKey(item.productId).finish,
       tcg: WISHLIST_MATCH_TCG[item.categoryId]
     })).filter((item) => item.tcg && (item.categoryId === 99 ? /^myl:\d{1,12}$/.test(item.tcgId) : /^\d{1,12}$/.test(item.tcgId)));
     if (wanted.length === 0) return res.json({ success: true, matches: {}, prices: {} });
@@ -117,12 +119,12 @@ router.get('/api/wishlist/matches', authenticateToken, async (req, res) => {
       where: { stock: { gt: 0 }, price: { not: null }, moderationState: 'visible', tcgId: { in: [...new Set(wanted.map((item) => item.tcgId))] }, folder: { isPublic: true, userId: { not: userId } } },
       orderBy: { price: 'asc' },
       take: 2000,
-      select: { id: true, tcgId: true, price: true, stock: true, folder: { select: { id: true, name: true, tcg: true, user: { select: { name: true, username: true, photoURL: true } } } } },
+      select: { id: true, tcgId: true, price: true, stock: true, data: true, folder: { select: { id: true, name: true, tcg: true, user: { select: { name: true, username: true, photoURL: true } } } } },
     });
     const matches = {};
     const prices = {}; // precio más bajo publicado de cada carta, sin mirar el precio máximo de la lista
     wanted.forEach((item) => {
-      const published = cards.filter((card) => card.tcgId === item.tcgId && card.folder.tcg === item.tcg);
+      const published = cards.filter((card) => card.tcgId === item.tcgId && card.folder.tcg === item.tcg && (item.categoryId === 99 || cardFinishSlug(card.data) === item.finish));
       if (published.length > 0) prices[item.id] = { lowest: published[0].price, cardId: published[0].id, total: published.length };
       const found = item.maxPrice == null ? published : published.filter((card) => card.price <= item.maxPrice);
       if (found.length === 0) return;
@@ -172,7 +174,9 @@ router.post('/api/wishlist', authenticateToken, async (req, res) => {
       const externalId = typeof external?.productId === 'string' || typeof external?.productId === 'number' ? String(external.productId) : '';
       if (!externalGame || !/^\d{1,12}$/.test(externalId)) return badRequest(res, 'Carta inválida');
       if (!isShortText(name, 100) || hasControlChars(name)) return badRequest(res, 'Carta inválida');
-      identity = { productId: `tcgcsv:${externalCategory}:${externalId}`, categoryId: externalGame.stored, name: name.trim(), game: externalGame.game, detail, imageUrl: imageUrl && isAllowedStoredImageUrl(imageUrl) ? imageUrl : null };
+      const finish = external.finish;
+      if (finish !== undefined && (!isShortText(finish, 40) || hasControlChars(finish))) return badRequest(res, 'Carta inválida');
+      identity = { productId: `tcgcsv:${externalCategory}:${externalId}${finish ? `~${finishSlug(finish)}` : ''}`, categoryId: externalGame.stored, name: name.trim(), game: externalGame.game, detail, imageUrl: imageUrl && isAllowedStoredImageUrl(imageUrl) ? imageUrl : null };
     } else {
       if (!isShortText(name, 100) || hasControlChars(name)) return badRequest(res, 'Escribe el nombre de la carta');
       identity = { productId: null, categoryId: null, name: name.trim(), game, detail, imageUrl: imageUrl && isAllowedStoredImageUrl(imageUrl) ? imageUrl : null };

@@ -4,7 +4,7 @@ import { api } from '../services/api';
 // Identificador con el que la lista de deseadas guarda una carta: el mismo que arma el servidor a partir de lo que enviamos al agregarla
 export const wishlistKeyOf = (payload) => {
   if (!payload) return '';
-  if (payload.external?.productId !== undefined && payload.external?.productId !== null) return `tcgcsv:${payload.external.categoryId}:${payload.external.productId}`;
+  if (payload.external?.productId !== undefined && payload.external?.productId !== null) return `tcgcsv:${payload.external.categoryId}:${payload.external.productId}${payload.external.finish ? `~${String(payload.external.finish).toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30)}` : ''}`;
   return payload.productId ? String(payload.productId) : '';
 };
 

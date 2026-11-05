@@ -8,6 +8,7 @@ import { sendPushToUser } from './push.js';
 import { alertEmailHtml } from './alertEmail.js';
 import { hashSecret } from './hashing.js';
 import { storedMylId } from './mylIdentity.js';
+import { cardFinishSlug, splitWishKey } from './wishlistKey.js';
 
 const SITE = 'https://carpetazo.cl';
 const API = process.env.PUBLIC_API_URL || 'https://api.carpetazo.cl';
@@ -95,7 +96,8 @@ export const runWishlistAlerts = async ({ deliver = deliverToUser, now = new Dat
   const wanted = items.map((item) => ({
     item,
     tcg: WISH_TCG[item.categoryId],
-    tcgId: item.categoryId === 99 ? storedMylId(item.productId) : String(item.productId).replace(/^tcgcsv:\d+:/, '')
+    tcgId: item.categoryId === 99 ? storedMylId(item.productId) : splitWishKey(item.productId).base.replace(/^tcgcsv:\d+:/, ''),
+    finish: item.categoryId === 99 ? '' : splitWishKey(item.productId).finish
   })).filter((entry) => entry.tcg && (entry.item.categoryId === 99 ? /^myl:\d{1,12}$/.test(entry.tcgId) : /^\d{1,12}$/.test(entry.tcgId)));
   const ids = [...new Set(wanted.map((entry) => entry.tcgId))];
   const cards = [];
@@ -103,7 +105,7 @@ export const runWishlistAlerts = async ({ deliver = deliverToUser, now = new Dat
     cards.push(...await prisma.card.findMany({
       where: { stock: { gt: 0 }, price: { gt: 0 }, moderationState: 'visible', tcgId: { in: ids.slice(at, at + CHUNK) }, folder: { isPublic: true, moderationState: 'visible' } },
       orderBy: { price: 'asc' },
-      select: { id: true, tcgId: true, price: true, imageUrl: true, folder: { select: { tcg: true, userId: true, user: { select: { name: true, username: true } } } } }
+      select: { id: true, tcgId: true, price: true, imageUrl: true, data: true, folder: { select: { tcg: true, userId: true, user: { select: { name: true, username: true } } } } }
     }));
   }
   const byKey = new Map();
@@ -113,8 +115,8 @@ export const runWishlistAlerts = async ({ deliver = deliverToUser, now = new Dat
     byKey.get(key).push(card);
   }
   const bestByItem = new Map();
-  for (const { item, tcg, tcgId } of wanted) {
-    const best = (byKey.get(`${tcg}|${tcgId}`) || []).find((card) => card.folder.userId !== item.userId && (item.maxPrice == null || card.price <= item.maxPrice));
+  for (const { item, tcg, tcgId, finish } of wanted) {
+    const best = (byKey.get(`${tcg}|${tcgId}`) || []).find((card) => (item.categoryId === 99 || cardFinishSlug(card.data) === finish) && card.folder.userId !== item.userId && (item.maxPrice == null || card.price <= item.maxPrice));
     if (best) bestByItem.set(item.id, { cardId: best.id, price: best.price, imageUrl: best.imageUrl, seller: best.folder.user?.name || best.folder.user?.username || 'un vendedor' });
   }
 

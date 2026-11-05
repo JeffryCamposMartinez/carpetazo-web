@@ -18,6 +18,7 @@ import { EMPTY_LC_FILTERS, countLorcanaFilters } from '../../services/tcgcsvLorc
 import { EMPTY_DG_FILTERS, countDigimonFilters } from '../../services/tcgcsvDigimon';
 import { EMPTY_YGO_FILTERS, countYugiohFilters } from '../../services/tcgcsvYugioh';
 import EmptyState from '../ui/EmptyState';
+import useFinishSplit from '../../hooks/useFinishSplit';
 import LoadingState from '../ui/LoadingState';
 
 // Juegos del sitio. Solo los marcados tienen buscador con filtros; el resto llegará pronto.
@@ -39,8 +40,9 @@ const PAGE = 20;
 const cardLabel = (name, number) => (number && !name.includes(number) ? `${name} - ${number}` : name);
 
 // Español (100) es la carta inglesa de TCGplayer (categoría 3) con la imagen en español
-const pokemonRow = (card) => ({
+const pokemonRow = (card, group) => ({
   key: `tcgcsv:${card.catId === 100 ? 3 : card.catId}:${card.productId}`,
+  id: `tcgcsv:${card.catId === 100 ? 3 : card.catId}:${card.productId}`, groupId: group?.groupId, catId: card.catId, productId: card.productId, // para consultar los acabados de la edición
   payload: { external: { categoryId: card.catId === 100 ? 3 : card.catId, productId: card.productId }, name: cardLabel(card.name, card.number), imageUrl: card.imageUrl, detail: `${card.setName} · ${card.language}`, game: 'Pokémon' },
   label: cardLabel(card.name, card.number),
   sub: `${card.setName} · ${card.language}`,
@@ -56,6 +58,17 @@ const gameRow = (card, game) => ({
   imageUrl: card.imageUrl,
   extData: card.extData,
 });
+
+const slug = (text) => String(text).toLowerCase().replace(/[^a-z0-9]+/g, '-'); // igual que en el servidor
+
+// Acabado distinto del normal (Reverse Holofoil…): otra carta de la lista, sin imagen propia
+const finishRow = (row) => (row.finish ? {
+  ...row,
+  key: `${row.key}~${slug(row.finish)}`,
+  sub: `${row.sub} · ${row.finish}`,
+  imageUrl: '',
+  payload: { ...row.payload, external: { ...row.payload.external, finish: row.finish }, detail: `${row.payload.detail} · ${row.finish}`.slice(0, 100), imageUrl: '' },
+} : row);
 
 export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyKey = '', resetRef = null }) {
   const [game, setGame] = useState('Pokémon');
@@ -103,7 +116,11 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
   const gameFilters = game === 'One Piece' ? opFilters : game === 'Magic' ? magicFilters : game === 'Yu-Gi-Oh!' ? ygFilters : game === 'Lorcana' ? lcFilters : game === 'Digimon' ? dgFilters : rbFilters;
   const gameFilterCount = game === 'One Piece' ? countOnePieceFilters(opFilters) : game === 'Magic' ? countMagicFilters(magicFilters) : game === 'Yu-Gi-Oh!' ? countYugiohFilters(ygFilters) : game === 'Lorcana' ? countLorcanaFilters(lcFilters) : game === 'Digimon' ? countDigimonFilters(dgFilters) : countRiftboundFilters(rbFilters);
   const loadCards = (group, signal) => (gameInfo ? fetchGameGroupCards(game, group, signal) : fetchPokemonGroupCards(searchLang, group, signal));
-  const rowOf = (card) => (gameInfo ? gameRow(card, game) : pokemonRow(card));
+  const rowOf = (card, group) => (gameInfo ? gameRow(card, game) : pokemonRow(card, group));
+  const pageRows = useMemo(() => results.slice(0, visible), [results, visible]);
+  const { cards: split } = useFinishSplit(pageRows, isPokemon ? 'pokemon' : 'none');
+  const shown = useMemo(() => split.map(finishRow), [split]);
+  const allRows = useMemo(() => [...shown, ...results.slice(visible)], [shown, results, visible]);
   // Texto de búsqueda y filtros del juego sobre las cartas de una edición
   const filterCards = (list, term) => (gameInfo
     ? filterGameCards(game, list, term, gameFilters)
@@ -181,7 +198,7 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
         setHint(''); setSearching(true);
         try {
           const cards = filterCards(await loadCards(group, controller.signal), term);
-          if (mine === seq.current) setResults(cards.map(rowOf));
+          if (mine === seq.current) setResults(cards.map((card) => rowOf(card, group)));
         } catch (_error) {
           if (mine === seq.current) setResults([]);
         } finally {
@@ -212,7 +229,7 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
     while (found.length < PAGE && at < editionGroups.length && !signal?.aborted) {
       const batch = editionGroups.slice(at, at + SCAN_BATCH);
       const lists = await Promise.all(batch.map((group) => loadCards(group, signal).catch(() => [])));
-      lists.forEach((list) => found.push(...filterCards(list, term).map(rowOf)));
+      lists.forEach((list, index) => found.push(...filterCards(list, term).map((card) => rowOf(card, batch[index]))));
       at += batch.length;
     }
     return { found, next: at };
@@ -236,15 +253,15 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
 
   useEffect(() => {
     if (!previewKey) return;
-    const idx = results.findIndex((row) => row.key === previewKey);
+    const idx = allRows.findIndex((row) => row.key === previewKey);
     if (idx < 0) return;
-    if (idx >= visible - 5 && visible < results.length) {
-      setVisible((prev) => Math.max(prev + PAGE, idx + PAGE));
+    if (idx >= shown.length - 5 && visible < results.length) {
+      setVisible((prev) => prev + PAGE);
     }
-    if (idx >= results.length - 5 && moreEditions && !searching) {
+    if (idx >= allRows.length - 5 && moreEditions && !searching) {
       scanMoreEditions();
     }
-  }, [previewKey, results, visible, moreEditions, searching]);
+  }, [previewKey, allRows, visible, moreEditions, searching]);
 
   const inputClass = 'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base text-slate-900 focus:border-[#1e40af] focus:outline-none focus:ring-2 focus:ring-[#facc15]/70';
 
@@ -326,10 +343,11 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
             <>
               <p className="mb-1.5 px-1 text-xs font-semibold text-slate-500">{results.length.toLocaleString('es-CL')} {results.length === 1 ? 'resultado' : 'resultados'}</p>
               <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
-                {results.slice(0, visible).map((row) => (
+                {shown.map((row) => (
                   <li key={row.key} className="flex min-w-0 flex-col gap-1.5 rounded-xl bg-white p-1.5 ring-1 ring-slate-200 sm:p-2">
                     <button type="button" onClick={() => setPreviewKey(row.key)} aria-label={`Ver ${row.label} en pantalla completa`} className="relative block aspect-[5/7] w-full cursor-zoom-in overflow-hidden rounded-lg bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]" style={{ aspectRatio: cardRatio(game, '5 / 7') }}>
-                      <LoadableImage src={row.imageUrl} fallbackSrc={tcgplayerCardImage({ ...row.payload, game })} alt={row.label} loading="lazy" rotateLandscape className="h-full w-full object-contain" style={cardFill(game)} />
+                      <LoadableImage src={row.imageUrl} fallbackSrc={tcgplayerCardImage({ ...row.payload, noImage: row.noImage, game })} alt={row.label} loading="lazy" rotateLandscape className="h-full w-full object-contain" style={cardFill(game)} />
+                      {row.finish && <span className="absolute bottom-1 left-1 right-1 truncate rounded-full bg-[#facc15] px-2 py-0.5 text-center text-[11px] font-extrabold text-[#12315f]">{row.finish}</span>}
                     </button>
                     <span className="min-w-0 px-0.5">
                       <span className="line-clamp-2 block text-[12px] font-bold leading-tight text-[#12315f] sm:text-[13px]" title={row.label}>{row.label}</span>
@@ -360,7 +378,7 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
       )}
       {previewKey && (
         <CardLightbox
-          cards={results.map((row) => ({ id: row.key, name: row.label, imageUrl: row.imageUrl, game, row }))}
+          cards={allRows.map((row) => ({ id: row.key, name: row.label, imageUrl: row.imageUrl, noImage: row.noImage, game, row }))}
           cardId={previewKey}
           onChange={setPreviewKey}
           onClose={() => setPreviewKey(null)}
