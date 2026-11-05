@@ -4,6 +4,8 @@ import { jsPDF } from 'jspdf';
 import api, { apiUrl } from '../../services/api';
 import { useToast } from '../ui/ToastProvider';
 import SvgIcon from '../ui/SvgIcon';
+import FinishRibbon from '../ui/FinishRibbon';
+import { finishOfCard } from '../../utils/cardFinish';
 
 // Mismo orden que ve el usuario en su carpeta: primero catalogOrder, luego fecha de creación
 const sortCatalogCards = (cardArray = []) => {
@@ -271,6 +273,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
                               onLoad={() => setImagesLoaded(prev => prev + 1)}
                               onError={() => setImagesLoaded(prev => prev + 1)} 
                             />
+                            <div className="pointer-events-none absolute inset-0 z-[115] overflow-hidden rounded-[4%]"><FinishRibbon finish={finishOfCard(card)} compact /></div>
                             <div className="absolute top-1.5 right-1.5 bg-black/80 text-white font-bold text-[13px] px-3 py-1 rounded-full shadow-lg border border-white/20 z-[120] inline-block text-center backdrop-blur-sm whitespace-nowrap">
                               <span className="relative -top-[5px]">
                                 {showLanguage && card.language ? <span className="text-yellow-400">{LANGUAGE_CODES[card.language] || card.language} · </span> : null}x{card.stock || 0}

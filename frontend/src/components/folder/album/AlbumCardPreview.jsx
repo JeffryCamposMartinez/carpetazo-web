@@ -1,6 +1,7 @@
 import LoadableImage from '../../ui/LoadableImage';
 import { fullscreenCorners, tcgplayerCardImage } from '../../../utils/cardShape';
 import { Link } from 'react-router-dom';
+import { finishOfCard } from '../../../utils/cardFinish';
 import SvgIcon from '../../ui/SvgIcon';
 // Vista ampliada de una carta dentro del álbum: imagen a un lado y datos al otro.
 export default function AlbumCardPreview({
@@ -72,6 +73,7 @@ export default function AlbumCardPreview({
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
+            {finishOfCard(previewCard) && <span className="rounded-xl bg-yellow-400 px-2.5 py-1 text-[11px] font-black leading-none text-black shadow-lg">{finishOfCard(previewCard)}</span>}
             <span className="rounded-xl bg-yellow-400 px-2.5 py-1 text-[15px] font-black leading-none text-black shadow-lg">
               {previewCard.price ? '$' + Number(previewCard.price).toLocaleString('es-CL') : 'Sin precio'}
             </span>

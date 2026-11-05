@@ -3,6 +3,8 @@ import LoadableImage from '../ui/LoadableImage';
 import { cardFit, cardRatio, isYugioh } from '../../utils/cardShape';
 import { Link } from 'react-router-dom';
 import SvgIcon from '../ui/SvgIcon';
+import FinishRibbon from '../ui/FinishRibbon';
+import { finishOfCard } from '../../utils/cardFinish';
 // En celular las fotos de cartas se descargan al acercarse a la pantalla; en PC se mantienen como siempre
 const MOBILE_IMAGE_LOADING = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 'lazy' : undefined;
 
@@ -45,7 +47,7 @@ export default function CatalogCard({ tcg, card, availableStock, cartQuantity, o
   return (
     <article className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden border border-gray-200 ${isMyl ? 'min-h-0' : ''}`}>
       {/* Top Image Section */}
-      <div className={`relative w-full ${isMyl ? 'aspect-[63/86] p-1.5' : isYugioh(tcg) ? 'p-0' : 'aspect-[63/88] p-2'} bg-gray-50 flex items-center justify-center`} style={isYugioh(tcg) ? { aspectRatio: cardRatio(tcg) } : undefined}>
+      <div className={`relative w-full overflow-hidden ${isMyl ? 'aspect-[63/86] p-1.5' : isYugioh(tcg) ? 'p-0' : 'aspect-[63/88] p-2'} bg-gray-50 flex items-center justify-center`} style={isYugioh(tcg) ? { aspectRatio: cardRatio(tcg) } : undefined}>
         <LoadableImage 
           loading={MOBILE_IMAGE_LOADING}
           decoding="async"
@@ -55,6 +57,7 @@ export default function CatalogCard({ tcg, card, availableStock, cartQuantity, o
           rotateLandscape
           style={isYugioh(tcg) ? cardFit(tcg) : undefined}
         />
+        <FinishRibbon finish={finishOfCard(card)} />
         {onWish && (
           <button
             type="button"

@@ -5,6 +5,8 @@ import Select from '../ui/Select';
 import SvgIcon from '../ui/SvgIcon';
 import { CARD_CONDITIONS } from '../../config/cardConditions';
 import CardPhotosModal from '../cards/CardPhotosModal';
+import FinishRibbon from '../ui/FinishRibbon';
+import { finishOfCard } from '../../utils/cardFinish';
 
 const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = {}, onToggleFeatured, compact = false, detailLevel = 'none', dense = false, showLanguage = false, folderId = '', onPhotosChange = null, selectable = false, selected = false, onToggleSelect, onPreview, onDraftChange }) => {
   // 'full': nombre, edición, stock, precio e idioma · 'basic': solo stock y precio · 'none': solo la carta
@@ -96,8 +98,9 @@ const AdminCardEdit = React.memo(({ card, onUpdate, onDelete, dragHandleProps = 
         </>
       )}
       <div className={`${compact && !showDetails ? 'p-1.5' : compact ? (dense ? 'p-1.5' : 'p-2.5') : 'p-4'} flex flex-col items-center flex-1`}>
-        <div className={`w-full relative pt-[140%] ${showDetails ? (compact ? 'mb-2' : 'mb-3') : 'mb-0'}`}>
-          <LoadableImage 
+        <div className={`w-full relative overflow-hidden pt-[140%] ${showDetails ? (compact ? 'mb-2' : 'mb-3') : 'mb-0'}`}>
+          <FinishRibbon finish={finishOfCard(card)} compact={compact} />
+          <LoadableImage
             src={card.imageUrl} 
             alt={card.name} 
             className="absolute inset-0 w-full h-full object-fill filter drop-shadow-md transition-transform duration-300" 

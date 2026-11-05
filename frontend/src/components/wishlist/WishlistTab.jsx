@@ -7,24 +7,19 @@ import CardLightbox from '../ui/CardLightbox';
 import { describeWishlistItem } from './wishlistLightbox';
 import LoadableImage from '../ui/LoadableImage';
 import FinishRibbon from '../ui/FinishRibbon';
+import { wishlistFinishOf as finishOf, wishlistImageFallback as thumbFallback } from '../../utils/cardFinish';
 import WishlistLightboxActions from './WishlistLightboxActions';
 import WishlistAlerts from './WishlistAlerts';
 import WishlistLists from './WishlistLists';
 import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 import EmptyState from '../ui/EmptyState';
 import SvgIcon from '../ui/SvgIcon';
-import { tcgplayerCardImage } from '../../utils/cardShape';
 
 const LIMIT_FALLBACK = 200;
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 
 // Administración de la lista de cartas deseadas (panel del jugador). Pensada primero para el móvil.
-// Acabado distinto del normal (Reverse Holofoil…): el id guardado lleva `~acabado` y el nombre del acabado cierra el detalle
-const finishOf = (item) => (item.productId?.includes('~') ? String(item.detail || '').split(' · ').pop() : '');
-// Sin imagen guardada (cartas agregadas antes): la de TCGplayer a partir del id, que es la misma para todos los acabados
-const thumbFallback = (item) => tcgplayerCardImage({ productId: item.productId?.match(/^tcgcsv:\d+:(\d+)/)?.[1] });
-
 export default function WishlistTab({ showToast = () => {} }) {
   const [allItems, setItems] = useState([]); // cartas de todas las listas
   const [lists, setLists] = useState([]);

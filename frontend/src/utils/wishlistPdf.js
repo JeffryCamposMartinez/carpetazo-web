@@ -1,5 +1,6 @@
 import { apiUrl } from '../services/api';
 import { formatWhatsAppNumber } from './contact';
+import { wishlistFinishOf, wishlistImageFallback } from './cardFinish';
 
 // PDF de la lista de deseos para compartir (por ejemplo en un grupo de WhatsApp). Páginas oscuras de la identidad de Carpetazo
 // (azul marino, amarillo y el logo) con cada carta en una tarjeta blanca: foto grande con foco de luz y sombra, cuántas copias se buscan,
@@ -101,7 +102,7 @@ const loadThumbs = async (items, onProgress) => {
   const worker = async () => {
     while (cursor < items.length) {
       const item = items[cursor++];
-      thumbs.set(item.id, await loadThumb(item.imageUrl, widthPx, quality));
+      thumbs.set(item.id, await loadThumb(item.imageUrl || wishlistImageFallback(item), widthPx, quality));
       done += 1;
       onProgress?.(done, items.length);
     }
@@ -297,6 +298,30 @@ export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos'
     return { nameLines, noteLines, set, language, infoH };
   };
 
+  // Franja diagonal amarilla con el acabado (Reverse Holofoil…) en la esquina inferior izquierda de la foto; (x, by) es esa esquina
+  const drawFinishRibbon = (label, x, by, w, h) => {
+    const text = pdfText(label);
+    if (!text) return;
+    const d = Math.min(w, h) * 0.2; // distancia de la franja a cada borde
+    const t = 4.2; // grosor
+    const s = Math.SQRT1_2;
+    const ux = s; const uy = s; // sentido de la franja (abajo a la derecha)
+    const nx = s; const ny = -s; // hacia el interior de la carta
+    const ax = x - ux * t; const ay = by - 2 * d - uy * t;
+    const bx = x + 2 * d + ux * t; const by2 = by + uy * t;
+    const hx = nx * t / 2; const hy = ny * t / 2;
+    doc.saveGraphicsState();
+    doc.rect(x, by - h, w, h, null);
+    doc.clip();
+    doc.discardPath();
+    fill(YELLOW);
+    doc.lines([[bx - ax, by2 - ay], [-2 * hx, -2 * hy], [ax - bx, ay - by2]], ax + hx, ay + hy, [1, 1], 'F', true);
+    font('bold', 6.2);
+    ink(NAVY);
+    doc.text(text, x + d - nx * 0.8, by - d - ny * 0.8, { align: 'center', angle: -45 });
+    doc.restoreGraphicsState();
+  };
+
   // ---- Una tarjeta: foto con foco de luz y sombra, cantidad, precio, nombre, edición, idioma y nota
   const drawCard = (item, layout, x, top, frameH) => {
     opacity(0.32);
@@ -336,6 +361,7 @@ export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos'
       doc.roundedRect(ix + 1.6, iy + 2.4, width, height, 2.2, 2.2, 'F');
       opacity(1);
       doc.addImage(thumb.data, 'JPEG', ix, iy, width, height);
+      drawFinishRibbon(wishlistFinishOf(item), ix, iy + height, width, height);
     } else {
       font('bold', 11);
       ink(MUTED);

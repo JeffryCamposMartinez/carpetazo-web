@@ -1,6 +1,8 @@
 import ConditionStars from '../ui/ConditionStars';
 import { Link } from 'react-router-dom';
 import LoadableImage from '../ui/LoadableImage';
+import FinishRibbon from '../ui/FinishRibbon';
+import { finishOfCard } from '../../utils/cardFinish';
 import { cardFill, cardRatio, tcgplayerCardImage } from '../../utils/cardShape';
 import { LoadingMark } from '../ui/LoadableImage';
 import SvgIcon from '../ui/SvgIcon';
@@ -88,6 +90,7 @@ export default function CardTile({ card, index, view, wanted, onWish }) {
           <span className="relative block w-[5.5rem] shrink-0 overflow-hidden rounded-xl bg-slate-100" style={{ aspectRatio: cardRatio(card.folder?.tcg) }}>
             <CardImage card={card} className="absolute inset-1.5 h-[calc(100%-0.75rem)] w-[calc(100%-0.75rem)] rounded-md object-contain" />
             <span className="absolute bottom-1.5 left-1.5"><StateTag condition={card.condition} /></span>
+            <FinishRibbon finish={finishOfCard(card)} compact corner="br" />
           </span>
           <span className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">
             <span className="line-clamp-2 text-[15px] font-extrabold leading-tight text-[#12315f]">{card.name}</span>
@@ -118,6 +121,7 @@ export default function CardTile({ card, index, view, wanted, onWish }) {
             </span>
           )}
           <span className="absolute bottom-2 left-2 flex flex-col items-start gap-1"><StateTag condition={card.condition} /><span className="-rotate-1"><PriceTag price={card.price} /></span></span>
+          <FinishRibbon finish={finishOfCard(card)} corner="br" />
         </span>
         <span className="flex flex-1 flex-col gap-1 p-3">
           <span className="line-clamp-2 text-sm font-extrabold leading-tight text-[#12315f] sm:text-[15px]">{card.name}</span>

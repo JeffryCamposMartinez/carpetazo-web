@@ -65,7 +65,7 @@ router.get('/api/cards/mine', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       tcgs: groups.map((group) => group.tcg).filter(Boolean).sort(),
-      cards: cards.map(({ data, folder, ...card }) => ({ ...card, tcg: folder.tcg, folderId: folder.id, folderName: folder.name, set: data && typeof data === 'object' && typeof data.set === 'string' ? data.set.slice(0, 80) : null }))
+      cards: cards.map(({ data, folder, ...card }) => ({ ...card, tcg: folder.tcg, folderId: folder.id, folderName: folder.name, set: data && typeof data === 'object' && typeof data.set === 'string' ? data.set.slice(0, 80) : null, finish: data && typeof data === 'object' && typeof data.finish === 'string' ? data.finish.slice(0, 40) : '' }))
     });
   } catch (error) {
     console.error('Error listing my cards:', error);
@@ -109,7 +109,8 @@ router.get('/api/cards/recent', async (req, res) => {
       cards: cards.map(({ data, ...card }) => ({
         ...card,
         language: data && typeof data === 'object' ? data.language || null : null,
-        set: data && typeof data === 'object' ? data.set || null : null
+        set: data && typeof data === 'object' ? data.set || null : null,
+        finish: data && typeof data === 'object' && typeof data.finish === 'string' ? data.finish.slice(0, 40) : ''
       }))
     });
   } catch (error) {
@@ -237,7 +238,7 @@ router.get('/api/cards/:id/offers', async (req, res) => {
       card: {
         id: card.id, tcgId: card.tcgId, name: card.name, imageUrl: card.imageUrl, photos: card.photos, tcg: card.folder.tcg,
         set: field(card.data, 'set'), rarity: field(card.data, 'rarity'), number: field(card.data, 'number'), type: field(card.data, 'type'),
-        race: field(card.data, 'race'), cost: field(card.data, 'cost'), effect: field(card.data, 'effect'),
+        race: field(card.data, 'race'), cost: field(card.data, 'cost'), effect: field(card.data, 'effect'), finish: field(card.data, 'finish') || '',
       },
       reference,
       sales,

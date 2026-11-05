@@ -2,6 +2,8 @@ import { DRAG_PAGE_TURN_EDGE_RATIO } from './albumDrag';
 import { DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from '../dragScroll';
 import EmptyState from '../../ui/EmptyState';
 import SvgIcon from '../../ui/SvgIcon';
+import FinishRibbon from '../../ui/FinishRibbon';
+import { finishOfCard } from '../../../utils/cardFinish';
 import { NO_IMAGE_CARD_URL, onCardImageError, tcgplayerCardImage } from '../../../utils/cardShape';
 // Una hoja del álbum: sus bolsillos de cartas por delante y por detrás, y su giro.
 export default function AlbumPage({
@@ -317,6 +319,7 @@ export default function AlbumPage({
                   <div className="h-full max-h-full w-[72%] rounded-[4%] bg-white/5 ring-1 ring-white/10" aria-label={card.name} />
                 )}
 
+                <div className="pointer-events-none absolute inset-0 z-[115] overflow-hidden rounded-[4%]"><FinishRibbon finish={finishOfCard(card)} compact /></div>
                 <div className="absolute top-1 right-1 md:top-1.5 md:right-1.5 z-[120] flex min-w-8 items-center justify-center rounded-full border border-white/20 bg-slate-950/85 px-2 py-0.5 text-[11px] md:text-xs font-black leading-none text-white shadow-lg backdrop-blur-sm pointer-events-none">
                   x{Number(card.stock || 0) > 999 ? '999+' : (card.stock || 0)}
                 </div>
