@@ -7,7 +7,7 @@ import LoadableImage, { LoadingMark } from '../ui/LoadableImage';
 import CardLightbox from '../ui/CardLightbox';
 import AddToFolderModal from './AddToFolderModal';
 import CardsPagination from './CardsPagination';
-import useWishlistIndex, { wishlistKeyOf } from '../../hooks/useWishlistIndex';
+import useWishlistIndex, { wishlistKeyOf, withFinish } from '../../hooks/useWishlistIndex';
 import useCardInfoSearch, { INFO_PAGE } from '../../hooks/useCardInfoSearch';
 import useFinishSplit from '../../hooks/useFinishSplit';
 import { ReferencePriceLine } from '../folder/ReferencePrice';
@@ -35,7 +35,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
   const [wished, setWished] = useState({});
   const wishlistIndex = useWishlistIndex(Boolean(currentUser));
   // Lo que hizo la persona en esta pantalla manda; si no hizo nada con esa carta, vale lo que ya tenía en sus listas
-  const stateOf = (card) => (wished[card.id] !== undefined ? wished[card.id] : (wishlistIndex.get(wishlistKeyOf(card.payload)) || false));
+  const stateOf = (card) => (wished[card.id] !== undefined ? wished[card.id] : (wishlistIndex.get(wishlistKeyOf(withFinish(card.payload, card.finish))) || false));
   const [addTarget, setAddTarget] = useState(null);
 
   useEffect(() => { setPage(1); }, [query, game, sort, lang]);
@@ -73,7 +73,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
     }
     setWished((previous) => ({ ...previous, [card.id]: 'pending' }));
     try {
-      const response = await api.addWishlistItem(card.payload);
+      const response = await api.addWishlistItem(withFinish(card.payload, card.finish));
       setWished((previous) => ({ ...previous, [card.id]: response?.item?.id || 'pending' }));
       showToast(`${card.name} agregada a tus deseadas`, { type: 'success', action: { label: 'Ver lista', run: () => navigate('/dashboard?tab=deseadas') } });
     } catch (error) {
