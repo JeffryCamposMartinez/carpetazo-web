@@ -66,8 +66,7 @@ const finishRow = (row) => (row.finish ? {
   ...row,
   key: `${row.key}~${slug(row.finish)}`,
   sub: `${row.sub} · ${row.finish}`,
-  imageUrl: '',
-  payload: { ...row.payload, external: { ...row.payload.external, finish: row.finish }, detail: `${row.payload.detail} · ${row.finish}`.slice(0, 100), imageUrl: '' },
+  payload: { ...row.payload, external: { ...row.payload.external, finish: row.finish }, detail: `${row.payload.detail} · ${row.finish}`.slice(0, 100) },
 } : row);
 
 export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyKey = '', resetRef = null }) {
@@ -346,7 +345,7 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
                 {shown.map((row) => (
                   <li key={row.key} className="flex min-w-0 flex-col gap-1.5 rounded-xl bg-white p-1.5 ring-1 ring-slate-200 sm:p-2">
                     <button type="button" onClick={() => setPreviewKey(row.key)} aria-label={`Ver ${row.label} en pantalla completa`} className="relative block aspect-[5/7] w-full cursor-zoom-in overflow-hidden rounded-lg bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]" style={{ aspectRatio: cardRatio(game, '5 / 7') }}>
-                      <LoadableImage src={row.imageUrl} fallbackSrc={tcgplayerCardImage({ ...row.payload, noImage: row.noImage, game })} alt={row.label} loading="lazy" rotateLandscape className="h-full w-full object-contain" style={cardFill(game)} />
+                      <LoadableImage src={row.imageUrl} fallbackSrc={tcgplayerCardImage({ ...row.payload, game })} alt={row.label} loading="lazy" rotateLandscape className="h-full w-full object-contain" style={cardFill(game)} />
                       {row.finish && <span className="absolute bottom-1 left-1 right-1 truncate rounded-full bg-[#facc15] px-2 py-0.5 text-center text-[11px] font-extrabold text-[#12315f]">{row.finish}</span>}
                     </button>
                     <span className="min-w-0 px-0.5">
@@ -378,7 +377,7 @@ export default function WishlistCardFinder({ onAdd, addedKeys = new Set(), busyK
       )}
       {previewKey && (
         <CardLightbox
-          cards={allRows.map((row) => ({ id: row.key, name: row.label, imageUrl: row.imageUrl, noImage: row.noImage, game, row }))}
+          cards={allRows.map((row) => ({ id: row.key, name: row.label, imageUrl: row.imageUrl, game, row }))}
           cardId={previewKey}
           onChange={setPreviewKey}
           onClose={() => setPreviewKey(null)}

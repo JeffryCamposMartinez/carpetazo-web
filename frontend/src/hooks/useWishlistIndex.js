@@ -9,7 +9,7 @@ export const wishlistKeyOf = (payload) => {
 };
 
 // Carta con acabado distinto del normal (Reverse Holofoil…): otra carta de la lista, sin imagen propia
-export const withFinish = (payload, finish) => (finish && payload?.external ? { ...payload, imageUrl: undefined, detail: `${payload.detail || ''} · ${finish}`.replace(/^ · /, '').slice(0, 100), external: { ...payload.external, finish } } : payload);
+export const withFinish = (payload, finish) => (finish && payload?.external ? { ...payload, detail: `${payload.detail || ''} · ${finish}`.replace(/^ · /, '').slice(0, 100), external: { ...payload.external, finish } } : payload);
 
 // Qué cartas ya están en las listas de deseadas de la persona (identificador → id del ítem), para pintar el corazón lleno desde el inicio
 export default function useWishlistIndex(enabled) {

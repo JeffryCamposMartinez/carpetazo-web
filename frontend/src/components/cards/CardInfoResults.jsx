@@ -20,7 +20,7 @@ const FinishBadge = ({ card }) => (card.finish ? <span className="absolute botto
 
 const NOTE = 'Referencia del catálogo: esta ficha no es una oferta de venta.';
 const tcgplayerImage = (card) => {
-  const id = card?.noImage ? '' : card?.tcgProductId || card?.productId || card?.payload?.external?.productId;
+  const id = card?.tcgProductId || card?.productId || card?.payload?.external?.productId;
   return id ? `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(id))}_400w.jpg` : '';
 };
 
