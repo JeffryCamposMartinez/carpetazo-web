@@ -299,26 +299,27 @@ export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos'
   };
 
   // Franja diagonal amarilla con el acabado (Reverse Holofoil…) en la esquina inferior izquierda de la foto; (x, by) es esa esquina
-  const drawFinishRibbon = (label, x, by, w, h) => {
+  const drawFinishRibbon = (label, x, by, w, h, corner) => {
     const text = pdfText(label);
     if (!text) return;
-    const d = Math.min(w, h) * 0.2; // distancia de la franja a cada borde
-    const t = 4.2; // grosor
+    const d = Math.min(w, h) * 0.17; // distancia de la franja a cada borde
+    const t = 3.4; // grosor
     const s = Math.SQRT1_2;
-    const ux = s; const uy = s; // sentido de la franja (abajo a la derecha)
-    const nx = s; const ny = -s; // hacia el interior de la carta
-    const ax = x - ux * t; const ay = by - 2 * d - uy * t;
-    const bx = x + 2 * d + ux * t; const by2 = by + uy * t;
-    const hx = nx * t / 2; const hy = ny * t / 2;
+    // La franja va de (x, by - 2d) a (x + 2d, by): baja hacia la derecha. n apunta hacia el interior de la carta.
+    const ax = x - s * t; const ay = by - 2 * d - s * t;
+    const bx = x + 2 * d + s * t; const by2 = by + s * t;
+    const hx = s * t / 2; const hy = -s * t / 2;
     doc.saveGraphicsState();
-    doc.rect(x, by - h, w, h, null);
+    doc.roundedRect(x, by - h, w, h, corner, corner, null);
     doc.clip();
     doc.discardPath();
     fill(YELLOW);
     doc.lines([[bx - ax, by2 - ay], [-2 * hx, -2 * hy], [ax - bx, ay - by2]], ax + hx, ay + hy, [1, 1], 'F', true);
-    font('bold', 6.2);
+    font('bold', 5.4);
     ink(NAVY);
-    doc.text(text, x + d - nx * 0.8, by - d - ny * 0.8, { align: 'center', angle: -45 });
+    // jsPDF no centra bien el texto girado: se calcula el punto de inicio sobre la franja (centro menos medio texto) y se baja a la línea base
+    const half = doc.getTextWidth(text) / 2;
+    doc.text(text, x + d - s * half - s * 0.6, by - d - s * half + s * 0.6, { angle: -45 });
     doc.restoreGraphicsState();
   };
 
@@ -354,14 +355,19 @@ export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos'
       const height = ratio > maxW / maxH ? maxW / ratio : maxH;
       const ix = x + pad + (boxW - width) / 2;
       const iy = top + pad + (boxH - height) / 2;
-      opacity(0.25);
+      // Las fotos de TCGplayer traen las esquinas blancas: se recortan con la forma redondeada de la carta; una sola sombra suave
+      const corner = width * 0.055;
+      opacity(0.22);
       fill(INK);
-      doc.roundedRect(ix + 0.8, iy + 1.3, width, height, 2.2, 2.2, 'F');
-      opacity(0.12);
-      doc.roundedRect(ix + 1.6, iy + 2.4, width, height, 2.2, 2.2, 'F');
+      doc.roundedRect(ix + 0.5, iy + 0.9, width, height, corner, corner, 'F');
       opacity(1);
+      doc.saveGraphicsState();
+      doc.roundedRect(ix, iy, width, height, corner, corner, null);
+      doc.clip();
+      doc.discardPath();
       doc.addImage(thumb.data, 'JPEG', ix, iy, width, height);
-      drawFinishRibbon(wishlistFinishOf(item), ix, iy + height, width, height);
+      doc.restoreGraphicsState();
+      drawFinishRibbon(wishlistFinishOf(item), ix, iy + height, width, height, corner);
     } else {
       font('bold', 11);
       ink(MUTED);
