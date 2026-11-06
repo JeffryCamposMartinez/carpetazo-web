@@ -155,7 +155,7 @@ export default function CardsPage() {
         </header>
 
         <div className="lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:items-start lg:gap-8">
-          <CardsFilters query={queryInput} tcg={tcg} onQuery={setQueryInput} onTcg={changeTcg} />
+          <CardsFilters stickyTop="lg:top-48" query={queryInput} tcg={tcg} onQuery={setQueryInput} onTcg={changeTcg} />
 
           <section className="mt-5 min-w-0 lg:mt-0" aria-label="Resultados">
             <CardsResultsBar

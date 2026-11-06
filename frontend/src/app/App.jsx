@@ -27,6 +27,7 @@ const FeedbackPage = lazy(pageLoaders.feedback);
 const PlansPage = lazy(pageLoaders.plans);
 const FoldersPage = lazy(pageLoaders.folders);
 const CardsPage = lazy(pageLoaders.cards);
+const CardCatalogPage = lazy(pageLoaders.cardCatalog);
 const CardDetailPage = lazy(pageLoaders.cardDetail);
 const CatalogCardPage = lazy(pageLoaders.catalogCard);
 const SellersPage = lazy(pageLoaders.sellers);
@@ -96,6 +97,7 @@ function App() {
                 <Route path="/planes" element={<PlansPage />} />
                 <Route path="/carpetas" element={<FoldersPage />} />
                 <Route path="/cartas" element={<CardsPage />} />
+                <Route path="/cartas/catalogo" element={<CardCatalogPage />} />
                 <Route path="/carta/:cardId" element={<CardDetailPage />} />
                 <Route path="/catalogo/:productId/:slug?" element={<CatalogCardPage />} />
                 <Route path="/vendedores" element={<SellersPage />} />

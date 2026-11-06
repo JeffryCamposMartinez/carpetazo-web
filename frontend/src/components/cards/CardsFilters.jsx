@@ -18,12 +18,12 @@ const CHIP = 'flex h-11 min-w-[6.25rem] shrink-0 items-center justify-center gap
 
 // Búsqueda y juego: arriba en el celular (los juegos se deslizan de lado) y en una columna fija a la izquierda en pantallas anchas
 // Se reutiliza en Carpetas y Vendedores: placeholder/label cambian, `format` es opcional, `counts` (Map juego→cantidad, con `total`) muestra cuántos hay y `hideGames` deja solo la búsqueda
-export default function CardsFilters({ onQuery, onTcg, query, tcg, placeholder = 'Buscar por nombre', format, counts, hideGames = false }) {
+export default function CardsFilters({ onQuery, onTcg, query, tcg, placeholder = 'Buscar por nombre', format, counts, hideGames = false, stickyTop = 'lg:top-32' }) {
   const active = 'bg-[#12315f] text-white shadow-[0_1px_2px_rgba(8,18,42,0.35),0_8px_16px_-8px_rgba(18,49,95,0.7)]';
   const idle = 'bg-white text-[#12315f] ring-1 ring-slate-900/10 [@media(hover:hover)]:hover:bg-blue-50';
 
   return (
-    <div className="lg:sticky lg:top-32 lg:self-start">
+    <div className={`lg:sticky ${stickyTop} lg:self-start`}>
       <div className="relative">
         <SvgIcon name="search" translate="no" aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[22px] text-slate-400" />
         <input

@@ -24,6 +24,7 @@ export const pageLoaders = {
   plans: retryImport(() => import('../pages/PlansPage')),
   folders: retryImport(() => import('../pages/FoldersPage')),
   cards: retryImport(() => import('../pages/CardsPage')),
+  cardCatalog: retryImport(() => import('../pages/CardCatalogPage')),
   cardDetail: retryImport(() => import('../pages/CardDetailPage')),
   catalogCard: retryImport(() => import('../pages/CatalogCardPage')),
   sellers: retryImport(() => import('../pages/SellersPage')),

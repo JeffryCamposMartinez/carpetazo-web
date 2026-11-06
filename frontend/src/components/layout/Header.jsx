@@ -12,6 +12,7 @@ import { useToast } from '../ui/ToastProvider';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import { formatCardSearchQuery } from '../../utils/cardCodeSearch';
 import SvgIcon from '../ui/SvgIcon';
+import SectionSubNav from './SectionSubNav';
 
 // Ventanas que solo se abren a pedido: su código se descarga al abrirlas, no en la primera carga de cada página
 const AuthModal = lazy(() => import('../auth/AuthModal'));
@@ -652,6 +653,7 @@ export default function Header() {
               options={NAV_ROUTES}
             />
           </nav>
+          <SectionSubNav />
         </div>
       </header>
 
@@ -719,6 +721,7 @@ export default function Header() {
               onChange={goToSection}
               options={NAV_ROUTES}
             />
+            <SectionSubNav />
           </nav>
         </div>
       </header>
