@@ -302,8 +302,8 @@ export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos'
   const drawFinishRibbon = (label, x, by, w, h, corner) => {
     const text = pdfText(label);
     if (!text) return;
-    const d = Math.min(w, h) * 0.27; // distancia de la franja a cada borde
-    const t = 5.6; // grosor
+    const d = Math.min(w, h) * 0.4; // distancia de la franja a cada borde
+    const t = 8.5; // grosor
     const s = Math.SQRT1_2;
     // La franja va de (x, by - 2d) a (x + 2d, by): baja hacia la derecha. n apunta hacia el interior de la carta.
     const ax = x - s * t; const ay = by - 2 * d - s * t;
@@ -315,11 +315,14 @@ export async function buildWishlistPdf({ items, filterLabel = 'Todos los juegos'
     doc.discardPath();
     fill(YELLOW);
     doc.lines([[bx - ax, by2 - ay], [-2 * hx, -2 * hy], [ax - bx, ay - by2]], ax + hx, ay + hy, [1, 1], 'F', true);
-    font('bold', 8);
+    font('bold', 11);
     ink(NAVY);
+    // El texto se achica si no cabe en el largo visible de la franja (2d·√2 menos un margen)
+    const fit = (2 * d * Math.SQRT2 * 0.78) / doc.getTextWidth(text);
+    if (fit < 1) font('bold', 11 * fit);
     // jsPDF no centra bien el texto girado: se calcula el punto de inicio sobre la franja (centro menos medio texto) y se baja a la línea base
     const half = doc.getTextWidth(text) / 2;
-    doc.text(text, x + d - s * half - s * 0.9, by - d - s * half + s * 0.9, { angle: -45 });
+    doc.text(text, x + d - s * half - s * 1.3, by - d - s * half + s * 1.3, { angle: -45 });
     doc.restoreGraphicsState();
   };
 
