@@ -1,38 +1,65 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { fetchPokemonGroupCards, fetchPokemonGroups } from '../services/tcgcsvPokemon';
-import { fetchGameGroupCards, fetchGameGroups } from '../services/tcgcsvGames';
 import { api } from '../services/api';
+import { fetchPokemonGroupCards, fetchPokemonGroups, filterPokemonCards } from '../services/tcgcsvPokemon';
+import { fetchGameGroupCards, fetchGameGroups, filterGameCards, tcgcsvGameInfo } from '../services/tcgcsvGames';
+import { EMPTY_OP_FILTERS } from '../services/tcgcsvOnePiece';
+import { EMPTY_MAGIC_FILTERS } from '../services/tcgcsvMagic';
+import { EMPTY_RB_FILTERS } from '../services/tcgcsvRiftbound';
+import { EMPTY_LC_FILTERS } from '../services/tcgcsvLorcana';
+import { EMPTY_DG_FILTERS } from '../services/tcgcsvDigimon';
+import { EMPTY_YGO_FILTERS } from '../services/tcgcsvYugioh';
+import { EDITION_FAMILY_PREFIX } from '../utils/editionFamilies';
 import { catalogLink } from '../utils/catalogLink';
 import { GAMES } from '../components/cards/CardsFilters';
+import FolderAddSearchFilters from '../components/folder/filters/FolderAddSearchFilters';
 import LoadableImage, { LoadingMark } from '../components/ui/LoadableImage';
 import EmptyState from '../components/ui/EmptyState';
-import SvgIcon from '../components/ui/SvgIcon';
 import usePageMeta from '../hooks/usePageMeta';
 
 const MYL = 'Mitos y Leyendas'; // tiene su propio catálogo (categoría 99), fuera de TCGplayer: sus cartas no tienen ficha
 const PAGE_SIZE = 60;
 const CHIP = 'flex h-11 shrink-0 items-center justify-center rounded-full px-4 text-sm font-extrabold transition-[background-color,box-shadow,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 focus-visible:ring-offset-[#DBEAFE]';
-const FIELD = 'h-12 w-full rounded-full border-0 bg-white px-4 text-base font-medium text-slate-900 shadow-[0_1px_2px_rgba(26,43,75,0.08)] ring-1 ring-slate-900/10 focus:outline-none focus:ring-2 focus:ring-[#1e40af]';
+const noop = () => {};
 
 // Las ediciones de Mitos y Leyendas, de la más nueva a la más vieja
 const loadMylGroups = () => api.getTcgGroups('99').then((res) => (res.success ? [...res.data].sort((a, b) => new Date(b.publishedOn || 0) - new Date(a.publishedOn || 0)) : Promise.reject(new Error('Catálogo no disponible'))));
-const loadMylCards = (group) => api.getTcgProducts('99', group.groupId).then((res) => (res.success ? res.data.map((product) => ({ productId: String(product.productId), name: product.name, number: (product.extData || []).find((item) => item.name === 'Number')?.value || '', imageUrl: product.imageUrl })) : Promise.reject(new Error('Catálogo no disponible'))));
+const mylCardsOf = (res) => (res.success ? res.data.map((product) => ({ productId: String(product.productId), name: product.name, number: (product.extData || []).find((item) => item.name === 'Number')?.value || '', imageUrl: product.imageUrl })) : Promise.reject(new Error('Catálogo no disponible')));
 
-const loadGroups = (game, signal) => (game === MYL ? loadMylGroups() : game === 'Pokémon' ? fetchPokemonGroups('en', signal) : fetchGameGroups(game, signal));
-const loadCards = (game, group, signal) => (game === MYL ? loadMylCards(group) : game === 'Pokémon' ? fetchPokemonGroupCards('en', group, signal) : fetchGameGroupCards(game, group, signal));
-
-// Visor del catálogo: todas las cartas de todas las ediciones, solo para mirarlas (juego → edición → cartas)
+// Visor del catálogo: todas las cartas de todas las ediciones, solo para mirarlas (juego → edición → cartas), con los filtros propios de cada juego
 export default function CardCatalogPage() {
   usePageMeta({ title: 'Catálogo de cartas TCG | Carpetazo', description: 'Mira todas las cartas de todas las ediciones de Pokémon, Mitos y Leyendas, Magic, Yu-Gi-Oh!, One Piece, Riftbound, Lorcana y Digimon.', path: '/cartas/catalogo' });
   const [params, setParams] = useSearchParams();
   const game = GAMES.some((item) => item.name === params.get('tcg')) ? params.get('tcg') : 'Pokémon';
   const setParam = params.get('set') || '';
-  const [loaded, setLoaded] = useState({ game: '', list: null }); // las ediciones llevan su juego: al cambiar de juego no se usan las del anterior
-  const groups = loaded.game === game ? loaded.list : null; // null = cargando
+  const isMyl = game === MYL;
+  const isPokemon = game === 'Pokémon';
+  const gameInfo = tcgcsvGameInfo(game); // todos los de TCGplayer menos Pokémon y Mitos y Leyendas
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchLang, setSearchLang] = useState('en');
+  const [selectedSupertype, setSelectedSupertype] = useState('');
+  const [selectedType, setSelectedType] = useState('');
+  const [opFilters, setOpFilters] = useState(EMPTY_OP_FILTERS);
+  const [magicFilters, setMagicFilters] = useState(EMPTY_MAGIC_FILTERS);
+  const [rbFilters, setRbFilters] = useState(EMPTY_RB_FILTERS);
+  const [lcFilters, setLcFilters] = useState(EMPTY_LC_FILTERS);
+  const [dgFilters, setDgFilters] = useState(EMPTY_DG_FILTERS);
+  const [ygFilters, setYgFilters] = useState(EMPTY_YGO_FILTERS);
+  const [blocks, setBlocks] = useState([]);
+  const [physicalProducts, setPhysicalProducts] = useState([]);
+  const [searchBlock, setSearchBlock] = useState('');
+  const [searchPhysicalProduct, setSearchPhysicalProduct] = useState('');
+  const [mylType, setMylType] = useState('');
+  const [mylRace, setMylRace] = useState('');
+  const [mylCost, setMylCost] = useState('');
+  const [mylQuery, setMylQuery] = useState(''); // el texto de Mitos y Leyendas se busca en el servidor, un momento después de escribir
+
+  const groupsKey = `${game}|${isPokemon ? searchLang : ''}`;
+  const [loaded, setLoaded] = useState({ key: '', list: null }); // las ediciones llevan su juego e idioma: al cambiar no se usan las del anterior
+  const groups = loaded.key === groupsKey ? loaded.list : null; // null = cargando
   const [cards, setCards] = useState(null);
   const [failed, setFailed] = useState(false);
-  const [query, setQuery] = useState('');
   const [shown, setShown] = useState(PAGE_SIZE);
 
   const update = (changes) => {
@@ -40,32 +67,65 @@ export default function CardCatalogPage() {
     Object.entries(changes).forEach(([key, value]) => (value ? next.set(key, value) : next.delete(key)));
     setParams(next, { replace: true });
   };
+  const resetFilters = () => {
+    setSearchQuery(''); setMylQuery(''); setSearchLang('en'); setSelectedSupertype(''); setSelectedType('');
+    setOpFilters(EMPTY_OP_FILTERS); setMagicFilters(EMPTY_MAGIC_FILTERS); setRbFilters(EMPTY_RB_FILTERS); setLcFilters(EMPTY_LC_FILTERS); setDgFilters(EMPTY_DG_FILTERS); setYgFilters(EMPTY_YGO_FILTERS);
+    setSearchBlock(''); setSearchPhysicalProduct(''); setMylType(''); setMylRace(''); setMylCost('');
+  };
 
   useEffect(() => {
     const controller = new AbortController();
     setCards(null); setFailed(false);
-    loadGroups(game, controller.signal)
-      .then((list) => { if (!controller.signal.aborted) setLoaded({ game, list }); })
-      .catch((error) => { if (error?.name !== 'AbortError' && !controller.signal.aborted) { setLoaded({ game, list: [] }); setFailed(true); } });
+    const request = isMyl ? loadMylGroups() : isPokemon ? fetchPokemonGroups(searchLang, controller.signal) : fetchGameGroups(game, controller.signal);
+    request
+      .then((list) => { if (!controller.signal.aborted) setLoaded({ key: groupsKey, list }); })
+      .catch((error) => { if (error?.name !== 'AbortError' && !controller.signal.aborted) { setLoaded({ key: groupsKey, list: [] }); setFailed(true); } });
     return () => controller.abort();
-  }, [game]);
+  }, [groupsKey]);
 
-  const group = useMemo(() => (groups || []).find((item) => String(item.groupId) === setParam) || (groups || [])[0] || null, [groups, setParam]);
+  useEffect(() => {
+    if (!isMyl) return;
+    api.getTcgBlocks('99').then((res) => { if (res.success) setBlocks(res.data); }).catch(noop);
+    api.getTcgPhysicalProducts().then((res) => { if (res.success) setPhysicalProducts(res.data); }).catch(noop);
+  }, [isMyl]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMylQuery(searchQuery), 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const availableSets = groups || [];
+  const filteredSets = useMemo(() => (isMyl && searchBlock ? availableSets.filter((item) => String(item.blockId) === String(searchBlock)) : availableSets), [groups, isMyl, searchBlock]);
+  const group = useMemo(() => {
+    if (setParam.startsWith(EDITION_FAMILY_PREFIX)) return { groupId: setParam, name: 'Coleccionista Victoriosa (todas)' }; // la opción «(todas)» de Mitos y Leyendas
+    return filteredSets.find((item) => String(item.groupId) === setParam) || filteredSets[0] || null;
+  }, [filteredSets, setParam]);
+
+  const mylFilters = useMemo(() => ({ type: mylType, race: mylRace, cost: mylCost, blockId: searchBlock, physicalProductId: searchPhysicalProduct }), [mylType, mylRace, mylCost, searchBlock, searchPhysicalProduct]);
+  const term = isMyl ? mylQuery.trim() : '';
 
   useEffect(() => {
     if (!group) return undefined;
     const controller = new AbortController();
-    setCards(null); setFailed(false); setQuery(''); setShown(PAGE_SIZE);
-    loadCards(game, group, controller.signal)
+    setCards(null); setFailed(false); setShown(PAGE_SIZE);
+    const request = isMyl
+      ? (term.length >= 2 ? api.searchTcgProducts(term, '99', group.groupId, mylFilters) : api.getTcgProducts('99', group.groupId, mylFilters)).then(mylCardsOf)
+      : isPokemon ? fetchPokemonGroupCards(searchLang, group, controller.signal) : fetchGameGroupCards(game, group, controller.signal);
+    request
       .then((list) => { if (!controller.signal.aborted) setCards(list); })
       .catch((error) => { if (error?.name !== 'AbortError' && !controller.signal.aborted) { setCards([]); setFailed(true); } });
     return () => controller.abort();
-  }, [game, group]);
+  }, [game, group, searchLang, mylFilters, term]);
 
+  const gameFilters = game === 'One Piece' ? opFilters : game === 'Magic' ? magicFilters : game === 'Yu-Gi-Oh!' ? ygFilters : game === 'Lorcana' ? lcFilters : game === 'Digimon' ? dgFilters : rbFilters;
+  // Texto y filtros del juego sobre las cartas de la edición (Mitos y Leyendas ya llega filtrada del servidor)
   const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return q ? (cards || []).filter((card) => `${card.name} ${card.number}`.toLowerCase().includes(q)) : (cards || []);
-  }, [cards, query]);
+    const list = cards || [];
+    if (isMyl) return list;
+    return gameInfo ? filterGameCards(game, list, searchQuery.trim().toLowerCase(), gameFilters) : filterPokemonCards(list, { query: searchQuery, supertype: selectedSupertype, type: selectedType });
+  }, [cards, game, searchQuery, selectedSupertype, selectedType, gameFilters]);
+
+  useEffect(() => { setShown(PAGE_SIZE); }, [searchQuery, selectedSupertype, selectedType, gameFilters]);
 
   const loading = groups === null || (group && cards === null);
 
@@ -79,18 +139,55 @@ export default function CardCatalogPage() {
 
         <div role="group" aria-label="Juego" className="-mx-4 flex gap-2 overflow-x-auto px-4 py-2 [scrollbar-width:none] md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden">
           {GAMES.map((item) => (
-            <button key={item.name} type="button" aria-pressed={game === item.name} onClick={() => update({ tcg: item.name === 'Pokémon' ? '' : item.name, set: '' })} className={`${CHIP} ${game === item.name ? 'bg-[#12315f] text-white shadow-[0_8px_16px_-8px_rgba(18,49,95,0.7)]' : 'bg-white text-[#12315f] ring-1 ring-slate-900/10 [@media(hover:hover)]:hover:bg-blue-50'}`}>{item.name}</button>
+            <button key={item.name} type="button" aria-pressed={game === item.name} onClick={() => { if (game === item.name) return; resetFilters(); update({ tcg: item.name === 'Pokémon' ? '' : item.name, set: '' }); }} className={`${CHIP} ${game === item.name ? 'bg-[#12315f] text-white shadow-[0_8px_16px_-8px_rgba(18,49,95,0.7)]' : 'bg-white text-[#12315f] ring-1 ring-slate-900/10 [@media(hover:hover)]:hover:bg-blue-50'}`}>{item.name}</button>
           ))}
         </div>
 
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:max-w-3xl">
-          <select aria-label="Edición" value={group ? String(group.groupId) : ''} disabled={!groups?.length} onChange={(event) => update({ set: event.target.value })} className={FIELD}>
-            {(groups || []).map((item) => <option key={item.groupId} value={item.groupId}>{item.name}</option>)}
-          </select>
-          <div className="relative">
-            <SvgIcon name="search" translate="no" aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[22px] text-slate-400" />
-            <input type="search" value={query} onChange={(event) => { setQuery(event.target.value.slice(0, 80)); setShown(PAGE_SIZE); }} placeholder="Buscar en esta edición" aria-label="Buscar en esta edición" className={`${FIELD} pl-12 [&::-webkit-search-cancel-button]:appearance-none`} />
-          </div>
+        <div className="mt-3 rounded-2xl bg-slate-50 p-2.5 ring-1 ring-slate-200 lg:max-w-4xl">
+          <FolderAddSearchFilters
+            availableBlocks={blocks}
+            tcg={game}
+            searchCategory={isMyl ? '99' : gameInfo ? gameInfo.marker : '1'}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            searchSet={group ? String(group.groupId) : ''}
+            availableSets={availableSets}
+            filteredSearchSets={filteredSets}
+            isSetDropdownOpen={false}
+            setIsSetDropdownOpen={noop}
+            setSearchSet={(value) => update({ set: value ? String(value) : '' })}
+            searchLang={searchLang}
+            setSearchLang={setSearchLang}
+            selectedType={selectedType}
+            setSelectedType={setSelectedType}
+            selectedSupertype={selectedSupertype}
+            setSelectedSupertype={setSelectedSupertype}
+            searchBlock={searchBlock}
+            setSearchBlock={setSearchBlock}
+            searchPhysicalProduct={searchPhysicalProduct}
+            setSearchPhysicalProduct={setSearchPhysicalProduct}
+            availablePhysicalProducts={physicalProducts}
+            mylType={mylType}
+            setMylType={setMylType}
+            mylRace={mylRace}
+            setMylRace={setMylRace}
+            mylCost={mylCost}
+            setMylCost={setMylCost}
+            opFilters={opFilters}
+            setOpFilters={setOpFilters}
+            magicFilters={magicFilters}
+            setMagicFilters={setMagicFilters}
+            rbFilters={rbFilters}
+            setRbFilters={setRbFilters}
+            lcFilters={lcFilters}
+            setLcFilters={setLcFilters}
+            dgFilters={dgFilters}
+            setDgFilters={setDgFilters}
+            ygFilters={ygFilters}
+            setYgFilters={setYgFilters}
+            loadedCards={cards || []}
+            scrollToTopIfNeeded={noop}
+          />
         </div>
 
         {group && cards && <p className="mt-4 text-sm font-bold text-[#12315f]" aria-live="polite">{visible.length} {visible.length === 1 ? 'carta' : 'cartas'} en {group.name}</p>}
@@ -101,14 +198,14 @@ export default function CardCatalogPage() {
           ) : failed ? (
             <EmptyState icon="cloud_off" title="No pudimos cargar el catálogo" action={{ label: 'Reintentar', icon: 'refresh', onClick: () => window.location.reload() }} role="alert">Revisa tu conexión e inténtalo de nuevo.</EmptyState>
           ) : visible.length === 0 ? (
-            <EmptyState icon="style" title={query ? 'Ninguna carta coincide' : 'Esta edición todavía no tiene cartas'} action={query ? { label: 'Borrar búsqueda', onClick: () => setQuery('') } : undefined}>
-              {query ? 'Prueba con otro nombre o número.' : 'Elige otra edición de la lista.'}
+            <EmptyState icon="style" title="Ninguna carta coincide" action={{ label: 'Quitar filtros', onClick: resetFilters }}>
+              Prueba con otro nombre, otros filtros u otra edición.
             </EmptyState>
           ) : (
             <>
               <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
                 {visible.slice(0, shown).map((card) => {
-                  const to = game === MYL ? null : catalogLink(card); // las cartas de Mitos y Leyendas no tienen ficha: solo se miran
+                  const to = isMyl ? null : catalogLink(card); // las cartas de Mitos y Leyendas no tienen ficha: solo se miran
                   const body = (
                     <>
                       <span className="relative block aspect-[63/88] w-full overflow-hidden bg-slate-100">
