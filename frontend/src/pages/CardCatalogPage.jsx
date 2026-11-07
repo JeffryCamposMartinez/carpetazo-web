@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { fetchPokemonGroupCards, fetchPokemonGroups } from '../services/tcgcsvPokemon';
 import { fetchGameGroupCards, fetchGameGroups } from '../services/tcgcsvGames';
+import { api } from '../services/api';
 import { catalogLink } from '../utils/catalogLink';
 import { GAMES } from '../components/cards/CardsFilters';
 import LoadableImage, { LoadingMark } from '../components/ui/LoadableImage';
@@ -9,19 +10,23 @@ import EmptyState from '../components/ui/EmptyState';
 import SvgIcon from '../components/ui/SvgIcon';
 import usePageMeta from '../hooks/usePageMeta';
 
-const CATALOG_GAMES = GAMES.filter((game) => game.name !== 'Mitos y Leyendas'); // Mitos y Leyendas tiene su propio catálogo, fuera de TCGplayer
+const MYL = 'Mitos y Leyendas'; // tiene su propio catálogo (categoría 99), fuera de TCGplayer: sus cartas no tienen ficha
 const PAGE_SIZE = 60;
 const CHIP = 'flex h-11 shrink-0 items-center justify-center rounded-full px-4 text-sm font-extrabold transition-[background-color,box-shadow,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 focus-visible:ring-offset-[#DBEAFE]';
 const FIELD = 'h-12 w-full rounded-full border-0 bg-white px-4 text-base font-medium text-slate-900 shadow-[0_1px_2px_rgba(26,43,75,0.08)] ring-1 ring-slate-900/10 focus:outline-none focus:ring-2 focus:ring-[#1e40af]';
 
-const loadGroups = (game, signal) => (game === 'Pokémon' ? fetchPokemonGroups('en', signal) : fetchGameGroups(game, signal));
-const loadCards = (game, group, signal) => (game === 'Pokémon' ? fetchPokemonGroupCards('en', group, signal) : fetchGameGroupCards(game, group, signal));
+// Las ediciones de Mitos y Leyendas, de la más nueva a la más vieja
+const loadMylGroups = () => api.getTcgGroups('99').then((res) => (res.success ? [...res.data].sort((a, b) => new Date(b.publishedOn || 0) - new Date(a.publishedOn || 0)) : Promise.reject(new Error('Catálogo no disponible'))));
+const loadMylCards = (group) => api.getTcgProducts('99', group.groupId).then((res) => (res.success ? res.data.map((product) => ({ productId: String(product.productId), name: product.name, number: (product.extData || []).find((item) => item.name === 'Number')?.value || '', imageUrl: product.imageUrl })) : Promise.reject(new Error('Catálogo no disponible'))));
+
+const loadGroups = (game, signal) => (game === MYL ? loadMylGroups() : game === 'Pokémon' ? fetchPokemonGroups('en', signal) : fetchGameGroups(game, signal));
+const loadCards = (game, group, signal) => (game === MYL ? loadMylCards(group) : game === 'Pokémon' ? fetchPokemonGroupCards('en', group, signal) : fetchGameGroupCards(game, group, signal));
 
 // Visor del catálogo: todas las cartas de todas las ediciones, solo para mirarlas (juego → edición → cartas)
 export default function CardCatalogPage() {
-  usePageMeta({ title: 'Catálogo de cartas TCG | Carpetazo', description: 'Mira todas las cartas de todas las ediciones de Pokémon, Magic, Yu-Gi-Oh!, One Piece, Riftbound, Lorcana y Digimon.', path: '/cartas/catalogo' });
+  usePageMeta({ title: 'Catálogo de cartas TCG | Carpetazo', description: 'Mira todas las cartas de todas las ediciones de Pokémon, Mitos y Leyendas, Magic, Yu-Gi-Oh!, One Piece, Riftbound, Lorcana y Digimon.', path: '/cartas/catalogo' });
   const [params, setParams] = useSearchParams();
-  const game = CATALOG_GAMES.some((item) => item.name === params.get('tcg')) ? params.get('tcg') : 'Pokémon';
+  const game = GAMES.some((item) => item.name === params.get('tcg')) ? params.get('tcg') : 'Pokémon';
   const setParam = params.get('set') || '';
   const [loaded, setLoaded] = useState({ game: '', list: null }); // las ediciones llevan su juego: al cambiar de juego no se usan las del anterior
   const groups = loaded.game === game ? loaded.list : null; // null = cargando
@@ -40,8 +45,8 @@ export default function CardCatalogPage() {
     const controller = new AbortController();
     setCards(null); setFailed(false);
     loadGroups(game, controller.signal)
-      .then((list) => setLoaded({ game, list }))
-      .catch((error) => { if (error?.name !== 'AbortError') { setLoaded({ game, list: [] }); setFailed(true); } });
+      .then((list) => { if (!controller.signal.aborted) setLoaded({ game, list }); })
+      .catch((error) => { if (error?.name !== 'AbortError' && !controller.signal.aborted) { setLoaded({ game, list: [] }); setFailed(true); } });
     return () => controller.abort();
   }, [game]);
 
@@ -52,8 +57,8 @@ export default function CardCatalogPage() {
     const controller = new AbortController();
     setCards(null); setFailed(false); setQuery(''); setShown(PAGE_SIZE);
     loadCards(game, group, controller.signal)
-      .then((list) => setCards(list))
-      .catch((error) => { if (error?.name !== 'AbortError') { setCards([]); setFailed(true); } });
+      .then((list) => { if (!controller.signal.aborted) setCards(list); })
+      .catch((error) => { if (error?.name !== 'AbortError' && !controller.signal.aborted) { setCards([]); setFailed(true); } });
     return () => controller.abort();
   }, [game, group]);
 
@@ -73,7 +78,7 @@ export default function CardCatalogPage() {
         </header>
 
         <div role="group" aria-label="Juego" className="-mx-4 flex gap-2 overflow-x-auto px-4 py-2 [scrollbar-width:none] md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden">
-          {CATALOG_GAMES.map((item) => (
+          {GAMES.map((item) => (
             <button key={item.name} type="button" aria-pressed={game === item.name} onClick={() => update({ tcg: item.name === 'Pokémon' ? '' : item.name, set: '' })} className={`${CHIP} ${game === item.name ? 'bg-[#12315f] text-white shadow-[0_8px_16px_-8px_rgba(18,49,95,0.7)]' : 'bg-white text-[#12315f] ring-1 ring-slate-900/10 [@media(hover:hover)]:hover:bg-blue-50'}`}>{item.name}</button>
           ))}
         </div>
@@ -103,7 +108,7 @@ export default function CardCatalogPage() {
             <>
               <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
                 {visible.slice(0, shown).map((card) => {
-                  const to = catalogLink(card);
+                  const to = game === MYL ? null : catalogLink(card); // las cartas de Mitos y Leyendas no tienen ficha: solo se miran
                   const body = (
                     <>
                       <span className="relative block aspect-[63/88] w-full overflow-hidden bg-slate-100">
@@ -111,11 +116,11 @@ export default function CardCatalogPage() {
                       </span>
                       <span className="flex flex-col gap-0.5 p-3">
                         <span className="line-clamp-2 text-sm font-extrabold leading-tight text-[#12315f]">{card.name}</span>
-                        <span className="text-xs font-bold tabular-nums text-slate-500">N.º {card.number}</span>
+                        {card.number && <span className="text-xs font-bold tabular-nums text-slate-500">N.º {card.number}</span>}
                       </span>
                     </>
                   );
-                  const tileClass = 'block overflow-hidden rounded-2xl bg-white ring-1 ring-slate-900/5 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.4)] transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.985] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:shadow-[0_2px_4px_rgba(26,43,75,0.08),0_18px_32px_-16px_rgba(26,43,75,0.5)] motion-reduce:transition-none';
+                  const tileClass = `block overflow-hidden rounded-2xl bg-white ring-1 ring-slate-900/5 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.4)]${to ? ' transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.985] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:shadow-[0_2px_4px_rgba(26,43,75,0.08),0_18px_32px_-16px_rgba(26,43,75,0.5)] motion-reduce:transition-none' : ''}`;
                   return <li key={card.productId} className="min-w-0">{to ? <Link to={to} className={tileClass}>{body}</Link> : <div className={tileClass}>{body}</div>}</li>;
                 })}
               </ul>
