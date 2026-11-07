@@ -23,7 +23,8 @@ export default function CardCatalogPage() {
   const [params, setParams] = useSearchParams();
   const game = CATALOG_GAMES.some((item) => item.name === params.get('tcg')) ? params.get('tcg') : 'Pokémon';
   const setParam = params.get('set') || '';
-  const [groups, setGroups] = useState(null); // null = cargando
+  const [loaded, setLoaded] = useState({ game: '', list: null }); // las ediciones llevan su juego: al cambiar de juego no se usan las del anterior
+  const groups = loaded.game === game ? loaded.list : null; // null = cargando
   const [cards, setCards] = useState(null);
   const [failed, setFailed] = useState(false);
   const [query, setQuery] = useState('');
@@ -37,10 +38,10 @@ export default function CardCatalogPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    setGroups(null); setCards(null); setFailed(false);
+    setCards(null); setFailed(false);
     loadGroups(game, controller.signal)
-      .then((list) => setGroups(list))
-      .catch((error) => { if (error?.name !== 'AbortError') { setGroups([]); setFailed(true); } });
+      .then((list) => setLoaded({ game, list }))
+      .catch((error) => { if (error?.name !== 'AbortError') { setLoaded({ game, list: [] }); setFailed(true); } });
     return () => controller.abort();
   }, [game]);
 

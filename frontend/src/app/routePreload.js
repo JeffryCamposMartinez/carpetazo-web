@@ -36,6 +36,7 @@ const loaderByPath = {
   '/': 'explore',
   '/carpetas': 'folders',
   '/cartas': 'cards',
+  '/cartas/catalogo': 'cardCatalog',
   '/vendedores': 'sellers',
   '/bienvenida': 'landing',
   '/dashboard': 'dashboard',
