@@ -13,13 +13,13 @@ import { EDITION_FAMILY_PREFIX } from '../utils/editionFamilies';
 import { catalogLink } from '../utils/catalogLink';
 import { GAMES } from '../components/cards/CardsFilters';
 import FolderAddSearchFilters from '../components/folder/filters/FolderAddSearchFilters';
+import LiquidTabs from '../components/ui/LiquidTabs';
 import LoadableImage, { LoadingMark } from '../components/ui/LoadableImage';
 import EmptyState from '../components/ui/EmptyState';
 import usePageMeta from '../hooks/usePageMeta';
 
 const MYL = 'Mitos y Leyendas'; // tiene su propio catálogo (categoría 99), fuera de TCGplayer: sus cartas no tienen ficha
 const PAGE_SIZE = 60;
-const CHIP = 'flex h-11 shrink-0 items-center justify-center rounded-full px-4 text-sm font-extrabold transition-[background-color,box-shadow,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 focus-visible:ring-offset-[#DBEAFE]';
 const noop = () => {};
 
 // Las ediciones de Mitos y Leyendas, de la más nueva a la más vieja
@@ -67,6 +67,11 @@ export default function CardCatalogPage() {
     Object.entries(changes).forEach(([key, value]) => (value ? next.set(key, value) : next.delete(key)));
     setParams(next, { replace: true });
   };
+  const changeGame = (name) => {
+    if (name === game) return;
+    resetFilters();
+    update({ tcg: name === 'Pokémon' ? '' : name, set: '' });
+  };
   const resetFilters = () => {
     setSearchQuery(''); setMylQuery(''); setSearchLang('en'); setSelectedSupertype(''); setSelectedType('');
     setOpFilters(EMPTY_OP_FILTERS); setMagicFilters(EMPTY_MAGIC_FILTERS); setRbFilters(EMPTY_RB_FILTERS); setLcFilters(EMPTY_LC_FILTERS); setDgFilters(EMPTY_DG_FILTERS); setYgFilters(EMPTY_YGO_FILTERS);
@@ -88,6 +93,9 @@ export default function CardCatalogPage() {
     api.getTcgBlocks('99').then((res) => { if (res.success) setBlocks(res.data); }).catch(noop);
     api.getTcgPhysicalProducts().then((res) => { if (res.success) setPhysicalProducts(res.data); }).catch(noop);
   }, [isMyl]);
+
+  // En el celular el juego elegido (p. ej. Digimon) puede quedar fuera de la vista: se desliza hasta él
+  useEffect(() => { document.querySelector('[aria-label=Juego] [aria-pressed=true]')?.scrollIntoView({ inline: 'center', block: 'nearest' }); }, [game]);
 
   useEffect(() => {
     const timer = setTimeout(() => setMylQuery(searchQuery), 400);
@@ -137,10 +145,19 @@ export default function CardCatalogPage() {
           <p className="mt-1 max-w-xl text-sm text-slate-600 md:text-base">Todas las cartas de cada edición, para mirarlas. Toca una para ver su ficha y quién la vende.</p>
         </header>
 
-        <div role="group" aria-label="Juego" className="-mx-4 flex gap-2 overflow-x-auto px-4 py-2 [scrollbar-width:none] md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden">
-          {GAMES.map((item) => (
-            <button key={item.name} type="button" aria-pressed={game === item.name} onClick={() => { if (game === item.name) return; resetFilters(); update({ tcg: item.name === 'Pokémon' ? '' : item.name, set: '' }); }} className={`${CHIP} ${game === item.name ? 'bg-[#12315f] text-white shadow-[0_8px_16px_-8px_rgba(18,49,95,0.7)]' : 'bg-white text-[#12315f] ring-1 ring-slate-900/10 [@media(hover:hover)]:hover:bg-blue-50'}`}>{item.name}</button>
-          ))}
+        <div className="-mx-4 overflow-x-auto px-4 py-2 [scrollbar-width:none] md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden">
+          <LiquidTabs
+            ariaLabel="Juego"
+            layout="inline"
+            className="w-max gap-1 rounded-full bg-white p-1 shadow-[0_1px_2px_rgba(26,43,75,0.08)] ring-1 ring-slate-900/10"
+            buttonClassName="h-10 shrink-0 rounded-full px-4 text-sm font-extrabold focus-visible:ring-2 focus-visible:ring-[#1e40af]"
+            indicatorClassName="rounded-full bg-[#12315f] shadow-[0_8px_16px_-8px_rgba(18,49,95,0.7)]"
+            activeTextClassName="text-white"
+            inactiveTextClassName="text-[#12315f] [@media(hover:hover)]:hover:bg-blue-50"
+            value={game}
+            onChange={changeGame}
+            options={GAMES.map((item) => ({ value: item.name, label: item.name }))}
+          />
         </div>
 
         <div className="mt-3 rounded-2xl bg-slate-50 p-2.5 ring-1 ring-slate-200 lg:max-w-4xl">
