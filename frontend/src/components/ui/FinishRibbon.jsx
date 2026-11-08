@@ -20,14 +20,15 @@ export default function FinishRibbon({ finish, corner = 'bl', pdf = false }) {
   if (!finish) return null;
 
   const right = corner === 'br';
-  const leg = width * 0.7; // cuánto de cada borde corta la franja
+  // En pantalla es más discreta; en el PDF (que se imprime y se mira de lejos) es más grande y gruesa
+  const leg = width * (pdf ? 0.7 : 0.5); // cuánto de cada borde corta la franja
   // Letra: proporcional a la carta, sin pasar de lo que cabe en la franja (acabados largos se achican); piso de 6 px para las miniaturas
-  const font = Math.max(6, Math.min(width * 0.11, (leg * 1.414 * 0.92) / (String(finish).length * 0.58)));
+  const font = Math.max(6, Math.min(width * (pdf ? 0.11 : 0.08), (leg * 1.414 * 0.92) / (String(finish).length * 0.58)));
   const ribbon = width > 0 ? {
     left: right ? `calc(100% - ${leg / 2}px)` : `${leg / 2}px`,
     top: `calc(100% - ${leg / 2}px)`,
     width: width * 1.8,
-    height: font * 2,
+    height: font * (pdf ? 2 : 1.9),
     transform: `translate(-50%, -50%) rotate(${right ? -45 : 45}deg)`,
     fontSize: font,
   } : null;
