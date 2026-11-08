@@ -280,7 +280,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
                               </span>
                             </div>
                             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black/90 text-yellow-400 font-bold text-[13px] px-4 py-1.5 rounded-full shadow-md whitespace-nowrap z-[120] inline-block text-center border border-white/10">
-                              <span className="relative -top-[5px]">{card.price ? '$' + Number(card.price).toLocaleString('es-CL') : 'Sin precio'}</span>
+                              <span className="relative -top-[5px]">{card.price ? <>{'$' + Number(card.price).toLocaleString('es-CL')}<span className="ml-1 text-[10px] font-semibold text-white/80">c/u</span></> : 'Sin precio'}</span>
                             </div>
                           </div>
                         ) : (
@@ -292,6 +292,10 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
                       </div>
                     );
                   })}
+               </div>
+               {/* Aclaración: el precio de cada carta es por una sola copia, aunque haya varias (xN) */}
+               <div className="absolute inset-x-0 bottom-[1mm] z-30 text-center text-[9px] font-semibold text-white/60">
+                 <span className="relative -top-[3px]">Todos los precios son por cada copia de la carta (c/u)</span>
                </div>
             </div>
           </div>
