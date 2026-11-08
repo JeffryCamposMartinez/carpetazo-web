@@ -151,10 +151,12 @@ export default function FolderAddTab({
                 )}
               </div>
 
-              <button type="submit" disabled={isSaving} className="mt-1 w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-extrabold h-11 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-[15px] active:scale-[0.98]">
+              <div className="sticky bottom-0 z-10 -mx-1 bg-white px-1 pb-1 pt-2">
+              <button type="submit" disabled={isSaving} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-extrabold h-11 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-[15px] active:scale-[0.98]">
                 {isSaving ? <ButtonSpinner /> : <SvgIcon name="add_circle" translate="no" />}
                 {isSaving ? 'Guardando...' : isBatchAdding ? 'Guardar y continuar' : selectedExistingCard ? 'Sumar stock' : 'Guardar Carta'}
               </button>
+              </div>
             </div>
   );
   // Guía de pasos: el paso actual sale de lo que la persona ya hizo (sin carta ni resultados → 1; con resultados → 2; con carta o selección → 3)
@@ -475,7 +477,7 @@ export default function FolderAddTab({
             </button>
         </div>
 
-      <div id="add-catalog-panel" className={`w-full max-w-[410px] lg:w-[410px] bg-white p-4 lg:p-5 rounded-2xl shadow-sm border border-gray-200 lg:sticky lg:top-[120px] flex-shrink-0 z-10 hover:z-[60] mx-auto lg:mx-0 self-center lg:self-start scroll-mt-[130px] lg:scroll-mt-[150px] ${selectedCard ? 'block' : 'hidden lg:block lg:min-h-[500px]'}`}>
+      <div id="add-catalog-panel" className={`w-full max-w-[410px] lg:w-[410px] bg-white p-4 lg:p-5 rounded-2xl shadow-sm border border-gray-200 lg:sticky lg:top-[120px] flex-shrink-0 z-10 hover:z-[60] mx-auto lg:mx-0 self-center lg:self-start scroll-mt-[130px] lg:scroll-mt-[150px] lg:max-h-[calc(100svh-8.5rem)] lg:overflow-y-auto lg:overscroll-contain ${selectedCard ? 'block' : 'hidden lg:block lg:min-h-[500px]'}`}>
         <h2 className="text-base font-extrabold text-[#1a2b4b] flex items-center gap-2 border-b border-gray-100 pb-2.5">
           <SvgIcon name="add_circle" translate="no" className="text-[#1e40af] text-[20px]" />
           {isBatchAdding ? 'Agregar Selección' : 'Añadir a Carpeta'}
@@ -483,7 +485,7 @@ export default function FolderAddTab({
         {selectedCard ? (
           <form onSubmit={handleSaveCard} className="mt-2 flex flex-col gap-2.5">
             <div className="relative z-50 flex w-full shrink-0 justify-center">
-              <div className="relative mx-auto w-[clamp(130px,38vw,168px)]" style={{ aspectRatio: cardRatio(folderData?.tcg) }}>
+              <div className="relative mx-auto w-[clamp(110px,min(38vw,15svh),168px)]" style={{ aspectRatio: cardRatio(folderData?.tcg) }}>
                 <button type="button" onClick={() => setZoomedCard(selectedCard)} aria-label={`Ver ${selectedCard.name} en pantalla grande`} className={`relative block h-full w-full overflow-hidden cursor-zoom-in ${isYugioh(folderData?.tcg) ? 'rounded-[3px]' : 'rounded-lg'} focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2`}>
                   <SafeImage src={getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl)} fallbackSrc={tcgplayerCardImage({ ...selectedCard, tcg: folderData?.tcg })} alt={selectedCard.name} rotateLandscape style={cardCorners(folderData?.tcg)} className="relative z-50 h-full w-full rounded-lg object-contain shadow-md active:scale-[0.98]" fallbackType="zoom-main" onFail={setFailedPreview} />
                 </button>
