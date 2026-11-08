@@ -46,7 +46,14 @@ const TopList = ({ title, hint, rows }) => (
 function InterestSection({ days }) {
   const [metrics, setMetrics] = useState(null);
   const [failed, setFailed] = useState('');
-  useEffect(() => { setMetrics(null); setFailed(''); api.getOpsMetrics(days).then(setMetrics).catch((err) => setFailed(err.message || 'No se pudo cargar el interés.')); }, [days]);
+  const [confirming, setConfirming] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const load = useCallback(() => { setMetrics(null); setFailed(''); api.getOpsMetrics(days).then(setMetrics).catch((err) => setFailed(err.message || 'No se pudo cargar el interés.')); }, [days]);
+  useEffect(() => { load(); }, [load]);
+  const resetSearches = async () => {
+    setResetting(true);
+    try { await api.resetSearchMetrics(); setConfirming(false); load(); } catch (err) { setFailed(err.message || 'No se pudo reiniciar las búsquedas.'); } finally { setResetting(false); }
+  };
   if (failed) return <ErrorBox>{failed}</ErrorBox>;
   if (!metrics) return <Spinner label="Cargando interés y búsquedas" />;
   const tiles = [
@@ -60,6 +67,17 @@ function InterestSection({ days }) {
         <dl className="grid grid-cols-2 gap-3 content-start">
           {tiles.map(([label, value]) => <div key={label} className="rounded-2xl bg-white p-4 ring-1 ring-slate-900/5"><dt className="text-xs font-bold text-slate-500">{label}</dt><dd className="mt-0.5 text-2xl font-black tabular-nums text-[#12315f]">{value}</dd></div>)}
         </dl>
+      </div>
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {confirming ? (
+          <>
+            <span className="text-sm font-semibold text-slate-700">Se borran estos contadores y las búsquedas populares. No se puede deshacer.</span>
+            <button type="button" onClick={() => setConfirming(false)} disabled={resetting} className="min-h-9 rounded-full px-4 text-sm font-bold text-[#12315f] transition-colors hover:bg-[#12315f]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] disabled:opacity-50">Cancelar</button>
+            <button type="button" onClick={resetSearches} disabled={resetting} className="min-h-9 rounded-full bg-[#12315f] px-4 text-sm font-bold text-white transition-[filter,transform] hover:brightness-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] disabled:opacity-50">{resetting ? 'Reiniciando…' : 'Sí, reiniciar'}</button>
+          </>
+        ) : (
+          <button type="button" onClick={() => setConfirming(true)} className="min-h-9 rounded-full bg-[#facc15] px-4 text-sm font-bold text-[#12315f] transition-[filter,transform] hover:brightness-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12315f]">Reiniciar búsquedas</button>
+        )}
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         <TopList title="Se buscó y nadie la vende" hint={`${metrics.searchNoOffers.total} búsquedas sin ofertas. Son cartas que los compradores quieren: buenas para pedir inventario.`} rows={metrics.searchNoOffers.top} />

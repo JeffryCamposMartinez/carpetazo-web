@@ -13,6 +13,8 @@ import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import { formatCardSearchQuery } from '../../utils/cardCodeSearch';
 import SvgIcon from '../ui/SvgIcon';
 import SectionSubNav from './SectionSubNav';
+import SearchSuggestions from './header/SearchSuggestions';
+import useSearchSuggestions, { isSearchable } from '../../hooks/useSearchSuggestions';
 
 // Ventanas que solo se abren a pedido: su código se descarga al abrirlas, no en la primera carga de cada página
 const AuthModal = lazy(() => import('../auth/AuthModal'));
@@ -111,6 +113,8 @@ export default function Header() {
     }
   };
   const [searchQuery, setSearchQuery] = useState('');
+  const [suggestOpen, setSuggestOpen] = useState(false); // panel de búsquedas recientes y populares
+  const suggestions = useSearchSuggestions();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [publicHeaderTheme, setPublicHeaderTheme] = useState(null);
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -128,11 +132,15 @@ export default function Header() {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
   // El buscador del encabezado solo busca cartas: las que están a la venta y, si no hay, las del catálogo (solo información)
-  const handleSearch = (e) => {
-    e.preventDefault();
-    const term = searchQuery.trim();
+  const runSearch = (raw) => {
+    const term = raw.trim();
+    if (isSearchable(term)) { suggestions.remember(term); api.trackMetric('search_popular', term); }
+    setSearchQuery(term);
+    setSuggestOpen(false);
+    document.activeElement?.blur?.();
     navigate(term ? `/cartas?q=${encodeURIComponent(term)}` : '/cartas');
   };
+  const handleSearch = (e) => { e.preventDefault(); runSearch(searchQuery); };
 
   const handleSearchQueryChange = (value) => {
     setSearchQuery(formatCardSearchQuery(value, searchQuery));
@@ -498,8 +506,15 @@ export default function Header() {
   const renderSearch = (variant) => {
     const isMobile = variant === 'mobile';
     const category = 'cartas';
+    const typed = searchQuery.trim().toLowerCase();
     return (
-      <form role="search" onSubmit={handleSearch} className="w-full">
+      <form
+        role="search"
+        onSubmit={handleSearch}
+        onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setSuggestOpen(false); }}
+        onKeyDown={(e) => { if (e.key === 'Escape') setSuggestOpen(false); }}
+        className="relative w-full"
+      >
         <div className={`relative flex items-center rounded-full bg-white pl-1 pr-1 shadow-[0_1px_2px_rgba(8,18,42,0.4),0_8px_18px_-8px_rgba(8,18,42,0.55)] transition-shadow duration-150 focus-within:ring-2 focus-within:ring-[#facc15] ${isMobile ? 'h-12' : 'h-11'}`}>
           <input
             type="search"
@@ -507,7 +522,8 @@ export default function Header() {
             autoComplete="off"
             aria-label={`Buscar ${category}`}
             value={searchQuery}
-            onChange={(e) => handleSearchQueryChange(e.target.value)}
+            onFocus={() => { setSuggestOpen(true); suggestions.loadPopular(); }}
+            onChange={(e) => { handleSearchQueryChange(e.target.value); setSuggestOpen(true); }}
             placeholder={`Busca ${category}...`}
             className={`h-full min-w-0 flex-1 pl-4 pr-3 font-medium text-[#12315f] caret-[#1e40af] selection:bg-[#facc15]/60 text-ellipsis placeholder:font-normal placeholder:text-slate-500 !bg-transparent !border-0 !shadow-none !ring-0 !rounded-none focus:outline-none ${isMobile ? 'text-base' : 'text-[15px]'}`}
           />
@@ -528,6 +544,15 @@ export default function Header() {
             <SvgIcon name="search" translate="no" aria-hidden="true" className={`font-bold ${isMobile ? 'text-[22px]' : 'text-[20px]'}`} />
           </button>
         </div>
+        {suggestOpen && (
+          <SearchSuggestions
+            recent={typed ? suggestions.recent.filter((term) => term.toLowerCase().includes(typed)) : suggestions.recent}
+            popular={typed ? [] : suggestions.popular}
+            onPick={runSearch}
+            onRemove={suggestions.remove}
+            onClear={suggestions.clear}
+          />
+        )}
       </form>
     );
   };

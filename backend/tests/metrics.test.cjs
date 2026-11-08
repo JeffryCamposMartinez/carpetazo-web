@@ -3,7 +3,7 @@ const { prisma, B, U, call, ok } = require('./fixtures.cjs');
 
 const GAME_ID = 98006;
 const CARD_ID = 98000611;
-const NAMES = ['plans_view', 'plan_cta', 'share_card', 'share_folder', 'search_empty', 'search_no_offers', 'catalog_view', 'catalog_crawl'];
+const NAMES = ['plans_view', 'plan_cta', 'share_card', 'share_folder', 'search_empty', 'search_no_offers', 'search_popular', 'catalog_view', 'catalog_crawl'];
 const post = (body, ip) => fetch(B + '/metrics', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': ip }, body: JSON.stringify(body) });
 const settle = () => new Promise((resolve) => setTimeout(resolve, 400)); // los contadores se escriben sin hacer esperar a quien los provoca
 const count = async (name, key = '') => (await prisma.metricDay.aggregate({ where: { name, key }, _sum: { count: true } }))._sum.count || 0;
@@ -41,6 +41,16 @@ const count = async (name, key = '') => (await prisma.metricDay.aggregate({ wher
     await settle();
     ok('un texto que parece correo, teléfono o es muy corto no se guarda', (await prisma.metricDay.count({ where: { name: { in: ['search_empty', 'search_no_offers'] }, OR: [{ key: { contains: '@' } }, { key: { contains: '5691234' } }, { key: 'zz' }] } })) === 0);
 
+    // --- Búsquedas populares del buscador
+    ok('una búsqueda con correo, muy corta o sin texto → 400', (await post({ name: 'search_popular', key: 'yo@correo.cl' }, '10.66.2.1')).status === 400 && (await post({ name: 'search_popular', key: 'zz' }, '10.66.2.2')).status === 400 && (await post({ name: 'search_popular' }, '10.66.2.3')).status === 400);
+    for (let i = 0; i < 3; i++) { await post({ name: 'search_popular', key: 'cztest popular' }, '10.66.3.' + i); await post({ name: 'search_popular', key: 'cztest sin resultado' }, '10.66.4.' + i); }
+    for (let i = 0; i < 2; i++) await post({ name: 'search_popular', key: 'cztest poco buscada' }, '10.66.5.' + i);
+    await prisma.metricDay.create({ data: { day: new Date(), name: 'search_empty', key: 'cztest sin resultado', count: 1 } });
+    await settle();
+    r = await (await fetch(B + '/search/popular')).json();
+    ok('las populares traen la que se busca seguido', r.success === true && r.terms.includes('cztest popular'), JSON.stringify(r));
+    ok('las populares dejan fuera lo poco buscado y lo que no existe en el catálogo', !r.terms.includes('cztest poco buscada') && !r.terms.includes('cztest poco buscada') && !r.terms.includes('cztest sin resultado'), JSON.stringify(r));
+
     // --- Fichas del catálogo y rastreadores
     await call('GET', `/tcg/card/${CARD_ID}`, null);
     await fetch(`${B}/seo/catalog/${CARD_ID}`, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' } });
@@ -61,6 +71,14 @@ const count = async (name, key = '') => (await prisma.metricDay.aggregate({ wher
     ok('período inválido → 400', (await call('GET', '/admin/ops/metrics?days=0', 'admin')).status === 400 && (await call('GET', '/admin/ops/metrics?days=999', 'admin')).status === 400);
     r = await call('GET', '/admin/ops/funnel?days=30', 'admin');
     ok('el embudo de vendedores ahora tiene el paso «Agregaron una carta»', r.status === 200 && r.j.sellers.map((step) => step.key).join() === 'signups,folder,added,cards,orders,sales');
+    // --- Reiniciar las búsquedas (solo administradores)
+    const reset = '/admin/ops/metrics/searches';
+    ok('reiniciar las búsquedas sin sesión → 401, cuenta normal → 403, moderador → 403', (await call('DELETE', reset, null)).status === 401 && (await call('DELETE', reset, 'seller')).status === 403 && (await call('DELETE', reset, 'jeffry')).status === 403);
+    ok('un intento rechazado no borra nada', (await count('search_empty', 'zzqxkwv imposible')) === 1);
+    r = await call('DELETE', reset, 'admin');
+    ok('el administrador reinicia las búsquedas', r.status === 200 && r.j.deleted >= 1, JSON.stringify(r.j));
+    ok('quedan en cero los tres contadores de búsquedas y no se toca el resto', (await prisma.metricDay.count({ where: { name: { in: ['search_empty', 'search_no_offers', 'search_popular'] } } })) === 0 && (await count('plans_view')) >= 1);
+    ok('las populares quedan vacías', (await (await fetch(B + '/search/popular')).json()).terms.length === 0);
   } catch (error) {
     ok('las métricas no lanzaron errores inesperados', false, error.stack);
   } finally {

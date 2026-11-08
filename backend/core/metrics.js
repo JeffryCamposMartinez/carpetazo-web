@@ -9,6 +9,7 @@ const CLIENT_METRICS = {
   plan_cta: (key) => (PLAN_KEYS.includes(key) && key !== 'free' && !PLANS[key].adminOnly ? key : null), // pulsó «elegir» en un plan de pago
   share_card: () => '',                                  // compartió una carta
   share_folder: () => '',                                // compartió una carpeta
+  search_popular: (key) => searchKey(key),               // buscó una carta desde el buscador del encabezado (alimenta «Búsquedas populares»)
 };
 export const clientMetricKey = (name, key) => (Object.hasOwn(CLIENT_METRICS, name) ? CLIENT_METRICS[name](typeof key === 'string' ? key : '') : null);
 

@@ -28,6 +28,37 @@ router.post('/api/metrics', routeLimiter(15 * 60 * 1000, 240), (req, res) => {
   res.status(204).end();
 });
 
+// Búsquedas populares del buscador (últimos 30 días): solo el texto. Exige varias búsquedas y descarta las que no existen en el catálogo.
+// shortcut: cualquiera puede sumar búsquedas por POST /api/metrics; el equipo reinicia los contadores si alguien los ensucia.
+const POPULAR_MIN = 3;
+let popularCache = { at: 0, terms: [] };
+router.get('/api/search/popular', routeLimiter(60 * 1000, 60), async (_req, res) => {
+  try {
+    if (Date.now() - popularCache.at > 5 * 60 * 1000) {
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const rows = await prisma.metricDay.groupBy({ by: ['key'], where: { name: 'search_popular', day: { gte: since } }, _sum: { count: true }, having: { count: { _sum: { gte: POPULAR_MIN } } }, orderBy: { _sum: { count: 'desc' } }, take: 24 });
+      const missing = new Set((await prisma.metricDay.findMany({ where: { name: 'search_empty', day: { gte: since }, key: { in: rows.map((row) => row.key) } }, select: { key: true }, distinct: ['key'] })).map((row) => row.key));
+      popularCache = { at: Date.now(), terms: rows.map((row) => row.key).filter((key) => !missing.has(key)).slice(0, 8) };
+    }
+    res.json({ success: true, terms: popularCache.terms });
+  } catch (error) {
+    console.error('Error cargando las búsquedas populares:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Reinicia los contadores de búsquedas (lo que no existe, lo que nadie vende y las populares) para empezar limpio tras pruebas o basura
+router.delete('/api/admin/ops/metrics/searches', authenticateToken, requireStaff(3), async (_req, res) => {
+  try {
+    const { count } = await prisma.metricDay.deleteMany({ where: { name: { in: ['search_empty', 'search_no_offers', 'search_popular'] } } });
+    popularCache = { at: 0, terms: [] };
+    res.json({ success: true, deleted: count });
+  } catch (error) {
+    console.error('Error reiniciando las búsquedas:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
 router.get('/api/admin/ops/errors', authenticateToken, requireStaff(3), async (_req, res) => {
   try {
     const [errors, last24h] = await Promise.all([
