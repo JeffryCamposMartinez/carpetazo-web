@@ -71,7 +71,7 @@ export default function FolderAddTab({
   const [fullscreen, setFullscreen] = useState(false);
   useEffect(() => { if (!selectedCard) setFullscreen(false); }, [selectedCard]); // al guardar o limpiar la carta se cierra
   const previewSrc = selectedCard ? getProxyImageUrl(selectedCard.tcgProductId || selectedCard.id, selectedCard.imageUrl) : '';
-  const canUploadPhoto = Boolean(selectedCard); // foto propia para cualquier carta, tenga o no imagen en el catálogo
+  const canUploadPhoto = Boolean(selectedCard) && !isMylFolder; // foto propia para cualquier carta de TCGplayer, tenga o no imagen en el catálogo; en Mitos y Leyendas la imagen principal es la oficial
   const zoomList = useMemo(() => (zoomedCard ? [{ id: 'zoom', tcg: folderData?.tcg, name: zoomedCard.name, imageUrl: getProxyImageUrl(zoomedCard.tcgProductId || zoomedCard.id, zoomedCard.imageUrl), set: getCardSetName(zoomedCard), rarity: zoomedCard.rarity || getExtDataValue(zoomedCard.extData, 'Rarity') }] : []), [zoomedCard]); // eslint-disable-line react-hooks/exhaustive-deps
   // Datos y botón para guardar la carta: están en el panel y también en la pantalla completa
   const renderFormBody = () => (

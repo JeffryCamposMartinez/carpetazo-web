@@ -89,9 +89,9 @@ const isOwnCardPhoto = (url, firebaseUid) => {
 const loadOwnedCard = async (req, res) => {
   if (!isUuid(req.params.id) || !isUuid(req.params.cardId)) { res.status(404).json({ success: false, message: 'Carta no encontrada' }); return null; }
   const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
-  const card = user && await prisma.card.findFirst({ where: { id: req.params.cardId, folderId: req.params.id, folder: { userId: user.id } }, select: { id: true, imageUrl: true, moderationState: true } });
+  const card = user && await prisma.card.findFirst({ where: { id: req.params.cardId, folderId: req.params.id, folder: { userId: user.id } }, select: { id: true, imageUrl: true, moderationState: true, tcgId: true, folder: { select: { tcg: true } } } });
   if (!card) { res.status(404).json({ success: false, message: 'Carta no encontrada' }); return null; }
-  return card;
+  return { ...card, userId: user.id };
 };
 
 router.post('/api/folders/:id/cards/:cardId/photos', authenticateToken, async (req, res) => {
@@ -108,6 +108,8 @@ router.post('/api/folders/:id/cards/:cardId/photos', authenticateToken, async (r
       await tx.cardPhoto.create({ data: { cardId: card.id, url, position: (current.at(-1)?.position ?? -1) + 1 } });
       return tx.cardPhoto.findMany({ where: { cardId: card.id }, orderBy: { position: 'asc' }, select: gallerySelect });
     });
+    // Una foto propia en una carta del catálogo que no tiene imagen también se ofrece a Moderación (solo cartas de TCGplayer)
+    await proposeCatalogPhoto(prisma, { userId: card.userId, firebaseUid: req.user.sub, tcg: card.folder.tcg, tcgId: card.tcgId, imageUrl: url });
     res.json({ success: true, photos });
   } catch (error) {
     if (error.status === 409) return res.status(409).json({ success: false, message: error.message });
@@ -677,6 +679,9 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
       return badRequest(res, 'Alguna de las fotos no es válida. Súbela de nuevo.');
     }
 
+    // En Mitos y Leyendas la imagen principal es siempre la oficial: la foto propia va a la galería de la carta
+    if (isMylTcg(folder.tcg) && imageUrl && isOwnCardPhoto(imageUrl, req.user.sub)) return badRequest(res, 'En Mitos y Leyendas la imagen principal es la oficial. Agrega tu foto a la galería de la carta.');
+
     const normalizedTcgId = storedCardId(folder.tcg, tcgId);
     if (!normalizedTcgId) return badRequest(res, 'Identificador de carta inválido');
       
@@ -715,7 +720,7 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
       return created;
     });
     // Una foto propia en una carta del catálogo que no tiene imagen se ofrece sola a Moderación (no falla la carta si algo sale mal)
-    await proposeCatalogPhoto(prisma, { userId: user.id, firebaseUid: req.user.sub, tcg: folder.tcg, tcgId: normalizedTcgId, imageUrl: cardImageUrl });
+    await proposeCatalogPhoto(prisma, { userId: user.id, firebaseUid: req.user.sub, tcg: folder.tcg, tcgId: normalizedTcgId, imageUrl: [cardImageUrl, ...extraPhotos].find((url) => url && isOwnCardPhoto(url, req.user.sub)) });
     res.json({ success: true, card });
   } catch (error) {
     if (error instanceof PlanLimitError) return sendPlanError(res, error);

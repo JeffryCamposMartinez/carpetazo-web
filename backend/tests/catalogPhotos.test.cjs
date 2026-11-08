@@ -6,7 +6,7 @@ const { prisma, NAMES, B, U, call, ok } = require('./fixtures.cjs');
 const GAME_ID = 98003;
 const GAME = 'CZTEST_Fotos';
 const SET_ID = 98000301;
-const IDS = { sinImagen: 98000311, otra: 98000312, conImagen: 98000313, producto: 98000314, cuarta: 98000315 };
+const IDS = { sinImagen: 98000311, otra: 98000312, conImagen: 98000313, producto: 98000314, cuarta: 98000315, galeria: 98000316 };
 const ALL_IDS = Object.values(IDS);
 
 const picture = (seed) => sharp({ create: { width: 300, height: 420, channels: 3, background: { r: (seed * 53) % 256, g: (seed * 97) % 256, b: (seed * 29) % 256 } } }).png().toBuffer();
@@ -33,7 +33,7 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     await prisma.catalogCard.createMany({ data: [
       card(IDS.sinImagen, 'CZTEST Sin Imagen'), card(IDS.otra, 'CZTEST Otra Sin Imagen'),
       card(IDS.conImagen, 'CZTEST Con Imagen', { imageKey: `Carpetazo.cl/${GAME}/${GAME}_DB/${GAME}_Images/Edicion Fotos/x/x.webp` }),
-      card(IDS.producto, 'CZTEST Caja', { kind: 'product' }), card(IDS.cuarta, 'CZTEST Cuarta Sin Imagen'),
+      card(IDS.producto, 'CZTEST Caja', { kind: 'product' }), card(IDS.cuarta, 'CZTEST Cuarta Sin Imagen'), card(IDS.galeria, 'CZTEST Galeria Sin Imagen'),
     ] });
     for (const who of ['jeffry']) roles[who] = (await prisma.user.findUnique({ where: { firebaseUid: U[who] } })).role;
     await prisma.user.update({ where: { firebaseUid: U.jeffry }, data: { role: 'moderator' } });
@@ -71,6 +71,24 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     const jerryPhoto = await upload('jerry', await picture(2));
     r = await add(folder2, 'seller', IDS.otra, jerryPhoto);
     ok('la foto de otra persona no se propone', (await proposals({ productId: IDS.otra })).length === 0, 'agregar:' + r.status);
+
+    // --- Una foto subida después a la galería de la carta también se propone
+    const galleryCard = (await add(folder, 'seller', IDS.galeria, undefined)).j?.card?.id;
+    const galleryPhoto = await upload('seller', await picture(9));
+    r = await call('POST', `/folders/${folder}/cards/${galleryCard}/photos`, 'seller', { url: galleryPhoto });
+    list = await proposals({ productId: IDS.galeria });
+    ok('una foto agregada a la galería de una carta sin imagen se propone sola', r.status === 200 && list.length === 1 && list[0].status === 'pending' && list[0].userId === (await idOf('seller')), JSON.stringify(list));
+    // Una foto propia que viene entre las fotos extra al agregar la carta también se propone
+    const extraOnly = await upload('seller', await picture(10));
+    await prisma.catalogImageProposal.deleteMany({ where: { productId: IDS.galeria } });
+    await prisma.card.deleteMany({ where: { id: galleryCard } });
+    r = await call('POST', `/folders/${folder}/cards`, 'seller', { tcgId: String(IDS.galeria), name: 'Carta de prueba', price: 1000, stock: 1, photos: [extraOnly], data: { catalogOrder: 0 } });
+    ok('una foto extra al agregar la carta se propone si la principal no es propia', r.status === 200 && (await proposals({ productId: IDS.galeria })).length === 1, 'agregar:' + r.status);
+    // Mitos y Leyendas: la foto propia no puede ser la imagen principal (sí va a la galería)
+    const mylFolder = (await call('POST', '/folders', 'seller', { name: 'CZTEST fotos MyL', tcg: 'Mitos y Leyendas', color: 'blue', isPublic: true })).j.folder.id;
+    const mylPhoto = await upload('seller', await picture(11));
+    r = await call('POST', `/folders/${mylFolder}/cards`, 'seller', { tcgId: 'myl-1', name: 'Carta MyL', price: 1000, stock: 1, imageUrl: mylPhoto, data: {} });
+    ok('Mitos y Leyendas: la foto propia como imagen principal → 400', r.status === 400 && /oficial/.test(JSON.stringify(r.j)), r.status + ' ' + JSON.stringify(r.j));
 
     // Otra persona propone la misma carta; el límite diario frena a quien ya llegó al tope
     const jerryId = await idOf('jerry');
