@@ -448,6 +448,7 @@ router.get('/api/cards/search', async (req, res) => {
         folder: { id: folder.id, name: folder.name, tcg: folder.tcg, user: folder.user },
         language: data && typeof data === 'object' ? data.language || null : null,
         set: data && typeof data === 'object' ? data.set || null : null,
+        finish: data && typeof data === 'object' && typeof data.finish === 'string' ? data.finish.slice(0, 40) : ''
       })),
     });
   } catch (error) {

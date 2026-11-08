@@ -29,6 +29,8 @@ const { prisma, call, ok } = require('./fixtures.cjs');
     ok('un acabado demasiado largo se rechaza', r.status === 400);
     r = await call('PUT', `/folders/${a}/cards/${finishCard.id}`, 'seller', { price: 1500, data: { finish: 'Normal' } });
     ok('editar no cambia el acabado', r.status === 200 && (await prisma.card.findUnique({ where: { id: finishCard.id } })).data.finish === 'Reverse Holofoil');
+    r = await call('GET', '/cards/search?q=CZTEST%20Estado');
+    ok('la búsqueda de cartas en venta trae el acabado (para la franja foil) y vacío en las normales', r.status === 200 && r.j.cards.some((card) => card.id === finishCard.id && card.finish === 'Reverse Holofoil') && r.j.cards.filter((card) => card.id !== finishCard.id).every((card) => card.finish === ''), JSON.stringify(r.j.cards?.map((card) => card.finish)));
     await prisma.card.delete({ where: { id: finishCard.id } });
 
     r = await add(a, 9, { tcgId: '98002002' });
