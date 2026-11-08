@@ -37,24 +37,32 @@ const hasTcgdexSpanishImage = async (db, productId) => Boolean(await db.catalogC
 
 // Se llama al agregar una carta con foto propia. Nunca falla: la carta se agrega igual si algo de aquí no sale.
 // Pokémon en español: la lista en español muestra «Sin imagen» aunque la carta inglesa tenga una; ahí la foto se propone como imagen en español.
-export async function proposeCatalogPhoto(db, { userId, firebaseUid, tcg, tcgId, imageUrl, language }) {
+export async function proposeCatalogPhoto(db, { userId, firebaseUid, tcg, tcgId: storedId, imageUrl, language }) {
+  // Una carta con foto propia se guarda con el id de la carta más «-custom-<hora>» (así cada foto es otra fila): la carta del catálogo es la del id base
+  const tcgId = String(storedId ?? '').replace(/-custom-\d{1,16}$/, '');
+  // Cada salida deja el motivo en el log (solo la carta y el motivo, nada de la persona): sin eso una propuesta que no llega no se puede explicar
+  const skipped = (reason) => { console.info(`Propuesta de foto omitida (${reason}): carta ${tcgId}, idioma ${language}`); return null; };
   try {
-    if (!imageUrl || !hasR2Config() || isMylTcg(tcg) || !/^[1-9]\d{0,9}$/.test(String(tcgId))) return null;
+    if (!imageUrl) return skipped('sin foto propia');
+    if (!hasR2Config()) return skipped('R2 sin configurar');
+    if (isMylTcg(tcg) || !/^[1-9]\d{0,9}$/.test(String(tcgId))) return skipped('Mitos y Leyendas o id inválido');
     const sourceKey = getR2KeyFromPublicUrl(imageUrl);
     // Solo una foto que esta misma persona subió como foto de carta: nunca la de otra persona ni un archivo cualquiera
-    if (!sourceKey || sourceKey.includes('..') || !sourceKey.startsWith(userR2Prefix(firebaseUid)) || !OWN_CARD_PHOTO.test(sourceKey)) return null;
+    if (!sourceKey || sourceKey.includes('..') || !sourceKey.startsWith(userR2Prefix(firebaseUid)) || !OWN_CARD_PHOTO.test(sourceKey)) return skipped('la foto no es una foto de carta de esta persona');
     const productId = Number(tcgId);
     const spanish = tcg === 'Pokemon' && language === 'Spanish';
     const missingImage = await db.catalogCard.findFirst({ where: spanish ? { productId, kind: 'card', spanishImageKey: null } : { productId, kind: 'card', OR: [{ imageKey: null }, { imageKey: NO_IMAGE_KEY }] }, select: { productId: true } });
-    if (!missingImage || (spanish && await hasTcgdexSpanishImage(db, productId))) return null;
+    if (!missingImage) return skipped(spanish ? 'la carta no existe o ya tiene imagen en español' : 'la carta no existe, ya tiene imagen o no es una carta');
+    if (spanish && await hasTcgdexSpanishImage(db, productId)) return skipped('TCGdex ya tiene la imagen en español');
     const today = await db.catalogImageProposal.count({ where: { userId, createdAt: { gte: new Date(Date.now() - 24 * 3600 * 1000) } } });
-    if (today >= DAILY_PROPOSALS) return null;
+    if (today >= DAILY_PROPOSALS) return skipped('límite diario');
     const id = crypto.randomUUID();
     const imageKey = `${PROPOSALS_PREFIX}${id}.webp`;
     await r2Client.send(new CopyObjectCommand({ Bucket: bucket(), Key: imageKey, CopySource: `${bucket()}/${encodePath(sourceKey)}`, CacheControl: CACHE_CONTROL, ContentType: 'image/webp', MetadataDirective: 'REPLACE' }));
     // Una propuesta por persona y carta: si ya había una (incluso rechazada), no se repite
     const created = await db.catalogImageProposal.createMany({ data: [{ id, productId, userId, imageKey, language: spanish ? 'es' : 'en' }], skipDuplicates: true });
-    if (created.count === 0) { await removeObject(imageKey); return null; }
+    if (created.count === 0) { await removeObject(imageKey); return skipped('esta persona ya propuso foto para esta carta'); }
+    console.info(`Propuesta de foto creada: carta ${productId}, idioma ${language}`);
     return { id, productId };
   } catch (error) {
     console.warn('No se pudo registrar la propuesta de foto:', error?.message || error);

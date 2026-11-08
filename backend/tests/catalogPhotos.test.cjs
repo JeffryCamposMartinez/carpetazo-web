@@ -7,7 +7,7 @@ const GAME_ID = 98003;
 const GAME = 'CZTEST_Fotos';
 const SET_ID = 98000301;
 const SPANISH_SET_ID = 8300301;
-const IDS = { sinImagen: 98000311, otra: 98000312, conImagen: 98000313, producto: 98000314, cuarta: 98000315, galeria: 98000316, placeholder: 98000317, espanol: 98000318, japones: 98000319, ingles: 98000320 };
+const IDS = { sinImagen: 98000311, otra: 98000312, conImagen: 98000313, producto: 98000314, cuarta: 98000315, galeria: 98000316, placeholder: 98000317, espanol: 98000318, japones: 98000319, ingles: 98000320, customEn: 98000321, customEs: 98000322 };
 const ALL_IDS = Object.values(IDS);
 
 const picture = (seed) => sharp({ create: { width: 300, height: 420, channels: 3, background: { r: (seed * 53) % 256, g: (seed * 97) % 256, b: (seed * 29) % 256 } } }).png().toBuffer();
@@ -35,7 +35,7 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     await prisma.catalogCard.createMany({ data: [
       card(IDS.sinImagen, 'CZTEST Sin Imagen'), card(IDS.otra, 'CZTEST Otra Sin Imagen'),
       card(IDS.conImagen, 'CZTEST Con Imagen', { imageKey: `Carpetazo.cl/${GAME}/${GAME}_DB/${GAME}_Images/Edicion Fotos/x/x.webp` }),
-      card(IDS.producto, 'CZTEST Caja', { kind: 'product' }), card(IDS.cuarta, 'CZTEST Cuarta Sin Imagen'), card(IDS.galeria, 'CZTEST Galeria Sin Imagen'), card(IDS.placeholder, 'CZTEST Imagen Placeholder', { imageKey: 'Carpetazo.cl/Sin_Imagen/Carpetazo_TCG_Sin_Imagen.webp' }), card(IDS.japones, 'CZTEST Japones Sin Imagen'), card(IDS.ingles, 'CZTEST Ingles Sin Imagen'), card(IDS.espanol, 'CZTEST Version Espanol', { groupId: SPANISH_SET_ID, imageKey: `Carpetazo.cl/${GAME}/${GAME}_DB/${GAME}_Images/Edicion Fotos/es/es.webp` }),
+      card(IDS.producto, 'CZTEST Caja', { kind: 'product' }), card(IDS.cuarta, 'CZTEST Cuarta Sin Imagen'), card(IDS.galeria, 'CZTEST Galeria Sin Imagen'), card(IDS.placeholder, 'CZTEST Imagen Placeholder', { imageKey: 'Carpetazo.cl/Sin_Imagen/Carpetazo_TCG_Sin_Imagen.webp' }), card(IDS.customEn, 'CZTEST Custom Ingles Sin Imagen'), card(IDS.customEs, 'CZTEST Custom Espanol', { groupId: SPANISH_SET_ID, imageKey: `Carpetazo.cl/${GAME}/${GAME}_DB/${GAME}_Images/Edicion Fotos/ces/ces.webp` }), card(IDS.japones, 'CZTEST Japones Sin Imagen'), card(IDS.ingles, 'CZTEST Ingles Sin Imagen'), card(IDS.espanol, 'CZTEST Version Espanol', { groupId: SPANISH_SET_ID, imageKey: `Carpetazo.cl/${GAME}/${GAME}_DB/${GAME}_Images/Edicion Fotos/es/es.webp` }),
     ] });
     for (const who of ['jeffry']) roles[who] = (await prisma.user.findUnique({ where: { firebaseUid: U[who] } })).role;
     await prisma.user.update({ where: { firebaseUid: U.jeffry }, data: { role: 'moderator' } });
@@ -123,6 +123,20 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     const jerrySpanishFolder = (await call('POST', '/folders', 'jerry', { name: 'CZTEST jerry es', tcg: 'Pokemon', color: 'blue', isPublic: true })).j.folder.id;
     await addSpanish('jerry', jerrySpanishFolder, jerrySpanish);
     ok('con imagen en español ya aprobada no se propone otra', (await proposals({ productId: IDS.espanol, userId: await idOf('jerry') })).length === 0);
+
+    // Lo que hace la pantalla: al subir una foto propia, la carta se guarda con el id «<id>-custom-<hora>» y la propuesta debe salir igual
+    const customPhotoEn = await upload('seller', await picture(30));
+    r = await call('POST', `/folders/${folder}/cards`, 'seller', { tcgId: `${IDS.customEn}-custom-1794156705987`, name: 'Carta custom', price: 1000, stock: 1, imageUrl: customPhotoEn, data: { language: 'English', catalogOrder: 0 } });
+    list = await proposals({ productId: IDS.customEn });
+    ok('carta con id «-custom-» y sin imagen en el catálogo: se propone la foto', r.status === 200 && list.length === 1 && list[0].language === 'en' && list[0].status === 'pending', r.status + ' ' + JSON.stringify(r.j).slice(0, 200));
+    const customPhotoEs = await upload('seller', await picture(31));
+    r = await call('POST', `/folders/${folder}/cards`, 'seller', { tcgId: `${IDS.customEs}-custom-1794158526835`, name: 'Carta custom ES', price: 1000, stock: 1, imageUrl: customPhotoEs, data: { language: 'Spanish', catalogOrder: 0 } });
+    list = await proposals({ productId: IDS.customEs });
+    ok('carta en español con id «-custom-»: se propone como imagen en español', r.status === 200 && list.length === 1 && list[0].language === 'es' && list[0].status === 'pending', r.status + ' ' + JSON.stringify(r.j).slice(0, 200));
+    const customGallery = await upload('seller', await picture(32));
+    const customCardId = (await prisma.card.findFirst({ where: { tcgId: `${IDS.customEn}-custom-1794156705987` } }))?.id;
+    r = await call('POST', `/folders/${folder}/cards/${customCardId}/photos`, 'seller', { url: customGallery });
+    ok('subir otra foto a la galería de una carta «-custom-» no rompe nada', r.status === 200, r.status + ' ' + JSON.stringify(r.j).slice(0, 160));
 
     // Mitos y Leyendas: la foto propia no puede ser la imagen principal (sí va a la galería)
     const mylFolder = (await call('POST', '/folders', 'seller', { name: 'CZTEST fotos MyL', tcg: 'Mitos y Leyendas', color: 'blue', isPublic: true })).j.folder.id;

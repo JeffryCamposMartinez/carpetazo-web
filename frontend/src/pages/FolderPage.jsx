@@ -942,7 +942,9 @@ const [isSearching, setIsSearching] = useState(false);
         await api.updateCard(id, existingCard.id, { price: newPrice, stock: newStock });
         // Las fotos extra pasan a la galería de esa carta; las que no caben (tope de 5) se descartan
         const notAdded = [];
-        for (const url of extraPhotosRef.current) { try { await api.addCardPhoto(id, existingCard.id, url); } catch (_error) { notAdded.push(url); } }
+        // La foto propia elegida para esta carta también pasa a su galería (si no, se perdía al sumar stock)
+        const photosToAdd = [...(selectedCard.isCustomImage && selectedCard.imageUrl ? [selectedCard.imageUrl] : []), ...extraPhotosRef.current];
+        for (const url of photosToAdd) { try { await api.addCardPhoto(id, existingCard.id, url); } catch (_error) { notAdded.push(url); } }
         notAdded.forEach((url) => api.discardCardPhoto(url).catch(() => {}));
         if (notAdded.length) showToast('Algunas fotos no se agregaron: esa carta ya tiene 5 fotos extra.', 'info');
         extraPhotosRef.current = [];
