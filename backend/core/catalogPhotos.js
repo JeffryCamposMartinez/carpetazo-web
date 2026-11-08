@@ -7,6 +7,7 @@ import { isMylTcg, rawMylId } from './mylIdentity.js';
 import { r2PublicUrl } from './tcgCatalogImport.js';
 import { convertImage } from './tcgSync/images.js';
 import { itemKeys } from './tcgSync/naming.js';
+import { TCGDEX_CATEGORY, TCGDEX_GAME } from './tcgSync/tcgdex.js';
 
 export const PROPOSALS_PREFIX = 'Carpetazo.cl/Propuestas/';
 export const DAILY_PROPOSALS = 20;
@@ -31,23 +32,28 @@ export async function catalogImageUrl(db, tcg, tcgId) {
   return card && hasRealImage(card.imageKey) ? r2PublicUrl(card.imageKey) : null;
 }
 
+// ¿La versión en español de esta carta de TCGplayer ya tiene imagen de TCGdex? (la lista en español la toma de ahí)
+const hasTcgdexSpanishImage = async (db, productId) => Boolean(await db.catalogCard.findFirst({ where: { categoryId: TCGDEX_CATEGORY, imageKey: { not: null }, attributes: { path: ['TcgplayerProductId'], equals: String(productId) } }, select: { productId: true } }));
+
 // Se llama al agregar una carta con foto propia. Nunca falla: la carta se agrega igual si algo de aquí no sale.
-export async function proposeCatalogPhoto(db, { userId, firebaseUid, tcg, tcgId, imageUrl }) {
+// Pokémon en español: la lista en español muestra «Sin imagen» aunque la carta inglesa tenga una; ahí la foto se propone como imagen en español.
+export async function proposeCatalogPhoto(db, { userId, firebaseUid, tcg, tcgId, imageUrl, language }) {
   try {
     if (!imageUrl || !hasR2Config() || isMylTcg(tcg) || !/^[1-9]\d{0,9}$/.test(String(tcgId))) return null;
     const sourceKey = getR2KeyFromPublicUrl(imageUrl);
     // Solo una foto que esta misma persona subió como foto de carta: nunca la de otra persona ni un archivo cualquiera
     if (!sourceKey || sourceKey.includes('..') || !sourceKey.startsWith(userR2Prefix(firebaseUid)) || !OWN_CARD_PHOTO.test(sourceKey)) return null;
     const productId = Number(tcgId);
-    const missingImage = await db.catalogCard.findFirst({ where: { productId, kind: 'card', OR: [{ imageKey: null }, { imageKey: NO_IMAGE_KEY }] }, select: { productId: true } });
-    if (!missingImage) return null;
+    const spanish = tcg === 'Pokemon' && language === 'Spanish';
+    const missingImage = await db.catalogCard.findFirst({ where: spanish ? { productId, kind: 'card', spanishImageKey: null } : { productId, kind: 'card', OR: [{ imageKey: null }, { imageKey: NO_IMAGE_KEY }] }, select: { productId: true } });
+    if (!missingImage || (spanish && await hasTcgdexSpanishImage(db, productId))) return null;
     const today = await db.catalogImageProposal.count({ where: { userId, createdAt: { gte: new Date(Date.now() - 24 * 3600 * 1000) } } });
     if (today >= DAILY_PROPOSALS) return null;
     const id = crypto.randomUUID();
     const imageKey = `${PROPOSALS_PREFIX}${id}.webp`;
     await r2Client.send(new CopyObjectCommand({ Bucket: bucket(), Key: imageKey, CopySource: `${bucket()}/${encodePath(sourceKey)}`, CacheControl: CACHE_CONTROL, ContentType: 'image/webp', MetadataDirective: 'REPLACE' }));
     // Una propuesta por persona y carta: si ya había una (incluso rechazada), no se repite
-    const created = await db.catalogImageProposal.createMany({ data: [{ id, productId, userId, imageKey }], skipDuplicates: true });
+    const created = await db.catalogImageProposal.createMany({ data: [{ id, productId, userId, imageKey, language: spanish ? 'es' : 'en' }], skipDuplicates: true });
     if (created.count === 0) { await removeObject(imageKey); return null; }
     return { id, productId };
   } catch (error) {
@@ -71,33 +77,34 @@ const audit = (tx, actorId, action, proposal, note, extra = {}) => tx.moderation
 export async function approveProposal(db, id, actorId) {
   const proposal = await db.catalogImageProposal.findUnique({ where: { id } });
   if (!proposal || proposal.status !== 'pending') throw fail(404, 'La propuesta ya no está pendiente.');
+  const spanish = proposal.language === 'es'; // imagen de la versión en español: se guarda aparte y no toca la imagen inglesa
   const card = await db.catalogCard.findUnique({ where: { productId: proposal.productId }, include: { set: { select: { folder: true } }, game: { select: { folder: true } } } });
   if (!card || card.kind !== 'card') throw fail(409, 'La carta ya no existe en el catálogo.');
-  if (hasRealImage(card.imageKey)) throw fail(409, 'La carta ya tiene imagen.');
+  if (spanish ? card.spanishImageKey || await hasTcgdexSpanishImage(db, proposal.productId) : hasRealImage(card.imageKey)) throw fail(409, 'La carta ya tiene imagen.');
 
   const { large, thumb } = await convertImage(await readObject(proposal.imageKey));
-  const keys = itemKeys(card.game.folder, 'card', card.set.folder, card.folder);
+  const keys = itemKeys(spanish ? `${TCGDEX_GAME.folder}_Comunidad` : card.game.folder, 'card', card.set.folder, card.folder);
   const closed = [];
   await db.$transaction(async (tx) => {
     // La fila de la carta se bloquea: dos aprobaciones a la vez no se pisan la imagen
     await tx.$queryRaw`SELECT "productId" FROM "CatalogCard" WHERE "productId" = ${proposal.productId} FOR UPDATE`;
-    const fresh = await tx.catalogCard.findUnique({ where: { productId: proposal.productId }, select: { imageKey: true } });
-    if (hasRealImage(fresh?.imageKey)) throw fail(409, 'La carta ya tiene imagen.');
+    const fresh = await tx.catalogCard.findUnique({ where: { productId: proposal.productId }, select: { imageKey: true, spanishImageKey: true } });
+    if (spanish ? fresh?.spanishImageKey : hasRealImage(fresh?.imageKey)) throw fail(409, 'La carta ya tiene imagen.');
     const stillPending = await tx.catalogImageProposal.updateMany({ where: { id, status: 'pending' }, data: { status: 'approved', decidedById: actorId, decidedAt: new Date() } });
     if (stillPending.count === 0) throw fail(409, 'La propuesta ya fue decidida.');
     await put(keys.imageKey, large);
     await put(keys.thumbKey, thumb);
-    await tx.catalogCard.update({ where: { productId: proposal.productId }, data: { imageKey: keys.imageKey, thumbKey: keys.thumbKey } });
-    const others = await tx.catalogImageProposal.findMany({ where: { productId: proposal.productId, status: 'pending' }, select: { id: true, imageKey: true } });
+    await tx.catalogCard.update({ where: { productId: proposal.productId }, data: spanish ? { spanishImageKey: keys.imageKey, spanishThumbKey: keys.thumbKey } : { imageKey: keys.imageKey, thumbKey: keys.thumbKey } });
+    const others = await tx.catalogImageProposal.findMany({ where: { productId: proposal.productId, status: 'pending', language: proposal.language }, select: { id: true, imageKey: true } });
     if (others.length) {
       await tx.catalogImageProposal.updateMany({ where: { id: { in: others.map((item) => item.id) } }, data: { status: 'closed', note: 'Otra foto ya se usó para esta carta.', decidedAt: new Date() } });
       closed.push(...others);
     }
-    await audit(tx, actorId, 'catalogphoto.approve', proposal, `Foto aprobada para la carta ${card.name} (${proposal.productId})`, { imageKey: keys.imageKey, closed: others.length });
+    await audit(tx, actorId, 'catalogphoto.approve', proposal, `Foto aprobada para la carta ${card.name} (${proposal.productId})`, { imageKey: keys.imageKey, language: proposal.language, closed: others.length });
   }, { timeout: 30000, maxWait: 10000 });
   // Las copias de propuestas ya no hacen falta: la imagen del catálogo es una copia propia
   await Promise.all([proposal.imageKey, ...closed.map((item) => item.imageKey)].map(removeObject));
-  return { productId: proposal.productId, imageKey: keys.imageKey, closed: closed.length };
+  return { productId: proposal.productId, imageKey: keys.imageKey, language: proposal.language, closed: closed.length };
 }
 
 export async function rejectProposal(db, id, actorId, note) {

@@ -6,7 +6,8 @@ const { prisma, NAMES, B, U, call, ok } = require('./fixtures.cjs');
 const GAME_ID = 98003;
 const GAME = 'CZTEST_Fotos';
 const SET_ID = 98000301;
-const IDS = { sinImagen: 98000311, otra: 98000312, conImagen: 98000313, producto: 98000314, cuarta: 98000315, galeria: 98000316, placeholder: 98000317 };
+const SPANISH_SET_ID = 8300301;
+const IDS = { sinImagen: 98000311, otra: 98000312, conImagen: 98000313, producto: 98000314, cuarta: 98000315, galeria: 98000316, placeholder: 98000317, espanol: 98000318, japones: 98000319, ingles: 98000320 };
 const ALL_IDS = Object.values(IDS);
 
 const picture = (seed) => sharp({ create: { width: 300, height: 420, channels: 3, background: { r: (seed * 53) % 256, g: (seed * 97) % 256, b: (seed * 29) % 256 } } }).png().toBuffer();
@@ -29,11 +30,12 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     // Catálogo de prueba: 4 cartas (una ya con imagen) y un producto, todas sin imagen salvo una
     await prisma.catalogGame.create({ data: { categoryId: GAME_ID, name: 'CZTEST Fotos', folder: GAME } });
     await prisma.catalogSet.create({ data: { groupId: SET_ID, categoryId: GAME_ID, name: 'CZTEST Edición Fotos', folder: 'Edicion Fotos' } });
+    await prisma.catalogSet.create({ data: { groupId: SPANISH_SET_ID, categoryId: GAME_ID, name: 'CZTEST Edición Fotos ES', folder: 'Edicion Fotos' } }); // id bajo: los ids altos son de ediciones solo en español
     const card = (productId, name, extra = {}) => ({ productId, categoryId: GAME_ID, groupId: SET_ID, kind: 'card', name, cleanName: name.toLowerCase(), number: String(productId % 100), rarity: 'Rare', folder: `${name} (${productId % 100})`, ...extra });
     await prisma.catalogCard.createMany({ data: [
       card(IDS.sinImagen, 'CZTEST Sin Imagen'), card(IDS.otra, 'CZTEST Otra Sin Imagen'),
       card(IDS.conImagen, 'CZTEST Con Imagen', { imageKey: `Carpetazo.cl/${GAME}/${GAME}_DB/${GAME}_Images/Edicion Fotos/x/x.webp` }),
-      card(IDS.producto, 'CZTEST Caja', { kind: 'product' }), card(IDS.cuarta, 'CZTEST Cuarta Sin Imagen'), card(IDS.galeria, 'CZTEST Galeria Sin Imagen'), card(IDS.placeholder, 'CZTEST Imagen Placeholder', { imageKey: 'Carpetazo.cl/Sin_Imagen/Carpetazo_TCG_Sin_Imagen.webp' }),
+      card(IDS.producto, 'CZTEST Caja', { kind: 'product' }), card(IDS.cuarta, 'CZTEST Cuarta Sin Imagen'), card(IDS.galeria, 'CZTEST Galeria Sin Imagen'), card(IDS.placeholder, 'CZTEST Imagen Placeholder', { imageKey: 'Carpetazo.cl/Sin_Imagen/Carpetazo_TCG_Sin_Imagen.webp' }), card(IDS.japones, 'CZTEST Japones Sin Imagen'), card(IDS.ingles, 'CZTEST Ingles Sin Imagen'), card(IDS.espanol, 'CZTEST Version Espanol', { groupId: SPANISH_SET_ID, imageKey: `Carpetazo.cl/${GAME}/${GAME}_DB/${GAME}_Images/Edicion Fotos/es/es.webp` }),
     ] });
     for (const who of ['jeffry']) roles[who] = (await prisma.user.findUnique({ where: { firebaseUid: U[who] } })).role;
     await prisma.user.update({ where: { firebaseUid: U.jeffry }, data: { role: 'moderator' } });
@@ -92,6 +94,36 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     r = await call('POST', `/admin/catalog-photos/${list[0].id}/approve`, 'jeffry');
     const replaced = await prisma.catalogCard.findUnique({ where: { productId: IDS.placeholder } });
     ok('al aprobar reemplaza el marcador «Sin imagen» por la foto', r.status === 200 && replaced.imageKey && !replaced.imageKey.includes('Sin_Imagen'), r.status + ' ' + JSON.stringify(r.j) + ' ' + replaced.imageKey);
+    // Pokémon en español: la lista en español muestra «Sin imagen» aunque la carta inglesa tenga una; la foto se propone como imagen en español
+    const addSpanish = (who, folderId, photo) => call('POST', `/folders/${folderId}/cards`, who, { tcgId: String(IDS.espanol), name: 'Carta ES', price: 1000, stock: 1, imageUrl: photo, data: { language: 'Spanish', catalogOrder: 0 } });
+    const spanishPhoto = await upload('seller', await picture(13));
+    r = await addSpanish('seller', folder, spanishPhoto);
+    list = await proposals({ productId: IDS.espanol });
+    ok('carta en español cuya imagen inglesa existe: se propone la foto como imagen en español', r.status === 200 && list.length === 1 && list[0].language === 'es' && list[0].status === 'pending', JSON.stringify(list));
+    const englishOnly = await upload('seller', await picture(14));
+    r = await call('POST', `/folders/${folder}/cards`, 'seller', { tcgId: String(IDS.espanol), name: 'Carta EN', price: 1000, stock: 1, imageUrl: englishOnly, data: { language: 'English', catalogOrder: 0 } });
+    ok('la misma carta en inglés (que ya tiene imagen) no genera propuesta', r.status === 200 && (await proposals({ productId: IDS.espanol })).length === 1);
+    const pendingList = await call('GET', '/admin/catalog-photos', 'jeffry');
+    ok('Moderación ve que es una propuesta en español', pendingList.status === 200 && pendingList.j.proposals.some((entry) => entry.id === list[0].id && entry.language === 'es' && entry.hasImage === false), JSON.stringify(pendingList.j).slice(0, 300));
+    const englishBefore = (await prisma.catalogCard.findUnique({ where: { productId: IDS.espanol } })).imageKey;
+    r = await call('POST', `/admin/catalog-photos/${list[0].id}/approve`, 'jeffry');
+    const spanishCard = await prisma.catalogCard.findUnique({ where: { productId: IDS.espanol } });
+    ok('aprobar en español: se guarda aparte y la imagen inglesa queda igual', r.status === 200 && r.j.language === 'es' && spanishCard.imageKey === englishBefore && /_Comunidad\//.test(spanishCard.spanishImageKey || '') && Boolean(spanishCard.spanishThumbKey), r.status + ' ' + JSON.stringify(r.j) + ' ' + spanishCard.spanishImageKey);
+    const spanishView = await call('GET', `/tcg/catalog/100/${SPANISH_SET_ID}/cards`, null);
+    const spanishShown = (spanishView.j?.data || []).find((entry) => entry.productId === IDS.espanol);
+    ok('la lista en español ya muestra esa foto como imagen de la carta', spanishView.status === 200 && spanishShown?.hasImage === true && String(spanishShown.imageUrl).includes('_Comunidad'), spanishView.status + ' ' + JSON.stringify(spanishShown || spanishView.j).slice(0, 400));
+    // Cualquier otro idioma: si la carta no tiene imagen, la foto se propone igual
+    for (const [key, language] of [['japones', 'Japanese'], ['ingles', 'English']]) {
+      const photo = await upload('seller', await picture(20 + (key === 'japones' ? 0 : 1)));
+      r = await call('POST', `/folders/${folder}/cards`, 'seller', { tcgId: String(IDS[key]), name: 'Carta ' + language, price: 1000, stock: 1, imageUrl: photo, data: { language, catalogOrder: 0 } });
+      const found = await proposals({ productId: IDS[key] });
+      ok(`carta en ${language} sin imagen en el catálogo: se propone la foto`, r.status === 200 && found.length === 1 && found[0].language === 'en' && found[0].status === 'pending', r.status + ' ' + JSON.stringify(r.j).slice(0, 200));
+    }
+    const jerrySpanish = await upload('jerry', await picture(15));
+    const jerrySpanishFolder = (await call('POST', '/folders', 'jerry', { name: 'CZTEST jerry es', tcg: 'Pokemon', color: 'blue', isPublic: true })).j.folder.id;
+    await addSpanish('jerry', jerrySpanishFolder, jerrySpanish);
+    ok('con imagen en español ya aprobada no se propone otra', (await proposals({ productId: IDS.espanol, userId: await idOf('jerry') })).length === 0);
+
     // Mitos y Leyendas: la foto propia no puede ser la imagen principal (sí va a la galería)
     const mylFolder = (await call('POST', '/folders', 'seller', { name: 'CZTEST fotos MyL', tcg: 'Mitos y Leyendas', color: 'blue', isPublic: true })).j.folder.id;
     const mylPhoto = await upload('seller', await picture(11));

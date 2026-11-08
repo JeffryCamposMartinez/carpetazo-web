@@ -330,6 +330,8 @@ model CatalogCard {
   sourceImageUrl String?
   tcgplayerUrl   String?
   attributes     Json?
+  spanishImageKey String? // foto de la comunidad aprobada como imagen en español (la lista en español la usa si TCGdex no tiene la carta)
+  spanishThumbKey String?
   modifiedOn     DateTime?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
@@ -390,6 +392,7 @@ model CatalogImageProposal {
   productId   Int
   userId      String
   imageKey    String // copia en R2 mientras está pendiente
+  language    String    @default("en") // en: imagen de la carta del catálogo · es: imagen de su versión en español
   status      String    @default("pending") // pending | approved | rejected | closed
   note        String?
   decidedById String?

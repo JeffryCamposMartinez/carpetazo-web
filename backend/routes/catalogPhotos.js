@@ -21,7 +21,7 @@ router.get('/api/admin/catalog-photos', authenticateToken, requireStaff(2), asyn
     ]);
     const productIds = [...new Set(rows.map((row) => row.productId))];
     const [cards, users, repeated] = await Promise.all([
-      prisma.catalogCard.findMany({ where: { productId: { in: productIds } }, select: { productId: true, name: true, number: true, rarity: true, imageKey: true, set: { select: { name: true } }, game: { select: { name: true } } } }),
+      prisma.catalogCard.findMany({ where: { productId: { in: productIds } }, select: { productId: true, name: true, number: true, rarity: true, imageKey: true, spanishImageKey: true, set: { select: { name: true } }, game: { select: { name: true } } } }),
       prisma.user.findMany({ where: { id: { in: [...new Set(rows.map((row) => row.userId))] } }, select: { id: true, username: true } }),
       prisma.catalogImageProposal.groupBy({ by: ['productId'], where: { productId: { in: productIds }, status: 'pending' }, _count: { _all: true } }),
     ]);
@@ -34,7 +34,7 @@ router.get('/api/admin/catalog-photos', authenticateToken, requireStaff(2), asyn
         const card = cardById.get(row.productId);
         return {
           id: row.id, createdAt: row.createdAt, imageUrl: r2PublicUrl(row.imageKey), username: userById.get(row.userId) || null,
-          samePending: repeatedById.get(row.productId) || 1, hasImage: Boolean(card?.imageKey),
+          samePending: repeatedById.get(row.productId) || 1, language: row.language, hasImage: row.language === 'es' ? Boolean(card?.spanishImageKey) : Boolean(card?.imageKey),
           card: card ? { productId: card.productId, name: card.name, number: card.number, rarity: card.rarity, edition: card.set?.name || '', game: card.game?.name || '' } : null,
         };
       }),

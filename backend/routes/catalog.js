@@ -348,7 +348,7 @@ router.get('/api/tcg/catalog/:categoryId/:groupId/cards', async (req, res) => {
     let rows = await prisma.catalogCard.findMany({
       where: spanish ? { groupId, kind: 'card' } : { categoryId, groupId, kind: 'card' },
       orderBy: [{ number: 'asc' }, { name: 'asc' }, { productId: 'asc' }],
-      select: { productId: true, categoryId: true, groupId: true, name: true, number: true, rarity: true, imageKey: true, sourceImageUrl: true, attributes: true, set: { select: { name: true, publishedOn: true } }, game: { select: { name: true } } },
+      select: { productId: true, categoryId: true, groupId: true, name: true, number: true, rarity: true, imageKey: true, spanishImageKey: true, sourceImageUrl: true, attributes: true, set: { select: { name: true, publishedOn: true } }, game: { select: { name: true } } },
     });
     if (liveGroup && rows.length === 0) {
       rows = (await tcgcsvResults(`/tcgplayer/3/${groupId}/products`).catch(() => [])).map((product) => {
@@ -358,7 +358,7 @@ router.get('/api/tcg/catalog/:categoryId/:groupId/cards', async (req, res) => {
     }
     const data = rows.map((card) => {
       // Sin versión en español (ni en la base, ni en R2, ni en TCGdex): sale igual, con «Sin imagen», para poder agregarla con foto propia
-      if (spanish) { card.imageKey = spanishImages.get(card.productId) || null; card.sourceImageUrl = card.imageKey ? null : tcgdexImages.get(numberKey(card.number)) || r2PublicUrl(NO_IMAGE_KEY); }
+      if (spanish) { card.imageKey = spanishImages.get(card.productId) || card.spanishImageKey || null; card.sourceImageUrl = card.imageKey ? null : tcgdexImages.get(numberKey(card.number)) || r2PublicUrl(NO_IMAGE_KEY); }
       const attributes = card.attributes && typeof card.attributes === 'object' && !Array.isArray(card.attributes) ? card.attributes : {};
       const extendedData = Object.entries(attributes).map(([name, value]) => ({ name, value: String(value ?? '') }));
       if (card.number && !extendedData.some((item) => item.name === 'Number')) extendedData.push({ name: 'Number', value: card.number });

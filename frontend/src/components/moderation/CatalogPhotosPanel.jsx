@@ -39,6 +39,7 @@ function ProposalRow({ proposal, onDecided, setError }) {
           <time dateTime={proposal.createdAt} className="shrink-0 pt-0.5 text-xs text-slate-500">{relativeTime(proposal.createdAt)}</time>
         </div>
         <p className="mt-2 text-sm text-slate-600">La subió <span className="font-bold">@{proposal.username || 'cuenta eliminada'}</span> en su carpeta. Si la apruebas, será la imagen de esta carta para todas las personas.</p>
+        {proposal.language === 'es' && <p className="mt-1 text-sm font-semibold text-[#1e40af]">Versión en español: al aprobar, esta foto será la imagen de la carta en español. La imagen en inglés no cambia.</p>}
         {proposal.samePending > 1 && <p className="mt-1 text-sm font-semibold text-amber-800">Hay {proposal.samePending} fotos propuestas para esta carta: al aprobar una, se cierran las demás.</p>}
         {proposal.hasImage && <p className="mt-1 text-sm font-semibold text-slate-600">Esta carta ya tiene imagen; no se podrá aprobar.</p>}
         <div className="mt-3 grid grid-cols-2 gap-2 sm:max-w-sm">
