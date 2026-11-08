@@ -10,6 +10,9 @@ import { itemKeys } from './tcgSync/naming.js';
 
 export const PROPOSALS_PREFIX = 'Carpetazo.cl/Propuestas/';
 export const DAILY_PROPOSALS = 20;
+// Imagen que el catálogo asigna cuando no encuentra una en R2 ni en las APIs: una carta que la usa cuenta como sin imagen
+export const NO_IMAGE_KEY = 'Carpetazo.cl/Sin_Imagen/Carpetazo_TCG_Sin_Imagen.webp';
+export const hasRealImage = (imageKey) => Boolean(imageKey) && imageKey !== NO_IMAGE_KEY;
 const OWN_CARD_PHOTO = /\/card\/[0-9a-f]{32}\.webp$/;
 const CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const bucket = () => process.env.R2_BUCKET_NAME;
@@ -25,7 +28,7 @@ export async function catalogImageUrl(db, tcg, tcgId) {
   }
   if (!/^[1-9]\d{0,9}$/.test(String(tcgId))) return null;
   const card = await db.catalogCard.findFirst({ where: { productId: Number(tcgId), kind: 'card', imageKey: { not: null } }, select: { imageKey: true } });
-  return card ? r2PublicUrl(card.imageKey) : null;
+  return card && hasRealImage(card.imageKey) ? r2PublicUrl(card.imageKey) : null;
 }
 
 // Se llama al agregar una carta con foto propia. Nunca falla: la carta se agrega igual si algo de aquí no sale.
@@ -36,7 +39,7 @@ export async function proposeCatalogPhoto(db, { userId, firebaseUid, tcg, tcgId,
     // Solo una foto que esta misma persona subió como foto de carta: nunca la de otra persona ni un archivo cualquiera
     if (!sourceKey || sourceKey.includes('..') || !sourceKey.startsWith(userR2Prefix(firebaseUid)) || !OWN_CARD_PHOTO.test(sourceKey)) return null;
     const productId = Number(tcgId);
-    const missingImage = await db.catalogCard.findFirst({ where: { productId, kind: 'card', imageKey: null }, select: { productId: true } });
+    const missingImage = await db.catalogCard.findFirst({ where: { productId, kind: 'card', OR: [{ imageKey: null }, { imageKey: NO_IMAGE_KEY }] }, select: { productId: true } });
     if (!missingImage) return null;
     const today = await db.catalogImageProposal.count({ where: { userId, createdAt: { gte: new Date(Date.now() - 24 * 3600 * 1000) } } });
     if (today >= DAILY_PROPOSALS) return null;
@@ -70,7 +73,7 @@ export async function approveProposal(db, id, actorId) {
   if (!proposal || proposal.status !== 'pending') throw fail(404, 'La propuesta ya no está pendiente.');
   const card = await db.catalogCard.findUnique({ where: { productId: proposal.productId }, include: { set: { select: { folder: true } }, game: { select: { folder: true } } } });
   if (!card || card.kind !== 'card') throw fail(409, 'La carta ya no existe en el catálogo.');
-  if (card.imageKey) throw fail(409, 'La carta ya tiene imagen.');
+  if (hasRealImage(card.imageKey)) throw fail(409, 'La carta ya tiene imagen.');
 
   const { large, thumb } = await convertImage(await readObject(proposal.imageKey));
   const keys = itemKeys(card.game.folder, 'card', card.set.folder, card.folder);
@@ -79,7 +82,7 @@ export async function approveProposal(db, id, actorId) {
     // La fila de la carta se bloquea: dos aprobaciones a la vez no se pisan la imagen
     await tx.$queryRaw`SELECT "productId" FROM "CatalogCard" WHERE "productId" = ${proposal.productId} FOR UPDATE`;
     const fresh = await tx.catalogCard.findUnique({ where: { productId: proposal.productId }, select: { imageKey: true } });
-    if (fresh?.imageKey) throw fail(409, 'La carta ya tiene imagen.');
+    if (hasRealImage(fresh?.imageKey)) throw fail(409, 'La carta ya tiene imagen.');
     const stillPending = await tx.catalogImageProposal.updateMany({ where: { id, status: 'pending' }, data: { status: 'approved', decidedById: actorId, decidedAt: new Date() } });
     if (stillPending.count === 0) throw fail(409, 'La propuesta ya fue decidida.');
     await put(keys.imageKey, large);

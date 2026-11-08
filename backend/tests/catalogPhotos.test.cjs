@@ -6,7 +6,7 @@ const { prisma, NAMES, B, U, call, ok } = require('./fixtures.cjs');
 const GAME_ID = 98003;
 const GAME = 'CZTEST_Fotos';
 const SET_ID = 98000301;
-const IDS = { sinImagen: 98000311, otra: 98000312, conImagen: 98000313, producto: 98000314, cuarta: 98000315, galeria: 98000316 };
+const IDS = { sinImagen: 98000311, otra: 98000312, conImagen: 98000313, producto: 98000314, cuarta: 98000315, galeria: 98000316, placeholder: 98000317 };
 const ALL_IDS = Object.values(IDS);
 
 const picture = (seed) => sharp({ create: { width: 300, height: 420, channels: 3, background: { r: (seed * 53) % 256, g: (seed * 97) % 256, b: (seed * 29) % 256 } } }).png().toBuffer();
@@ -33,7 +33,7 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     await prisma.catalogCard.createMany({ data: [
       card(IDS.sinImagen, 'CZTEST Sin Imagen'), card(IDS.otra, 'CZTEST Otra Sin Imagen'),
       card(IDS.conImagen, 'CZTEST Con Imagen', { imageKey: `Carpetazo.cl/${GAME}/${GAME}_DB/${GAME}_Images/Edicion Fotos/x/x.webp` }),
-      card(IDS.producto, 'CZTEST Caja', { kind: 'product' }), card(IDS.cuarta, 'CZTEST Cuarta Sin Imagen'), card(IDS.galeria, 'CZTEST Galeria Sin Imagen'),
+      card(IDS.producto, 'CZTEST Caja', { kind: 'product' }), card(IDS.cuarta, 'CZTEST Cuarta Sin Imagen'), card(IDS.galeria, 'CZTEST Galeria Sin Imagen'), card(IDS.placeholder, 'CZTEST Imagen Placeholder', { imageKey: 'Carpetazo.cl/Sin_Imagen/Carpetazo_TCG_Sin_Imagen.webp' }),
     ] });
     for (const who of ['jeffry']) roles[who] = (await prisma.user.findUnique({ where: { firebaseUid: U[who] } })).role;
     await prisma.user.update({ where: { firebaseUid: U.jeffry }, data: { role: 'moderator' } });
@@ -84,6 +84,14 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     await prisma.card.deleteMany({ where: { id: galleryCard } });
     r = await call('POST', `/folders/${folder}/cards`, 'seller', { tcgId: String(IDS.galeria), name: 'Carta de prueba', price: 1000, stock: 1, photos: [extraOnly], data: { catalogOrder: 0 } });
     ok('una foto extra al agregar la carta se propone si la principal no es propia', r.status === 200 && (await proposals({ productId: IDS.galeria })).length === 1, 'agregar:' + r.status);
+    // Una carta que usa la imagen «Sin imagen» del catálogo cuenta como sin imagen: su foto se propone y, al aprobarla, reemplaza ese marcador
+    const placeholderPhoto = await upload('seller', await picture(12));
+    r = await add(folder, 'seller', IDS.placeholder, placeholderPhoto);
+    list = await proposals({ productId: IDS.placeholder });
+    ok('carta con la imagen «Sin imagen» del catálogo: se propone la foto', r.status === 200 && list.length === 1 && list[0].status === 'pending', JSON.stringify(list));
+    r = await call('POST', `/admin/catalog-photos/${list[0].id}/approve`, 'jeffry');
+    const replaced = await prisma.catalogCard.findUnique({ where: { productId: IDS.placeholder } });
+    ok('al aprobar reemplaza el marcador «Sin imagen» por la foto', r.status === 200 && replaced.imageKey && !replaced.imageKey.includes('Sin_Imagen'), r.status + ' ' + JSON.stringify(r.j) + ' ' + replaced.imageKey);
     // Mitos y Leyendas: la foto propia no puede ser la imagen principal (sí va a la galería)
     const mylFolder = (await call('POST', '/folders', 'seller', { name: 'CZTEST fotos MyL', tcg: 'Mitos y Leyendas', color: 'blue', isPublic: true })).j.folder.id;
     const mylPhoto = await upload('seller', await picture(11));

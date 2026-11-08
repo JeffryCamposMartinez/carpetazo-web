@@ -9,6 +9,7 @@ import { MYL_ID_PREFIX, rawMylId } from '../core/mylIdentity.js';
 import { likeEscape, nameDistance, nameMatch, searchFragments, similarCardName } from '../core/cardSearch.js';
 import { TCGDEX_CATEGORY, numberKey, tcgdexJson, usableCards } from '../core/tcgSync/tcgdex.js';
 import { editionFamilyGroupIds, isEditionFamily, isKnownEditionFamily } from '../core/editionFamilies.js';
+import { NO_IMAGE_KEY, hasRealImage } from '../core/catalogPhotos.js';
 
 const router = express.Router();
 const gzipAsync = promisify(gzip);
@@ -287,7 +288,6 @@ const spanishOnlyView = (card, groupId, group) => ({
   productId: card.productId, categoryId: TCGDEX_CATEGORY, groupId, name: card.name, hasImage: true, imageUrl: r2PublicUrl(card.imageKey), number: card.number, rarity: null,
   extendedData: [{ name: 'Number', value: card.number }, { name: 'Language', value: 'es' }], group: group || card.set, game: 'Pokémon (Español)',
 });
-const NO_IMAGE_KEY = 'Carpetazo.cl/Sin_Imagen/Carpetazo_TCG_Sin_Imagen.webp';
 const TCGDEX_SET_TTL_MS = 6 * 60 * 60 * 1000;
 const tcgdexSetCache = new Map();
 const within = (promise) => Promise.race([promise, new Promise((_resolve, reject) => setTimeout(() => reject(new Error('TCGdex tardó demasiado')), 5000))]);
@@ -367,7 +367,7 @@ router.get('/api/tcg/catalog/:categoryId/:groupId/cards', async (req, res) => {
         // R2 es la fuente principal. Solo si todavía no se subió la imagen
         // se entrega la URL de respaldo de la importación (o el CDN de la
         // carta) sin consultar el endpoint remoto de productos.
-        hasImage: Boolean(card.imageKey) || (spanish && card.sourceImageUrl !== r2PublicUrl(NO_IMAGE_KEY)), // sin imagen propia en R2: la persona puede subir una foto
+        hasImage: hasRealImage(card.imageKey) || (spanish && card.sourceImageUrl !== r2PublicUrl(NO_IMAGE_KEY)), // sin imagen propia en R2: la persona puede subir una foto
         imageUrl: r2PublicUrl(card.imageKey) || card.sourceImageUrl || `https://tcgplayer-cdn.tcgplayer.com/product/${encodeURIComponent(String(card.productId))}_400w.jpg`, number: card.number, rarity: card.rarity,
         extendedData, group: card.set, game: card.game.name,
       };
