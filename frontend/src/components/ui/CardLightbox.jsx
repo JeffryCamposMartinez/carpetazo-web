@@ -6,6 +6,8 @@ import { LoadingMark } from './LoadableImage';
 import { CardSideWing } from './CardNeighbors';
 import { cardRatio, fullscreenCorners, isYugioh, NO_IMAGE_CARD_URL, onCardImageError, tcgplayerCardImage } from '../../utils/cardShape';
 import SvgIcon from './SvgIcon';
+import FinishRibbon from './FinishRibbon';
+import { finishOfCard, wishlistFinishOf, wishlistImageFallback } from '../../utils/cardFinish';
 
 const formatCLP = (value) => `$${Number(value || 0).toLocaleString('es-CL')}`;
 const LANGUAGES = { English: 'Inglés', Spanish: 'Español', Japanese: 'Japonés' };
@@ -96,7 +98,8 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
   const info = describe(card);
   const gameTcg = card.tcg || card.game || tcg;
   const ratio = isYugioh(gameTcg) ? 59 / 86 : 63 / 88;
-  const fallbackUrl = tcgplayerCardImage({ ...card, tcg: gameTcg });
+  const fallbackUrl = tcgplayerCardImage({ ...card, tcg: gameTcg }) || wishlistImageFallback(card); // las deseadas sin imagen guardada usan la de TCGplayer
+  const finish = finishOfCard(card) || wishlistFinishOf(card);
   const initialSrc = card.imageUrl || fallbackUrl || NO_IMAGE_CARD_URL;
   const nav = 'absolute top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#12315f] shadow-lg transition-[transform,opacity] duration-150 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] disabled:opacity-30';
 
@@ -127,7 +130,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
 
         <div
           key={card.id}
-          className={`relative z-10 flex shrink-0 items-center justify-center ${direction === 0 ? '' : direction > 0 ? 'lightbox-in-next' : 'lightbox-in-prev'}`}
+          className={`relative z-10 flex shrink-0 items-center justify-center rounded-2xl ${direction === 0 ? '' : direction > 0 ? 'lightbox-in-next' : 'lightbox-in-prev'}`}
           style={{
             aspectRatio: cardRatio(gameTcg),
             width: `min(var(--main-cqw), calc(96cqh * ${ratio}))`,
@@ -151,6 +154,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
             style={fullscreenCorners(gameTcg)}
             className={`h-full w-full rounded-2xl object-contain shadow-[0_24px_50px_rgba(0,0,0,0.65)] transition-opacity duration-200 ${loadedId === card.id ? 'opacity-100' : 'opacity-0'}`}
           />
+          {loadedId === card.id && <FinishRibbon finish={finish} />}
         </div>
 
         <CardSideWing side="right" cards={cards} index={index} tcg={tcg} onPick={go} />
