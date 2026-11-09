@@ -52,23 +52,8 @@ export default function WishlistTab({ showToast = () => {} }) {
     return () => query.removeEventListener('change', onChange);
   }, []);
 
-  // PC: la lista es una tarjeta de alto completo (todo el alto libre bajo el header) que acompaña al bajar; si hay muchas cartas, se desplazan por dentro
-  const listColumnRef = useRef(null);
   const listRef = useRef(null);
-  const [listColumn, setListColumn] = useState({ top: 128, height: 600 });
-  useEffect(() => {
-    if (!isWide || !listColumnRef.current) return undefined;
-    const place = () => {
-      const header = [...document.querySelectorAll('header')].find((node) => node.offsetHeight > 0);
-      const headerHeight = header ? header.offsetHeight : 0;
-      const top = headerHeight + 16;
-      const height = Math.max(360, Math.round(window.innerHeight - top - 16));
-      setListColumn((prev) => (prev.top === top && prev.height === height ? prev : { top, height }));
-    };
-    place();
-    window.addEventListener('resize', place);
-    return () => window.removeEventListener('resize', place);
-  }, [isWide, loading]);
+  const [settingsOpen, setSettingsOpen] = useState(false); // avisos y visibilidad en el perfil: desplegable para que la lista tenga todo el espacio
   const [savingVisibility, setSavingVisibility] = useState(false);
   const [busyId, setBusyId] = useState('');
   const [matches, setMatches] = useState({});
@@ -284,7 +269,7 @@ export default function WishlistTab({ showToast = () => {} }) {
   return (
     <div className="flex w-full flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8">
       {/* Columna de la lista: en PC acompaña al bajar (si es larga, se desplaza por dentro); en móvil sus partes se intercalan con el buscador (display: contents + order) */}
-      <div ref={listColumnRef} style={isWide ? { top: listColumn.top, height: listColumn.height } : undefined} className="contents lg:sticky lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:overflow-hidden lg:rounded-2xl lg:bg-white lg:shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.35)] lg:ring-1 lg:ring-slate-900/5">
+      <div className="contents lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:overflow-hidden lg:rounded-2xl lg:bg-white lg:shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.35)] lg:ring-1 lg:ring-slate-900/5">
       {/* Barra principal: cuántas cartas llevas y la acción de agregar (en móvil el buscador aparece solo al pedirlo) */}
       <div className="order-1 space-y-3 lg:flex lg:min-h-12 lg:shrink-0 lg:items-center lg:justify-between lg:gap-3 lg:space-y-0 lg:border-b lg:border-slate-100 lg:px-5 lg:py-4">
         <div className="flex items-start justify-between gap-3 lg:flex-1">
@@ -336,8 +321,42 @@ export default function WishlistTab({ showToast = () => {} }) {
         <WishlistLists lists={lists.map((list) => ({ ...list, count: allItems.filter((item) => item.wishlistId === list.id).length }))} selectedId={currentList?.id} onSelect={(id) => { setSelectedId(id); setGameFilter(''); }} onCreate={createList} onRename={renameList} onActivate={activateList} onDelete={deleteList} busy={listBusy} maxLists={maxLists} />
       </div>
 
-      {/* Avisos por correo y notificaciones */}
-      <div className="order-2 lg:shrink-0 lg:px-5 lg:pt-3"><WishlistAlerts /></div>
+      {/* Avisos por correo, notificaciones y visibilidad en el perfil: desplegable (cerrado por defecto) */}
+      <div className="order-2 lg:shrink-0 lg:px-5 lg:pt-3">
+        <button
+          type="button"
+          aria-expanded={settingsOpen}
+          onClick={() => setSettingsOpen((open) => !open)}
+          className="flex min-h-11 w-full items-center justify-between gap-3 rounded-2xl bg-white px-4 py-2 text-left shadow-sm ring-1 ring-slate-200 transition-[background-color,transform] duration-150 hover:bg-slate-50 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]"
+        >
+          <span className="flex items-center gap-2 text-[15px] font-extrabold text-[#12315f]">
+            <SvgIcon name="tune" translate="no" aria-hidden="true" className="text-[20px]" />
+            Avisos y privacidad
+          </span>
+          <SvgIcon name="expand_more" translate="no" aria-hidden="true" className={`text-[24px] text-[#12315f] transition-transform duration-200 ${settingsOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {settingsOpen && (
+          <div className="tab-panel mt-2 space-y-2">
+            <WishlistAlerts />
+            <button
+              type="button"
+              role="switch"
+              aria-checked={visible}
+              onClick={toggleVisibility}
+              disabled={savingVisibility}
+              className="flex w-full items-center justify-between gap-3 rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-slate-200 transition-transform duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1e40af] disabled:opacity-60"
+            >
+              <span className="min-w-0">
+                <span className="block text-[15px] font-extrabold text-[#12315f]">Mostrar mi lista en mi perfil</span>
+                <span className="block text-sm text-slate-600">{visible ? 'Quien vea tus carpetas verá las cartas que buscas.' : 'Tu lista está oculta para los demás.'}</span>
+              </span>
+              <span className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${visible ? 'bg-[#12315f]' : 'bg-slate-300'}`}>
+                <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-[left] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] ${visible ? 'left-6' : 'left-1'}`} />
+              </span>
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Filtro por juego */}
       {gameNames.length > 1 && (
@@ -370,7 +389,7 @@ export default function WishlistTab({ showToast = () => {} }) {
           </EmptyState>
         </div>
       ) : (
-        <ul ref={listRef} className="order-3 space-y-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:p-4">
+        <ul ref={listRef} className="order-3 space-y-3 lg:p-4">
           {shownItems.map((item) => (
             <li key={item.id} className="@container rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200 lg:bg-slate-50 lg:shadow-none">
               <div className="grid grid-cols-[60px_minmax(0,1fr)] items-start gap-x-3 @xl:flex @xl:items-center">
@@ -460,23 +479,6 @@ export default function WishlistTab({ showToast = () => {} }) {
         </ul>
       )}
 
-      {/* Visibilidad en el perfil: un ajuste, no la acción principal; va al final */}
-      <button
-        type="button"
-        role="switch"
-        aria-checked={visible}
-        onClick={toggleVisibility}
-        disabled={savingVisibility}
-        className="order-4 flex w-full items-center justify-between gap-3 rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-slate-200 transition-transform duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1e40af] disabled:opacity-60 lg:shrink-0 lg:rounded-none lg:border-t lg:border-slate-100 lg:bg-slate-50 lg:px-5 lg:shadow-none lg:ring-0 lg:active:scale-100"
-      >
-        <span className="min-w-0">
-          <span className="block text-[15px] font-extrabold text-[#12315f]">Mostrar mi lista en mi perfil</span>
-          <span className="block text-sm text-slate-600">{visible ? 'Quien vea tus carpetas verá las cartas que buscas.' : 'Tu lista está oculta para los demás.'}</span>
-        </span>
-        <span className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${visible ? 'bg-[#12315f]' : 'bg-slate-300'}`}>
-          <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-[left] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] ${visible ? 'left-6' : 'left-1'}`} />
-        </span>
-      </button>
       </div>
 
       {previewId && (
