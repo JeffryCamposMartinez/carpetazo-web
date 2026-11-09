@@ -1,4 +1,6 @@
 import { cardRatio, fullscreenCorners, NO_IMAGE_CARD_URL, onCardImageError, tcgplayerCardImage } from '../../utils/cardShape';
+import FinishRibbon from './FinishRibbon';
+import { finishOfCard, wishlistFinishOf, wishlistImageFallback } from '../../utils/cardFinish';
 
 // Escala de las cartas vecinas a los lados de la carta principal en pantalla completa:
 // ±1 (inmediata anterior/siguiente) se ve mediana; ±2 (dos lugares) más pequeña.
@@ -46,7 +48,7 @@ function SideThumb({ card, offset, src, tcg, onPick, mobile = false }) {
     return <div aria-hidden="true" className="pointer-events-none shrink-0" style={boxStyle} />;
   }
 
-  const fallbackUrl = tcgplayerCardImage({ ...card, tcg });
+  const fallbackUrl = tcgplayerCardImage({ ...card, tcg }) || wishlistImageFallback(card);
   const initialSrc = src || fallbackUrl || NO_IMAGE_CARD_URL;
 
   return (
@@ -68,6 +70,7 @@ function SideThumb({ card, offset, src, tcg, onPick, mobile = false }) {
         style={fullscreenCorners(tcg)}
         className="h-full w-full select-none object-cover"
       />
+      <FinishRibbon finish={finishOfCard(card) || wishlistFinishOf(card)} />
     </button>
   );
 }

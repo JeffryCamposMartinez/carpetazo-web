@@ -2,10 +2,10 @@
 export const finishOfCard = (card) => (typeof card?.finish === 'string' && card.finish) || (typeof card?.data?.finish === 'string' ? card.data.finish : '');
 
 // Carta deseada con acabado distinto del normal (Reverse Holofoil…): el id guardado lleva `~acabado` y el nombre del acabado cierra el detalle
-export const wishlistFinishOf = (item) => (item?.productId?.includes('~') ? String(item.detail || '').split(' · ').pop() : '');
+export const wishlistFinishOf = (item) => (typeof item?.productId === 'string' && item.productId.includes('~') ? String(item.detail || '').split(' · ').pop() : '');
 
 // Imagen de TCGplayer a partir del id guardado: es la misma para todos los acabados (sirve para las cartas agregadas sin imagen)
 export const wishlistImageFallback = (item) => {
-  const id = item?.productId?.match(/^tcgcsv:\d+:(\d+)/)?.[1];
+  const id = (typeof item?.productId === 'string' ? item.productId : '').match(/^tcgcsv:\d+:(\d+)/)?.[1];
   return id ? `https://tcgplayer-cdn.tcgplayer.com/product/${id}_400w.jpg` : '';
 };
