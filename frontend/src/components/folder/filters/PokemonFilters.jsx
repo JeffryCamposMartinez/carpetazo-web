@@ -142,7 +142,7 @@ export default function PokemonFilters({
         {/* Supertype Tabs */}
         <LiquidTabs
           ariaLabel="Categoría"
-          className="w-full overflow-hidden rounded-xl border-2 border-blue-900/10 bg-slate-50 shadow-sm"
+          className="@container w-full overflow-hidden rounded-xl border-2 border-blue-900/10 bg-slate-50 shadow-sm"
           buttonClassName="flex cursor-pointer items-center justify-center px-0.5 py-2.5"
           value={selectedSupertype}
           onChange={(id) => {
@@ -152,9 +152,9 @@ export default function PokemonFilters({
           options={supertypes.map(st => ({
             value: st.id,
             label: (
-              <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-normal sm:text-sm sm:tracking-wider">
-                <span className="sm:hidden">{st.short}</span>
-                <span className="hidden sm:inline">{st.label}</span>
+              <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-normal @[30rem]:text-sm @[30rem]:tracking-wider">
+                <span className="@[30rem]:hidden">{st.short}</span>
+                <span className="hidden @[30rem]:inline">{st.label}</span>
               </span>
             ),
           }))}
