@@ -372,8 +372,8 @@ export default function WishlistTab({ showToast = () => {} }) {
       ) : (
         <ul ref={listRef} className="order-3 space-y-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:p-4">
           {shownItems.map((item) => (
-            <li key={item.id} className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200 lg:bg-slate-50 lg:shadow-none">
-              <div className="grid grid-cols-[60px_minmax(0,1fr)] items-start gap-x-3 sm:flex sm:items-center">
+            <li key={item.id} className="@container rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200 lg:bg-slate-50 lg:shadow-none">
+              <div className="grid grid-cols-[60px_minmax(0,1fr)] items-start gap-x-3 @xl:flex @xl:items-center">
                 {item.imageUrl ? (
                   <button type="button" onClick={() => setPreviewId(item.id)} aria-label={`Ver ${item.name} en grande`} className="relative row-span-2 block h-[84px] w-[60px] shrink-0 cursor-zoom-in overflow-hidden rounded-lg bg-slate-100 ring-1 ring-black/5 transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
                     <LoadableImage src={item.imageUrl} fallbackSrc={thumbFallback(item)} alt="" loading="lazy" compact rotateLandscape className="h-full w-full object-contain" /><FinishRibbon finish={finishOf(item)} compact />
@@ -408,14 +408,14 @@ export default function WishlistTab({ showToast = () => {} }) {
                     ) : null}
                   </div>
                 </div>
-              <div className="col-start-2 mt-2 flex flex-wrap items-center gap-1 sm:mt-0 sm:w-auto sm:shrink-0 sm:flex-nowrap">
+              <div className="col-start-2 mt-2 flex flex-wrap items-center gap-1 @xl:mt-0 @xl:w-auto @xl:shrink-0 @xl:flex-nowrap">
                 <div className="flex items-center rounded-full bg-slate-100">
                   <button type="button" aria-label="Quitar una copia" disabled={busyId === item.id || item.quantity <= 1} onClick={() => changeQuantity(item, -1)} className={`${iconButton} text-[#12315f] hover:bg-slate-200`}><SvgIcon name="remove" translate="no" aria-hidden="true" className="text-[20px]" /></button>
                   <span className="w-8 text-center text-sm font-extrabold tabular-nums text-[#12315f]" aria-label={`${item.quantity} copias`}>{item.quantity}</span>
                   <button type="button" aria-label="Agregar una copia" disabled={busyId === item.id || item.quantity >= 99} onClick={() => changeQuantity(item, 1)} className={`${iconButton} text-[#12315f] hover:bg-slate-200`}><SvgIcon name="add" translate="no" aria-hidden="true" className="text-[20px]" /></button>
                 </div>
                 <button type="button" onClick={() => (editingId === item.id ? setEditingId('') : openDetails(item))} aria-expanded={editingId === item.id} className="h-10 rounded-full px-3 text-sm font-bold text-[#1e40af] sm:h-11 sm:px-4 transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">Detalles</button>
-                <button type="button" aria-label={`Quitar ${item.name}`} disabled={busyId === item.id} onClick={() => removeItem(item)} className={`${iconButton} ml-auto sm:ml-2 text-[#475569] hover:bg-red-50 hover:text-[#b91c1c]`}><SvgIcon name="delete" translate="no" aria-hidden="true" className="text-[22px]" /></button>
+                <button type="button" aria-label={`Quitar ${item.name}`} disabled={busyId === item.id} onClick={() => removeItem(item)} className={`${iconButton} ml-auto @xl:ml-2 text-[#475569] hover:bg-red-50 hover:text-[#b91c1c]`}><SvgIcon name="delete" translate="no" aria-hidden="true" className="text-[22px]" /></button>
               </div>
               </div>
               {matches[item.id] && (
