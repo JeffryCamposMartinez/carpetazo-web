@@ -5,6 +5,7 @@ import SvgIcon from '../ui/SvgIcon';
 
 const chip = 'flex h-10 [@media(pointer:coarse)]:h-11 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-bold transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:opacity-50';
 const textButton = 'flex h-9 [@media(pointer:coarse)]:h-11 items-center gap-1.5 rounded-full px-3 text-sm font-bold text-[#1e40af] transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:opacity-50';
+const roundButton = 'flex h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 items-center justify-center rounded-full text-[#1e40af] transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] disabled:opacity-50';
 const Icon = ({ name, className = '' }) => <SvgIcon name={name} translate="no" aria-hidden="true" className={`text-[18px] ${className}`} />;
 
 // Listas de deseos: elegir cuál se ve, crear, renombrar, borrar y dejar una como activa (la que se muestra en el perfil)
@@ -73,12 +74,14 @@ export default function WishlistLists({ lists, selectedId, onSelect, onCreate, o
           <button type="button" onClick={() => setMode('')} className="h-9 [@media(pointer:coarse)]:h-11 rounded-full px-3 text-sm font-bold text-slate-700 hover:bg-white/70">No</button>
         </div>
       ) : (
-        <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
+        <div className="flex items-center justify-between gap-2">
           {current.isActive
-            ? <span className="flex h-9 items-center gap-1.5 rounded-full bg-[#fef3c7] px-3 text-sm font-bold text-[#92400e]"><Icon name="star" />Activa: se ve en tu perfil</span>
-            : <button type="button" onClick={() => onActivate(current.id)} disabled={busy} className={textButton}><Icon name="star" />Mostrar esta en mi perfil</button>}
-          <button type="button" onClick={() => open('rename')} disabled={busy} className={textButton}><Icon name="edit" />Renombrar</button>
-          {lists.length > 1 && <button type="button" onClick={() => open('delete')} disabled={busy} className={`${textButton} !text-red-700 hover:!bg-red-50`}><Icon name="delete" />Borrar lista</button>}
+            ? <span className="flex h-9 min-w-0 items-center gap-1.5 rounded-full bg-[#fef3c7] px-3 text-sm font-bold text-[#92400e]"><Icon name="star" className="shrink-0" /><span className="truncate">Activa en tu perfil</span></span>
+            : <button type="button" onClick={() => onActivate(current.id)} disabled={busy} className={`${textButton} min-w-0 !pl-2`}><Icon name="star" className="shrink-0" /><span className="truncate">Mostrar en mi perfil</span></button>}
+          <div className="flex shrink-0 items-center gap-1">
+            <button type="button" onClick={() => open('rename')} disabled={busy} title="Renombrar lista" aria-label="Renombrar lista" className={roundButton}><Icon name="edit" className="!text-[20px]" /></button>
+            {lists.length > 1 && <button type="button" onClick={() => open('delete')} disabled={busy} title="Borrar lista" aria-label="Borrar lista" className={`${roundButton} !text-red-700 hover:!bg-red-50`}><Icon name="delete" className="!text-[20px]" /></button>}
+          </div>
         </div>
       )}
     </div>
