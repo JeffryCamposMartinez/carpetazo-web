@@ -86,7 +86,7 @@ router.post('/api/folders/:id/in-person-sales', authenticateToken, async (req, r
       const previous = await tx.inPersonSale.findUnique({ where: { userId_requestId: { userId: owned.user.id, requestId } } });
       if (previous) return { sale: previous, duplicate: true };
 
-      const cards = await tx.card.findMany({ where: { id: { in: lines.map((line) => line.cardId) }, folderId: owned.folder.id }, select: { id: true, name: true, tcgId: true, price: true, language: true, imageUrl: true } });
+      const cards = await tx.card.findMany({ where: { id: { in: lines.map((line) => line.cardId) }, folderId: owned.folder.id }, select: { id: true, name: true, tcgId: true, price: true, language: true, imageUrl: true, data: true } });
       if (cards.length !== lines.length) throw Object.assign(new Error('Carta no encontrada'), { status: 400 });
       const byId = new Map(cards.map((card) => [card.id, card]));
 
@@ -99,7 +99,7 @@ router.post('/api/folders/:id/in-person-sales', authenticateToken, async (req, r
         const updated = await tx.card.updateMany({ where: { id: card.id, folderId: owned.folder.id, stock: { gte: line.quantity } }, data: { stock: { decrement: line.quantity } } });
         if (updated.count === 0) throw Object.assign(new Error('No queda stock suficiente de ' + card.name), { status: 409, exposeMessage: true });
         const tcg = owned.folder.tcg;
-        sold.push({ cardId: card.id, tcgId: card.tcgId, tcg, name: card.name, language: card.language, imageUrl: card.imageUrl, quantity: line.quantity, unitPrice });
+        sold.push({ cardId: card.id, tcgId: card.tcgId, tcg, name: card.name, language: card.language, imageUrl: card.imageUrl, finish: card.data && typeof card.data === 'object' && typeof card.data.finish === 'string' ? card.data.finish.slice(0, 40) : '', quantity: line.quantity, unitPrice });
       }
       const units = sold.reduce((sum, line) => sum + line.quantity, 0);
       const subtotal = sold.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);

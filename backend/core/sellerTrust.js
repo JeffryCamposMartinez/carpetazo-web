@@ -76,9 +76,10 @@ export const getRecentCompletedSales = async (sellerId, take = 5) => {
   const lines = sales.flatMap((sale) => sale.lines);
   const cardIds = [...new Set(lines.map((item) => String(item?.id || '')).filter(Boolean))];
   const cards = cardIds.length
-    ? await prisma.card.findMany({ where: { id: { in: cardIds } }, select: { id: true, imageUrl: true } })
+    ? await prisma.card.findMany({ where: { id: { in: cardIds } }, select: { id: true, imageUrl: true, data: true } })
     : [];
   const images = new Map(cards.filter((card) => card.imageUrl).map((card) => [card.id, card.imageUrl]));
+  const finishes = new Map(cards.map((card) => [card.id, card.data && typeof card.data === 'object' && typeof card.data.finish === 'string' ? card.data.finish.slice(0, 40) : '']));
 
   // Si la carta ya no está en la carpeta (se agotó y se quitó), se busca su imagen por su identificador en otras cartas o en el catálogo
   const lost = lines.filter((item) => !images.has(String(item?.id || '')) && !item?.imageUrl && typeof item?.tcgId === 'string' && item.tcgId);
@@ -113,6 +114,7 @@ export const getRecentCompletedSales = async (sellerId, take = 5) => {
         name: typeof item?.name === 'string' ? item.name : 'Carta',
         quantity,
         unitPrice,
+        finish: (typeof item?.finish === 'string' ? item.finish.slice(0, 40) : '') || finishes.get(String(item?.id || '')) || '',
         imageUrl: images.get(String(item?.id || '')) || item?.imageUrl || byTcgId.get(item?.tcgId) || null
       };
     })

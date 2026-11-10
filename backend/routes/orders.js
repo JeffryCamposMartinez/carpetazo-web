@@ -143,7 +143,7 @@ router.post('/api/orders/create', async (req, res) => {
       const price = Number.isFinite(card.price) && card.price > 0 ? card.price : 0;
       total += price * quantity;
       // `tcgId` queda en el pedido para poder calcular el precio referencial de ventas aunque la carta se borre después
-      items.push({ id: card.id, tcgId: card.tcgId, name: card.name, quantity, q: quantity, price });
+      items.push({ id: card.id, tcgId: card.tcgId, name: card.name, quantity, q: quantity, price, finish: card.data && typeof card.data === 'object' && typeof card.data.finish === 'string' ? card.data.finish.slice(0, 40) : '' }); // el acabado (Reverse Holofoil…) queda para mostrarlo en las últimas ventas aunque la carta se borre
       const set = card.data && typeof card.data === 'object' && typeof card.data.set === 'string' && card.data.set !== 'Unknown' ? ` (${card.data.set.slice(0, 60)})` : '';
       lines.push(`• ${quantity}x ${card.name}${set} - ${clp(price * quantity)}`);
     }

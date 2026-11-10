@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { getCardStyle } from './profileStyles';
 import SvgIcon from '../ui/SvgIcon';
+import FinishRibbon from '../ui/FinishRibbon';
 import { readableOn } from '../../utils/color';
 
 // "~20 min", "~3 h", "~2 días": tiempo típico que tarda en contestar
@@ -20,6 +21,18 @@ const lastSaleLabel = (date) => {
   return parsed && !Number.isNaN(parsed.getTime()) ? parsed.toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '') : '';
 };
 const clpLabel = (amount) => `$${Number(amount || 0).toLocaleString('es-CL')}`;
+
+// Miniatura de una carta vendida: con su franja de acabado, y un ícono si la imagen no carga
+function SaleThumb({ item, publicTheme }) {
+  const [failed, setFailed] = useState(false);
+  if (!item.imageUrl || failed) return <span className="flex h-12 w-9 shrink-0 items-center justify-center rounded" style={{ backgroundColor: `${publicTheme.primary}18`, color: publicTheme.primary }}><SvgIcon name="style" translate="no" aria-hidden="true" className="text-lg" /></span>;
+  return (
+    <span className="relative block h-12 w-9 shrink-0 overflow-hidden rounded ring-1" style={{ '--tw-ring-color': `${publicTheme.primary}55` }}>
+      <img src={item.imageUrl} alt="" loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover" />
+      <FinishRibbon finish={item.finish} />
+    </span>
+  );
+}
 
 // Franja de confianza bajo la presentación: reseñas, carpetas, cartas y nivel, con datos reales del vendedor
 export default function ProfileTrustStrip({ completedSales = 0, folders, lastSaleAt, memberSince, profileLevel, publicTheme, recentSales = [], responseTime, reviewSummary, totalCards }) {
@@ -88,7 +101,7 @@ export default function ProfileTrustStrip({ completedSales = 0, folders, lastSal
                           <ul className="space-y-2">
                             {(sale.items || []).map((item, itemIndex) => (
                               <li key={`${item.name}-${itemIndex}`} className="flex min-w-0 items-center gap-2" style={{ color: chipText }}>
-                                {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy" className="h-12 w-9 shrink-0 rounded object-cover ring-1" style={{ '--tw-ring-color': `${publicTheme.primary}55` }} /> : <span className="flex h-12 w-9 shrink-0 items-center justify-center rounded" style={{ backgroundColor: `${publicTheme.primary}18`, color: publicTheme.primary }}><SvgIcon name="style" translate="no" aria-hidden="true" className="text-lg" /></span>}
+                                <SaleThumb item={item} publicTheme={publicTheme} />
                                 <span className="min-w-0 flex-1">
                                   <span className="block truncate text-sm font-extrabold" title={item.name}>{item.name}</span>
                                   <span className="block text-xs font-semibold" style={{ color: chipText, opacity: 0.82 }}>{item.quantity > 1 ? `${item.quantity} × ` : ''}{clpLabel(item.unitPrice)}{item.quantity > 1 ? ' c/u' : ''}</span>
