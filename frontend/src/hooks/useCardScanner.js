@@ -24,7 +24,6 @@ const CFG = { movMax: 30, sharpMin: 300, stillFrames: 2, sdMin: 14, meanMin: 25,
 const QW = 160;
 const QH = 224;
 const TICK_MS = 150;
-const HOLD_MS = 1500; // la carta debe estar quieta, nítida y dentro del marco este tiempo antes de buscar (la barra «Mantén así» se llena)
 const MAX_SIDE = 1280;
 
 const idOf = (item) => item.group || `${item.categoryId}:${item.productId}`;
@@ -40,15 +39,13 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
   const [guide, setGuide] = useState(''); // '' · scan · ok · mid
   const [view, setView] = useState({ result: null, votes: 0, reads: 0, done: false });
   const [cameraError, setCameraError] = useState('');
-  const [hold, setHold] = useState(0); // 0..1: cuánto de HOLD_MS lleva la carta quieta dentro del marco
   const gamesRef = useRef(games);
   gamesRef.current = games;
-  const run = useRef({ prev: null, still: 0, busy: false, hist: [], confirmed: null, lastScanAt: 0, moveSince: 0, lost: 0, stopped: false, hold: 0, pending: null });
+  const run = useRef({ prev: null, still: 0, busy: false, hist: [], confirmed: null, lastScanAt: 0, moveSince: 0, lost: 0, stopped: false });
   const canvas = useRef(null);
 
   const reset = useCallback(() => {
-    Object.assign(run.current, { hist: [], confirmed: null, lastScanAt: 0, hold: 0, pending: null });
-    setHold(0);
+    Object.assign(run.current, { hist: [], confirmed: null, lastScanAt: 0 });
     setView({ result: null, votes: 0, reads: 0, done: false });
     setGuide('');
     setMessage('Apunta a una carta');
@@ -105,15 +102,11 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
       return { mean, sd, sharp, mov, high };
     };
 
-    // La carta salió del marco, se movió o se desenfocó: la barra vuelve a cero y se descarta lo leído hasta ahora
-    const dropHold = () => { if (state.hold || state.pending) { state.hold = 0; state.pending = null; setHold(0); } };
     const finish = (result, id, votes, reads) => {
-      state.pending = null; state.confirmed = id;
+      state.confirmed = id;
       setView({ result, votes, reads, done: true });
       setGuide('ok'); setMessage('Carta encontrada ✓');
     };
-    // Una lectura con evidencia espera a que la barra termine de llenarse (si ya terminó, se cierra de una vez)
-    const accept = (result, id, votes, reads) => { if (state.hold >= HOLD_MS) finish(result, id, votes, reads); else state.pending = { result, id, votes, reads }; };
 
     const vote = (data) => {
       if (!data.found || !data.top?.length) { setGuide(''); setMessage('No veo la carta'); return; }
@@ -124,7 +117,7 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
       }
       const topScore = data.top[0].score;
       if ((data.ocr?.names?.length > 0 && topScore >= OCR_MIN) || topScore >= SURE_MIN) { // evidencia suficiente: no hace falta repetir la lectura
-        accept(data, idOf(data.top[0]), 1, state.hist.length + 1);
+        finish(data, idOf(data.top[0]), 1, state.hist.length + 1);
         return;
       }
       state.hist.push(data);
@@ -134,7 +127,7 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
       const [bestId, votes] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
       const last = [...state.hist].reverse().find((entry) => idOf(entry.top[0]) === bestId);
       setView({ result: last, votes, reads: state.hist.length, done: false });
-      if (votes >= CFG.votes && quality(last).ok) accept(last, bestId, votes, state.hist.length); // sin nombre leído, solo si se repite y el parecido es claro («probable»)
+      if (votes >= CFG.votes && quality(last).ok) finish(last, bestId, votes, state.hist.length); // sin nombre leído, solo si se repite y el parecido es claro («probable»)
       else setGuide('scan');
     };
 
@@ -173,23 +166,18 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
       const moving = a.mov > CFG.movMax;
       state.still = moving ? 0 : state.still + 1;
       if (moving) {
-        dropHold();
         if (!state.moveSince) state.moveSince = Date.now();
         if (Date.now() - state.moveSince > 500 && state.hist.length && !state.confirmed) { reset(); } // con la carta ya reconocida el resultado se queda hasta que se pida otra
       } else state.moveSince = 0;
-      if (a.sd < CFG.sdMin) { dropHold(); setGuide(''); setMessage('Apunta a una carta'); state.lost += 1; if (state.lost > 6 && state.hist.length && !state.confirmed) reset(); return; }
+      if (a.sd < CFG.sdMin) { setGuide(''); setMessage('Apunta a una carta'); state.lost += 1; if (state.lost > 6 && state.hist.length && !state.confirmed) reset(); return; }
       state.lost = 0;
-      if (a.mean < CFG.meanMin) { dropHold(); setMessage('Muy oscuro: busca más luz'); return; }
-      if (a.mean > CFG.meanMax || a.high > CFG.glareMax) { dropHold(); setMessage('Demasiada luz o reflejo'); return; }
+      if (a.mean < CFG.meanMin) { setMessage('Muy oscuro: busca más luz'); return; }
+      if (a.mean > CFG.meanMax || a.high > CFG.glareMax) { setMessage('Demasiada luz o reflejo'); return; }
       if (moving) { setMessage('Mantén quieta la carta…'); return; }
       if (state.still < CFG.stillFrames) return;
-      if (a.sharp < CFG.sharpMin) { dropHold(); setMessage('Desenfocado: acerca o aleja un poco'); return; }
-      // Todo en orden: la barra avanza; cuando se llena y ya hay una lectura confiable, se cierra el visor y se busca
-      state.hold = Math.min(HOLD_MS, state.hold + TICK_MS);
-      setHold(state.hold / HOLD_MS);
-      if (state.hold >= HOLD_MS && state.pending) { const p = state.pending; finish(p.result, p.id, p.votes, p.reads); return; }
-      setMessage(state.hold >= HOLD_MS ? 'Buscando…' : 'Mantén así…');
-      if (!state.busy && !state.pending && Date.now() - state.lastScanAt > CFG.scanGapMs) scan();
+      if (a.sharp < CFG.sharpMin) { setMessage('Desenfocado: acerca o aleja un poco'); return; }
+      setMessage('Buscando…');
+      if (!state.busy && Date.now() - state.lastScanAt > CFG.scanGapMs) scan();
     };
 
     (async () => {
@@ -218,5 +206,5 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
     };
   }, [enabled, videoRef, areaRef, guideRef, reset]);
 
-  return { message, guide, view, cameraError, hold, reset };
+  return { message, guide, view, cameraError, reset };
 }

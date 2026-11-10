@@ -29,7 +29,7 @@ export default function ScanModal({ onClose }) {
   const games = useMemo(() => SCAN_GAMES.find((item) => item.value === game)?.ids || '', [game]);
   useBodyScrollLock();
   useEscape(true, onClose);
-  const { message, guide, view, cameraError, hold } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: Boolean(currentUser) });
+  const { message, guide, view, cameraError } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: Boolean(currentUser) });
   const best = view.result?.top?.[0];
 
   const openSearch = (card) => {
@@ -44,9 +44,7 @@ export default function ScanModal({ onClose }) {
   useEffect(() => { if (view.done && best) openSearch(best); }, [view.done]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pickGame = (value) => { setGame(value); try { localStorage.setItem(SAVED_GAME, value); } catch (_error) { /* sin almacenamiento: no se recuerda el juego */ } };
-  // La barra «Mantén así» y las esquinas pasan de amarillo a verde a medida que se llena
-  const holdColor = `hsl(${Math.round(48 + 104 * hold)} 95% 52%)`;
-  const color = hold > 0 ? holdColor : GUIDE_COLOR[guide] || GUIDE_COLOR[''];
+  const color = GUIDE_COLOR[guide] || GUIDE_COLOR[''];
   const corner = 'absolute h-[30px] w-[30px] transition-colors duration-200';
   const live = Boolean(currentUser) && !cameraError;
 
@@ -85,14 +83,9 @@ export default function ScanModal({ onClose }) {
 
       <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-3 px-3 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
         {live && (
-          <div className="flex w-full max-w-sm flex-col items-center gap-2">
-            <div role="status" className="flex max-w-[92%] items-center gap-2 overflow-hidden rounded-full border border-sky-300/15 bg-[#071526]/75 px-3.5 py-2 text-sm font-semibold backdrop-blur-md">
-              <span className="h-[9px] w-[9px] shrink-0 rounded-full" style={{ background: color, boxShadow: `0 0 10px ${color}` }} />
-              <span className="truncate">{message}</span>
-            </div>
-            <div role="progressbar" aria-label="Mantén la carta quieta dentro del marco" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(hold * 100)} className="h-3 w-full overflow-hidden rounded-full border border-white/15 bg-[#071526]/75 backdrop-blur-md">
-              <div className="h-full w-full origin-left" style={{ transform: `scaleX(${hold})`, background: holdColor, transition: 'transform 150ms linear, background-color 150ms linear' }} />
-            </div>
+          <div role="status" className="flex max-w-[92%] items-center gap-2 overflow-hidden rounded-full border border-sky-300/15 bg-[#071526]/75 px-3.5 py-2 text-sm font-semibold backdrop-blur-md">
+            <span className="h-[9px] w-[9px] shrink-0 rounded-full" style={{ background: color, boxShadow: `0 0 10px ${color}` }} />
+            <span className="truncate">{message}</span>
           </div>
         )}
         <LiquidTabs
