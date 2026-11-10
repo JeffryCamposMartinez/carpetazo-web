@@ -5,20 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/fetch_visor_assets.mjs && vite build && node scripts/prerender-legal.mjs",
+    "build": "vite build && node scripts/prerender-legal.mjs",
     "lint": "oxlint",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@huggingface/transformers": "^4.3.2",
     "firebase": "^12.19.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "qrcode-generator": "^1.4.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router-dom": "^7.18.4",
-    "tesseract.js": "^7.0.0"
+    "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1",
