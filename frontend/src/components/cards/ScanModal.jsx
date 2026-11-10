@@ -6,7 +6,6 @@ import SvgIcon from '../ui/SvgIcon';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import useEscape from '../../hooks/useEscape';
 import useCardScanner, { SCAN_GAMES } from '../../hooks/useCardScanner';
-import { useAuth } from '../../contexts/AuthContext';
 
 const GUIDE_COLOR = { '': '#ffcb05', scan: '#00d2ff', ok: '#34d399', mid: '#fb923c' };
 const SAVED_GAME = 'carpetazo.scanGame';
@@ -21,7 +20,6 @@ const baseName = (name) => String(name || '').replace(/\s*\([^)]*\)\s*$/, '').re
 // Aquí no se muestran resultados: solo la cámara, el marco, el estado y el juego a buscar.
 // batch = { games, label, onCard } → modo carpeta: juego fijo, el visor sigue abierto tras cada carta y una bandeja cuenta las agregadas
 export default function ScanModal({ onClose, batch }) {
-  const { currentUser } = useAuth();
   const navigate = useNavigate();
   const videoRef = useRef(null);
   const areaRef = useRef(null);
@@ -36,7 +34,7 @@ export default function ScanModal({ onClose, batch }) {
     const added = await batch.onCard(result);
     if (added) setTray((previous) => [...previous, added]);
   };
-  const { message, guide, view, cameraError } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: Boolean(currentUser), batch: Boolean(batch), onCard: handleBatchCard });
+  const { message, guide, view, cameraError } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: true, batch: Boolean(batch), onCard: handleBatchCard });
   const best = view.result?.top?.[0];
   // Cartas sin imagen oficial (en español) con una foto nítida del escaneo: la persona decide si la ofrece a Moderación
   const shareable = tray.filter((item) => item.noImage && item.photo?.blob && !item.shared);
@@ -61,7 +59,7 @@ export default function ScanModal({ onClose, batch }) {
   const pickGame = (value) => { setGame(value); try { localStorage.setItem(SAVED_GAME, value); } catch (_error) { /* sin almacenamiento: no se recuerda el juego */ } };
   const color = GUIDE_COLOR[guide] || GUIDE_COLOR[''];
   const corner = 'absolute h-[30px] w-[30px] transition-colors duration-200';
-  const live = Boolean(currentUser) && !cameraError;
+  const live = !cameraError;
 
   return createPortal(
     <div role="dialog" aria-modal="true" aria-label="Buscar con la cámara" className="fixed inset-0 z-[1300] overflow-hidden bg-[#02070f] text-slate-100">
@@ -84,12 +82,6 @@ export default function ScanModal({ onClose, batch }) {
         </div>
       )}
 
-      {!currentUser && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#071526] px-6 text-center">
-          <p className="text-base font-bold">Inicia sesión para usar la cámara</p>
-          <button type="button" onClick={() => { onClose(); navigate('/bienvenida'); }} className="h-11 rounded-full bg-[#ffcb05] px-6 text-sm font-extrabold text-[#1a1400] transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">Iniciar sesión</button>
-        </div>
-      )}
       {cameraError && <p role="alert" className="absolute inset-0 flex items-center justify-center bg-[#071526] px-6 text-center text-sm font-semibold text-slate-200">{cameraError}</p>}
 
       <button type="button" onClick={onClose} aria-label="Cerrar" className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-10 flex h-11 w-11 items-center justify-center rounded-full bg-[#071526]/70 text-white backdrop-blur-md transition-[background-color,transform] duration-150 hover:bg-[#071526]/90 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">

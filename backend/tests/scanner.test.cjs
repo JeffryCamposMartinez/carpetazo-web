@@ -12,7 +12,7 @@ const scan = (body, { who = 'seller', type = 'image/jpeg', headers = {} } = {}) 
   try {
     await acceptTerms('seller');
     let r = await scan(JPEG, { who: null });
-    ok('sin sesión → 401', r.status === 401, String(r.status));
+    ok('sin sesión también reconoce (abierto a visitantes)', r.status === 200 && r.j?.success === true, String(r.status));
 
     r = await scan(JPEG, { headers: { 'x-crop': '0.1,0.1,0.8,0.8', 'x-games': '3,100' } });
     const top = r.j?.top || [];

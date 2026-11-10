@@ -1,7 +1,6 @@
 // Escáner de cartas: el navegador manda un cuadro de la cámara y el backend lo valida y lo reenvía al motor de reconocimiento (servicio aparte, solo alcanzable desde aquí).
 // El motor devuelve candidatas sin verificar: aquí solo se pasan los campos públicos del catálogo.
 import express from 'express';
-import { authenticateToken } from '../core/auth.js';
 import { routeLimiter } from '../core/limits.js';
 import { badRequest, isAllowedStoredImageUrl } from '../core/validation.js';
 
@@ -68,8 +67,7 @@ const publicResult = (data) => {
 
 router.post(
   '/api/scanner/scan',
-  authenticateToken,
-  routeLimiter(60 * 1000, 90),
+  routeLimiter(60 * 1000, 90), // abierto a visitantes: el límite por IP y MAX_IN_FLIGHT acotan el uso del motor
   express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: MAX_BYTES }),
   async (req, res) => {
     const base = process.env.VISION_ENGINE_URL || '';
