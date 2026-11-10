@@ -9,6 +9,7 @@ import LoadableImage from '../ui/LoadableImage';
 import { cardFill, cardRatio } from '../../utils/cardShape';
 import { ButtonSpinner } from '../ui/LoadingState';
 import SvgIcon from '../ui/SvgIcon';
+import FinishRibbon from '../ui/FinishRibbon';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 
@@ -127,6 +128,7 @@ export default function WishlistSection({ username, seller, isOwner = false, var
           <div className="relative w-full bg-slate-100" style={{ aspectRatio: cardRatio(item.game) }}>
             <button type="button" onClick={() => setPreviewId(item.id)} aria-label={`Ver ${item.name} en grande`} className="absolute inset-0 cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#12315f]">
               <LoadableImage src={item.imageUrl} alt="" loading="lazy" decoding="async" rotateLandscape className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-md object-contain" style={cardFill(item.game)} />
+              <FinishRibbon finish={item.finish} />
             </button>
             {item.quantity > 1 && (
               <span className="pointer-events-none absolute right-1.5 top-1.5 rounded-full bg-[#12315f] px-2 py-0.5 text-xs font-extrabold tabular-nums text-white shadow">x{item.quantity}</span>

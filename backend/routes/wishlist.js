@@ -343,10 +343,12 @@ router.get('/api/users/:username/wishlist', async (req, res) => {
       total,
       page,
       pages: Math.max(1, Math.ceil(total / WISHLIST_PAGE_SIZE)),
+      // Sin mostrar el id interno: el acabado (Reverse Holofoil…) y la imagen de TCGplayer se resuelven aquí
       items: rows.map((row) => ({
         id: row.id,
         name: row.name,
-        imageUrl: row.imageUrl,
+        imageUrl: row.imageUrl || (/^tcgcsv:\d+:(\d+)/.exec(row.productId || '')?.[1] ? `https://tcgplayer-cdn.tcgplayer.com/product/${/^tcgcsv:\d+:(\d+)/.exec(row.productId)[1]}_400w.jpg` : null),
+        finish: String(row.productId || '').includes('~') ? String(row.detail || '').split(' · ').pop().slice(0, 40) : '',
         quantity: row.quantity,
         note: row.note,
         maxPrice: row.priceVisible ? row.maxPrice : null,
