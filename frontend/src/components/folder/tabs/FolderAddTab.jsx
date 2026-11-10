@@ -1,6 +1,6 @@
 import { CARD_CONDITIONS } from '../../../config/cardConditions';
 import ExtraPhotosField from '../ExtraPhotosField';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import AddCardFullscreen from '../AddCardFullscreen';
 import CardLightbox from '../../ui/CardLightbox';
 import { DuplicateCardNotice } from '../FolderInventoryComponents';
@@ -23,8 +23,10 @@ import LoadingState, { ButtonSpinner } from '../../ui/LoadingState';
 import EmptyState from '../../ui/EmptyState';
 import SvgIcon from '../../ui/SvgIcon';
 
+const ScanModal = lazy(() => import('../../cards/ScanModal'));
+
 export default function FolderAddTab({
-  activeQueueItemId, availableBlocks, availablePhysicalProducts, availableRarities, availableSets,
+  activeQueueItemId, addCardToQueue, fetchPokemonGroup, setMultiSelectMode, availableBlocks, availablePhysicalProducts, availableRarities, availableSets,
   decreaseQueueItemQuantity, fileInputRef, filterCounts, filterRarity, filterType, filteredSearchSets,
   folderData, getCardSelectionKey, getCardSetName, getProxyImageUrl, gridCols, handleImageUpload,
   handleResultCardClick, handleRightClickResultCard, handleSaveCard, handleSearchAPI, hasMoreGroups,
@@ -39,6 +41,26 @@ export default function FolderAddTab({
   setShowCardDetails, setStock, showCardDetails, showScrollTop, startQueuedAdd, stock, toggleMultiSelectMode,
   totalQueuedCards, visibleCount, cardsCount = 1
 }) {
+  // Escanear varias cartas con la cámara (solo Pokémon): cada carta reconocida entra a la cola de selección múltiple, donde se pone precio y stock como siempre
+  const [scanOpen, setScanOpen] = useState(false);
+  const isPokemonFolder = /^pok/i.test(String(folderData?.tcg || ''));
+  const handleScannedCard = async (result) => {
+    const found = result?.top?.[0];
+    if (!found || ![found.productId, found.groupId, found.categoryId].every(Number.isInteger)) return null;
+    try {
+      // La ficha exacta de la edición (con el idioma de su categoría: inglés 3, español 100, japonés 85), igual que si se hubiera elegido en la búsqueda
+      const group = availableSets.find((set) => String(set.groupId) === String(found.groupId)) || { groupId: found.groupId };
+      const list = await fetchPokemonGroup(group, found.categoryId);
+      const card = list.find((item) => String(item.tcgProductId) === String(found.productId));
+      if (!card) return null;
+      setMultiSelectMode(true);
+      addCardToQueue(card);
+      return { key: String(card.tcgProductId), name: card.name, image: card.imageUrl, language: card.cardLanguage === 'Spanish' ? 'ES' : card.cardLanguage === 'Japanese' ? 'JP' : 'EN' };
+    } catch (_error) {
+      return null;
+    }
+  };
+
   // Precio referencial (Pokémon: TCGplayer; Mitos y Leyendas: vendedores de Carpetazo) de las cartas a la vista y de la que se agrega
   const referenceGame = searchCategory === '1' ? 'pokemon' : searchCategory === '68' ? 'onepiece' : searchCategory === 'magic' ? 'magic' : searchCategory === 'riftbound' ? 'riftbound' : searchCategory === 'yugioh' ? 'yugioh' : searchCategory === 'lorcana' ? 'lorcana' : searchCategory === 'digimon' ? 'digimon' : searchCategory === '99' ? 'myl' : null;
   // Un acabado distinto (Reverse Holofoil…) se muestra como otra carta; el hook solo separa Pokémon
@@ -290,6 +312,22 @@ export default function FolderAddTab({
                 </span>
               )}
             </button>
+            {isPokemonFolder && (
+              <button
+                type="button"
+                onClick={() => setScanOpen(true)}
+                className="bg-white hover:bg-gray-100 text-[#1e40af] border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center hover:scale-110 active:scale-95"
+                title="Escanear varias cartas con la cámara"
+                aria-label="Escanear varias cartas con la cámara"
+              >
+                <SvgIcon name="photo_camera" translate="no" className="text-[22px]" />
+              </button>
+            )}
+            {scanOpen && (
+              <Suspense fallback={null}>
+                <ScanModal batch={{ games: '3,100,85', label: 'Pokémon · el idioma se detecta solo', onCard: handleScannedCard }} onClose={() => setScanOpen(false)} />
+              </Suspense>
+            )}
             <button 
               type="button" 
               onClick={() => { const isMobile = window.innerWidth <= 768; const maxCols = isMobile ? 3 : 5; const minCols = isMobile ? 1 : 2; setGridCols(prev => prev >= maxCols ? minCols : prev + 1); }}

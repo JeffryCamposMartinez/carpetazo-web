@@ -291,5 +291,5 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
       }
     }, [searchBlock, searchSet, searchPhysicalProduct, mylType, mylRace, mylCost, searchQuery]);
 
-  return { applyCardFilters, handleSearchAPI, loadMorePokemonRef, pokeGenRef, pokeLoadingRef, pokeQueueRef };
+  return { applyCardFilters, fetchPokemonGroup, handleSearchAPI, loadMorePokemonRef, pokeGenRef, pokeLoadingRef, pokeQueueRef };
 }

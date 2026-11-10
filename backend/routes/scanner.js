@@ -46,9 +46,14 @@ const publicCandidate = (item) => ({
   image: isAllowedStoredImageUrl(item?.image) ? item.image : null,
   categoryId: Number.isInteger(item?.category_id) ? item.category_id : null,
   productId: Number.isInteger(item?.product_id) ? item.product_id : null,
+  groupId: Number.isInteger(item?.group_id) ? item.group_id : null, // la edición: el sitio abre con ella la ficha exacta de la carta
   score: number(item?.score),
   group: text(item?.group, 150),
 });
+
+// Idioma que el motor leyó en la carta (solo Pokémon): inglés, español o japonés; `null` si no hubo certeza
+const LANGUAGES = new Set(['en', 'es', 'ja']);
+const publicLanguage = (language) => (LANGUAGES.has(language?.code) ? { code: language.code, confidence: number(language.conf) } : { code: null, confidence: 0 });
 
 const publicResult = (data) => {
   if (!data || data.found !== true || !Array.isArray(data.top)) return { found: false };
@@ -57,6 +62,7 @@ const publicResult = (data) => {
     top: data.top.slice(0, 5).map(publicCandidate),
     same: Array.isArray(data.same) ? data.same.slice(0, 20).map(publicCandidate) : [], // otras ediciones de la misma carta
     ocr: { names: Array.isArray(data.ocr?.name) ? data.ocr.name.slice(0, 3).map((name) => text(name, 80)) : [], margin: number(data.ocr?.margin), boost: number(data.ocr?.boost) },
+    language: publicLanguage(data.ocr?.language),
   };
 };
 

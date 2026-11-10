@@ -878,7 +878,7 @@ const [isSearching, setIsSearching] = useState(false);
     }
   }, [loadingFolder, searchCategory, initialSearchTriggered, activeTab]);
 
-  const { applyCardFilters, handleSearchAPI, loadMorePokemonRef, pokeGenRef, pokeLoadingRef, pokeQueueRef } = useCardSearch({
+  const { applyCardFilters, fetchPokemonGroup, handleSearchAPI, loadMorePokemonRef, pokeGenRef, pokeLoadingRef, pokeQueueRef } = useCardSearch({
     abortControllerRef, activeTab, availableSets, filterRarity, loadingFolder, mylCost, mylRace, mylType, magicFilters, opFilters, rbFilters, lcFilters, dgFilters, ygFilters,
     searchBlock, searchCategory, searchLang, searchPhysicalProduct, searchQuery, searchSet, selectedSupertype,
     selectedType, setAvailableRarities, setFilterRarity, setFilterType, setHasMoreGroups, setHasSearchedAPI,
@@ -1063,7 +1063,7 @@ const [isSearching, setIsSearching] = useState(false);
     scrollToTopIfNeeded, setActiveTab, setCatQuery, setCatSet, setCatalogViewMode, setIsCatSetDropdownOpen,
     showScrollTop };
 
-  const folderAddTabProps = { activeQueueItemId, availableBlocks, availablePhysicalProducts, availableRarities,
+  const folderAddTabProps = { activeQueueItemId, addCardToQueue, fetchPokemonGroup, setMultiSelectMode, availableBlocks, availablePhysicalProducts, availableRarities,
     availableSets, decreaseQueueItemQuantity, fileInputRef, filterCounts, filterRarity, filterType,
     filteredSearchSets, folderData, getCardSelectionKey, getCardSetName, getProxyImageUrl, gridCols,
     handleImageUpload, handleResultCardClick, handleRightClickResultCard, handleSaveCard, handleSearchAPI,

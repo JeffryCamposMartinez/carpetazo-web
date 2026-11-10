@@ -19,17 +19,23 @@ const baseName = (name) => String(name || '').replace(/\s*\([^)]*\)\s*$/, '').re
 
 // Visor de la cámara: apuntas a una carta, se detecta sola y, en cuanto se reconoce, se abre la búsqueda de la sección Cartas (ordenada por parecido).
 // Aquí no se muestran resultados: solo la cámara, el marco, el estado y el juego a buscar.
-export default function ScanModal({ onClose }) {
+// batch = { games, label, onCard } → modo carpeta: juego fijo, el visor sigue abierto tras cada carta y una bandeja cuenta las agregadas
+export default function ScanModal({ onClose, batch }) {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const videoRef = useRef(null);
   const areaRef = useRef(null);
   const guideRef = useRef(null);
   const [game, setGame] = useState(readGame);
-  const games = useMemo(() => SCAN_GAMES.find((item) => item.value === game)?.ids || '', [game]);
+  const [tray, setTray] = useState([]); // lote: cartas que ya entraron a la cola de la carpeta
+  const games = useMemo(() => (batch ? batch.games : SCAN_GAMES.find((item) => item.value === game)?.ids || ''), [batch, game]);
   useBodyScrollLock();
   useEscape(true, onClose);
-  const { message, guide, view, cameraError } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: Boolean(currentUser) });
+  const handleBatchCard = async (result) => {
+    const added = await batch.onCard(result);
+    if (added) setTray((previous) => [...previous, added]);
+  };
+  const { message, guide, view, cameraError } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: Boolean(currentUser), batch: Boolean(batch), onCard: handleBatchCard });
   const best = view.result?.top?.[0];
 
   const openSearch = (card) => {
@@ -41,7 +47,7 @@ export default function ScanModal({ onClose }) {
     onClose();
     navigate(`/cartas?${params.toString()}`, { state: { scanOrder } });
   };
-  useEffect(() => { if (view.done && best) openSearch(best); }, [view.done]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!batch && view.done && best) openSearch(best); }, [view.done]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pickGame = (value) => { setGame(value); try { localStorage.setItem(SAVED_GAME, value); } catch (_error) { /* sin almacenamiento: no se recuerda el juego */ } };
   const color = GUIDE_COLOR[guide] || GUIDE_COLOR[''];
@@ -88,6 +94,22 @@ export default function ScanModal({ onClose }) {
             <span className="truncate">{message}</span>
           </div>
         )}
+        {batch && tray.length > 0 && (
+          <div className="flex w-full max-w-xl items-center gap-2 rounded-2xl border border-sky-300/15 bg-[#071526]/80 p-2 backdrop-blur-md">
+            <ul className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Cartas escaneadas">
+              {tray.map((item, index) => (
+                <li key={`${item.key}-${index}`} className="relative h-14 w-10 shrink-0 overflow-hidden rounded-md bg-[#02070f] ring-1 ring-white/20">
+                  {item.image ? <img src={item.image} alt={item.name} title={item.name} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-[10px]">?</span>}
+                  {item.language && <span className="absolute inset-x-0 bottom-0 bg-black/70 text-center text-[8px] font-bold uppercase text-white">{item.language}</span>}
+                </li>
+              ))}
+            </ul>
+            <button type="button" onClick={onClose} className="h-11 shrink-0 rounded-full bg-[#ffcb05] px-4 text-sm font-extrabold text-[#1a1400] transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">Listo ({tray.length})</button>
+          </div>
+        )}
+        {batch ? (
+          <p className="rounded-full border border-sky-300/15 bg-[#071526]/80 px-4 py-2 text-xs font-bold text-slate-200 backdrop-blur-md">{batch.label}</p>
+        ) : (
         <LiquidTabs
           ariaLabel="Juego a buscar"
           layout="inline"
@@ -100,6 +122,7 @@ export default function ScanModal({ onClose }) {
           activeTextClassName="text-[#1a1400]"
           inactiveTextClassName="text-slate-300 hover:text-white"
         />
+        )}
       </div>
     </div>,
     document.body

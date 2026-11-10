@@ -34,18 +34,23 @@ export const quality = (result) => {
   return { margin, ok: top[0].score >= 0.75 && margin >= 0.06 };
 };
 
-export default function useCardScanner({ videoRef, areaRef, guideRef, games, enabled }) {
+// batch: el visor no termina al reconocer una carta; la entrega con `onCard(resultado)` y espera a que la cambien por otra
+export default function useCardScanner({ videoRef, areaRef, guideRef, games, enabled, batch = false, onCard }) {
   const [message, setMessage] = useState('Iniciando cámara…');
   const [guide, setGuide] = useState(''); // '' · scan · ok · mid
   const [view, setView] = useState({ result: null, votes: 0, reads: 0, done: false });
   const [cameraError, setCameraError] = useState('');
   const gamesRef = useRef(games);
   gamesRef.current = games;
-  const run = useRef({ prev: null, still: 0, busy: false, hist: [], confirmed: null, lastScanAt: 0, moveSince: 0, lost: 0, stopped: false });
+  const batchRef = useRef(batch);
+  batchRef.current = batch;
+  const onCardRef = useRef(onCard);
+  onCardRef.current = onCard;
+  const run = useRef({ prev: null, still: 0, busy: false, hist: [], confirmed: null, lastScanAt: 0, moveSince: 0, lost: 0, stopped: false, waitRemoval: false, removeTicks: 0 });
   const canvas = useRef(null);
 
   const reset = useCallback(() => {
-    Object.assign(run.current, { hist: [], confirmed: null, lastScanAt: 0 });
+    Object.assign(run.current, { hist: [], confirmed: null, lastScanAt: 0, waitRemoval: false, removeTicks: 0 });
     setView({ result: null, votes: 0, reads: 0, done: false });
     setGuide('');
     setMessage('Apunta a una carta');
@@ -103,6 +108,12 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
     };
 
     const finish = (result, id, votes, reads) => {
+      if (batchRef.current) { // lote: se entrega la carta, el visor sigue abierto y se espera a que la cambien
+        state.hist = []; state.waitRemoval = true; state.removeTicks = 0;
+        setGuide('ok'); setMessage('Carta agregada ✓ Cambia de carta');
+        onCardRef.current?.(result);
+        return;
+      }
       state.confirmed = id;
       setView({ result, votes, reads, done: true });
       setGuide('ok'); setMessage('Carta encontrada ✓');
@@ -163,6 +174,11 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
       if (state.stopped || state.confirmed || !video?.videoWidth) return; // reconocida: el resultado queda fijo hasta tocar «Escanear otra carta»
       const a = analyze();
       if (!a) return;
+      if (state.waitRemoval) { // lote: la carta anterior sigue en el marco; se rearma cuando el marco queda vacío o la cambian (movimiento sostenido)
+        state.removeTicks = (a.sd < CFG.sdMin || a.mov > CFG.movMax) ? state.removeTicks + 1 : 0;
+        if (state.removeTicks >= 3) { state.waitRemoval = false; state.removeTicks = 0; state.lastScanAt = 0; setGuide(''); setMessage('Apunta a la siguiente carta'); }
+        return;
+      }
       const moving = a.mov > CFG.movMax;
       state.still = moving ? 0 : state.still + 1;
       if (moving) {
