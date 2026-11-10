@@ -49,8 +49,11 @@ export default function FolderAddTab({
     if (!found || ![found.productId, found.groupId, found.categoryId].every(Number.isInteger)) return null;
     try {
       // La ficha exacta de la edición (con el idioma de su categoría: inglés 3, español 100, japonés 85), igual que si se hubiera elegido en la búsqueda
+      // Carta en español que solo existe en inglés: se abre la vista en español de la edición (cat. 100), que usa los datos de la inglesa y
+      // muestra la imagen solo si ya hay una en español (de TCGdex o aprobada en Moderación); si no, «Sin imagen»
+      const categoryId = result.language?.code === 'es' && found.categoryId === 3 ? 100 : found.categoryId;
       const group = availableSets.find((set) => String(set.groupId) === String(found.groupId)) || { groupId: found.groupId };
-      const list = await fetchPokemonGroup(group, found.categoryId);
+      const list = await fetchPokemonGroup(group, categoryId);
       const card = list.find((item) => String(item.tcgProductId) === String(found.productId));
       if (!card) return null;
       setMultiSelectMode(true);
