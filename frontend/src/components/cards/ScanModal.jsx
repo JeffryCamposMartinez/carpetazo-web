@@ -5,7 +5,7 @@ import LiquidTabs from '../ui/LiquidTabs';
 import SvgIcon from '../ui/SvgIcon';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import useEscape from '../../hooks/useEscape';
-import useCardScanner, { quality, SCAN_GAMES } from '../../hooks/useCardScanner';
+import useCardScanner, { SCAN_GAMES } from '../../hooks/useCardScanner';
 import { useAuth } from '../../contexts/AuthContext';
 
 const GUIDE_COLOR = { '': '#ffcb05', scan: '#00d2ff', ok: '#34d399', mid: '#fb923c' };
@@ -29,7 +29,7 @@ export default function ScanModal({ onClose }) {
   const games = useMemo(() => SCAN_GAMES.find((item) => item.value === game)?.ids || '', [game]);
   useBodyScrollLock();
   useEscape(true, onClose);
-  const { message, guide, view, cameraError, reset } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: Boolean(currentUser) });
+  const { message, guide, view, cameraError } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: Boolean(currentUser) });
 
   // Reconocida la carta, el resultado es la búsqueda de la sección Cartas (ofertas y catálogo, con todas sus ediciones); para otra carta se vuelve a abrir la cámara
   const openSearch = (card) => {
@@ -41,8 +41,8 @@ export default function ScanModal({ onClose }) {
     onClose();
     navigate(`/cartas?${params.toString()}`, { state: { scanOrder } });
   };
-  const sure = Boolean(view.done && view.result && quality(view.result).ok); // «probable»: se parece mucho y se distingue de otros nombres
-  useEffect(() => { if (sure && best) openSearch(best); }, [sure]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Con la primera carta parecida ya se abre la búsqueda (ordenada por parecido): si no era, se vuelve a abrir la cámara
+  useEffect(() => { if (view.done && best) openSearch(best); }, [view.done]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pickGame = (value) => { setGame(value); try { localStorage.setItem(SAVED_GAME, value); } catch (_error) { /* sin almacenamiento: no se recuerda el juego */ } };
   const best = view.result?.top?.[0];
@@ -115,7 +115,7 @@ export default function ScanModal({ onClose }) {
                   {best.image ? <img src={best.image} alt="" referrerPolicy="no-referrer" className="relative z-10 block w-full rounded-[10px] shadow-[0_14px_28px_-10px_rgba(0,0,0,0.8)]" /> : <div className="flex aspect-[63/88] w-full items-center justify-center rounded-[10px] bg-[#02070f]"><SvgIcon name="style" translate="no" aria-hidden="true" className="text-[32px] text-slate-500" /></div>}
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
-                  <span className="self-start rounded-full bg-[#fb923c] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[#2a1200]">{view.done ? 'No estoy seguro' : `Confirmando ${view.votes}/3`}</span>
+                  <span className="self-start rounded-full bg-[#fb923c] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[#2a1200]">Carta encontrada</span>
                   <h3 className="break-words text-xl font-bold leading-tight tracking-tight">{best.name}{best.number && <span className="font-semibold text-[#ffcb05]"> · {best.number}</span>}</h3>
                   <div className="flex flex-wrap gap-1.5 text-[11.5px] font-medium">
                     {best.lang && <span className="rounded-full border border-[#ffcb05]/30 bg-[#ffcb05]/10 px-2.5 py-1 text-[#ffcb05]">{best.lang}</span>}
@@ -128,27 +128,6 @@ export default function ScanModal({ onClose }) {
               </div>
             </section>
 
-            {view.done && !sure && (
-              <>
-                <button type="button" onClick={reset} className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#ffcb05] text-[15px] font-extrabold text-[#1a1400] transition-transform duration-150 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
-                  <SvgIcon name="photo_camera" translate="no" aria-hidden="true" className="text-[22px]" />Escanear de nuevo
-                </button>
-                <h3 className="mx-0.5 mb-2 mt-5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">¿Es alguna de estas? Toca la correcta</h3>
-                <ul className="space-y-2">
-                  {view.result.top.map((item) => (
-                    <li key={`${item.categoryId}-${item.productId}`}>
-                      <button type="button" onClick={() => openSearch(item)} className="flex w-full items-center gap-3 rounded-2xl border border-sky-300/15 bg-[#0d1e3a] p-2 text-left transition-[border-color,transform] duration-150 hover:border-[#ffcb05]/50 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
-                        {item.image ? <img src={item.image} alt="" referrerPolicy="no-referrer" loading="lazy" className="h-16 w-[46px] shrink-0 rounded-md bg-[#02070f] object-cover" /> : <div className="h-16 w-[46px] shrink-0 rounded-md bg-[#02070f]" />}
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold">{item.name}</span>
-                          <span className="block truncate text-xs text-slate-400">{[item.set, item.lang].filter(Boolean).join(' · ')}</span>
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
           </>
         )}
         <p className="mx-1 mt-5 text-center text-[11px] text-slate-500">Candidatas del catálogo de Carpetazo, sin verificar. La impresión exacta puede variar.</p>

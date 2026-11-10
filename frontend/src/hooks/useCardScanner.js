@@ -15,8 +15,9 @@ export const SCAN_GAMES = [
   { value: 'my', label: 'Mitos y Leyendas', ids: '99' },
 ];
 
-// Umbrales provisionales (ajustados a mano en celulares; no están calibrados con un conjunto verificado)
-const CFG = { movMax: 30, sharpMin: 300, stillFrames: 2, sdMin: 14, meanMin: 25, meanMax: 245, glareMax: 0.18, votes: 3, minScore: 0.55, noCardGapMs: 1200, window: 5, scanGapMs: 400 };
+// Umbrales provisionales (ajustados a mano en celulares; no están calibrados con un conjunto verificado).
+// votes: 1 → con la primera lectura parecida (puntaje ≥ minScore) ya se busca; subirlo exige que la misma carta salga varias veces seguidas.
+const CFG = { movMax: 30, sharpMin: 300, stillFrames: 2, sdMin: 14, meanMin: 25, meanMax: 245, glareMax: 0.18, votes: 1, minScore: 0.55, noCardGapMs: 1200, window: 5, scanGapMs: 400 };
 const QW = 160;
 const QH = 224;
 const TICK_MS = 150;
