@@ -19,6 +19,7 @@ http.createServer((req, res) => {
         { name: 'CZTEST Carta', number: '001/100', set: 'CZTEST Edición', rarity: 'Rare', lang: 'Pokémon EN', image: 'https://example.com/no-permitida.webp', relation: 'interno', category_id: 3, product_id: 9876, score: 0.8123456, group: 'cztest carta', secreto: 'x' },
         { name: 'CZTEST Otra', number: '002/100', set: 'CZTEST Edición', rarity: null, lang: 'Pokémon EN', image: null, category_id: 3, product_id: 9877, score: 0.6, group: 'cztest otra' },
       ],
+      same: [{ name: 'CZTEST Carta', number: '055/200', set: 'CZTEST Otra edición', rarity: 'Common', lang: 'Pokémon EN', image: null, category_id: 3, product_id: 9880, score: 0.7, group: 'cztest carta', relation: 'interno' }],
       ocr: { name: ['cztest carta'], lines: ['texto interno'], boost: 0.2, margin: 0.31 },
     }));
   });

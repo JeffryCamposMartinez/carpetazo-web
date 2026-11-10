@@ -152,23 +152,23 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
 
     const tick = () => {
       const video = videoRef.current;
-      if (state.stopped || !video?.videoWidth) return;
+      if (state.stopped || state.confirmed || !video?.videoWidth) return; // reconocida: el resultado queda fijo hasta tocar «Escanear otra carta»
       const a = analyze();
       if (!a) return;
       const moving = a.mov > CFG.movMax;
       state.still = moving ? 0 : state.still + 1;
       if (moving) {
         if (!state.moveSince) state.moveSince = Date.now();
-        if (Date.now() - state.moveSince > 500 && (state.hist.length || state.confirmed)) { reset(); }
+        if (Date.now() - state.moveSince > 500 && state.hist.length && !state.confirmed) { reset(); } // con la carta ya reconocida el resultado se queda hasta que se pida otra
       } else state.moveSince = 0;
-      if (a.sd < CFG.sdMin) { setGuide(''); setMessage('Apunta a una carta'); state.lost += 1; if (state.lost > 6 && (state.hist.length || state.confirmed)) reset(); return; }
+      if (a.sd < CFG.sdMin) { setGuide(''); setMessage('Apunta a una carta'); state.lost += 1; if (state.lost > 6 && state.hist.length && !state.confirmed) reset(); return; }
       state.lost = 0;
       if (a.mean < CFG.meanMin) { setMessage('Muy oscuro: busca más luz'); return; }
       if (a.mean > CFG.meanMax || a.high > CFG.glareMax) { setMessage('Demasiada luz o reflejo'); return; }
       if (moving) { setMessage('Mantén quieta la carta…'); return; }
       if (state.still < CFG.stillFrames) return;
       if (a.sharp < CFG.sharpMin) { setMessage('Desenfocado: acerca o aleja un poco'); return; }
-      if (state.confirmed) return; // ya reconocida: no vuelve a pedir hasta que cambie la escena
+      if (state.confirmed) return; // ya reconocida: no escanea más hasta que se toque «Escanear otra carta»
       if (!state.busy && Date.now() - state.lastScanAt > CFG.scanGapMs) scan();
     };
 

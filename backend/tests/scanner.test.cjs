@@ -19,6 +19,7 @@ const scan = (body, { who = 'seller', type = 'image/jpeg', headers = {} } = {}) 
     ok('con sesión y una imagen válida → candidatas', r.status === 200 && r.j.success === true && r.j.found === true && top.length === 2, JSON.stringify(r.j).slice(0, 200));
     ok('solo campos públicos: sin vista previa, sin campos internos ni líneas del OCR', !('preview' in r.j) && !('indexed' in r.j) && !('relation' in top[0]) && !('secreto' in top[0]) && !('lines' in r.j.ocr), JSON.stringify(r.j).slice(0, 300));
     ok('la imagen de una URL no permitida se descarta y el puntaje se redondea', top[0].image === null && top[0].score === 0.8123 && top[0].categoryId === 3 && top[0].productId === 9876);
+    ok('llegan las otras ediciones de la misma carta, solo con campos públicos', Array.isArray(r.j.same) && r.j.same.length === 1 && r.j.same[0].set === 'CZTEST Otra edición' && !('relation' in r.j.same[0]), JSON.stringify(r.j.same));
     ok('el OCR llega resumido', r.j.ocr.margin === 0.31 && r.j.ocr.names[0] === 'cztest carta');
 
     r = await scan(JPEG, { headers: { 'x-games': '85' } });

@@ -55,6 +55,7 @@ const publicResult = (data) => {
   return {
     found: true,
     top: data.top.slice(0, 5).map(publicCandidate),
+    same: Array.isArray(data.same) ? data.same.slice(0, 20).map(publicCandidate) : [], // otras ediciones de la misma carta
     ocr: { names: Array.isArray(data.ocr?.name) ? data.ocr.name.slice(0, 3).map((name) => text(name, 80)) : [], margin: number(data.ocr?.margin), boost: number(data.ocr?.boost) },
   };
 };

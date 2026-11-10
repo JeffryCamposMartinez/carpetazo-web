@@ -73,6 +73,12 @@ export default function ScanModal({ onClose }) {
           )}
         </div>
 
+        {view.done && (
+          <button type="button" onClick={reset} className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#ffcb05] text-[15px] font-extrabold text-[#1a1400] transition-transform duration-150 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+            <SvgIcon name="photo_camera" translate="no" aria-hidden="true" className="text-[22px]" />Escanear otra carta
+          </button>
+        )}
+
         <LiquidTabs
           ariaLabel="Juego a buscar"
           layout="inline"
@@ -116,7 +122,6 @@ export default function ScanModal({ onClose }) {
                 <Link to={search} onClick={onClose} className="flex h-11 items-center gap-1.5 rounded-full bg-[#ffcb05] px-5 text-sm font-extrabold text-[#1a1400] transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
                   <SvgIcon name="search" translate="no" aria-hidden="true" className="text-[20px]" />Ver en Cartas
                 </Link>
-                {view.done && <button type="button" onClick={reset} className="flex h-11 items-center gap-1.5 rounded-full border border-white/30 px-5 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-white/10 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">Escanear otra</button>}
               </div>
             </section>
 
@@ -129,6 +134,22 @@ export default function ScanModal({ onClose }) {
                       {item.image ? <img src={item.image} alt="" referrerPolicy="no-referrer" loading="lazy" className="block aspect-[63/88] w-full rounded-lg bg-[#02070f] object-cover" /> : <div className="aspect-[63/88] w-full rounded-lg bg-[#02070f]" />}
                       <p className="mt-1.5 line-clamp-2 text-xs font-semibold leading-tight">{item.name}</p>
                       <small className="mt-0.5 block text-[10.5px] font-medium text-slate-400">{item.lang} · {item.score.toFixed(2)}</small>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {view.result.same?.length > 0 && (
+              <>
+                <h3 className="mx-0.5 mb-2 mt-5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Misma carta en otras ediciones</h3>
+                <ul className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-0.5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {view.result.same.map((item) => (
+                    <li key={`${item.categoryId}-${item.productId}`} className="w-32 shrink-0 snap-start">
+                      <Link to={`/cartas?q=${encodeURIComponent([item.name, item.number].filter(Boolean).join(' '))}`} onClick={onClose} className="block h-full rounded-2xl border border-sky-300/15 bg-[#0d1e3a] p-2 transition-[border-color,transform] duration-150 hover:border-[#ffcb05]/50 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
+                        {item.image ? <img src={item.image} alt="" referrerPolicy="no-referrer" loading="lazy" className="block aspect-[63/88] w-full rounded-lg bg-[#02070f] object-cover" /> : <div className="aspect-[63/88] w-full rounded-lg bg-[#02070f]" />}
+                        <p className="mt-1.5 line-clamp-2 text-xs font-semibold leading-tight">{item.set || item.name}</p>
+                        <small className="mt-0.5 block text-[10.5px] font-medium text-slate-400">{[item.number, item.lang].filter(Boolean).join(' · ')}</small>
+                      </Link>
                     </li>
                   ))}
                 </ul>
