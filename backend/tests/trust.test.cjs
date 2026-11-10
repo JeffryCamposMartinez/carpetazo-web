@@ -88,6 +88,15 @@ const MIN = 60 * 1000;
     ok('quien ya calificó a ese vendedor no recibe el aviso otra vez', result.email === false);
     await prisma.sellerReview.deleteMany({ where: { orderId: order.id } });
 
+    // Últimas ventas del perfil: las presenciales también salen, marcadas, con su imagen; «Última venta» sigue siendo solo de pedidos confirmados
+    const presencial = await prisma.inPersonSale.create({ data: { userId: seller.id, folderId: fx.folderId, folderName: 'TEST fixtures', requestId: 'trust-test-presencial', items: [{ cardId: 'no-existe', name: 'Carta presencial', imageUrl: 'https://carpetazo.cl/img/presencial.webp', quantity: 2, unitPrice: 500, tcgId: 'myl:1' }], units: 2, total: 1000 } });
+    r = await call('GET', '/users/' + NAMES.seller);
+    const salesList = r.j?.user?.recentSales || [];
+    const mine = salesList.find((sale) => sale.inPerson);
+    ok('las ventas presenciales salen en las últimas ventas, marcadas y con su imagen', mine && mine.items[0]?.name === 'Carta presencial' && mine.items[0]?.imageUrl === 'https://carpetazo.cl/img/presencial.webp' && mine.items[0]?.quantity === 2, JSON.stringify(salesList).slice(0, 300));
+    ok('«última venta» ignora las presenciales', !salesList.find((sale) => !sale.inPerson) || r.j.user.lastSaleAt === salesList.find((sale) => !sale.inPerson).completedAt, String(r.j?.user?.lastSaleAt));
+    await prisma.inPersonSale.delete({ where: { id: presencial.id } });
+
     // La confirmación del vendedor sigue funcionando con el aviso en segundo plano
     const pending = await prisma.order.create({ data: { sellerId: seller.id, buyerName: 'Comprador', buyerId: buyer.id, folderId: fx.folderId, folderName: 'TEST fixtures', items: [], total: 1000, status: 'pending' } });
     r = await call('POST', '/orders/mine/' + pending.id + '/status', 'seller', { status: 'completed' });

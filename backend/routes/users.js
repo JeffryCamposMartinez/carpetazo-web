@@ -443,7 +443,7 @@ router.get('/api/users/:username', optionalAuth, optionalStaff, async (req, res)
       ...toPublicSeller(seller, req.user?.sub, reviewSummary),
       responseTime,
       completedSales,
-      lastSaleAt: recentSales[0]?.completedAt || null,
+      lastSaleAt: recentSales.find((sale) => !sale.inPerson)?.completedAt || null, // «Última venta» es solo de pedidos confirmados; las presenciales van en la lista, marcadas
       recentSales,
       folders: publicFolders,
       featuredCards,

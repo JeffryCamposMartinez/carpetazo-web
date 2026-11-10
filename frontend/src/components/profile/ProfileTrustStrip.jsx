@@ -84,7 +84,7 @@ export default function ProfileTrustStrip({ completedSales = 0, folders, lastSal
                     <ul className="profile-sales-scrollbar max-h-80 space-y-3 overflow-y-auto" style={{ '--sales-scrollbar-thumb': publicTheme.primary, '--sales-scrollbar-thumb-hover': publicTheme.accent || publicTheme.secondary, '--sales-scrollbar-track': `${publicTheme.primary}1c` }}>
                       {(recentSales.length ? recentSales : [{ completedAt: lastSaleAt, items: [] }]).map((sale, index) => (
                         <li key={`${sale.completedAt}-${index}`} className="border-t pt-2 first:border-t-0 first:pt-0" style={{ borderColor: `${publicTheme.primary}35` }}>
-                          <time className="mb-2 block text-xs font-bold" style={{ color: chipText, opacity: 0.82 }} dateTime={sale.completedAt}>{lastSaleLabel(sale.completedAt)}</time>
+                          <time className="mb-2 block text-xs font-bold" style={{ color: chipText, opacity: 0.82 }} dateTime={sale.completedAt}>{lastSaleLabel(sale.completedAt)}{sale.inPerson && <span title="Venta declarada por el vendedor" className="ml-2 rounded-full px-2 py-0.5 text-[10px] font-extrabold" style={{ backgroundColor: `${publicTheme.primary}22`, color: chipText }}>Presencial</span>}</time>
                           <ul className="space-y-2">
                             {(sale.items || []).map((item, itemIndex) => (
                               <li key={`${item.name}-${itemIndex}`} className="flex min-w-0 items-center gap-2" style={{ color: chipText }}>
