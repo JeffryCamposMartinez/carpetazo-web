@@ -91,7 +91,7 @@ export default function ScanModal({ onClose }) {
               <span className="truncate">{message}</span>
             </div>
             <div role="progressbar" aria-label="Mantén la carta quieta dentro del marco" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(hold * 100)} className="h-3 w-full overflow-hidden rounded-full border border-white/15 bg-[#071526]/75 backdrop-blur-md">
-              <div className="h-full rounded-full" style={{ width: `${hold * 100}%`, background: holdColor, transition: 'width 150ms linear, background-color 150ms linear' }} />
+              <div className="h-full w-full origin-left" style={{ transform: `scaleX(${hold})`, background: holdColor, transition: 'transform 150ms linear, background-color 150ms linear' }} />
             </div>
           </div>
         )}
