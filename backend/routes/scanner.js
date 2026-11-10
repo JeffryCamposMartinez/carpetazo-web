@@ -1,6 +1,7 @@
 // Escáner de cartas: el navegador manda un cuadro de la cámara y el backend lo valida y lo reenvía al motor de reconocimiento (servicio aparte, solo alcanzable desde aquí).
 // El motor devuelve candidatas sin verificar: aquí solo se pasan los campos públicos del catálogo.
 import express from 'express';
+import { authenticateToken } from '../core/auth.js';
 import { routeLimiter } from '../core/limits.js';
 import { badRequest, isAllowedStoredImageUrl } from '../core/validation.js';
 
@@ -93,6 +94,34 @@ router.post(
     } catch (error) {
       console.error('Error llamando al motor de reconocimiento:', error.message);
       res.status(502).json({ success: false, message: 'No se pudo reconocer la carta. Intenta de nuevo.' });
+    } finally {
+      inFlight -= 1;
+    }
+  }
+);
+
+// Endereza y centra la carta de una foto (para ofrecerla como imagen de la carta). Sin carta clara devuelve found:false y el navegador usa la foto tal cual.
+router.post(
+  '/api/scanner/straighten',
+  authenticateToken,
+  routeLimiter(60 * 1000, 30),
+  express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: MAX_BYTES }),
+  async (req, res) => {
+    const base = process.env.VISION_ENGINE_URL || '';
+    const key = process.env.VISION_ENGINE_KEY || '';
+    if (!base || !key) return res.status(503).json({ success: false, message: 'El reconocimiento no está disponible por ahora.' });
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0 || !isImage(req.body)) return badRequest(res, 'Imagen inválida');
+    if (inFlight >= MAX_IN_FLIGHT) return res.status(429).json({ success: false, message: 'El reconocimiento está ocupado, intenta de nuevo en un momento.' });
+    inFlight += 1;
+    try {
+      const response = await fetch(`${base.replace(/\/+$/, '')}/straighten`, { method: 'POST', headers: { 'x-service-key': key, 'content-type': 'application/octet-stream' }, body: req.body, redirect: 'error', signal: AbortSignal.timeout(ENGINE_TIMEOUT_MS) });
+      if (!response.ok) return res.status(502).json({ success: false, message: 'No se pudo procesar la foto.' });
+      const data = await response.json();
+      const valid = data?.found === true && typeof data.image === 'string' && data.image.length < 6_000_000 && /^[A-Za-z0-9+/=]+$/.test(data.image);
+      res.json({ success: true, found: valid, ...(valid ? { image: data.image } : {}) });
+    } catch (error) {
+      console.error('Error enderezando la foto:', error.message);
+      res.status(502).json({ success: false, message: 'No se pudo procesar la foto.' });
     } finally {
       inFlight -= 1;
     }

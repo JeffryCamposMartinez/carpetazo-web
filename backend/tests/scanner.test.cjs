@@ -2,6 +2,11 @@
 const { U, B, ok, acceptTerms } = require('./fixtures.cjs');
 
 const JPEG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(64, 1)]);
+const straighten = (body, { who = 'seller' } = {}) => fetch(B + '/scanner/straighten', {
+  method: 'POST',
+  headers: { 'Content-Type': 'image/jpeg', ...(who ? { Authorization: 'Bearer test-' + U[who] } : {}) },
+  body,
+}).then(async (r) => ({ status: r.status, j: await r.json().catch(() => null) }));
 const scan = (body, { who = 'seller', type = 'image/jpeg', headers = {} } = {}) => fetch(B + '/scanner/scan', {
   method: 'POST',
   headers: { 'Content-Type': type, ...(who ? { Authorization: 'Bearer test-' + U[who] } : {}), ...headers },
@@ -13,6 +18,13 @@ const scan = (body, { who = 'seller', type = 'image/jpeg', headers = {} } = {}) 
     await acceptTerms('seller');
     let r = await scan(JPEG, { who: null });
     ok('sin sesión también reconoce (abierto a visitantes)', r.status === 200 && r.j?.success === true, String(r.status));
+
+    r = await straighten(JPEG, { who: null });
+    ok('enderezar sin sesión → 401', r.status === 401, String(r.status));
+    r = await straighten(JPEG);
+    ok('enderezar con sesión → foto en base64', r.status === 200 && r.j?.found === true && r.j.image === 'AAAA', JSON.stringify(r.j));
+    r = await straighten(Buffer.from('no es imagen, solo texto de relleno'));
+    ok('enderezar un archivo que no es imagen → 400', r.status === 400, String(r.status));
 
     r = await scan(JPEG, { headers: { 'x-crop': '0.1,0.1,0.8,0.8', 'x-games': '3,100' } });
     const top = r.j?.top || [];

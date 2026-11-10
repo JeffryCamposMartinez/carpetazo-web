@@ -166,8 +166,17 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
           const cut = document.createElement('canvas');
           cut.width = Math.round(sw * f); cut.height = Math.round(sh * f);
           cut.getContext('2d').drawImage(video, Math.max(0, box.x), Math.max(0, box.y), sw, sh, 0, 0, cut.width, cut.height);
-          const cutBlob = await new Promise((resolve) => cut.toBlob(resolve, 'image/jpeg', 0.92));
-          if (cutBlob) photo = { blob: cutBlob, sharp: state.lastA?.sharp ?? 0, glare: state.lastA?.high ?? 0 };
+          // Toma con margen (se ve el borde de la carta): el servidor la usa para enderezar y centrar la carta
+          const padX = box.w * 0.12; const padY = box.h * 0.12;
+          const wx = Math.max(0, box.x - padX); const wy = Math.max(0, box.y - padY);
+          const ww = Math.min(video.videoWidth - wx, box.w + 2 * padX); const wh = Math.min(video.videoHeight - wy, box.h + 2 * padY);
+          const wf = Math.min(1, (PHOTO_SIDE * 1.3) / Math.max(ww, wh));
+          const wide = document.createElement('canvas');
+          wide.width = Math.round(ww * wf); wide.height = Math.round(wh * wf);
+          wide.getContext('2d').drawImage(video, wx, wy, ww, wh, 0, 0, wide.width, wide.height);
+          const toJpeg = (canvas) => new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+          const [cutBlob, wideBlob] = await Promise.all([toJpeg(cut), toJpeg(wide)]);
+          if (cutBlob) photo = { blob: cutBlob, wide: wideBlob, sharp: state.lastA?.sharp ?? 0, glare: state.lastA?.high ?? 0 };
         }
         const data = await api.scanCard(blob, { crop, games: gamesRef.current });
         if (photo) data.photo = photo;

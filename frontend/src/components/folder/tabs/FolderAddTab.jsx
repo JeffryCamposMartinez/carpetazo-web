@@ -76,8 +76,16 @@ export default function FolderAddTab({
       if (seen.has(item.queueKey) || !item.photo?.blob) continue; // una sola foto por carta
       seen.add(item.queueKey);
       try {
+        // Carta enderezada y centrada por el servidor; si no la ve clara, se usa la foto tal cual
+        let blob = item.photo.blob;
+        if (item.photo.wide) {
+          try {
+            const straight = await api.straightenCard(item.photo.wide);
+            if (straight?.found && straight.image) blob = await (await fetch(`data:image/jpeg;base64,${straight.image}`)).blob();
+          } catch (_error) { /* se queda la foto original */ }
+        }
         const form = new FormData();
-        form.append('image', new File([item.photo.blob], 'carta.jpg', { type: 'image/jpeg' }));
+        form.append('image', new File([blob], 'carta.jpg', { type: 'image/jpeg' }));
         form.append('type', 'card');
         const { url } = await api.uploadImage(form);
         setSelectedQueue((previous) => previous.map((entry) => (getCardSelectionKey(entry.card) === item.queueKey

@@ -7,6 +7,7 @@ http.createServer((req, res) => {
   req.on('data', (chunk) => chunks.push(chunk));
   req.on('end', () => {
     res.setHeader('Content-Type', 'application/json');
+    if (req.method === 'POST' && req.url === '/straighten' && req.headers['x-service-key'] === 'cztest-engine') return res.end(JSON.stringify({ found: true, width: 10, height: 14, image: 'AAAA' }));
     if (req.method !== 'POST' || req.url !== '/scan' || req.headers['x-service-key'] !== 'cztest-engine') { res.statusCode = 401; return res.end('{"error":"no autorizado"}'); }
     const body = Buffer.concat(chunks);
     const games = String(req.headers['x-games'] || '');
