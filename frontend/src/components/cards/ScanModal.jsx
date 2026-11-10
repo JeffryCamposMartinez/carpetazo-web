@@ -35,8 +35,11 @@ export default function ScanModal({ onClose }) {
   const openSearch = (card) => {
     const params = new URLSearchParams({ q: baseName(card.name) || card.name });
     if (GAME_OF[card.categoryId]) params.set('tcg', GAME_OF[card.categoryId]);
+    // La búsqueda muestra primero lo más parecido a lo escaneado: la carta elegida y, después, las demás por parecido
+    const key = (item) => `${item.categoryId}:${item.productId}`;
+    const scanOrder = [key(card), ...[...view.result.top, ...(view.result.same || [])].filter((item) => key(item) !== key(card)).sort((a, b) => b.score - a.score).map(key)].filter((value) => !value.includes('null'));
     onClose();
-    navigate(`/cartas?${params.toString()}`);
+    navigate(`/cartas?${params.toString()}`, { state: { scanOrder } });
   };
   const sure = Boolean(view.done && view.result && quality(view.result).ok); // «probable»: se parece mucho y se distingue de otros nombres
   useEffect(() => { if (sure && best) openSearch(best); }, [sure]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -11,6 +11,7 @@ import useWishlistIndex, { wishlistKeyOf, withFinish } from '../../hooks/useWish
 import useCardInfoSearch, { INFO_PAGE } from '../../hooks/useCardInfoSearch';
 import useFinishSplit from '../../hooks/useFinishSplit';
 import FinishRibbon from '../ui/FinishRibbon';
+import { catalogKey, sortByScan } from '../../utils/scanOrder';
 import { ReferencePriceLine } from '../folder/ReferencePrice';
 import { formatClp } from '../../services/tcgcsvPrices';
 import { cardFill, cardRatio } from '../../utils/cardShape';
@@ -25,7 +26,7 @@ const tcgplayerImage = (card) => {
 };
 
 // Cuando una carta no está a la venta: las que coinciden en el catálogo (TCGCSV), para ver su imagen y datos. No tienen precio ni compra.
-export default function CardInfoResults({ query, game, enabled, hasOffers = false, sort = '', lang = '' }) {
+export default function CardInfoResults({ query, game, enabled, hasOffers = false, sort = '', lang = '', scanOrder = [] }) {
   const [page, setPage] = useState(1);
   const { results, searching, exhausted, pages: indexedPages, total: indexedTotal } = useCardInfoSearch({ query, game, enabled, page, sort, lang });
   const { currentUser } = useAuth();
@@ -49,7 +50,8 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
     : results.slice((page - 1) * INFO_PAGE, page * INFO_PAGE);
   // Precio de mercado de TCGplayer como referencia (Mitos y Leyendas no está en TCGplayer)
   // Un acabado distinto (Reverse Holofoil…) se muestra como otra carta
-  const { cards: shown, variantsFor } = useFinishSplit(pageCards, 'pokemon');
+  const { cards: split, variantsFor } = useFinishSplit(pageCards, 'pokemon');
+  const shown = sortByScan(split, catalogKey, scanOrder); // desde la cámara: las más parecidas a la carta escaneada primero
 
   if (!enabled) return null;
 
@@ -93,7 +95,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
         <SvgIcon name="info" translate="no" aria-hidden="true" className="mt-0.5 text-[24px] text-[#1e40af]" />
         <div className="min-w-0">
           <h2 className="text-base font-extrabold text-[#12315f]">{hasOffers ? `Más coincidencias del catálogo para "${query.trim()}"` : `Sin ofertas para "${query.trim()}": busca también en el catálogo`}</h2>
-          <p className="mt-0.5 text-sm text-slate-600">Coincidencias por nombre o similitud. Estas fichas son informativas, no ofertas de venta; la disponibilidad se muestra en los resultados de arriba. Puedes agregarlas a tus deseadas.</p>
+          <p className="mt-0.5 text-sm text-slate-600">{scanOrder.length > 0 ? 'Ordenadas por parecido con la carta que escaneaste.' : 'Coincidencias por nombre o similitud.'} Estas fichas son informativas, no ofertas de venta; la disponibilidad se muestra en los resultados de arriba. Puedes agregarlas a tus deseadas.</p>
         </div>
       </div>
 

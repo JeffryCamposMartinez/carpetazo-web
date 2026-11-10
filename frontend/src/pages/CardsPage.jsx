@@ -1,5 +1,5 @@
 import React, { startTransition, useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { wishlistPayloadFromCard } from '../utils/wishlistPayload';
 import useWishlistIndex, { wishlistKeyOf } from '../hooks/useWishlistIndex';
@@ -13,6 +13,7 @@ import CardsPagination from '../components/cards/CardsPagination';
 import HelpTip from '../components/ui/HelpTip';
 import DidYouMean from '../components/ui/DidYouMean';
 import CardInfoResults from '../components/cards/CardInfoResults';
+import { offerKeyIn, readScanOrder, sortByScan } from '../utils/scanOrder';
 import CardsResultsBar, { SORT_VALUES } from '../components/cards/CardsResultsBar';
 import usePageMeta from '../hooks/usePageMeta';
 import EmptyState from '../components/ui/EmptyState';
@@ -30,6 +31,7 @@ export default function CardsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const scanOrder = readScanOrder(useLocation().state); // viene de la cámara: lo más parecido a la carta escaneada va primero
   const { showToast } = useToast();
   const wishlistIndex = useWishlistIndex(Boolean(currentUser));
   const [wanted, setWanted] = useState({}); // cartas ya agregadas a la lista de deseadas en esta visita
@@ -200,11 +202,11 @@ export default function CardsPage() {
               <ul className={gridClass}>
                 {loading
                   ? Array.from({ length: 12 }, (_, i) => <CardTileSkeleton key={i} view={effectiveView} />)
-                  : result.cards.map((card, index) => <CardTile key={card.id} card={card} index={index} view={effectiveView} wanted={Boolean(wantedState(card))} onWish={addToWishlist} />)}
+                  : sortByScan(result.cards, offerKeyIn(scanOrder), scanOrder.map((_key, index) => `p:${index}`)).map((card, index) => <CardTile key={card.id} card={card} index={index} view={effectiveView} wanted={Boolean(wantedState(card))} onWish={addToWishlist} />)}
               </ul>
             )}
 
-            <CardInfoResults query={urlQuery} game={tcg} sort={sort} lang={lang} hasOffers={result.total > 0} enabled={!loading && !failed && urlQuery.trim().length >= 2 && !seller && !comuna} />
+            <CardInfoResults query={urlQuery} game={tcg} sort={sort} lang={lang} scanOrder={scanOrder} hasOffers={result.total > 0} enabled={!loading && !failed && urlQuery.trim().length >= 2 && !seller && !comuna} />
 
             {!loading && !failed && <CardsPagination page={page} pages={result.pages} onPage={goToPage} />}
           </section>
