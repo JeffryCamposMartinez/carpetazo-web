@@ -1,6 +1,7 @@
 import { CARD_CONDITIONS } from '../../../config/cardConditions';
 import ExtraPhotosField from '../ExtraPhotosField';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { api } from '../../../services/api';
 import AddCardFullscreen from '../AddCardFullscreen';
 import CardLightbox from '../../ui/CardLightbox';
 import { DuplicateCardNotice } from '../FolderInventoryComponents';
@@ -58,10 +59,34 @@ export default function FolderAddTab({
       if (!card) return null;
       setMultiSelectMode(true);
       addCardToQueue(card);
-      return { key: String(card.tcgProductId), name: card.name, image: card.imageUrl, language: card.cardLanguage === 'Spanish' ? 'ES' : card.cardLanguage === 'Japanese' ? 'JP' : 'EN' };
+      // Sin imagen oficial (la ficha trae «Sin imagen»): se guarda la foto del escaneo por si la persona decide aportarla
+      const noImage = card.hasImage === false && !card.isCustomImage;
+      return { key: String(card.tcgProductId), queueKey: getCardSelectionKey(card), name: card.name, image: card.imageUrl, language: card.cardLanguage === 'Spanish' ? 'ES' : card.cardLanguage === 'Japanese' ? 'JP' : 'EN', noImage, photo: noImage ? result.photo || null : null };
     } catch (_error) {
       return null;
     }
+  };
+
+  // La persona aporta la foto del escaneo: se sube como foto propia de la carta (igual que al elegir una imagen) y pasa a la cola con esa imagen;
+  // al guardar la carta, el servidor la ofrece solo a Moderación como imagen oficial en ese idioma
+  const handleSharePhotos = async (items) => {
+    const uploaded = [];
+    const seen = new Set();
+    for (const item of items) {
+      if (seen.has(item.queueKey) || !item.photo?.blob) continue; // una sola foto por carta
+      seen.add(item.queueKey);
+      try {
+        const form = new FormData();
+        form.append('image', new File([item.photo.blob], 'carta.jpg', { type: 'image/jpeg' }));
+        form.append('type', 'card');
+        const { url } = await api.uploadImage(form);
+        setSelectedQueue((previous) => previous.map((entry) => (getCardSelectionKey(entry.card) === item.queueKey
+          ? { ...entry, card: { ...entry.card, isCustomImage: true, imageUrl: url, id: `${entry.card.id}-custom-${Date.now()}` } }
+          : entry)));
+        uploaded.push(item.queueKey);
+      } catch (_error) { /* esa foto no se pudo subir: la carta sigue en la cola sin ella */ }
+    }
+    return uploaded;
   };
 
   // Precio referencial (Pokémon: TCGplayer; Mitos y Leyendas: vendedores de Carpetazo) de las cartas a la vista y de la que se agrega
@@ -328,7 +353,7 @@ export default function FolderAddTab({
             )}
             {scanOpen && (
               <Suspense fallback={null}>
-                <ScanModal batch={{ games: '3,100,85', label: 'Pokémon · el idioma se detecta solo', onCard: handleScannedCard }} onClose={() => setScanOpen(false)} />
+                <ScanModal batch={{ games: '3,100,85', label: 'Pokémon · el idioma se detecta solo', onCard: handleScannedCard, onShare: handleSharePhotos }} onClose={() => setScanOpen(false)} />
               </Suspense>
             )}
             <button 

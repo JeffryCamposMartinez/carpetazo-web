@@ -28,6 +28,7 @@ export default function ScanModal({ onClose, batch }) {
   const guideRef = useRef(null);
   const [game, setGame] = useState(readGame);
   const [tray, setTray] = useState([]); // lote: cartas que ya entraron a la cola de la carpeta
+  const [sharing, setSharing] = useState(false);
   const games = useMemo(() => (batch ? batch.games : SCAN_GAMES.find((item) => item.value === game)?.ids || ''), [batch, game]);
   useBodyScrollLock();
   useEscape(true, onClose);
@@ -37,6 +38,14 @@ export default function ScanModal({ onClose, batch }) {
   };
   const { message, guide, view, cameraError } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: Boolean(currentUser), batch: Boolean(batch), onCard: handleBatchCard });
   const best = view.result?.top?.[0];
+  // Cartas sin imagen oficial (en español) con una foto nítida del escaneo: la persona decide si la ofrece a Moderación
+  const shareable = tray.filter((item) => item.noImage && item.photo?.blob && !item.shared);
+  const sharePhotos = async () => {
+    setSharing(true);
+    const done = new Set(await batch.onShare(shareable));
+    setTray((previous) => previous.map((item) => (done.has(item.queueKey) ? { ...item, shared: true, photo: null } : item)));
+    setSharing(false);
+  };
 
   const openSearch = (card) => {
     const params = new URLSearchParams({ q: baseName(card.name) || card.name });
@@ -94,6 +103,12 @@ export default function ScanModal({ onClose, batch }) {
             <span className="truncate">{message}</span>
           </div>
         )}
+        {batch && shareable.length > 0 && (
+          <div className="flex w-full max-w-xl items-center gap-3 rounded-2xl border border-[#ffcb05]/30 bg-[#071526]/85 px-3 py-2 backdrop-blur-md">
+            <p className="min-w-0 flex-1 text-xs font-semibold leading-snug text-slate-200">{shareable.length === 1 ? 'Una carta no tiene imagen.' : `${shareable.length} cartas no tienen imagen.`} Si quieres, tu foto va a Moderación como imagen oficial.</p>
+            <button type="button" onClick={sharePhotos} disabled={sharing} className="h-11 shrink-0 rounded-full border border-[#ffcb05] px-4 text-sm font-extrabold text-[#ffcb05] transition-[background-color,transform] duration-150 hover:bg-[#ffcb05]/10 active:scale-[0.97] disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-white">{sharing ? 'Subiendo…' : 'Aportar foto'}</button>
+          </div>
+        )}
         {batch && tray.length > 0 && (
           <div className="flex w-full max-w-xl items-center gap-2 rounded-2xl border border-sky-300/15 bg-[#071526]/80 p-2 backdrop-blur-md">
             <ul className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Cartas escaneadas">
@@ -101,6 +116,7 @@ export default function ScanModal({ onClose, batch }) {
                 <li key={`${item.key}-${index}`} className="relative h-14 w-10 shrink-0 overflow-hidden rounded-md bg-[#02070f] ring-1 ring-white/20">
                   {item.image ? <img src={item.image} alt={item.name} title={item.name} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-[10px]">?</span>}
                   {item.language && <span className="absolute inset-x-0 bottom-0 bg-black/70 text-center text-[8px] font-bold uppercase text-white">{item.language}</span>}
+                  {item.shared && <span className="absolute right-0 top-0 rounded-bl bg-[#ffcb05] px-1 text-[9px] font-extrabold text-[#1a1400]" title="Tu foto se ofrece a Moderación">✓</span>}
                 </li>
               ))}
             </ul>

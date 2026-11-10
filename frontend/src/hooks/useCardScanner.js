@@ -25,6 +25,7 @@ const QW = 160;
 const QH = 224;
 const TICK_MS = 150;
 const MAX_SIDE = 1280;
+const PHOTO_SIDE = 1400; // lado mayor del recorte que se ofrece como foto de la carta
 
 const idOf = (item) => item.group || `${item.categoryId}:${item.productId}`;
 // «Probable» si se parece mucho y se distingue de cartas de otro nombre; si no, «Dudoso»
@@ -46,7 +47,7 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
   batchRef.current = batch;
   const onCardRef = useRef(onCard);
   onCardRef.current = onCard;
-  const run = useRef({ prev: null, still: 0, busy: false, hist: [], confirmed: null, lastScanAt: 0, moveSince: 0, lost: 0, stopped: false, waitRemoval: false, removeTicks: 0 });
+  const run = useRef({ prev: null, still: 0, busy: false, hist: [], confirmed: null, lastScanAt: 0, moveSince: 0, lost: 0, stopped: false, waitRemoval: false, removeTicks: 0, lastA: null });
   const canvas = useRef(null);
 
   const reset = useCallback(() => {
@@ -156,7 +157,20 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
         const crop = [box.x / box.vw, box.y / box.vh, box.w / box.vw, box.h / box.vh].map((v) => Math.max(0, Math.min(1, v)).toFixed(4)).join(',');
         const blob = await new Promise((resolve) => shot.toBlob(resolve, 'image/jpeg', 0.88));
         if (!blob) throw new Error('no se pudo capturar');
+        // Lote: el recorte del marco a la resolución de la cámara (lo único que se ofrece como foto, y solo si la persona lo pide)
+        let photo = null;
+        if (batchRef.current) {
+          const sw = Math.min(box.w, video.videoWidth - Math.max(0, box.x));
+          const sh = Math.min(box.h, video.videoHeight - Math.max(0, box.y));
+          const f = Math.min(1, PHOTO_SIDE / Math.max(sw, sh));
+          const cut = document.createElement('canvas');
+          cut.width = Math.round(sw * f); cut.height = Math.round(sh * f);
+          cut.getContext('2d').drawImage(video, Math.max(0, box.x), Math.max(0, box.y), sw, sh, 0, 0, cut.width, cut.height);
+          const cutBlob = await new Promise((resolve) => cut.toBlob(resolve, 'image/jpeg', 0.92));
+          if (cutBlob) photo = { blob: cutBlob, sharp: state.lastA?.sharp ?? 0, glare: state.lastA?.high ?? 0 };
+        }
         const data = await api.scanCard(blob, { crop, games: gamesRef.current });
+        if (photo) data.photo = photo;
         if (!state.stopped) vote(data);
       } catch (error) {
         if (!state.stopped) {
@@ -174,6 +188,7 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
       if (state.stopped || state.confirmed || !video?.videoWidth) return; // reconocida: el resultado queda fijo hasta tocar «Escanear otra carta»
       const a = analyze();
       if (!a) return;
+      state.lastA = a;
       if (state.waitRemoval) { // lote: la carta anterior sigue en el marco; se rearma cuando el marco queda vacío o la cambian (movimiento sostenido)
         state.removeTicks = (a.sd < CFG.sdMin || a.mov > CFG.movMax) ? state.removeTicks + 1 : 0;
         if (state.removeTicks >= 3) { state.waitRemoval = false; state.removeTicks = 0; state.lastScanAt = 0; setGuide(''); setMessage('Apunta a la siguiente carta'); }
