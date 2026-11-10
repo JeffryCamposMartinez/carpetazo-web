@@ -16,8 +16,11 @@ export const SCAN_GAMES = [
 ];
 
 // Umbrales provisionales (ajustados a mano en celulares; no están calibrados con un conjunto verificado).
-// votes: 1 → con la primera lectura parecida (puntaje ≥ minScore) ya se busca; subirlo exige que la misma carta salga varias veces seguidas.
-const CFG = { movMax: 30, sharpMin: 300, stillFrames: 2, sdMin: 14, meanMin: 25, meanMax: 245, glareMax: 0.18, votes: 1, minScore: 0.55, noCardGapMs: 1200, window: 5, scanGapMs: 400 };
+// Se busca con la primera lectura solo si hay evidencia: el nombre leído en la carta coincide con el catálogo y el parecido llega a OCR_MIN, o el parecido es muy alto (SURE_MIN).
+// Una lectura borrosa o en movimiento puede dar 0,58–0,66 con cartas cualquiera: sin esa evidencia hace falta que la misma carta salga `votes` veces y se vea «probable».
+const OCR_MIN = 0.6;
+const SURE_MIN = 0.82;
+const CFG = { movMax: 30, sharpMin: 300, stillFrames: 2, sdMin: 14, meanMin: 25, meanMax: 245, glareMax: 0.18, votes: 3, minScore: 0.55, noCardGapMs: 1200, window: 5, scanGapMs: 400 };
 const QW = 160;
 const QH = 224;
 const TICK_MS = 150;
@@ -106,18 +109,26 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
         setGuide(''); setMessage('No veo una carta'); setView({ result: null, votes: 0, reads: 0, done: false });
         return;
       }
+      const topScore = data.top[0].score;
+      if ((data.ocr?.names?.length > 0 && topScore >= OCR_MIN) || topScore >= SURE_MIN) { // evidencia suficiente: no hace falta repetir la lectura
+        state.confirmed = idOf(data.top[0]);
+        setView({ result: data, votes: 1, reads: state.hist.length + 1, done: true });
+        setGuide('ok');
+        setMessage('Carta encontrada ✓');
+        return;
+      }
       state.hist.push(data);
       if (state.hist.length > CFG.window) state.hist.shift();
       const counts = {};
       state.hist.forEach((entry) => { const id = idOf(entry.top[0]); counts[id] = (counts[id] || 0) + 1; });
       const [bestId, votes] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
       const last = [...state.hist].reverse().find((entry) => idOf(entry.top[0]) === bestId);
-      const done = votes >= CFG.votes;
+      const done = votes >= CFG.votes && quality(last).ok; // sin nombre leído, solo si se repite y el parecido es claro («probable»)
       setView({ result: last, votes, reads: state.hist.length, done });
       if (done) {
         state.confirmed = bestId;
-        setGuide(quality(last).ok ? 'ok' : 'mid');
-        setMessage(quality(last).ok ? 'Probable ✓' : 'Dudoso: revisa las candidatas');
+        setGuide('ok');
+        setMessage('Carta encontrada ✓');
       } else {
         setGuide('scan');
         setMessage(`Confirmando… ${votes}/${CFG.votes}`);
