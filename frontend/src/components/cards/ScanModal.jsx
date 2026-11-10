@@ -1,16 +1,21 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import LiquidTabs from '../ui/LiquidTabs';
 import SvgIcon from '../ui/SvgIcon';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import useEscape from '../../hooks/useEscape';
-import useCardScanner, { quality, SCAN_GAMES } from '../../hooks/useCardScanner';
+import useCardScanner, { SCAN_GAMES } from '../../hooks/useCardScanner';
 import { useAuth } from '../../contexts/AuthContext';
 
 const GUIDE_COLOR = { '': '#ffcb05', scan: '#00d2ff', ok: '#34d399', mid: '#fb923c' };
 const SAVED_GAME = 'carpetazo.scanGame';
 const readGame = () => { try { const saved = localStorage.getItem(SAVED_GAME); return SCAN_GAMES.some((game) => game.value === saved) ? saved : 'all'; } catch (_error) { return 'all'; } };
+
+// Juego de la sección Cartas (filtro `tcg`) según la categoría del catálogo
+const GAME_OF = { 3: 'Pokémon', 100: 'Pokémon', 85: 'Pokémon', 1: 'Magic', 2: 'Yu-Gi-Oh!', 63: 'Digimon', 68: 'One Piece', 71: 'Lorcana', 89: 'Riftbound', 99: 'Mitos y Leyendas' };
+// «Ultra Ball - 213/217 (Cosmos Holo)» → «Ultra Ball»: se busca por nombre para ver todas las ediciones de la carta
+const baseName = (name) => String(name || '').replace(/\s*\([^)]*\)\s*$/, '').replace(/\s+-\s+\S*\d\S*$/, '').trim();
 
 // Apuntas la cámara a una carta, se detecta sola y se buscan las candidatas en el catálogo (motor de reconocimiento en el servidor).
 // Las coincidencias son candidatas sin verificar: la impresión exacta puede variar.
@@ -26,12 +31,19 @@ export default function ScanModal({ onClose }) {
   useEscape(true, onClose);
   const { message, guide, view, cameraError, reset } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: Boolean(currentUser) });
 
+  // Reconocida la carta, el resultado es la búsqueda de la sección Cartas (ofertas y catálogo, con todas sus ediciones); para otra carta se vuelve a abrir la cámara
+  useEffect(() => {
+    if (!view.done || !best) return;
+    const params = new URLSearchParams({ q: baseName(best.name) || best.name });
+    if (GAME_OF[best.categoryId]) params.set('tcg', GAME_OF[best.categoryId]);
+    onClose();
+    navigate(`/cartas?${params.toString()}`);
+  }, [view.done]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const pickGame = (value) => { setGame(value); try { localStorage.setItem(SAVED_GAME, value); } catch (_error) { /* sin almacenamiento: no se recuerda el juego */ } };
   const best = view.result?.top?.[0];
-  const q = view.result ? quality(view.result) : null;
   const color = GUIDE_COLOR[guide] || GUIDE_COLOR[''];
   const percent = best ? Math.max(0, Math.min(100, Math.round(((best.score - 0.4) / 0.6) * 100))) : 0;
-  const search = best ? `/cartas?q=${encodeURIComponent([best.name, best.number].filter(Boolean).join(' '))}` : '/cartas';
   const corner = 'absolute h-[30px] w-[30px] transition-colors duration-200';
 
   return createPortal(
@@ -73,12 +85,6 @@ export default function ScanModal({ onClose }) {
           )}
         </div>
 
-        {view.done && (
-          <button type="button" onClick={reset} className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#ffcb05] text-[15px] font-extrabold text-[#1a1400] transition-transform duration-150 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
-            <SvgIcon name="photo_camera" translate="no" aria-hidden="true" className="text-[22px]" />Escanear otra carta
-          </button>
-        )}
-
         <LiquidTabs
           ariaLabel="Juego a buscar"
           layout="inline"
@@ -105,9 +111,7 @@ export default function ScanModal({ onClose }) {
                   {best.image ? <img src={best.image} alt="" referrerPolicy="no-referrer" className="relative z-10 block w-full rounded-[10px] shadow-[0_14px_28px_-10px_rgba(0,0,0,0.8)]" /> : <div className="flex aspect-[63/88] w-full items-center justify-center rounded-[10px] bg-[#02070f]"><SvgIcon name="style" translate="no" aria-hidden="true" className="text-[32px] text-slate-500" /></div>}
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
-                  <span className={`self-start rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ${view.done && q.ok ? 'bg-[#34d399] text-[#04261a]' : 'bg-[#fb923c] text-[#2a1200]'}`}>
-                    {view.done ? (q.ok ? 'Probable' : 'Dudoso') : `Confirmando ${view.votes}/3`}
-                  </span>
+                  <span className="self-start rounded-full bg-[#fb923c] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[#2a1200]">Confirmando {view.votes}/3</span>
                   <h3 className="break-words text-xl font-bold leading-tight tracking-tight">{best.name}{best.number && <span className="font-semibold text-[#ffcb05]"> · {best.number}</span>}</h3>
                   <div className="flex flex-wrap gap-1.5 text-[11.5px] font-medium">
                     {best.lang && <span className="rounded-full border border-[#ffcb05]/30 bg-[#ffcb05]/10 px-2.5 py-1 text-[#ffcb05]">{best.lang}</span>}
@@ -115,46 +119,11 @@ export default function ScanModal({ onClose }) {
                     {best.rarity && <span className="rounded-full border border-sky-300/15 bg-blue-500/15 px-2.5 py-1 text-blue-300">{best.rarity}</span>}
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-sky-300/10"><i className="block h-full rounded-full bg-gradient-to-r from-blue-500 to-[#00d2ff]" style={{ width: `${percent}%` }} /></div>
-                  <div className="flex justify-between text-[11.5px] text-slate-400"><span>similitud {best.score.toFixed(2)}</span><span>margen {q.margin.toFixed(2)}</span></div>
+                  <div className="text-[11.5px] text-slate-400">similitud {best.score.toFixed(2)}</div>
                 </div>
-              </div>
-              <div className="mt-3.5 flex flex-wrap gap-2">
-                <Link to={search} onClick={onClose} className="flex h-11 items-center gap-1.5 rounded-full bg-[#ffcb05] px-5 text-sm font-extrabold text-[#1a1400] transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
-                  <SvgIcon name="search" translate="no" aria-hidden="true" className="text-[20px]" />Ver en Cartas
-                </Link>
               </div>
             </section>
 
-            {view.result.top.length > 1 && (
-              <>
-                <h3 className="mx-0.5 mb-2 mt-5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Otras candidatas</h3>
-                <ul className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-0.5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {view.result.top.slice(1).map((item) => (
-                    <li key={`${item.categoryId}-${item.productId}`} className="w-32 shrink-0 snap-start rounded-2xl border border-sky-300/15 bg-[#0d1e3a] p-2">
-                      {item.image ? <img src={item.image} alt="" referrerPolicy="no-referrer" loading="lazy" className="block aspect-[63/88] w-full rounded-lg bg-[#02070f] object-cover" /> : <div className="aspect-[63/88] w-full rounded-lg bg-[#02070f]" />}
-                      <p className="mt-1.5 line-clamp-2 text-xs font-semibold leading-tight">{item.name}</p>
-                      <small className="mt-0.5 block text-[10.5px] font-medium text-slate-400">{item.lang} · {item.score.toFixed(2)}</small>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-            {view.result.same?.length > 0 && (
-              <>
-                <h3 className="mx-0.5 mb-2 mt-5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Misma carta en otras ediciones</h3>
-                <ul className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-0.5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {view.result.same.map((item) => (
-                    <li key={`${item.categoryId}-${item.productId}`} className="w-32 shrink-0 snap-start">
-                      <Link to={`/cartas?q=${encodeURIComponent([item.name, item.number].filter(Boolean).join(' '))}`} onClick={onClose} className="block h-full rounded-2xl border border-sky-300/15 bg-[#0d1e3a] p-2 transition-[border-color,transform] duration-150 hover:border-[#ffcb05]/50 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
-                        {item.image ? <img src={item.image} alt="" referrerPolicy="no-referrer" loading="lazy" className="block aspect-[63/88] w-full rounded-lg bg-[#02070f] object-cover" /> : <div className="aspect-[63/88] w-full rounded-lg bg-[#02070f]" />}
-                        <p className="mt-1.5 line-clamp-2 text-xs font-semibold leading-tight">{item.set || item.name}</p>
-                        <small className="mt-0.5 block text-[10.5px] font-medium text-slate-400">{[item.number, item.lang].filter(Boolean).join(' · ')}</small>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
           </>
         )}
         <p className="mx-1 mt-5 text-center text-[11px] text-slate-500">Candidatas del catálogo de Carpetazo, sin verificar. La impresión exacta puede variar.</p>
