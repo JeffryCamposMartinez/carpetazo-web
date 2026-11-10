@@ -256,6 +256,8 @@ export const api = {
   addWishlistItem: (data) => apiFetch('/wishlist', { method: 'POST', body: JSON.stringify(data) }),
   updateWishlistItem: (id, data) => apiFetch('/wishlist/' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(data) }),
   deleteWishlistItem: (id) => apiFetch('/wishlist/' + encodeURIComponent(id), { method: 'DELETE' }),
+  // Escáner de cartas: un cuadro JPEG de la cámara; `crop` = marco en fracciones «x,y,ancho,alto», `games` = ids de categoría separados por coma
+  scanCard: (blob, { crop = '', games = '' } = {}) => apiFetch('/scanner/scan', { method: 'POST', isMultipart: true, body: blob, headers: { 'Content-Type': 'image/jpeg', ...(crop ? { 'x-crop': crop } : {}), ...(games ? { 'x-games': games } : {}) } }),
   getPublicWishlist: (username, page = 1) => apiFetch('/users/' + encodeURIComponent(username) + '/wishlist?page=' + page),
   getMyFolders: () => apiFetch('/folders/me'),
   getMyFolderStats: () => apiFetch('/folders/me/stats'),
