@@ -32,8 +32,18 @@ export default function ScanModal({ onClose, batch }) {
   const trayId = useRef(0); // clave estable por miniatura: quitar una no reinicia la animación de las demás
   const offered = useRef(new Set()); // cartas cuya foto ya se aportó en esta sesión (una sola vez por carta)
   const games = useMemo(() => (batch ? batch.games : SCAN_GAMES.find((item) => item.value === game)?.ids || ''), [batch, game]);
+  const [phase, setPhase] = useState(''); // '' · closing (animación de salida en curso)
+  const timers = useRef([]);
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  const later = (fn, ms) => { timers.current.push(setTimeout(fn, ms)); };
+  // Cierra con animación de salida (sin ella si la persona pidió menos movimiento)
+  const requestClose = (after = onClose) => {
+    if (phase === 'closing') return;
+    setPhase('closing');
+    later(after, window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 260);
+  };
   useBodyScrollLock();
-  useEscape(true, onClose);
+  useEscape(true, () => requestClose());
   useEffect(() => { closeRef.current?.focus({ preventScroll: true }); }, []);
   // El foco no sale del visor con Tab (el resto de la página queda detrás)
   const trapTab = (event) => {
@@ -76,7 +86,7 @@ export default function ScanModal({ onClose, batch }) {
     onClose();
     navigate(`/cartas?${params.toString()}`, { state: { scanOrder } });
   };
-  useEffect(() => { if (!batch && view.done && best) { buzz(); openSearch(best); } }, [view.done]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!batch && view.done && best) { buzz(); setFlash((value) => value + 1); later(() => requestClose(() => openSearch(best)), 650); } }, [view.done]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pickGame = (value) => { setGame(value); try { localStorage.setItem(SAVED_GAME, value); } catch (_error) { /* sin almacenamiento: no se recuerda el juego */ } };
   const color = GUIDE_COLOR[guide] || GUIDE_COLOR[''];
@@ -84,7 +94,7 @@ export default function ScanModal({ onClose, batch }) {
   const live = !cameraError;
 
   return createPortal(
-    <div role="dialog" aria-modal="true" aria-label="Buscar con la cámara" onKeyDown={trapTab} className="scan-root fixed inset-0 z-[1300] overflow-hidden bg-[#02070f] text-slate-100">
+    <div role="dialog" aria-modal="true" aria-label="Buscar con la cámara" onKeyDown={trapTab} className={`scan-root fixed inset-0 z-[1300] overflow-hidden bg-[#02070f] text-slate-100 ${phase === 'closing' ? 'scan-out' : ''}`}>
       <style>{`
         @keyframes scan-in{from{opacity:0}to{opacity:1}}
         @keyframes frame-in{from{opacity:0;transform:scale(1.07)}to{opacity:1;transform:none}}
@@ -97,7 +107,17 @@ export default function ScanModal({ onClose, batch }) {
         @keyframes msg-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
         @keyframes dot-ping{0%{transform:scale(1);opacity:.55}100%{transform:scale(2.6);opacity:0}}
         @keyframes dock-in{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+        @keyframes cam-in{from{opacity:.4;transform:scale(1.1);filter:blur(14px)}to{opacity:1;transform:none;filter:blur(0)}}
+        @keyframes scan-out-root{to{opacity:0}}
+        @keyframes scan-out-frame{to{opacity:0;transform:scale(.9)}}
+        @keyframes scan-out-dock{to{opacity:0;transform:translateY(18px)}}
+        @keyframes search-ring{0%{opacity:.7;transform:translate(-50%,-50%) scale(.35)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.5)}}
+        @keyframes pill-shimmer{from{transform:translateX(-120%)}to{transform:translateX(220%)}}
         .scan-root{animation:scan-in 220ms cubic-bezier(.23,1,.32,1)}
+        .scan-cam{animation:cam-in 640ms cubic-bezier(.23,1,.32,1)}
+        .scan-out{animation:scan-out-root 260ms cubic-bezier(.4,0,1,1) forwards;pointer-events:none}
+        .scan-out .scan-frame{animation:scan-out-frame 260ms cubic-bezier(.4,0,1,1) forwards}
+        .scan-out .scan-dock{animation:scan-out-dock 220ms cubic-bezier(.4,0,1,1) forwards}
         @keyframes corner-in{from{opacity:0;transform:scale(1.9)}to{opacity:1;transform:none}}
         @keyframes gloss{0%{opacity:0;transform:translateX(0) skewX(-18deg)}15%{opacity:1}85%{opacity:1}100%{opacity:0;transform:translateX(420%) skewX(-18deg)}}
         .scan-frame{animation:frame-in 520ms cubic-bezier(.23,1,.32,1)}
@@ -106,11 +126,11 @@ export default function ScanModal({ onClose, batch }) {
         .scan-gloss{opacity:0;animation:gloss 1000ms cubic-bezier(.4,0,.2,1) 380ms forwards}
         .scan-dock{animation:dock-in 420ms cubic-bezier(.23,1,.32,1) 60ms backwards}
         .scan-glass{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.04)),rgba(7,21,38,.62);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 10px 30px -12px rgba(0,0,0,.6);-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5)}
-        @media (prefers-reduced-motion:reduce){.scan-root,.scan-frame,.scan-corners>span,.scan-gloss,.scan-dock,.scan-sweep,.tray-in,.guide-pulse,.lock-bump,.msg-in,.dot-ping{animation:none!important}.check-pop{display:none}}
+        @media (prefers-reduced-motion:reduce){.scan-root,.scan-cam,.scan-out,.scan-out .scan-frame,.scan-out .scan-dock,.search-ring,.pill-shimmer,.scan-frame,.scan-corners>span,.scan-gloss,.scan-dock,.scan-sweep,.tray-in,.guide-pulse,.lock-bump,.msg-in,.dot-ping{animation:none!important}.check-pop{display:none}}
       `}</style>
 
       {/* La cámara ocupa toda la pantalla; el marco se mide contra este contenedor */}
-      <div ref={areaRef} className="absolute inset-0">
+      <div ref={areaRef} className="scan-cam absolute inset-0">
         <video ref={videoRef} playsInline muted autoPlay className="block h-full w-full object-cover" />
       </div>
 
@@ -128,6 +148,7 @@ export default function ScanModal({ onClose, batch }) {
               <svg viewBox="0 0 24 24" className="h-9 w-9" fill="none" stroke="#04281c" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" strokeDasharray="26" style={{ animation: 'check-draw 320ms cubic-bezier(.23,1,.32,1) 120ms backwards' }} /></svg>
             </span>
           )}
+          {guide === 'scan' && [0, 1].map((n) => <span key={n} aria-hidden="true" className="search-ring absolute left-1/2 top-1/2 aspect-square w-[90%] rounded-full border-2 border-[#00d2ff]" style={{ animation: 'search-ring 1.8s cubic-bezier(.23,1,.32,1) infinite', animationDelay: `${n * 0.9}s`, opacity: 0 }} />)}
           <span className="absolute inset-0 overflow-hidden rounded-[22px] [container-type:size]">
             <span aria-hidden="true" className="scan-gloss absolute inset-y-0 -left-[30%] w-[30%] bg-gradient-to-r from-transparent via-white/25 to-transparent" />
             {guide === 'scan' && <span className="scan-sweep absolute inset-x-[4%] top-0 h-14 will-change-transform" style={{ animation: 'scan-sweep 1.5s cubic-bezier(.65,0,.35,1) infinite', background: 'linear-gradient(180deg,transparent,rgba(0,210,255,.22) 70%,rgba(0,210,255,.85) 98%,rgba(255,255,255,.9) 100%)', borderRadius: '0 0 6px 6px' }} />}
@@ -143,17 +164,18 @@ export default function ScanModal({ onClose, batch }) {
         </div>
       )}
 
-      <button ref={closeRef} type="button" onClick={onClose} aria-label="Cerrar" className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-10 flex h-11 w-11 items-center justify-center scan-glass rounded-full text-white transition-[filter,transform] duration-150 hover:brightness-125 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
+      <button ref={closeRef} type="button" onClick={() => requestClose()} aria-label="Cerrar" className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-10 flex h-11 w-11 items-center justify-center scan-glass rounded-full text-white transition-[filter,transform] duration-150 hover:brightness-125 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
         <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[24px]" />
       </button>
 
       <div className="scan-dock absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-3 px-3 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
         {live && (
-          <div role="status" className="scan-glass flex max-w-[92%] items-center gap-2.5 overflow-hidden rounded-full py-2 pl-3.5 pr-4 text-sm font-semibold">
+          <div role="status" className="scan-glass relative flex max-w-[92%] items-center gap-2.5 overflow-hidden rounded-full py-2 pl-3.5 pr-4 text-sm font-semibold">
             <span className="relative flex h-2.5 w-2.5 shrink-0">
               {guide === 'scan' && <span className="dot-ping absolute inset-0 rounded-full" style={{ background: color, animation: 'dot-ping 1.1s cubic-bezier(0,0,.2,1) infinite' }} />}
               <span className="relative h-2.5 w-2.5 rounded-full transition-colors duration-300" style={{ background: color, boxShadow: `0 0 10px ${color}` }} />
             </span>
+            {guide === 'scan' && <span aria-hidden="true" className="pill-shimmer pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/15 to-transparent" style={{ animation: 'pill-shimmer 1.6s cubic-bezier(.4,0,.2,1) infinite' }} />}
             <span key={message} className="msg-in truncate" style={{ animation: 'msg-in 220ms cubic-bezier(.23,1,.32,1)' }}>{message}</span>
           </div>
         )}
@@ -174,7 +196,7 @@ export default function ScanModal({ onClose, batch }) {
                 </li>
               ))}
             </ul>
-            <button type="button" onClick={onClose} className="h-11 shrink-0 rounded-full bg-gradient-to-b from-[#ffd84a] to-[#ffcb05] px-5 text-sm font-extrabold text-[#1a1400] shadow-[0_6px_18px_-6px_rgba(255,203,5,0.6)] transition-[transform,filter] duration-150 hover:brightness-105 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">Listo ({tray.length})</button>
+            <button type="button" onClick={() => requestClose()} className="h-11 shrink-0 rounded-full bg-gradient-to-b from-[#ffd84a] to-[#ffcb05] px-5 text-sm font-extrabold text-[#1a1400] shadow-[0_6px_18px_-6px_rgba(255,203,5,0.6)] transition-[transform,filter] duration-150 hover:brightness-105 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">Listo ({tray.length})</button>
           </div>
         )}
         {batch ? (
