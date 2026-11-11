@@ -25,6 +25,7 @@ export default function Header() {
   const { currentUser, appUser, logout, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [scanOrigin, setScanOrigin] = useState(null); // rectángulo del botón de cámara: de ahí sale y ahí vuelve el visor
   const [isScanOpen, setIsScanOpen] = useState(false); // buscar carta con la cámara (hoja a pantalla completa)
   const [userAvatar, setUserAvatar] = useState(null);
   const [userUsername, setUserUsername] = useState(null);
@@ -529,7 +530,7 @@ export default function Header() {
           />
           <button
             type="button"
-            onClick={() => setIsScanOpen(true)}
+            onClick={(event) => { setScanOrigin(event.currentTarget.getBoundingClientRect()); setIsScanOpen(true); }}
             aria-label="Buscar carta con la cámara"
             title="Buscar con la cámara"
             className="flex h-full shrink-0 items-center justify-center px-2.5 text-[#1e40af] transition-[color,transform] duration-150 hover:text-[#12315f] active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]"
@@ -764,7 +765,7 @@ export default function Header() {
       )}
       {isScanOpen && (
         <Suspense fallback={null}>
-          <ScanModal onClose={() => setIsScanOpen(false)} />
+          <ScanModal origin={scanOrigin} onClose={() => setIsScanOpen(false)} />
         </Suspense>
       )}
       {/* Authentication Modal */}

@@ -44,6 +44,7 @@ export default function FolderAddTab({
 }) {
   // Escanear varias cartas con la cámara (solo Pokémon): cada carta reconocida entra a la cola de selección múltiple, donde se pone precio y stock como siempre
   const [scanOpen, setScanOpen] = useState(false);
+  const [scanOrigin, setScanOrigin] = useState(null);
   const isPokemonFolder = /^pok/i.test(String(folderData?.tcg || ''));
   const handleScannedCard = async (result) => {
     const found = result?.top?.[0];
@@ -368,7 +369,7 @@ export default function FolderAddTab({
             {isPokemonFolder && (
               <button
                 type="button"
-                onClick={() => setScanOpen(true)}
+                onClick={(event) => { setScanOrigin(event.currentTarget.getBoundingClientRect()); setScanOpen(true); }}
                 className="bg-white hover:bg-gray-100 text-[#1e40af] border border-gray-200 w-14 h-14 rounded-full transition-all duration-300 shadow-lg flex items-center justify-center hover:scale-110 active:scale-95"
                 title="Escanear varias cartas con la cámara"
                 aria-label="Escanear varias cartas con la cámara"
@@ -378,7 +379,7 @@ export default function FolderAddTab({
             )}
             {scanOpen && (
               <Suspense fallback={null}>
-                <ScanModal batch={{ games: '3,100,85', label: 'Pokémon · el idioma se detecta solo', onCard: handleScannedCard, onShare: handleSharePhotos, onRemove: handleRemoveScanned }} onClose={() => setScanOpen(false)} />
+                <ScanModal origin={scanOrigin} batch={{ games: '3,100,85', label: 'Pokémon · el idioma se detecta solo', onCard: handleScannedCard, onShare: handleSharePhotos, onRemove: handleRemoveScanned }} onClose={() => setScanOpen(false)} />
               </Suspense>
             )}
             <button 

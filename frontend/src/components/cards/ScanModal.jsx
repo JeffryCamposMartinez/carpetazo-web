@@ -20,7 +20,7 @@ const baseName = (name) => String(name || '').replace(/\s*\([^)]*\)\s*$/, '').re
 // Visor de la cámara: apuntas a una carta, se detecta sola y, en cuanto se reconoce, se abre la búsqueda de la sección Cartas (ordenada por parecido).
 // Aquí no se muestran resultados: solo la cámara, el marco, el estado y el juego a buscar.
 // batch = { games, label, onCard } → modo carpeta: juego fijo, el visor sigue abierto tras cada carta y una bandeja cuenta las agregadas
-export default function ScanModal({ onClose, batch }) {
+export default function ScanModal({ onClose, batch, origin }) {
   const navigate = useNavigate();
   const closeRef = useRef(null);
   const videoRef = useRef(null);
@@ -32,6 +32,12 @@ export default function ScanModal({ onClose, batch }) {
   const trayId = useRef(0); // clave estable por miniatura: quitar una no reinicia la animación de las demás
   const offered = useRef(new Set()); // cartas cuya foto ya se aportó en esta sesión (una sola vez por carta)
   const games = useMemo(() => (batch ? batch.games : SCAN_GAMES.find((item) => item.value === game)?.ids || ''), [batch, game]);
+  // Como al abrir una app en el iPhone: el visor crece desde el botón de cámara y al cerrar vuelve a él
+  const zoom = useMemo(() => {
+    if (!origin || !origin.width || typeof window === 'undefined') return null;
+    const scale = Math.max(0.05, Math.max(origin.width / window.innerWidth, origin.height / window.innerHeight));
+    return { '--ox': `${origin.left + origin.width / 2}px`, '--oy': `${origin.top + origin.height / 2}px`, '--s': scale, '--r': `${Math.round(Math.min(origin.width, origin.height) / 2 / scale)}px` };
+  }, [origin]);
   const [phase, setPhase] = useState(''); // '' · closing (animación de salida en curso)
   const timers = useRef([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
@@ -40,7 +46,7 @@ export default function ScanModal({ onClose, batch }) {
   const requestClose = (after = onClose) => {
     if (phase === 'closing') return;
     setPhase('closing');
-    later(after, window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 260);
+    later(after, window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : zoom ? 400 : 260);
   };
   useBodyScrollLock();
   useEscape(true, () => requestClose());
@@ -94,7 +100,7 @@ export default function ScanModal({ onClose, batch }) {
   const live = !cameraError;
 
   return createPortal(
-    <div role="dialog" aria-modal="true" aria-label="Buscar con la cámara" onKeyDown={trapTab} className={`scan-root fixed inset-0 z-[1300] overflow-hidden bg-[#02070f] text-slate-100 ${phase === 'closing' ? 'scan-out' : ''}`}>
+    <div role="dialog" aria-modal="true" aria-label="Buscar con la cámara" onKeyDown={trapTab} className={`scan-root fixed inset-0 z-[1300] overflow-hidden bg-[#02070f] text-slate-100 ${zoom ? 'scan-zoom' : ''} ${phase === 'closing' ? 'scan-out' : ''}`} style={zoom || undefined}>
       <style>{`
         @keyframes scan-in{from{opacity:0}to{opacity:1}}
         @keyframes frame-in{from{opacity:0;transform:scale(1.07)}to{opacity:1;transform:none}}
@@ -113,7 +119,11 @@ export default function ScanModal({ onClose, batch }) {
         @keyframes scan-out-dock{to{opacity:0;transform:translateY(18px)}}
         @keyframes search-ring{0%{opacity:.7;transform:translate(-50%,-50%) scale(.35)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.5)}}
         @keyframes pill-shimmer{from{transform:translateX(-120%)}to{transform:translateX(220%)}}
+        @keyframes zoom-open{0%{opacity:0;transform:scale(var(--s));border-radius:var(--r)}18%{opacity:1}100%{opacity:1;transform:none;border-radius:0}}
+        @keyframes zoom-close{0%{opacity:1;transform:none;border-radius:0}70%{opacity:1}100%{opacity:0;transform:scale(var(--s));border-radius:var(--r)}}
         .scan-root{animation:scan-in 220ms cubic-bezier(.23,1,.32,1)}
+        .scan-zoom{transform-origin:var(--ox) var(--oy);animation:zoom-open 540ms cubic-bezier(.32,.72,0,1) both}
+        .scan-zoom.scan-out{animation:zoom-close 400ms cubic-bezier(.32,.72,0,1) forwards}
         .scan-cam{animation:cam-in 640ms cubic-bezier(.23,1,.32,1)}
         .scan-out{animation:scan-out-root 260ms cubic-bezier(.4,0,1,1) forwards;pointer-events:none}
         .scan-out .scan-frame{animation:scan-out-frame 260ms cubic-bezier(.4,0,1,1) forwards}
@@ -126,7 +136,7 @@ export default function ScanModal({ onClose, batch }) {
         .scan-gloss{opacity:0;animation:gloss 1000ms cubic-bezier(.4,0,.2,1) 380ms forwards}
         .scan-dock{animation:dock-in 420ms cubic-bezier(.23,1,.32,1) 60ms backwards}
         .scan-glass{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.04)),rgba(7,21,38,.62);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 10px 30px -12px rgba(0,0,0,.6);-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5)}
-        @media (prefers-reduced-motion:reduce){.scan-root,.scan-cam,.scan-out,.scan-out .scan-frame,.scan-out .scan-dock,.search-ring,.pill-shimmer,.scan-frame,.scan-corners>span,.scan-gloss,.scan-dock,.scan-sweep,.tray-in,.guide-pulse,.lock-bump,.msg-in,.dot-ping{animation:none!important}.check-pop{display:none}}
+        @media (prefers-reduced-motion:reduce){.scan-root,.scan-zoom,.scan-zoom.scan-out,.scan-cam,.scan-out,.scan-out .scan-frame,.scan-out .scan-dock,.search-ring,.pill-shimmer,.scan-frame,.scan-corners>span,.scan-gloss,.scan-dock,.scan-sweep,.tray-in,.guide-pulse,.lock-bump,.msg-in,.dot-ping{animation:none!important}.check-pop{display:none}}
       `}</style>
 
       {/* La cámara ocupa toda la pantalla; el marco se mide contra este contenedor */}
