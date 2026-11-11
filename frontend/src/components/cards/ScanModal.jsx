@@ -98,10 +98,15 @@ export default function ScanModal({ onClose, batch }) {
         @keyframes dot-ping{0%{transform:scale(1);opacity:.55}100%{transform:scale(2.6);opacity:0}}
         @keyframes dock-in{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
         .scan-root{animation:scan-in 220ms cubic-bezier(.23,1,.32,1)}
-        .scan-frame{animation:frame-in 380ms cubic-bezier(.23,1,.32,1)}
+        @keyframes corner-in{from{opacity:0;transform:scale(1.9)}to{opacity:1;transform:none}}
+        @keyframes gloss{0%{opacity:0;transform:translateX(0) skewX(-18deg)}15%{opacity:1}85%{opacity:1}100%{opacity:0;transform:translateX(420%) skewX(-18deg)}}
+        .scan-frame{animation:frame-in 520ms cubic-bezier(.23,1,.32,1)}
+        .scan-corners>span{animation:corner-in 560ms cubic-bezier(.23,1,.32,1) backwards}
+        .scan-corners>span:nth-child(2){animation-delay:80ms}.scan-corners>span:nth-child(3){animation-delay:160ms}.scan-corners>span:nth-child(4){animation-delay:240ms}
+        .scan-gloss{opacity:0;animation:gloss 1000ms cubic-bezier(.4,0,.2,1) 380ms forwards}
         .scan-dock{animation:dock-in 420ms cubic-bezier(.23,1,.32,1) 60ms backwards}
         .scan-glass{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.04)),rgba(7,21,38,.62);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 10px 30px -12px rgba(0,0,0,.6);-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5)}
-        @media (prefers-reduced-motion:reduce){.scan-root,.scan-frame,.scan-dock,.scan-sweep,.tray-in,.guide-pulse,.lock-bump,.msg-in,.dot-ping{animation:none!important}.check-pop{display:none}}
+        @media (prefers-reduced-motion:reduce){.scan-root,.scan-frame,.scan-corners>span,.scan-gloss,.scan-dock,.scan-sweep,.tray-in,.guide-pulse,.lock-bump,.msg-in,.dot-ping{animation:none!important}.check-pop{display:none}}
       `}</style>
 
       {/* La cámara ocupa toda la pantalla; el marco se mide contra este contenedor */}
@@ -111,12 +116,12 @@ export default function ScanModal({ onClose, batch }) {
 
       {live && (
         <div ref={guideRef} className="pointer-events-none absolute left-1/2 top-[46%] aspect-[63/88] w-[min(80vw,calc(58svh*63/88))] -translate-x-1/2 -translate-y-1/2 rounded-[22px] shadow-[0_0_0_999px_rgba(2,9,20,0.6)]">
-          <span key={guide === 'ok' ? 'ok' : 'idle'} className="scan-frame absolute inset-0" style={guide === 'ok' ? { animation: 'lock-bump 320ms cubic-bezier(.23,1,.32,1)' } : undefined}>
+          <span className="scan-frame absolute inset-0"><span key={guide === 'ok' ? 'ok' : 'idle'} className="scan-corners absolute inset-0" style={guide === 'ok' ? { animation: 'lock-bump 320ms cubic-bezier(.23,1,.32,1)' } : undefined}>
             <span className={`${corner} -left-[2px] -top-[2px] rounded-tl-[22px] border-l-[3px] border-t-[3px]`} style={{ borderColor: color, filter: `drop-shadow(0 0 6px ${color})` }} />
             <span className={`${corner} -right-[2px] -top-[2px] rounded-tr-[22px] border-r-[3px] border-t-[3px]`} style={{ borderColor: color, filter: `drop-shadow(0 0 6px ${color})` }} />
             <span className={`${corner} -bottom-[2px] -left-[2px] rounded-bl-[22px] border-b-[3px] border-l-[3px]`} style={{ borderColor: color, filter: `drop-shadow(0 0 6px ${color})` }} />
             <span className={`${corner} -bottom-[2px] -right-[2px] rounded-br-[22px] border-b-[3px] border-r-[3px]`} style={{ borderColor: color, filter: `drop-shadow(0 0 6px ${color})` }} />
-          </span>
+          </span></span>
           {flash > 0 && <span key={`p${flash}`} className="guide-pulse absolute inset-0 rounded-[22px] border-[3px] border-[#34d399]" style={{ animation: 'guide-pulse 480ms cubic-bezier(.23,1,.32,1) forwards' }} />}
           {flash > 0 && (
             <span key={`c${flash}`} aria-hidden="true" className="check-pop absolute left-1/2 top-1/2 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#34d399] opacity-0 shadow-[0_8px_30px_-6px_rgba(52,211,153,0.7)]" style={{ animation: 'check-pop 900ms cubic-bezier(.23,1,.32,1) forwards' }}>
@@ -124,6 +129,7 @@ export default function ScanModal({ onClose, batch }) {
             </span>
           )}
           <span className="absolute inset-0 overflow-hidden rounded-[22px] [container-type:size]">
+            <span aria-hidden="true" className="scan-gloss absolute inset-y-0 -left-[30%] w-[30%] bg-gradient-to-r from-transparent via-white/25 to-transparent" />
             {guide === 'scan' && <span className="scan-sweep absolute inset-x-[4%] top-0 h-14 will-change-transform" style={{ animation: 'scan-sweep 1.5s cubic-bezier(.65,0,.35,1) infinite', background: 'linear-gradient(180deg,transparent,rgba(0,210,255,.22) 70%,rgba(0,210,255,.85) 98%,rgba(255,255,255,.9) 100%)', borderRadius: '0 0 6px 6px' }} />}
           </span>
         </div>
