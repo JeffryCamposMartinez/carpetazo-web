@@ -2,6 +2,8 @@
 // El motor devuelve candidatas sin verificar: aquí solo se pasan los campos públicos del catálogo.
 import express from 'express';
 import { authenticateToken } from '../core/auth.js';
+import { proposeCatalogPhoto } from '../core/catalogPhotos.js';
+import { prisma } from '../core/db.js';
 import { routeLimiter } from '../core/limits.js';
 import { badRequest, isAllowedStoredImageUrl } from '../core/validation.js';
 
@@ -127,5 +129,21 @@ router.post(
     }
   }
 );
+
+// La foto del escaneo de una carta Pokémon sin imagen oficial se ofrece a Moderación en el momento (sin esperar a guardar la carta).
+// Mismas reglas que al guardar: solo una foto de carta de esta persona, la carta del catálogo debe seguir sin imagen, 20 por día y una por carta.
+router.post('/api/scanner/propose-photo', authenticateToken, routeLimiter(60 * 1000, 30), express.json({ limit: '2kb' }), async (req, res) => {
+  const { tcgId, language, imageUrl } = req.body || {};
+  if (!/^[1-9]\d{0,9}$/.test(String(tcgId)) || !['English', 'Spanish', 'Japanese'].includes(language) || typeof imageUrl !== 'string' || imageUrl.length > 600) return badRequest(res, 'Datos inválidos');
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
+    if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const proposal = await proposeCatalogPhoto(prisma, { userId: user.id, firebaseUid: req.user.sub, tcg: 'Pokemon', tcgId: String(tcgId), imageUrl, language });
+    res.json({ success: true, proposed: Boolean(proposal) });
+  } catch (error) {
+    console.error('Error proponiendo foto del escáner:', error.message);
+    res.status(500).json({ success: false, message: 'No se pudo enviar la foto a Moderación.' });
+  }
+});
 
 export default router;

@@ -96,6 +96,8 @@ export default function FolderAddTab({
           return { ...entry, card };
         }));
         uploaded.push({ from: item.queueKey, to: toKey });
+        // A Moderación en el momento (no hace falta guardar la carta): si no corresponde, el servidor la omite y la carta sigue en la cola
+        api.proposeScannedPhoto({ tcgId: item.key, language: item.language === 'ES' ? 'Spanish' : item.language === 'JP' ? 'Japanese' : 'English', imageUrl: url }).catch(() => {});
       } catch (_error) { /* esa foto no se pudo subir: la carta sigue en la cola sin ella */ }
     }
     return uploaded;

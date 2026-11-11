@@ -26,6 +26,16 @@ const scan = (body, { who = 'seller', type = 'image/jpeg', headers = {} } = {}) 
     r = await straighten(Buffer.from('no es imagen, solo texto de relleno'));
     ok('enderezar un archivo que no es imagen → 400', r.status === 400, String(r.status));
 
+    const propose = (body, who = 'seller') => fetch(B + '/scanner/propose-photo', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(who ? { Authorization: 'Bearer test-' + U[who] } : {}) }, body: JSON.stringify(body) }).then(async (x) => ({ status: x.status, j: await x.json().catch(() => null) }));
+    r = await propose({ tcgId: '123', language: 'Spanish', imageUrl: 'https://x/y.webp' }, null);
+    ok('proponer foto sin sesión → 401', r.status === 401, String(r.status));
+    r = await propose({ tcgId: 'abc', language: 'Spanish', imageUrl: 'https://x/y.webp' });
+    ok('proponer foto con id inválido → 400', r.status === 400, String(r.status));
+    r = await propose({ tcgId: '123', language: 'Klingon', imageUrl: 'https://x/y.webp' });
+    ok('proponer foto con idioma inválido → 400', r.status === 400, String(r.status));
+    r = await propose({ tcgId: '123', language: 'Spanish', imageUrl: 'https://ajena.example.com/card/00000000000000000000000000000000.webp' });
+    ok('proponer una foto que no es de esta persona → se omite (no se propone)', r.status === 200 && r.j?.proposed === false, JSON.stringify(r.j));
+
     r = await scan(JPEG, { headers: { 'x-crop': '0.1,0.1,0.8,0.8', 'x-games': '3,100' } });
     const top = r.j?.top || [];
     ok('con sesión y una imagen válida → candidatas', r.status === 200 && r.j.success === true && r.j.found === true && top.length === 2, JSON.stringify(r.j).slice(0, 200));
