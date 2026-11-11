@@ -144,7 +144,7 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     r = await call('POST', `/folders/${mylFolder}/cards`, 'seller', { tcgId: 'myl-1', name: 'Carta MyL', price: 1000, stock: 1, imageUrl: mylPhoto, data: {} });
     ok('Mitos y Leyendas: la foto propia como imagen principal → 400', r.status === 400 && /oficial/.test(JSON.stringify(r.j)), r.status + ' ' + JSON.stringify(r.j));
 
-    // Otra persona propone la misma carta; el límite diario frena a quien ya llegó al tope
+    // Otra persona propone la misma carta; no hay tope diario de propuestas
     const jerryId = await idOf('jerry');
     const alePhoto = await upload('ale', await picture(3));
     const aleFolder = (await call('POST', '/folders', 'ale', { name: 'CZTEST ale', tcg: 'Pokemon', color: 'blue', isPublic: true })).j.folder.id;
@@ -155,8 +155,8 @@ const keyOf = (url) => new URL(url).pathname.replace(/^\//, '');
     await prisma.catalogImageProposal.createMany({ data: Array.from({ length: 20 }, (_, i) => ({ productId: 98000400 + i, userId: jerryId, imageKey: `Carpetazo.cl/Propuestas/relleno-${i}.webp` })) });
     const jerryFolder = (await call('POST', '/folders', 'jerry', { name: 'CZTEST jerry', tcg: 'Pokemon', color: 'blue', isPublic: true })).j.folder.id;
     await add(jerryFolder, 'jerry', IDS.cuarta, jerryPhoto);
-    ok('con 20 propuestas en el día no se crean más', (await proposals({ productId: IDS.cuarta })).length === 0);
-    await prisma.catalogImageProposal.deleteMany({ where: { productId: { gte: 98000400, lt: 98000420 } } });
+    ok('sin tope diario: con 20 propuestas en el día se crea otra más', (await proposals({ productId: IDS.cuarta })).length === 1);
+    await prisma.catalogImageProposal.deleteMany({ where: { OR: [{ productId: { gte: 98000400, lt: 98000420 } }, { productId: IDS.cuarta }] } });
 
     // --- Permisos de la cola
     const route = '/admin/catalog-photos';

@@ -131,7 +131,7 @@ router.post(
 );
 
 // La foto del escaneo de una carta Pokémon sin imagen oficial se ofrece a Moderación en el momento (sin esperar a guardar la carta).
-// Mismas reglas que al guardar: solo una foto de carta de esta persona, la carta del catálogo debe seguir sin imagen, 20 por día y una por carta.
+// Mismas reglas que al guardar: solo una foto de carta de esta persona, la carta del catálogo debe seguir sin imagen y una propuesta por carta.
 router.post('/api/scanner/propose-photo', authenticateToken, routeLimiter(60 * 1000, 30), express.json({ limit: '2kb' }), async (req, res) => {
   const { tcgId, language, imageUrl } = req.body || {};
   if (!/^[1-9]\d{0,9}$/.test(String(tcgId)) || !['English', 'Spanish', 'Japanese'].includes(language) || typeof imageUrl !== 'string' || imageUrl.length > 600) return badRequest(res, 'Datos inválidos');

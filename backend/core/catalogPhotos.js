@@ -10,7 +10,6 @@ import { itemKeys } from './tcgSync/naming.js';
 import { TCGDEX_CATEGORY, TCGDEX_GAME } from './tcgSync/tcgdex.js';
 
 export const PROPOSALS_PREFIX = 'Carpetazo.cl/Propuestas/';
-export const DAILY_PROPOSALS = 20;
 // Imagen que el catálogo asigna cuando no encuentra una en R2 ni en las APIs: una carta que la usa cuenta como sin imagen
 export const NO_IMAGE_KEY = 'Carpetazo.cl/Sin_Imagen/Carpetazo_TCG_Sin_Imagen.webp';
 export const hasRealImage = (imageKey) => Boolean(imageKey) && imageKey !== NO_IMAGE_KEY;
@@ -54,8 +53,6 @@ export async function proposeCatalogPhoto(db, { userId, firebaseUid, tcg, tcgId:
     const missingImage = await db.catalogCard.findFirst({ where: spanish ? { productId, kind: 'card', spanishImageKey: null } : { productId, kind: 'card', OR: [{ imageKey: null }, { imageKey: NO_IMAGE_KEY }] }, select: { productId: true } });
     if (!missingImage) return skipped(spanish ? 'la carta no existe o ya tiene imagen en español' : 'la carta no existe, ya tiene imagen o no es una carta');
     if (spanish && await hasTcgdexSpanishImage(db, productId)) return skipped('TCGdex ya tiene la imagen en español');
-    const today = await db.catalogImageProposal.count({ where: { userId, createdAt: { gte: new Date(Date.now() - 24 * 3600 * 1000) } } });
-    if (today >= DAILY_PROPOSALS) return skipped('límite diario');
     const id = crypto.randomUUID();
     const imageKey = `${PROPOSALS_PREFIX}${id}.webp`;
     await r2Client.send(new CopyObjectCommand({ Bucket: bucket(), Key: imageKey, CopySource: `${bucket()}/${encodePath(sourceKey)}`, CacheControl: CACHE_CONTROL, ContentType: 'image/webp', MetadataDirective: 'REPLACE' }));
