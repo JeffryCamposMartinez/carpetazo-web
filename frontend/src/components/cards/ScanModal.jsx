@@ -21,6 +21,7 @@ const baseName = (name) => String(name || '').replace(/\s*\([^)]*\)\s*$/, '').re
 // batch = { games, label, onCard } → modo carpeta: juego fijo, el visor sigue abierto tras cada carta y una bandeja cuenta las agregadas
 export default function ScanModal({ onClose, batch }) {
   const navigate = useNavigate();
+  const closeRef = useRef(null);
   const videoRef = useRef(null);
   const areaRef = useRef(null);
   const guideRef = useRef(null);
@@ -30,6 +31,7 @@ export default function ScanModal({ onClose, batch }) {
   const games = useMemo(() => (batch ? batch.games : SCAN_GAMES.find((item) => item.value === game)?.ids || ''), [batch, game]);
   useBodyScrollLock();
   useEscape(true, onClose);
+  useEffect(() => { closeRef.current?.focus({ preventScroll: true }); }, []);
   const handleBatchCard = async (result) => {
     const added = await batch.onCard(result);
     if (!added) return;
@@ -42,7 +44,7 @@ export default function ScanModal({ onClose, batch }) {
       setTray((previous) => previous.map((item) => (done.has(item.queueKey) ? { ...item, queueKey: done.get(item.queueKey), shared: true, photo: null } : item)));
     }
   };
-  const { message, guide, view, cameraError } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: true, batch: Boolean(batch), onCard: handleBatchCard });
+  const { message, guide, view, cameraError, retryCamera } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: true, batch: Boolean(batch), onCard: handleBatchCard });
   const best = view.result?.top?.[0];
   const removeScanned = (index) => {
     batch.onRemove?.(tray[index]);
@@ -67,7 +69,7 @@ export default function ScanModal({ onClose, batch }) {
 
   return createPortal(
     <div role="dialog" aria-modal="true" aria-label="Buscar con la cámara" className="fixed inset-0 z-[1300] overflow-hidden bg-[#02070f] text-slate-100">
-      <style>{'@keyframes scan-sweep{0%{top:3%}50%{top:96%}100%{top:3%}}'}</style>
+      <style>{'@keyframes scan-sweep{0%,100%{transform:translateY(0)}50%{transform:translateY(94cqh)}}@media (prefers-reduced-motion:reduce){.scan-sweep{animation:none!important}}'}</style>
 
       {/* La cámara ocupa toda la pantalla; el marco se mide contra este contenedor */}
       <div ref={areaRef} className="absolute inset-0">
@@ -80,15 +82,20 @@ export default function ScanModal({ onClose, batch }) {
           <span className={`${corner} -right-[3px] -top-[3px] rounded-tr-2xl border-r-4 border-t-4`} style={{ borderColor: color, filter: `drop-shadow(0 0 8px ${color})` }} />
           <span className={`${corner} -bottom-[3px] -left-[3px] rounded-bl-2xl border-b-4 border-l-4`} style={{ borderColor: color, filter: `drop-shadow(0 0 8px ${color})` }} />
           <span className={`${corner} -bottom-[3px] -right-[3px] rounded-br-2xl border-b-4 border-r-4`} style={{ borderColor: color, filter: `drop-shadow(0 0 8px ${color})` }} />
-          <span className="absolute inset-0 overflow-hidden rounded-2xl">
-            {guide === 'scan' && <span className="absolute inset-x-[6%] h-0.5 bg-gradient-to-r from-transparent via-[#00d2ff] to-transparent shadow-[0_0_18px_3px_rgba(0,210,255,0.55)]" style={{ animation: 'scan-sweep 1.35s ease-in-out infinite' }} />}
+          <span className="absolute inset-0 overflow-hidden rounded-2xl [container-type:size]">
+            {guide === 'scan' && <span className="scan-sweep absolute inset-x-[6%] top-[3%] h-0.5 bg-gradient-to-r from-transparent via-[#00d2ff] to-transparent shadow-[0_0_18px_3px_rgba(0,210,255,0.55)] will-change-transform" style={{ animation: 'scan-sweep 1.35s ease-in-out infinite' }} />}
           </span>
         </div>
       )}
 
-      {cameraError && <p role="alert" className="absolute inset-0 flex items-center justify-center bg-[#071526] px-6 text-center text-sm font-semibold text-slate-200">{cameraError}</p>}
+      {cameraError && (
+        <div role="alert" className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#071526] px-6 text-center">
+          <p className="max-w-sm text-sm font-semibold text-slate-200">{cameraError}</p>
+          <button type="button" onClick={retryCamera} className="h-11 rounded-full bg-[#ffcb05] px-5 text-sm font-extrabold text-[#1a1400] transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">Reintentar</button>
+        </div>
+      )}
 
-      <button type="button" onClick={onClose} aria-label="Cerrar" className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-10 flex h-11 w-11 items-center justify-center rounded-full bg-[#071526]/70 text-white backdrop-blur-md transition-[background-color,transform] duration-150 hover:bg-[#071526]/90 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
+      <button ref={closeRef} type="button" onClick={onClose} aria-label="Cerrar" className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-10 flex h-11 w-11 items-center justify-center rounded-full bg-[#071526]/70 text-white backdrop-blur-md transition-[background-color,transform] duration-150 hover:bg-[#071526]/90 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
         <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[24px]" />
       </button>
 

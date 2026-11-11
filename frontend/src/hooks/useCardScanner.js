@@ -25,6 +25,7 @@ const QW = 160;
 const QH = 224;
 const TICK_MS = 150;
 const MAX_SIDE = 1280;
+const SCAN_TIMEOUT_MS = 40000; // el servidor corta a los 30 s
 const PHOTO_SIDE = 1400; // lado mayor del recorte que se ofrece como foto de la carta
 
 const idOf = (item) => item.group || `${item.categoryId}:${item.productId}`;
@@ -41,6 +42,7 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
   const [guide, setGuide] = useState(''); // '' · scan · ok · mid
   const [view, setView] = useState({ result: null, votes: 0, reads: 0, done: false });
   const [cameraError, setCameraError] = useState('');
+  const [attempt, setAttempt] = useState(0); // sube al reintentar la cámara
   const gamesRef = useRef(games);
   gamesRef.current = games;
   const batchRef = useRef(batch);
@@ -149,6 +151,9 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
       if (!video || !box) return;
       state.busy = true; state.lastScanAt = Date.now();
       setGuide('scan');
+      const controller = new AbortController();
+      state.abort = controller;
+      const timeout = window.setTimeout(() => controller.abort(), SCAN_TIMEOUT_MS);
       try {
         const k = Math.min(1, MAX_SIDE / Math.max(video.videoWidth, video.videoHeight));
         const shot = document.createElement('canvas');
@@ -178,16 +183,20 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
           const [cutBlob, wideBlob] = await Promise.all([toJpeg(cut), toJpeg(wide)]);
           if (cutBlob) photo = { blob: cutBlob, wide: wideBlob, sharp: state.lastA?.sharp ?? 0, glare: state.lastA?.high ?? 0 };
         }
-        const data = await api.scanCard(blob, { crop, games: gamesRef.current });
+        const data = await api.scanCard(blob, { crop, games: gamesRef.current, signal: controller.signal });
         if (photo) data.photo = photo;
         if (!state.stopped) vote(data);
       } catch (error) {
         if (!state.stopped) {
           setGuide('');
-          setMessage(error.status === 401 ? 'Inicia sesión para usar la cámara' : error.status === 429 ? 'Un momento…' : 'No se pudo reconocer. Intenta de nuevo');
-          if (error.status === 401) state.stopped = true;
+          const status = error.status;
+          setMessage(status === 401 ? 'Inicia sesión para usar la cámara' : status === 429 ? 'Hay muchas cartas en cola. Reintentando…' : error.name === 'AbortError' ? 'Tardó demasiado. Reintentando…' : status >= 500 ? 'El reconocimiento no responde. Reintentando…' : !status ? 'Sin conexión. Reintentando…' : 'No se pudo reconocer. Intenta de nuevo');
+          if (status === 401) state.stopped = true;
+          else state.lastScanAt = Date.now() + 1500 - CFG.scanGapMs; // espera antes de reintentar para no saturar al servidor
         }
       } finally {
+        window.clearTimeout(timeout);
+        state.abort = null;
         state.busy = false;
       }
     };
@@ -227,24 +236,32 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
         if (state.stopped) { stream.getTracks().forEach((track) => track.stop()); return; }
         const video = videoRef.current;
         if (!video) return;
+        stream.getVideoTracks().forEach((track) => { track.onended = () => { if (!state.stopped) { clearInterval(timer); setCameraError('La cámara se detuvo. Vuelve a intentarlo.'); } }; });
         video.srcObject = stream;
         await video.play().catch(() => {});
         setCameraError('');
         setMessage('Apunta a una carta');
         timer = window.setInterval(tick, TICK_MS);
       } catch (error) {
-        setCameraError(error?.name === 'NotAllowedError' ? 'Permite el acceso a la cámara en tu navegador para escanear cartas.' : error?.message || 'No se pudo abrir la cámara.');
+        const name = error?.name;
+        setCameraError(name === 'NotAllowedError' || name === 'SecurityError' ? 'Permite el acceso a la cámara en tu navegador para escanear cartas.'
+          : name === 'NotFoundError' || name === 'OverconstrainedError' ? 'No encontramos una cámara en este dispositivo.'
+          : name === 'NotReadableError' || name === 'AbortError' ? 'La cámara está en uso por otra aplicación. Ciérrala e inténtalo de nuevo.'
+          : error?.message || 'No se pudo abrir la cámara.');
       }
     })();
 
     return () => {
       state.stopped = true;
+      state.abort?.abort();
       clearInterval(timer);
       stream?.getTracks().forEach((track) => track.stop());
       if (videoRef.current) videoRef.current.srcObject = null;
       Object.assign(state, { prev: null, still: 0, busy: false, hist: [], confirmed: null, moveSince: 0, lost: 0 });
     };
-  }, [enabled, videoRef, areaRef, guideRef, reset]);
+  }, [enabled, attempt, videoRef, areaRef, guideRef, reset]);
 
-  return { message, guide, view, cameraError, reset };
+  const retryCamera = useCallback(() => { setCameraError(''); setMessage('Iniciando cámara…'); setAttempt((value) => value + 1); }, []);
+
+  return { message, guide, view, cameraError, reset, retryCamera };
 }
