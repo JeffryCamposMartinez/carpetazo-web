@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import gsap from 'gsap';
+import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import LiquidTabs from '../ui/LiquidTabs';
@@ -12,6 +14,7 @@ const SAVED_GAME = 'carpetazo.scanGame';
 const readGame = () => { try { const saved = localStorage.getItem(SAVED_GAME); return SCAN_GAMES.some((game) => game.value === saved) ? saved : 'all'; } catch (_error) { return 'all'; } };
 
 // Juego de la sección Cartas (filtro `tcg`) según la categoría del catálogo
+const calm = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 const buzz = () => { try { navigator.vibrate?.(30); } catch (_error) { /* sin vibración */ } };
 const GAME_OF = { 3: 'Pokémon', 100: 'Pokémon', 85: 'Pokémon', 1: 'Magic', 2: 'Yu-Gi-Oh!', 63: 'Digimon', 68: 'One Piece', 71: 'Lorcana', 89: 'Riftbound', 99: 'Mitos y Leyendas' };
 // «Ultra Ball - 213/217 (Cosmos Holo)» → «Ultra Ball»: se busca por nombre para ver todas las ediciones de la carta
@@ -36,8 +39,16 @@ export default function ScanModal({ onClose, batch, origin }) {
   const zoom = useMemo(() => {
     if (!origin || !origin.width || typeof window === 'undefined') return null;
     const scale = Math.max(0.05, Math.max(origin.width / window.innerWidth, origin.height / window.innerHeight));
-    return { '--ox': `${origin.left + origin.width / 2}px`, '--oy': `${origin.top + origin.height / 2}px`, '--s': scale, '--r': `${Math.round(Math.min(origin.width, origin.height) / 2 / scale)}px` };
+    return { origin: `${origin.left + origin.width / 2}px ${origin.top + origin.height / 2}px`, scale, radius: Math.round(Math.min(origin.width, origin.height) / 2 / scale) };
   }, [origin]);
+  const rootRef = useRef(null);
+  // Apertura (GSAP): el visor crece desde el botón con la curva de iOS
+  useLayoutEffect(() => {
+    if (!zoom || calm()) return undefined;
+    const tween = gsap.fromTo(rootRef.current, { scale: zoom.scale, borderRadius: zoom.radius, opacity: 0, transformOrigin: zoom.origin }, { scale: 1, borderRadius: 0, duration: 0.62, ease: 'expo.out', clearProps: 'transform,borderRadius,transformOrigin' });
+    const fade = gsap.fromTo(rootRef.current, { opacity: 0 }, { opacity: 1, duration: 0.16, ease: 'none', clearProps: 'opacity' });
+    return () => { tween.kill(); fade.kill(); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [phase, setPhase] = useState(''); // '' · closing (animación de salida en curso)
   const timers = useRef([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
@@ -46,7 +57,13 @@ export default function ScanModal({ onClose, batch, origin }) {
   const requestClose = (after = onClose) => {
     if (phase === 'closing') return;
     setPhase('closing');
-    later(after, window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : zoom ? 400 : 260);
+    if (zoom && !calm()) {
+      // Vuelve al botón: se encoge hacia él y se desvanece al final
+      gsap.to(rootRef.current, { scale: zoom.scale, borderRadius: zoom.radius, transformOrigin: zoom.origin, duration: 0.46, ease: 'expo.inOut', onComplete: after });
+      gsap.to(rootRef.current, { opacity: 0, duration: 0.18, delay: 0.3, ease: 'none' });
+      return;
+    }
+    later(after, calm() ? 0 : 260);
   };
   useBodyScrollLock();
   useEscape(true, () => requestClose());
@@ -61,12 +78,38 @@ export default function ScanModal({ onClose, batch, origin }) {
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   };
+  // La carta reconocida vuela del marco a su lugar en la bandeja
+  const flyToTray = (item, id) => {
+    const from = guideRef.current?.getBoundingClientRect();
+    if (!from || !item.image || calm()) return false;
+    const ghost = document.createElement('img');
+    ghost.src = item.image;
+    ghost.alt = '';
+    ghost.setAttribute('aria-hidden', 'true');
+    Object.assign(ghost.style, { position: 'fixed', left: `${from.left}px`, top: `${from.top}px`, width: `${from.width}px`, height: `${from.height}px`, objectFit: 'cover', borderRadius: '14px', zIndex: '30', pointerEvents: 'none', opacity: '0', boxShadow: '0 18px 40px -10px rgba(0,0,0,.7)' });
+    rootRef.current?.appendChild(ghost);
+    const start = () => requestAnimationFrame(() => {
+      const target = rootRef.current?.querySelector(`[data-tray-id="${id}"]`)?.getBoundingClientRect();
+      if (!target) { ghost.remove(); return; }
+      const dx = target.left + target.width / 2 - (from.left + from.width / 2);
+      const dy = target.top + target.height / 2 - (from.top + from.height / 2);
+      gsap.timeline({ onComplete: () => ghost.remove() })
+        .to(ghost, { opacity: 1, scale: 1.04, duration: 0.14, ease: 'power2.out' })
+        .to(ghost, { x: dx, y: dy, scale: target.width / from.width, borderRadius: 8, duration: 0.5, ease: 'power3.inOut' }, '>0.04')
+        .to(ghost, { opacity: 0, duration: 0.08, ease: 'none' });
+    });
+    (ghost.decode ? ghost.decode().catch(() => {}) : Promise.resolve()).then(() => requestAnimationFrame(start));
+    return true;
+  };
   const handleBatchCard = async (result) => {
     const added = await batch.onCard(result);
     if (!added) return;
     const uploading = Boolean(added.noImage && added.photo?.blob && !offered.current.has(added.key));
-    setTray((previous) => [...previous, { ...added, uploading, trayId: ++trayId.current }]);
+    const id = ++trayId.current;
+    const fly = Boolean(added.image) && !calm() && Boolean(guideRef.current);
+    setTray((previous) => [...previous, { ...added, uploading, trayId: id, fly }]);
     setFlash((value) => value + 1);
+    if (fly) flyToTray(added, id);
     buzz();
     // Sin imagen oficial: la foto del escaneo se aporta sola (se endereza, se sube y va a Moderación al guardar la carta)
     if (added.noImage && added.photo?.blob && !offered.current.has(added.key)) {
@@ -100,7 +143,7 @@ export default function ScanModal({ onClose, batch, origin }) {
   const live = !cameraError;
 
   return createPortal(
-    <div role="dialog" aria-modal="true" aria-label="Buscar con la cámara" onKeyDown={trapTab} className={`scan-root fixed inset-0 z-[1300] overflow-hidden bg-[#02070f] text-slate-100 ${zoom ? 'scan-zoom' : ''} ${phase === 'closing' ? 'scan-out' : ''}`} style={zoom || undefined}>
+    <div role="dialog" aria-modal="true" aria-label="Buscar con la cámara" onKeyDown={trapTab} ref={rootRef} className={`${zoom ? 'scan-zoom' : 'scan-root'} fixed inset-0 z-[1300] overflow-hidden bg-[#02070f] text-slate-100 ${phase === 'closing' ? 'scan-out' : ''}`}>
       <style>{`
         @keyframes scan-in{from{opacity:0}to{opacity:1}}
         @keyframes frame-in{from{opacity:0;transform:scale(1.07)}to{opacity:1;transform:none}}
@@ -109,7 +152,6 @@ export default function ScanModal({ onClose, batch, origin }) {
         @keyframes guide-pulse{0%{opacity:.6;transform:scale(1)}100%{opacity:0;transform:scale(1.06)}}
         @keyframes check-pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}40%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}
         @keyframes check-draw{from{stroke-dashoffset:26}to{stroke-dashoffset:0}}
-        @keyframes tray-in{0%{opacity:0;transform:translateY(10px) scale(.86)}60%{transform:translateY(-1px) scale(1.03)}100%{opacity:1;transform:none}}
         @keyframes msg-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
         @keyframes dot-ping{0%{transform:scale(1);opacity:.55}100%{transform:scale(2.6);opacity:0}}
         @keyframes dock-in{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
@@ -119,11 +161,8 @@ export default function ScanModal({ onClose, batch, origin }) {
         @keyframes scan-out-dock{to{opacity:0;transform:translateY(18px)}}
         @keyframes search-ring{0%{opacity:.7;transform:translate(-50%,-50%) scale(.35)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.5)}}
         @keyframes pill-shimmer{from{transform:translateX(-120%)}to{transform:translateX(220%)}}
-        @keyframes zoom-open{0%{opacity:0;transform:scale(var(--s));border-radius:var(--r)}18%{opacity:1}100%{opacity:1;transform:none;border-radius:0}}
-        @keyframes zoom-close{0%{opacity:1;transform:none;border-radius:0}70%{opacity:1}100%{opacity:0;transform:scale(var(--s));border-radius:var(--r)}}
         .scan-root{animation:scan-in 220ms cubic-bezier(.23,1,.32,1)}
-        .scan-zoom{transform-origin:var(--ox) var(--oy);animation:zoom-open 540ms cubic-bezier(.32,.72,0,1) both}
-        .scan-zoom.scan-out{animation:zoom-close 400ms cubic-bezier(.32,.72,0,1) forwards}
+        .scan-zoom.scan-out{animation:none}
         .scan-cam{animation:cam-in 640ms cubic-bezier(.23,1,.32,1)}
         .scan-out{animation:scan-out-root 260ms cubic-bezier(.4,0,1,1) forwards;pointer-events:none}
         .scan-out .scan-frame{animation:scan-out-frame 260ms cubic-bezier(.4,0,1,1) forwards}
@@ -136,7 +175,7 @@ export default function ScanModal({ onClose, batch, origin }) {
         .scan-gloss{opacity:0;animation:gloss 1000ms cubic-bezier(.4,0,.2,1) 380ms forwards}
         .scan-dock{animation:dock-in 420ms cubic-bezier(.23,1,.32,1) 60ms backwards}
         .scan-glass{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.04)),rgba(7,21,38,.62);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 10px 30px -12px rgba(0,0,0,.6);-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5)}
-        @media (prefers-reduced-motion:reduce){.scan-root,.scan-zoom,.scan-zoom.scan-out,.scan-cam,.scan-out,.scan-out .scan-frame,.scan-out .scan-dock,.search-ring,.pill-shimmer,.scan-frame,.scan-corners>span,.scan-gloss,.scan-dock,.scan-sweep,.tray-in,.guide-pulse,.lock-bump,.msg-in,.dot-ping{animation:none!important}.check-pop{display:none}}
+        @media (prefers-reduced-motion:reduce){.scan-root,.scan-zoom.scan-out,.scan-cam,.scan-out,.scan-out .scan-frame,.scan-out .scan-dock,.search-ring,.pill-shimmer,.scan-frame,.scan-corners>span,.scan-gloss,.scan-dock,.scan-sweep,.guide-pulse,.lock-bump,.msg-in,.dot-ping{animation:none!important}.check-pop{display:none}}
       `}</style>
 
       {/* La cámara ocupa toda la pantalla; el marco se mide contra este contenedor */}
@@ -191,9 +230,11 @@ export default function ScanModal({ onClose, batch, origin }) {
         )}
         {batch && tray.length > 0 && (
           <div className="scan-glass flex w-full max-w-xl items-center gap-2.5 rounded-[22px] p-2">
-            <ul className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Cartas escaneadas">
+            <MotionConfig reducedMotion="user">
+            <ul className="relative flex min-w-0 flex-1 gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Cartas escaneadas">
+              <AnimatePresence initial={false} mode="popLayout">
               {tray.map((item, index) => (
-                <li key={item.trayId} className="tray-in relative h-[68px] w-12 shrink-0 rounded-lg bg-[#02070f] shadow-[0_6px_14px_-6px_rgba(0,0,0,.7)] ring-1 ring-white/25" style={{ animation: 'tray-in 360ms cubic-bezier(.23,1,.32,1)' }}>
+                <motion.li key={item.trayId} layout data-tray-id={item.trayId} initial={item.fly ? { opacity: 0 } : { opacity: 0, scale: 0.8, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.7 }} transition={{ type: 'spring', duration: 0.42, bounce: 0.2, delay: item.fly ? 0.56 : 0 }} className="relative h-[68px] w-12 shrink-0 rounded-lg bg-[#02070f] shadow-[0_6px_14px_-6px_rgba(0,0,0,.7)] ring-1 ring-white/25">
                   <span className="absolute inset-0 overflow-hidden rounded-lg">
                   {item.image ? <img src={item.image} alt={item.name} title={item.name} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-[10px]">?</span>}
                   {item.language && <span className="absolute inset-x-0 bottom-0 bg-black/70 text-center text-[8px] font-bold uppercase text-white">{item.language}</span>}
@@ -203,9 +244,11 @@ export default function ScanModal({ onClose, batch, origin }) {
                   </button>
                   {item.uploading && <span role="status" aria-label="Subiendo foto" className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/55"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-[#ffcb05] motion-reduce:animate-none" /></span>}
                   {item.shared && <span className="absolute right-0 top-0 rounded-bl bg-[#ffcb05] px-1 text-[9px] font-extrabold text-[#1a1400]" title="Tu foto se ofrece a Moderación">✓</span>}
-                </li>
+                </motion.li>
               ))}
+              </AnimatePresence>
             </ul>
+            </MotionConfig>
             <button type="button" onClick={() => requestClose()} className="h-11 shrink-0 rounded-full bg-gradient-to-b from-[#ffd84a] to-[#ffcb05] px-5 text-sm font-extrabold text-[#1a1400] shadow-[0_6px_18px_-6px_rgba(255,203,5,0.6)] transition-[transform,filter] duration-150 hover:brightness-105 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">Listo ({tray.length})</button>
           </div>
         )}
