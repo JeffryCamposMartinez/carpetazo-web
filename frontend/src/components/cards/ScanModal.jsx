@@ -29,6 +29,7 @@ export default function ScanModal({ onClose, batch }) {
   const [game, setGame] = useState(readGame);
   const [tray, setTray] = useState([]); // lote: cartas que ya entraron a la cola de la carpeta
   const [flash, setFlash] = useState(0); // sube con cada carta reconocida: dispara el pulso breve del marco
+  const trayId = useRef(0); // clave estable por miniatura: quitar una no reinicia la animación de las demás
   const offered = useRef(new Set()); // cartas cuya foto ya se aportó en esta sesión (una sola vez por carta)
   const games = useMemo(() => (batch ? batch.games : SCAN_GAMES.find((item) => item.value === game)?.ids || ''), [batch, game]);
   useBodyScrollLock();
@@ -48,7 +49,7 @@ export default function ScanModal({ onClose, batch }) {
     const added = await batch.onCard(result);
     if (!added) return;
     const uploading = Boolean(added.noImage && added.photo?.blob && !offered.current.has(added.key));
-    setTray((previous) => [...previous, { ...added, uploading }]);
+    setTray((previous) => [...previous, { ...added, uploading, trayId: ++trayId.current }]);
     setFlash((value) => value + 1);
     buzz();
     // Sin imagen oficial: la foto del escaneo se aporta sola (se endereza, se sube y va a Moderación al guardar la carta)
@@ -126,7 +127,7 @@ export default function ScanModal({ onClose, batch }) {
           <div className="flex w-full max-w-xl items-center gap-2 rounded-2xl border border-sky-300/15 bg-[#071526]/80 p-2 backdrop-blur-md">
             <ul className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Cartas escaneadas">
               {tray.map((item, index) => (
-                <li key={`${item.key}-${index}`} className="tray-in relative h-[68px] w-12 shrink-0 rounded-md bg-[#02070f] ring-1 ring-white/20" style={{ animation: 'tray-in 180ms ease-out' }}>
+                <li key={item.trayId} className="tray-in relative h-[68px] w-12 shrink-0 rounded-md bg-[#02070f] ring-1 ring-white/20" style={{ animation: 'tray-in 180ms ease-out' }}>
                   <span className="absolute inset-0 overflow-hidden rounded-md">
                   {item.image ? <img src={item.image} alt={item.name} title={item.name} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-[10px]">?</span>}
                   {item.language && <span className="absolute inset-x-0 bottom-0 bg-black/70 text-center text-[8px] font-bold uppercase text-white">{item.language}</span>}
