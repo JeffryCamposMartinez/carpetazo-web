@@ -58,10 +58,13 @@ export default function FolderAddTab({
       const card = list.find((item) => String(item.tcgProductId) === String(found.productId));
       if (!card) return null;
       setMultiSelectMode(true);
-      addCardToQueue(card);
+      // La misma carta sin imagen oficial ya escaneada y con su foto propia en la cola: se suma a esa entrada (cantidad) en vez de crear otra sin foto
+      const prior = selectedQueue.find((entry) => entry.card.isCustomImage && String(entry.card.tcgProductId) === String(card.tcgProductId) && entry.card.cardLanguage === card.cardLanguage)?.card;
+      const target = prior || card;
+      addCardToQueue(target);
       // Sin imagen oficial (la ficha trae «Sin imagen»): se guarda la foto del escaneo por si la persona decide aportarla
-      const noImage = card.hasImage === false && !card.isCustomImage;
-      return { key: String(card.tcgProductId), queueKey: getCardSelectionKey(card), name: card.name, image: card.imageUrl, language: card.cardLanguage === 'Spanish' ? 'ES' : card.cardLanguage === 'Japanese' ? 'JP' : 'EN', noImage, photo: noImage ? result.photo || null : null };
+      const noImage = !prior && card.hasImage === false && !card.isCustomImage;
+      return { key: String(card.tcgProductId), queueKey: getCardSelectionKey(target), name: card.name, image: target.imageUrl, language: card.cardLanguage === 'Spanish' ? 'ES' : card.cardLanguage === 'Japanese' ? 'JP' : 'EN', noImage, shared: Boolean(prior), photo: noImage ? result.photo || null : null };
     } catch (_error) {
       return null;
     }

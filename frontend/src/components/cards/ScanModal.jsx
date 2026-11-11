@@ -12,6 +12,7 @@ const SAVED_GAME = 'carpetazo.scanGame';
 const readGame = () => { try { const saved = localStorage.getItem(SAVED_GAME); return SCAN_GAMES.some((game) => game.value === saved) ? saved : 'all'; } catch (_error) { return 'all'; } };
 
 // Juego de la sección Cartas (filtro `tcg`) según la categoría del catálogo
+const buzz = () => { try { navigator.vibrate?.(30); } catch (_error) { /* sin vibración */ } };
 const GAME_OF = { 3: 'Pokémon', 100: 'Pokémon', 85: 'Pokémon', 1: 'Magic', 2: 'Yu-Gi-Oh!', 63: 'Digimon', 68: 'One Piece', 71: 'Lorcana', 89: 'Riftbound', 99: 'Mitos y Leyendas' };
 // «Ultra Ball - 213/217 (Cosmos Holo)» → «Ultra Ball»: se busca por nombre para ver todas las ediciones de la carta
 const baseName = (name) => String(name || '').replace(/\s*\([^)]*\)\s*$/, '').replace(/\s+-\s+\S*\d\S*$/, '').trim();
@@ -27,6 +28,7 @@ export default function ScanModal({ onClose, batch }) {
   const guideRef = useRef(null);
   const [game, setGame] = useState(readGame);
   const [tray, setTray] = useState([]); // lote: cartas que ya entraron a la cola de la carpeta
+  const [flash, setFlash] = useState(0); // sube con cada carta reconocida: dispara el pulso breve del marco
   const offered = useRef(new Set()); // cartas cuya foto ya se aportó en esta sesión (una sola vez por carta)
   const games = useMemo(() => (batch ? batch.games : SCAN_GAMES.find((item) => item.value === game)?.ids || ''), [batch, game]);
   useBodyScrollLock();
@@ -35,13 +37,16 @@ export default function ScanModal({ onClose, batch }) {
   const handleBatchCard = async (result) => {
     const added = await batch.onCard(result);
     if (!added) return;
-    setTray((previous) => [...previous, added]);
+    const uploading = Boolean(added.noImage && added.photo?.blob && !offered.current.has(added.key));
+    setTray((previous) => [...previous, { ...added, uploading }]);
+    setFlash((value) => value + 1);
+    buzz();
     // Sin imagen oficial: la foto del escaneo se aporta sola (se endereza, se sube y va a Moderación al guardar la carta)
     if (added.noImage && added.photo?.blob && !offered.current.has(added.key)) {
       offered.current.add(added.key);
       const done = new Map((await batch.onShare([added])).map(({ from, to }) => [from, to]));
       if (done.size === 0) offered.current.delete(added.key); // no se pudo subir: se reintenta con el próximo escaneo de esa carta
-      setTray((previous) => previous.map((item) => (done.has(item.queueKey) ? { ...item, queueKey: done.get(item.queueKey), shared: true, photo: null } : item)));
+      setTray((previous) => previous.map((item) => (done.has(item.queueKey) ? { ...item, queueKey: done.get(item.queueKey), shared: true, uploading: false, photo: null } : item.uploading && item.key === added.key ? { ...item, uploading: false } : item)));
     }
   };
   const { message, guide, view, cameraError, retryCamera } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: true, batch: Boolean(batch), onCard: handleBatchCard });
@@ -60,7 +65,7 @@ export default function ScanModal({ onClose, batch }) {
     onClose();
     navigate(`/cartas?${params.toString()}`, { state: { scanOrder } });
   };
-  useEffect(() => { if (!batch && view.done && best) openSearch(best); }, [view.done]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!batch && view.done && best) { buzz(); openSearch(best); } }, [view.done]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pickGame = (value) => { setGame(value); try { localStorage.setItem(SAVED_GAME, value); } catch (_error) { /* sin almacenamiento: no se recuerda el juego */ } };
   const color = GUIDE_COLOR[guide] || GUIDE_COLOR[''];
@@ -69,7 +74,7 @@ export default function ScanModal({ onClose, batch }) {
 
   return createPortal(
     <div role="dialog" aria-modal="true" aria-label="Buscar con la cámara" className="fixed inset-0 z-[1300] overflow-hidden bg-[#02070f] text-slate-100">
-      <style>{'@keyframes scan-sweep{0%,100%{transform:translateY(0)}50%{transform:translateY(94cqh)}}@media (prefers-reduced-motion:reduce){.scan-sweep{animation:none!important}}'}</style>
+      <style>{'@keyframes scan-sweep{0%,100%{transform:translateY(0)}50%{transform:translateY(94cqh)}}@keyframes tray-in{from{opacity:0;transform:translateY(8px) scale(.9)}to{opacity:1;transform:none}}@keyframes guide-pulse{0%{opacity:.55;transform:scale(1)}100%{opacity:0;transform:scale(1.05)}}@media (prefers-reduced-motion:reduce){.scan-sweep,.tray-in,.guide-pulse{animation:none!important}}'}</style>
 
       {/* La cámara ocupa toda la pantalla; el marco se mide contra este contenedor */}
       <div ref={areaRef} className="absolute inset-0">
@@ -82,6 +87,7 @@ export default function ScanModal({ onClose, batch }) {
           <span className={`${corner} -right-[3px] -top-[3px] rounded-tr-2xl border-r-4 border-t-4`} style={{ borderColor: color, filter: `drop-shadow(0 0 8px ${color})` }} />
           <span className={`${corner} -bottom-[3px] -left-[3px] rounded-bl-2xl border-b-4 border-l-4`} style={{ borderColor: color, filter: `drop-shadow(0 0 8px ${color})` }} />
           <span className={`${corner} -bottom-[3px] -right-[3px] rounded-br-2xl border-b-4 border-r-4`} style={{ borderColor: color, filter: `drop-shadow(0 0 8px ${color})` }} />
+          {flash > 0 && <span key={flash} className="guide-pulse absolute inset-0 rounded-2xl border-4 border-[#34d399]" style={{ animation: 'guide-pulse 420ms ease-out forwards' }} />}
           <span className="absolute inset-0 overflow-hidden rounded-2xl [container-type:size]">
             {guide === 'scan' && <span className="scan-sweep absolute inset-x-[6%] top-[3%] h-0.5 bg-gradient-to-r from-transparent via-[#00d2ff] to-transparent shadow-[0_0_18px_3px_rgba(0,210,255,0.55)] will-change-transform" style={{ animation: 'scan-sweep 1.35s ease-in-out infinite' }} />}
           </span>
@@ -110,12 +116,13 @@ export default function ScanModal({ onClose, batch }) {
           <div className="flex w-full max-w-xl items-center gap-2 rounded-2xl border border-sky-300/15 bg-[#071526]/80 p-2 backdrop-blur-md">
             <ul className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Cartas escaneadas">
               {tray.map((item, index) => (
-                <li key={`${item.key}-${index}`} className="relative h-14 w-10 shrink-0 overflow-hidden rounded-md bg-[#02070f] ring-1 ring-white/20">
+                <li key={`${item.key}-${index}`} className="tray-in relative h-[68px] w-12 shrink-0 overflow-hidden rounded-md bg-[#02070f] ring-1 ring-white/20" style={{ animation: 'tray-in 180ms ease-out' }}>
                   {item.image ? <img src={item.image} alt={item.name} title={item.name} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-[10px]">?</span>}
                   {item.language && <span className="absolute inset-x-0 bottom-0 bg-black/70 text-center text-[8px] font-bold uppercase text-white">{item.language}</span>}
-                  <button type="button" onClick={() => removeScanned(index)} aria-label={`Quitar ${item.name}`} title="Quitar carta" className="absolute left-0 top-0 flex h-6 w-6 items-center justify-center rounded-br-lg bg-black/75 text-white transition-[background-color,transform] duration-150 hover:bg-red-600 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
+                  <button type="button" onClick={() => removeScanned(index)} aria-label={`Quitar ${item.name}`} title="Quitar carta" className="absolute left-0 top-0 flex h-7 w-7 items-center justify-center rounded-br-lg bg-black/75 before:absolute before:-bottom-2 before:-right-2 before:h-11 before:w-11 before:content-[''] text-white transition-[background-color,transform] duration-150 hover:bg-red-600 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
                     <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[14px]" />
                   </button>
+                  {item.uploading && <span role="status" aria-label="Subiendo foto" className="absolute inset-0 flex items-center justify-center bg-black/55"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-[#ffcb05] motion-reduce:animate-none" /></span>}
                   {item.shared && <span className="absolute right-0 top-0 rounded-bl bg-[#ffcb05] px-1 text-[9px] font-extrabold text-[#1a1400]" title="Tu foto se ofrece a Moderación">✓</span>}
                 </li>
               ))}

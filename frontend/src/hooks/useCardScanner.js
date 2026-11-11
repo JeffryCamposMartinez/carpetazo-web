@@ -203,6 +203,7 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
 
     const tick = () => {
       const video = videoRef.current;
+      if (document.hidden) { state.prev = null; state.still = 0; return; } // pestaña oculta: sin análisis (ahorra batería) y sin falsos movimientos al volver
       if (state.stopped || state.confirmed || !video?.videoWidth) return; // reconocida: el resultado queda fijo hasta tocar «Escanear otra carta»
       const a = analyze();
       if (!a) return;
