@@ -99,10 +99,10 @@ export default function ScanModal({ onClose, batch }) {
             <span className="truncate">{message}</span>
           </div>
         )}
-        {batch && shareable.length > 0 && (
+        {batch && tray.length > 0 && (
           <div className="flex w-full max-w-xl items-center gap-3 rounded-2xl border border-[#ffcb05]/30 bg-[#071526]/85 px-3 py-2 backdrop-blur-md">
-            <p className="min-w-0 flex-1 text-xs font-semibold leading-snug text-slate-200">{shareable.length === 1 ? 'Una carta no tiene imagen.' : `${shareable.length} cartas no tienen imagen.`} Si quieres, tu foto va a Moderación como imagen oficial.</p>
-            <button type="button" onClick={sharePhotos} disabled={sharing} className="h-11 shrink-0 rounded-full border border-[#ffcb05] px-4 text-sm font-extrabold text-[#ffcb05] transition-[background-color,transform] duration-150 hover:bg-[#ffcb05]/10 active:scale-[0.97] disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-white">{sharing ? 'Subiendo…' : 'Aportar foto'}</button>
+            <p className="min-w-0 flex-1 text-xs font-semibold leading-snug text-slate-200">{shareable.length > 0 ? `${shareable.length === 1 ? 'Una carta no tiene imagen.' : `${shareable.length} cartas no tienen imagen.`} Tu foto va a Moderación como imagen oficial.` : 'Las cartas con imagen oficial no necesitan foto.'}</p>
+            <button type="button" onClick={sharePhotos} disabled={sharing || shareable.length === 0} className="h-11 shrink-0 rounded-full border border-[#ffcb05] px-4 text-sm font-extrabold text-[#ffcb05] transition-[background-color,transform,opacity] duration-150 hover:bg-[#ffcb05]/10 active:scale-[0.97] disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-white">{sharing ? 'Subiendo…' : `Subir fotos (${shareable.length})`}</button>
           </div>
         )}
         {batch && tray.length > 0 && (
