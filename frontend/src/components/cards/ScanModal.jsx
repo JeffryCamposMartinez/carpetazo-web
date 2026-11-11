@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import gsap from 'gsap';
+import { CustomEase } from 'gsap/CustomEase';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
@@ -14,6 +15,18 @@ const SAVED_GAME = 'carpetazo.scanGame';
 const readGame = () => { try { const saved = localStorage.getItem(SAVED_GAME); return SCAN_GAMES.some((game) => game.value === saved) ? saved : 'all'; } catch (_error) { return 'all'; } };
 
 // Juego de la sección Cartas (filtro `tcg`) según la categoría del catálogo
+gsap.registerPlugin(CustomEase);
+CustomEase.create('ios', '.28,.7,.1,1'); // la curva de apertura de iOS: arranca rápido y se asienta sin rebote
+const K = 0.55; // el visor parte a esta escala (con el recorte del tamaño del botón) y llega a 1
+// Recorte y origen del visor para que, a escala K, lo visible sea justo el botón de cámara
+const morph = (origin, w, h) => {
+  const ox = origin.left + origin.width / 2;
+  const oy = origin.top + origin.height / 2;
+  const at = (v, o) => o + (v - o) / K;
+  return { t: at(origin.top, oy), l: at(origin.left, ox), r: w - at(origin.left + origin.width, ox), b: h - at(origin.top + origin.height, oy), rad: Math.min(origin.width, origin.height) / 2 / K, origin: `${ox}px ${oy}px` };
+};
+// x e y van de 0 (forma del botón) a 1 (pantalla completa); el ancho se adelanta al alto para que no se estire como una tira
+const clip = (m, x, y) => `inset(${(m.t * (1 - y)).toFixed(1)}px ${(m.r * (1 - x)).toFixed(1)}px ${(m.b * (1 - y)).toFixed(1)}px ${(m.l * (1 - x)).toFixed(1)}px round ${(m.rad * (1 - Math.max(x, y))).toFixed(1)}px)`;
 const calm = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 const buzz = () => { try { navigator.vibrate?.(30); } catch (_error) { /* sin vibración */ } };
 const GAME_OF = { 3: 'Pokémon', 100: 'Pokémon', 85: 'Pokémon', 1: 'Magic', 2: 'Yu-Gi-Oh!', 63: 'Digimon', 68: 'One Piece', 71: 'Lorcana', 89: 'Riftbound', 99: 'Mitos y Leyendas' };
@@ -36,18 +49,25 @@ export default function ScanModal({ onClose, batch, origin }) {
   const offered = useRef(new Set()); // cartas cuya foto ya se aportó en esta sesión (una sola vez por carta)
   const games = useMemo(() => (batch ? batch.games : SCAN_GAMES.find((item) => item.value === game)?.ids || ''), [batch, game]);
   // Como al abrir una app en el iPhone: el visor crece desde el botón de cámara y al cerrar vuelve a él
-  const zoom = useMemo(() => {
-    if (!origin || !origin.width || typeof window === 'undefined') return null;
-    const scale = Math.max(0.05, Math.max(origin.width / window.innerWidth, origin.height / window.innerHeight));
-    return { origin: `${origin.left + origin.width / 2}px ${origin.top + origin.height / 2}px`, scale, radius: Math.round(Math.min(origin.width, origin.height) / 2 / scale) };
-  }, [origin]);
+  const zoom = origin && origin.width ? origin : null;
   const rootRef = useRef(null);
-  // Apertura (GSAP): el visor crece desde el botón con la curva de iOS
+  const ui = () => [...rootRef.current.querySelectorAll('[data-ui]')];
+  // Apertura: del botón al visor completo. El recorte pasa de la forma del botón a pantalla completa, el contenido se cruza con el icono y la interfaz entra al final
   useLayoutEffect(() => {
     if (!zoom || calm()) return undefined;
-    const tween = gsap.fromTo(rootRef.current, { scale: zoom.scale, borderRadius: zoom.radius, opacity: 0, transformOrigin: zoom.origin }, { scale: 1, borderRadius: 0, duration: 0.62, ease: 'expo.out', clearProps: 'transform,borderRadius,transformOrigin' });
-    const fade = gsap.fromTo(rootRef.current, { opacity: 0 }, { opacity: 1, duration: 0.16, ease: 'none', clearProps: 'opacity' });
-    return () => { tween.kill(); fade.kill(); };
+    const root = rootRef.current;
+    const m = morph(zoom, root.offsetWidth, root.offsetHeight);
+    const launch = root.querySelector('[data-launch]');
+    const pos = { x: 0, y: 0 };
+    const paint = () => { root.style.clipPath = clip(m, pos.x, pos.y); };
+    paint();
+    const tl = gsap.timeline({ onComplete: () => gsap.set(root, { clearProps: 'all' }) });
+    tl.fromTo(root, { scale: K, transformOrigin: m.origin, willChange: 'transform, clip-path' }, { scale: 1, duration: 0.85, ease: 'ios' }, 0)
+      .to(pos, { x: 1, duration: 0.62, ease: 'ios', onUpdate: paint }, 0)
+      .to(pos, { y: 1, duration: 0.9, ease: 'ios', onUpdate: paint }, 0)
+      .fromTo(launch, { opacity: 1 }, { opacity: 0, duration: 0.24, ease: 'power1.out' }, 0.05)
+      .fromTo(ui(), { opacity: 0 }, { opacity: 1, duration: 0.45, ease: 'power2.out', stagger: 0.06, clearProps: 'opacity' }, 0.3);
+    return () => { tl.kill(); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [phase, setPhase] = useState(''); // '' · closing (animación de salida en curso)
   const timers = useRef([]);
@@ -58,9 +78,21 @@ export default function ScanModal({ onClose, batch, origin }) {
     if (phase === 'closing') return;
     setPhase('closing');
     if (zoom && !calm()) {
-      // Vuelve al botón: se encoge hacia él y se desvanece al final
-      gsap.to(rootRef.current, { scale: zoom.scale, borderRadius: zoom.radius, transformOrigin: zoom.origin, duration: 0.46, ease: 'expo.inOut', onComplete: after });
-      gsap.to(rootRef.current, { opacity: 0, duration: 0.18, delay: 0.3, ease: 'none' });
+      // Vuelve al botón: la interfaz se va primero, el recorte se cierra sobre el botón y el icono lo sustituye al llegar
+      const root = rootRef.current;
+      const m = morph(zoom, root.offsetWidth, root.offsetHeight);
+      const launch = root.querySelector('[data-launch]');
+      const pos = { x: 1, y: 1 };
+      const paint = () => { root.style.clipPath = clip(m, pos.x, pos.y); };
+      paint();
+      gsap.timeline({ onComplete: after })
+        .to(ui(), { opacity: 0, duration: 0.16, ease: 'power1.in' }, 0)
+        .set(root, { transformOrigin: m.origin, willChange: 'transform, clip-path' }, 0)
+        .to(root, { scale: K, duration: 0.68, ease: 'ios' }, 0.04)
+        .to(pos, { y: 0, duration: 0.58, ease: 'ios', onUpdate: paint }, 0.04)
+        .to(pos, { x: 0, duration: 0.72, ease: 'ios', onUpdate: paint }, 0.04)
+        .to(launch, { opacity: 1, duration: 0.22, ease: 'power1.in' }, 0.42)
+        .to(root, { opacity: 0, duration: 0.08, ease: 'none' }, 0.7);
       return;
     }
     later(after, calm() ? 0 : 260);
@@ -162,7 +194,8 @@ export default function ScanModal({ onClose, batch, origin }) {
         @keyframes search-ring{0%{opacity:.7;transform:translate(-50%,-50%) scale(.35)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.5)}}
         @keyframes pill-shimmer{from{transform:translateX(-120%)}to{transform:translateX(220%)}}
         .scan-root{animation:scan-in 220ms cubic-bezier(.23,1,.32,1)}
-        .scan-zoom.scan-out{animation:none}
+        .scan-zoom.scan-out,.scan-zoom .scan-dock,.scan-zoom .scan-cam{animation:none}
+        .scan-zoom.scan-out .scan-frame,.scan-zoom.scan-out .scan-dock{animation:none}
         .scan-cam{animation:cam-in 640ms cubic-bezier(.23,1,.32,1)}
         .scan-out{animation:scan-out-root 260ms cubic-bezier(.4,0,1,1) forwards;pointer-events:none}
         .scan-out .scan-frame{animation:scan-out-frame 260ms cubic-bezier(.4,0,1,1) forwards}
@@ -179,12 +212,17 @@ export default function ScanModal({ onClose, batch, origin }) {
       `}</style>
 
       {/* La cámara ocupa toda la pantalla; el marco se mide contra este contenedor */}
+      {zoom && (
+        <div data-launch aria-hidden="true" className="pointer-events-none absolute inset-0 z-20 bg-[#0b1f3a]">
+          <span className="absolute flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center text-white" style={{ left: zoom.left + zoom.width / 2, top: zoom.top + zoom.height / 2 }}><SvgIcon name="photo_camera" translate="no" className="text-[26px]" /></span>
+        </div>
+      )}
       <div ref={areaRef} className="scan-cam absolute inset-0">
         <video ref={videoRef} playsInline muted autoPlay className="block h-full w-full object-cover" />
       </div>
 
       {live && (
-        <div ref={guideRef} className="pointer-events-none absolute left-1/2 top-[46%] aspect-[63/88] w-[min(80vw,calc(58svh*63/88))] -translate-x-1/2 -translate-y-1/2 rounded-[22px] shadow-[0_0_0_999px_rgba(2,9,20,0.6)]">
+        <div ref={guideRef} data-ui className="pointer-events-none absolute left-1/2 top-[46%] aspect-[63/88] w-[min(80vw,calc(58svh*63/88))] -translate-x-1/2 -translate-y-1/2 rounded-[22px] shadow-[0_0_0_999px_rgba(2,9,20,0.6)]">
           <span className="scan-frame absolute inset-0"><span key={guide === 'ok' ? 'ok' : 'idle'} className="scan-corners absolute inset-0" style={guide === 'ok' ? { animation: 'lock-bump 320ms cubic-bezier(.23,1,.32,1)' } : undefined}>
             <span className={`${corner} -left-[2px] -top-[2px] rounded-tl-[22px] border-l-[3px] border-t-[3px]`} style={{ borderColor: color, filter: `drop-shadow(0 0 6px ${color})` }} />
             <span className={`${corner} -right-[2px] -top-[2px] rounded-tr-[22px] border-r-[3px] border-t-[3px]`} style={{ borderColor: color, filter: `drop-shadow(0 0 6px ${color})` }} />
@@ -213,11 +251,11 @@ export default function ScanModal({ onClose, batch, origin }) {
         </div>
       )}
 
-      <button ref={closeRef} type="button" onClick={() => requestClose()} aria-label="Cerrar" className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-10 flex h-11 w-11 items-center justify-center scan-glass rounded-full text-white transition-[filter,transform] duration-150 hover:brightness-125 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
+      <button ref={closeRef} data-ui type="button" onClick={() => requestClose()} aria-label="Cerrar" className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-10 flex h-11 w-11 items-center justify-center scan-glass rounded-full text-white transition-[filter,transform] duration-150 hover:brightness-125 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
         <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[24px]" />
       </button>
 
-      <div className="scan-dock absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-3 px-3 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
+      <div data-ui className="scan-dock absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-3 px-3 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
         {live && (
           <div role="status" className="scan-glass relative flex max-w-[92%] items-center gap-2.5 overflow-hidden rounded-full py-2 pl-3.5 pr-4 text-sm font-semibold">
             <span className="relative flex h-2.5 w-2.5 shrink-0">
