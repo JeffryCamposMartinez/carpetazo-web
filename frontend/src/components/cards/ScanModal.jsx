@@ -80,12 +80,29 @@ export default function ScanModal({ onClose, batch }) {
 
   const pickGame = (value) => { setGame(value); try { localStorage.setItem(SAVED_GAME, value); } catch (_error) { /* sin almacenamiento: no se recuerda el juego */ } };
   const color = GUIDE_COLOR[guide] || GUIDE_COLOR[''];
-  const corner = 'absolute h-[30px] w-[30px] transition-colors duration-200';
+  const corner = 'absolute h-[34px] w-[34px] transition-[border-color,filter] duration-300';
   const live = !cameraError;
 
   return createPortal(
-    <div role="dialog" aria-modal="true" aria-label="Buscar con la cámara" onKeyDown={trapTab} className="fixed inset-0 z-[1300] overflow-hidden bg-[#02070f] text-slate-100">
-      <style>{'@keyframes scan-sweep{0%,100%{transform:translateY(0)}50%{transform:translateY(94cqh)}}@keyframes tray-in{from{opacity:0;transform:translateY(8px) scale(.9)}to{opacity:1;transform:none}}@keyframes guide-pulse{0%{opacity:.55;transform:scale(1)}100%{opacity:0;transform:scale(1.05)}}@media (prefers-reduced-motion:reduce){.scan-sweep,.tray-in,.guide-pulse{animation:none!important}}'}</style>
+    <div role="dialog" aria-modal="true" aria-label="Buscar con la cámara" onKeyDown={trapTab} className="scan-root fixed inset-0 z-[1300] overflow-hidden bg-[#02070f] text-slate-100">
+      <style>{`
+        @keyframes scan-in{from{opacity:0}to{opacity:1}}
+        @keyframes frame-in{from{opacity:0;transform:scale(1.07)}to{opacity:1;transform:none}}
+        @keyframes scan-sweep{0%,100%{transform:translateY(0)}50%{transform:translateY(calc(100cqh - 100%))}}
+        @keyframes lock-bump{0%{transform:scale(1)}40%{transform:scale(.965)}100%{transform:scale(1)}}
+        @keyframes guide-pulse{0%{opacity:.6;transform:scale(1)}100%{opacity:0;transform:scale(1.06)}}
+        @keyframes check-pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}40%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}
+        @keyframes check-draw{from{stroke-dashoffset:26}to{stroke-dashoffset:0}}
+        @keyframes tray-in{0%{opacity:0;transform:translateY(10px) scale(.86)}60%{transform:translateY(-1px) scale(1.03)}100%{opacity:1;transform:none}}
+        @keyframes msg-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+        @keyframes dot-ping{0%{transform:scale(1);opacity:.55}100%{transform:scale(2.6);opacity:0}}
+        @keyframes dock-in{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+        .scan-root{animation:scan-in 220ms cubic-bezier(.23,1,.32,1)}
+        .scan-frame{animation:frame-in 380ms cubic-bezier(.23,1,.32,1)}
+        .scan-dock{animation:dock-in 420ms cubic-bezier(.23,1,.32,1) 60ms backwards}
+        .scan-glass{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.04)),rgba(7,21,38,.62);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 10px 30px -12px rgba(0,0,0,.6);-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5)}
+        @media (prefers-reduced-motion:reduce){.scan-root,.scan-frame,.scan-dock,.scan-sweep,.tray-in,.guide-pulse,.lock-bump,.msg-in,.dot-ping{animation:none!important}.check-pop{display:none}}
+      `}</style>
 
       {/* La cámara ocupa toda la pantalla; el marco se mide contra este contenedor */}
       <div ref={areaRef} className="absolute inset-0">
@@ -93,58 +110,69 @@ export default function ScanModal({ onClose, batch }) {
       </div>
 
       {live && (
-        <div ref={guideRef} className="pointer-events-none absolute left-1/2 top-[46%] aspect-[63/88] w-[min(80vw,calc(58svh*63/88))] -translate-x-1/2 -translate-y-1/2 rounded-2xl shadow-[0_0_0_999px_rgba(2,9,20,0.55)]">
-          <span className={`${corner} -left-[3px] -top-[3px] rounded-tl-2xl border-l-4 border-t-4`} style={{ borderColor: color, filter: `drop-shadow(0 0 8px ${color})` }} />
-          <span className={`${corner} -right-[3px] -top-[3px] rounded-tr-2xl border-r-4 border-t-4`} style={{ borderColor: color, filter: `drop-shadow(0 0 8px ${color})` }} />
-          <span className={`${corner} -bottom-[3px] -left-[3px] rounded-bl-2xl border-b-4 border-l-4`} style={{ borderColor: color, filter: `drop-shadow(0 0 8px ${color})` }} />
-          <span className={`${corner} -bottom-[3px] -right-[3px] rounded-br-2xl border-b-4 border-r-4`} style={{ borderColor: color, filter: `drop-shadow(0 0 8px ${color})` }} />
-          {flash > 0 && <span key={flash} className="guide-pulse absolute inset-0 rounded-2xl border-4 border-[#34d399]" style={{ animation: 'guide-pulse 420ms ease-out forwards' }} />}
-          <span className="absolute inset-0 overflow-hidden rounded-2xl [container-type:size]">
-            {guide === 'scan' && <span className="scan-sweep absolute inset-x-[6%] top-[3%] h-0.5 bg-gradient-to-r from-transparent via-[#00d2ff] to-transparent shadow-[0_0_18px_3px_rgba(0,210,255,0.55)] will-change-transform" style={{ animation: 'scan-sweep 1.35s ease-in-out infinite' }} />}
+        <div ref={guideRef} className="pointer-events-none absolute left-1/2 top-[46%] aspect-[63/88] w-[min(80vw,calc(58svh*63/88))] -translate-x-1/2 -translate-y-1/2 rounded-[22px] shadow-[0_0_0_999px_rgba(2,9,20,0.6)]">
+          <span key={guide === 'ok' ? 'ok' : 'idle'} className="scan-frame absolute inset-0" style={guide === 'ok' ? { animation: 'lock-bump 320ms cubic-bezier(.23,1,.32,1)' } : undefined}>
+            <span className={`${corner} -left-[2px] -top-[2px] rounded-tl-[22px] border-l-[3px] border-t-[3px]`} style={{ borderColor: color, filter: `drop-shadow(0 0 6px ${color})` }} />
+            <span className={`${corner} -right-[2px] -top-[2px] rounded-tr-[22px] border-r-[3px] border-t-[3px]`} style={{ borderColor: color, filter: `drop-shadow(0 0 6px ${color})` }} />
+            <span className={`${corner} -bottom-[2px] -left-[2px] rounded-bl-[22px] border-b-[3px] border-l-[3px]`} style={{ borderColor: color, filter: `drop-shadow(0 0 6px ${color})` }} />
+            <span className={`${corner} -bottom-[2px] -right-[2px] rounded-br-[22px] border-b-[3px] border-r-[3px]`} style={{ borderColor: color, filter: `drop-shadow(0 0 6px ${color})` }} />
+          </span>
+          {flash > 0 && <span key={`p${flash}`} className="guide-pulse absolute inset-0 rounded-[22px] border-[3px] border-[#34d399]" style={{ animation: 'guide-pulse 480ms cubic-bezier(.23,1,.32,1) forwards' }} />}
+          {flash > 0 && (
+            <span key={`c${flash}`} aria-hidden="true" className="check-pop absolute left-1/2 top-1/2 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#34d399] opacity-0 shadow-[0_8px_30px_-6px_rgba(52,211,153,0.7)]" style={{ animation: 'check-pop 900ms cubic-bezier(.23,1,.32,1) forwards' }}>
+              <svg viewBox="0 0 24 24" className="h-9 w-9" fill="none" stroke="#04281c" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" strokeDasharray="26" style={{ animation: 'check-draw 320ms cubic-bezier(.23,1,.32,1) 120ms backwards' }} /></svg>
+            </span>
+          )}
+          <span className="absolute inset-0 overflow-hidden rounded-[22px] [container-type:size]">
+            {guide === 'scan' && <span className="scan-sweep absolute inset-x-[4%] top-0 h-14 will-change-transform" style={{ animation: 'scan-sweep 1.5s cubic-bezier(.65,0,.35,1) infinite', background: 'linear-gradient(180deg,transparent,rgba(0,210,255,.22) 70%,rgba(0,210,255,.85) 98%,rgba(255,255,255,.9) 100%)', borderRadius: '0 0 6px 6px' }} />}
           </span>
         </div>
       )}
 
       {cameraError && (
         <div role="alert" className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#071526] px-6 text-center">
-          <p className="max-w-sm text-sm font-semibold text-slate-200">{cameraError}</p>
-          <button type="button" onClick={retryCamera} className="h-11 rounded-full bg-[#ffcb05] px-5 text-sm font-extrabold text-[#1a1400] transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">Reintentar</button>
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#ffcb05]/15 text-[#ffcb05]"><SvgIcon name="photo_camera" translate="no" aria-hidden="true" className="text-[28px]" /></span>
+          <p className="max-w-xs text-[15px] font-semibold leading-snug text-slate-200">{cameraError}</p>
+          <button type="button" onClick={retryCamera} className="h-11 rounded-full bg-[#ffcb05] px-6 text-sm font-extrabold text-[#1a1400] transition-[transform,filter] duration-150 hover:brightness-105 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">Reintentar</button>
         </div>
       )}
 
-      <button ref={closeRef} type="button" onClick={onClose} aria-label="Cerrar" className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-10 flex h-11 w-11 items-center justify-center rounded-full bg-[#071526]/70 text-white backdrop-blur-md transition-[background-color,transform] duration-150 hover:bg-[#071526]/90 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
+      <button ref={closeRef} type="button" onClick={onClose} aria-label="Cerrar" className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-10 flex h-11 w-11 items-center justify-center scan-glass rounded-full text-white transition-[filter,transform] duration-150 hover:brightness-125 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
         <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[24px]" />
       </button>
 
-      <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-3 px-3 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
+      <div className="scan-dock absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-3 px-3 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
         {live && (
-          <div role="status" className="flex max-w-[92%] items-center gap-2 overflow-hidden rounded-full border border-sky-300/15 bg-[#071526]/75 px-3.5 py-2 text-sm font-semibold backdrop-blur-md">
-            <span className="h-[9px] w-[9px] shrink-0 rounded-full" style={{ background: color, boxShadow: `0 0 10px ${color}` }} />
-            <span className="truncate">{message}</span>
+          <div role="status" className="scan-glass flex max-w-[92%] items-center gap-2.5 overflow-hidden rounded-full py-2 pl-3.5 pr-4 text-sm font-semibold">
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              {guide === 'scan' && <span className="dot-ping absolute inset-0 rounded-full" style={{ background: color, animation: 'dot-ping 1.1s cubic-bezier(0,0,.2,1) infinite' }} />}
+              <span className="relative h-2.5 w-2.5 rounded-full transition-colors duration-300" style={{ background: color, boxShadow: `0 0 10px ${color}` }} />
+            </span>
+            <span key={message} className="msg-in truncate" style={{ animation: 'msg-in 220ms cubic-bezier(.23,1,.32,1)' }}>{message}</span>
           </div>
         )}
         {batch && tray.length > 0 && (
-          <div className="flex w-full max-w-xl items-center gap-2 rounded-2xl border border-sky-300/15 bg-[#071526]/80 p-2 backdrop-blur-md">
+          <div className="scan-glass flex w-full max-w-xl items-center gap-2.5 rounded-[22px] p-2">
             <ul className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Cartas escaneadas">
               {tray.map((item, index) => (
-                <li key={item.trayId} className="tray-in relative h-[68px] w-12 shrink-0 rounded-md bg-[#02070f] ring-1 ring-white/20" style={{ animation: 'tray-in 180ms ease-out' }}>
-                  <span className="absolute inset-0 overflow-hidden rounded-md">
+                <li key={item.trayId} className="tray-in relative h-[68px] w-12 shrink-0 rounded-lg bg-[#02070f] shadow-[0_6px_14px_-6px_rgba(0,0,0,.7)] ring-1 ring-white/25" style={{ animation: 'tray-in 360ms cubic-bezier(.23,1,.32,1)' }}>
+                  <span className="absolute inset-0 overflow-hidden rounded-lg">
                   {item.image ? <img src={item.image} alt={item.name} title={item.name} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-[10px]">?</span>}
                   {item.language && <span className="absolute inset-x-0 bottom-0 bg-black/70 text-center text-[8px] font-bold uppercase text-white">{item.language}</span>}
                   </span>
                   <button type="button" onClick={() => removeScanned(index)} aria-label={`Quitar ${item.name}`} title="Quitar carta" className="absolute left-0 top-0 z-[1] flex h-7 w-7 items-center justify-center rounded-br-lg bg-black/75 before:absolute before:-bottom-2 before:-right-2 before:h-11 before:w-11 before:content-[''] text-white transition-[background-color,transform] duration-150 hover:bg-red-600 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
                     <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[14px]" />
                   </button>
-                  {item.uploading && <span role="status" aria-label="Subiendo foto" className="absolute inset-0 flex rounded-md items-center justify-center bg-black/55"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-[#ffcb05] motion-reduce:animate-none" /></span>}
+                  {item.uploading && <span role="status" aria-label="Subiendo foto" className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/55"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-[#ffcb05] motion-reduce:animate-none" /></span>}
                   {item.shared && <span className="absolute right-0 top-0 rounded-bl bg-[#ffcb05] px-1 text-[9px] font-extrabold text-[#1a1400]" title="Tu foto se ofrece a Moderación">✓</span>}
                 </li>
               ))}
             </ul>
-            <button type="button" onClick={onClose} className="h-11 shrink-0 rounded-full bg-[#ffcb05] px-4 text-sm font-extrabold text-[#1a1400] transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">Listo ({tray.length})</button>
+            <button type="button" onClick={onClose} className="h-11 shrink-0 rounded-full bg-gradient-to-b from-[#ffd84a] to-[#ffcb05] px-5 text-sm font-extrabold text-[#1a1400] shadow-[0_6px_18px_-6px_rgba(255,203,5,0.6)] transition-[transform,filter] duration-150 hover:brightness-105 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">Listo ({tray.length})</button>
           </div>
         )}
         {batch ? (
-          <p className="rounded-full border border-sky-300/15 bg-[#071526]/80 px-4 py-2 text-xs font-bold text-slate-200 backdrop-blur-md">{batch.label}</p>
+          <p className="scan-glass rounded-full px-4 py-2 text-xs font-bold text-slate-200">{batch.label}</p>
         ) : (
         <LiquidTabs
           ariaLabel="Juego a buscar"
@@ -152,7 +180,7 @@ export default function ScanModal({ onClose, batch }) {
           options={SCAN_GAMES.map((item) => ({ value: item.value, label: item.label }))}
           value={game}
           onChange={pickGame}
-          className="w-full max-w-xl gap-0.5 overflow-x-auto rounded-2xl border border-sky-300/15 bg-[#071526]/80 p-1 backdrop-blur-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="scan-glass w-full max-w-xl gap-0.5 overflow-x-auto rounded-[20px] p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           buttonClassName="shrink-0 whitespace-nowrap rounded-xl px-3.5 py-2.5 text-[13px] font-semibold"
           indicatorClassName="rounded-xl border-b-[3px] border-[#b88f00] bg-gradient-to-b from-[#ffd84a] to-[#ffcb05] shadow-[0_6px_18px_-6px_rgba(255,203,5,0.55)]"
           activeTextClassName="text-[#1a1400]"
