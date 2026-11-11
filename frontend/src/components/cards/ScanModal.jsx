@@ -62,11 +62,11 @@ export default function ScanModal({ onClose, batch, origin }) {
     const paint = () => { root.style.clipPath = clip(m, pos.x, pos.y); };
     paint();
     const tl = gsap.timeline({ onComplete: () => gsap.set(root, { clearProps: 'all' }) });
-    tl.fromTo(root, { scale: K, transformOrigin: m.origin, willChange: 'transform, clip-path' }, { scale: 1, duration: 0.85, ease: 'ios' }, 0)
-      .to(pos, { x: 1, duration: 0.62, ease: 'ios', onUpdate: paint }, 0)
-      .to(pos, { y: 1, duration: 0.9, ease: 'ios', onUpdate: paint }, 0)
-      .fromTo(launch, { opacity: 1 }, { opacity: 0, duration: 0.24, ease: 'power1.out' }, 0.05)
-      .fromTo(ui(), { opacity: 0 }, { opacity: 1, duration: 0.45, ease: 'power2.out', stagger: 0.06, clearProps: 'opacity' }, 0.3);
+    tl.fromTo(root, { scale: K, transformOrigin: m.origin, willChange: 'transform, clip-path' }, { scale: 1, duration: 0.55, ease: 'ios' }, 0)
+      .to(pos, { x: 1, duration: 0.4, ease: 'ios', onUpdate: paint }, 0)
+      .to(pos, { y: 1, duration: 0.58, ease: 'ios', onUpdate: paint }, 0)
+      .fromTo(launch, { opacity: 1 }, { opacity: 0, duration: 0.16, ease: 'power1.out' }, 0.03)
+      .fromTo(ui(), { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'power2.out', stagger: 0.04, clearProps: 'opacity' }, 0.18);
     return () => { tl.kill(); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [phase, setPhase] = useState(''); // '' · closing (animación de salida en curso)
@@ -86,13 +86,13 @@ export default function ScanModal({ onClose, batch, origin }) {
       const paint = () => { root.style.clipPath = clip(m, pos.x, pos.y); };
       paint();
       gsap.timeline({ onComplete: after })
-        .to(ui(), { opacity: 0, duration: 0.16, ease: 'power1.in' }, 0)
+        .to(ui(), { opacity: 0, duration: 0.1, ease: 'power1.in' }, 0)
         .set(root, { transformOrigin: m.origin, willChange: 'transform, clip-path' }, 0)
-        .to(root, { scale: K, duration: 0.68, ease: 'ios' }, 0.04)
-        .to(pos, { y: 0, duration: 0.58, ease: 'ios', onUpdate: paint }, 0.04)
-        .to(pos, { x: 0, duration: 0.72, ease: 'ios', onUpdate: paint }, 0.04)
-        .to(launch, { opacity: 1, duration: 0.22, ease: 'power1.in' }, 0.42)
-        .to(root, { opacity: 0, duration: 0.08, ease: 'none' }, 0.7);
+        .to(root, { scale: K, duration: 0.44, ease: 'ios' }, 0.02)
+        .to(pos, { y: 0, duration: 0.38, ease: 'ios', onUpdate: paint }, 0.02)
+        .to(pos, { x: 0, duration: 0.46, ease: 'ios', onUpdate: paint }, 0.02)
+        .to(launch, { opacity: 1, duration: 0.14, ease: 'power1.in' }, 0.27)
+        .to(root, { opacity: 0, duration: 0.06, ease: 'none' }, 0.44);
       return;
     }
     later(after, calm() ? 0 : 260);
