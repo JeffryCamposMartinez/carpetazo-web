@@ -26,27 +26,27 @@ export default function ScanModal({ onClose, batch }) {
   const guideRef = useRef(null);
   const [game, setGame] = useState(readGame);
   const [tray, setTray] = useState([]); // lote: cartas que ya entraron a la cola de la carpeta
-  const [sharing, setSharing] = useState(false);
+  const offered = useRef(new Set()); // cartas cuya foto ya se aportó en esta sesión (una sola vez por carta)
   const games = useMemo(() => (batch ? batch.games : SCAN_GAMES.find((item) => item.value === game)?.ids || ''), [batch, game]);
   useBodyScrollLock();
   useEscape(true, onClose);
   const handleBatchCard = async (result) => {
     const added = await batch.onCard(result);
-    if (added) setTray((previous) => [...previous, added]);
+    if (!added) return;
+    setTray((previous) => [...previous, added]);
+    // Sin imagen oficial: la foto del escaneo se aporta sola (se endereza, se sube y va a Moderación al guardar la carta)
+    if (added.noImage && added.photo?.blob && !offered.current.has(added.key)) {
+      offered.current.add(added.key);
+      const done = new Map((await batch.onShare([added])).map(({ from, to }) => [from, to]));
+      if (done.size === 0) offered.current.delete(added.key); // no se pudo subir: se reintenta con el próximo escaneo de esa carta
+      setTray((previous) => previous.map((item) => (done.has(item.queueKey) ? { ...item, queueKey: done.get(item.queueKey), shared: true, photo: null } : item)));
+    }
   };
   const { message, guide, view, cameraError } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: true, batch: Boolean(batch), onCard: handleBatchCard });
   const best = view.result?.top?.[0];
-  // Cartas sin imagen oficial (en español) con una foto nítida del escaneo: la persona decide si la ofrece a Moderación
-  const shareable = tray.filter((item) => item.noImage && item.photo?.blob && !item.shared);
   const removeScanned = (index) => {
     batch.onRemove?.(tray[index]);
     setTray((previous) => previous.filter((_, position) => position !== index));
-  };
-  const sharePhotos = async () => {
-    setSharing(true);
-    const done = new Map((await batch.onShare(shareable)).map(({ from, to }) => [from, to]));
-    setTray((previous) => previous.map((item) => (done.has(item.queueKey) ? { ...item, queueKey: done.get(item.queueKey), shared: true, photo: null } : item)));
-    setSharing(false);
   };
 
   const openSearch = (card) => {
@@ -97,12 +97,6 @@ export default function ScanModal({ onClose, batch }) {
           <div role="status" className="flex max-w-[92%] items-center gap-2 overflow-hidden rounded-full border border-sky-300/15 bg-[#071526]/75 px-3.5 py-2 text-sm font-semibold backdrop-blur-md">
             <span className="h-[9px] w-[9px] shrink-0 rounded-full" style={{ background: color, boxShadow: `0 0 10px ${color}` }} />
             <span className="truncate">{message}</span>
-          </div>
-        )}
-        {batch && tray.length > 0 && (
-          <div className="flex w-full max-w-xl items-center gap-3 rounded-2xl border border-[#ffcb05]/30 bg-[#071526]/85 px-3 py-2 backdrop-blur-md">
-            <p className="min-w-0 flex-1 text-xs font-semibold leading-snug text-slate-200">{shareable.length > 0 ? `${shareable.length === 1 ? 'Una carta no tiene imagen.' : `${shareable.length} cartas no tienen imagen.`} Tu foto va a Moderación como imagen oficial.` : 'Las cartas con imagen oficial no necesitan foto.'}</p>
-            <button type="button" onClick={sharePhotos} disabled={sharing || shareable.length === 0} className="h-11 shrink-0 rounded-full border border-[#ffcb05] px-4 text-sm font-extrabold text-[#ffcb05] transition-[background-color,transform,opacity] duration-150 hover:bg-[#ffcb05]/10 active:scale-[0.97] disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-white">{sharing ? 'Subiendo…' : `Subir fotos (${shareable.length})`}</button>
           </div>
         )}
         {batch && tray.length > 0 && (
