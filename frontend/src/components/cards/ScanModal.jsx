@@ -34,6 +34,16 @@ export default function ScanModal({ onClose, batch }) {
   useBodyScrollLock();
   useEscape(true, onClose);
   useEffect(() => { closeRef.current?.focus({ preventScroll: true }); }, []);
+  // El foco no sale del visor con Tab (el resto de la página queda detrás)
+  const trapTab = (event) => {
+    if (event.key !== 'Tab') return;
+    const items = [...event.currentTarget.querySelectorAll('button:not([disabled])')];
+    if (items.length === 0) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  };
   const handleBatchCard = async (result) => {
     const added = await batch.onCard(result);
     if (!added) return;
@@ -73,7 +83,7 @@ export default function ScanModal({ onClose, batch }) {
   const live = !cameraError;
 
   return createPortal(
-    <div role="dialog" aria-modal="true" aria-label="Buscar con la cámara" className="fixed inset-0 z-[1300] overflow-hidden bg-[#02070f] text-slate-100">
+    <div role="dialog" aria-modal="true" aria-label="Buscar con la cámara" onKeyDown={trapTab} className="fixed inset-0 z-[1300] overflow-hidden bg-[#02070f] text-slate-100">
       <style>{'@keyframes scan-sweep{0%,100%{transform:translateY(0)}50%{transform:translateY(94cqh)}}@keyframes tray-in{from{opacity:0;transform:translateY(8px) scale(.9)}to{opacity:1;transform:none}}@keyframes guide-pulse{0%{opacity:.55;transform:scale(1)}100%{opacity:0;transform:scale(1.05)}}@media (prefers-reduced-motion:reduce){.scan-sweep,.tray-in,.guide-pulse{animation:none!important}}'}</style>
 
       {/* La cámara ocupa toda la pantalla; el marco se mide contra este contenedor */}
@@ -116,13 +126,15 @@ export default function ScanModal({ onClose, batch }) {
           <div className="flex w-full max-w-xl items-center gap-2 rounded-2xl border border-sky-300/15 bg-[#071526]/80 p-2 backdrop-blur-md">
             <ul className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Cartas escaneadas">
               {tray.map((item, index) => (
-                <li key={`${item.key}-${index}`} className="tray-in relative h-[68px] w-12 shrink-0 overflow-hidden rounded-md bg-[#02070f] ring-1 ring-white/20" style={{ animation: 'tray-in 180ms ease-out' }}>
+                <li key={`${item.key}-${index}`} className="tray-in relative h-[68px] w-12 shrink-0 rounded-md bg-[#02070f] ring-1 ring-white/20" style={{ animation: 'tray-in 180ms ease-out' }}>
+                  <span className="absolute inset-0 overflow-hidden rounded-md">
                   {item.image ? <img src={item.image} alt={item.name} title={item.name} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-[10px]">?</span>}
                   {item.language && <span className="absolute inset-x-0 bottom-0 bg-black/70 text-center text-[8px] font-bold uppercase text-white">{item.language}</span>}
-                  <button type="button" onClick={() => removeScanned(index)} aria-label={`Quitar ${item.name}`} title="Quitar carta" className="absolute left-0 top-0 flex h-7 w-7 items-center justify-center rounded-br-lg bg-black/75 before:absolute before:-bottom-2 before:-right-2 before:h-11 before:w-11 before:content-[''] text-white transition-[background-color,transform] duration-150 hover:bg-red-600 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
+                  </span>
+                  <button type="button" onClick={() => removeScanned(index)} aria-label={`Quitar ${item.name}`} title="Quitar carta" className="absolute left-0 top-0 z-[1] flex h-7 w-7 items-center justify-center rounded-br-lg bg-black/75 before:absolute before:-bottom-2 before:-right-2 before:h-11 before:w-11 before:content-[''] text-white transition-[background-color,transform] duration-150 hover:bg-red-600 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
                     <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[14px]" />
                   </button>
-                  {item.uploading && <span role="status" aria-label="Subiendo foto" className="absolute inset-0 flex items-center justify-center bg-black/55"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-[#ffcb05] motion-reduce:animate-none" /></span>}
+                  {item.uploading && <span role="status" aria-label="Subiendo foto" className="absolute inset-0 flex rounded-md items-center justify-center bg-black/55"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-[#ffcb05] motion-reduce:animate-none" /></span>}
                   {item.shared && <span className="absolute right-0 top-0 rounded-bl bg-[#ffcb05] px-1 text-[9px] font-extrabold text-[#1a1400]" title="Tu foto se ofrece a Moderación">✓</span>}
                 </li>
               ))}
