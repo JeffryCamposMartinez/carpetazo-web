@@ -88,13 +88,25 @@ export default function FolderAddTab({
         form.append('image', new File([blob], 'carta.jpg', { type: 'image/jpeg' }));
         form.append('type', 'card');
         const { url } = await api.uploadImage(form);
-        setSelectedQueue((previous) => previous.map((entry) => (getCardSelectionKey(entry.card) === item.queueKey
-          ? { ...entry, card: { ...entry.card, isCustomImage: true, imageUrl: url, id: `${entry.card.id}-custom-${Date.now()}` } }
-          : entry)));
-        uploaded.push(item.queueKey);
+        const nextCard = (card) => ({ ...card, isCustomImage: true, imageUrl: url, id: `${card.id}-custom-${Date.now()}` });
+        let toKey = item.queueKey;
+        setSelectedQueue((previous) => previous.map((entry) => {
+          if (getCardSelectionKey(entry.card) !== item.queueKey) return entry;
+          const card = nextCard(entry.card); toKey = getCardSelectionKey(card);
+          return { ...entry, card };
+        }));
+        uploaded.push({ from: item.queueKey, to: toKey });
       } catch (_error) { /* esa foto no se pudo subir: la carta sigue en la cola sin ella */ }
     }
     return uploaded;
+  };
+
+  // Quitar una carta escaneada: baja una unidad de la cola (o la saca si era la última)
+  const handleRemoveScanned = (item) => {
+    const entry = selectedQueue.find((queued) => getCardSelectionKey(queued.card) === item.queueKey);
+    if (!entry) return;
+    if ((entry.quantity || 1) > 1) setSelectedQueue((previous) => previous.map((queued) => (queued.queueId === entry.queueId ? { ...queued, quantity: queued.quantity - 1 } : queued)));
+    else removeQueueItem(entry.queueId);
   };
 
   // Precio referencial (Pokémon: TCGplayer; Mitos y Leyendas: vendedores de Carpetazo) de las cartas a la vista y de la que se agrega
@@ -361,7 +373,7 @@ export default function FolderAddTab({
             )}
             {scanOpen && (
               <Suspense fallback={null}>
-                <ScanModal batch={{ games: '3,100,85', label: 'Pokémon · el idioma se detecta solo', onCard: handleScannedCard, onShare: handleSharePhotos }} onClose={() => setScanOpen(false)} />
+                <ScanModal batch={{ games: '3,100,85', label: 'Pokémon · el idioma se detecta solo', onCard: handleScannedCard, onShare: handleSharePhotos, onRemove: handleRemoveScanned }} onClose={() => setScanOpen(false)} />
               </Suspense>
             )}
             <button 

@@ -38,10 +38,14 @@ export default function ScanModal({ onClose, batch }) {
   const best = view.result?.top?.[0];
   // Cartas sin imagen oficial (en español) con una foto nítida del escaneo: la persona decide si la ofrece a Moderación
   const shareable = tray.filter((item) => item.noImage && item.photo?.blob && !item.shared);
+  const removeScanned = (index) => {
+    batch.onRemove?.(tray[index]);
+    setTray((previous) => previous.filter((_, position) => position !== index));
+  };
   const sharePhotos = async () => {
     setSharing(true);
-    const done = new Set(await batch.onShare(shareable));
-    setTray((previous) => previous.map((item) => (done.has(item.queueKey) ? { ...item, shared: true, photo: null } : item)));
+    const done = new Map((await batch.onShare(shareable)).map(({ from, to }) => [from, to]));
+    setTray((previous) => previous.map((item) => (done.has(item.queueKey) ? { ...item, queueKey: done.get(item.queueKey), shared: true, photo: null } : item)));
     setSharing(false);
   };
 
@@ -108,6 +112,9 @@ export default function ScanModal({ onClose, batch }) {
                 <li key={`${item.key}-${index}`} className="relative h-14 w-10 shrink-0 overflow-hidden rounded-md bg-[#02070f] ring-1 ring-white/20">
                   {item.image ? <img src={item.image} alt={item.name} title={item.name} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-[10px]">?</span>}
                   {item.language && <span className="absolute inset-x-0 bottom-0 bg-black/70 text-center text-[8px] font-bold uppercase text-white">{item.language}</span>}
+                  <button type="button" onClick={() => removeScanned(index)} aria-label={`Quitar ${item.name}`} title="Quitar carta" className="absolute left-0 top-0 flex h-6 w-6 items-center justify-center rounded-br-lg bg-black/75 text-white transition-[background-color,transform] duration-150 hover:bg-red-600 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
+                    <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[14px]" />
+                  </button>
                   {item.shared && <span className="absolute right-0 top-0 rounded-bl bg-[#ffcb05] px-1 text-[9px] font-extrabold text-[#1a1400]" title="Tu foto se ofrece a Moderación">✓</span>}
                 </li>
               ))}
