@@ -104,7 +104,7 @@ export default function CardCatalogPage() {
   const changeGame = (name) => {
     if (name === game) return;
     resetFilters();
-    update({ tcg: name === 'Pokémon' ? '' : name, set: '', q: '' });
+    update({ tcg: name === 'Pokémon' ? '' : name, set: '', q: '', todas: '' });
   };
   const changeView = (value) => { try { localStorage.setItem(VIEW_KEY, value); } catch { /* sin almacenamiento: solo se usa en esta visita */ } update({ vista: value === 'grid' ? '' : value }); };
   const resetFilters = () => {
@@ -193,7 +193,7 @@ export default function CardCatalogPage() {
 
   // Edición más nueva / más antigua (la lista viene de la más nueva a la más vieja)
   const position = group ? filteredSets.findIndex((item) => String(item.groupId) === String(group.groupId)) : -1;
-  const goTo = (target, way = 1) => { if (target) { setDir(way); update({ set: String(target.groupId) }); } };
+  const goTo = (target, way = 1) => { if (target) { setDir(way); update({ set: String(target.groupId), todas: '' }); } };
   const share = async () => {
     const url = window.location.href;
     try {
@@ -296,12 +296,12 @@ export default function CardCatalogPage() {
             searchCategory={isMyl ? '99' : gameInfo ? gameInfo.marker : '1'}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
-            searchSet={group ? String(group.groupId) : ''}
+            searchSet={group && !allMode ? String(group.groupId) : ''}
             availableSets={availableSets}
             filteredSearchSets={filteredSets}
             isSetDropdownOpen={false}
             setIsSetDropdownOpen={noop}
-            setSearchSet={(value) => update({ set: value ? String(value) : '' })}
+            setSearchSet={(value) => update({ set: value ? String(value) : '', todas: value ? '' : '1' })} // «Todas las ediciones» del selector: se ven una tras otra
             searchLang={searchLang}
             setSearchLang={setSearchLang}
             selectedType={selectedType}
@@ -337,7 +337,6 @@ export default function CardCatalogPage() {
           <div className="flex flex-wrap justify-center gap-2 px-2 pb-1 pt-2">
             {[
               leagueSets.length > 0 && { label: 'Solo cartas de liga (Prize Pack)', on: leagueOnly, toggle: () => update({ liga: leagueOnly ? '' : '1', set: '' }) },
-              !isMyl && { label: 'Todas las ediciones seguidas', on: allMode, toggle: () => update({ todas: allMode ? '' : '1' }) },
             ].filter(Boolean).map((chip) => (
               <button key={chip.label} type="button" onClick={chip.toggle} aria-pressed={chip.on} className={`inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-extrabold ring-1 transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${chip.on ? 'bg-[#12315f] text-[#facc15] ring-[#facc15]' : 'bg-white text-[#12315f] ring-slate-900/10 [@media(hover:hover)]:hover:bg-blue-50'}`}>
                 <SvgIcon name={chip.on ? 'check' : 'add'} translate="no" aria-hidden="true" className="text-[18px]" />{chip.label}
