@@ -35,6 +35,9 @@ const conditionOf = (value) => {
   return null;
 };
 
+// El inventario de vendedor de TCGplayer junta estado y acabado en una columna («Near Mint Foil»): lo que sobra del estado es el acabado
+const finishFromCondition = (value) => plain(value).replace(/^(near mint|lightly played|moderately played|heavily played|damaged|unopened)\s*/, '').replace(/(^|\s)\w/g, (match) => match.toUpperCase());
+
 // Texto CSV → matriz de celdas (comillas dobles, saltos de línea dentro de comillas y separador , ; o tabulación)
 const parseCells = (text) => {
   const first = text.split(/\r?\n/, 1)[0];
@@ -75,6 +78,7 @@ export const parseCardsCsv = (rawText, size = rawText.length) => {
   const rows = table.slice(1).map((cells, index) => {
     const productId = get(cells, 'productId');
     const quantity = parseInt(get(cells, 'quantity'), 10);
+    if (quantity === 0) return null; // inventario de TCGplayer: filas publicadas sin existencias
     const price = Number(get(cells, 'price').replace(/[^\d.]/g, ''));
     return {
       line: index + 2,
@@ -83,10 +87,10 @@ export const parseCardsCsv = (rawText, size = rawText.length) => {
       quantity: quantity > 0 ? Math.min(quantity, 100000) : 1,
       ...(languageOf(get(cells, 'language')) ? { language: languageOf(get(cells, 'language')) } : {}),
       condition: conditionOf(get(cells, 'condition')),
-      finish: get(cells, 'finish').slice(0, 40),
+      finish: (get(cells, 'finish') || (at.finish < 0 ? finishFromCondition(get(cells, 'condition')) : '')).slice(0, 40),
       price: at.price >= 0 && price > 0 && price <= 100000000 ? price : null,
     };
-  }).filter((row) => row.productId || row.name);
+  }).filter((row) => row && (row.productId || row.name));
   if (!rows.length) return { error: 'No encontramos cartas en el archivo.' };
   return { rows, withIds: rows.filter((row) => row.productId).length, copies: rows.reduce((sum, row) => sum + row.quantity, 0) };
 };
