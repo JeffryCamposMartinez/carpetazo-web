@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ARROW_BUTTON } from './arrowButton';
 import { scrollToTopThen } from '../../utils/scrollToTopThen';
 import SvgIcon from './SvgIcon';
 
@@ -39,7 +40,7 @@ export default function FloatingTools({ onClear }) {
           aria-label="Volver arriba"
           tabIndex={showTop ? 0 : -1}
           aria-hidden={!showTop}
-          className={`flex h-12 w-12 items-center justify-center rounded-full bg-[#1e40af] text-white shadow-[0_2px_4px_rgba(8,18,42,0.25),0_10px_22px_-8px_rgba(30,64,175,0.7)] ring-2 ring-white/40 transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.94] focus:outline-none focus-visible:ring-white motion-reduce:transition-opacity ${showTop ? 'scale-100 opacity-100' : 'pointer-events-none scale-90 opacity-0'}`}
+          className={`${ARROW_BUTTON} h-12 w-12 ${showTop ? 'scale-100 opacity-100' : 'pointer-events-none scale-90 opacity-0'}`}
         >
           <SvgIcon name="arrow_upward" translate="no" aria-hidden="true" className="text-[26px]" />
         </button>

@@ -6,6 +6,7 @@ import { LoadingMark } from './LoadableImage';
 import { CardSideWing } from './CardNeighbors';
 import { cardRatio, fullscreenCorners, isYugioh, NO_IMAGE_CARD_URL, onCardImageError, tcgplayerCardImage } from '../../utils/cardShape';
 import SvgIcon from './SvgIcon';
+import { ARROW_BUTTON } from './arrowButton';
 import FinishRibbon from './FinishRibbon';
 import { finishOfCard, wishlistFinishOf, wishlistImageFallback } from '../../utils/cardFinish';
 
@@ -101,7 +102,7 @@ export default function CardLightbox({ cards, cardId, onChange, onClose, tcg, de
   const fallbackUrl = tcgplayerCardImage({ ...card, tcg: gameTcg }) || wishlistImageFallback(card); // las deseadas sin imagen guardada usan la de TCGplayer
   const finish = finishOfCard(card) || wishlistFinishOf(card);
   const initialSrc = card.imageUrl || fallbackUrl || NO_IMAGE_CARD_URL;
-  const nav = 'absolute top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#12315f] shadow-lg transition-[transform,opacity] duration-150 active:scale-[0.94] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] disabled:opacity-30';
+  const nav = `${ARROW_BUTTON} absolute top-1/2 z-10 h-12 w-12 -translate-y-1/2`;
 
   return createPortal(
     <div role="dialog" aria-modal="true" aria-label={card.name} className="fixed inset-0 z-[1300] flex flex-col bg-[#08122a]/90 backdrop-blur-sm" onClick={onClose}>

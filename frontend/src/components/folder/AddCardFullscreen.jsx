@@ -5,7 +5,8 @@ import SvgIcon from '../ui/SvgIcon';
 import { CardSideWing } from '../ui/CardNeighbors';
 import { cardRatio, fullscreenCorners, tcgplayerCardImage } from '../../utils/cardShape';
 
-const ARROW = 'absolute top-1/2 z-20 flex h-11 w-11 sm:h-12 sm:w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#12315f] shadow-lg transition-[transform,opacity,background-color] duration-150 hover:bg-white active:scale-90 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#facc15] disabled:pointer-events-none disabled:opacity-25';
+import { ARROW_BUTTON } from '../ui/arrowButton';
+const ARROW = `${ARROW_BUTTON} absolute top-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 -translate-y-1/2`;
 const SWIPE_DISTANCE = 70;
 const SWIPE_SPEED = 0.35;
 const CLOSE_DISTANCE = 110;

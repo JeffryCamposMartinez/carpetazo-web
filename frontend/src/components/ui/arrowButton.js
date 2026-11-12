@@ -1,0 +1,3 @@
+// Estilo de los botones de flecha de la web: círculo azul marino con aro amarillo y flecha blanca.
+// Se le suman el tamaño y la posición en cada sitio (h-12 w-12, absolute…).
+export const ARROW_BUTTON = 'flex items-center justify-center rounded-full bg-[#12315f] text-white shadow-[0_2px_4px_rgba(8,18,42,0.3),0_10px_22px_-8px_rgba(8,18,42,0.7)] ring-2 ring-[#facc15] transition-[transform,opacity,background-color] duration-150 active:scale-90 focus:outline-none focus-visible:ring-4 focus-visible:ring-white disabled:pointer-events-none disabled:opacity-35 motion-reduce:transition-none [@media(hover:hover)]:hover:bg-[#1e40af]';

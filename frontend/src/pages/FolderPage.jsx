@@ -1,4 +1,5 @@
 import LiquidTabs from '../components/ui/LiquidTabs';
+import { ARROW_BUTTON } from '../components/ui/arrowButton';
 import { memo, useState, useEffect, useRef, startTransition } from 'react';
 
 import React from 'react';
@@ -1145,7 +1146,7 @@ const [isSearching, setIsSearching] = useState(false);
       {showScrollTop && !inPersonToolbarVisible && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-[max(1.5rem,env(safe-area-inset-right))] bg-[#1e40af] text-white w-14 h-14 rounded-full shadow-lg hover:bg-blue-800 transition-all z-50 flex items-center justify-center transform hover:scale-110 active:scale-95 border-2 border-white/20 lg:hidden"
+          className={`${ARROW_BUTTON} fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-[max(1.5rem,env(safe-area-inset-right))] z-50 h-14 w-14 lg:hidden`}
           aria-label="Volver arriba"
         >
           <SvgIcon name="arrow_upward" translate="no" className="text-2xl" />

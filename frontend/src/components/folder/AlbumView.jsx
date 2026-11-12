@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { ARROW_BUTTON } from '../ui/arrowButton';
 import AlbumPage from './album/AlbumPage';
 import { DRAG_PAGE_TURN_EDGE_RATIO, DRAG_PAGE_TURN_HOLD_MS } from './album/albumDrag';
 import { DRAG_SCROLL_EDGE_PX, DRAG_SCROLL_MAX_SPEED } from './dragScroll';
@@ -380,17 +381,17 @@ export default function AlbumView({ cards = [], renderCardActions, renderCardOve
           <button 
             onClick={(e) => { e.stopPropagation(); handlePrev(); }}
             disabled={currentPage === 0 || targetPage !== null}
-            className="hidden md:flex absolute left-2 xl:left-6 2xl:left-12 top-1/2 -translate-y-1/2 w-16 h-16 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 items-center justify-center rounded-full shadow-lg text-slate-700 dark:text-slate-300 disabled:opacity-30 disabled:hover:bg-white/80 transition-all z-50 cursor-pointer border border-slate-200 dark:border-slate-700 hover:scale-110"
+            className={`hidden md:flex absolute left-2 xl:left-6 2xl:left-12 top-1/2 -translate-y-1/2 h-16 w-16 z-50 ${ARROW_BUTTON}`}
           >
-            <SvgIcon name="chevron_left" translate="no" className="text-4xl" />
+            <SvgIcon name="chevron_left" translate="no" className="text-3xl" />
           </button>
           
           <button 
             onClick={(e) => { e.stopPropagation(); handleNext(); }}
             disabled={currentPage >= totalPages - 1 || targetPage !== null}
-            className="hidden md:flex absolute right-2 xl:right-6 2xl:right-12 top-1/2 -translate-y-1/2 w-16 h-16 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 items-center justify-center rounded-full shadow-lg text-slate-700 dark:text-slate-300 disabled:opacity-30 disabled:hover:bg-white/80 transition-all z-50 cursor-pointer border border-slate-200 dark:border-slate-700 hover:scale-110"
+            className={`hidden md:flex absolute right-2 xl:right-6 2xl:right-12 top-1/2 -translate-y-1/2 h-16 w-16 z-50 ${ARROW_BUTTON}`}
           >
-            <SvgIcon name="chevron_right" translate="no" className="text-4xl" />
+            <SvgIcon name="chevron_right" translate="no" className="text-3xl" />
           </button>
         </>
       )}

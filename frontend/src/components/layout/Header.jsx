@@ -747,7 +747,7 @@ export default function Header() {
               onChange={goToSection}
               options={NAV_ROUTES}
             />
-            <SectionSubNav />
+            <SectionSubNav className="-mx-2 -mb-1 mt-1" />
           </nav>
         </div>
       </header>

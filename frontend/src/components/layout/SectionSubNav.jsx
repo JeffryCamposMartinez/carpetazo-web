@@ -9,7 +9,7 @@ const ITEMS = [
   { value: '/cartas/catalogo', href: '/cartas/catalogo', label: 'Catálogo' },
 ];
 
-export default function SectionSubNav() {
+export default function SectionSubNav({ className = '' }) {
   const navigate = useNavigate();
   const path = useLocation().pathname.replace(/\/+$/, '') || '/';
   const visible = path === '/cartas' || path.startsWith('/cartas/');
@@ -26,7 +26,7 @@ export default function SectionSubNav() {
     startTransition(() => navigate(to));
   };
   return (
-    <nav aria-label="Secciones de Cartas" className="flex items-center justify-center border-t border-white/10 bg-[#172e82] px-3 py-1">
+    <nav aria-label="Secciones de Cartas" className={`flex items-center justify-center border-t border-white/10 bg-[#172e82] px-3 py-1 ${className}`}>
       <LiquidTabs
         navigation
         layout="inline"
