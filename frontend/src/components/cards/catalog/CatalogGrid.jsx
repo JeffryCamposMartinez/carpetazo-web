@@ -44,9 +44,11 @@ export default function CatalogGrid({ cards, view, hasFicha, onOpen }) {
             ) : (
               <div className={`${TILE} ${PRESS}`}>
                 <button type="button" onClick={() => onOpen(card)} aria-label={`Ver ${card.name} en grande`} className="block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1e40af]">
-                  <span className="relative block aspect-[63/88] w-full overflow-hidden bg-slate-100">
-                    <LoadableImage src={card.imageUrl} alt={card.name} compact={small} loading="lazy" decoding="async" className={`absolute h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-md object-contain ${small ? 'inset-1.5 h-[calc(100%-0.75rem)] w-[calc(100%-0.75rem)]' : 'inset-2'}`} />
-                    <FinishRibbon finish={card.finish} />
+                  <span className={`block bg-slate-100 ${small ? 'p-1.5' : 'p-2'}`}>
+                    <span className="relative block aspect-[63/88] w-full overflow-hidden rounded-md">
+                      <LoadableImage src={card.imageUrl} alt={card.name} compact={small} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-contain" />
+                      <FinishRibbon finish={card.finish} />
+                    </span>
                   </span>
                 </button>
                 <div className={`flex items-center gap-1 ${small ? 'px-2 py-1.5' : 'py-2 pl-3 pr-1.5'}`}>
