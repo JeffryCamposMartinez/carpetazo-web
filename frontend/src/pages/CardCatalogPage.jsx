@@ -67,7 +67,8 @@ export default function CardCatalogPage() {
   const [addTarget, setAddTarget] = useState(null);
   const [showTop, setShowTop] = useState(false);
   const [searchQuery, setSearchQuery] = useState(params.get('q') || '');
-  const [searchLang, setSearchLang] = useState('en');
+  const [searchLang, setSearchLangState] = useState(['es', 'ja'].includes(params.get('idioma')) ? params.get('idioma') : 'en');
+  const setSearchLang = (value) => { setSearchLangState(value); update({ idioma: value === 'en' ? '' : value }); }; // el idioma va en el enlace: una edición solo en español se puede compartir
   const [selectedSupertype, setSelectedSupertype] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [opFilters, setOpFilters] = useState(EMPTY_OP_FILTERS);
@@ -93,9 +94,11 @@ export default function CardCatalogPage() {
   const [shown, setShown] = useState(PAGE_SIZE);
 
   const update = (changes) => {
-    const next = new URLSearchParams(params);
-    Object.entries(changes).forEach(([key, value]) => (value ? next.set(key, value) : next.delete(key)));
-    setParams(next, { replace: true });
+    setParams((previous) => {
+      const next = new URLSearchParams(previous);
+      Object.entries(changes).forEach(([key, value]) => (value ? next.set(key, value) : next.delete(key)));
+      return next;
+    }, { replace: true });
   };
   const changeGame = (name) => {
     if (name === game) return;
@@ -196,7 +199,33 @@ export default function CardCatalogPage() {
   };
 
   // Pokémon: una carta con varios acabados con precio (Reverse Holofoil…) se muestra también como una carta por acabado, con su franja diagonal
-  const pageCards = useMemo(() => sorted.slice(0, shown).map((card) => ({ ...card, id: card.productId, tcgProductId: card.productId, groupId: isMyl ? undefined : group?.groupId })), [sorted, shown, group, isMyl]);
+  // Edición solo en español (sin ficha en TCGplayer): se busca su edición inglesa (mismo día de salida y los mismos números) para traer su ficha y acabados
+  const [twin, setTwin] = useState(null); // { spanish, english, byNumber }
+  useEffect(() => {
+    setTwin(null);
+    if (!isPokemon || searchLang !== 'es' || !group || Number(group.groupId) < 9000000 || !cards?.length) return undefined;
+    let active = true;
+    (async () => {
+      const day = String(group.publishedOn || '').slice(0, 10);
+      const candidates = day ? (await fetchPokemonGroups('en')).filter((item) => String(item.publishedOn || '').slice(0, 10) === day).slice(0, 4) : [];
+      const numbers = new Set(cards.map((card) => leadingNumber(card.number)));
+      let best = null;
+      for (const candidate of candidates) {
+        const list = await fetchPokemonGroupCards('en', candidate);
+        const byNumber = new Map();
+        list.forEach((card) => { const key = leadingNumber(card.number); if (!byNumber.has(key)) byNumber.set(key, card.productId); });
+        const overlap = [...numbers].filter((key) => byNumber.has(key)).length;
+        if (overlap >= numbers.size / 2 && (!best || overlap > best.overlap)) best = { overlap, english: candidate.groupId, byNumber };
+      }
+      if (active && best) setTwin({ spanish: group.groupId, english: best.english, byNumber: best.byNumber });
+    })().catch(noop);
+    return () => { active = false; };
+  }, [group, cards, isPokemon, searchLang]);
+
+  const pageCards = useMemo(() => sorted.slice(0, shown).map((card) => {
+    const english = twin && String(twin.spanish) === String(group?.groupId) ? twin.byNumber.get(leadingNumber(card.number)) : null;
+    return { ...card, id: card.productId, tcgProductId: english || card.productId, baseProductId: english || undefined, groupId: isMyl ? undefined : english ? twin.english : group?.groupId };
+  }), [sorted, shown, group, isMyl, twin]);
   const { cards: shownCards } = useFinishSplit(pageCards, isPokemon ? 'pokemon' : null);
   const addToFolder = (card) => {
     if (!currentUser) { navigate('/bienvenida'); return; }
