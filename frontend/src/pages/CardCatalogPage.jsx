@@ -314,9 +314,9 @@ export default function CardCatalogPage() {
             scrollToTopIfNeeded={noop}
           />
           {leagueSets.length > 0 && (
-            <button type="button" onClick={() => update({ liga: leagueOnly ? '' : '1', set: '' })} aria-pressed={leagueOnly} className={`mx-2 mb-1 mt-2 inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-extrabold ring-1 transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${leagueOnly ? 'bg-[#12315f] text-[#facc15] ring-[#facc15]' : 'bg-white text-[#12315f] ring-slate-900/10 [@media(hover:hover)]:hover:bg-blue-50'}`}>
+            <div className="flex justify-center"><button type="button" onClick={() => update({ liga: leagueOnly ? '' : '1', set: '' })} aria-pressed={leagueOnly} className={`mx-2 mb-1 mt-2 inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-extrabold ring-1 transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${leagueOnly ? 'bg-[#12315f] text-[#facc15] ring-[#facc15]' : 'bg-white text-[#12315f] ring-slate-900/10 [@media(hover:hover)]:hover:bg-blue-50'}`}>
               <SvgIcon name={leagueOnly ? 'check' : 'add'} translate="no" aria-hidden="true" className="text-[18px]" />Solo cartas de liga (Prize Pack)
-            </button>
+            </button></div>
           )}
         </div>
 
