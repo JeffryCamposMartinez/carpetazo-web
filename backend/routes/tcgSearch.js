@@ -143,6 +143,20 @@ router.get('/api/tcg/search-index', async (req, res) => {
   const games = game ? game.split(',').map((name) => name.trim()).filter(Boolean) : [];
   if ((game && !games.length) || games.length > 4 || games.some((name) => !/^[A-Za-z_ ]{1,40}$/.test(name))) return badRequest(res, 'Búsqueda inválida');
   const gameWhere = games.length ? { game: { name: { in: games } } } : {};
+  const textOr = [
+    { cleanName: { contains: likeEscape(value) } },
+    nameMatch(searchText),
+    { number: { contains: likeEscape(searchText), mode: 'insensitive' } },
+  ];
+  // La carta en español tiene su propio nombre (y a veces otro número): se encuentra también por lo que coincide en su carta inglesa enlazada
+  let linkedSpanish = [];
+  if (withSpanish) try {
+    const english = await prisma.catalogCard.findMany({ where: { kind: 'card', categoryId: { notIn: [TCGDEX_CATEGORY, 85] }, ...gameWhere, OR: textOr }, select: { productId: true }, take: 600 });
+    const ids = english.map((card) => card.productId).filter(Number.isInteger);
+    if (ids.length) {
+      linkedSpanish = (await prisma.$queryRaw`SELECT "productId" FROM "CatalogCard" WHERE "categoryId" = ${TCGDEX_CATEGORY} AND ("attributes"->>'TcgplayerProductId') ~ '^[0-9]{1,9}$' AND ("attributes"->>'TcgplayerProductId')::int = ANY(${ids}::int[])`).map((row) => row.productId);
+    }
+  } catch (error) { console.error('Búsqueda en español por la carta enlazada:', error.message); }
   const where = {
     kind: 'card',
     // Las cartas en español son otra imagen de las inglesas: solo salen como cartas aparte si se piden (spanish=1 o lang=es).
@@ -151,11 +165,7 @@ router.get('/api/tcg/search-index', async (req, res) => {
       : lang === 'ja' ? { categoryId: 85, ...gameWhere }
       : lang === 'en' ? { categoryId: { notIn: [85, TCGDEX_CATEGORY] }, ...gameWhere }
       : withSpanish ? { AND: [games.length ? { OR: [gameWhere, { categoryId: TCGDEX_CATEGORY }] } : {}] } : { categoryId: { not: TCGDEX_CATEGORY }, ...gameWhere }),
-    OR: [
-      { cleanName: { contains: likeEscape(value) } },
-      nameMatch(searchText),
-      { number: { contains: likeEscape(searchText), mode: 'insensitive' } },
-    ],
+    OR: linkedSpanish.length ? [...textOr, { productId: { in: linkedSpanish } }] : textOr,
   };
   const run = (async () => {
    try {
