@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import LoadableImage from '../../ui/LoadableImage';
+import FinishRibbon from '../../ui/FinishRibbon';
 import SvgIcon from '../../ui/SvgIcon';
 import { catalogLink } from '../../../utils/catalogLink';
 
@@ -25,16 +26,17 @@ export default function CatalogGrid({ cards, view, hasFicha, onOpen }) {
           <Link to={to} aria-label={`Ver ficha de ${card.name}`} title="Ver ficha" className={FICHA}><SvgIcon name="chevron_right" translate="no" aria-hidden="true" className="text-[20px]" /></Link>
         );
         return (
-          <li key={card.productId} className="min-w-0">
+          <li key={card.id || card.productId} className="min-w-0">
             {list ? (
               <div className={`${TILE} flex items-center gap-3 p-2 pr-1.5`}>
                 <button type="button" onClick={() => onOpen(card)} aria-label={`Ver ${card.name} en grande`} className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
                   <span className="relative block aspect-[63/88] w-12 shrink-0 overflow-hidden rounded-md bg-slate-100">
                     <LoadableImage src={card.imageUrl} alt="" compact loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-contain" />
+                    <FinishRibbon finish={card.finish} />
                   </span>
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-extrabold text-[#12315f]">{card.name}</span>
-                    {card.number && <span className="block text-xs font-bold tabular-nums text-slate-500">N.º {card.number}</span>}
+                    {card.number && <span className="block text-xs font-bold tabular-nums text-slate-500">N.º {card.number}{card.finish && ` · ${card.finish}`}</span>}
                   </span>
                 </button>
                 {ficha}
@@ -44,6 +46,7 @@ export default function CatalogGrid({ cards, view, hasFicha, onOpen }) {
                 <button type="button" onClick={() => onOpen(card)} aria-label={`Ver ${card.name} en grande`} className="block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1e40af]">
                   <span className="relative block aspect-[63/88] w-full overflow-hidden bg-slate-100">
                     <LoadableImage src={card.imageUrl} alt={card.name} compact={small} loading="lazy" decoding="async" className={`absolute h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-md object-contain ${small ? 'inset-1.5 h-[calc(100%-0.75rem)] w-[calc(100%-0.75rem)]' : 'inset-2'}`} />
+                    <FinishRibbon finish={card.finish} />
                   </span>
                 </button>
                 <div className={`flex items-center gap-1 ${small ? 'px-2 py-1.5' : 'py-2 pl-3 pr-1.5'}`}>

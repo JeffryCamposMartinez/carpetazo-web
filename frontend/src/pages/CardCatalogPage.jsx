@@ -17,6 +17,7 @@ import CatalogToolbar, { SORTS, VIEWS } from '../components/cards/catalog/Catalo
 import { ARROW_BUTTON } from '../components/ui/arrowButton';
 import SlideSwap from '../components/cards/catalog/SlideSwap';
 import CatalogGrid from '../components/cards/catalog/CatalogGrid';
+import useFinishSplit from '../hooks/useFinishSplit';
 import CardLightbox from '../components/ui/CardLightbox';
 import AddToFolderModal from '../components/cards/AddToFolderModal';
 import SvgIcon from '../components/ui/SvgIcon';
@@ -194,7 +195,9 @@ export default function CardCatalogPage() {
     } catch (error) { if (error?.name !== 'AbortError') showToast('No pudimos copiar el enlace', 'error'); }
   };
 
-  const lightboxCards = useMemo(() => (openId ? sorted.map((card) => ({ ...card, id: card.productId })) : []), [openId, sorted]);
+  // Pokémon: una carta con varios acabados con precio (Reverse Holofoil…) se muestra también como una carta por acabado, con su franja diagonal
+  const pageCards = useMemo(() => sorted.slice(0, shown).map((card) => ({ ...card, id: card.productId, tcgProductId: card.productId, groupId: isMyl ? undefined : group?.groupId })), [sorted, shown, group, isMyl]);
+  const { cards: shownCards } = useFinishSplit(pageCards, isPokemon ? 'pokemon' : null);
   const addToFolder = (card) => {
     if (!currentUser) { navigate('/bienvenida'); return; }
     setAddTarget({ ...card, game, tcgProductId: card.productId });
@@ -310,7 +313,7 @@ export default function CardCatalogPage() {
             </EmptyState>
           ) : (
             <>
-              <CatalogGrid cards={sorted.slice(0, shown)} view={view} hasFicha={!isMyl} onOpen={(card) => setOpenId(card.productId)} />
+              <CatalogGrid cards={shownCards} view={view} hasFicha={!isMyl} onOpen={(card) => setOpenId(card.id)} />
               {shown < sorted.length && (
                 <div ref={sentinel} className="mt-6 flex justify-center">
                   <button type="button" onClick={more} className="inline-flex h-12 items-center justify-center rounded-full bg-[#facc15] px-6 text-sm font-extrabold text-[#12315f] shadow-[inset_0_-1px_0_rgba(0,0,0,0.12)] transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 [@media(hover:hover)]:hover:bg-[#eab308]">Ver más cartas ({sorted.length - shown})</button>
@@ -326,14 +329,14 @@ export default function CardCatalogPage() {
           <SvgIcon name="arrow_upward" translate="no" aria-hidden="true" className="text-[24px]" />
         </button>
       )}
-      {openId && lightboxCards.length > 0 && (
+      {openId && shownCards.length > 0 && (
         <CardLightbox
-          cards={lightboxCards}
+          cards={shownCards}
           cardId={openId}
           onChange={setOpenId}
           onClose={() => setOpenId(null)}
           tcg={game}
-          describe={(card) => ({ subtitle: [game, group?.name].filter(Boolean).join(' · '), chips: [card.number && `N.º ${card.number}`, card.extData?.Rarity || card.rarity].filter(Boolean), note: 'Carta del catálogo: es informativa, no una oferta de venta.' })}
+          describe={(card) => ({ subtitle: [game, group?.name].filter(Boolean).join(' · '), chips: [card.number && `N.º ${card.number}`, card.finish, card.extData?.Rarity || card.rarity].filter(Boolean), note: 'Carta del catálogo: es informativa, no una oferta de venta.' })}
           renderActions={(card) => (
             <div className="mx-auto flex w-full flex-wrap items-center justify-center gap-2">
               {!isMyl && catalogLink(card) && <button type="button" onClick={() => navigate(catalogLink(card))} className="flex min-h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-[#facc15] px-3.5 py-1.5 text-xs font-extrabold text-[#12315f] transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white sm:min-h-11 sm:px-5 sm:py-2 sm:text-sm"><SvgIcon name="info" translate="no" aria-hidden="true" className="shrink-0 text-[18px] sm:text-[20px]" />Ver ficha y quién la vende</button>}
