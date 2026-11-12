@@ -75,7 +75,6 @@ function perksOf(plan, prev) {
     { key: 'banner', on: plan.profileBanner, isNew: !prev?.profileBanner, text: 'Banner del perfil' },
     { key: 'studio', on: plan.profileStudio, isNew: !prev?.profileStudio, text: 'Estilos y fondo para tu perfil' },
     { key: 'visits', on: plan.visitsDetail, isNew: !prev?.visitsDetail, text: 'Detalle de tus visitas' },
-    { key: 'export', on: plan.inventoryExport, isNew: !prev?.inventoryExport, text: 'Exportar tu inventario (CSV)' },
     { key: 'boost', on: plan.listingBoost > 0, isNew: (prev?.listingBoost || 0) !== plan.listingBoost, text: boostLabel[plan.listingBoost] },
     { key: 'support', on: plan.prioritySupport, isNew: !prev?.prioritySupport, text: 'Soporte prioritario' }
   ];

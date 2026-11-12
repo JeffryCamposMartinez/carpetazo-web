@@ -92,9 +92,7 @@ export default function PlanTools({ plan, children }) {
   return (
     <div className="mb-3 -mt-1 sm:mb-5 sm:-mt-2">
       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-        {plan.inventoryExport
-          ? <button type="button" onClick={exportInventory} disabled={exporting} className={buttonClass}>{exporting ? <ButtonSpinner tone="dark" /> : <SvgIcon name="download" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" />}<span className="sm:hidden">Exportar CSV</span><span className="hidden sm:inline">Exportar inventario (CSV)</span></button>
-          : <Link to="/planes" className={buttonClass} title="Disponible desde el plan Raro"><SvgIcon name="lock" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" /><span className="sm:hidden">Exportar · Raro</span><span className="hidden sm:inline">Exportar inventario · Raro</span></Link>}
+        <button type="button" onClick={exportInventory} disabled={exporting} className={buttonClass}>{exporting ? <ButtonSpinner tone="dark" /> : <SvgIcon name="download" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" />}<span className="sm:hidden">Exportar CSV</span><span className="hidden sm:inline">Exportar inventario (CSV)</span></button>
         {plan.visitsDetail
           ? <button type="button" onClick={() => setVisitsOpen((open) => !open)} aria-expanded={visitsOpen} className={buttonClass}><SvgIcon name="monitoring" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" /><span className="sm:hidden">{visitsOpen ? 'Ocultar' : 'Visitas'}</span><span className="hidden sm:inline">{visitsOpen ? 'Ocultar visitas' : 'Detalle de visitas'}</span></button>
           : <Link to="/planes" className={buttonClass} title="Disponible desde el plan Épico"><SvgIcon name="lock" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" /><span className="sm:hidden">Visitas · Épico</span><span className="hidden sm:inline">Detalle de visitas · Épico</span></Link>}

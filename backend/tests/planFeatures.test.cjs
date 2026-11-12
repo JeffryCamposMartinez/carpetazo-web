@@ -27,10 +27,10 @@ const feature = (r) => r.j?.feature;
     ok('listas de deseos 1/3/6/10/10', ['free', 'enthusiast', 'premium', 'pro', 'store'].map((k) => by[k].wishlistLists).join('/') === '1/3/6/10/10');
     ok('cartas por lista 25/50/100/150/300', ['free', 'enthusiast', 'premium', 'pro', 'store'].map((k) => by[k].wishlistItems).join('/') === '25/50/100/150/300');
     ok('redes 1/2/3/3/3 y cartas destacadas 3/6/12/24/48', ['free', 'enthusiast', 'premium', 'pro', 'store'].map((k) => by[k].socialLinks).join('/') === '1/2/3/3/3' && ['free', 'enthusiast', 'premium', 'pro', 'store'].map((k) => by[k].featuredCards).join('/') === '3/6/12/24/48');
-    ok('banner, Estudio, visitas, exportar y soporte por plan', row('free', ['profileBanner', 'profileStudio', 'visitsDetail', 'inventoryExport', 'prioritySupport']) === 'false/false/false/false/false'
-      && row('enthusiast', ['profileBanner', 'profileStudio', 'visitsDetail', 'inventoryExport', 'prioritySupport']) === 'true/false/false/true/false'
-      && row('premium', ['profileBanner', 'profileStudio', 'visitsDetail', 'inventoryExport', 'prioritySupport']) === 'true/true/true/true/false'
-      && row('pro', ['profileBanner', 'profileStudio', 'visitsDetail', 'inventoryExport', 'prioritySupport', 'listingBoost']) === 'true/true/true/true/true/1'
+    ok('banner, Estudio, visitas, exportar y soporte por plan', row('free', ['profileBanner', 'profileStudio', 'visitsDetail', 'prioritySupport']) === 'false/false/false/false'
+      && row('enthusiast', ['profileBanner', 'profileStudio', 'visitsDetail', 'prioritySupport']) === 'true/false/false/false'
+      && row('premium', ['profileBanner', 'profileStudio', 'visitsDetail', 'prioritySupport']) === 'true/true/true/false'
+      && row('pro', ['profileBanner', 'profileStudio', 'visitsDetail', 'prioritySupport', 'listingBoost']) === 'true/true/true/true/1'
       && row('store', ['listingBoost']) === '2');
 
     // ---- Listas y cartas de deseos
@@ -133,12 +133,9 @@ const feature = (r) => r.j?.feature;
     await mk(foreign.id, 'PF carta ajena');
     await plan('nobuyer', 'free');
     r = await fetch(B + '/inventory/export', { headers: { Authorization: 'Bearer test-cztest-nobuyer', 'X-Forwarded-For': ip() } });
-    ok('Free: exportar el inventario → 403', r.status === 403 && (await r.json()).feature === 'inventoryExport', String(r.status));
-    await plan('nobuyer', 'enthusiast');
-    r = await fetch(B + '/inventory/export', { headers: { Authorization: 'Bearer test-cztest-nobuyer', 'X-Forwarded-For': ip() } });
-    const csv = Buffer.from(await r.arrayBuffer()).toString('utf8'); // fetch().text() quita el BOM: se lee en bytes
-    ok('Entusiasta: descarga un CSV con nombre y sin caché', r.status === 200 && /text\/csv/.test(r.headers.get('content-type')) && /attachment; filename="carpetazo-inventario-\d{4}-\d{2}-\d{2}\.csv"/.test(r.headers.get('content-disposition')) && /no-store/.test(r.headers.get('cache-control')), r.status + ' ' + r.headers.get('content-type'));
-    ok('...con encabezado, BOM y las cartas propias', csv.startsWith('﻿Carpeta,Juego,Carta,Idioma,Precio (CLP),Stock,Código') && csv.includes('PF Pikachu'), csv.slice(0, 120));
+        const csv = Buffer.from(await r.arrayBuffer()).toString('utf8'); // fetch().text() quita el BOM: se lee en bytes
+    ok('Free: descarga un CSV con nombre y sin caché', r.status === 200 && /text\/csv/.test(r.headers.get('content-type')) && /attachment; filename="carpetazo-inventario-\d{4}-\d{2}-\d{2}\.csv"/.test(r.headers.get('content-disposition')) && /no-store/.test(r.headers.get('cache-control')), r.status + ' ' + r.headers.get('content-type'));
+    ok('...con encabezado, BOM y las cartas propias', csv.startsWith('﻿Quantity,Name,Simple Name,Set,Card Number,Set Code,Printing,Condition,Language,Rarity,Product ID,SKU,Precio (CLP),Carpeta') && csv.includes('PF Pikachu'), csv.slice(0, 120));
     ok('...sin cartas de otras personas', !csv.includes('PF carta ajena'), '');
     ok('...las fórmulas quedan como texto (comilla delante)', csv.includes(`'=HYPERLINK`) && csv.includes(`'+cmd`) && !/(^|,)=HYPERLINK/m.test(csv), '');
     ok('...las comas y comillas quedan escapadas', csv.includes('"PF, con coma"') && csv.includes('"PF ""comillas"""'), '');
