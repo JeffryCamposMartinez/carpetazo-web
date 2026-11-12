@@ -149,14 +149,15 @@ export default function CardCatalogPage() {
   const mylFilters = useMemo(() => ({ type: mylType, race: mylRace, cost: mylCost, blockId: searchBlock, physicalProductId: searchPhysicalProduct }), [mylType, mylRace, mylCost, searchBlock, searchPhysicalProduct]);
   const term = isMyl ? mylQuery.trim() : '';
 
+  const requestCards = (target, signal) => (isMyl
+    ? (term.length >= 2 ? api.searchTcgProducts(term, '99', target.groupId, mylFilters) : api.getTcgProducts('99', target.groupId, mylFilters)).then(mylCardsOf)
+    : isPokemon ? fetchPokemonGroupCards(searchLang, target, signal) : fetchGameGroupCards(game, target, signal));
+
   useEffect(() => {
     if (!group) return undefined;
     const controller = new AbortController();
     setCards(null); setFailed(false); setShown(PAGE_SIZE);
-    const request = isMyl
-      ? (term.length >= 2 ? api.searchTcgProducts(term, '99', group.groupId, mylFilters) : api.getTcgProducts('99', group.groupId, mylFilters)).then(mylCardsOf)
-      : isPokemon ? fetchPokemonGroupCards(searchLang, group, controller.signal) : fetchGameGroupCards(game, group, controller.signal);
-    request
+    requestCards(group, controller.signal)
       .then((list) => { if (!controller.signal.aborted) setCards(list); })
       .catch((error) => { if (error?.name !== 'AbortError' && !controller.signal.aborted) { setCards([]); setFailed(true); } });
     return () => controller.abort();
@@ -164,11 +165,11 @@ export default function CardCatalogPage() {
 
   const gameFilters = game === 'One Piece' ? opFilters : game === 'Magic' ? magicFilters : game === 'Yu-Gi-Oh!' ? ygFilters : game === 'Lorcana' ? lcFilters : game === 'Digimon' ? dgFilters : rbFilters;
   // Texto y filtros del juego sobre las cartas de la edición (Mitos y Leyendas ya llega filtrada del servidor)
-  const visible = useMemo(() => {
-    const list = cards || [];
+  const refine = (list) => {
     if (isMyl) return list;
     return gameInfo ? filterGameCards(game, list, searchQuery.trim().toLowerCase(), gameFilters) : filterPokemonCards(list, { query: searchQuery, supertype: selectedSupertype, type: selectedType });
-  }, [cards, game, searchQuery, selectedSupertype, selectedType, gameFilters]);
+  };
+  const visible = useMemo(() => refine(cards || []), [cards, game, searchQuery, selectedSupertype, selectedType, gameFilters]);
 
   const sorted = useMemo(() => [...visible].sort(SORTERS[sort]), [visible, sort]);
   useEffect(() => { setShown(PAGE_SIZE); }, [searchQuery, selectedSupertype, selectedType, gameFilters, sort]);
@@ -225,10 +226,30 @@ export default function CardCatalogPage() {
     return () => { active = false; };
   }, [group, cards, isPokemon, searchLang]);
 
-  const pageCards = useMemo(() => sorted.slice(0, shown).map((card) => {
+  // «Todas las ediciones seguidas»: al terminar la edición se ofrece cargar la siguiente, y así hasta la última
+  const allMode = params.get('todas') === '1';
+  const [extraCount, setExtraCount] = useState(0);
+  const [extraCards, setExtraCards] = useState({}); // `${clave}|${groupId}` → cartas de esa edición (null mientras carga)
+  const chainKey = `${game}|${searchLang}|${leagueOnly}|${group?.groupId}|${term}|${JSON.stringify(mylFilters)}`;
+  useEffect(() => { setExtraCount(0); }, [chainKey]);
+  const following = allMode && position >= 0 ? filteredSets.slice(position + 1, position + 1 + extraCount) : [];
+  const nextSet = allMode && position >= 0 ? filteredSets[position + 1 + extraCount] || null : null;
+  const extraKey = (target) => `${game}|${searchLang}|${term}|${JSON.stringify(mylFilters)}|${target.groupId}`;
+  useEffect(() => {
+    following.forEach((target) => {
+      const key = extraKey(target);
+      if (extraCards[key] !== undefined) return;
+      setExtraCards((previous) => ({ ...previous, [key]: null }));
+      requestCards(target).then((list) => setExtraCards((previous) => ({ ...previous, [key]: list }))).catch(() => setExtraCards((previous) => ({ ...previous, [key]: [] })));
+    });
+  }, [following.length, chainKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const extraLists = following.map((target) => ({ group: target, list: extraCards[extraKey(target)] }));
+  const extraPage = extraLists.flatMap(({ group: target, list }) => (list ? refine(list).sort(SORTERS[sort]).map((card) => ({ ...card, id: card.productId, tcgProductId: card.productId, groupId: isMyl ? undefined : target.groupId, section: String(target.groupId) })) : []));
+
+  const pageCards = useMemo(() => [...sorted.slice(0, shown).map((card) => {
     const english = twin && String(twin.spanish) === String(group?.groupId) ? twin.byNumber.get(leadingNumber(card.number)) : null;
-    return { ...card, id: card.productId, tcgProductId: english || card.productId, baseProductId: english || undefined, groupId: isMyl ? undefined : english ? twin.english : group?.groupId };
-  }), [sorted, shown, group, isMyl, twin]);
+    return { ...card, id: card.productId, tcgProductId: english || card.productId, baseProductId: english || undefined, groupId: isMyl ? undefined : english ? twin.english : group?.groupId, section: String(group?.groupId) };
+  }), ...extraPage], [sorted, shown, group, isMyl, twin, extraCards, following.length, sort, searchQuery, selectedSupertype, selectedType, gameFilters]);
   const { cards: shownCards } = useFinishSplit(pageCards, isPokemon ? 'pokemon' : null);
   const addToFolder = (card) => {
     if (!currentUser) { navigate('/bienvenida'); return; }
@@ -313,11 +334,16 @@ export default function CardCatalogPage() {
             loadedCards={cards || []}
             scrollToTopIfNeeded={noop}
           />
-          {leagueSets.length > 0 && (
-            <div className="flex justify-center"><button type="button" onClick={() => update({ liga: leagueOnly ? '' : '1', set: '' })} aria-pressed={leagueOnly} className={`mx-2 mb-1 mt-2 inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-extrabold ring-1 transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${leagueOnly ? 'bg-[#12315f] text-[#facc15] ring-[#facc15]' : 'bg-white text-[#12315f] ring-slate-900/10 [@media(hover:hover)]:hover:bg-blue-50'}`}>
-              <SvgIcon name={leagueOnly ? 'check' : 'add'} translate="no" aria-hidden="true" className="text-[18px]" />Solo cartas de liga (Prize Pack)
-            </button></div>
-          )}
+          <div className="flex flex-wrap justify-center gap-2 px-2 pb-1 pt-2">
+            {[
+              leagueSets.length > 0 && { label: 'Solo cartas de liga (Prize Pack)', on: leagueOnly, toggle: () => update({ liga: leagueOnly ? '' : '1', set: '' }) },
+              !isMyl && { label: 'Todas las ediciones seguidas', on: allMode, toggle: () => update({ todas: allMode ? '' : '1' }) },
+            ].filter(Boolean).map((chip) => (
+              <button key={chip.label} type="button" onClick={chip.toggle} aria-pressed={chip.on} className={`inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-extrabold ring-1 transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${chip.on ? 'bg-[#12315f] text-[#facc15] ring-[#facc15]' : 'bg-white text-[#12315f] ring-slate-900/10 [@media(hover:hover)]:hover:bg-blue-50'}`}>
+                <SvgIcon name={chip.on ? 'check' : 'add'} translate="no" aria-hidden="true" className="text-[18px]" />{chip.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="mx-auto w-full lg:max-w-4xl">
@@ -350,13 +376,34 @@ export default function CardCatalogPage() {
             </EmptyState>
           ) : (
             <>
-              <CatalogGrid cards={shownCards} view={view} hasFicha={!isMyl} onOpen={(card) => setOpenId(card.id)} />
+              <CatalogGrid cards={shownCards.filter((card) => card.section === String(group.groupId))} view={view} hasFicha={!isMyl} onOpen={(card) => setOpenId(card.id)} />
               {shown < sorted.length && (
                 <div ref={sentinel} className="mt-6 flex justify-center">
                   <button type="button" onClick={more} className="inline-flex h-12 items-center justify-center rounded-full bg-[#facc15] px-6 text-sm font-extrabold text-[#12315f] shadow-[inset_0_-1px_0_rgba(0,0,0,0.12)] transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 [@media(hover:hover)]:hover:bg-[#eab308]">Ver más cartas ({sorted.length - shown})</button>
                 </div>
               )}
-              {shown >= sorted.length && sorted.length > PAGE_SIZE && <p className="mt-6 text-center text-xs font-bold text-slate-500">Viste las {sorted.length} cartas de {group.name}</p>}
+              {allMode && shown >= sorted.length && (
+                <>
+                  {extraLists.map(({ group: target, list }) => {
+                    const cardsOf = shownCards.filter((card) => card.section === String(target.groupId));
+                    return (
+                      <div key={target.groupId} className="mt-8">
+                        <h2 className="mb-3 rounded-2xl bg-[#12315f] px-4 py-3 text-center text-base font-extrabold text-white shadow-[0_14px_28px_-18px_rgba(18,49,95,0.9)] md:text-lg">{target.name}{list && <span className="block text-xs font-bold text-blue-100/85">{cardsOf.length === 0 ? 'Sin cartas con estos filtros' : `${list.length} cartas`}</span>}</h2>
+                        {!list ? <div className="relative flex h-40 items-center justify-center"><LoadingMark className="absolute inset-0" /></div> : <CatalogGrid cards={cardsOf} view={view} hasFicha={!isMyl} onOpen={(card) => setOpenId(card.id)} />}
+                      </div>
+                    );
+                  })}
+                  <div className="mt-8 flex flex-col items-center gap-1">
+                    {nextSet ? (
+                      <button type="button" onClick={() => setExtraCount((count) => count + 1)} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#facc15] px-6 text-sm font-extrabold text-[#12315f] shadow-[inset_0_-1px_0_rgba(0,0,0,0.12)] transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 [@media(hover:hover)]:hover:bg-[#eab308]">
+                        <SvgIcon name="add" translate="no" aria-hidden="true" className="text-[18px]" />Cargar siguiente edición
+                      </button>
+                    ) : <p className="text-xs font-bold text-slate-500">Llegaste a la última edición</p>}
+                    {nextSet && <p className="max-w-full truncate text-xs font-bold text-slate-500">{nextSet.name}</p>}
+                  </div>
+                </>
+              )}
+              {shown >= sorted.length && sorted.length > PAGE_SIZE && !allMode && <p className="mt-6 text-center text-xs font-bold text-slate-500">Viste las {sorted.length} cartas de {group.name}</p>}
             </>
           )}
         </section>
