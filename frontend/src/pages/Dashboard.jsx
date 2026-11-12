@@ -542,7 +542,7 @@ export default function Dashboard() {
                 <Link to="/planes" className="inline-flex h-9 items-center justify-center rounded-xl bg-[#12315f] px-3 text-xs font-extrabold text-white hover:bg-[#1e40af] sm:h-10 sm:px-4 sm:text-sm">Ver mi plan</Link>
               </div>
             )}
-            {planState?.plan && folders.length > 0 ? (
+            {planState?.plan ? (
               <PlanTools plan={planState.plan}>
                 <OnboardingChecklist foldersCount={folders.length} onCreateFolder={() => setIsCreateModalOpen(true)} version={`${folders.length}:${totalCards}`} />
               </PlanTools>

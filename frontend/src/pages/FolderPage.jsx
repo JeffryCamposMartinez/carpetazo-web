@@ -1057,7 +1057,7 @@ const [isSearching, setIsSearching] = useState(false);
 
   const folderCatalogTabProps = { availableSets, cards, catQuery, catSet, catalogDragFloatingPreview,
     catalogDragFloatingPreviewRef, cardDetailsMode, catalogGridClass, catalogGridColumns, catalogGridDense, catalogViewMode,
-    clearCatalogFilters, currentFolderId: id, inventory, copyBuyerLink, cycleCardDetailsMode, cycleCatalogGridDensity, draggedCatalogCardId, dropCatalogIndex,
+    clearCatalogFilters, currentFolderId: id, inventory, copyBuyerLink, fetchCards, cycleCardDetailsMode, cycleCatalogGridDensity, draggedCatalogCardId, dropCatalogIndex,
     filteredCatSets, filteredCatalog, folderData, getCatalogDragHandleProps, getCatalogDropProps,
     handleCatalogReorder, handleDeleteRequest, handleToggleFeatured, handleUpdateCard, handleCardPhotos, hasCatalogFilters, hasUnsavedCatalogOrder,
     isCatSetDropdownOpen, isMylFolder, openBuyerPreview, previewCatalog, saveCatalogOrder, savingCatalogOrder,

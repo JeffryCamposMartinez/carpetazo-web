@@ -13,9 +13,9 @@ const TCG_NAMES = { 'Mitos y Leyendas': 'Mitos y Leyendas', Pokemon: 'Pokémon',
 const label = 'mb-1 block text-sm font-extrabold text-[#12315f]';
 
 // Importar cartas a una carpeta desde un CSV (TCGplayer, TCGmatch o la exportación de Carpetazo)
-export default function ImportCsvModal({ onClose }) {
-  const [folders, setFolders] = useState(null);
-  const [folderId, setFolderId] = useState('');
+export default function ImportCsvModal({ onClose, folderId: fixedFolderId = '', onDone }) {
+  const [folders, setFolders] = useState(fixedFolderId ? [] : null);
+  const [folderId, setFolderId] = useState(fixedFolderId);
   const [parsed, setParsed] = useState(null); // { fileName, rows, withIds, copies } | { error }
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -24,6 +24,7 @@ export default function ImportCsvModal({ onClose }) {
   const fileInput = useRef(null);
 
   useEffect(() => {
+    if (fixedFolderId) return undefined; // desde una carpeta, el destino ya está elegido
     let cancelled = false;
     api.getMyFolders().then((response) => {
       if (cancelled) return;
@@ -32,7 +33,7 @@ export default function ImportCsvModal({ onClose }) {
       setFolderId(mine[0]?.id || '');
     }).catch(() => { if (!cancelled) setFolders([]); });
     return () => { cancelled = true; };
-  }, []);
+  }, [fixedFolderId]);
 
   useEffect(() => {
     const onKey = (event) => { if (event.key === 'Escape' && !busy) onClose(); };
@@ -88,15 +89,15 @@ export default function ImportCsvModal({ onClose }) {
         <div className="flex-1 space-y-4 overflow-y-auto p-5">
           {folders === null ? (
             <p className="py-6 text-center text-sm font-semibold text-slate-500" role="status">Cargando tus carpetas…</p>
-          ) : folders.length === 0 ? (
+          ) : !fixedFolderId && folders.length === 0 ? (
             <p className="rounded-2xl bg-blue-50 p-4 text-sm font-semibold text-[#12315f]">Primero crea una carpeta del juego de tus cartas (Pokémon, Magic, One Piece…) y vuelve a importar.</p>
           ) : (
             <>
-              <div>
+              {!fixedFolderId && <div>
                 <span className={label}>Carpeta de destino</span>
                 <ThemedSelect value={folderId} onChange={setFolderId} options={options} icon="folder" ariaLabel="Carpeta de destino" disabled={busy || Boolean(result)} />
                 <p className="mt-1 text-xs font-medium text-slate-500">Las cartas se buscan en el catálogo de ese juego.</p>
-              </div>
+              </div>}
 
               <div>
                 <span className={label}>Archivo CSV</span>
@@ -139,8 +140,10 @@ export default function ImportCsvModal({ onClose }) {
         <div className="flex shrink-0 gap-2 border-t border-slate-100 p-4">
           {result ? (
             <>
-              <button type="button" onClick={onClose} className="h-12 flex-1 rounded-xl border border-blue-200 bg-white text-sm font-extrabold text-[#12315f] transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] [@media(hover:hover)]:hover:bg-blue-50">Cerrar</button>
-              <Link to={`/carpeta/${folderId}`} className="flex h-12 flex-1 items-center justify-center rounded-xl bg-[#facc15] text-sm font-extrabold text-[#12315f] transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] [@media(hover:hover)]:hover:bg-[#eab308]">Ver carpeta</Link>
+              <button type="button" onClick={() => { if (fixedFolderId) onDone?.(); onClose(); }} className="h-12 flex-1 rounded-xl border border-blue-200 bg-white text-sm font-extrabold text-[#12315f] transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] [@media(hover:hover)]:hover:bg-blue-50">Cerrar</button>
+              {fixedFolderId
+                ? <button type="button" onClick={() => { onDone?.(); onClose(); }} className="flex h-12 flex-1 items-center justify-center rounded-xl bg-[#facc15] text-sm font-extrabold text-[#12315f] transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] [@media(hover:hover)]:hover:bg-[#eab308]">Ver cartas</button>
+                : <Link to={`/carpeta/${folderId}`} className="flex h-12 flex-1 items-center justify-center rounded-xl bg-[#facc15] text-sm font-extrabold text-[#12315f] transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] [@media(hover:hover)]:hover:bg-[#eab308]">Ver carpeta</Link>}
             </>
           ) : (
             <button type="button" onClick={submit} disabled={!ready} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#12315f] text-sm font-extrabold text-white transition-[background-color,transform] duration-150 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] focus-visible:ring-offset-2 disabled:opacity-50 [@media(hover:hover)]:hover:bg-[#1e40af]">

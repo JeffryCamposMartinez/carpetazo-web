@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
+import { saveDownload } from '../../utils/saveDownload';
 import { useToast } from '../ui/ToastProvider';
 import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 import SvgIcon from '../ui/SvgIcon';
@@ -75,12 +76,7 @@ export default function PlanTools({ plan, children }) {
     setExporting(true);
     try {
       const { blob, name } = await api.downloadInventory();
-      const url = URL.createObjectURL(blob);
-      const link = Object.assign(document.createElement('a'), { href: url, download: name });
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      saveDownload(blob, name);
       showToast('Inventario exportado', 'success');
     } catch (error) {
       showToast(error.message || 'No se pudo exportar el inventario.', 'error');

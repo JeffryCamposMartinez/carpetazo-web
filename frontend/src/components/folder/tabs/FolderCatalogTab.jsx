@@ -6,10 +6,11 @@ import InventoryBulkBar from '../InventoryBulkBar';
 import InventoryToolbar from '../InventoryToolbar';
 import { DragFloatingPreview, FolderInventorySummary, InventoryEmptyState, InventoryFilters, InventoryStatusBar, InventoryViewSwitcher } from '../FolderInventoryComponents';
 import SvgIcon from '../../ui/SvgIcon';
+import FolderCsvTools from '../FolderCsvTools';
 
 export default function FolderCatalogTab({
   availableSets, cards, catQuery, catSet, catalogDragFloatingPreview, catalogDragFloatingPreviewRef,
-  cardDetailsMode, currentFolderId, inventory, catalogGridClass, catalogGridColumns, catalogGridDense, catalogViewMode, clearCatalogFilters, copyBuyerLink,
+  cardDetailsMode, currentFolderId, inventory, catalogGridClass, catalogGridColumns, catalogGridDense, catalogViewMode, clearCatalogFilters, copyBuyerLink, fetchCards,
   cycleCardDetailsMode, cycleCatalogGridDensity, draggedCatalogCardId, dropCatalogIndex, filteredCatSets, filteredCatalog,
   folderData, getCatalogDragHandleProps, getCatalogDropProps, handleCatalogReorder, handleDeleteRequest,
   handleToggleFeatured, handleUpdateCard, handleCardPhotos, hasCatalogFilters, hasUnsavedCatalogOrder, isCatSetDropdownOpen, isMylFolder,
@@ -51,6 +52,7 @@ export default function FolderCatalogTab({
             <span className="truncate">Copiar</span>
             <span className="hidden sm:inline">enlace</span>
           </button>
+          <FolderCsvTools folderId={currentFolderId} onImported={fetchCards} />
         </div>
       </div>
 
