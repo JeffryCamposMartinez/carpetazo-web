@@ -33,6 +33,8 @@ const MYL = 'Mitos y Leyendas'; // tiene su propio catálogo (categoría 99), fu
 const PAGE_SIZE = 60;
 const noop = () => {};
 const VIEW_KEY = 'catalog:view';
+const AUTO_MATCHES = 12; // al buscar en «todas las ediciones» se avanza de edición hasta juntar estas coincidencias
+const AUTO_EDITIONS = 60; // y como máximo esta cantidad de ediciones seguidas
 const LEAGUE_SET = /^prize pack|league & championship/i; // cartas de liga de Pokémon: Prize Pack y League & Championship
 const leadingNumber = (text) => { const match = String(text || '').match(/\d+/); return match ? parseInt(match[0], 10) : 0; };
 const SORTERS = {
@@ -104,7 +106,7 @@ export default function CardCatalogPage() {
   const changeGame = (name) => {
     if (name === game) return;
     resetFilters();
-    update({ tcg: name === 'Pokémon' ? '' : name, set: '', q: '', todas: '' });
+    update({ tcg: name === 'Pokémon' ? '' : name, set: '', q: '' });
   };
   const changeView = (value) => { try { localStorage.setItem(VIEW_KEY, value); } catch { /* sin almacenamiento: solo se usa en esta visita */ } update({ vista: value === 'grid' ? '' : value }); };
   const resetFilters = () => {
@@ -193,7 +195,7 @@ export default function CardCatalogPage() {
 
   // Edición más nueva / más antigua (la lista viene de la más nueva a la más vieja)
   const position = group ? filteredSets.findIndex((item) => String(item.groupId) === String(group.groupId)) : -1;
-  const goTo = (target, way = 1) => { if (target) { setDir(way); update({ set: String(target.groupId), todas: '' }); } };
+  const goTo = (target, way = 1) => { if (target) { setDir(way); update({ set: String(target.groupId) }); } };
   const share = async () => {
     const url = window.location.href;
     try {
@@ -227,7 +229,7 @@ export default function CardCatalogPage() {
   }, [group, cards, isPokemon, searchLang]);
 
   // «Todas las ediciones seguidas»: al terminar la edición se ofrece cargar la siguiente, y así hasta la última
-  const allMode = params.get('todas') === '1';
+  const allMode = !setParam; // sin edición elegida: todas las ediciones, una tras otra
   const [extraCount, setExtraCount] = useState(0);
   const [extraCards, setExtraCards] = useState({}); // `${clave}|${groupId}` → cartas de esa edición (null mientras carga)
   const chainKey = `${game}|${searchLang}|${leagueOnly}|${group?.groupId}|${term}|${JSON.stringify(mylFilters)}`;
@@ -245,6 +247,13 @@ export default function CardCatalogPage() {
   }, [following.length, chainKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const extraLists = following.map((target) => ({ group: target, list: extraCards[extraKey(target)] }));
   const extraPage = extraLists.flatMap(({ group: target, list }) => (list ? refine(list).sort(SORTERS[sort]).map((card) => ({ ...card, id: card.productId, tcgProductId: card.productId, groupId: isMyl ? undefined : target.groupId, section: String(target.groupId) })) : []));
+
+  const filtering = searchQuery.trim().length >= 2 || Boolean(selectedSupertype || selectedType);
+  const extrasReady = extraLists.every((item) => item.list);
+  const matchCount = sorted.length + extraPage.length;
+  useEffect(() => {
+    if (allMode && filtering && cards && extrasReady && nextSet && matchCount < AUTO_MATCHES && extraCount < AUTO_EDITIONS) setExtraCount((count) => count + 1);
+  }, [allMode, filtering, cards, extrasReady, nextSet?.groupId, matchCount, extraCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pageCards = useMemo(() => [...sorted.slice(0, shown).map((card) => {
     const english = twin && String(twin.spanish) === String(group?.groupId) ? twin.byNumber.get(leadingNumber(card.number)) : null;
@@ -301,7 +310,7 @@ export default function CardCatalogPage() {
             filteredSearchSets={filteredSets}
             isSetDropdownOpen={false}
             setIsSetDropdownOpen={noop}
-            setSearchSet={(value) => update({ set: value ? String(value) : '', todas: value ? '' : '1' })} // «Todas las ediciones» del selector: se ven una tras otra
+            setSearchSet={(value) => update({ set: value ? String(value) : '' })}
             searchLang={searchLang}
             setSearchLang={setSearchLang}
             selectedType={selectedType}
@@ -359,7 +368,7 @@ export default function CardCatalogPage() {
             onShare={share}
           />
         )}
-        {group && cards && sorted.length > 0 && <CatalogToolbar sort={sort} onSort={(value) => update({ orden: value === 'num' ? '' : value })} view={view} onView={changeView} />}
+        {group && cards && (sorted.length > 0 || extraPage.length > 0) && <CatalogToolbar sort={sort} onSort={(value) => update({ orden: value === 'num' ? '' : value })} view={view} onView={changeView} />}
         </div>
 
         <section className="mt-4" aria-label="Cartas de la edición" aria-busy={loading}>
@@ -369,7 +378,7 @@ export default function CardCatalogPage() {
             <EmptyState icon="cloud_off" title="No pudimos cargar el catálogo" action={{ label: 'Reintentar', icon: 'refresh', onClick: () => window.location.reload() }} role="alert">Revisa tu conexión e inténtalo de nuevo.</EmptyState>
           ) : !group ? (
             <EmptyState icon="style" title="Este juego aún no tiene ediciones">Vuelve pronto: estamos sumando más cartas al catálogo.</EmptyState>
-          ) : sorted.length === 0 ? (
+          ) : matchCount === 0 && !(allMode && nextSet) && extrasReady ? (
             <EmptyState icon="style" title={(cards || []).length === 0 ? 'Esta edición no tiene cartas todavía' : 'Ninguna carta coincide'} action={(cards || []).length === 0 ? { label: 'Ver la edición más nueva', onClick: () => goTo(filteredSets[0]) } : { label: 'Quitar filtros', onClick: resetFilters }} secondary={(cards || []).length === 0 ? undefined : { label: 'Probar con otra edición', onClick: () => goTo(filteredSets[position + 1] || filteredSets[0]) }}>
               {(cards || []).length === 0 ? 'Aún no cargamos las cartas de esta edición.' : 'Prueba con otro nombre, otros filtros u otra edición.'}
             </EmptyState>
@@ -385,6 +394,7 @@ export default function CardCatalogPage() {
                 <>
                   {extraLists.map(({ group: target, list }) => {
                     const cardsOf = shownCards.filter((card) => card.section === String(target.groupId));
+                    if (filtering && list && cardsOf.length === 0) return null; // con búsqueda no se muestran las ediciones sin coincidencias
                     return (
                       <div key={target.groupId} className="mt-8">
                         <h2 className="mb-3 rounded-2xl bg-[#12315f] px-4 py-3 text-center text-base font-extrabold text-white shadow-[0_14px_28px_-18px_rgba(18,49,95,0.9)] md:text-lg">{target.name}{list && <span className="block text-xs font-bold text-blue-100/85">{cardsOf.length === 0 ? 'Sin cartas con estos filtros' : `${list.length} cartas`}</span>}</h2>
@@ -393,7 +403,9 @@ export default function CardCatalogPage() {
                     );
                   })}
                   <div className="mt-8 flex flex-col items-center gap-1">
-                    {nextSet ? (
+                    {filtering && nextSet && matchCount < AUTO_MATCHES && extraCount < AUTO_EDITIONS ? (
+                      <div className="relative flex h-24 w-full items-center justify-center"><LoadingMark className="absolute inset-0" /><span className="sr-only" role="status">Buscando en más ediciones…</span></div>
+                    ) : nextSet ? (
                       <button type="button" onClick={() => setExtraCount((count) => count + 1)} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#facc15] px-6 text-sm font-extrabold text-[#12315f] shadow-[inset_0_-1px_0_rgba(0,0,0,0.12)] transition-[background-color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2 [@media(hover:hover)]:hover:bg-[#eab308]">
                         <SvgIcon name="add" translate="no" aria-hidden="true" className="text-[18px]" />Cargar siguiente edición
                       </button>
