@@ -8,6 +8,7 @@ import { bulkPublishedRanges } from '../core/editionDates.js';
 import { PRODUCT_ID, loadCatalogCard, loadCatalogSales } from '../core/catalogPage.js';
 import { bumpMetric, searchKey } from '../core/metrics.js';
 import { TCGDEX_CATEGORY } from '../core/tcgSync/tcgdex.js';
+import { NO_IMAGE_KEY } from '../core/catalogPhotos.js';
 
 const router = express.Router();
 const r2PublicUrl = (key) => {
@@ -40,7 +41,7 @@ const INDEX_SORTS = new Set(['best_selling', 'latest_edition']);
 const RANKING_POOL = 3000;
 const CARD_SELECT = {
   productId: true, categoryId: true, groupId: true, kind: true, name: true, cleanName: true,
-  number: true, rarity: true, imageKey: true, sourceImageUrl: true, tcgplayerUrl: true,
+  number: true, rarity: true, imageKey: true, spanishImageKey: true, sourceImageUrl: true, tcgplayerUrl: true,
   game: { select: { name: true } }, set: { select: { name: true } },
 };
 // Un código de carta («055», «055/», «055/165»): primero el número exacto, luego los que empiezan igual, y recién después el resto.
@@ -126,7 +127,7 @@ router.get('/api/tcg/search-index', async (req, res) => {
   const sort = typeof req.query.sort === 'string' && INDEX_SORTS.has(req.query.sort) ? req.query.sort : '';
   if (query.length < 2 || query.length > 80 || game.length > 60 || page < 1 || page > 10000) return badRequest(res, 'Búsqueda inválida');
   res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=300');
-  const limit = 60;
+  let limit = 60;
   const searchText = /^\d+\/$/.test(query) ? query.slice(0, -1) : query; // «055/» se busca como «055»
   const value = clean(searchText);
   const byCode = !sort && isCodeQuery(searchText);
@@ -148,28 +149,29 @@ router.get('/api/tcg/search-index', async (req, res) => {
     nameMatch(searchText),
     { number: { contains: likeEscape(searchText), mode: 'insensitive' } },
   ];
-  // La carta en español tiene su propio nombre (y a veces otro número): se encuentra también por lo que coincide en su carta inglesa enlazada
-  let linkedSpanish = [];
+  // Español: toda carta inglesa de Pokémon cuenta como carta en español, con sus datos y, si hay, la foto en español (TCGdex o aprobada en Moderación);
+  // sin foto sale «Sin imagen». Igual que en el catálogo y al agregar cartas. Además se encuentra por el nombre propio de la carta en español.
+  const POKEMON_GAME = 'Pokemon';
+  const spanishOnly = { categoryId: TCGDEX_CATEGORY, attributes: { path: ['TcgplayerLinked'], equals: '0' } }; // solo en TCGdex: sin carta inglesa
+  let linkedEnglish = [];
   if (withSpanish) try {
-    const english = await prisma.catalogCard.findMany({ where: { kind: 'card', categoryId: { notIn: [TCGDEX_CATEGORY, 85] }, ...gameWhere, OR: textOr }, select: { productId: true }, take: 600 });
-    const ids = english.map((card) => card.productId).filter(Number.isInteger);
-    if (ids.length) {
-      linkedSpanish = (await prisma.$queryRaw`SELECT "productId" FROM "CatalogCard" WHERE "categoryId" = ${TCGDEX_CATEGORY} AND ("attributes"->>'TcgplayerProductId') ~ '^[0-9]{1,9}$' AND ("attributes"->>'TcgplayerProductId')::int = ANY(${ids}::int[])`).map((row) => row.productId);
-    }
-  } catch (error) { console.error('Búsqueda en español por la carta enlazada:', error.message); }
+    const spanishRows = await prisma.catalogCard.findMany({ where: { kind: 'card', categoryId: TCGDEX_CATEGORY, OR: textOr }, select: { attributes: true }, take: 600 });
+    linkedEnglish = [...new Set(spanishRows.map((row) => Number(row.attributes?.TcgplayerProductId)).filter(Number.isInteger))];
+  } catch (error) { console.error('Búsqueda en español por el nombre propio:', error.message); }
+  if (withSpanish && !lang) limit = 30; // cada carta inglesa de Pokémon suma su versión en español: la página sigue en unas 60
   const where = {
     kind: 'card',
-    // Las cartas en español son otra imagen de las inglesas: solo salen como cartas aparte si se piden (spanish=1 o lang=es).
-    // Con idioma: español = TCGdex (100), japonés = 85 e inglés = el resto de TCGplayer.
-    ...(lang === 'es' ? { categoryId: withSpanish ? TCGDEX_CATEGORY : -1 }
+    // Con idioma: español = inglesas de Pokémon + las solo en español, japonés = 85 e inglés = el resto de TCGplayer.
+    ...(lang === 'es' ? (withSpanish ? { AND: [{ OR: [{ categoryId: { notIn: [85, TCGDEX_CATEGORY] }, game: { name: POKEMON_GAME } }, spanishOnly] }] } : { categoryId: -1 })
       : lang === 'ja' ? { categoryId: 85, ...gameWhere }
       : lang === 'en' ? { categoryId: { notIn: [85, TCGDEX_CATEGORY] }, ...gameWhere }
-      : withSpanish ? { AND: [games.length ? { OR: [gameWhere, { categoryId: TCGDEX_CATEGORY }] } : {}] } : { categoryId: { not: TCGDEX_CATEGORY }, ...gameWhere }),
-    OR: linkedSpanish.length ? [...textOr, { productId: { in: linkedSpanish } }] : textOr,
+      : withSpanish ? { AND: [{ OR: [{ categoryId: { not: TCGDEX_CATEGORY }, ...gameWhere }, spanishOnly] }] } : { categoryId: { not: TCGDEX_CATEGORY }, ...gameWhere }),
+    OR: linkedEnglish.length ? [...textOr, { productId: { in: linkedEnglish } }] : textOr,
   };
   const run = (async () => {
    try {
-    const total = await prisma.catalogCard.count({ where });
+    const total = await prisma.catalogCard.count({ where })
+      + (withSpanish && !lang ? await prisma.catalogCard.count({ where: { AND: [where, { categoryId: { notIn: [85, TCGDEX_CATEGORY] }, game: { name: POKEMON_GAME } }] } }) : 0);
     const rows = sort === 'best_selling'
       ? await soldRankedPage(where, page, limit)
       : sort === 'latest_edition'
@@ -209,7 +211,22 @@ router.get('/api/tcg/search-index', async (req, res) => {
         source = 'database-similarity';
       }
     }
-    const cards = hydratedRows.map((card) => ({
+    // Foto en español de cada carta inglesa (la de TCGdex enlazada o la aprobada en Moderación)
+    const spanishKeys = new Map();
+    const englishIds = withSpanish ? hydratedRows.filter((card) => card.categoryId !== TCGDEX_CATEGORY && card.game.name === POKEMON_GAME).map((card) => card.productId).filter(Number.isInteger) : [];
+    if (englishIds.length) {
+      const linkedImages = await prisma.$queryRaw`SELECT ("attributes"->>'TcgplayerProductId')::int AS "english", "imageKey" FROM "CatalogCard" WHERE "categoryId" = ${TCGDEX_CATEGORY} AND "imageKey" IS NOT NULL AND ("attributes"->>'TcgplayerProductId') ~ '^[0-9]{1,9}$' AND ("attributes"->>'TcgplayerProductId')::int = ANY(${englishIds}::int[])`;
+      linkedImages.forEach((row) => { if (!spanishKeys.has(row.english)) spanishKeys.set(row.english, row.imageKey); });
+    }
+    const asSpanish = (card) => {
+      const key = spanishKeys.get(card.productId) || card.spanishImageKey || null;
+      return { ...card, categoryId: TCGDEX_CATEGORY, game: { name: 'Pokémon (Español)' }, imageKey: key, sourceImageUrl: null, noImage: !key };
+    };
+    const entries = !withSpanish ? hydratedRows : hydratedRows.flatMap((card) => {
+      if (card.categoryId === TCGDEX_CATEGORY || card.game.name !== POKEMON_GAME || card.categoryId === 85) return [card];
+      return lang === 'es' ? [asSpanish(card)] : [card, asSpanish(card)];
+    });
+    const cards = entries.map((card) => ({
       id: `${card.categoryId}:${card.productId}`,
       productId: card.productId,
       categoryId: card.categoryId,
@@ -221,7 +238,8 @@ router.get('/api/tcg/search-index', async (req, res) => {
       game: card.game.name,
       setName: card.set.name,
       imageKey: card.imageKey,
-      imageUrl: r2PublicUrl(card.imageKey),
+      imageUrl: card.noImage ? r2PublicUrl(NO_IMAGE_KEY) : r2PublicUrl(card.imageKey),
+      hasImage: !card.noImage,
       sourceImageUrl: card.sourceImageUrl,
       tcgplayerUrl: card.tcgplayerUrl,
     }));
