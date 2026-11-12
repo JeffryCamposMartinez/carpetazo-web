@@ -9,7 +9,7 @@ import { ButtonSpinner } from '../ui/LoadingState';
 
 const BATCH = 300; // el servidor recibe las filas en tandas de este tamaño
 const REASONS = { invalid: 'datos inválidos', notFound: 'no está en el catálogo', ambiguous: 'hay varias ediciones posibles', limit: 'supera el límite de tu plan' };
-const TCG_NAMES = { Pokemon: 'Pokémon', Pokemon_Japan: 'Pokémon Japón', OnePiece: 'One Piece', Magic: 'Magic', YuGiOh: 'Yu-Gi-Oh!', Riftbound: 'Riftbound', Lorcana: 'Lorcana', Digimon: 'Digimon' };
+const TCG_NAMES = { 'Mitos y Leyendas': 'Mitos y Leyendas', Pokemon: 'Pokémon', Pokemon_Japan: 'Pokémon Japón', OnePiece: 'One Piece', Magic: 'Magic', YuGiOh: 'Yu-Gi-Oh!', Riftbound: 'Riftbound', Lorcana: 'Lorcana', Digimon: 'Digimon' };
 const label = 'mb-1 block text-sm font-extrabold text-[#12315f]';
 
 // Importar cartas a una carpeta desde un CSV (TCGplayer, TCGmatch o la exportación de Carpetazo)

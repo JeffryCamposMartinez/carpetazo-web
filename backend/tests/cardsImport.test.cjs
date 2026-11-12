@@ -7,6 +7,7 @@ const IDS = { a: 989000011, b: 989000012, c: 989000013, d: 989000014 };
 
 (async () => {
   let createdGame = false;
+  let createdCategory = false;
   try {
     createdGame = !(await prisma.catalogGame.findUnique({ where: { categoryId: GAME_ID } }));
     if (createdGame) await prisma.catalogGame.create({ data: { categoryId: GAME_ID, name: 'CZTEST One Piece', folder: 'One_Piece' } });
@@ -18,10 +19,23 @@ const IDS = { a: 989000011, b: 989000012, c: 989000013, d: 989000014 };
     const fid = await mk('seller', 'TEST importar');
     const foreign = await mk('jerry', 'TEST importar ajena');
     const myl = await mk('seller', 'TEST importar MyL', 'Mitos y Leyendas');
+    let r;
     const stored = () => prisma.card.findMany({ where: { folderId: fid }, orderBy: { tcgId: 'asc' } });
 
+    // Mitos y Leyendas: catálogo propio, siempre en español y con id «myl:»
+    createdCategory = !(await prisma.tcgCategory.findUnique({ where: { categoryId: 99 } }));
+    if (createdCategory) await prisma.tcgCategory.create({ data: { categoryId: 99, name: 'Mitos y Leyendas', modifiedOn: new Date() } });
+    await prisma.tcgGroup.create({ data: { groupId: 989000002, name: 'CZTEST Edición MyL', categoryId: 99, publishedOn: new Date(), modifiedOn: new Date() } });
+    const ext = (number) => [{ name: 'Edition', value: 'CZTEST Edición MyL' }, { name: 'Number', value: number }, { name: 'Frequency', value: 'Rara' }];
+    await prisma.tcgProduct.createMany({ data: [['989000021', 'CZTEST Cid', '001'], ['989000022', 'CZTEST Arturo', '002']].map(([productId, name, number]) => ({ productId, groupId: 989000002, categoryId: 99, name, cleanName: name.toLowerCase().replace(/[^a-z0-9 ]/g, ''), imageUrl: 'https://example.com/x.webp', extData: ext(number) })) });
+    r = await call('POST', '/folders/' + myl + '/cards-import', 'seller', { rows: [{ line: 2, productId: 989000021, quantity: 2, language: 'English' }, { line: 3, name: 'CZTEST Arturo', number: '002', quantity: 1 }, { line: 4, name: 'CZTEST Nadie' }] });
+    const mylCards = await prisma.card.findMany({ where: { folderId: myl }, orderBy: { tcgId: 'asc' } });
+    ok('importar a Mitos y Leyendas: por id y por nombre, id «myl:», español y datos de la edición', r.j.created === 2 && r.j.skippedCount === 1 && mylCards.length === 2 && mylCards[0].tcgId === 'myl:989000021' && mylCards.every((c) => c.language === 'Spanish') && mylCards[1].data.set === 'CZTEST Edición MyL' && mylCards[1].data.rarity === 'Rara', JSON.stringify([r.j, mylCards]));
+    const csv = await fetch(require('./fixtures.cjs').B + '/inventory/export?folderId=' + myl, { headers: { Authorization: 'Bearer test-cztest-seller', 'X-Forwarded-For': '10.9.8.7' } });
+    ok('la exportación de Mitos y Leyendas trae edición, número, rareza e id', csv.status === 403 || (await csv.text()).includes('CZTEST Edición MyL,001'), String(csv.status));
+
     // Por id de TCGplayer y por nombre + número
-    let r = await call('POST', '/folders/' + fid + '/cards-import', 'seller', { rows: [
+    r = await call('POST', '/folders/' + fid + '/cards-import', 'seller', { rows: [
       { line: 2, productId: IDS.a, quantity: 2, condition: 5, finish: 'Foil', price: 1500 },
       { line: 3, name: 'CZTEST Zoro', number: '002/100', quantity: 1, language: 'Spanish' },
       { line: 4, name: 'CZTEST Nami', quantity: 1 },
@@ -45,8 +59,6 @@ const IDS = { a: 989000011, b: 989000012, c: 989000013, d: 989000014 };
     ok('carpeta ajena → 403 y no importa nada', r.status === 403 && (await prisma.card.count({ where: { folderId: foreign } })) === 0, String(r.status));
     r = await call('POST', '/folders/' + fid + '/cards-import', 'jerry', { rows: [{ productId: IDS.a, quantity: 1 }] });
     ok('otra persona importando a mi carpeta → 403', r.status === 403, String(r.status));
-    r = await call('POST', '/folders/' + myl + '/cards-import', 'seller', { rows: [{ productId: IDS.a, quantity: 1 }] });
-    ok('carpeta de Mitos y Leyendas → 400', r.status === 400, String(r.status));
     r = await call('POST', '/folders/' + fid + '/cards-import', 'seller', { rows: [] });
     ok('sin filas → 400', r.status === 400, String(r.status));
     r = await call('POST', '/folders/' + fid + '/cards-import', 'seller', { rows: Array.from({ length: 301 }, () => ({ productId: IDS.a })) });
@@ -55,6 +67,10 @@ const IDS = { a: 989000011, b: 989000012, c: 989000013, d: 989000014 };
     ok('cantidad, precio, estado o idioma inválidos se omiten', r.status === 200 && r.j.created === 0 && r.j.skippedCount === 4 && r.j.skipped.every((s) => s.reason === 'invalid'), JSON.stringify(r.j));
   } finally {
     await prisma.card.deleteMany({ where: { tcgId: { in: Object.values(IDS).map(String) } } });
+    await prisma.card.deleteMany({ where: { tcgId: { startsWith: 'myl:98900002' } } });
+    await prisma.tcgProduct.deleteMany({ where: { groupId: 989000002 } });
+    await prisma.tcgGroup.deleteMany({ where: { groupId: 989000002 } });
+    if (createdCategory) await prisma.tcgCategory.deleteMany({ where: { categoryId: 99 } });
     await prisma.catalogCard.deleteMany({ where: { groupId: SET_ID } });
     await prisma.catalogSet.deleteMany({ where: { groupId: SET_ID } });
     if (createdGame) await prisma.catalogGame.deleteMany({ where: { categoryId: GAME_ID } });

@@ -5,13 +5,16 @@ import { authenticateToken } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { PlanLimitError, assertStockChange, getEffectivePlan, lockPlanUser, sendPlanError } from '../core/entitlements.js';
 import { limitReached } from '../core/plans.js';
+import { cleanName } from '../core/catalogImport.js';
+import { isMylTcg, storedMylId } from '../core/mylIdentity.js';
 import { r2PublicUrl } from '../core/tcgCatalogImport.js';
 import { badRequest, cleanCardData, isOptionalText, isUuid, isValidCondition, isValidPrice, normalizedCondition } from '../core/validation.js';
 
 const router = express.Router();
 const MAX_ROWS = 300; // por pedido: el navegador envía archivos grandes en tandas
 const LANGUAGES = ['English', 'Spanish', 'Japanese'];
-// Juego de la carpeta → categorías de TCGplayer donde se buscan las cartas (Mitos y Leyendas no existe en TCGplayer)
+// Juego de la carpeta → categorías de TCGplayer donde se buscan las cartas (Mitos y Leyendas tiene su propio catálogo)
+const MYL_CATEGORY = 99;
 const CATEGORIES = { Pokemon: [3, 85], Pokemon_Japan: [85], OnePiece: [68], Magic: [1], YuGiOh: [2], Riftbound: [89], Lorcana: [71], Digimon: [63] };
 
 const plain = (text) => String(text ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -19,6 +22,14 @@ const baseName = (name) => plain(String(name ?? '').split(' - ')[0]);
 const numberKey = (value) => plain(String(value ?? '').split('/')[0]).replace(/^0+(?=\d)/, '');
 const finishOf = (data) => (data && typeof data === 'object' && typeof data.finish === 'string' ? data.finish : '');
 const SELECT = { productId: true, categoryId: true, name: true, number: true, rarity: true, imageKey: true, set: { select: { name: true } } };
+const MYL_SELECT = { productId: true, name: true, imageUrl: true, extData: true, group: { select: { name: true } } };
+
+// Una carta del catálogo (TCGplayer o Mitos y Leyendas) con la misma forma: { id, tcgId, categoryId, name, number, rarity, setName, imageUrl }
+const fromTcgplayer = (card) => ({ id: card.productId, tcgId: String(card.productId), categoryId: card.categoryId, name: card.name, number: card.number || '', rarity: card.rarity || '', setName: card.set.name, imageUrl: r2PublicUrl(card.imageKey) });
+const fromMyl = (card) => {
+  const field = (name) => (Array.isArray(card.extData) ? String(card.extData.find((entry) => entry?.name === name)?.value ?? '') : '');
+  return { id: card.productId, tcgId: storedMylId(card.productId), categoryId: MYL_CATEGORY, name: card.name, number: field('Number'), rarity: field('Frequency'), setName: field('Edition') || card.group.name, imageUrl: card.imageUrl || null };
+};
 
 // Una fila bien formada o null
 const cleanRow = (raw) => {
@@ -43,8 +54,9 @@ router.post('/api/folders/:id/cards-import', authenticateToken, async (req, res)
     const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
     const folder = isUuid(req.params.id) ? await prisma.folder.findUnique({ where: { id: req.params.id }, select: { id: true, userId: true, tcg: true } }) : null;
     if (!user || !folder || folder.userId !== user.id) return res.status(403).json({ success: false, message: 'Not authorized' });
+    const myl = isMylTcg(folder.tcg);
     const categoryId = CATEGORIES[folder.tcg];
-    if (!categoryId) return badRequest(res, 'Esta carpeta no admite importar cartas desde un CSV.');
+    if (!categoryId && !myl) return badRequest(res, 'Esta carpeta no admite importar cartas desde un CSV.');
     const input = req.body?.rows;
     if (!Array.isArray(input) || input.length === 0 || input.length > MAX_ROWS) return badRequest(res, 'Filas inválidas');
 
@@ -58,7 +70,9 @@ router.post('/api/folders/:id/cards-import', authenticateToken, async (req, res)
 
     // 1. Por id de TCGplayer
     const ids = [...new Set(rows.map((row) => row.productId).filter(Boolean))];
-    const byId = new Map((ids.length ? await prisma.catalogCard.findMany({ where: { productId: { in: ids }, categoryId: { in: categoryId }, kind: 'card' }, select: SELECT }) : []).map((card) => [card.productId, card]));
+    const byId = new Map((ids.length ? (myl
+      ? (await prisma.tcgProduct.findMany({ where: { productId: { in: ids.map(String) }, categoryId: MYL_CATEGORY }, select: MYL_SELECT })).map(fromMyl)
+      : (await prisma.catalogCard.findMany({ where: { productId: { in: ids }, categoryId: { in: categoryId }, kind: 'card' }, select: SELECT })).map(fromTcgplayer)) : []).map((card) => [Number(card.id), card]));
     // 2. Sin id (o id desconocido): por nombre, y se afina con el número y la edición
     const byName = new Map();
     const resolved = [];
@@ -67,14 +81,16 @@ router.post('/api/folders/:id/cards-import', authenticateToken, async (req, res)
       if (!hit && row.name) {
         const key = baseName(row.name);
         if (!byName.has(key)) {
-          const found = await prisma.catalogCard.findMany({ where: { categoryId: { in: categoryId }, kind: 'card', OR: [{ cleanName: { equals: key, mode: 'insensitive' } }, { name: { startsWith: row.name.split(' - ')[0].trim(), mode: 'insensitive' } }] }, select: SELECT, take: 80 });
+          const found = myl
+            ? (await prisma.tcgProduct.findMany({ where: { categoryId: MYL_CATEGORY, cleanName: cleanName(row.name) }, select: MYL_SELECT, take: 80 })).map(fromMyl)
+            : (await prisma.catalogCard.findMany({ where: { categoryId: { in: categoryId }, kind: 'card', OR: [{ cleanName: { equals: key, mode: 'insensitive' } }, { name: { startsWith: row.name.split(' - ')[0].trim(), mode: 'insensitive' } }] }, select: SELECT, take: 80 })).map(fromTcgplayer);
           byName.set(key, found.filter((card) => baseName(card.name) === key));
         }
         let candidates = byName.get(key);
         if (row.number) candidates = candidates.filter((card) => numberKey(card.number) === numberKey(row.number));
         if (row.set && candidates.length > 1) {
-          const sameSet = candidates.filter((card) => plain(card.set.name) === plain(row.set));
-          candidates = sameSet.length ? sameSet : candidates.filter((card) => plain(card.set.name).includes(plain(row.set)) || plain(row.set).includes(plain(card.set.name)));
+          const sameSet = candidates.filter((card) => plain(card.setName) === plain(row.set));
+          candidates = sameSet.length ? sameSet : candidates.filter((card) => plain(card.setName).includes(plain(row.set)) || plain(row.set).includes(plain(card.setName)));
         }
         if (candidates.length === 1) hit = candidates[0];
         else { skipped.push({ line: row.line, name: row.name.slice(0, 80), reason: candidates.length ? 'ambiguous' : 'notFound' }); continue; }
@@ -88,7 +104,7 @@ router.post('/api/folders/:id/cards-import', authenticateToken, async (req, res)
       await lockPlanUser(tx, user.id);
       if (!(await tx.folder.findFirst({ where: { id: folder.id, userId: user.id }, select: { id: true } }))) throw Object.assign(new Error('Not authorized'), { status: 403 });
       const { plan } = await getEffectivePlan(tx, user.id);
-      const tcgIds = [...new Set(resolved.map(({ hit }) => String(hit.productId)))];
+      const tcgIds = [...new Set(resolved.map(({ hit }) => hit.tcgId))];
       const existing = tcgIds.length ? await tx.card.findMany({ where: { folderId: folder.id, tcgId: { in: tcgIds } }, select: { id: true, tcgId: true, language: true, condition: true, stock: true, price: true, data: true } }) : [];
       const identity = (tcgId, language, condition, finish) => [tcgId, language, condition ?? '', finish].join('\u0000');
       const known = new Map(existing.map((card) => [identity(card.tcgId, card.language, card.condition, finishOf(card.data)), card]));
@@ -96,8 +112,8 @@ router.post('/api/folders/:id/cards-import', authenticateToken, async (req, res)
       let created = 0;
       let merged = 0;
       for (const { row, hit } of resolved) {
-        const tcgId = String(hit.productId);
-        const language = row.language || (hit.categoryId === 85 ? 'Japanese' : 'English');
+        const tcgId = hit.tcgId;
+        const language = myl ? 'Spanish' : row.language || (hit.categoryId === 85 ? 'Japanese' : 'English');
         const finish = row.finish && !/^normal$/i.test(row.finish) ? row.finish : '';
         const key = identity(tcgId, language, row.condition, finish);
         const current = known.get(key);
@@ -113,8 +129,8 @@ router.post('/api/folders/:id/cards-import', authenticateToken, async (req, res)
             assertStockChange(plan, 0, row.quantity);
             const card = await tx.card.create({
               data: {
-                tcgId, name: hit.name, imageUrl: r2PublicUrl(hit.imageKey), price: row.price, stock: row.quantity, language, condition: row.condition, folderId: folder.id,
-                data: { ...(cleanCardData({ ...(finish ? { finish } : {}), pseudoName: '', set: hit.set.name || 'Unknown', rarity: hit.rarity || 'Unknown', number: hit.number || '' }) || {}), language },
+                tcgId, name: hit.name, imageUrl: hit.imageUrl, price: row.price, stock: row.quantity, language, condition: row.condition, folderId: folder.id,
+                data: { ...(cleanCardData({ ...(finish ? { finish } : {}), pseudoName: '', set: hit.setName || 'Unknown', rarity: hit.rarity || 'Unknown', number: hit.number }) || {}), language },
               },
               select: { id: true, tcgId: true, language: true, condition: true, stock: true, price: true, data: true },
             });
