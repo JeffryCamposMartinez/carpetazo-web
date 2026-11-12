@@ -10,6 +10,8 @@ import { ButtonSpinner } from '../ui/LoadingState';
 const BATCH = 300; // el servidor recibe las filas en tandas de este tamaño
 const REASONS = { invalid: 'datos inválidos', notFound: 'no está en el catálogo', ambiguous: 'hay varias ediciones posibles', limit: 'supera el límite de tu plan' };
 const TCG_NAMES = { 'Mitos y Leyendas': 'Mitos y Leyendas', Pokemon: 'Pokémon', Pokemon_Japan: 'Pokémon Japón', OnePiece: 'One Piece', Magic: 'Magic', YuGiOh: 'Yu-Gi-Oh!', Riftbound: 'Riftbound', Lorcana: 'Lorcana', Digimon: 'Digimon' };
+const NEW_FOLDER = 'new'; // destino: crear una carpeta con el nombre del archivo
+const GAME_OPTIONS = Object.entries(TCG_NAMES).filter(([key]) => key !== 'Pokemon_Japan').map(([value, label]) => ({ value, label }));
 const label = 'mb-1 block text-sm font-extrabold text-[#12315f]';
 
 // Importar cartas a una carpeta desde un CSV (TCGplayer, TCGmatch o la exportación de Carpetazo)
@@ -21,6 +23,7 @@ export default function ImportCsvModal({ onClose, folderId: fixedFolderId = '', 
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [newTcg, setNewTcg] = useState('Pokemon');
   const fileInput = useRef(null);
 
   useEffect(() => {
@@ -30,7 +33,7 @@ export default function ImportCsvModal({ onClose, folderId: fixedFolderId = '', 
       if (cancelled) return;
       const mine = (response.folders || []).filter((folder) => TCG_NAMES[folder.tcg]);
       setFolders(mine);
-      setFolderId(mine[0]?.id || '');
+      setFolderId(mine[0]?.id || NEW_FOLDER);
     }).catch(() => { if (!cancelled) setFolders([]); });
     return () => { cancelled = true; };
   }, [fixedFolderId]);
@@ -56,8 +59,16 @@ export default function ImportCsvModal({ onClose, folderId: fixedFolderId = '', 
     setProgress(0);
     const total = { created: 0, merged: 0, skipped: [], skippedCount: 0 };
     try {
+      let target = folderId;
+      if (target === NEW_FOLDER) {
+        const name = String(parsed.fileName || '').replace(/\.[^./\\]+$/, '').trim().slice(0, 100) || 'Carpeta importada';
+        const { folder } = await api.createFolder({ name, tcg: newTcg, color: 'blue', isPublic: false });
+        target = folder.id;
+        setFolders((list) => [...(list || []), folder]);
+        setFolderId(target); // si falla a medias, reintentar sigue en esta carpeta
+      }
       for (let start = 0; start < parsed.rows.length; start += BATCH) {
-        const response = await api.importCards(folderId, parsed.rows.slice(start, start + BATCH));
+        const response = await api.importCards(target, parsed.rows.slice(start, start + BATCH));
         total.created += response.created;
         total.merged += response.merged;
         total.skippedCount += response.skippedCount;
@@ -74,7 +85,7 @@ export default function ImportCsvModal({ onClose, folderId: fixedFolderId = '', 
     }
   };
 
-  const options = (folders || []).map((folder) => ({ value: folder.id, label: `${folder.name} · ${TCG_NAMES[folder.tcg]}` }));
+  const options = [{ value: NEW_FOLDER, label: 'Nueva carpeta con el nombre del archivo' }, ...(folders || []).map((folder) => ({ value: folder.id, label: `${folder.name} · ${TCG_NAMES[folder.tcg]}` }))];
   const ready = parsed?.rows && folderId && !busy && !result;
 
   return createPortal(
@@ -89,8 +100,6 @@ export default function ImportCsvModal({ onClose, folderId: fixedFolderId = '', 
         <div className="flex-1 space-y-4 overflow-y-auto p-5">
           {folders === null ? (
             <p className="py-6 text-center text-sm font-semibold text-slate-500" role="status">Cargando tus carpetas…</p>
-          ) : !fixedFolderId && folders.length === 0 ? (
-            <p className="rounded-2xl bg-blue-50 p-4 text-sm font-semibold text-[#12315f]">Primero crea una carpeta del juego de tus cartas (Pokémon, Magic, One Piece…) y vuelve a importar.</p>
           ) : (
             <>
               {!fixedFolderId && <div>
@@ -98,6 +107,13 @@ export default function ImportCsvModal({ onClose, folderId: fixedFolderId = '', 
                 <ThemedSelect value={folderId} onChange={setFolderId} options={options} icon="folder" ariaLabel="Carpeta de destino" disabled={busy || Boolean(result)} />
                 <p className="mt-1 text-xs font-medium text-slate-500">Las cartas se buscan en el catálogo de ese juego.</p>
               </div>}
+              {!fixedFolderId && folderId === NEW_FOLDER && (
+                <div>
+                  <span className={label}>Juego de la carpeta nueva</span>
+                  <ThemedSelect value={newTcg} onChange={setNewTcg} options={GAME_OPTIONS} icon="style" ariaLabel="Juego de la carpeta nueva" disabled={busy} />
+                  <p className="mt-1 text-xs font-medium text-slate-500">Se crea privada y con el nombre del archivo.</p>
+                </div>
+              )}
 
               <div>
                 <span className={label}>Archivo CSV</span>
