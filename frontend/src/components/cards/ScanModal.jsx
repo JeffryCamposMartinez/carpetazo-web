@@ -98,7 +98,8 @@ export default function ScanModal({ onClose, batch, origin }) {
     later(after, calm() ? 0 : 260);
   };
   useBodyScrollLock();
-  useEscape(true, () => requestClose());
+  const [menuId, setMenuId] = useState(null); // carta de la bandeja cuyo menú de versiones está abierto
+  useEscape(true, () => (menuId ? setMenuId(null) : requestClose()));
   useEffect(() => { closeRef.current?.focus({ preventScroll: true }); }, []);
   // El foco no sale del visor con Tab (el resto de la página queda detrás)
   const trapTab = (event) => {
@@ -133,23 +134,40 @@ export default function ScanModal({ onClose, batch, origin }) {
     (ghost.decode ? ghost.decode().catch(() => {}) : Promise.resolve()).then(() => requestAnimationFrame(start));
     return true;
   };
+  // Otras ediciones o impresiones de la carta reconocida, sin repetir, para el menú de versiones
+  const versionsOf = (result) => {
+    const seen = new Set();
+    return [...(result.top || []), ...(result.same || [])].filter((card) => { const id = `${card.categoryId}:${card.productId}`; if (card.productId == null || seen.has(id)) return false; seen.add(id); return true; }).slice(0, 14);
+  };
+  // Sin imagen oficial: la foto del escaneo se aporta sola (se endereza, se sube y va a Moderación al guardar la carta)
+  const contribute = async (added) => {
+    if (!(added.noImage && added.photo?.blob && !offered.current.has(added.key))) return;
+    offered.current.add(added.key);
+    const done = new Map((await batch.onShare([added])).map(({ from, to }) => [from, to]));
+    if (done.size === 0) offered.current.delete(added.key); // no se pudo subir: se reintenta con el próximo escaneo de esa carta
+    setTray((previous) => previous.map((item) => (done.has(item.queueKey) ? { ...item, queueKey: done.get(item.queueKey), shared: true, uploading: false, photo: null } : item.uploading && item.key === added.key ? { ...item, uploading: false } : item)));
+  };
+  const changeVersion = async (item, candidate) => {
+    setMenuId(null);
+    if (String(candidate.productId) === item.key) return;
+    const next = await batch.onChangeVersion(item, candidate, { language: { code: item.lang }, photo: item.scanPhoto });
+    if (!next) return;
+    buzz();
+    const uploading = Boolean(next.noImage && next.photo?.blob && !offered.current.has(next.key));
+    setTray((previous) => previous.map((entry) => (entry.trayId === item.trayId ? { ...entry, ...next, uploading, fly: false } : entry)));
+    contribute(next);
+  };
   const handleBatchCard = async (result) => {
     const added = await batch.onCard(result);
     if (!added) return;
     const uploading = Boolean(added.noImage && added.photo?.blob && !offered.current.has(added.key));
     const id = ++trayId.current;
     const fly = Boolean(added.image) && !calm() && Boolean(guideRef.current);
-    setTray((previous) => [...previous, { ...added, uploading, trayId: id, fly }]);
+    setTray((previous) => [...previous, { ...added, uploading, trayId: id, fly, versions: versionsOf(result), lang: result.language?.code, scanPhoto: result.photo || null }]);
     setFlash((value) => value + 1);
     if (fly) flyToTray(added, id);
     buzz();
-    // Sin imagen oficial: la foto del escaneo se aporta sola (se endereza, se sube y va a Moderación al guardar la carta)
-    if (added.noImage && added.photo?.blob && !offered.current.has(added.key)) {
-      offered.current.add(added.key);
-      const done = new Map((await batch.onShare([added])).map(({ from, to }) => [from, to]));
-      if (done.size === 0) offered.current.delete(added.key); // no se pudo subir: se reintenta con el próximo escaneo de esa carta
-      setTray((previous) => previous.map((item) => (done.has(item.queueKey) ? { ...item, queueKey: done.get(item.queueKey), shared: true, uploading: false, photo: null } : item.uploading && item.key === added.key ? { ...item, uploading: false } : item)));
-    }
+    contribute(added);
   };
   const { message, guide, view, cameraError, retryCamera } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: true, batch: Boolean(batch), onCard: handleBatchCard });
   const best = view.result?.top?.[0];
@@ -170,6 +188,7 @@ export default function ScanModal({ onClose, batch, origin }) {
   useEffect(() => { if (!batch && view.done && best) { buzz(); setFlash((value) => value + 1); later(() => requestClose(() => openSearch(best)), 650); } }, [view.done]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pickGame = (value) => { setGame(value); try { localStorage.setItem(SAVED_GAME, value); } catch (_error) { /* sin almacenamiento: no se recuerda el juego */ } };
+  const menuItem = menuId == null ? null : tray.find((entry) => entry.trayId === menuId && (entry.versions?.length || 0) > 1) || null;
   const color = GUIDE_COLOR[guide] || GUIDE_COLOR[''];
   const corner = 'absolute h-[34px] w-[34px] transition-[border-color,filter] duration-300';
   const live = !cameraError;
@@ -255,6 +274,7 @@ export default function ScanModal({ onClose, batch, origin }) {
         <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[24px]" />
       </button>
 
+      {menuItem && <div aria-hidden="true" className="absolute inset-0 z-[5]" onClick={() => setMenuId(null)} />}
       <div data-ui className="scan-dock absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-3 px-3 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
         {live && (
           <div role="status" className="scan-glass relative flex max-w-[92%] items-center gap-2.5 overflow-hidden rounded-full py-2 pl-3.5 pr-4 text-sm font-semibold">
@@ -266,6 +286,32 @@ export default function ScanModal({ onClose, batch, origin }) {
             <span key={message} className="msg-in truncate" style={{ animation: 'msg-in 220ms cubic-bezier(.23,1,.32,1)' }}>{message}</span>
           </div>
         )}
+        <AnimatePresence>
+          {batch && menuItem && (
+            <motion.div key={menuItem.trayId} role="menu" aria-label={`Versiones de ${menuItem.name}`} initial={{ opacity: 0, scale: 0.94, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 6 }} transition={{ type: 'spring', duration: 0.36, bounce: 0.12 }} style={{ transformOrigin: 'bottom center' }} className="scan-glass relative z-10 flex max-h-[46svh] w-full max-w-xl flex-col overflow-hidden rounded-[22px]">
+              <p className="shrink-0 px-4 pb-1.5 pt-3 text-xs font-bold text-slate-300">Versiones de {baseName(menuItem.name) || menuItem.name}</p>
+              <ul className="min-h-0 overflow-y-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {menuItem.versions.map((version) => {
+                  const current = String(version.productId) === menuItem.key;
+                  return (
+                    <li key={`${version.categoryId}:${version.productId}`}>
+                      <button type="button" role="menuitemradio" aria-checked={current} onClick={() => changeVersion(menuItem, version)} className={`flex w-full items-center gap-3 rounded-2xl px-2 py-1.5 text-left transition-[background-color,transform] duration-150 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05] ${current ? 'bg-[#ffcb05]/15' : 'hover:bg-white/10'}`}>
+                        <span className="flex h-[52px] w-[37px] shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#02070f] ring-1 ring-white/20">
+                          {version.image ? <img src={version.image} alt="" loading="lazy" className="h-full w-full object-cover" /> : <span className="text-[10px] text-slate-400">?</span>}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold">{version.set || version.group || 'Edición'}</span>
+                          <span className="block truncate text-xs text-slate-300">{[version.number && `N.º ${version.number}`, version.rarity, version.lang].filter(Boolean).join(' · ')}</span>
+                        </span>
+                        {current && <SvgIcon name="check" translate="no" aria-hidden="true" className="shrink-0 text-[20px] text-[#ffcb05]" />}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {batch && tray.length > 0 && (
           <div className="scan-glass flex w-full max-w-xl items-center gap-2.5 rounded-[22px] p-2">
             <MotionConfig reducedMotion="user">
@@ -273,10 +319,10 @@ export default function ScanModal({ onClose, batch, origin }) {
               <AnimatePresence initial={false} mode="popLayout">
               {tray.map((item, index) => (
                 <motion.li key={item.trayId} layout data-tray-id={item.trayId} initial={item.fly ? { opacity: 0 } : { opacity: 0, scale: 0.8, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.7 }} transition={{ type: 'spring', duration: 0.42, bounce: 0.2, delay: item.fly ? 0.56 : 0 }} className="relative h-[68px] w-12 shrink-0 rounded-lg bg-[#02070f] shadow-[0_6px_14px_-6px_rgba(0,0,0,.7)] ring-1 ring-white/25">
-                  <span className="absolute inset-0 overflow-hidden rounded-lg">
+                  <button type="button" onClick={() => setMenuId(menuId === item.trayId ? null : item.trayId)} disabled={(item.versions?.length || 0) < 2} aria-haspopup="true" aria-expanded={menuId === item.trayId} aria-label={`Cambiar la versión de ${item.name}`} className="absolute inset-0 overflow-hidden rounded-lg transition-transform duration-150 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05] disabled:active:scale-100">
                   {item.image ? <img src={item.image} alt={item.name} title={item.name} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-[10px]">?</span>}
                   {item.language && <span className="absolute inset-x-0 bottom-0 bg-black/70 text-center text-[8px] font-bold uppercase text-white">{item.language}</span>}
-                  </span>
+                  </button>
                   <button type="button" onClick={() => removeScanned(index)} aria-label={`Quitar ${item.name}`} title="Quitar carta" className="absolute left-0 top-0 z-[1] flex h-7 w-7 items-center justify-center rounded-br-lg bg-black/75 before:absolute before:-bottom-2 before:-right-2 before:h-11 before:w-11 before:content-[''] text-white transition-[background-color,transform] duration-150 hover:bg-red-600 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
                     <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[14px]" />
                   </button>

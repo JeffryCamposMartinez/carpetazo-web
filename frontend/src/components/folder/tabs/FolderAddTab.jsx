@@ -46,14 +46,14 @@ export default function FolderAddTab({
   const [scanOpen, setScanOpen] = useState(false);
   const [scanOrigin, setScanOrigin] = useState(null);
   const isPokemonFolder = /^pok/i.test(String(folderData?.tcg || ''));
-  const handleScannedCard = async (result) => {
-    const found = result?.top?.[0];
+  // found = candidato del motor (la reconocida o la versión elegida); scan = { language, photo } del escaneo
+  const addScanned = async (found, scan) => {
     if (!found || ![found.productId, found.groupId, found.categoryId].every(Number.isInteger)) return null;
     try {
       // La ficha exacta de la edición (con el idioma de su categoría: inglés 3, español 100, japonés 85), igual que si se hubiera elegido en la búsqueda
       // Carta en español que solo existe en inglés: se abre la vista en español de la edición (cat. 100), que usa los datos de la inglesa y
       // muestra la imagen solo si ya hay una en español (de TCGdex o aprobada en Moderación); si no, «Sin imagen»
-      const categoryId = result.language?.code === 'es' && found.categoryId === 3 ? 100 : found.categoryId;
+      const categoryId = scan.language?.code === 'es' && found.categoryId === 3 ? 100 : found.categoryId;
       const group = availableSets.find((set) => String(set.groupId) === String(found.groupId)) || { groupId: found.groupId };
       const list = await fetchPokemonGroup(group, categoryId);
       const card = list.find((item) => String(item.tcgProductId) === String(found.productId));
@@ -65,10 +65,17 @@ export default function FolderAddTab({
       addCardToQueue(target);
       // Sin imagen oficial (la ficha trae «Sin imagen»): se guarda la foto del escaneo por si la persona decide aportarla
       const noImage = !prior && card.hasImage === false && !card.isCustomImage;
-      return { key: String(card.tcgProductId), queueKey: getCardSelectionKey(target), name: card.name, image: target.imageUrl, language: card.cardLanguage === 'Spanish' ? 'ES' : card.cardLanguage === 'Japanese' ? 'JP' : 'EN', noImage, shared: Boolean(prior), photo: noImage ? result.photo || null : null };
+      return { key: String(card.tcgProductId), queueKey: getCardSelectionKey(target), name: card.name, image: target.imageUrl, language: card.cardLanguage === 'Spanish' ? 'ES' : card.cardLanguage === 'Japanese' ? 'JP' : 'EN', noImage, shared: Boolean(prior), photo: noImage ? scan.photo || null : null };
     } catch (_error) {
       return null;
     }
+  };
+  const handleScannedCard = (result) => addScanned(result?.top?.[0], result || {});
+  // La persona corrige la versión de una carta ya escaneada: entra la elegida y sale una unidad de la anterior (si la elegida no se pudo abrir, no cambia nada)
+  const handleChangeVersion = async (item, candidate, scan) => {
+    const next = await addScanned(candidate, scan);
+    if (next) handleRemoveScanned(item);
+    return next;
   };
 
   // La persona aporta la foto del escaneo: se sube como foto propia de la carta (igual que al elegir una imagen) y pasa a la cola con esa imagen;
@@ -379,7 +386,7 @@ export default function FolderAddTab({
             )}
             {scanOpen && (
               <Suspense fallback={null}>
-                <ScanModal origin={scanOrigin} batch={{ games: '3,100,85', label: 'Pokémon · el idioma se detecta solo', onCard: handleScannedCard, onShare: handleSharePhotos, onRemove: handleRemoveScanned }} onClose={() => setScanOpen(false)} />
+                <ScanModal origin={scanOrigin} batch={{ games: '3,100,85', label: 'Pokémon · el idioma se detecta solo', onCard: handleScannedCard, onChangeVersion: handleChangeVersion, onShare: handleSharePhotos, onRemove: handleRemoveScanned }} onClose={() => setScanOpen(false)} />
               </Suspense>
             )}
             <button 
