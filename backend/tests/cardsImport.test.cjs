@@ -65,6 +65,16 @@ const IDS = { a: 989000011, b: 989000012, c: 989000013, d: 989000014 };
     ok('más de 300 filas → 400', r.status === 400, String(r.status));
     r = await call('POST', '/folders/' + fid + '/cards-import', 'seller', { rows: [{ productId: IDS.b, quantity: -1 }, { productId: IDS.b, quantity: 1, price: -5 }, { productId: IDS.b, quantity: 1, condition: 9 }, { productId: IDS.b, quantity: 1, language: 'Klingon' }] });
     ok('cantidad, precio, estado o idioma inválidos se omiten', r.status === 200 && r.j.created === 0 && r.j.skippedCount === 4 && r.j.skipped.every((s) => s.reason === 'invalid'), JSON.stringify(r.j));
+
+    // Límite del plan: entran solo las primeras cartas hasta el máximo de la carpeta y el resto se informa como «limit»
+    await call('POST', '/billing/test-plan', 'nobuyer', { planKey: 'free' }, '10.77.1.1');
+    const max = (await call('GET', '/folders/me', 'nobuyer')).j.planState.plan.uniqueCardsPerFolder;
+    if (max && max < 280) {
+      const full = await mk('nobuyer', 'TEST importar límite');
+      r = await call('POST', '/folders/' + full + '/cards-import', 'nobuyer', { rows: Array.from({ length: max + 3 }, (_, i) => ({ line: i + 2, productId: IDS.a, quantity: 1, finish: 'F' + i })) });
+      const inside = await prisma.card.findMany({ where: { folderId: full }, select: { data: true } });
+      ok('más cartas que el límite del plan: entran las primeras y el resto se omite como «limit»', r.status === 200 && r.j.created === max && inside.length === max && r.j.skippedCount === 3 && r.j.skipped.every((s) => s.reason === 'limit' && s.line > max + 1), JSON.stringify(r.j));
+    }
   } finally {
     await prisma.card.deleteMany({ where: { tcgId: { in: Object.values(IDS).map(String) } } });
     await prisma.card.deleteMany({ where: { tcgId: { startsWith: 'myl:98900002' } } });

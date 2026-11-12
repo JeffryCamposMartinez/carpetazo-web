@@ -24,13 +24,15 @@ export default function ImportCsvModal({ onClose, folderId: fixedFolderId = '', 
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [newTcg, setNewTcg] = useState('Pokemon');
+  const [limit, setLimit] = useState(null); // cartas distintas por carpeta del plan (null: sin límite)
   const fileInput = useRef(null);
 
   useEffect(() => {
-    if (fixedFolderId) return undefined; // desde una carpeta, el destino ya está elegido
     let cancelled = false;
     api.getMyFolders().then((response) => {
       if (cancelled) return;
+      setLimit(response.planState?.plan?.uniqueCardsPerFolder ?? null);
+      if (fixedFolderId) { setFolders([]); return; } // desde una carpeta, el destino ya está elegido
       const mine = (response.folders || []).filter((folder) => TCG_NAMES[folder.tcg]);
       setFolders(mine);
       setFolderId(mine[0]?.id || NEW_FOLDER);
@@ -85,6 +87,9 @@ export default function ImportCsvModal({ onClose, folderId: fixedFolderId = '', 
     }
   };
 
+  const inFolder = folderId === NEW_FOLDER ? 0 : (folders || []).find((folder) => folder.id === folderId)?._count?.cards ?? 0;
+  const room = limit === null ? Infinity : Math.max(0, limit - inFolder);
+  const overLimit = parsed?.rows && !result && parsed.rows.length > room;
   const options = [{ value: NEW_FOLDER, label: 'Nueva carpeta con el nombre del archivo' }, ...(folders || []).map((folder) => ({ value: folder.id, label: `${folder.name} · ${TCG_NAMES[folder.tcg]}` }))];
   const ready = parsed?.rows && folderId && !busy && !result;
 
@@ -130,6 +135,11 @@ export default function ImportCsvModal({ onClose, folderId: fixedFolderId = '', 
                   </p>
                 )}
               </div>
+              {overLimit && (
+                <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 ring-1 ring-red-200">
+                  <strong>El archivo supera el límite de tu plan.</strong> Tu plan permite {limit.toLocaleString('es-CL')} cartas por carpeta{inFolder > 0 ? ` y esta ya tiene ${inFolder.toLocaleString('es-CL')}` : ''}. Solo se importarán las primeras {room.toLocaleString('es-CL')} de las {parsed.rows.length.toLocaleString('es-CL')} del archivo. <Link to="/planes" className="underline">Ver planes</Link>
+                </p>
+              )}
             </>
           )}
 
