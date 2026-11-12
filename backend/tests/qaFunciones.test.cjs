@@ -91,7 +91,7 @@ const HOUR = 3600 * 1000;
     await visit(visited.id);
     ok('QA 11 · curl, python, bots y node-fetch no cuentan; un navegador sí', before === 0 && (await prisma.folderVisitDay.count({ where: { folderId: visited.id } })) === 1, String(before));
 
-    // QA 12 y 13: prioridad en los listados (Tienda 24 h, Pro 6 h) sin ocultar nada
+    // QA 12 y 13: prioridad en los listados (Tienda y Legendario ocupan solo parte de las posiciones) sin ocultar nada
     await prisma.card.deleteMany({ where: { name: { startsWith: 'QAPRIO' } } });
     const fSeller = await folder(seller, 'QA12 free'); const fPro = await folder(me, 'QA12 pro'); const fStore = await folder(pro, 'QA12 tienda');
     await card(fSeller.id, 'QAPRIO free', { createdAt: new Date(Date.now() - 1 * HOUR) });
@@ -101,7 +101,7 @@ const HOUR = 3600 * 1000;
     const plain = await order();
     await plan('nobuyer', 'pro'); await plan('ignacio', 'store');
     const boosted = await order();
-    ok('QA 12 · con prioridad: Tienda (-5 h +24 h) > Free (-1 h) > Pro (-20 h +6 h)', boosted.cards.map((c) => c.name).join() === 'QAPRIO tienda,QAPRIO free,QAPRIO pro' && plain.cards.map((c) => c.name).join() === 'QAPRIO free,QAPRIO tienda,QAPRIO pro', boosted.cards.map((c) => c.name).join());
+    ok('QA 12 · con prioridad: salen las mismas 3 cartas (la prioridad es una probabilidad por carta, no un orden fijo) y sin ella el orden es por fecha', boosted.cards.map((c) => c.name).sort().join() === 'QAPRIO free,QAPRIO pro,QAPRIO tienda' && plain.cards.map((c) => c.name).join() === 'QAPRIO free,QAPRIO tienda,QAPRIO pro', boosted.cards.map((c) => c.name).join());
     ok('QA 13 · la prioridad no oculta ni agrega cartas: mismo total (3) y solo marca «featured» en Pro y Tienda', plain.total === 3 && boosted.total === 3 && boosted.cards.filter((c) => c.featured).map((c) => c.name).sort().join() === 'QAPRIO pro,QAPRIO tienda', JSON.stringify([plain.total, boosted.total]));
 
     // QA 14: soporte prioritario con varias páginas: los Pro/Tienda primero y sin repetir en la segunda

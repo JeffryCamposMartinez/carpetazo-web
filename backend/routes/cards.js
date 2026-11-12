@@ -4,6 +4,7 @@ import { nameMatch, searchFragments, similarCardName } from '../core/cardSearch.
 import { authenticateToken } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { userBoostLevels } from '../core/entitlements.js';
+import { mixSlots } from '../core/listingMix.js';
 import { bulkPublishedRanges, reliablePublishedOn } from '../core/editionDates.js';
 import { CARD_SEARCH_TCG_ALIASES, sameCardMatch } from '../core/listing.js';
 import { isValidComuna } from '../core/chileData.js';
@@ -335,52 +336,28 @@ const cardSlice = (where, sort, skip, take) => RANKED_SORTS.has(sort)
   ? rankedCardSlice(where, sort, skip, take)
   : prisma.card.findMany({ where, orderBy: CARD_SEARCH_SORTS[sort], skip, take, select: CARD_SEARCH_SELECT });
 
-const stableChance = (value) => {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0) / 4294967296;
-};
-
-// Cada búsqueda asigna una posición probable por vendedor. El resultado se mantiene estable
-// entre páginas durante la sesión, pero cambia al abrir una búsqueda nueva.
-const randomizedBoosts = (boosts, seed) => {
-  const map = new Map();
-  for (const [userId, level] of boosts) {
-    const chance = stableChance(`${seed}:${userId}`);
-    if (level === 2) map.set(userId, chance < 0.7 ? 2 : chance < 0.85 ? 1 : 0);
-    else if (level === 1) map.set(userId, chance < 0.55 ? 1 : 0);
-  }
-  return map;
-};
-
-// La prioridad del plan mejora la posición con probabilidad, sin garantizar el primer lugar.
+// La prioridad del plan (Tienda, Legendario) es una probabilidad por carta: ocupa solo parte de las posiciones y el resto es de los demás vendedores.
+// Cada búsqueda nueva reparte las posiciones de otra forma; las páginas de una misma búsqueda se encadenan sin repetir.
 const prioritizedCardPage = async (where, sort, skip, take, boosts, seed) => {
-  if (!boosts.size) return cardSlice(where, sort, skip, take);
-  const randomized = randomizedBoosts(boosts, seed);
-  const storeUsers = [...randomized].filter(([, level]) => level === 2).map(([id]) => id);
-  const legendUsers = [...randomized].filter(([, level]) => level === 1).map(([id]) => id);
+  const storeUsers = [...boosts].filter(([, level]) => level === 2).map(([id]) => id);
+  const legendUsers = [...boosts].filter(([, level]) => level === 1).map(([id]) => id);
   if (!storeUsers.length && !legendUsers.length) return cardSlice(where, sort, skip, take);
-  const prioritizedUsers = [...storeUsers, ...legendUsers];
-  const groups = [
-    ...(storeUsers.length ? [{ level: 2, where: { ...where, folder: { ...where.folder, userId: { in: storeUsers } } } }] : []),
-    ...(legendUsers.length ? [{ level: 1, where: { ...where, folder: { ...where.folder, userId: { in: legendUsers } } } }] : []),
-    { level: 0, where: { ...where, folder: { ...where.folder, userId: { notIn: prioritizedUsers } } } }
-  ];
-  const counts = await Promise.all(groups.map(({ where: groupWhere }) => prisma.card.count({ where: groupWhere })));
-  const cards = [];
-  let offset = skip;
-  for (let index = 0; index < groups.length && cards.length < take; index += 1) {
-    const groupCount = counts[index];
-    if (offset >= groupCount) { offset -= groupCount; continue; }
-    const amount = Math.min(take - cards.length, groupCount - offset);
-    const rows = await cardSlice(groups[index].where, sort, offset, amount);
-    cards.push(...rows.map((card) => ({ ...card, _boost: randomized.get(card.folder.userId) || 0 })));
-    offset = 0;
-  }
-  return cards;
+  const groupWhere = {
+    2: { ...where, folder: { ...where.folder, userId: { in: storeUsers } } },
+    1: { ...where, folder: { ...where.folder, userId: { in: legendUsers } } },
+    0: { ...where, folder: { ...where.folder, userId: { notIn: [...storeUsers, ...legendUsers] } } },
+  };
+  const levels = [0, 1, 2].filter((level) => level !== 2 || storeUsers.length).filter((level) => level !== 1 || legendUsers.length);
+  const counted = await Promise.all(levels.map((level) => prisma.card.count({ where: groupWhere[level] })));
+  const counts = Object.fromEntries(levels.map((level, index) => [level, counted[index]]));
+  const { kinds, offsets } = mixSlots(seed, skip, take, counts);
+  const needed = { 0: 0, 1: 0, 2: 0 };
+  kinds.forEach((kind) => { needed[kind] += 1; });
+  const rows = {};
+  await Promise.all(levels.filter((level) => needed[level]).map(async (level) => {
+    rows[level] = (await cardSlice(groupWhere[level], sort, offsets[level], needed[level])).map((card) => ({ ...card, _boost: level }));
+  }));
+  return kinds.map((kind) => rows[kind].shift()).filter(Boolean);
 };
 const CARD_SEARCH_LANGS = { es: 'Spanish', en: 'English', ja: 'Japanese' };
 
