@@ -4,6 +4,7 @@ import { api } from '../../services/api';
 import { useToast } from '../ui/ToastProvider';
 import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 import SvgIcon from '../ui/SvgIcon';
+import ImportCsvModal from './ImportCsvModal';
 
 const SOURCES = [['direct', 'Directo'], ['internal', 'Desde Carpetazo'], ['external', 'Otros sitios']];
 const buttonClass = 'inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-blue-200 bg-white px-3 text-xs font-extrabold text-[#12315f] transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] disabled:opacity-60 sm:h-10 sm:gap-2 sm:px-4 sm:text-sm';
@@ -68,6 +69,7 @@ export default function PlanTools({ plan, children }) {
   const { showToast } = useToast();
   const [exporting, setExporting] = useState(false);
   const [visitsOpen, setVisitsOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const exportInventory = async () => {
     setExporting(true);
@@ -96,8 +98,10 @@ export default function PlanTools({ plan, children }) {
         {plan.visitsDetail
           ? <button type="button" onClick={() => setVisitsOpen((open) => !open)} aria-expanded={visitsOpen} className={buttonClass}><SvgIcon name="monitoring" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" /><span className="sm:hidden">{visitsOpen ? 'Ocultar' : 'Visitas'}</span><span className="hidden sm:inline">{visitsOpen ? 'Ocultar visitas' : 'Detalle de visitas'}</span></button>
           : <Link to="/planes" className={buttonClass} title="Disponible desde el plan Épico"><SvgIcon name="lock" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" /><span className="sm:hidden">Visitas · Épico</span><span className="hidden sm:inline">Detalle de visitas · Épico</span></Link>}
+        <button type="button" onClick={() => setImportOpen(true)} className={buttonClass}><SvgIcon name="upload" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" /><span className="sm:hidden">Importar CSV</span><span className="hidden sm:inline">Importar cartas (CSV)</span></button>
         {children}
       </div>
+      {importOpen && <ImportCsvModal onClose={() => setImportOpen(false)} />}
       {plan.visitsDetail && visitsOpen && <VisitsDetail />}
     </div>
   );

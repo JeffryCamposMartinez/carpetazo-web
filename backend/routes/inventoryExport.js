@@ -7,6 +7,7 @@ import { isUuid } from '../core/validation.js';
 
 const router = express.Router();
 const MAX_ROWS = 50000;
+const CONDITIONS = { 5: 'Near Mint', 4: 'Lightly Played', 3: 'Moderately Played', 2: 'Heavily Played', 1: 'Damaged' };
 
 // Un texto que empieza con = + - @ se interpretaría como fórmula al abrirlo en una planilla: se antepone una comilla
 const cell = (value) => {
@@ -27,10 +28,17 @@ router.get('/api/inventory/export', authenticateToken, async (req, res) => {
     if (folderId && !folders.length) return res.status(404).json({ success: false, message: 'Carpeta no encontrada' });
 
     const byId = new Map(folders.map((folder) => [folder.id, folder]));
-    const cards = await prisma.card.findMany({ where: { folderId: { in: folders.map((folder) => folder.id) } }, orderBy: [{ folderId: 'asc' }, { name: 'asc' }], take: MAX_ROWS, select: { folderId: true, name: true, language: true, price: true, stock: true, tcgId: true } });
-    const rows = [['Carpeta', 'Juego', 'Carta', 'Idioma', 'Precio (CLP)', 'Stock', 'Código'], ...cards.map((card) => {
+    const cards = await prisma.card.findMany({ where: { folderId: { in: folders.map((folder) => folder.id) } }, orderBy: [{ folderId: 'asc' }, { name: 'asc' }], take: MAX_ROWS, select: { folderId: true, name: true, language: true, condition: true, price: true, stock: true, tcgId: true, data: true } });
+    // Edición, número y rareza salen del catálogo cuando la carta tiene su id de TCGplayer
+    const productIds = [...new Set(cards.map((card) => (/^\d{1,9}$/.test(card.tcgId) ? Number(card.tcgId) : null)).filter(Boolean))];
+    const catalog = new Map((productIds.length ? await prisma.catalogCard.findMany({ where: { productId: { in: productIds } }, select: { productId: true, number: true, rarity: true, set: { select: { name: true, abbreviation: true } } } }) : []).map((row) => [row.productId, row]));
+    // Mismas columnas que la exportación de TCGplayer, más «Precio (CLP)» y «Carpeta» (TCGplayer usa dólares) para poder volver a importar el archivo
+    const rows = [['Quantity', 'Name', 'Simple Name', 'Set', 'Card Number', 'Set Code', 'Printing', 'Condition', 'Language', 'Rarity', 'Product ID', 'SKU', 'Precio (CLP)', 'Carpeta'], ...cards.map((card) => {
       const folder = byId.get(card.folderId);
-      return [folder.name, folder.tcg, card.name, card.language, card.price ?? '', card.stock, card.tcgId];
+      const found = catalog.get(Number(card.tcgId));
+      const info = card.data && typeof card.data === 'object' ? card.data : {};
+      const rarity = found?.rarity || (info.rarity !== 'Unknown' ? info.rarity : '');
+      return [card.stock, card.name, card.name.split(' - ')[0], found?.set.name || info.set || '', found?.number || info.number || '', found?.set.abbreviation || '', info.finish || 'Normal', CONDITIONS[card.condition] || 'Near Mint', card.language, rarity || '', found ? card.tcgId : '', '', card.price ?? '', folder.name];
     })];
     const stamp = new Date().toISOString().slice(0, 10);
     res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="carpetazo-inventario-${stamp}.csv"`, 'Cache-Control': 'no-store' });

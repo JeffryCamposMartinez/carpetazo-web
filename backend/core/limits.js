@@ -81,6 +81,7 @@ export const applyRouteLimits = (app) => {
   app.put('/api/folders/:id/order', routeLimiter(15 * 60 * 1000, 60));
   app.delete('/api/folders/:id', routeLimiter(15 * 60 * 1000, 60));
   app.post('/api/folders/:id/cards', routeLimiter(15 * 60 * 1000, 600));
+  app.post('/api/folders/:id/cards-import', routeLimiter(15 * 60 * 1000, 60));
   app.post('/api/folders/:id/in-person-sales', routeLimiter(15 * 60 * 1000, 120));
   app.get('/api/folders/:id/in-person-sales', routeLimiter(15 * 60 * 1000, 300));
   app.get('/api/in-person-sales/mine', routeLimiter(15 * 60 * 1000, 300));
