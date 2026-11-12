@@ -33,6 +33,7 @@ const MYL = 'Mitos y Leyendas'; // tiene su propio catálogo (categoría 99), fu
 const PAGE_SIZE = 60;
 const noop = () => {};
 const VIEW_KEY = 'catalog:view';
+const LEAGUE_SET = /^prize pack|league & championship/i; // cartas de liga de Pokémon: Prize Pack y League & Championship
 const leadingNumber = (text) => { const match = String(text || '').match(/\d+/); return match ? parseInt(match[0], 10) : 0; };
 const SORTERS = {
   num: (a, b) => leadingNumber(a.number) - leadingNumber(b.number) || String(a.number).localeCompare(String(b.number), 'es', { numeric: true }),
@@ -137,7 +138,9 @@ export default function CardCatalogPage() {
   }, [searchQuery]);
 
   const availableSets = groups || [];
-  const filteredSets = useMemo(() => (isMyl && searchBlock ? availableSets.filter((item) => String(item.blockId) === String(searchBlock)) : availableSets), [groups, isMyl, searchBlock]);
+  const leagueSets = useMemo(() => (isPokemon ? availableSets.filter((item) => LEAGUE_SET.test(item.name)) : []), [groups, isPokemon]);
+  const leagueOnly = isPokemon && leagueSets.length > 0 && params.get('liga') === '1';
+  const filteredSets = useMemo(() => (leagueOnly ? leagueSets : isMyl && searchBlock ? availableSets.filter((item) => String(item.blockId) === String(searchBlock)) : availableSets), [groups, isMyl, searchBlock, leagueOnly]);
   const group = useMemo(() => {
     if (setParam.startsWith(EDITION_FAMILY_PREFIX)) return { groupId: setParam, name: 'Coleccionista Victoriosa (todas)' }; // la opción «(todas)» de Mitos y Leyendas
     return filteredSets.find((item) => String(item.groupId) === setParam) || filteredSets[0] || null;
@@ -310,6 +313,11 @@ export default function CardCatalogPage() {
             loadedCards={cards || []}
             scrollToTopIfNeeded={noop}
           />
+          {leagueSets.length > 0 && (
+            <button type="button" onClick={() => update({ liga: leagueOnly ? '' : '1', set: '' })} aria-pressed={leagueOnly} className={`mx-2 mb-1 mt-2 inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-extrabold ring-1 transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${leagueOnly ? 'bg-[#12315f] text-[#facc15] ring-[#facc15]' : 'bg-white text-[#12315f] ring-slate-900/10 [@media(hover:hover)]:hover:bg-blue-50'}`}>
+              <SvgIcon name={leagueOnly ? 'check' : 'add'} translate="no" aria-hidden="true" className="text-[18px]" />Solo cartas de liga (Prize Pack)
+            </button>
+          )}
         </div>
 
         <div className="mx-auto w-full lg:max-w-4xl">
