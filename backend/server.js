@@ -53,6 +53,7 @@ import teamRoutes from './routes/team.js';
 import feedbackRoutes from './routes/feedback.js';
 import billingRoutes from './routes/billing.js';
 import scannerRoutes from './routes/scanner.js';
+import { startEngineWatch } from './core/visionEngine.js';
 import { installErrorCapture, purgeOldErrors, requestContext } from './core/errorLog.js';
 import { startOnboardingNudges } from './core/onboarding.js';
 import { startWishlistAlerts } from './core/wishlistAlerts.js';
@@ -177,6 +178,7 @@ app.use((err, _req, res, _next) => {
 });
 
 app.listen(port, () => {
+  startEngineWatch(); // vigila el motor del escáner y avisa si se cae
     console.log(`🚀 Servidor backend corriendo en http://localhost:${port}`);
     startPreviewWarmer();
     startWishlistAlerts();

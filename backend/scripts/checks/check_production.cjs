@@ -43,6 +43,13 @@ const expect = (condition, message) => { if (!condition) throw new Error(message
     return `encendida hace ${body.uptime} s`;
   });
 
+  await check('el escáner responde (motor de reconocimiento)', async () => {
+    const r = await get(`${API}/api/scanner/status`);
+    const body = await r.json().catch(() => ({}));
+    expect(r.status === 200 && body.available === true, `el motor no responde ${JSON.stringify(body)}`);
+    return body.usingBackup ? 'usando el motor de respaldo' : '';
+  });
+
   await check('la API permite que la web la consulte (CORS)', async () => {
     const r = await get(`${API}/api/home/featured`, { method: 'OPTIONS', headers: { Origin: SITE, 'Access-Control-Request-Method': 'GET' } });
     expect(r.headers.get('access-control-allow-origin') === SITE, `cabecera ${r.headers.get('access-control-allow-origin')}`);

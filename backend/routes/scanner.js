@@ -6,6 +6,7 @@ import { proposeCatalogPhoto } from '../core/catalogPhotos.js';
 import { prisma } from '../core/db.js';
 import { hashIp } from '../core/hashing.js';
 import { routeLimiter } from '../core/limits.js';
+import { engineConfigured, engineFetch, engineStatus } from '../core/visionEngine.js';
 import { badRequest, isAllowedStoredImageUrl } from '../core/validation.js';
 
 const router = express.Router();
@@ -74,9 +75,7 @@ router.post(
   routeLimiter(60 * 1000, 90), // abierto a visitantes: el límite por IP y MAX_IN_FLIGHT acotan el uso del motor
   express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: MAX_BYTES }),
   async (req, res) => {
-    const base = process.env.VISION_ENGINE_URL || '';
-    const key = process.env.VISION_ENGINE_KEY || '';
-    if (!base || !key) return res.status(503).json({ success: false, message: 'El reconocimiento no está disponible por ahora.' });
+    if (!engineConfigured()) return res.status(503).json({ success: false, message: 'El reconocimiento no está disponible por ahora.' });
     if (!Buffer.isBuffer(req.body) || req.body.length === 0 || !isImage(req.body)) return badRequest(res, 'Imagen inválida');
     const crop = parseCrop(req.headers['x-crop']);
     const games = parseGames(req.headers['x-games']);
@@ -85,10 +84,10 @@ router.post(
 
     inFlight += 1;
     try {
-      const headers = { 'x-service-key': key, 'content-type': 'application/octet-stream' };
+      const headers = { 'content-type': 'application/octet-stream' };
       if (crop) headers['x-crop'] = crop;
       if (games) headers['x-games'] = games;
-      const response = await fetch(`${base.replace(/\/+$/, '')}/scan`, { method: 'POST', headers, body: req.body, redirect: 'error', signal: AbortSignal.timeout(ENGINE_TIMEOUT_MS) });
+      const response = await engineFetch('/scan', { method: 'POST', headers, body: req.body }, { timeoutMs: ENGINE_TIMEOUT_MS });
       if (!response.ok) {
         console.error('Motor de reconocimiento respondió', response.status);
         return res.status(502).json({ success: false, message: 'No se pudo reconocer la carta. Intenta de nuevo.' });
@@ -96,7 +95,8 @@ router.post(
       res.json({ success: true, ...publicResult(await response.json()) });
     } catch (error) {
       console.error('Error llamando al motor de reconocimiento:', error.message);
-      res.status(502).json({ success: false, message: 'No se pudo reconocer la carta. Intenta de nuevo.' });
+      // Sin respuesta del motor (no una carta que no se reconoce): se dice claro para que la web ofrezca buscar por nombre
+      res.status(502).json({ success: false, message: 'El escáner no está disponible por un momento. Busca la carta por su nombre.' });
     } finally {
       inFlight -= 1;
     }
@@ -110,14 +110,12 @@ router.post(
   routeLimiter(60 * 1000, 30),
   express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: MAX_BYTES }),
   async (req, res) => {
-    const base = process.env.VISION_ENGINE_URL || '';
-    const key = process.env.VISION_ENGINE_KEY || '';
-    if (!base || !key) return res.status(503).json({ success: false, message: 'El reconocimiento no está disponible por ahora.' });
+    if (!engineConfigured()) return res.status(503).json({ success: false, message: 'El reconocimiento no está disponible por ahora.' });
     if (!Buffer.isBuffer(req.body) || req.body.length === 0 || !isImage(req.body)) return badRequest(res, 'Imagen inválida');
     if (inFlight >= MAX_IN_FLIGHT) return res.status(429).json({ success: false, message: 'El reconocimiento está ocupado, intenta de nuevo en un momento.' });
     inFlight += 1;
     try {
-      const response = await fetch(`${base.replace(/\/+$/, '')}/straighten`, { method: 'POST', headers: { 'x-service-key': key, 'content-type': 'application/octet-stream' }, body: req.body, redirect: 'error', signal: AbortSignal.timeout(ENGINE_TIMEOUT_MS) });
+      const response = await engineFetch('/straighten', { method: 'POST', headers: { 'content-type': 'application/octet-stream' }, body: req.body }, { timeoutMs: ENGINE_TIMEOUT_MS });
       if (!response.ok) return res.status(502).json({ success: false, message: 'No se pudo procesar la foto.' });
       const data = await response.json();
       const valid = data?.found === true && typeof data.image === 'string' && data.image.length < 6_000_000 && /^[A-Za-z0-9+/=]+$/.test(data.image);
@@ -180,6 +178,13 @@ router.post('/api/scanner/choice', authenticateToken, routeLimiter(60 * 1000, 12
     console.error('Error registrando la elección del escáner:', error.message);
     res.status(500).json({ success: false, message: 'No se pudo registrar.' });
   }
+});
+
+// ¿Puede responder el escáner ahora? Solo sí o no (sin direcciones ni claves): lo usan la vigilancia de producción y la web para ofrecer buscar por nombre
+router.get('/api/scanner/status', routeLimiter(60 * 1000, 60), (_req, res) => {
+  const status = engineStatus();
+  res.set('Cache-Control', 'no-store');
+  res.json({ success: true, available: engineConfigured() && status.available, backup: status.backup, usingBackup: status.usingBackup });
 });
 
 export default router;

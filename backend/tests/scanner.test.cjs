@@ -59,6 +59,8 @@ const scan = (body, { who = 'seller', type = 'image/jpeg', headers = {} } = {}) 
     r = await choice({ kind: 'confirm', chosenProductId: 5, chosenFinish: 'x'.repeat(100) });
     ok('un acabado demasiado largo → 400', r.status === 400, String(r.status));
 
+    const status = await fetch(B + '/scanner/status').then(async (x) => ({ status: x.status, j: await x.json().catch(() => null) }));
+    ok('estado del escáner: responde sí o no, sin direcciones ni claves', status.status === 200 && typeof status.j?.available === 'boolean' && !/cztest-engine|127\.0\.0\.1|http/.test(JSON.stringify(status.j)), JSON.stringify(status.j));
     r = await scan(JPEG, { headers: { 'x-crop': '0.1,0.1,0.8,0.8', 'x-games': '3,100' } });
     const top = r.j?.top || [];
     ok('con sesión y una imagen válida → candidatas', r.status === 200 && r.j.success === true && r.j.found === true && top.length === 2, JSON.stringify(r.j).slice(0, 200));

@@ -97,6 +97,10 @@ jobs:
           CI: 'true'
           SEED_TCG_CATALOG: '1'
 
+      - name: Run unit tests
+        run: node --test tests/*.unit.test.js
+        working-directory: backend
+
       - name: Run session tests
         run: npm run test:session
         working-directory: backend
