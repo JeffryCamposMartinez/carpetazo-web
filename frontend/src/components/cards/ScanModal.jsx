@@ -168,13 +168,17 @@ export default function ScanModal({ onClose, batch, origin }) {
     const rest = versionsOf(result).filter((card) => cardId(card) !== cardId(first) && plain(baseName(card.name) || card.name) === key);
     return [first, ...rest];
   };
-  // Lo que ya había primero; después lo del catálogo: primero el idioma de la carta reconocida y luego los demás
-  const mergeOptions = (base, extra) => {
-    const seen = new Set(base.map(cardId));
+  // La reconocida primero. El resto, por idioma (primero el de la reconocida) y, dentro de cada idioma, en el mismo orden que el listado en inglés:
+  // la versión en español (o japonés) de una impresión queda en el mismo lugar que la inglesa
+  const mergeOptions = (base, extra, order = new Map()) => {
+    const seen = new Set();
+    const all = [];
+    [...base, ...extra].forEach((card) => { if (card.productId == null || seen.has(cardId(card))) return; seen.add(cardId(card)); all.push(card); });
     const mine = LANG_CODE[base[0]?.categoryId];
-    const more = extra.filter((card) => card.productId != null && !seen.has(cardId(card)) && seen.add(cardId(card)));
     const rank = (card) => { const code = LANG_CODE[card.categoryId]; return code === mine ? -1 : LANG_ORDER.indexOf(code); };
-    return [...base, ...more.map((card, index) => ({ card, index })).sort((x, y) => rank(x.card) - rank(y.card) || x.index - y.index).map(({ card }) => card)].slice(0, 200);
+    const [first, ...rest] = all;
+    const place = (card) => (card.productId === first.productId ? -1 : order.has(card.productId) ? order.get(card.productId) : 1e6 + (card.apiIndex ?? 1e5)); // la gemela de la reconocida va primera en cada idioma
+    return [first, ...rest.sort((x, y) => rank(x) - rank(y) || place(x) - place(y))].slice(0, 200);
   };
   const pickSeq = useRef(0); // invalida respuestas del catálogo si la hoja ya se cerró
   const closePick = () => { pickSeq.current += 1; setPick(null); };
@@ -194,18 +198,21 @@ export default function ScanModal({ onClose, batch, origin }) {
     const wanted = LANG_CODE[first.categoryId] !== undefined ? ['en', 'es', 'ja'] : [''];
     const fetchLang = async (lang) => {
       const found = [];
+      let position = 0; // orden en que el catálogo entrega las cartas de este idioma
       try {
         for (let page = 1; page <= 8; page += 1) {
           const response = await api.searchTcgIndex(name, game, page, '', false, lang);
           if (seq !== pickSeq.current) return found;
-          found.push(...(response?.cards || []).map(fromIndex).filter((card) => plain(baseName(card.name) || card.name) === plain(name)));
+          found.push(...(response?.cards || []).map((card) => ({ ...fromIndex(card), apiIndex: position += 1 })).filter((card) => plain(baseName(card.name) || card.name) === plain(name)));
           if (!response?.cards?.length || page >= (response.pages || 1)) break;
         }
       } catch (_error) { /* de ese idioma quedan las que ya llegaron */ }
       return found;
     };
-    const extra = (await Promise.all(wanted.map(fetchLang))).flat();
-    if (seq === pickSeq.current) setPick((current) => current && { ...current, options: mergeOptions(current.options, extra), loading: false });
+    const streams = await Promise.all(wanted.map(fetchLang));
+    const extra = streams.flat();
+    const order = new Map(streams[0].map((card) => [card.productId, card.apiIndex])); // el orden del listado en inglés
+    if (seq === pickSeq.current) setPick((current) => current && { ...current, options: mergeOptions(current.options, extra, order), loading: false });
   };
   const choosePick = (card) => {
     const { result, options } = pick;
