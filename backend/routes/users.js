@@ -160,6 +160,10 @@ router.put('/api/users/me', authenticateToken, async (req, res) => {
       const stored = await prisma.user.findUnique({ where: { firebaseUid }, select: { [field]: true } });
       if (stored?.[field] !== value) return res.status(400).json({ success: false, error: message });
     }
+    // El teléfono es obligatorio (otras personas contactan por WhatsApp): se puede cambiar, no dejar vacío
+    if (updateData.phone !== undefined && (typeof updateData.phone !== 'string' || !updateData.phone.trim())) {
+      return res.status(400).json({ success: false, error: 'El teléfono es obligatorio.' });
+    }
     if (updateData.rut !== undefined || updateData.phone !== undefined) {
       const locked = await prisma.user.findUnique({ where: { firebaseUid }, select: { identityVerifiedAt: true, rut: true, phone: true } });
       if (locked?.identityVerifiedAt && ((updateData.rut !== undefined && updateData.rut !== locked.rut) || (updateData.phone !== undefined && updateData.phone !== locked.phone))) {

@@ -11,6 +11,10 @@ const { prisma, NAMES, call, ok } = require('./fixtures.cjs');
     ok('un teléfono con letras → 400', r.status === 400 && /tel/i.test(r.j?.error || ''), JSON.stringify(r.j));
     r = await call('PUT', '/users/me', 'seller', { phone: '<script>alert(1)</script>' });
     ok('un teléfono con HTML → 400', r.status === 400, String(r.status));
+    r = await call('PUT', '/users/me', 'seller', { phone: '   ' });
+    ok('perfil: teléfono vacío → 400 (es obligatorio)', r.status === 400 && /obligatorio/.test(r.j?.error || ''), JSON.stringify(r.j));
+    r = await call('PUT', '/users/me', 'seller', { phone: null });
+    ok('perfil: teléfono nulo → 400 (es obligatorio)', r.status === 400, String(r.status));
     r = await call('PUT', '/users/me', 'seller', { phone: '12345' });
     ok('un teléfono demasiado corto → 400', r.status === 400, String(r.status));
 
@@ -20,7 +24,9 @@ const { prisma, NAMES, call, ok } = require('./fixtures.cjs');
     ok('...y se guardan', saved?.rut === '12.345.678-5' && saved?.phone === '+56 9 1234 5678', JSON.stringify(saved));
 
     r = await call('PUT', '/users/me', 'seller', { rut: '', phone: '' });
-    ok('vaciar RUT y teléfono → 200', r.status === 200, String(r.status));
+    ok('vaciar RUT y teléfono → 400 (el teléfono es obligatorio)', r.status === 400, String(r.status));
+    r = await call('PUT', '/users/me', 'seller', { rut: '' });
+    ok('vaciar solo el RUT → 200', r.status === 200, String(r.status));
 
     // Valor anterior a la regla: se conserva mientras no se cambie (otras secciones reenvían todo el perfil)
     await prisma.user.update({ where: { username: NAMES.seller }, data: { phone: 'llamar en la tarde' } });
