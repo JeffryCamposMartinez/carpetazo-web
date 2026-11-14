@@ -6,6 +6,7 @@ import { isValidComuna } from '../core/chileData.js';
 import { folderFilterSql, folderOrderSql, likePattern, loadPublicFolders, validListText } from '../core/listing.js';
 import { publicPlanBadge } from '../core/plans.js';
 import { badRequest } from '../core/validation.js';
+import { isOpenAt } from '../core/storeProfile.js';
 
 const router = express.Router();
 
@@ -28,7 +29,8 @@ const withPlanBadge = ({ planKey, ...seller }) => ({ ...seller, planBadge: publi
 
 // El directorio /vendedores incluye cuentas registradas aunque todavía no publiquen
 // carpetas. Las cifras siguen contando únicamente contenido público y visible.
-const queryRegisteredSellers = ({ like, comuna = null, sort, limit, offset }) => {
+// stores: solo cuentas con plan Tienda vigente y ficha del local activa
+const queryRegisteredSellers = ({ like, comuna = null, sort, limit, offset, stores = false }) => {
   const filter = Prisma.sql`u."username" IS NOT NULL
     AND u."role" <> 'deleted'
     AND NOT EXISTS (
@@ -37,7 +39,8 @@ const queryRegisteredSellers = ({ like, comuna = null, sort, limit, offset }) =>
         AND (s."expiresAt" IS NULL OR s."expiresAt" > ${utcNowSql})
     )
     ${like ? Prisma.sql`AND (u."name" ILIKE ${like} OR u."username" ILIKE ${like})` : Prisma.empty}
-    ${comuna ? Prisma.sql`AND u."publicComuna" = ${comuna}` : Prisma.empty}`;
+    ${stores ? Prisma.sql`AND ${effectivePlanSql} = 'store' AND EXISTS (SELECT 1 FROM "StoreProfile" sx WHERE sx."userId" = u."id" AND sx."enabled" = true)` : Prisma.empty}
+    ${comuna ? (stores ? Prisma.sql`AND (u."publicComuna" = ${comuna} OR EXISTS (SELECT 1 FROM "StoreProfile" sc WHERE sc."userId" = u."id" AND sc."comuna" = ${comuna}))` : Prisma.sql`AND u."publicComuna" = ${comuna}`) : Prisma.empty}`;
   const order = sort === 'name' ? Prisma.sql`LOWER(COALESCE(u."name", u."username")) ASC` : sort === 'cards' ? Prisma.sql`cards DESC, visits DESC` : Prisma.sql`visits DESC, cards DESC`;
   return Promise.all([
     prisma.$queryRaw`
@@ -62,8 +65,10 @@ const queryRegisteredSellers = ({ like, comuna = null, sort, limit, offset }) =>
              COALESCE(ss.cards, 0)::int AS cards,
              COALESCE(ss.visits, 0)::int AS visits,
              COALESCE(ss.tcgs, ARRAY[]::text[]) AS tcgs
+             ${stores ? Prisma.sql`, sp."hours" AS "storeHours", sp."exceptions" AS "storeExceptions", sp."comuna" AS "storeComuna"` : Prisma.empty}
       FROM "User" u
       LEFT JOIN seller_stats ss ON ss."userId" = u."id"
+      ${stores ? Prisma.sql`LEFT JOIN "StoreProfile" sp ON sp."userId" = u."id"` : Prisma.empty}
       WHERE ${filter}
       ORDER BY ${order}
       LIMIT ${limit} OFFSET ${offset}`,
@@ -110,9 +115,21 @@ router.get('/api/sellers', async (req, res) => {
     const sort = typeof req.query.sort === 'string' ? req.query.sort : 'visits';
     const page = Number.parseInt(req.query.page, 10) || 1;
     const comuna = typeof req.query.comuna === 'string' ? req.query.comuna.trim() : '';
-    if (!validListText(q) || !['visits', 'cards', 'name'].includes(sort) || page < 1 || page > 1000 || (comuna && !isValidComuna(comuna))) return badRequest(res, 'Búsqueda inválida');
-    const [rows, totalRows] = await queryRegisteredSellers({ like: q ? likePattern(q) : null, comuna: comuna || null, sort, limit: SELLERS_PAGE_SIZE, offset: (page - 1) * SELLERS_PAGE_SIZE });
-    const total = totalRows[0]?.n || 0;
+    const kind = req.query.kind === undefined ? 'all' : req.query.kind;
+    const openOnly = req.query.open === '1';
+    if (!validListText(q) || !['visits', 'cards', 'name'].includes(sort) || page < 1 || page > 1000 || (comuna && !isValidComuna(comuna)) || !['all', 'store'].includes(kind) || (openOnly && kind !== 'store')) return badRequest(res, 'Búsqueda inválida');
+    const stores = kind === 'store';
+    const base = { like: q ? likePattern(q) : null, comuna: comuna || null, sort, stores };
+    // «Abiertas ahora» depende de la hora: se filtra en memoria sobre las primeras tiendas.
+    // shortcut: tope de 200 tiendas; con más, guardar el horario en columnas y filtrar en SQL.
+    const [rawRows, totalRows] = await queryRegisteredSellers(openOnly ? { ...base, limit: 200, offset: 0 } : { ...base, limit: SELLERS_PAGE_SIZE, offset: (page - 1) * SELLERS_PAGE_SIZE });
+    let rows = rawRows.map(({ storeHours, storeExceptions, storeComuna, ...row }) => (stores ? { ...row, store: { comuna: storeComuna, openNow: isOpenAt(storeHours, storeExceptions).open } } : row));
+    let total = totalRows[0]?.n || 0;
+    if (openOnly) {
+      rows = rows.filter((row) => row.store.openNow);
+      total = rows.length;
+      rows = rows.slice((page - 1) * SELLERS_PAGE_SIZE, page * SELLERS_PAGE_SIZE);
+    }
     res.json({ success: true, sellers: rows.map(withPlanBadge), total, page, pages: Math.max(1, Math.ceil(total / SELLERS_PAGE_SIZE)) });
   } catch (error) {
     console.error('Error loading sellers:', error);

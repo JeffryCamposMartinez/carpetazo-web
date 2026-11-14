@@ -63,20 +63,22 @@ router.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
       return res.status(400).json({ success: false, message: 'No se envió ninguna imagen.' });
     }
 
-    const type = req.body.type; // 'avatar', 'banner', 'wallpaper', 'message', 'card' or 'feedback'
-    if (!['avatar', 'banner', 'wallpaper', 'message', 'card', 'feedback'].includes(type)) {
+    const type = req.body.type; // 'avatar', 'banner', 'wallpaper', 'message', 'card', 'feedback' or 'store'
+    if (!['avatar', 'banner', 'wallpaper', 'message', 'card', 'feedback', 'store'].includes(type)) {
       return res.status(400).json({ success: false, message: 'Tipo de imagen inválido.' });
     }
 
     const isBanner = type === 'banner';
     const isWallpaper = type === 'wallpaper';
     const isMessageImage = type === 'message';
-    const isCardImage = type === 'card';
+    // Las fotos del local (plan Tienda) siguen el camino de las de cartas: no cambian el perfil y la ficha guarda la URL
+    const isCardImage = type === 'card' || type === 'store';
     const isFeedbackImage = type === 'feedback';
     // El banner y el fondo del perfil dependen del plan (el banner desde Raro; el fondo, parte del Estudio, desde Épico)
-    if (isBanner || isWallpaper) {
+    if (isBanner || isWallpaper || type === 'store') {
       const owner = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
-      if (owner) assertFeature((await getEffectivePlan(prisma, owner.id)).plan, isBanner ? 'profileBanner' : 'profileStudio');
+      if (!owner && type === 'store') return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+      if (owner) assertFeature((await getEffectivePlan(prisma, owner.id)).plan, isBanner ? 'profileBanner' : isWallpaper ? 'profileStudio' : 'storeTools');
     }
     // Las imágenes del chat son privadas entre dos personas: nunca se envían a servicios externos
     const scanKind = isCardImage ? 'card' : 'profile';
@@ -132,7 +134,7 @@ router.post('/api/users/upload-image', authenticateToken, (req, res, next) => {
     const storeProcessed = (async () => {
       // Tamaño máximo según dónde se muestra (sin agrandar las pequeñas) y calidad 82: misma vista, una fracción del peso.
       // rotate() aplica la orientación de la cámara (las fotos del celular ya no quedan giradas) y descarta los metadatos
-      const MAX_SIDE = { avatar: 512, banner: 1920, wallpaper: 2560, message: 1600, card: 1200, feedback: 1600 };
+      const MAX_SIDE = { avatar: 512, banner: 1920, wallpaper: 2560, message: 1600, card: 1200, feedback: 1600, store: 1600 };
       const processedBuffer = await sharp(req.file.buffer, { limitInputPixels: 80_000_000 }).rotate()
         .resize({ width: MAX_SIDE[type], height: MAX_SIDE[type], fit: 'inside', withoutEnlargement: true })
         .webp({ quality: 82 }).toBuffer();

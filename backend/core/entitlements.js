@@ -29,7 +29,8 @@ const FEATURE_MESSAGES = {
   profileStudio: 'El Estudio de perfil (estilos y fondo) está disponible desde el plan Épico.',
   socialLinks: 'Alcanzaste el máximo de redes sociales de tu plan.',
   featuredCards: 'Alcanzaste el máximo de cartas destacadas de tu plan.',
-  visitsDetail: 'El detalle de visitas está disponible desde el plan Épico.'
+  visitsDetail: 'El detalle de visitas está disponible desde el plan Épico.',
+  storeTools: 'Las herramientas de tienda están disponibles en el plan Tienda.'
 };
 export class PlanFeatureError extends PlanLimitError {
   constructor(feature, planKey, { current = null, limit = null } = {}) {
