@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
-import { saveDownload } from '../../utils/saveDownload';
-import { useToast } from '../ui/ToastProvider';
-import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
+import LoadingState from '../ui/LoadingState';
 import SvgIcon from '../ui/SvgIcon';
+import ExportCsvModal from './ExportCsvModal';
 import ImportCsvModal from './ImportCsvModal';
 
 const SOURCES = [['direct', 'Directo'], ['internal', 'Desde Carpetazo'], ['external', 'Otros sitios']];
@@ -67,34 +66,21 @@ function VisitsDetail() {
 
 // Herramientas que dependen del plan: exportar el inventario y ver el detalle de visitas. Sin el plan, llevan a la página de planes.
 export default function PlanTools({ plan, children }) {
-  const { showToast } = useToast();
-  const [exporting, setExporting] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [visitsOpen, setVisitsOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-
-  const exportInventory = async () => {
-    setExporting(true);
-    try {
-      const { blob, name } = await api.downloadInventory();
-      saveDownload(blob, name);
-      showToast('Inventario exportado', 'success');
-    } catch (error) {
-      showToast(error.message || 'No se pudo exportar el inventario.', 'error');
-    } finally {
-      setExporting(false);
-    }
-  };
 
   return (
     <div className="mb-3 -mt-1 sm:mb-5 sm:-mt-2">
       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-        <button type="button" onClick={exportInventory} disabled={exporting} className={buttonClass}>{exporting ? <ButtonSpinner tone="dark" /> : <SvgIcon name="download" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" />}<span className="sm:hidden">Exportar CSV</span><span className="hidden sm:inline">Exportar inventario (CSV)</span></button>
+        <button type="button" onClick={() => setExportOpen(true)} className={buttonClass}><SvgIcon name="download" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" /><span className="sm:hidden">Exportar CSV</span><span className="hidden sm:inline">Exportar inventario (CSV)</span></button>
         {plan.visitsDetail
           ? <button type="button" onClick={() => setVisitsOpen((open) => !open)} aria-expanded={visitsOpen} className={buttonClass}><SvgIcon name="monitoring" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" /><span className="sm:hidden">{visitsOpen ? 'Ocultar' : 'Visitas'}</span><span className="hidden sm:inline">{visitsOpen ? 'Ocultar visitas' : 'Detalle de visitas'}</span></button>
           : <Link to="/planes" className={buttonClass} title="Disponible desde el plan Épico"><SvgIcon name="lock" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" /><span className="sm:hidden">Visitas · Épico</span><span className="hidden sm:inline">Detalle de visitas · Épico</span></Link>}
         <button type="button" onClick={() => setImportOpen(true)} className={buttonClass}><SvgIcon name="upload" translate="no" aria-hidden="true" className="shrink-0 text-[18px]" /><span className="sm:hidden">Importar CSV</span><span className="hidden sm:inline">Importar cartas (CSV)</span></button>
         {children}
       </div>
+      {exportOpen && <ExportCsvModal onClose={() => setExportOpen(false)} />}
       {importOpen && <ImportCsvModal onClose={() => setImportOpen(false)} />}
       {plan.visitsDetail && visitsOpen && <VisitsDetail />}
     </div>
