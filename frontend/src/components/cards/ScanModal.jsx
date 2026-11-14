@@ -361,6 +361,14 @@ export default function ScanModal({ onClose, batch, origin }) {
   };
   useEffect(() => { if (!batch && view.done && best) { buzz(); setFlash((value) => value + 1); later(() => requestClose(() => openSearch(best)), 650); } }, [view.done]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // La fila de juegos se desplaza sola hasta el elegido (al abrir el visor ya puede estar fuera de la vista)
+  useEffect(() => {
+    if (batch) return undefined;
+    const timer = window.setTimeout(() => {
+      rootRef.current?.querySelector('[aria-label="Juego a buscar"] [aria-pressed="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'auto' });
+    }, 60);
+    return () => window.clearTimeout(timer);
+  }, [batch, game]);
   const pickGame = (value) => { setGame(value); try { localStorage.setItem(SAVED_GAME, value); } catch (_error) { /* sin almacenamiento: no se recuerda el juego */ } };
   const color = GUIDE_COLOR[guide] || GUIDE_COLOR[''];
   const corner = 'absolute h-[34px] w-[34px] transition-[border-color,filter] duration-300';
