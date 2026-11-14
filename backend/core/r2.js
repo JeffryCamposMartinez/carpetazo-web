@@ -13,13 +13,17 @@ const missingR2Config = () => R2_REQUIRED_ENV.filter(key => !process.env[key]);
 const R2_TEST_STUB = process.env.TEST_AUTH_STUB === '1' && process.env.R2_TEST_STUB === '1';
 export const hasR2Config = () => R2_TEST_STUB || missingR2Config().length === 0;
 
+// Direcciones públicas del bucket: la actual (R2_PUBLIC_URL) y, al pasar a un dominio propio, la anterior (R2_PUBLIC_URL_LEGACY, separadas por coma),
+// porque en la base hay imágenes guardadas con la dirección vieja hasta que se reescriban
+export const publicBaseUrls = () => [process.env.R2_PUBLIC_URL, ...String(process.env.R2_PUBLIC_URL_LEGACY || '').split(',')]
+  .map((value) => String(value || '').trim().replace(/\/+$/, ''))
+  .filter(Boolean);
+
 export const getR2KeyFromPublicUrl = (url) => {
   if (!url || !process.env.R2_PUBLIC_URL) return null;
-
-  const publicBaseUrl = process.env.R2_PUBLIC_URL.replace(/\/$/, '') + '/';
-  if (!String(url).startsWith(publicBaseUrl)) return null;
-
-  return decodeURIComponent(String(url).slice(publicBaseUrl.length));
+  const base = publicBaseUrls().map((value) => `${value}/`).find((candidate) => String(url).startsWith(candidate));
+  if (!base) return null;
+  return decodeURIComponent(String(url).slice(base.length));
 };
 // Carpeta de R2 de cada usuario (la misma que usa la subida de imágenes)
 export const userR2Prefix = (firebaseUid) => 'Carpetazo.cl/Usuarios/' + String(firebaseUid || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_') + '/';

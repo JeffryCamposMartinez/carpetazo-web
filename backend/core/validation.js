@@ -15,9 +15,11 @@ const getAllowedProxyImageHosts = () => {
     'myl.cl'
   ]);
 
-  if (process.env.R2_PUBLIC_URL) {
+  // El bucket propio y, mientras dure el cambio de dirección, la anterior (R2_PUBLIC_URL_LEGACY)
+  for (const base of [process.env.R2_PUBLIC_URL, ...String(process.env.R2_PUBLIC_URL_LEGACY || '').split(',')]) {
+    if (!String(base || '').trim()) continue;
     try {
-      hosts.add(new URL(process.env.R2_PUBLIC_URL).hostname.toLowerCase());
+      hosts.add(new URL(String(base).trim()).hostname.toLowerCase());
     } catch (_error) {
       // La validación de salud ya reporta si la URL pública de R2 está mal configurada.
     }
