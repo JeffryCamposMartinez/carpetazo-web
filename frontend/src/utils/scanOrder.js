@@ -23,10 +23,11 @@ export const sortByScan = (list, keyOf, order) => {
 };
 
 // Las ofertas solo traen el id del producto (sin categoría): se compara por ese número
+// Las cartas con foto propia llevan «-custom-<hora>» detrás del id del catálogo: se ignora para compararlas
 export const offerKeyIn = (order) => {
   const byProduct = new Map();
   order.forEach((key, index) => { const product = key.split(':')[1]; if (!byProduct.has(product)) byProduct.set(product, index); });
-  return (offer) => { const product = String(offer?.tcgId || '').replace(/^(tcgcsv|myl):/, ''); return byProduct.has(product) ? `p:${byProduct.get(product)}` : ''; };
+  return (offer) => { const product = String(offer?.tcgId || '').replace(/^(tcgcsv|myl):/, '').replace(/-custom-\d{1,16}$/, ''); return byProduct.has(product) ? `p:${byProduct.get(product)}` : ''; };
 };
 
 // Cartas que encontró el escáner (con lo que trae el motor): se validan y se arman como fichas del catálogo para mostrarlas en /cartas sin buscar por nombre

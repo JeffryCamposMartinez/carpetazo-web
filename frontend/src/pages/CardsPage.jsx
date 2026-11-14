@@ -149,7 +149,7 @@ export default function CardsPage() {
   };
 
   const offerCards = result.cards; // desde la cámara: las ofertas del mismo nombre (las encontradas por el escáner primero)
-  const offeredProducts = new Set(offerCards.map((card) => String(card.tcgId || '').replace(/^(tcgcsv|myl):/, ''))); // ya salen como oferta: no se repiten como ficha del catálogo
+  const offeredProducts = new Set(offerCards.map((card) => String(card.tcgId || '').replace(/^(tcgcsv|myl):/, '').replace(/-custom-\d{1,16}$/, ''))); // ya salen como oferta: no se repiten como ficha del catálogo
   const infoScanned = scanMode ? scanned.filter((card) => !offeredProducts.has(String(card.productId))) : [];
   const hasFilters = Boolean(urlQuery || scanMode || tcg || seller || comuna || condition || lang);
   const gridClass = effectiveView === 'list'
