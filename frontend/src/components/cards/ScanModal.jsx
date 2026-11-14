@@ -309,14 +309,29 @@ export default function ScanModal({ onClose, batch, origin }) {
     const extra = [...groups.flat(2), ...aliasStreams].flat().filter((card) => accepted.has(keyOf(card)));
     const englishList = groups.map((group) => group[0]).find((list) => list?.length) || aliasStreams.flat().filter((card) => LANG_CODE[card.categoryId] === 'EN');
     const order = new Map(englishList.map((card) => [card.productId, card.apiIndex])); // el orden del listado en inglés
-    const merged = mergeOptions(options, extra, order);
+    let merged = mergeOptions(options, extra, order);
+    // Una carta reconocida en español (TCGdex) tiene otro nombre que la inglesa: el catálogo dice cuál es su gemela inglesa (por enlace o por edición y número)
+    const seen = new Set(accepted);
+    if (first.categoryId === 100 && Number(first.productId) >= 9000000) {
+      setPick((current) => current && { ...current, options: merged, loading: true });
+      const englishNames = await api.getEnglishTwin(first.productId).then((response) => [...new Set((response?.cards || []).map((card) => baseName(card.name) || card.name))]).catch(() => []);
+      if (seq !== pickSeq.current) return;
+      const fresh = englishNames.filter((text) => !seen.has(plain(text))).slice(0, 2);
+      if (fresh.length) {
+        fresh.forEach((text) => seen.add(plain(text)));
+        const englishGroups = await loadNames(fresh);
+        if (seq !== pickSeq.current) return;
+        const keys = new Set(fresh.map(plain));
+        const englishOrder = new Map([...order, ...(englishGroups.map((group) => group[0]).find((list) => list?.length) || []).map((card) => [card.productId, card.apiIndex])]);
+        merged = mergeOptions(merged, englishGroups.flat(2).filter((card) => keys.has(keyOf(card))), englishOrder);
+      }
+    }
     // Fase 2 (solo si hace falta): idiomas de Pokémon sin ninguna impresión. La misma foto se consulta al motor en esos idiomas
     // (con los tres juntos suele devolver solo el de la carta reconocida) y se busca en el catálogo con el nombre que traiga.
     const missing = isPokemonBatch ? Object.entries(LANG_CODE).filter(([, code]) => !merged.some((card) => LANG_CODE[card.categoryId] === code)).map(([id]) => Number(id)) : [];
     setPick((current) => current && { ...current, options: merged, loading: missing.length > 0 && Boolean(result.photo?.blob) });
     if (!missing.length || !result.photo?.blob) return;
     // Cada idioma que falta se resuelve por su cuenta: apenas llega, sus impresiones se suman a la hoja
-    const seen = new Set(accepted);
     await Promise.all(missing.map(async (categoryId) => {
       const twins = await twinScans(result, first, [categoryId]);
       if (seq !== pickSeq.current || !twins.length) return;

@@ -144,6 +144,7 @@ export const api = {
   getRecentCards: (limit = 12) => apiFetch('/cards/recent?limit=' + limit),
   searchCards: (queryString = '') => searchCardsShared(queryString),
   suggestCardQuery: (query) => apiFetch(`/tcg/suggest?q=${encodeURIComponent(query)}`),
+  getEnglishTwin: (productId) => apiFetch(`/tcg/english-twin?productId=${encodeURIComponent(productId)}`),
   searchTcgIndex: (query, game, page = 1, sort = '', spanish = false, lang = '') => apiFetch(`/tcg/search-index?q=${encodeURIComponent(query)}${game ? `&game=${encodeURIComponent(game)}` : ''}${sort ? `&sort=${encodeURIComponent(sort)}` : ''}${spanish ? '&spanish=1' : ''}${lang ? `&lang=${encodeURIComponent(lang)}` : ''}&page=${page}`),
   getMyCards: (queryString = '') => apiFetch(`/cards/mine?${queryString}`),
   getSellerReviews: (username, page = 1) => apiFetch('/users/' + encodeURIComponent(username) + '/reviews?page=' + page),
