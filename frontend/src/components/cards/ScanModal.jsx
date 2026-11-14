@@ -200,10 +200,9 @@ export default function ScanModal({ onClose, batch, origin }) {
   };
   // La misma carta en los otros idiomas de Pokémon: con los tres idiomas juntos el motor suele devolver solo el de la carta reconocida,
   // así que la misma foto se consulta una vez por idioma y se queda con la impresión que lleva el mismo número
-  const twinScans = async (result, first) => {
-    if (!result.photo?.blob) return [];
-    const others = ['3', '100', '85'].filter((id) => Number(id) !== first.categoryId);
-    const scans = await Promise.all(others.map((id) => api.scanCard(result.photo.blob, { games: id }).catch(() => null)));
+  const twinScans = async (result, first, categories) => {
+    if (!result.photo?.blob || categories.length === 0) return [];
+    const scans = await Promise.all(categories.map((id) => api.scanCard(result.photo.blob, { games: String(id) }).catch(() => null)));
     return scans.flatMap((scan) => {
       const top = scan?.top?.[0];
       if (!top || top.productId == null || (top.score ?? 0) < 0.85 || leadNumber(top.number) === '' || leadNumber(top.number) !== leadNumber(first.number)) return [];
@@ -273,8 +272,6 @@ export default function ScanModal({ onClose, batch, origin }) {
     setPick({ result, options, replace, loading: Boolean(game), lang: LANG_CODE[first.categoryId] || 'all' });
     if (!game) return;
     const name = baseName(first.name) || first.name;
-    const twins = isPokemonBatch ? await twinScans(result, first) : [];
-    if (seq !== pickSeq.current) return;
     // Un pedido por idioma (en paralelo) y por páginas hasta agotar el catálogo: así no se pierden impresiones ni las de liga
     const wanted = LANG_CODE[first.categoryId] !== undefined ? ['en', 'es', 'ja'] : [''];
     const keyOf = (card) => plain(baseName(card.name) || card.name);
@@ -291,9 +288,11 @@ export default function ScanModal({ onClose, batch, origin }) {
       } catch (_error) { /* de ese idioma quedan las que ya llegaron */ }
       return found;
     };
-    // Se busca con el nombre reconocido y con el de las otras versiones que trajo el motor (el nombre en inglés de una carta reconocida en español)
-    const names = [...new Set([name, ...options.slice(1).map((card) => baseName(card.name) || card.name), ...twins.map((card) => baseName(card.name) || card.name)])].slice(0, 4);
-    const groups = await Promise.all(names.map((text) => Promise.all(wanted.map((lang) => fetchLang(lang, text)))));
+    const loadNames = (names) => Promise.all(names.map((text) => Promise.all(wanted.map((lang) => fetchLang(lang, text)))));
+    // Fase 1 (rápida): el catálogo con el nombre reconocido y el de las otras versiones que trajo el motor
+    const names = [...new Set([name, ...options.slice(1).map((card) => baseName(card.name) || card.name)])].slice(0, 3);
+    const groups = await loadNames(names);
+    if (seq !== pickSeq.current) return;
     const streams = groups[0];
     // El nombre en español no siempre es el del catálogo en inglés («Energía Psychic Telepática» / «Telepathic Psychic Energy»): si ninguna carta lleva el nombre
     // reconocido, las que llegaron del idioma español son las ligadas a ella y su nombre se usa también para traer las impresiones en inglés y japonés
@@ -304,12 +303,33 @@ export default function ScanModal({ onClose, batch, origin }) {
       streams[spanishAt].forEach((card) => counts.set(keyOf(card), { text: baseName(card.name) || card.name, total: (counts.get(keyOf(card))?.total || 0) + 1 }));
       alias = [...counts.values()].sort((x, y) => y.total - x.total)[0]?.text || '';
     }
-    const aliasStreams = alias && seq === pickSeq.current ? await Promise.all(wanted.filter((lang) => lang !== 'es').map((lang) => fetchLang(lang, alias))) : [];
+    const aliasStreams = alias ? await Promise.all(wanted.filter((lang) => lang !== 'es').map((lang) => fetchLang(lang, alias))) : [];
+    if (seq !== pickSeq.current) return;
     const accepted = new Set([...names.map(plain), ...(alias ? [plain(alias)] : [])]);
     const extra = [...groups.flat(2), ...aliasStreams].flat().filter((card) => accepted.has(keyOf(card)));
     const englishList = groups.map((group) => group[0]).find((list) => list?.length) || aliasStreams.flat().filter((card) => LANG_CODE[card.categoryId] === 'EN');
     const order = new Map(englishList.map((card) => [card.productId, card.apiIndex])); // el orden del listado en inglés
-    if (seq === pickSeq.current) setPick((current) => current && { ...current, options: mergeOptions(current.options, [...twins, ...extra], order), loading: false });
+    const merged = mergeOptions(options, extra, order);
+    // Fase 2 (solo si hace falta): idiomas de Pokémon sin ninguna impresión. La misma foto se consulta al motor en esos idiomas
+    // (con los tres juntos suele devolver solo el de la carta reconocida) y se busca en el catálogo con el nombre que traiga.
+    const missing = isPokemonBatch ? Object.entries(LANG_CODE).filter(([, code]) => !merged.some((card) => LANG_CODE[card.categoryId] === code)).map(([id]) => Number(id)) : [];
+    setPick((current) => current && { ...current, options: merged, loading: missing.length > 0 && Boolean(result.photo?.blob) });
+    if (!missing.length || !result.photo?.blob) return;
+    // Cada idioma que falta se resuelve por su cuenta: apenas llega, sus impresiones se suman a la hoja
+    const seen = new Set(accepted);
+    await Promise.all(missing.map(async (categoryId) => {
+      const twins = await twinScans(result, first, [categoryId]);
+      if (seq !== pickSeq.current || !twins.length) return;
+      const twinNames = [...new Set(twins.map((card) => baseName(card.name) || card.name))].filter((text) => !seen.has(plain(text))).slice(0, 2);
+      twinNames.forEach((text) => seen.add(plain(text)));
+      const twinGroups = twinNames.length ? await loadNames(twinNames) : [];
+      if (seq !== pickSeq.current) return;
+      const keys = new Set(twinNames.map(plain));
+      const more = [...twins, ...twinGroups.flat(2).filter((card) => keys.has(keyOf(card)))];
+      const twinOrder = new Map([...order, ...(twinGroups.map((group) => group[0]).find((list) => list?.length) || []).map((card) => [card.productId, card.apiIndex])]);
+      setPick((current) => current && { ...current, options: mergeOptions(current.options, more, twinOrder) });
+    }));
+    if (seq === pickSeq.current) setPick((current) => current && { ...current, loading: false });
   };
   const choosePick = (card) => {
     const { result, options, replace } = pick;
