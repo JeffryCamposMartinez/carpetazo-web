@@ -174,7 +174,7 @@ export default function ScanModal({ onClose, batch, origin }) {
     const mine = LANG_CODE[base[0]?.categoryId];
     const more = extra.filter((card) => card.productId != null && !seen.has(cardId(card)) && seen.add(cardId(card)));
     const rank = (card) => { const code = LANG_CODE[card.categoryId]; return code === mine ? -1 : LANG_ORDER.indexOf(code); };
-    return [...base, ...more.map((card, index) => ({ card, index })).sort((x, y) => rank(x.card) - rank(y.card) || x.index - y.index).map(({ card }) => card)].slice(0, 40);
+    return [...base, ...more.map((card, index) => ({ card, index })).sort((x, y) => rank(x.card) - rank(y.card) || x.index - y.index).map(({ card }) => card)].slice(0, 200);
   };
   const pickSeq = useRef(0); // invalida respuestas del catálogo si la hoja ya se cerró
   const closePick = () => { pickSeq.current += 1; setPick(null); };
@@ -190,15 +190,21 @@ export default function ScanModal({ onClose, batch, origin }) {
     setPick({ result, options, loading: Boolean(game), lang: 'all' });
     if (!game) return;
     const name = baseName(first.name) || first.name;
-    const extra = [];
-    try {
-      for (let page = 1; page <= 3; page += 1) {
-        const response = await api.searchTcgIndex(name, game, page, '', LANG_CODE[first.categoryId] !== undefined);
-        if (seq !== pickSeq.current) return;
-        extra.push(...(response?.cards || []).map(fromIndex).filter((card) => plain(baseName(card.name) || card.name) === plain(name)));
-        if (!response?.cards?.length || page >= (response.pages || 1)) break;
-      }
-    } catch (_error) { /* se quedan las impresiones del motor */ }
+    // Un pedido por idioma (en paralelo) y por páginas hasta agotar el catálogo: así no se pierden impresiones ni las de liga
+    const wanted = LANG_CODE[first.categoryId] !== undefined ? ['en', 'es', 'ja'] : [''];
+    const fetchLang = async (lang) => {
+      const found = [];
+      try {
+        for (let page = 1; page <= 8; page += 1) {
+          const response = await api.searchTcgIndex(name, game, page, '', false, lang);
+          if (seq !== pickSeq.current) return found;
+          found.push(...(response?.cards || []).map(fromIndex).filter((card) => plain(baseName(card.name) || card.name) === plain(name)));
+          if (!response?.cards?.length || page >= (response.pages || 1)) break;
+        }
+      } catch (_error) { /* de ese idioma quedan las que ya llegaron */ }
+      return found;
+    };
+    const extra = (await Promise.all(wanted.map(fetchLang))).flat();
     if (seq === pickSeq.current) setPick((current) => current && { ...current, options: mergeOptions(current.options, extra), loading: false });
   };
   const choosePick = (card) => {
