@@ -1,4 +1,7 @@
+import { useMemo } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
+import useFinishSplit from '../../hooks/useFinishSplit';
+import FinishRibbon from '../ui/FinishRibbon';
 import LiquidTabs from '../ui/LiquidTabs';
 import SvgIcon from '../ui/SvgIcon';
 import { LANG_CODE, LANG_NAME, LANG_ORDER, cardId, shownName } from './pickCard';
@@ -6,9 +9,14 @@ import { LANG_CODE, LANG_NAME, LANG_ORDER, cardId, shownName } from './pickCard'
 // «Selecciona tu carta»: hoja inferior del escáner de cartas de una carpeta. La persona elige la impresión exacta (y su idioma) de la carta reconocida.
 // pick = { options, loading, lang }; onManual (opcional) muestra «Buscar manualmente».
 export default function PickCardSheet({ pick, onClose, onChoose, onLang, onManual }) {
-  const pickLangs = pick ? LANG_ORDER.filter((code) => pick.options.some((card) => LANG_CODE[card.categoryId] === code)) : [];
-  const pickTabs = pickLangs.length > 1 ? [{ value: 'all', label: `Todos (${pick.options.length})` }, ...pickLangs.map((code) => ({ value: code, label: `${LANG_NAME[code]} (${pick.options.filter((card) => LANG_CODE[card.categoryId] === code).length})` }))] : [];
-  const pickShown = pick ? (pick.lang === 'all' ? pick.options : pick.options.filter((card) => LANG_CODE[card.categoryId] === pick.lang)) : [];
+  // Pokémon: cada impresión se abre en una opción por acabado (Normal, Holofoil, Reverse Holofoil…) según los precios de TCGplayer; el resto de juegos no cambia
+  const isPokemon = LANG_CODE[pick?.options?.[0]?.categoryId] !== undefined;
+  const prints = useMemo(() => (isPokemon ? pick.options.map((card) => ({ ...card, id: cardId(card), tcgProductId: card.productId, catId: card.categoryId })) : []), [pick?.options, isPokemon]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { cards: finishes } = useFinishSplit(prints, isPokemon ? 'pokemon' : 'none');
+  const options = isPokemon ? finishes : pick?.options || [];
+  const pickLangs = pick ? LANG_ORDER.filter((code) => options.some((card) => LANG_CODE[card.categoryId] === code)) : [];
+  const pickTabs = pickLangs.length > 1 ? [{ value: 'all', label: `Todos (${options.length})` }, ...pickLangs.map((code) => ({ value: code, label: `${LANG_NAME[code]} (${options.filter((card) => LANG_CODE[card.categoryId] === code).length})` }))] : [];
+  const pickShown = pick ? (pick.lang === 'all' ? options : options.filter((card) => LANG_CODE[card.categoryId] === pick.lang)) : [];
   return (
       <MotionConfig reducedMotion="user">
         <AnimatePresence>
@@ -46,23 +54,24 @@ export default function PickCardSheet({ pick, onClose, onChoose, onLang, onManua
                 )}
                 <ul className="grid min-h-0 flex-1 grid-cols-2 content-start gap-3 overflow-y-auto px-4 pb-4 pt-3 sm:grid-cols-3">
                   {pickShown.map((card, index) => {
-                    const best = cardId(card) === cardId(pick.options[0]);
+                    const best = cardId(card) === cardId(pick.options[0]) && !card.finish;
                     const code = LANG_CODE[card.categoryId];
                     // Español sin foto propia: se muestra la de la misma impresión en inglés, avisándolo
                     const standIn = !card.image && card.categoryId === 100 ? pick.options.find((other) => other.categoryId === 3 && other.productId === card.productId)?.image : null;
                     const picture = card.image || standIn;
                     return (
-                      <li key={cardId(card)}>
-                        <button type="button" onClick={() => onChoose(card)} aria-label={`Agregar ${shownName(card.name)}, ${[card.set, card.number && `número ${card.number}`, code && LANG_NAME[code]].filter(Boolean).join(', ')}`} className={`group flex h-full w-full flex-col rounded-2xl border bg-white p-2 text-left shadow-[0_6px_16px_-10px_rgba(18,49,95,0.5)] transition-[transform,box-shadow,border-color] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] [@media(hover:hover)]:hover:border-[#1e40af] [@media(hover:hover)]:hover:shadow-[0_10px_22px_-10px_rgba(30,64,175,0.55)] ${best ? 'border-[#facc15] ring-2 ring-[#facc15]/70' : 'border-blue-100'}`}>
+                      <li key={`${cardId(card)}~${card.finish || ''}`}>
+                        <button type="button" onClick={() => onChoose(card)} aria-label={`Agregar ${shownName(card.name)}, ${[card.set, card.number && `número ${card.number}`, code && LANG_NAME[code], card.finishLabel].filter(Boolean).join(', ')}`} className={`group flex h-full w-full flex-col rounded-2xl border bg-white p-2 text-left shadow-[0_6px_16px_-10px_rgba(18,49,95,0.5)] transition-[transform,box-shadow,border-color] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] [@media(hover:hover)]:hover:border-[#1e40af] [@media(hover:hover)]:hover:shadow-[0_10px_22px_-10px_rgba(30,64,175,0.55)] ${best ? 'border-[#facc15] ring-2 ring-[#facc15]/70' : 'border-blue-100'}`}>
                           <span className="relative block aspect-[63/88] w-full overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200">
                             {picture ? <img src={picture} alt="" loading={index < 6 ? 'eager' : 'lazy'} className={`h-full w-full object-cover ${standIn ? 'opacity-80 saturate-75' : ''}`} /> : <span className="flex h-full w-full items-center justify-center px-2 text-center text-xs font-bold text-slate-400">Sin imagen</span>}
                             {standIn && <span className="absolute inset-x-0 bottom-0 bg-[#12315f]/85 px-1.5 py-1 text-center text-[10px] font-bold leading-tight text-white">Foto en inglés</span>}
+                            {card.finish && <FinishRibbon finish={card.finish} />}
                             {best && <span className="absolute bottom-1.5 left-1.5 rounded-full bg-[#facc15] px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#1a1400] shadow">Más parecida</span>}
                             {code && <span className="absolute right-1.5 top-1.5 rounded-md bg-[#12315f]/90 px-1.5 py-0.5 text-[10px] font-black tracking-wide text-white ring-1 ring-white/20">{code}</span>}
                           </span>
                           <span className="mt-2 block text-[15px] font-black leading-snug">{shownName(card.name)}</span>
                           <span className="mt-0.5 block text-[13px] font-bold leading-snug text-[#1e40af]">{card.set || 'Edición'}</span>
-                          <span className="mt-0.5 block text-xs font-semibold text-slate-500">{[card.number && `#${card.number}`, card.rarity].filter(Boolean).join(' · ')}</span>
+                          <span className="mt-0.5 block text-xs font-semibold text-slate-500">{[card.number && `#${card.number}`, card.rarity, card.finishLabel].filter(Boolean).join(' · ')}</span>
                         </button>
                       </li>
                     );

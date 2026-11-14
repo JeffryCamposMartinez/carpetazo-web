@@ -78,6 +78,8 @@ export default function FolderAddTab({
         card = list.find((item) => String(item.tcgProductId) === String(found.productId));
       }
       if (!card) return null;
+      // Acabado elegido en «Selecciona tu carta» (Holofoil, Reverse Holofoil…): misma carta con su acabado, como en la búsqueda
+      if (found.finish) card = { ...card, id: `${card.id}~${found.finish.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, baseProductId: String(card.baseProductId || card.tcgProductId || card.productId || card.id), finish: found.finish, finishLabel: found.finish };
       setMultiSelectMode(true);
       // La misma carta sin imagen oficial ya escaneada y con su foto propia en la cola: se suma a esa entrada (cantidad) en vez de crear otra sin foto
       const prior = selectedQueue.find((entry) => entry.card.isCustomImage && String(entry.card.tcgProductId ?? entry.card.productId) === String(card.tcgProductId ?? card.productId) && entry.card.cardLanguage === card.cardLanguage)?.card;
