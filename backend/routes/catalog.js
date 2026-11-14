@@ -10,6 +10,7 @@ import { likeEscape, nameDistance, nameMatch, searchFragments, similarCardName }
 import { TCGDEX_CATEGORY, numberKey, tcgdexJson, usableCards } from '../core/tcgSync/tcgdex.js';
 import { editionFamilyGroupIds, isEditionFamily, isKnownEditionFamily } from '../core/editionFamilies.js';
 import { NO_IMAGE_KEY, hasRealImage } from '../core/catalogPhotos.js';
+import { routeLimiter } from '../core/limits.js';
 
 const router = express.Router();
 const gzipAsync = promisify(gzip);
@@ -383,6 +384,35 @@ router.get('/api/tcg/catalog/:categoryId/:groupId/cards', async (req, res) => {
   } catch (error) {
     console.error('Error cargando cartas TCG desde CatalogCard:', error.message);
     return res.status(503).json({ success: false, message: 'No se pudo cargar el catálogo local' });
+  }
+});
+
+// Gemela inglesa de una carta de TCGdex en español: la misma por enlace o, si no está enlazada, la de la edición inglesa que le corresponde con el mismo número.
+// Sirve al escáner para mostrar todas las impresiones de una carta reconocida en español (su nombre en inglés es otro).
+const leadDigits = (value) => String(value || '').match(/\d+/)?.[0]?.replace(/^0+(?=\d)/, '') || '';
+router.get('/api/tcg/english-twin', routeLimiter(60 * 1000, 120), async (req, res) => {
+  const productId = Number(req.query.productId);
+  if (!Number.isInteger(productId) || productId < SPANISH_GROUP_BASE || productId > 2_000_000_000) return badRequest(res, 'Carta inválida');
+  try {
+    const spanish = await prisma.catalogCard.findFirst({ where: { productId, categoryId: TCGDEX_CATEGORY, kind: 'card' }, select: { groupId: true, number: true, attributes: true } });
+    if (!spanish) return res.json({ success: true, cards: [] });
+    const select = { productId: true, categoryId: true, groupId: true, name: true, number: true };
+    const linked = Number(spanish.attributes?.TcgplayerProductId);
+    let cards = [];
+    if (Number.isInteger(linked) && linked > 0) {
+      cards = await prisma.catalogCard.findMany({ where: { productId: linked, kind: 'card' }, select });
+    } else if (leadDigits(spanish.number)) {
+      const [row] = await prisma.$queryRaw`SELECT MODE() WITHIN GROUP (ORDER BY ("attributes"->>'TcgplayerGroupId')::int) AS english FROM "CatalogCard" WHERE "categoryId" = ${TCGDEX_CATEGORY} AND "groupId" = ${spanish.groupId} AND "attributes"->>'TcgplayerGroupId' IS NOT NULL`;
+      if (row?.english) {
+        const sameSet = await prisma.catalogCard.findMany({ where: { groupId: row.english, kind: 'card', categoryId: { not: TCGDEX_CATEGORY } }, select, take: 800 });
+        cards = sameSet.filter((card) => leadDigits(card.number) === leadDigits(spanish.number)).slice(0, 10);
+      }
+    }
+    res.set('Cache-Control', 'public, max-age=600, stale-while-revalidate=3600');
+    res.json({ success: true, cards });
+  } catch (error) {
+    console.error('Error buscando la gemela inglesa:', error.message);
+    res.status(503).json({ success: false, message: 'No se pudo consultar el catálogo' });
   }
 });
 
