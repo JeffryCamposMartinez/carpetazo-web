@@ -403,8 +403,25 @@ router.get('/api/tcg/english-twin', routeLimiter(60 * 1000, 120), async (req, re
       cards = await prisma.catalogCard.findMany({ where: { productId: linked, kind: 'card' }, select });
     } else if (leadDigits(spanish.number)) {
       const [row] = await prisma.$queryRaw`SELECT MODE() WITHIN GROUP (ORDER BY ("attributes"->>'TcgplayerGroupId')::int) AS english FROM "CatalogCard" WHERE "categoryId" = ${TCGDEX_CATEGORY} AND "groupId" = ${spanish.groupId} AND "attributes"->>'TcgplayerGroupId' IS NOT NULL`;
-      if (row?.english) {
-        const sameSet = await prisma.catalogCard.findMany({ where: { groupId: row.english, kind: 'card', categoryId: { not: TCGDEX_CATEGORY } }, select, take: 800 });
+      let englishGroup = row?.english || null;
+      if (!englishGroup) {
+        // Edición en español sin enlace: la inglesa que salió casi el mismo día y cuyos números de carta coinciden casi todos con los de la española
+        const spanishSet = await prisma.catalogSet.findUnique({ where: { groupId: spanish.groupId }, select: { publishedOn: true } });
+        if (spanishSet?.publishedOn) {
+          const day = 24 * 60 * 60 * 1000;
+          const near = await prisma.catalogSet.findMany({ where: { categoryId: 3, publishedOn: { gte: new Date(spanishSet.publishedOn.getTime() - 21 * day), lte: new Date(spanishSet.publishedOn.getTime() + 21 * day) } }, select: { groupId: true }, take: 12 });
+          const spanishNumbers = new Set((await prisma.catalogCard.findMany({ where: { groupId: spanish.groupId, kind: 'card' }, select: { number: true }, take: 800 })).map((card) => leadDigits(card.number)).filter(Boolean));
+          let best = { overlap: 0, groupId: null };
+          for (const candidate of near) {
+            const numbers = new Set((await prisma.catalogCard.findMany({ where: { groupId: candidate.groupId, kind: 'card' }, select: { number: true }, take: 800 })).map((card) => leadDigits(card.number)).filter(Boolean));
+            const overlap = [...spanishNumbers].filter((number) => numbers.has(number)).length / Math.max(spanishNumbers.size, 1);
+            if (overlap > best.overlap) best = { overlap, groupId: candidate.groupId };
+          }
+          if (best.overlap >= 0.6) englishGroup = best.groupId;
+        }
+      }
+      if (englishGroup) {
+        const sameSet = await prisma.catalogCard.findMany({ where: { groupId: englishGroup, kind: 'card', categoryId: { not: TCGDEX_CATEGORY } }, select, take: 800 });
         cards = sameSet.filter((card) => leadDigits(card.number) === leadDigits(spanish.number)).slice(0, 10);
       }
     }
