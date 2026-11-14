@@ -11,6 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 import { useToast } from '../components/ui/ToastProvider';
 import ConfirmModal from '../components/ui/ConfirmModal';
+import useLeaveGuard from '../hooks/useLeaveGuard';
 import { DETAIL_MODES, getExtDataValue, normalizeTcgProductId, sortCatalogCards } from '../components/folder/folderCards';
 import FolderSalesTab from '../components/folder/tabs/FolderSalesTab';
 import FolderCatalogTab from '../components/folder/tabs/FolderCatalogTab';
@@ -152,6 +153,7 @@ const [isSearching, setIsSearching] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedQueue, setSelectedQueue] = useState([]);
+  const leaveGuard = useLeaveGuard(selectedQueue.length > 0); // cartas elegidas que aún no se agregaron a la carpeta
   const [activeQueueItemId, setActiveQueueItemId] = useState(null);
   const [price, setPrice] = useState('');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -1085,7 +1087,7 @@ const [isSearching, setIsSearching] = useState(false);
           <div className="relative z-20 flex flex-1 flex-col px-3 py-4 text-gray-900 sm:px-8 sm:py-5">
       <div className="mb-3 flex items-center gap-2 border-b border-gray-300 pb-3 sm:gap-4">
         <button 
-          onClick={() => navigate('/dashboard')}
+          onClick={() => leaveGuard.ask('/dashboard')}
           className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-100 hover:text-[#1e40af] sm:h-10 sm:w-10"
           title="Volver a mis carpetas"
         >
@@ -1131,6 +1133,15 @@ const [isSearching, setIsSearching] = useState(false);
       </div>
 
       
+      <ConfirmModal
+        isOpen={leaveGuard.pending !== null}
+        title="¿Salir sin guardar?"
+        message={`Elegiste ${totalQueuedCards} ${totalQueuedCards === 1 ? 'carta' : 'cartas'} que todavía no se agregaron a la carpeta. Si sales ahora, perderás ese avance.`}
+        onConfirm={leaveGuard.confirm}
+        onCancel={leaveGuard.cancel}
+        confirmText="Salir sin guardar"
+        cancelText="Seguir aquí"
+      />
       <ConfirmModal 
         isOpen={confirmDialog.show} 
         title="Confirmar Acción" 
