@@ -122,6 +122,8 @@ export const api = {
   checkUsernameAvailable: (username) => apiFetch('/users/username/available?username=' + encodeURIComponent(username || '')), // sin sesión, para el registro
   updateProfile: (data) => apiFetch('/users/me', { method: 'PUT', body: JSON.stringify(data) }),
   uploadImage: (formData) => apiFetch('/users/upload-image', { method: 'POST', body: formData, isMultipart: true }),
+  getMyStore: () => apiFetch('/stores/me'),
+  saveMyStore: (data) => apiFetch('/stores/me', { method: 'PUT', body: JSON.stringify(data) }),
   deleteProfile: () => apiFetch('/users/me', { method: 'DELETE' }),
 
   // Planes y suscripciones

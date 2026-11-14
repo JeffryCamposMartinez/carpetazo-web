@@ -17,6 +17,7 @@ import ProfileModules from '../components/profile/ProfileModules';
 import ProfileHero from '../components/profile/ProfileHero';
 import usePageMeta from '../hooks/usePageMeta';
 import { useToast } from '../components/ui/ToastProvider';
+import StorePublicCard from '../components/store/StorePublicCard';
 
 const normalizeFolder = (folder) => ({
   ...folder,
@@ -249,6 +250,9 @@ export default function SellerProfile() {
 
       {/* Confianza: reseñas, carpetas, cartas y nivel de un vistazo */}
       <ProfileTrustStrip completedSales={seller?.completedSales} folders={folders.length} lastSaleAt={seller?.lastSaleAt} memberSince={seller?.createdAt} profileLevel={profileLevel} publicTheme={publicTheme} recentSales={seller?.recentSales} responseTime={seller?.responseTime} reviewSummary={seller?.reviewSummary} totalCards={totalCards} />
+
+      {/* Tienda física (plan Tienda): dirección, horario, cómo llegar y política */}
+      {seller?.store && <StorePublicCard store={seller.store} />}
 
       {/* Módulos: el orden y el ancho salen de la distribución elegida */}
       <ProfileModules {...profileModulesProps} />

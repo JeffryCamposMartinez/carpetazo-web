@@ -19,6 +19,7 @@ import { Link } from 'react-router-dom';
 import HelpTip from '../components/ui/HelpTip';
 import PlanTools from '../components/folder/PlanTools';
 import SvgIcon from '../components/ui/SvgIcon';
+const StoreTab = lazy(() => import('../components/store/StoreTab'));
 // html2canvas + jsPDF pesan mucho: se descargan solo al generar un PDF
 const HiddenPDFGenerator = lazy(() => import('../components/folder/HiddenPDFGenerator'));
 
@@ -40,12 +41,12 @@ export default function Dashboard() {
   const [editFolderColor, setEditFolderColor] = useState('red');
   const [searchParams, setSearchParams] = useSearchParams();
   const linkedTab = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState(['solicitudes', 'historial', 'deseadas'].includes(linkedTab) ? linkedTab : 'carpetas');
+  const [activeTab, setActiveTab] = useState(['solicitudes', 'historial', 'deseadas', 'tienda'].includes(linkedTab) ? linkedTab : 'carpetas');
 
   // La pestaña y la dirección van juntas: un enlace como /dashboard?tab=solicitudes (desde la campana o el menú de la cuenta) abre esa pestaña
   // aunque ya estés en esta página, y /dashboard sin pestaña vuelve a Carpetas. Al cambiar de pestaña aquí, la dirección se actualiza.
   useEffect(() => {
-    setActiveTab(['solicitudes', 'historial', 'deseadas'].includes(linkedTab) ? linkedTab : 'carpetas');
+    setActiveTab(['solicitudes', 'historial', 'deseadas', 'tienda'].includes(linkedTab) ? linkedTab : 'carpetas');
   }, [linkedTab]);
   const changeTab = (tab) => {
     setActiveTab(tab);
@@ -437,7 +438,8 @@ export default function Dashboard() {
         </span>
       )
     },
-    { value: 'historial', label: <span className="flex items-center justify-center gap-2"><SvgIcon name="history" translate="no" aria-hidden="true" className="hidden text-xl sm:inline" />Historial</span> }
+    { value: 'historial', label: <span className="flex items-center justify-center gap-2"><SvgIcon name="history" translate="no" aria-hidden="true" className="hidden text-xl sm:inline" />Historial</span> },
+    { value: 'tienda', label: <span className="flex items-center justify-center gap-2"><SvgIcon name="storefront" translate="no" aria-hidden="true" className="hidden text-xl sm:inline" />Mi tienda</span> }
   ];
 
   // Menú de cada carpeta: se comparte el contenido entre la hoja inferior (móvil) y el menú anclado (pantallas anchas)
@@ -501,12 +503,13 @@ export default function Dashboard() {
 
           {/* Encabezado: la sección se llama «Mis carpetas»; «Carpetas» es solo su primera pestaña */}
           <header className="mb-5 md:mb-6">
-            <div className="flex items-center gap-3"><h1 className="text-[1.75rem] font-extrabold leading-tight tracking-tight text-[#1a2b4b] md:text-4xl lg:text-[2.75rem]">Mis carpetas</h1><HelpTip topic={{ carpetas: 'misCarpetas', deseadas: 'deseadas', solicitudes: 'solicitudes', historial: 'historial' }[activeTab]} /></div>
+            <div className="flex items-center gap-3"><h1 className="text-[1.75rem] font-extrabold leading-tight tracking-tight text-[#1a2b4b] md:text-4xl lg:text-[2.75rem]">Mis carpetas</h1><HelpTip topic={{ carpetas: 'misCarpetas', deseadas: 'deseadas', solicitudes: 'solicitudes', historial: 'historial' }[activeTab] || 'misCarpetas'} /></div>
             <p className="mt-1 hidden max-w-2xl text-base leading-relaxed text-slate-600 md:block md:min-h-[1.5rem]">
               {activeTab === 'carpetas' && 'Arma catálogos con tus cartas, publícalos y comparte el enlace para vender.'}
               {activeTab === 'solicitudes' && 'Pedidos de tus carpetas públicas. Al confirmar una venta, el stock se descuenta solo.'}
               {activeTab === 'historial' && 'Ventas confirmadas y pedidos rechazados, con carta, monto y fecha.'}
               {activeTab === 'deseadas' && 'Las cartas que buscas, visibles para quienes pueden vendértelas.'}
+              {activeTab === 'tienda' && 'Tu local en Carpetazo: dirección, horarios, pagos y lo que compras y vendes.'}
             </p>
           </header>
 
@@ -604,6 +607,8 @@ export default function Dashboard() {
         </div>
       ) : activeTab === 'deseadas' ? (
           <WishlistTab showToast={showToast} />
+      ) : activeTab === 'tienda' ? (
+          <Suspense fallback={<LoadingState label="Cargando tu tienda" />}><StoreTab /></Suspense>
       ) : (
           <OrdersTab
             showToast={showToast}

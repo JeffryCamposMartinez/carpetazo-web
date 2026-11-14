@@ -22,6 +22,7 @@ import { loadThemeFonts } from '../utils/themeFonts';
 import { matchesEdition } from '../utils/editionFamilies';
 import { readableOn } from '../utils/color';
 import { buildOrderMessage, formatCLP, whatsappOrderUrl } from '../utils/orderMessage';
+import StorePublicCard from '../components/store/StorePublicCard';
 
 const isLocalhostWithProductionApi = () => {
   if (typeof window === 'undefined') return false;
@@ -623,6 +624,8 @@ function PublicCatalog() {
       <div className="w-full max-w-[1470px] mx-auto px-3 py-3 sm:px-6 sm:py-6 lg:px-8">
       {/* Portada de la carpeta: nombre, vendedor, contacto y cifras */}
       <CatalogCover {...catalogCoverProps} />
+
+      {sellerData?.store && <div className="mt-3"><StorePublicCard store={sellerData.store} compact /></div>}
 
       {sellerData?.username && (
         <WishlistSection

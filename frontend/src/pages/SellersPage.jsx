@@ -9,6 +9,7 @@ import usePageMeta from '../hooks/usePageMeta';
 import EmptyState from '../components/ui/EmptyState';
 import PlanBadge from '../components/ui/PlanBadge';
 import SvgIcon from '../components/ui/SvgIcon';
+import LiquidTabs from '../components/ui/LiquidTabs';
 
 const SORTS = [
   { value: 'visits', label: 'Más visitados' },
@@ -27,6 +28,8 @@ function Avatar({ seller }) {
 }
 
 // La búsqueda, el orden y la página se resuelven en el servidor (24 vendedores por página)
+const KINDS = [{ value: 'all', label: 'Todos' }, { value: 'store', label: 'Tiendas' }];
+
 export default function SellersPage() {
   usePageMeta({ title: 'Vendedores de cartas TCG en Chile | Carpetazo', description: 'Encuentra personas y tiendas registradas en Carpetazo, filtra por comuna y descubre sus cartas publicadas.', path: '/vendedores' });
   const [result, setResult] = useState({ sellers: [], total: 0, pages: 1 });
@@ -37,6 +40,8 @@ export default function SellersPage() {
   const [sort, setSort] = useState('visits');
   const [comuna, setComuna] = useState('');
   const [page, setPage] = useState(1);
+  const [kind, setKind] = useState('all');
+  const [openNow, setOpenNow] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => { setDebouncedQuery(query.trim()); setPage(1); }, 350);
@@ -51,13 +56,15 @@ export default function SellersPage() {
     if (debouncedQuery) params.set('q', debouncedQuery);
     if (sort !== 'visits') params.set('sort', sort);
     if (comuna) params.set('comuna', comuna);
+    if (kind === 'store') params.set('kind', 'store');
+    if (kind === 'store' && openNow) params.set('open', '1');
     if (page > 1) params.set('page', String(page));
     api.getSellers(params.toString())
       .then((res) => { if (!cancelled) startTransition(() => setResult(res.success ? res : { sellers: [], total: 0, pages: 1 })); })
       .catch(() => { if (!cancelled) setFailed(true); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [debouncedQuery, sort, comuna, page]);
+  }, [debouncedQuery, sort, comuna, page, kind, openNow]);
 
   const sellers = useMemo(() => result.sellers.map((seller) => ({ ...seller, key: seller.username || seller.name, photoURL: seller.photoURL || '', tcgs: seller.tcgs || [] })), [result.sellers]);
 
@@ -73,6 +80,16 @@ export default function SellersPage() {
           <CardsFilters query={query} onQuery={(value) => setQuery(value.slice(0, 60))} placeholder="Buscar vendedor" format={(value) => value} hideGames />
 
           <section className="mt-5 min-w-0 lg:mt-0" aria-label="Resultados">
+            <div className="mb-3 flex flex-wrap items-center gap-3">
+              <LiquidTabs ariaLabel="Tipo de vendedor" layout="inline" options={KINDS} value={kind} onChange={(value) => { setKind(value); setPage(1); }}
+                className="inline-flex rounded-2xl bg-white p-1 shadow-sm ring-1 ring-slate-200" buttonClassName="h-10 rounded-xl px-4 text-sm font-bold" indicatorClassName="rounded-xl bg-[#1e40af]" indicatorStyle={{ top: 4, bottom: 4 }}
+                activeTextClassName="text-white" inactiveTextClassName="text-slate-600 hover:text-[#1a2b4b]" />
+              {kind === 'store' && (
+                <button type="button" aria-pressed={openNow} onClick={() => { setOpenNow(!openNow); setPage(1); }} className={`inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-bold transition active:scale-[0.97] ${openNow ? 'bg-emerald-600 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300 hover:ring-emerald-600'}`}>
+                  <span className={`h-2 w-2 rounded-full ${openNow ? 'bg-white' : 'bg-emerald-500'}`} />Abiertas ahora
+                </button>
+              )}
+            </div>
             <ListingToolbar total={result.total} loading={loading} failed={failed} one="vendedor" many="vendedores" comuna={comuna} onComuna={(value) => { setComuna(value); setPage(1); }} sort={sort} onSort={(value) => { setSort(value); setPage(1); }} sortOptions={SORTS} onClear={comuna || query ? () => { setQuery(''); setComuna(''); setPage(1); } : undefined} />
 
         {loading ? (
@@ -85,7 +102,7 @@ export default function SellersPage() {
           </EmptyState>
         ) : sellers.length === 0 ? (
           <EmptyState icon="storefront" title="No hay vendedores con esa búsqueda">
-            {comuna ? 'Solo aparecen vendedores que indicaron su comuna. Prueba con otra comuna o quita el filtro.' : 'Prueba con otro nombre.'}
+            {kind === 'store' ? (openNow ? 'Ninguna tienda está abierta en este momento. Quita «Abiertas ahora» para verlas todas.' : 'Todavía no hay tiendas con local publicado con esa búsqueda.') : comuna ? 'Solo aparecen vendedores que indicaron su comuna. Prueba con otra comuna o quita el filtro.' : 'Prueba con otro nombre.'}
           </EmptyState>
         ) : (
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
@@ -99,7 +116,8 @@ export default function SellersPage() {
                       <p className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-500">{seller.username ? `@${seller.username}` : 'Vendedor'}</p>
                       <PlanBadge badge={seller.planBadge} iconRight className="min-h-10 gap-1.5 px-2.5 text-xs [&>img]:!h-10 [&>img]:!w-10" />
                     </div>
-                    <LocationLine comuna={seller.publicComuna} region={seller.publicRegion} className="mt-0.5 text-xs font-semibold text-[#1e40af]" />
+                    <LocationLine comuna={seller.publicComuna || seller.store?.comuna} region={seller.publicRegion} className="mt-0.5 text-xs font-semibold text-[#1e40af]" />
+                    {seller.store && <p className={`mt-0.5 text-xs font-black ${seller.store.openNow ? 'text-emerald-700' : 'text-slate-500'}`}>{seller.store.openNow ? 'Abierto ahora' : 'Cerrado ahora'}</p>}
                     <p className="mt-1.5 text-xs font-semibold tabular-nums text-slate-600">
                       {formatNumber(seller.folders)} {seller.folders === 1 ? 'carpeta' : 'carpetas'} · {formatNumber(seller.cards)} {seller.cards === 1 ? 'carta' : 'cartas'} · {formatNumber(seller.visits)} {seller.visits === 1 ? 'visita' : 'visitas'}
                     </p>
