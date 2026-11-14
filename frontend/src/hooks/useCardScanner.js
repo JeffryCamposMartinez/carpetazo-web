@@ -262,6 +262,18 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
     };
   }, [enabled, attempt, videoRef, areaRef, guideRef, reset]);
 
+  // Al volver a la web desde otra app o pestaña el sistema pausa la cámara y el video queda congelado y encogido: se reinicia
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      const track = videoRef.current?.srcObject?.getVideoTracks?.()[0];
+      if (!track || track.readyState !== 'live' || track.muted || videoRef.current.paused) setAttempt((value) => value + 1);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [enabled, videoRef]);
+
   const retryCamera = useCallback(() => { setCameraError(''); setMessage('Iniciando cámara…'); setAttempt((value) => value + 1); }, []);
 
   return { message, guide, view, cameraError, reset, retryCamera };
