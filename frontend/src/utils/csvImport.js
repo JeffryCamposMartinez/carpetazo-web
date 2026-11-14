@@ -38,6 +38,12 @@ const conditionOf = (value) => {
 // El inventario de vendedor de TCGplayer junta estado y acabado en una columna («Near Mint Foil»): lo que sobra del estado es el acabado
 const finishFromCondition = (value) => plain(value).replace(/^(near mint|lightly played|moderately played|heavily played|damaged|unopened)\s*/, '').replace(/(^|\s)\w/g, (match) => match.toUpperCase());
 
+// Precio en pesos: «1.500» y «1,500» son mil quinientos (punto o coma como separador de miles); «1500» y «1500,50» se leen tal cual
+const pesos = (raw) => {
+  const text = String(raw ?? '').replace(/[^\d.,]/g, '');
+  return /^\d{1,3}([.,]\d{3})+$/.test(text) ? Number(text.replace(/[.,]/g, '')) : Number(text.replace(',', '.'));
+};
+
 // Texto CSV → matriz de celdas (comillas dobles, saltos de línea dentro de comillas y separador , ; o tabulación)
 const parseCells = (text) => {
   const first = text.split(/\r?\n/, 1)[0];
@@ -79,7 +85,7 @@ export const parseCardsCsv = (rawText, size = rawText.length) => {
     const productId = get(cells, 'productId');
     const quantity = parseInt(get(cells, 'quantity'), 10);
     if (quantity === 0) return null; // inventario de TCGplayer: filas publicadas sin existencias
-    const price = Number(get(cells, 'price').replace(/[^\d.]/g, ''));
+    const price = pesos(get(cells, 'price'));
     return {
       line: index + 2,
       ...(/^\d+$/.test(productId) ? { productId: Number(productId) } : {}),

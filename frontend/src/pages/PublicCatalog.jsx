@@ -21,6 +21,7 @@ import { defaultPublicTheme, getEffectClassName, getFontStack, getProfileBackgro
 import { loadThemeFonts } from '../utils/themeFonts';
 import { matchesEdition } from '../utils/editionFamilies';
 import { readableOn } from '../utils/color';
+import { buildOrderMessage, formatCLP, whatsappOrderUrl } from '../utils/orderMessage';
 
 const isLocalhostWithProductionApi = () => {
   if (typeof window === 'undefined') return false;
@@ -255,7 +256,6 @@ function PublicCatalog() {
   const cartTotal = useMemo(() => cart.reduce((total, item) => total + (Number(item.price || 0) * item.quantity), 0), [cart]);
   const cartItemsCount = useMemo(() => cart.reduce((count, item) => count + item.quantity, 0), [cart]);
 
-  const formatCLP = (price) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(price);
 
   const clearFilters = useCallback(() => {
     setSearchQuery('');
@@ -332,8 +332,6 @@ function PublicCatalog() {
     const phone = sellerData?.phone?.replace(/\D/g, '') || '';
     if (!phone) return handleMessageCheckout();
     
-    const formattedPhone = phone.startsWith('56') ? phone : `56${phone}`;
-    
     // Safari (iPhone y Mac) bloquea las ventanas abiertas antes de una espera y no deja escribir en ellas:
     // ahí se navega en la misma pestaña. En el resto se abre la ventana de forma síncrona para evitar el bloqueo de pop-ups.
     const ua = navigator.userAgent || '';
@@ -366,19 +364,8 @@ function PublicCatalog() {
       });
 
       // 2. Generar el mensaje y redirigir
-      let message = `¡Hola! Vengo de Carpetazo. Me interesa comprar estas cartas de la carpeta "${folderData?.name || 'Catálogo'}":\n\n`;
-      cart.forEach(item => {
-        message += `• ${item.quantity}x ${item.name} (${item.set}) - ${formatCLP(Number(item.price || 0) * item.quantity)}\n`;
-      });
-      message += `\nTotal: ${formatCLP(orderResponse?.order?.total ?? cartTotal)}`;
-      if (orderResponse?.code) message += `\nCódigo de pedido: ${orderResponse.code}`;
-      const payment = orderResponse?.payment;
-      if (payment) {
-        message += `\n\nDatos para transferir:\n${[payment.holderName, payment.rut, payment.bank, payment.accountType, payment.accountNumber].filter(Boolean).join('\n')}`;
-      }
-      message += payment ? `\n\n¿Tienes disponibilidad?` : `\n\n¿Tienes disponibilidad? ¿Me compartes los datos para transferir?`;
-      
-      const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
+      const message = buildOrderMessage({ folderName: folderData?.name, items: cart, total: orderResponse?.order?.total ?? cartTotal, code: orderResponse?.code, payment: orderResponse?.payment });
+      const whatsappUrl = whatsappOrderUrl(phone, message);
       
       setCart([]);
       setIsCartOpen(false);
