@@ -6,6 +6,7 @@ import { finishOfCard } from '../../utils/cardFinish';
 import { cardFill, cardRatio, tcgplayerCardImage } from '../../utils/cardShape';
 import { LoadingMark } from '../ui/LoadableImage';
 import SvgIcon from '../ui/SvgIcon';
+import LanguageBadge from '../ui/LanguageBadge';
 
 const formatCLP = (value) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value) || 0);
 const NEW_WINDOW_MS = 72 * 60 * 60 * 1000;
@@ -42,12 +43,10 @@ function Seller({ card }) {
   );
 }
 
-const LANGUAGES = { English: 'Inglés', Spanish: 'Español', Japanese: 'Japonés' };
-
-// El idioma va en su propia etiqueta: así nunca queda cortado por el nombre largo de la edición
-function LanguageChip({ language }) {
-  if (!language) return null;
-  return <span className="shrink-0 rounded-full bg-[#dbeafe] px-2 py-0.5 text-xs font-extrabold text-[#1e40af]">{LANGUAGES[language] || language}</span>;
+// El idioma va como insignia (EN, ES, JP) sobre la imagen; Mitos y Leyendas es siempre en español
+const isMyl = (card) => card.folder?.tcg === 'Mitos y Leyendas';
+function CardLanguage({ card, className }) {
+  return <LanguageBadge language={card.language || (isMyl(card) ? 'Spanish' : '')} className={className} />;
 }
 
 function Availability({ stock }) {
@@ -90,6 +89,7 @@ export default function CardTile({ card, index, view, wanted, onWish }) {
           <span className="relative block w-[5.5rem] shrink-0 overflow-hidden rounded-xl bg-slate-100" style={{ aspectRatio: cardRatio(card.folder?.tcg) }}>
             <CardImage card={card} className="absolute inset-1.5 h-[calc(100%-0.75rem)] w-[calc(100%-0.75rem)] rounded-md object-contain" />
             <span className="absolute bottom-1.5 left-1.5"><StateTag condition={card.condition} /></span>
+            <CardLanguage card={card} className="absolute left-1.5 top-1.5 !px-1 !text-[9px]" />
             <FinishRibbon finish={finishOfCard(card)} compact corner="br" />
           </span>
           <span className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">
@@ -100,7 +100,7 @@ export default function CardTile({ card, index, view, wanted, onWish }) {
               <PriceTag price={card.price} />
               {isNew && <span className="rounded-full bg-[#12315f] px-2 py-0.5 text-xs font-extrabold text-white">Nueva</span>}
               {card.featured && <span className="rounded-full bg-[#facc15] px-2 py-0.5 text-xs font-extrabold text-[#12315f]">Destacado</span>}
-              <span className="flex flex-wrap items-center gap-1.5"><Availability stock={card.stock} /><LanguageChip language={card.language} /></span>
+              <span className="flex flex-wrap items-center gap-1.5"><Availability stock={card.stock} /></span>
             </span>
           </span>
         </Link>
@@ -114,8 +114,9 @@ export default function CardTile({ card, index, view, wanted, onWish }) {
       <Link to={`/carta/${card.id}`} className={`group flex h-full flex-col overflow-hidden rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${SURFACE} ${LIFT}`}>
         <span className="relative block w-full overflow-hidden bg-slate-100" style={{ aspectRatio: cardRatio(card.folder?.tcg) }}>
           <CardImage card={card} className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-md object-contain" />
-          {(isNew || card.featured) && (
-            <span className="absolute left-2 top-2 flex flex-wrap gap-1">
+          {(isNew || card.featured || card.language || isMyl(card)) && (
+            <span className="absolute left-2 top-2 flex max-w-[calc(100%-3.5rem)] flex-wrap items-center gap-1">
+              <CardLanguage card={card} />
               {isNew && <span className="rounded-full bg-[#12315f] px-2 py-0.5 text-xs font-extrabold text-white shadow">Nueva</span>}
               {card.featured && <span className="rounded-full bg-[#facc15] px-2 py-0.5 text-xs font-extrabold text-[#12315f] shadow">Destacado</span>}
             </span>
@@ -127,7 +128,7 @@ export default function CardTile({ card, index, view, wanted, onWish }) {
           <span className="line-clamp-2 text-sm font-extrabold leading-tight text-[#12315f] sm:text-[15px]">{card.name}</span>
           {meta && <span className="truncate text-xs text-slate-500">{meta}</span>}
           <span className="mt-auto flex flex-col gap-1.5 pt-1.5">
-            <span className="flex flex-wrap items-center gap-1.5"><Availability stock={card.stock} /><LanguageChip language={card.language} /></span>
+            <span className="flex flex-wrap items-center gap-1.5"><Availability stock={card.stock} /></span>
             <Seller card={card} />
           </span>
         </span>

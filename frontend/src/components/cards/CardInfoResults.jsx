@@ -16,14 +16,9 @@ import { ReferencePriceLine } from '../folder/ReferencePrice';
 import { formatClp } from '../../services/tcgcsvPrices';
 import { cardFill, cardRatio } from '../../utils/cardShape';
 import SvgIcon from '../ui/SvgIcon';
+import LanguageBadge from '../ui/LanguageBadge';
 import { catalogLink } from '../../utils/catalogLink';
 
-
-// Insignia de idioma de la ficha: EN, ES o JP (Mitos y Leyendas es siempre en español)
-const languageBadge = (card) => {
-  const name = card.catId === 100 || card.language === 'Español' ? 'Español' : card.catId === 85 || card.language === 'Japonés' ? 'Japonés' : 'Inglés';
-  return { code: { Español: 'ES', Japonés: 'JP', Inglés: 'EN' }[name], name };
-};
 
 const NOTE = 'Referencia del catálogo: esta ficha no es una oferta de venta.';
 const tcgplayerImage = (card) => {
@@ -115,7 +110,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
               <button type="button" onClick={() => setOpenId(card.id)} className="group block w-full rounded-xl text-left transition-transform duration-150 active:scale-[0.985] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
                 <div className="relative w-full overflow-hidden rounded-xl bg-slate-50" style={{ aspectRatio: cardRatio(card.game) }}>
                   <LoadableImage loading={index < 10 ? 'eager' : 'lazy'} src={card.imageUrl || tcgplayerImage(card)} fallbackSrc={card.imageUrl ? tcgplayerImage(card) : undefined} alt={card.name} rotateLandscape className="h-full w-full object-contain" style={cardFill(card.game)} />
-                  {(() => { const lang = languageBadge(card); return <span title={`Catálogo · ${lang.name}`} className="absolute left-1.5 top-1.5 rounded-md bg-[#12315f]/90 px-1.5 py-0.5 text-[10px] font-black tracking-wide text-white ring-1 ring-white/20"><span aria-hidden="true">{lang.code}</span><span className="sr-only">Catálogo, {lang.name}</span></span>; })()}
+                  <LanguageBadge language={card.language} catId={card.catId} className="absolute left-1.5 top-1.5" />
                   <FinishRibbon finish={card.finish} />
                 </div>
                 <p className="mt-2 line-clamp-2 text-sm font-extrabold leading-snug text-[#12315f]">{card.name}</p>
