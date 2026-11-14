@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api } from '../../services/api';
 import BackupPanel from './BackupPanel';
 import RetentionPanel from './RetentionPanel';
+import ScannerChoicesPanel from './ScannerChoicesPanel';
 
 const REASONS = { terms_not_accepted: 'la cuenta no ha aceptado los términos', not_configured: 'el envío no está configurado en el servidor', send_failed: 'el servidor de correo rechazó el envío', no_recipient: 'la cuenta no tiene correo válido' };
 
@@ -23,6 +24,7 @@ export default function ToolsPanel() {
     <div className="mx-auto max-w-3xl space-y-4">
       <BackupPanel />
       <RetentionPanel />
+      <ScannerChoicesPanel />
       <section aria-label="Prueba de correo" className="rounded-2xl border border-[#dbe3f0] bg-white p-5">
         <h3 className="text-lg font-extrabold text-[#12315f]">Correo de prueba</h3>
         <p className="mt-1 text-sm leading-relaxed text-slate-600">Envía un correo a tu propia cuenta para comprobar que los avisos llegan. Solo sale si aceptaste los términos vigentes.</p>

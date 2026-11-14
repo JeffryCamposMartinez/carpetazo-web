@@ -239,6 +239,7 @@ export const api = {
   getOpsErrors: () => apiFetch('/admin/ops/errors'),
   resolveOpsError: (id) => apiFetch('/admin/ops/errors/' + encodeURIComponent(id), { method: 'DELETE' }),
   getOpsFunnel: (days = 30) => apiFetch('/admin/ops/funnel?days=' + encodeURIComponent(days)),
+  getScanChoices: () => apiFetch('/admin/scanner/choices'),
   sendTestEmail: () => apiFetch('/admin/test-email', { method: 'POST', body: JSON.stringify({}) }),
   approveReview: (id) => apiFetch('/admin/reviews/' + encodeURIComponent(id) + '/approve', { method: 'POST' }),
   deleteReview: (id) => apiFetch('/admin/reviews/' + encodeURIComponent(id), { method: 'DELETE' }),
