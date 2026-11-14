@@ -34,6 +34,9 @@ function ScanChoice({ label, value, onChange, options }) {
   );
 }
 
+// Número de coleccionista sin ceros ni total: «088/088» y «88» son el mismo
+const leadNumber = (value) => String(value || '').match(/\d+/)?.[0]?.replace(/^0+(?=\d)/, '') || '';
+
 const GUIDE_COLOR = { '': '#ffcb05', scan: '#00d2ff', ok: '#34d399', mid: '#fb923c' };
 const SAVED_GAME = 'carpetazo.scanGame';
 const SAVED_PREFS = 'carpetazo.scanPrefs';
@@ -195,12 +198,28 @@ export default function ScanModal({ onClose, batch, origin }) {
     setTray((previous) => previous.map((entry) => (entry.trayId === item.trayId ? { ...entry, ...next, lang, uploading, fly: false } : entry)));
     contribute(next);
   };
+  // La misma carta en los otros idiomas de Pokémon: con los tres idiomas juntos el motor suele devolver solo el de la carta reconocida,
+  // así que la misma foto se consulta una vez por idioma y se queda con la impresión que lleva el mismo número
+  const twinScans = async (result, first) => {
+    if (!result.photo?.blob) return [];
+    const others = ['3', '100', '85'].filter((id) => Number(id) !== first.categoryId);
+    const scans = await Promise.all(others.map((id) => api.scanCard(result.photo.blob, { games: id }).catch(() => null)));
+    return scans.flatMap((scan) => {
+      const top = scan?.top?.[0];
+      if (!top || top.productId == null || (top.score ?? 0) < 0.85 || leadNumber(top.number) === '' || leadNumber(top.number) !== leadNumber(first.number)) return [];
+      const topKey = plain(baseName(top.name) || top.name);
+      return [...(scan.top || []), ...(scan.same || [])].filter((card) => card.productId != null && plain(baseName(card.name) || card.name) === topKey);
+    });
+  };
   // Impresiones de la misma carta (mismo nombre base) que ya trae el motor, la reconocida primero
   const pickOptions = (result) => {
     const first = result.top?.[0];
     if (!first || first.productId == null) return [];
     const key = plain(baseName(first.name) || first.name);
-    const rest = versionsOf(result).filter((card) => cardId(card) !== cardId(first) && plain(baseName(card.name) || card.name) === key);
+    // Misma carta: el mismo nombre o, con otro nombre (una carta en español contra su versión inglesa), el mismo número y casi el mismo parecido visual
+    const lead = leadNumber;
+    const sameCard = (card) => plain(baseName(card.name) || card.name) === key || (lead(card.number) !== '' && lead(card.number) === lead(first.number) && (first.score ?? 0) - (card.score ?? 0) <= 0.06);
+    const rest = versionsOf(result).filter((card) => cardId(card) !== cardId(first) && sameCard(card));
     return [first, ...rest];
   };
   // La reconocida primero. El resto, por idioma (primero el de la reconocida) y, dentro de cada idioma, en el mismo orden que el listado en inglés:
@@ -254,6 +273,8 @@ export default function ScanModal({ onClose, batch, origin }) {
     setPick({ result, options, replace, loading: Boolean(game), lang: LANG_CODE[first.categoryId] || 'all' });
     if (!game) return;
     const name = baseName(first.name) || first.name;
+    const twins = isPokemonBatch ? await twinScans(result, first) : [];
+    if (seq !== pickSeq.current) return;
     // Un pedido por idioma (en paralelo) y por páginas hasta agotar el catálogo: así no se pierden impresiones ni las de liga
     const wanted = LANG_CODE[first.categoryId] !== undefined ? ['en', 'es', 'ja'] : [''];
     const keyOf = (card) => plain(baseName(card.name) || card.name);
@@ -270,7 +291,10 @@ export default function ScanModal({ onClose, batch, origin }) {
       } catch (_error) { /* de ese idioma quedan las que ya llegaron */ }
       return found;
     };
-    const streams = await Promise.all(wanted.map((lang) => fetchLang(lang, name)));
+    // Se busca con el nombre reconocido y con el de las otras versiones que trajo el motor (el nombre en inglés de una carta reconocida en español)
+    const names = [...new Set([name, ...options.slice(1).map((card) => baseName(card.name) || card.name), ...twins.map((card) => baseName(card.name) || card.name)])].slice(0, 4);
+    const groups = await Promise.all(names.map((text) => Promise.all(wanted.map((lang) => fetchLang(lang, text)))));
+    const streams = groups[0];
     // El nombre en español no siempre es el del catálogo en inglés («Energía Psychic Telepática» / «Telepathic Psychic Energy»): si ninguna carta lleva el nombre
     // reconocido, las que llegaron del idioma español son las ligadas a ella y su nombre se usa también para traer las impresiones en inglés y japonés
     const spanishAt = wanted.indexOf('es');
@@ -281,10 +305,11 @@ export default function ScanModal({ onClose, batch, origin }) {
       alias = [...counts.values()].sort((x, y) => y.total - x.total)[0]?.text || '';
     }
     const aliasStreams = alias && seq === pickSeq.current ? await Promise.all(wanted.filter((lang) => lang !== 'es').map((lang) => fetchLang(lang, alias))) : [];
-    const accepted = new Set([plain(name), ...(alias ? [plain(alias)] : [])]);
-    const extra = [...streams, ...aliasStreams].flat().filter((card) => accepted.has(keyOf(card)));
-    const order = new Map([...streams[0], ...aliasStreams.flat().filter((card) => LANG_CODE[card.categoryId] === 'EN')].map((card) => [card.productId, card.apiIndex])); // el orden del listado en inglés
-    if (seq === pickSeq.current) setPick((current) => current && { ...current, options: mergeOptions(current.options, extra, order), loading: false });
+    const accepted = new Set([...names.map(plain), ...(alias ? [plain(alias)] : [])]);
+    const extra = [...groups.flat(2), ...aliasStreams].flat().filter((card) => accepted.has(keyOf(card)));
+    const englishList = groups.map((group) => group[0]).find((list) => list?.length) || aliasStreams.flat().filter((card) => LANG_CODE[card.categoryId] === 'EN');
+    const order = new Map(englishList.map((card) => [card.productId, card.apiIndex])); // el orden del listado en inglés
+    if (seq === pickSeq.current) setPick((current) => current && { ...current, options: mergeOptions(current.options, [...twins, ...extra], order), loading: false });
   };
   const choosePick = (card) => {
     const { result, options, replace } = pick;
