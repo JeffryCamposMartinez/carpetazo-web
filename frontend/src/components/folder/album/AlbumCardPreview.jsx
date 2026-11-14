@@ -57,7 +57,7 @@ export default function AlbumCardPreview({
       </button>
 
       {/* Left Side (Image) */}
-      <div className="w-full md:w-[52%] h-[40%] md:h-full bg-black/20 flex items-center justify-center p-2 md:p-8 relative" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full md:w-[52%] h-[36%] md:h-full bg-black/20 flex items-center justify-center p-2 md:p-8 relative" onClick={(e) => e.stopPropagation()}>
         {isDesktop && <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-black/80 to-transparent pointer-events-none z-10" />}
         <div className="absolute inset-3 md:inset-6 rounded-2xl border border-white/10 bg-white/[0.03] shadow-[inset_0_0_28px_rgba(255,255,255,0.04)]" />
         <div className="absolute right-4 top-[62%] z-30 flex w-[42%] min-w-0 -translate-y-1/2 flex-col items-start gap-2 md:hidden">
@@ -93,7 +93,7 @@ export default function AlbumCardPreview({
       </div>
 
       {/* Right Side (Info) */}
-      <div className="w-full md:w-[48%] h-[60%] min-h-0 md:h-full overflow-y-auto md:overflow-visible flex flex-col justify-between p-2.5 md:p-6 pt-5 md:pt-6 text-white relative bg-transparent" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full md:w-[48%] h-[64%] min-h-0 md:h-full overflow-y-auto md:overflow-visible flex flex-col justify-between p-2.5 md:p-6 pt-5 md:pt-6 text-white relative bg-transparent" onClick={(e) => e.stopPropagation()}>
         {isDesktop && <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-black/80 to-transparent pointer-events-none z-10" />}
 
         <div className="flex flex-col gap-1.5 md:gap-4 min-h-full md:h-full md:pl-6 relative z-20 pr-1">
@@ -111,7 +111,7 @@ export default function AlbumCardPreview({
             <h2 className="text-[18px] md:text-3xl font-black leading-[1] text-white drop-shadow-md line-clamp-1">{previewCard.name}</h2>
             <Link to={`/carta/${previewCard.id}`} className="mt-1 inline-flex min-h-8 items-center gap-1 self-start rounded-full bg-white/15 px-3 text-[11px] font-bold text-white ring-1 ring-white/25 transition-colors hover:bg-white/25 md:text-sm"><SvgIcon name="open_in_new" translate="no" aria-hidden="true" className="text-[16px] md:text-[18px]" />Ver ficha y comparar precios</Link>
             {previewSubtitle && (
-              <p className="text-slate-400 text-[11px] md:text-sm italic leading-tight line-clamp-1">
+              <p className="hidden md:block text-slate-400 text-[11px] md:text-sm italic leading-tight line-clamp-1">
                 {previewSubtitle}
               </p>
             )}
@@ -149,10 +149,10 @@ export default function AlbumCardPreview({
                 </div>
             </>
           ) : (
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 md:gap-y-3 text-xs md:text-base bg-black/40 p-2.5 md:p-5 rounded-xl border border-white/5 shadow-inner">
+            <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto] md:grid-cols-2 gap-x-3 gap-y-1.5 md:gap-y-3 text-xs md:text-base bg-black/40 p-2.5 md:p-5 rounded-xl border border-white/5 shadow-inner">
               <p className="flex flex-col"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Rareza</strong> <span className="font-medium text-white truncate">{previewCard.rarity || 'Desconocida'}</span></p>
               <p className="flex flex-col"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Idioma</strong> <span className="font-medium text-white truncate">{previewCard.language || 'Desconocido'}</span></p>
-              <p className="flex flex-col col-span-2 mt-1 md:mt-2 pt-2 md:pt-3 border-t border-white/10"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Estado</strong> <span className="font-medium text-white truncate">{previewCard.condition || 'Near Mint'}</span></p>
+              <p className="flex flex-col md:col-span-2 md:mt-2 md:pt-3 md:border-t border-white/10"><strong className="text-white/60 text-[10px] md:text-sm uppercase tracking-wider mb-0.5">Estado</strong> <span className="font-medium text-white truncate">{previewCard.condition || 'Near Mint'}</span></p>
             </div>
           )}
 
