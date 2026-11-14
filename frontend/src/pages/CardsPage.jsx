@@ -148,7 +148,7 @@ export default function CardsPage() {
     }
   };
 
-  const offerCards = scanMode ? result.cards.filter((card) => offerKeyIn(scanOrder)(card)) : result.cards; // desde la cámara solo las ofertas de las cartas encontradas
+  const offerCards = result.cards; // desde la cámara: las ofertas del mismo nombre (las encontradas por el escáner primero)
   const offeredProducts = new Set(offerCards.map((card) => String(card.tcgId || '').replace(/^(tcgcsv|myl):/, ''))); // ya salen como oferta: no se repiten como ficha del catálogo
   const infoScanned = scanMode ? scanned.filter((card) => !offeredProducts.has(String(card.productId))) : [];
   const hasFilters = Boolean(urlQuery || scanMode || tcg || seller || comuna || condition || lang);
@@ -188,7 +188,7 @@ export default function CardsPage() {
               query={urlQuery}
               sort={sort}
               tcg={tcg}
-              total={scanMode ? offerCards.length : result.total}
+              total={result.total}
               view={effectiveView}
             />
 
@@ -216,7 +216,7 @@ export default function CardsPage() {
 
             <CardInfoResults query={urlQuery} game={tcg} sort={sort} scanOrder={scanOrder} hasOffers={result.total > 0} fixed={scanMode ? infoScanned : null} enabled={!loading && !failed && (scanMode ? infoScanned.length > 0 : urlQuery.trim().length >= 2) && !seller && !comuna} />
 
-            {!loading && !failed && !scanMode && <CardsPagination page={page} pages={result.pages} onPage={goToPage} />}
+            {!loading && !failed && <CardsPagination page={page} pages={result.pages} onPage={goToPage} />}
           </section>
         </div>
         <FloatingTools onClear={hasFilters ? clearAll : undefined} />
