@@ -83,7 +83,7 @@ export default function LocationGate() {
         {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{error}</p>}
 
         <div className="mt-5 flex flex-col gap-2 sm:flex-row-reverse">
-          <button type="submit" disabled={!region || !comuna || Boolean(busy)} className="h-12 flex-1 rounded-full bg-[#12315f] px-5 text-sm font-extrabold text-white transition disabled:cursor-not-allowed disabled:opacity-40">
+          <button type="submit" disabled={!region || !comuna || Boolean(busy)} className="h-12 shrink-0 rounded-full sm:flex-1 bg-[#12315f] px-5 text-sm font-extrabold text-white transition disabled:cursor-not-allowed disabled:opacity-40">
             {busy === 'save' ? 'Guardando…' : 'Guardar y continuar'}
           </button>
           <button type="button" onClick={leave} disabled={Boolean(busy)} className="h-12 rounded-full border-2 border-slate-300 px-5 text-sm font-extrabold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">

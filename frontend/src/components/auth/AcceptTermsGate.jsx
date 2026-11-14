@@ -144,7 +144,7 @@ export default function AcceptTermsGate() {
           <button
             type="submit"
             disabled={!canSubmit}
-            className="h-12 flex-1 rounded-full bg-[#12315f] px-5 text-sm font-extrabold text-white transition disabled:cursor-not-allowed disabled:opacity-40"
+            className="h-12 shrink-0 rounded-full sm:flex-1 bg-[#12315f] px-5 text-sm font-extrabold text-white transition disabled:cursor-not-allowed disabled:opacity-40"
           >
             {busy === 'accept' ? 'Guardando…' : preAccepted ? 'Continuar' : 'Aceptar y continuar'}
           </button>
