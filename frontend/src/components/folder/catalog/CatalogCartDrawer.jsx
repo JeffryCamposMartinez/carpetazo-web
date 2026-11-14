@@ -5,7 +5,7 @@ import SvgIcon from '../../ui/SvgIcon';
 // Carrito del catálogo público: cartas elegidas, total y envío del pedido.
 export default function CatalogCartDrawer({
   cart, cartTotal, currentUser, formatCLP, handleMessageCheckout, handleWhatsAppCheckout,
-  isProcessingCheckout, messageMode, removeFromCart, setIsCartOpen, socialEnabled
+  isProcessingCheckout, messageMode, removeFromCart, setIsCartOpen, socialEnabled, pickup = null, handlePickupCheckout
 }) {
   const panelRef = useRef(null);
   // Diálogo accesible: el foco entra al abrir, Tab no sale del panel, Escape cierra y el foco vuelve a donde estaba
@@ -94,6 +94,17 @@ export default function CatalogCartDrawer({
             >
               <SvgIcon name={isProcessingCheckout ? 'hourglass_empty' : 'mail'} translate="no" className="text-2xl" />
               {isProcessingCheckout ? 'Procesando...' : currentUser ? 'Enviar pedido por mensaje' : 'Iniciar sesión y enviar pedido por mensaje'}
+            </button>
+          )}
+          {pickup && (
+            <button
+              type="button"
+              className="mt-2 w-full p-4 rounded-xl font-extrabold flex justify-center items-center gap-3 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none bg-[#facc15] text-[#12315f] hover:bg-yellow-300"
+              disabled={cart.length === 0 || isProcessingCheckout}
+              onClick={handlePickupCheckout}
+            >
+              <SvgIcon name={isProcessingCheckout ? 'hourglass_empty' : 'storefront'} translate="no" className="text-2xl" />
+              {isProcessingCheckout ? 'Procesando...' : `Reservar y retirar en tienda (${pickup.hours} h)`}
             </button>
           )}
           <p className="text-[10px] text-center text-gray-500 mt-3">

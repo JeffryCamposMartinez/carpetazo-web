@@ -8,6 +8,9 @@ import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 import UiEmptyState from '../ui/EmptyState';
 import SvgIcon from '../ui/SvgIcon';
 
+// Reservas con retiro en tienda que vencieron o canceló el comprador; el resto, rechazados por el vendedor
+const closedLabel = (order) => ({ expired: 'Reserva vencida', cancelled: 'Cancelado por el comprador' }[order.status] || 'Rechazado');
+
 // Solicitudes (pedidos pendientes) e historial de ventas del vendedor.
 // Los datos vienen de GET /api/orders/mine; las acciones de POST /api/orders/mine/:id/status.
 
@@ -422,7 +425,7 @@ function HistoryRow({ order, open, onToggle }) {
         <span className={`${NUM} text-right font-bold max-md:row-start-1 max-md:col-start-2 ${done ? 'text-[#1a2b4b]' : 'text-slate-400 line-through'}`}>{clp(order.total)}</span>
         <span className="max-md:col-span-2 md:text-right">
           <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${done ? 'bg-emerald-50 text-[#047857]' : 'bg-red-50 text-[#b91c1c]'}`}>
-            <Icon name={done ? 'check_circle' : 'block'} className="text-sm" /> {done ? 'Vendido' : 'Rechazado'}
+            <Icon name={done ? 'check_circle' : 'block'} className="text-sm" /> {done ? 'Vendido' : closedLabel(order)}
           </span>
         </span>
         <Icon name="expand_more" className={`hidden text-slate-400 transition-transform md:block ${open ? 'rotate-180' : ''}`} />
@@ -432,7 +435,7 @@ function HistoryRow({ order, open, onToggle }) {
           <div className="mb-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-500">
             {order.inPerson
               ? <span>Venta presencial registrada: {fullDate(order.createdAt)}</span>
-              : <><span>Recibido: {fullDate(order.createdAt)}</span><span>{done ? 'Venta confirmada' : 'Rechazado'}: {fullDate(order.updatedAt)}</span></>}
+              : <><span>Recibido: {fullDate(order.createdAt)}</span><span>{done ? 'Venta confirmada' : closedLabel(order)}: {fullDate(order.updatedAt)}</span></>}
             {order.inPerson && order.discountAmount !== 0 && <span>Subtotal publicado {clp(order.subtotal)} · {order.discountAmount > 0 ? `descuento ${clp(order.discountAmount)}` : `ajuste +${clp(Math.abs(order.discountAmount))}`}{order.adjustmentType === 'percent' ? ` (${order.adjustmentValue}%)` : ''}</span>}
           </div>
           <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
@@ -462,7 +465,7 @@ const downloadCsv = (orders) => {
   for (const order of orders) {
     for (const item of order.items || []) {
       rows.push([
-        new Date(order.updatedAt).toLocaleString('es-CL'), order.code, order.status === 'completed' ? 'Vendido' : 'Rechazado', order.folderName,
+        new Date(order.updatedAt).toLocaleString('es-CL'), order.code, order.status === 'completed' ? 'Vendido' : closedLabel(order), order.folderName,
         item.name, item.set, item.number, langCode(item.language), item.quantity, item.price, item.price * item.quantity
       ]);
     }

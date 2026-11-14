@@ -205,10 +205,16 @@ model Order {
   items           Json
   total           Float
   status          String   @default("pending")
+  // Reserva con retiro en tienda (plan Tienda): via 'pickup', código corto, plazo y cuándo quedó lista
+  via             String   @default("")
+  pickupCode      String?
+  pickupBy        DateTime?
+  pickupReadyAt   DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   @@index([sellerId, status])
+  @@index([via, status, pickupBy])
   @@index([folderId])
   @@index([buyerId])
 }

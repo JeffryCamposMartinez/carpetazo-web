@@ -323,6 +323,29 @@ function PublicCatalog() {
     }
   };
 
+  // Reserva con retiro en tienda (plan Tienda): aparta el stock por el plazo de la tienda y entrega un código
+  const handlePickupCheckout = async () => {
+    if (cart.length === 0) return;
+    if (!currentUser) {
+      showToast('Inicia sesión para reservar. Tu carrito se conserva.', 'info');
+      window.dispatchEvent(new Event('carpetazo:open-auth'));
+      return;
+    }
+    if (isOwner) { showToast('No puedes reservarte cartas a ti mismo.', 'error'); return; }
+    setIsProcessingCheckout(true);
+    try {
+      const response = await api.createOrder({ folderId, via: 'pickup', items: cart.map((item) => ({ id: item.id, quantity: item.quantity })) });
+      setCart([]);
+      setIsCartOpen(false);
+      showToast(`Reserva lista: muestra el código ${response.pickup.code} en la tienda. Revísala en Mi tienda.`, 'success');
+      navigate('/dashboard?tab=tienda');
+    } catch (error) {
+      showToast(error.message || 'No se pudo reservar.', 'error');
+    } finally {
+      setIsProcessingCheckout(false);
+    }
+  };
+
   const handleWhatsAppCheckout = async () => {
     if (cart.length === 0) return;
     if (isOwner) {
@@ -605,7 +628,8 @@ function PublicCatalog() {
   }
 
   const catalogCartDrawerProps = { cart, cartTotal, currentUser, formatCLP, handleMessageCheckout,
-    handleWhatsAppCheckout, isProcessingCheckout, messageMode, removeFromCart, setIsCartOpen, socialEnabled };
+    handleWhatsAppCheckout, isProcessingCheckout, messageMode, removeFromCart, setIsCartOpen, socialEnabled,
+    pickup: sellerData?.store ? { hours: sellerData.store.pickupHours || 48 } : null, handlePickupCheckout };
 
   const catalogBrowserProps = { gameFilters: gameKit && gameFilterValues ? { key: gameKit.key, filters: gameFilterValues, setFilters: setGameFilterValues } : null, activeFilterCount, addToCart, addToWishlist, availableRarities, availableSets, cards,
     cart, cartItemsCount, cartTotal, counts, decrementCart, folderData, formatCLP, isMobileFiltersOpen, isOwner,

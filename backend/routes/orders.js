@@ -7,6 +7,9 @@ import { prisma } from '../core/db.js';
 import { hashConnection } from '../core/hashing.js';
 import { notifyReviewRequest } from '../core/reviewNotice.js';
 import { badRequest, isUuid } from '../core/validation.js';
+import { getEffectivePlan } from '../core/entitlements.js';
+import { generatePickupCode, pickupDeadline } from '../core/storePickups.js';
+import { notifyUsers } from '../core/storeNotices.js';
 
 const router = express.Router();
 
@@ -65,6 +68,8 @@ router.post('/api/orders/create', async (req, res) => {
     const folderId = typeof body.folderId === 'string' ? body.folderId : '';
     // "message": el pedido llega al vendedor como mensaje de Carpetazo; exige un comprador con sesión
     const viaMessage = body.via === 'message';
+    // "pickup": reserva con retiro en una tienda con plan Tienda; también exige sesión y avisa por mensaje
+    const viaPickup = body.via === 'pickup';
 
     if (!rawItems.length || rawItems.length > 100) {
       return res.status(400).json({ success: false, message: 'El pedido no tiene cartas' });
@@ -84,8 +89,8 @@ router.post('/api/orders/create', async (req, res) => {
         buyer = null;
       }
     }
-    if (viaMessage) {
-      if (!token) return res.status(401).json({ success: false, message: 'Inicia sesión para enviar el pedido por mensaje' });
+    if (viaMessage || viaPickup) {
+      if (!token) return res.status(401).json({ success: false, message: viaPickup ? 'Inicia sesión para reservar' : 'Inicia sesión para enviar el pedido por mensaje' });
       if (!buyer) return res.status(401).json({ success: false, message: 'Tu sesión venció o tu cuenta aún se está preparando. Intenta de nuevo' });
     }
 
@@ -99,6 +104,12 @@ router.post('/api/orders/create', async (req, res) => {
     const sellerTheme = seller?.publicTheme && typeof seller.publicTheme === 'object' ? seller.publicTheme : {};
     // Ningún vendedor puede pedirse a sí mismo (por WhatsApp ni por mensaje)
     if (buyer && folder.userId === buyer.id) return res.status(400).json({ success: false, message: 'No puedes enviarte un pedido a ti mismo' });
+    let pickupHours = null;
+    if (viaPickup) {
+      const [{ plan }, storeProfile] = await Promise.all([getEffectivePlan(prisma, folder.userId), prisma.storeProfile.findUnique({ where: { userId: folder.userId }, select: { enabled: true, pickupHours: true } })]);
+      if (!plan.storeTools || !storeProfile?.enabled) return res.status(400).json({ success: false, message: 'Esta tienda no ofrece retiro en el local' });
+      pickupHours = storeProfile.pickupHours;
+    }
     if (viaMessage) {
       if (sellerTheme.showMessageButton === 'off') return res.status(400).json({ success: false, message: 'Este vendedor no recibe pedidos por mensaje' });
     }
@@ -158,18 +169,23 @@ router.post('/api/orders/create', async (req, res) => {
     const orderData = {
       code,
       sellerId: folder.userId,
-      buyerName: viaMessage ? String(buyer.name || buyer.username || 'Cliente').slice(0, 80) : 'Cliente por WhatsApp',
+      buyerName: viaMessage || viaPickup ? String(buyer.name || buyer.username || 'Cliente').slice(0, 80) : 'Cliente por WhatsApp',
       buyerId: buyer ? buyer.id : null,
       createdIpHash: hashConnection(req),
       folderId: folder.id,
       folderName: folder.name || 'Catálogo',
       items,
       total,
-      status: 'pending'
+      status: 'pending',
+      ...(viaPickup ? { via: 'pickup', pickupCode: generatePickupCode(), pickupBy: pickupDeadline(pickupHours) } : viaMessage ? { via: 'message' } : {})
     };
 
     let order;
-    if (viaMessage) {
+    if (viaPickup) {
+      const until = orderData.pickupBy.toLocaleString('es-CL', { timeZone: 'America/Santiago', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+      const text = [`¡Hola! Reservé estas cartas de "${folder.name || 'Catálogo'}" para retirar en tu tienda:`, '', ...lines, '', `Total: ${clp(total)}`, `Código de retiro: ${orderData.pickupCode}`, `Retiro hasta: ${until}`].join('\n');
+      order = await createOrderLocked(folder.id, asked, orderData, { senderId: buyer.id, receiverId: folder.userId, content: JSON.stringify({ v: 1, text, imageUrl: null, imageBase64: null }) });
+    } else if (viaMessage) {
       const text = [
         `¡Hola! Te hice un pedido desde tu carpeta "${folder.name || 'Catálogo'}" en Carpetazo:`,
         '',
@@ -187,7 +203,7 @@ router.post('/api/orders/create', async (req, res) => {
       order = await createOrderLocked(folder.id, asked, orderData, null);
     }
 
-    res.json({ success: true, code, order: formatOrderForUi(order), payment, viaMessage });
+    res.json({ success: true, code, order: formatOrderForUi(order), payment: viaPickup ? null : payment, viaMessage, ...(viaPickup ? { pickup: { code: order.pickupCode, until: order.pickupBy } } : {}) });
   } catch (error) {
     if (error.stockConflict) return res.status(409).json({ success: false, message: error.stockConflict });
     console.error('Error creating order:', error);
@@ -377,6 +393,73 @@ router.post('/api/orders/mine/:id/status', authenticateToken, async (req, res) =
     res.json({ success: true, order: formatOrderForUi(updated) });
   } catch (error) {
     console.error('Error updating seller order:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// --- Retiros en tienda (plan Tienda) ---
+const pickupView = (order) => ({ id: order.id, code: order.code, pickupCode: order.pickupCode, pickupBy: order.pickupBy, ready: Boolean(order.pickupReadyAt), status: order.status, total: order.total, folderName: order.folderName, buyerName: order.buyerName, createdAt: order.createdAt, items: normalizeOrderItems(order.items).map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })) });
+
+// Reservas por retirar de la tienda (las pendientes primero por plazo) y las cerradas de los últimos 7 días
+router.get('/api/orders/mine/pickups', authenticateToken, async (req, res) => {
+  try {
+    const sellerId = await getSellerId(req);
+    if (!sellerId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const rows = await prisma.order.findMany({ where: { sellerId, via: 'pickup', OR: [{ status: 'pending' }, { updatedAt: { gt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }] }, orderBy: [{ pickupBy: 'asc' }], take: 200 });
+    res.json({ success: true, pickups: rows.map(pickupView) });
+  } catch (error) {
+    console.error('Error loading pickups:', error.message);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// La tienda avisa que la reserva está lista para retirar (una vez)
+router.post('/api/orders/mine/:id/pickup-ready', authenticateToken, async (req, res) => {
+  try {
+    const sellerId = await getSellerId(req);
+    if (!sellerId || !isUuid(req.params.id)) return res.status(404).json({ success: false, message: 'Pedido no encontrado' });
+    const claimed = await prisma.order.updateMany({ where: { id: req.params.id, sellerId, via: 'pickup', status: 'pending', pickupReadyAt: null }, data: { pickupReadyAt: new Date() } });
+    const order = await prisma.order.findFirst({ where: { id: req.params.id, sellerId, via: 'pickup' } });
+    if (!order) return res.status(404).json({ success: false, message: 'Pedido no encontrado' });
+    if (!claimed.count && order.status !== 'pending') return res.status(409).json({ success: false, message: 'Esta reserva ya fue cerrada' });
+    if (claimed.count && order.buyerId) {
+      const seller = await prisma.user.findUnique({ where: { id: sellerId }, select: { name: true, username: true } });
+      await notifyUsers([order.buyerId], { subject: `Tu reserva ${order.code} está lista`, title: 'Lista para retirar', intro: `${seller?.name || seller?.username} ya tiene lista tu reserva. Muestra el código ${order.pickupCode} en el local.`, url: '/dashboard?tab=tienda', tag: `pickup-${order.id}` });
+    }
+    res.json({ success: true, pickup: pickupView(order) });
+  } catch (error) {
+    console.error('Error marking pickup ready:', error.message);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// Mis reservas como comprador
+router.get('/api/orders/pickups/mine', authenticateToken, async (req, res) => {
+  try {
+    const buyerId = await getSellerId(req);
+    if (!buyerId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    const rows = await prisma.order.findMany({ where: { buyerId, via: 'pickup', createdAt: { gt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }, orderBy: { createdAt: 'desc' }, take: 50 });
+    const sellers = new Map((await prisma.user.findMany({ where: { id: { in: [...new Set(rows.map((r) => r.sellerId))] } }, select: { id: true, name: true, username: true } })).map((u) => [u.id, u]));
+    res.json({ success: true, pickups: rows.map((o) => ({ ...pickupView(o), store: { name: sellers.get(o.sellerId)?.name || null, username: sellers.get(o.sellerId)?.username || null } })) });
+  } catch (error) {
+    console.error('Error loading my pickups:', error.message);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+// El comprador cancela su reserva (libera el stock al dejar de estar pendiente)
+router.post('/api/orders/pickups/:id/cancel', authenticateToken, async (req, res) => {
+  try {
+    const buyerId = await getSellerId(req);
+    if (!buyerId || !isUuid(req.params.id)) return res.status(404).json({ success: false, message: 'Reserva no encontrada' });
+    const claimed = await prisma.order.updateMany({ where: { id: req.params.id, buyerId, via: 'pickup', status: 'pending' }, data: { status: 'cancelled' } });
+    const order = await prisma.order.findFirst({ where: { id: req.params.id, buyerId, via: 'pickup' } });
+    if (!order) return res.status(404).json({ success: false, message: 'Reserva no encontrada' });
+    if (!claimed.count) return res.status(409).json({ success: false, message: 'Esta reserva ya fue cerrada' });
+    await notifyUsers([order.sellerId], { subject: `Reserva ${order.code} cancelada`, title: 'Reserva cancelada', intro: `${order.buyerName} canceló su reserva ${order.code}. Las cartas volvieron a estar disponibles.`, url: '/dashboard?tab=tienda', tag: `pickup-${order.id}` });
+    res.json({ success: true, pickup: pickupView(order) });
+  } catch (error) {
+    console.error('Error cancelling pickup:', error.message);
     res.status(500).json({ success: false, message: 'Error interno' });
   }
 });
