@@ -6,11 +6,11 @@ import { reportClientError } from '../../utils/reportError';
 const RELOAD_KEY = 'carpetazo:chunk-reload';
 
 export const isChunkLoadError = (error) =>
-  /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|Loading chunk|ChunkLoadError|reading 'default'/i.test(
+  /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|Loading chunk|ChunkLoadError|reading 'default'|_result\.default/i.test(
     String(error?.message || error || '')
   );
 
-// "reading 'default'": el navegador (típico en el navegador interno de Instagram/iOS) entregó una pantalla vacía en vez del módulo
+// "reading 'default'" (Chrome) o "evaluating 'e._result.default'" (Safari): el navegador (típico en el navegador interno de Instagram/iOS) entregó una pantalla vacía en vez del módulo
 // Recarga una sola vez por minuto para no entrar en bucle si el problema persiste
 const canAutoReload = () => {
   try {
