@@ -36,6 +36,24 @@ const scan = (body, { who = 'seller', type = 'image/jpeg', headers = {} } = {}) 
     r = await propose({ tcgId: '123', language: 'Spanish', imageUrl: 'https://ajena.example.com/card/00000000000000000000000000000000.webp' });
     ok('proponer una foto que no es de esta persona → se omite (no se propone)', r.status === 200 && r.j?.proposed === false, JSON.stringify(r.j));
 
+    const choice = (body, who = 'seller') => fetch(B + '/scanner/choice', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(who ? { Authorization: 'Bearer test-' + U[who] } : {}) }, body: JSON.stringify(body) }).then(async (x) => ({ status: x.status, j: await x.json().catch(() => null) }));
+    r = await choice({ kind: 'correct', chosenCategoryId: 3, chosenProductId: 5 }, null);
+    ok('registrar una elección sin sesión → 401', r.status === 401, String(r.status));
+    r = await choice({ kind: 'correct', games: '3,100,85', topCategoryId: 3, topProductId: 4, topScore: 0.81, chosenCategoryId: 3, chosenProductId: 5, chosenFinish: 'Holofoil', rank: 2, quick: false });
+    ok('registrar una corrección válida → 200', r.status === 200 && r.j?.success === true, JSON.stringify(r.j));
+    r = await choice({ kind: 'dismiss', games: '3', topCategoryId: 3, topProductId: 4 });
+    ok('cerrar sin elegir también se registra', r.status === 200, String(r.status));
+    r = await choice({ kind: 'inventado', chosenProductId: 5 });
+    ok('un tipo desconocido → 400', r.status === 400, String(r.status));
+    r = await choice({ kind: 'correct', chosenProductId: 'abc' });
+    ok('un id que no es número → 400', r.status === 400, String(r.status));
+    r = await choice({ kind: 'correct' });
+    ok('una corrección sin carta elegida → 400', r.status === 400, String(r.status));
+    r = await choice({ kind: 'confirm', chosenProductId: 5, games: '3,999' });
+    ok('juegos inválidos → 400', r.status === 400, String(r.status));
+    r = await choice({ kind: 'confirm', chosenProductId: 5, chosenFinish: 'x'.repeat(100) });
+    ok('un acabado demasiado largo → 400', r.status === 400, String(r.status));
+
     r = await scan(JPEG, { headers: { 'x-crop': '0.1,0.1,0.8,0.8', 'x-games': '3,100' } });
     const top = r.j?.top || [];
     ok('con sesión y una imagen válida → candidatas', r.status === 200 && r.j.success === true && r.j.found === true && top.length === 2, JSON.stringify(r.j).slice(0, 200));

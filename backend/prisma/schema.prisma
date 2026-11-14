@@ -707,6 +707,27 @@ model ScanEvent {
   @@index([createdAt])
 }
 
+// Elecciones de la gente en «Selecciona tu carta» del escáner (solo se registran, todavía no se aprende de ellas).
+// `actor` es una huella anónima de la cuenta, nunca su id; no se guarda la foto.
+model ScanChoice {
+  id               String   @id @default(uuid())
+  actor            String
+  kind             String // confirm | correct | change | reject | dismiss
+  games            String   @default("")
+  topCategoryId    Int? // la primera candidata del motor
+  topProductId     Int?
+  topScore         Float?
+  chosenCategoryId Int? // la que eligió la persona
+  chosenProductId  Int?
+  chosenFinish     String   @default("")
+  rank             Int? // posición de la elegida entre las candidatas del motor
+  quick            Boolean  @default(false) // se agregó sin preguntar
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([kind, createdAt])
+}
+
 // Precio más bajo publicado de cada carta, una vez al día: es el historial que se muestra en la página de la carta
 model CardPriceSnapshot {
   id     String   @id @default(uuid())

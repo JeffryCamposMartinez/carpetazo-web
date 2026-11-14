@@ -4,6 +4,7 @@ import express from 'express';
 import { authenticateToken } from '../core/auth.js';
 import { proposeCatalogPhoto } from '../core/catalogPhotos.js';
 import { prisma } from '../core/db.js';
+import { hashIp } from '../core/hashing.js';
 import { routeLimiter } from '../core/limits.js';
 import { badRequest, isAllowedStoredImageUrl } from '../core/validation.js';
 
@@ -143,6 +144,41 @@ router.post('/api/scanner/propose-photo', authenticateToken, routeLimiter(60 * 1
   } catch (error) {
     console.error('Error proponiendo foto del escáner:', error.message);
     res.status(500).json({ success: false, message: 'No se pudo enviar la foto a Moderación.' });
+  }
+});
+
+// Lo que la persona eligió en «Selecciona tu carta» frente a lo que propuso el motor. Por ahora solo se registra (no se aprende de ello): sirve para medir cuántas correcciones hay.
+const CHOICE_KINDS = new Set(['confirm', 'correct', 'change', 'reject', 'dismiss']);
+const optionalInt = (value, max) => (value === undefined || value === null ? null : Number.isInteger(value) && value >= 0 && value <= max ? value : false);
+router.post('/api/scanner/choice', authenticateToken, routeLimiter(60 * 1000, 120), express.json({ limit: '2kb' }), async (req, res) => {
+  const body = req.body || {};
+  const games = parseGames(body.games);
+  const top = { category: optionalInt(body.topCategoryId, 1000), product: optionalInt(body.topProductId, 2_000_000_000), rank: optionalInt(body.rank, 1000) };
+  const chosen = { category: optionalInt(body.chosenCategoryId, 1000), product: optionalInt(body.chosenProductId, 2_000_000_000) };
+  const score = body.topScore === undefined || body.topScore === null ? null : Number.isFinite(body.topScore) && body.topScore >= -1 && body.topScore <= 2 ? body.topScore : false;
+  const finish = body.chosenFinish === undefined ? '' : typeof body.chosenFinish === 'string' && body.chosenFinish.length <= 40 ? body.chosenFinish : false;
+  if (!CHOICE_KINDS.has(body.kind) || games === null || finish === false || score === false || Object.values({ ...top, ...chosen }).includes(false)) return badRequest(res, 'Datos inválidos');
+  if (body.kind !== 'dismiss' && body.kind !== 'reject' && chosen.product === null) return badRequest(res, 'Datos inválidos');
+  try {
+    await prisma.scanChoice.create({
+      data: {
+        actor: hashIp(`user:${req.user.sub}`),
+        kind: body.kind,
+        games,
+        topCategoryId: top.category,
+        topProductId: top.product,
+        topScore: score,
+        chosenCategoryId: chosen.category,
+        chosenProductId: chosen.product,
+        chosenFinish: finish,
+        rank: top.rank,
+        quick: body.quick === true,
+      },
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error registrando la elección del escáner:', error.message);
+    res.status(500).json({ success: false, message: 'No se pudo registrar.' });
   }
 });
 
