@@ -818,6 +818,7 @@ model InPersonSale {
   adjustmentType  String?
   adjustmentValue Float?
   discountAmount  Float?
+  paymentMethod   String   @default("") // efectivo, transferencia, débito o crédito (caja de las tiendas)
   createdAt  DateTime @default(now())
 
   @@unique([userId, requestId])
@@ -967,6 +968,8 @@ model StoreProfile {
   photos         String[] @default([])
   policy         String   @default("")
   pickupHours    Int      @default(48)
+  lowStockAt     Int      @default(1)
+  staleDays      Int      @default(60)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)

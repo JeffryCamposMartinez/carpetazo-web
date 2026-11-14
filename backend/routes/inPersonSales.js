@@ -21,7 +21,8 @@ const withImages = async (sales) => {
   return sales.map((sale) => ({ ...sale, items: (Array.isArray(sale.items) ? sale.items : []).map((line) => (line.imageUrl ? line : { ...line, imageUrl: byId.get(line.cardId) || null })) }));
 };
 
-const publicSale = (sale) => ({ id: sale.id, folderId: sale.folderId, folderName: sale.folderName, items: sale.items, units: sale.units, total: sale.total, subtotal: sale.subtotal, adjustmentType: sale.adjustmentType, adjustmentValue: sale.adjustmentValue, discountAmount: sale.discountAmount, createdAt: sale.createdAt });
+const PAYMENT_METHODS = ['', 'cash', 'transfer', 'debit', 'credit'];
+const publicSale = (sale) => ({ id: sale.id, paymentMethod: sale.paymentMethod, folderId: sale.folderId, folderName: sale.folderName, items: sale.items, units: sale.units, total: sale.total, subtotal: sale.subtotal, adjustmentType: sale.adjustmentType, adjustmentValue: sale.adjustmentValue, discountAmount: sale.discountAmount, createdAt: sale.createdAt });
 
 // Dueño de la carpeta: 404 si no existe o no es suya (no se distingue para no revelar carpetas ajenas)
 const ownedFolder = async (req, folderId) => {
@@ -63,7 +64,8 @@ router.post('/api/folders/:id/in-person-sales', authenticateToken, async (req, r
     const owned = await ownedFolder(req, req.params.id);
     if (!owned) return res.status(404).json({ success: false, message: 'Carpeta no encontrada' });
 
-    const { requestId, items, adjustment = { type: 'none', value: 0 } } = req.body || {};
+    const { requestId, items, adjustment = { type: 'none', value: 0 }, paymentMethod = '' } = req.body || {};
+    if (!PAYMENT_METHODS.includes(paymentMethod)) return badRequest(res, 'Medio de pago inválido');
     if (typeof requestId !== 'string' || !/^[A-Za-z0-9_-]{8,64}$/.test(requestId)) return badRequest(res, 'Solicitud inválida');
     if (!Array.isArray(items) || items.length === 0 || items.length > MAX_LINES) return badRequest(res, 'Elige entre 1 y ' + MAX_LINES + ' cartas');
     if (!adjustment || !['none', 'fixed', 'percent'].includes(adjustment.type) || typeof adjustment.value !== 'number' || !Number.isFinite(adjustment.value)) return badRequest(res, 'Ajuste inválido');
@@ -107,7 +109,7 @@ router.post('/api/folders/:id/in-person-sales', authenticateToken, async (req, r
       if (adjustment.type === 'fixed' && (adjustment.value < 0 || adjustment.value > MAX_PRICE)) throw Object.assign(new Error('Monto final inválido'), { status: 400, exposeMessage: true });
       if (adjustment.type === 'percent' && (discountAmount < 0 || discountAmount > subtotal)) throw Object.assign(new Error('Descuento inválido'), { status: 400, exposeMessage: true });
       const total = adjustment.type === 'fixed' ? adjustment.value : subtotal - discountAmount;
-      const created = await tx.inPersonSale.create({ data: { userId: owned.user.id, folderId: owned.folder.id, folderName: owned.folder.name, requestId, items: sold, units, subtotal, adjustmentType: adjustment.type, adjustmentValue: adjustment.value, discountAmount, total } });
+      const created = await tx.inPersonSale.create({ data: { userId: owned.user.id, folderId: owned.folder.id, folderName: owned.folder.name, requestId, items: sold, units, subtotal, adjustmentType: adjustment.type, adjustmentValue: adjustment.value, discountAmount, total, paymentMethod } });
       return { sale: created, duplicate: false };
     });
 

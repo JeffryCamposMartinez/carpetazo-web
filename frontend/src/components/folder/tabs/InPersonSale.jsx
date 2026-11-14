@@ -6,6 +6,7 @@ import { cardRatio } from '../../../utils/cardShape';
 import ConfirmModal from '../../ui/ConfirmModal';
 import SvgIcon from '../../ui/SvgIcon';
 import { SafeImage } from '../SafeImage';
+import { PAYMENT_NAMES } from '../../../utils/storeHours';
 
 const SURFACE = 'rounded-2xl bg-white ring-1 ring-slate-900/5 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.35)]';
 const PRESS = 'transition-[background-color,transform,opacity] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]';
@@ -20,6 +21,7 @@ export default function InPersonSale({ active = true, folderId, cards, onToolbar
   const [finalTotalInput, setFinalTotalInput] = useState(null);
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('cash');
   const [history, setHistory] = useState([]);
   const [footerOffset, setFooterOffset] = useState(0);
   const [keyboardInset, setKeyboardInset] = useState(0);
@@ -105,6 +107,7 @@ export default function InPersonSale({ active = true, folderId, cards, onToolbar
     try {
       const response = await api.createInPersonSale(folderId, {
         requestId: requestId.current,
+        paymentMethod,
         adjustment: finalTotalInput === null ? { type: 'none', value: 0 } : { type: 'fixed', value: finalTotal },
         items: lines.map((card) => ({ cardId: card.id, quantity: picked[card.id].quantity }))
       });
@@ -236,6 +239,12 @@ export default function InPersonSale({ active = true, folderId, cards, onToolbar
             {discount > 0 && <span className="block">Descuento: −{formatClp(discount)}</span>}
             {discount < 0 && <span className="block">Recargo: +{formatClp(-discount)}</span>}
             <span className="mt-1 block text-base font-extrabold text-[#ffdf70]">Total final: {formatClp(total)}</span>
+            <span className="mt-3 block text-xs font-bold text-white">Medio de pago</span>
+            <span className="mt-1 flex flex-wrap gap-1.5">
+              {Object.entries(PAYMENT_NAMES).map(([value, label]) => (
+                <button key={value} type="button" aria-pressed={paymentMethod === value} onClick={() => setPaymentMethod(value)} className={`h-9 rounded-full px-3 text-xs font-bold transition active:scale-[0.97] ${paymentMethod === value ? 'bg-[#facc15] text-[#12315f]' : 'bg-white/10 text-white hover:bg-white/20'}`}>{label}</button>
+              ))}
+            </span>
             <span className="mt-2 block text-xs">Se descontarán del stock de esta carpeta.</span>
           </>
         )}

@@ -140,6 +140,9 @@ export const api = {
   completeOrder: (id) => apiFetch('/orders/mine/' + encodeURIComponent(id) + '/status', { method: 'POST', body: JSON.stringify({ status: 'completed' }) }),
   getMyPickups: () => apiFetch('/orders/pickups/mine'),
   cancelPickup: (id) => apiFetch('/orders/pickups/' + encodeURIComponent(id) + '/cancel', { method: 'POST', body: '{}' }),
+  getStoreCash: (days = 7) => apiFetch('/stores/me/cash?days=' + days),
+  getStockAlerts: () => apiFetch('/stores/me/stock-alerts'),
+  saveStockSettings: (data) => apiFetch('/stores/me/stock-settings', { method: 'PUT', body: JSON.stringify(data) }),
   deleteProfile: () => apiFetch('/users/me', { method: 'DELETE' }),
 
   // Planes y suscripciones
