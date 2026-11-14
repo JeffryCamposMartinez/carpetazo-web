@@ -87,7 +87,7 @@ export default function FolderAddTab({
       addCardToQueue(target);
       // Sin imagen oficial (la ficha trae «Sin imagen»): se guarda la foto del escaneo por si la persona decide aportarla
       const noImage = isPokemonScan && !prior && card.hasImage === false && !card.isCustomImage; // la foto propia solo se ofrece para Pokémon
-      return { key: String(card.tcgProductId ?? card.productId), queueKey: getCardSelectionKey(target), name: card.name, image: target.imageUrl, language: !isPokemonScan ? '' : card.cardLanguage === 'Spanish' ? 'ES' : card.cardLanguage === 'Japanese' ? 'JP' : 'EN', noImage, shared: Boolean(prior), photo: noImage ? scan.photo || null : null };
+      return { key: String(card.tcgProductId ?? card.productId), queueKey: getCardSelectionKey(target), name: card.name, finish: target.finish || '', image: target.imageUrl, language: !isPokemonScan ? '' : card.cardLanguage === 'Spanish' ? 'ES' : card.cardLanguage === 'Japanese' ? 'JP' : 'EN', noImage, shared: Boolean(prior), photo: noImage ? scan.photo || null : null };
     } catch (_error) {
       return null;
     }

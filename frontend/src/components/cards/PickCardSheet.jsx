@@ -15,7 +15,7 @@ export default function PickCardSheet({ pick, onClose, onChoose, onLang, onManua
   const { cards: finishes } = useFinishSplit(prints, isPokemon ? 'pokemon' : 'none');
   const options = isPokemon ? finishes : pick?.options || [];
   const pickLangs = pick ? LANG_ORDER.filter((code) => options.some((card) => LANG_CODE[card.categoryId] === code)) : [];
-  const pickTabs = pickLangs.length > 1 ? [{ value: 'all', label: `Todos (${options.length})` }, ...pickLangs.map((code) => ({ value: code, label: `${LANG_NAME[code]} (${options.filter((card) => LANG_CODE[card.categoryId] === code).length})` }))] : [];
+  const pickTabs = pickLangs.length > 1 ? [...pickLangs.map((code) => ({ value: code, label: `${LANG_NAME[code]} (${options.filter((card) => LANG_CODE[card.categoryId] === code).length})` }))] : [];
   const listRef = useRef(null);
   useEffect(() => { listRef.current?.scrollTo({ top: 0 }); }, [pick?.lang]); // al cambiar de idioma la lista vuelve arriba
   const pickShown = pick ? (pick.lang === 'all' ? options : options.filter((card) => LANG_CODE[card.categoryId] === pick.lang)) : [];
