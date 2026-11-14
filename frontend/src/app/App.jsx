@@ -9,6 +9,7 @@ import Footer from '../components/layout/Footer';
 import ErrorBoundary from '../components/ui/ErrorBoundary';
 import AcceptTermsGate from '../components/auth/AcceptTermsGate';
 import LocationGate from '../components/auth/LocationGate';
+import PhoneGate from '../components/auth/PhoneGate';
 import AppSplash from '../components/layout/AppSplash';
 import { pageLoaders, preloadMainSections } from './routePreload';
 import { ToastProvider } from '../components/ui/ToastProvider';
@@ -116,6 +117,7 @@ function App() {
           </div>
           <AcceptTermsGate />
           <LocationGate />
+          <PhoneGate />
         </BrowserRouter>
       </ToastProvider>
     </AuthProvider>

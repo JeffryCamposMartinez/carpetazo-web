@@ -208,7 +208,7 @@ const ProfilePage = () => {
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
 
   const rutIsValid = validateRut(profileData.rut);
-  const phoneIsValid = validatePhone(profileData.phone);
+  const phoneIsValid = profileData.phone.trim() !== '' && profileData.phone.trim() !== PHONE_PREFIX && validatePhone(profileData.phone); // el teléfono es obligatorio
   const publicUrl = profileData.username ? siteUrl(`/${profileData.username}`) : '';
   const selectedTab = tabs.find(tab => tab.id === activeTab) || tabs[0];
   const availableComunas = useMemo(() => (
@@ -495,7 +495,7 @@ const ProfilePage = () => {
                     <div className="mt-4 space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
                     <Field label="RUT" hint={!rutIsValid ? 'El RUT ingresado no es válido.' : 'Dato privado, solo para operaciones internas.'}><TextInput value={profileData.rut} onChange={e => updateProfileField('rut', formatRut(e.target.value))} placeholder="12345678-9" autoComplete="off" autoCapitalize="characters" autoCorrect="off" spellCheck={false} className={!rutIsValid ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : ''} /></Field>
-                    <Field label="Teléfono" hint={!phoneIsValid ? 'Usa solo números, con + o espacios. Ej.: +56 9 1234 5678.' : undefined}><TextInput value={profileData.phone} onChange={e => updateProfileField('phone', e.target.value)} placeholder="+56 9 1234 5678" type="tel" inputMode="tel" autoComplete="tel" className={!phoneIsValid ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : ''} /></Field>
+                    <Field label="Teléfono" hint={!phoneIsValid ? 'El teléfono es obligatorio. Usa solo números, con + o espacios. Ej.: +56 9 1234 5678.' : undefined}><TextInput value={profileData.phone} onChange={e => updateProfileField('phone', e.target.value)} placeholder="+56 9 1234 5678" type="tel" inputMode="tel" autoComplete="tel" className={!phoneIsValid ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : ''} /></Field>
                   </div>
                   <div className="rounded-2xl bg-blue-50 p-4 text-sm font-semibold text-[#1a2b4b] ring-1 ring-blue-100">Estos datos no se muestran públicamente. Se guardan asociados solamente a tu usuario autenticado.</div>
                   <div className="flex justify-end"><ActionButton onClick={() => handleSaveProfile('personal')} disabled={Boolean(savingKey) || !rutIsValid || !phoneIsValid}>{savingKey === 'personal' ? 'Guardando...' : 'Guardar datos privados'}</ActionButton></div>
