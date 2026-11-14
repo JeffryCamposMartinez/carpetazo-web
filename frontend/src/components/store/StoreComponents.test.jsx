@@ -3,6 +3,9 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import StoreHoursEditor from './StoreHoursEditor';
 import StorePublicCard from './StorePublicCard';
 
+vi.mock('../../contexts/AuthContext', () => ({ useAuth: () => ({ currentUser: null }) }));
+vi.mock('react-router-dom', () => ({ useNavigate: () => () => {}, Link: ({ children }) => children }));
+
 describe('StoreHoursEditor', () => {
   it('copia el lunes a todos los días', () => {
     const onChange = vi.fn();

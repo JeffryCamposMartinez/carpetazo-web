@@ -253,7 +253,7 @@ export default function SellerProfile() {
       <ProfileTrustStrip completedSales={seller?.completedSales} folders={folders.length} lastSaleAt={seller?.lastSaleAt} memberSince={seller?.createdAt} profileLevel={profileLevel} publicTheme={publicTheme} recentSales={seller?.recentSales} responseTime={seller?.responseTime} reviewSummary={seller?.reviewSummary} totalCards={totalCards} />
 
       {/* Tienda física (plan Tienda): dirección, horario, cómo llegar y política */}
-      {seller?.store && <StorePublicCard store={seller.store} />}
+      {seller?.store && <StorePublicCard store={seller.store} username={seller.username} storeName={displayName} isOwner={isOwner} />}
       {seller?.planBadge?.key === 'store' && seller.username && <StoreEvents username={seller.username} />}
 
       {/* Módulos: el orden y el ancho salen de la distribución elegida */}

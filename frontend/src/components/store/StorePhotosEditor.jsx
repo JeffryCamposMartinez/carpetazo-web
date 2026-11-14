@@ -6,7 +6,7 @@ import { ButtonSpinner } from '../ui/LoadingState';
 const MAX_PHOTOS = 6;
 
 // Hasta 6 fotos del local: se suben como las demás imágenes (type 'store') y la ficha guarda sus URLs
-export default function StorePhotosEditor({ value = [], onChange, onError }) {
+export default function StorePhotosEditor({ value = [], onChange, onError, uploadType = 'store' }) {
   const input = useRef(null);
   const [uploading, setUploading] = useState(false);
 
@@ -20,7 +20,7 @@ export default function StorePhotosEditor({ value = [], onChange, onError }) {
       for (const file of files) {
         const form = new FormData();
         form.append('image', file);
-        form.append('type', 'store');
+        form.append('type', uploadType);
         const r = await api.uploadImage(form);
         if (r?.url) added.push(r.url);
       }
@@ -53,7 +53,7 @@ export default function StorePhotosEditor({ value = [], onChange, onError }) {
         )}
       </ul>
       <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={pick} />
-      <p className="mt-2 text-xs text-slate-500">{value.length}/{MAX_PHOTOS} fotos · fachada, vitrina o mesas de juego.</p>
+      <p className="mt-2 text-xs text-slate-500">{value.length}/{MAX_PHOTOS} fotos{uploadType === 'store' ? ' · fachada, vitrina o mesas de juego.' : ''}</p>
     </div>
   );
 }

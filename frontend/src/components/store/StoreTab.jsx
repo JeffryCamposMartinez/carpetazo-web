@@ -8,6 +8,7 @@ import { useToast } from '../ui/ToastProvider';
 import StoreHoursEditor from './StoreHoursEditor';
 import StorePhotosEditor from './StorePhotosEditor';
 import StoreEventsEditor from './StoreEventsEditor';
+import BuyRequestsInbox from './BuyRequestsInbox';
 import { AddressFields, PolicyField, TradeFields } from './StoreProfileForm';
 import { STORE_DAYS, isOpenAt, openLabel } from '../../utils/storeHours';
 
@@ -18,10 +19,11 @@ const SECTIONS = [
   { value: 'comercio', label: 'Compra y venta' },
   { value: 'fotos', label: 'Fotos' },
   { value: 'politica', label: 'Política' },
-  { value: 'eventos', label: 'Eventos' }
+  { value: 'eventos', label: 'Eventos' },
+  { value: 'compras', label: 'Compras' }
 ];
 // Secciones que guardan cada cambio por su cuenta (no usan el botón Guardar de la ficha)
-const OWN_SAVE = ['eventos'];
+const OWN_SAVE = ['eventos', 'compras'];
 const PERKS = ['Tu local en tu perfil: dirección, horario y «Abierto ahora»', 'Botones para llegar con Google Maps y Waze', 'Aparecer en «Tiendas» y «Abiertas ahora»', 'Medios de pago, juegos que compras y vendes, fotos y política de cambios'];
 
 const fromServer = (store) => {
@@ -78,11 +80,13 @@ export default function StoreTab() {
 
   if (state.loading) return <LoadingState label="Cargando tu tienda" />;
   if (state.error) return <p className="text-center text-slate-600">No se pudo cargar tu tienda. Recarga la página.</p>;
-  if (!state.allowed) return <Upsell saved={state.saved} />;
+  const mySales = <div className="mx-auto mb-5 max-w-3xl"><BuyRequestsInbox role="seller" showToast={showToast} hideWhenEmpty title="Colecciones que ofreciste a tiendas" /></div>;
+  if (!state.allowed) return <>{mySales}<Upsell saved={state.saved} /></>;
 
   const status = isOpenAt(form.hours, form.exceptions);
   return (
     <div className="mx-auto max-w-3xl pb-24">
+      {mySales}
       <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-blue-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <label className="flex items-center gap-3">
           <input type="checkbox" checked={form.enabled} onChange={(e) => change({ ...form, enabled: e.target.checked })} className="h-5 w-5 accent-[#1e40af]" />
@@ -121,6 +125,7 @@ export default function StoreTab() {
         {section === 'fotos' && <StorePhotosEditor value={form.photos} onChange={(photos) => change({ ...form, photos })} onError={(m) => showToast(m, 'error')} />}
         {section === 'politica' && <PolicyField value={form} onChange={change} />}
         {section === 'eventos' && <StoreEventsEditor showToast={showToast} />}
+        {section === 'compras' && <BuyRequestsInbox role="store" showToast={showToast} />}
       </div>
 
       {!OWN_SAVE.includes(section) && <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:static sm:mt-5 sm:border-0 sm:bg-transparent sm:p-0">

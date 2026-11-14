@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import SellCollectionModal from './SellCollectionModal';
 import LiquidTabs from '../ui/LiquidTabs';
 import SvgIcon from '../ui/SvgIcon';
 import { PAYMENT_NAMES, chileToday, formatException, formatHours, isOpenAt, mapLinks, openLabel } from '../../utils/storeHours';
@@ -27,9 +30,12 @@ function Directions({ store }) {
 }
 
 // Bloque «Tienda física» del perfil público. compact: solo estado, dirección y cómo llegar (catálogo)
-export default function StorePublicCard({ store, compact = false }) {
+export default function StorePublicCard({ store, compact = false, username, storeName, isOwner = false }) {
   const [tab, setTab] = useState('local');
   const [photo, setPhoto] = useState(null);
+  const [selling, setSelling] = useState(false);
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
   if (!store) return null;
   const today = todayKey();
   const address = (
@@ -81,6 +87,11 @@ export default function StorePublicCard({ store, compact = false }) {
                   {store.buyNote && <p className="text-slate-600">{store.buyNote}</p>}
                 </dl>
               )}
+              {store.buyGames?.length > 0 && username && !isOwner && (
+                <button type="button" onClick={() => (currentUser ? setSelling(true) : navigate('/bienvenida'))} className="inline-flex h-11 items-center gap-2 rounded-full bg-[#facc15] px-5 text-sm font-black text-[#12315f] shadow-sm transition hover:bg-yellow-300 active:scale-[0.97]">
+                  <SvgIcon name="sell" className="text-lg" />Vende tu colección
+                </button>
+              )}
             </div>
             <div>
               <h3 className="mb-1.5 text-sm font-black text-[#1a2b4b]">Horario</h3>
@@ -109,6 +120,7 @@ export default function StorePublicCard({ store, compact = false }) {
           </div>
         )}
       </div>
+      {selling && <SellCollectionModal username={username} storeName={storeName || username} games={store.buyGames} onClose={() => setSelling(false)} />}
       {photo && (
         <div role="dialog" aria-modal="true" aria-label="Foto del local" className="fixed inset-0 z-[80] grid place-items-center bg-black/85 p-4" onClick={() => setPhoto(null)}>
           <img src={photo} alt="Foto del local" className="max-h-[85vh] max-w-full rounded-2xl object-contain" />

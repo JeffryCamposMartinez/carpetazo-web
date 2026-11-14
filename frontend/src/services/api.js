@@ -130,6 +130,11 @@ export const api = {
   getStoreEvents: (username) => apiFetch('/stores/' + encodeURIComponent(username) + '/events'),
   signupStoreEvent: (id) => apiFetch('/stores/events/' + encodeURIComponent(id) + '/signup', { method: 'POST', body: '{}' }),
   leaveStoreEvent: (id) => apiFetch('/stores/events/' + encodeURIComponent(id) + '/signup', { method: 'DELETE' }),
+  sendBuyRequest: (username, data) => apiFetch('/stores/' + encodeURIComponent(username) + '/buy-requests', { method: 'POST', body: JSON.stringify(data) }),
+  getStoreBuyRequests: () => apiFetch('/stores/me/buy-requests'),
+  getMyBuyRequests: () => apiFetch('/buy-requests/mine'),
+  storeBuyAction: (id, action, data = {}) => apiFetch('/stores/me/buy-requests/' + encodeURIComponent(id) + '/' + action, { method: 'POST', body: JSON.stringify(data) }),
+  myBuyAction: (id, action) => apiFetch('/buy-requests/' + encodeURIComponent(id) + '/' + action, { method: 'POST', body: '{}' }),
   deleteProfile: () => apiFetch('/users/me', { method: 'DELETE' }),
 
   // Planes y suscripciones

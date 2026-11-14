@@ -55,6 +55,8 @@ model User {
   storeProfile             StoreProfile?
   storeEvents              StoreEvent[]
   storeEventSignups        StoreEventSignup[]
+  storeBuyRequests         StoreBuyRequest[]  @relation("StoreBuyStore")
+  sentBuyRequests          StoreBuyRequest[]  @relation("StoreBuySeller")
   subscriptions            Subscription[]
   planGrants               PlanGrant[]        @relation("PlanGrantUser")
   planGrantsIssued         PlanGrant[]        @relation("PlanGrantIssuer")
@@ -1002,4 +1004,25 @@ model StoreEventSignup {
 
   @@unique([eventId, userId])
   @@index([eventId, status, createdAt])
+}
+
+// «Vende tu colección»: una persona ofrece cartas a una tienda y la tienda responde con una oferta total.
+model StoreBuyRequest {
+  id        String   @id @default(uuid())
+  storeId   String
+  userId    String
+  game      String   @default("")
+  items     Json
+  photos    String[] @default([])
+  note      String   @default("")
+  offerClp  Int?
+  offerNote String   @default("")
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  store     User     @relation("StoreBuyStore", fields: [storeId], references: [id], onDelete: Cascade)
+  user      User     @relation("StoreBuySeller", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, status, createdAt])
+  @@index([userId, createdAt])
 }
