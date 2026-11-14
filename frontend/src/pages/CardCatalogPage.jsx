@@ -32,6 +32,7 @@ import usePageMeta from '../hooks/usePageMeta';
 const MYL = 'Mitos y Leyendas'; // tiene su propio catálogo (categoría 99), fuera de TCGplayer: sus cartas no tienen ficha
 const PAGE_SIZE = 60;
 const noop = () => {};
+const ALL_EDITIONS = { all: true, groupId: 'all', name: 'Todas las ediciones' }; // primera posición del deslizador de ediciones, la predeterminada
 const VIEW_KEY = 'catalog:view';
 const AUTO_MATCHES = 12; // al buscar en «todas las ediciones» se avanza de edición hasta juntar estas coincidencias
 const AUTO_EDITIONS = 60; // y como máximo esta cantidad de ediciones seguidas
@@ -195,7 +196,7 @@ export default function CardCatalogPage() {
 
   // Edición más nueva / más antigua (la lista viene de la más nueva a la más vieja)
   const position = group ? filteredSets.findIndex((item) => String(item.groupId) === String(group.groupId)) : -1;
-  const goTo = (target, way = 1) => { if (target) { setDir(way); update({ set: String(target.groupId) }); } };
+  const goTo = (target, way = 1) => { if (target) { setDir(way); update({ set: target.all ? '' : String(target.groupId) }); } };
   const share = async () => {
     const url = window.location.href;
     try {
@@ -357,16 +358,16 @@ export default function CardCatalogPage() {
         <div className="mx-auto w-full lg:max-w-4xl">
         {group && (
           <CatalogEditionBar
-            group={group}
+            group={allMode ? ALL_EDITIONS : group}
+            all={allMode}
             count={visible.length}
             total={(cards || []).length}
             loading={loading}
             dir={dir}
-            newer={position > 0 ? filteredSets[position - 1] : null}
-            older={position >= 0 && position < filteredSets.length - 1 ? filteredSets[position + 1] : null}
+            newer={allMode ? null : position > 0 ? filteredSets[position - 1] : ALL_EDITIONS}
+            older={allMode ? filteredSets[0] || null : position >= 0 && position < filteredSets.length - 1 ? filteredSets[position + 1] : null}
             onGo={goTo}
             onShare={share}
-            onAll={setParam ? () => { setDir(1); update({ set: '' }); } : null}
           />
         )}
         {group && cards && (sorted.length > 0 || extraPage.length > 0) && <CatalogToolbar sort={sort} onSort={(value) => update({ orden: value === 'num' ? '' : value })} view={view} onView={changeView} />}

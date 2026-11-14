@@ -10,27 +10,20 @@ const dateOf = (value) => {
 };
 
 // Edición que se está mirando: nombre, fecha, cantidad de cartas y botones para pasar a la más nueva / más antigua o compartir el enlace
-export default function CatalogEditionBar({ group, count, total, loading, dir, newer, older, onGo, onShare, onAll }) {
+export default function CatalogEditionBar({ group, count, total, loading, dir, newer, older, onGo, onShare, all = false }) {
   const meta = [group.abbreviation, dateOf(group.publishedOn)].filter(Boolean).join(' · ');
   return (
-    <>
     <div className="mt-4 flex items-center gap-2 rounded-2xl bg-[#12315f] p-2 text-white shadow-[0_14px_28px_-18px_rgba(18,49,95,0.9)]">
       <span aria-hidden="true" className="hidden h-11 w-11 shrink-0 sm:block" />
       <button type="button" onClick={() => onGo(newer, -1)} disabled={!newer} aria-label="Edición más nueva" className={NAV}><SvgIcon name="chevron_left" translate="no" aria-hidden="true" className="text-[24px]" /></button>
       <SlideSwap id={group.groupId} dir={dir} className="min-w-0 flex-1 text-center"><div aria-live="polite">
         <h2 className="truncate text-base font-extrabold leading-tight md:text-lg">{group.name}</h2>
         <p className="truncate text-xs font-bold text-blue-100/85">
-          {loading ? 'Cargando cartas…' : `${count === total ? total : `${count} de ${total}`} ${total === 1 ? 'carta' : 'cartas'}`}{meta && ` · ${meta}`}
+          {all ? 'Una edición tras otra' : loading ? 'Cargando cartas…' : `${count === total ? total : `${count} de ${total}`} ${total === 1 ? 'carta' : 'cartas'}`}{!all && meta && ` · ${meta}`}
         </p>
       </div></SlideSwap>
       <button type="button" onClick={onShare} aria-label="Compartir esta edición" className={`${NAV} hidden sm:flex`}><SvgIcon name="share" translate="no" aria-hidden="true" className="text-[20px]" /></button>
       <button type="button" onClick={() => onGo(older, 1)} disabled={!older} aria-label="Edición más antigua" className={NAV}><SvgIcon name="chevron_right" translate="no" aria-hidden="true" className="text-[24px]" /></button>
     </div>
-    {onAll && (
-      <button type="button" onClick={onAll} className="mx-auto mt-2 flex min-h-11 items-center gap-1.5 rounded-full border border-[#1e40af]/25 bg-white px-4 text-sm font-extrabold text-[#1e40af] transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-        <SvgIcon name="view_list" translate="no" aria-hidden="true" className="text-[18px]" />Todas las ediciones
-      </button>
-    )}
-    </>
   );
 }
