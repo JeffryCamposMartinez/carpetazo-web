@@ -124,6 +124,12 @@ export const api = {
   uploadImage: (formData) => apiFetch('/users/upload-image', { method: 'POST', body: formData, isMultipart: true }),
   getMyStore: () => apiFetch('/stores/me'),
   saveMyStore: (data) => apiFetch('/stores/me', { method: 'PUT', body: JSON.stringify(data) }),
+  getMyStoreEvents: () => apiFetch('/stores/me/events'),
+  createStoreEvent: (data) => apiFetch('/stores/me/events', { method: 'POST', body: JSON.stringify(data) }),
+  updateStoreEvent: (id, data) => apiFetch('/stores/me/events/' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(data) }),
+  getStoreEvents: (username) => apiFetch('/stores/' + encodeURIComponent(username) + '/events'),
+  signupStoreEvent: (id) => apiFetch('/stores/events/' + encodeURIComponent(id) + '/signup', { method: 'POST', body: '{}' }),
+  leaveStoreEvent: (id) => apiFetch('/stores/events/' + encodeURIComponent(id) + '/signup', { method: 'DELETE' }),
   deleteProfile: () => apiFetch('/users/me', { method: 'DELETE' }),
 
   // Planes y suscripciones

@@ -7,6 +7,7 @@ import SvgIcon from '../ui/SvgIcon';
 import { useToast } from '../ui/ToastProvider';
 import StoreHoursEditor from './StoreHoursEditor';
 import StorePhotosEditor from './StorePhotosEditor';
+import StoreEventsEditor from './StoreEventsEditor';
 import { AddressFields, PolicyField, TradeFields } from './StoreProfileForm';
 import { STORE_DAYS, isOpenAt, openLabel } from '../../utils/storeHours';
 
@@ -16,8 +17,11 @@ const SECTIONS = [
   { value: 'horario', label: 'Horario' },
   { value: 'comercio', label: 'Compra y venta' },
   { value: 'fotos', label: 'Fotos' },
-  { value: 'politica', label: 'Política' }
+  { value: 'politica', label: 'Política' },
+  { value: 'eventos', label: 'Eventos' }
 ];
+// Secciones que guardan cada cambio por su cuenta (no usan el botón Guardar de la ficha)
+const OWN_SAVE = ['eventos'];
 const PERKS = ['Tu local en tu perfil: dirección, horario y «Abierto ahora»', 'Botones para llegar con Google Maps y Waze', 'Aparecer en «Tiendas» y «Abiertas ahora»', 'Medios de pago, juegos que compras y vendes, fotos y política de cambios'];
 
 const fromServer = (store) => {
@@ -116,16 +120,17 @@ export default function StoreTab() {
         {section === 'comercio' && <TradeFields value={form} onChange={change} />}
         {section === 'fotos' && <StorePhotosEditor value={form.photos} onChange={(photos) => change({ ...form, photos })} onError={(m) => showToast(m, 'error')} />}
         {section === 'politica' && <PolicyField value={form} onChange={change} />}
+        {section === 'eventos' && <StoreEventsEditor showToast={showToast} />}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:static sm:mt-5 sm:border-0 sm:bg-transparent sm:p-0">
+      {!OWN_SAVE.includes(section) && <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:static sm:mt-5 sm:border-0 sm:bg-transparent sm:p-0">
         <div className="mx-auto flex max-w-3xl items-center justify-end gap-3">
           {dirty && <span className="text-sm font-semibold text-amber-700">Cambios sin guardar</span>}
           <button type="button" onClick={save} disabled={saving || !dirty} className="inline-flex h-12 items-center gap-2 rounded-full bg-[#1e40af] px-6 font-black text-white shadow transition hover:bg-[#12315f] active:scale-[0.97] disabled:opacity-50">
             {saving && <ButtonSpinner tone="dark" />}Guardar
           </button>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

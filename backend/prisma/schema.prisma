@@ -53,6 +53,8 @@ model User {
   feedback                 Feedback[]
   inPersonSales            InPersonSale[]
   storeProfile             StoreProfile?
+  storeEvents              StoreEvent[]
+  storeEventSignups        StoreEventSignup[]
   subscriptions            Subscription[]
   planGrants               PlanGrant[]        @relation("PlanGrantUser")
   planGrantsIssued         PlanGrant[]        @relation("PlanGrantIssuer")
@@ -962,4 +964,42 @@ model StoreProfile {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([enabled, comuna])
+}
+
+// Eventos y torneos de una tienda (plan Tienda). La inscripción se paga en el local.
+model StoreEvent {
+  id             String             @id @default(uuid())
+  storeId        String
+  title          String
+  game           String
+  startsAt       DateTime
+  endsAt         DateTime?
+  capacity       Int?
+  feeClp         Int                @default(0)
+  format         String             @default("")
+  description    String             @default("")
+  status         String             @default("scheduled")
+  resultNote     String             @default("")
+  reminderSentAt DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  store          User               @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  signups        StoreEventSignup[]
+
+  @@index([storeId, startsAt])
+  @@index([status, startsAt])
+}
+
+model StoreEventSignup {
+  id        String     @id @default(uuid())
+  eventId   String
+  userId    String
+  status    String     @default("registered")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  event     StoreEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId, status, createdAt])
 }

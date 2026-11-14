@@ -58,6 +58,7 @@ import { startEngineWatch } from './core/visionEngine.js';
 import { installErrorCapture, purgeOldErrors, requestContext } from './core/errorLog.js';
 import { startOnboardingNudges } from './core/onboarding.js';
 import { startWishlistAlerts } from './core/wishlistAlerts.js';
+import { startStoreJobs } from './core/storeNotices.js';
 import { startPriceHistory } from './core/priceHistory.js';
 import { startMarketPriceHistory } from './core/marketPriceHistory.js';
 import { startPriceWatch } from './moderation/priceWatch.js';
@@ -184,6 +185,7 @@ app.listen(port, () => {
     console.log(`🚀 Servidor backend corriendo en http://localhost:${port}`);
     startPreviewWarmer();
     startWishlistAlerts();
+    startStoreJobs();
     startOnboardingNudges();
     startPriceHistory();
     startMarketPriceHistory();

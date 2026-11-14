@@ -18,6 +18,7 @@ import ProfileHero from '../components/profile/ProfileHero';
 import usePageMeta from '../hooks/usePageMeta';
 import { useToast } from '../components/ui/ToastProvider';
 import StorePublicCard from '../components/store/StorePublicCard';
+import StoreEvents from '../components/store/StoreEvents';
 
 const normalizeFolder = (folder) => ({
   ...folder,
@@ -253,6 +254,7 @@ export default function SellerProfile() {
 
       {/* Tienda física (plan Tienda): dirección, horario, cómo llegar y política */}
       {seller?.store && <StorePublicCard store={seller.store} />}
+      {seller?.planBadge?.key === 'store' && seller.username && <StoreEvents username={seller.username} />}
 
       {/* Módulos: el orden y el ancho salen de la distribución elegida */}
       <ProfileModules {...profileModulesProps} />
