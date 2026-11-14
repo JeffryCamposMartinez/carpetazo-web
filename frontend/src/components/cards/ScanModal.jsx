@@ -179,7 +179,20 @@ export default function ScanModal({ onClose, batch, origin }) {
     const rank = (card) => { const code = LANG_CODE[card.categoryId]; return code === mine ? -1 : LANG_ORDER.indexOf(code); };
     const [first, ...rest] = all;
     const place = (card) => (card.productId === first.productId ? -1 : order.has(card.productId) ? order.get(card.productId) : 1e6 + (card.apiIndex ?? 1e5)); // la gemela de la reconocida va primera en cada idioma
-    return [first, ...rest.sort((x, y) => rank(x) - rank(y) || place(x) - place(y))].slice(0, 200);
+    const sorted = [first, ...rest.sort((x, y) => rank(x) - rank(y) || place(x) - place(y))];
+    // Impresiones de la misma edición y número (la normal y su versión «Cosmos Holo» de liga) van seguidas, la normal primero
+    const slot = (card) => (card.groupId != null && card.number ? `${LANG_CODE[card.categoryId]}|${card.groupId}|${card.number}` : null);
+    const groups = new Map();
+    sorted.forEach((card) => { const key = slot(card); if (key) groups.set(key, [...(groups.get(key) || []), card]); });
+    const emitted = new Set();
+    const together = sorted.flatMap((card) => {
+      const key = slot(card);
+      if (!key || groups.get(key).length < 2) return [card];
+      if (emitted.has(key)) return [];
+      emitted.add(key);
+      return [...groups.get(key)].sort((x, y) => Number(/\)\s*$/.test(x.name)) - Number(/\)\s*$/.test(y.name)));
+    });
+    return together.slice(0, 200);
   };
   const pickSeq = useRef(0); // invalida respuestas del catálogo si la hoja ya se cerró
   const closePick = () => { pickSeq.current += 1; setPick(null); };
