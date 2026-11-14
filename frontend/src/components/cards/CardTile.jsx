@@ -56,7 +56,7 @@ function Availability({ stock }) {
 }
 
 function CardImage({ card, className }) {
-  return <LoadableImage src={card.imageUrl} fallbackSrc={tcgplayerCardImage({ ...card, tcg: card.folder?.tcg })} alt={card.name} loading="lazy" decoding="async" rotateLandscape className={className} style={cardFill(card.folder?.tcg)} />;
+  return <LoadableImage src={card.imageUrl} fallbackSrc={card.fallbackImageUrl || tcgplayerCardImage({ ...card, tcg: card.folder?.tcg })} alt={card.name} loading="lazy" decoding="async" rotateLandscape className={className} style={cardFill(card.folder?.tcg)} />;
 }
 
 function WishButton({ card, wanted, onWish, className }) {
