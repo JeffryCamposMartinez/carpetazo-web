@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import useFinishSplit from '../../hooks/useFinishSplit';
 import FinishRibbon from '../ui/FinishRibbon';
@@ -8,16 +8,21 @@ import { LANG_CODE, LANG_NAME, LANG_ORDER, cardId, shownName } from './pickCard'
 
 // «Selecciona tu carta»: hoja inferior del escáner de cartas de una carpeta. La persona elige la impresión exacta (y su idioma) de la carta reconocida.
 // pick = { options, loading, lang }; onManual (opcional) muestra «Buscar manualmente».
-export default function PickCardSheet({ pick, onClose, onChoose, onLang, onManual }) {
+export default function PickCardSheet({ pick, onClose, onChoose, onLang, onManual, finishPref = '' }) {
+  const [zoom, setZoom] = useState(null); // carta ampliada para compararla antes de elegir
   // Pokémon: cada impresión se abre en una opción por acabado (Normal, Holofoil, Reverse Holofoil…) según los precios de TCGplayer; el resto de juegos no cambia
   const isPokemon = LANG_CODE[pick?.options?.[0]?.categoryId] !== undefined;
   const prints = useMemo(() => (isPokemon ? pick.options.map((card) => ({ ...card, id: cardId(card), tcgProductId: card.productId, catId: card.categoryId })) : []), [pick?.options, isPokemon]); // eslint-disable-line react-hooks/exhaustive-deps
   const { cards: finishes } = useFinishSplit(prints, isPokemon ? 'pokemon' : 'none');
-  const options = isPokemon ? finishes : pick?.options || [];
+  // Acabado preferido: de cada impresión se deja solo ese acabado si existe (si no, se muestran todos)
+  const wanted = (card) => finishPref && (card.finishLabel || 'Normal') === finishPref;
+  const preferred = new Set(finishes.filter(wanted).map(cardId));
+  const options = isPokemon ? (finishPref ? finishes.filter((card) => !preferred.has(cardId(card)) || wanted(card)) : finishes) : pick?.options || [];
   const pickLangs = pick ? LANG_ORDER.filter((code) => options.some((card) => LANG_CODE[card.categoryId] === code)) : [];
   const pickTabs = pickLangs.length > 1 ? [...pickLangs.map((code) => ({ value: code, label: `${LANG_NAME[code]} (${options.filter((card) => LANG_CODE[card.categoryId] === code).length})` }))] : [];
   const listRef = useRef(null);
   useEffect(() => { listRef.current?.scrollTo({ top: 0 }); }, [pick?.lang]); // al cambiar de idioma la lista vuelve arriba
+  useEffect(() => { if (!pick) setZoom(null); }, [pick]);
   const pickShown = pick ? (pick.lang === 'all' ? options : options.filter((card) => LANG_CODE[card.categoryId] === pick.lang)) : [];
   return (
       <MotionConfig reducedMotion="user">
@@ -62,7 +67,10 @@ export default function PickCardSheet({ pick, onClose, onChoose, onLang, onManua
                     const standIn = !card.image && card.categoryId === 100 ? pick.options.find((other) => other.categoryId === 3 && other.productId === card.productId)?.image : null;
                     const picture = card.image || standIn;
                     return (
-                      <li key={`${cardId(card)}~${card.finish || ''}`}>
+                      <li key={`${cardId(card)}~${card.finish || ''}`} className="relative">
+                        <button type="button" onClick={() => setZoom({ card, picture })} aria-label={`Ampliar ${shownName(card.name)}`} className="absolute left-3.5 top-3.5 z-[2] flex h-9 w-9 items-center justify-center rounded-full bg-[#12315f]/90 text-white ring-1 ring-white/25 transition-[background-color,transform] duration-150 hover:bg-[#12315f] active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
+                          <SvgIcon name="zoom_in" translate="no" aria-hidden="true" className="text-[20px]" />
+                        </button>
                         <button type="button" onClick={() => onChoose(card)} aria-label={`Agregar ${shownName(card.name)}, ${[card.set, card.number && `número ${card.number}`, code && LANG_NAME[code], card.finishLabel].filter(Boolean).join(', ')}`} className={`group flex h-full w-full flex-col rounded-2xl border bg-white p-2 text-left shadow-[0_6px_16px_-10px_rgba(18,49,95,0.5)] transition-[transform,box-shadow,border-color] duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] [@media(hover:hover)]:hover:border-[#1e40af] [@media(hover:hover)]:hover:shadow-[0_10px_22px_-10px_rgba(30,64,175,0.55)] ${best ? 'border-[#facc15] ring-2 ring-[#facc15]/70' : 'border-blue-100'}`}>
                           <span className="relative block aspect-[63/88] w-full overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200">
                             {picture ? <img src={picture} alt="" loading={index < 6 ? 'eager' : 'lazy'} className={`h-full w-full object-cover ${standIn ? 'opacity-80 saturate-75' : ''}`} /> : <span className="flex h-full w-full items-center justify-center px-2 text-center text-xs font-bold text-slate-400">Sin imagen</span>}
@@ -80,6 +88,19 @@ export default function PickCardSheet({ pick, onClose, onChoose, onLang, onManua
                   })}
                   {pick.loading && [0, 1].map((n) => <li key={`sk${n}`} aria-hidden="true" className="rounded-2xl border border-blue-100 bg-white p-2"><span className="block aspect-[63/88] w-full animate-pulse rounded-xl bg-blue-100/70 motion-reduce:animate-none" /><span className="mt-2 block h-4 w-3/4 animate-pulse rounded bg-blue-100/70 motion-reduce:animate-none" /><span className="mt-1.5 block h-3 w-1/2 animate-pulse rounded bg-blue-100/70 motion-reduce:animate-none" /></li>)}
                 </ul>
+                {zoom && (
+                  <div role="dialog" aria-label={`Ampliación de ${shownName(zoom.card.name)}`} className="absolute inset-0 z-[3] flex flex-col bg-[#0b1f3a]/97 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 text-white">
+                    <div className="flex min-h-0 flex-1 items-center justify-center">
+                      {zoom.picture ? <img src={zoom.picture} alt={shownName(zoom.card.name)} className="max-h-full max-w-full rounded-2xl object-contain shadow-2xl" /> : <span className="text-sm font-semibold text-blue-100">Sin imagen</span>}
+                    </div>
+                    <p className="mt-3 text-center text-[15px] font-black">{shownName(zoom.card.name)}</p>
+                    <p className="text-center text-[13px] font-semibold text-blue-100">{[zoom.card.set, zoom.card.number && `#${zoom.card.number}`, zoom.card.finishLabel].filter(Boolean).join(' · ')}</p>
+                    <div className="mt-3 flex gap-3">
+                      <button type="button" onClick={() => setZoom(null)} className="h-14 flex-1 rounded-full bg-white/10 text-[16px] font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-white/20 active:scale-[0.98]">Volver</button>
+                      <button type="button" onClick={() => onChoose(zoom.card)} className="h-14 flex-[1.4] rounded-full bg-gradient-to-b from-[#ffd84a] to-[#ffcb05] text-[16px] font-extrabold text-[#1a1400] transition-transform duration-150 active:scale-[0.98]">Elegir esta carta</button>
+                    </div>
+                  </div>
+                )}
                 <div className="shrink-0 border-t border-blue-100 bg-white px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 text-center">
                   <p className="text-[16px] font-black">¿No ves tu carta?</p>
                   {onManual && (

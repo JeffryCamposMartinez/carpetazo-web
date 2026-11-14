@@ -13,8 +13,38 @@ import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import useEscape from '../../hooks/useEscape';
 import useCardScanner, { SCAN_GAMES } from '../../hooks/useCardScanner';
 
+// Fila de opciones del panel de ajustes del escáner
+function ScanChoice({ label, value, onChange, options }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-16 shrink-0 text-left text-[12px] font-bold text-slate-300">{label}</span>
+      <LiquidTabs
+        ariaLabel={label}
+        layout="inline"
+        options={options}
+        value={value}
+        onChange={onChange}
+        className="min-w-0 flex-1 gap-0.5 overflow-x-auto rounded-2xl bg-black/25 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        buttonClassName="shrink-0 whitespace-nowrap rounded-xl px-3 py-2 text-[12px] font-semibold"
+        indicatorClassName="rounded-xl border-b-[3px] border-[#b88f00] bg-gradient-to-b from-[#ffd84a] to-[#ffcb05] shadow-[0_6px_18px_-6px_rgba(255,203,5,0.55)]"
+        activeTextClassName="text-[#1a1400]"
+        inactiveTextClassName="text-slate-300 hover:text-white"
+      />
+    </div>
+  );
+}
+
 const GUIDE_COLOR = { '': '#ffcb05', scan: '#00d2ff', ok: '#34d399', mid: '#fb923c' };
 const SAVED_GAME = 'carpetazo.scanGame';
+const SAVED_PREFS = 'carpetazo.scanPrefs';
+const FINISH_OPTIONS = ['', 'Normal', 'Holofoil', 'Reverse Holofoil'];
+const LANG_OPTIONS = ['auto', '3', '100', '85']; // ids de categoría del catálogo: inglés, español, japonés
+const readPrefs = () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SAVED_PREFS) || '{}');
+    return { lang: LANG_OPTIONS.includes(saved.lang) ? saved.lang : 'auto', finish: FINISH_OPTIONS.includes(saved.finish) ? saved.finish : '', quick: saved.quick === true };
+  } catch (_error) { return { lang: 'auto', finish: '', quick: false }; }
+};
 const readGame = () => { try { const saved = localStorage.getItem(SAVED_GAME); return SCAN_GAMES.some((game) => game.value === saved) ? saved : 'all'; } catch (_error) { return 'all'; } };
 
 // Juego de la sección Cartas (filtro `tcg`) según la categoría del catálogo
@@ -45,11 +75,15 @@ export default function ScanModal({ onClose, batch, origin }) {
   const areaRef = useRef(null);
   const guideRef = useRef(null);
   const [game, setGame] = useState(readGame);
+  const [prefs, setPrefs] = useState(readPrefs); // ajustes del escáner de carpeta: idioma, acabado y agregar sin preguntar
+  const [prefsOpen, setPrefsOpen] = useState(false);
+  const isPokemonBatch = Boolean(batch) && batch.games === '3,100,85';
   const [tray, setTray] = useState(() => (batch?.initial || []).map((item, index) => ({ ...item, trayId: index + 1, lang: item.language ? item.language.toLowerCase().replace('jp', 'ja') : undefined }))); // lote: cartas que ya entraron a la cola de la carpeta
   const [flash, setFlash] = useState(0); // sube con cada carta reconocida: dispara el pulso breve del marco
   const trayId = useRef(batch?.initial?.length || 0); // clave estable por miniatura: quitar una no reinicia la animación de las demás
   const offered = useRef(new Set()); // cartas cuya foto ya se aportó en esta sesión (una sola vez por carta)
-  const games = useMemo(() => (batch ? batch.games : SCAN_GAMES.find((item) => item.value === game)?.ids || ''), [batch, game]);
+  const games = useMemo(() => (batch ? (isPokemonBatch && prefs.lang !== 'auto' ? prefs.lang : batch.games) : SCAN_GAMES.find((item) => item.value === game)?.ids || ''), [batch, game, isPokemonBatch, prefs.lang]);
+  const setPref = (changes) => setPrefs((current) => { const next = { ...current, ...changes }; try { localStorage.setItem(SAVED_PREFS, JSON.stringify(next)); } catch (_error) { /* sin almacenamiento: no se recuerdan */ } return next; });
   // Como al abrir una app en el iPhone: el visor crece desde el botón de cámara y al cerrar vuelve a él
   const zoom = origin && origin.width ? origin : null;
   const rootRef = useRef(null);
@@ -203,6 +237,8 @@ export default function ScanModal({ onClose, batch, origin }) {
     if (pick) return;
     const options = pickOptions(result);
     if (options.length === 0) { if (!replace) await addPicked(result); return; }
+    // «Agregar sin preguntar»: solo con una carta clara, sin otras impresiones cercanas y, en Pokémon, con el idioma fijado (si no, podría ser la misma carta en otro idioma)
+    if (!replace && prefs.quick && !prefs.finish && options.length === 1 && (result.top?.[0]?.score ?? 0) >= 0.9 && (!isPokemonBatch || prefs.lang !== 'auto')) { await addPicked(result); return; }
     buzz();
     const seq = ++pickSeq.current;
     const first = options[0];
@@ -398,7 +434,29 @@ export default function ScanModal({ onClose, batch, origin }) {
           </div>
         )}
         {batch ? (
-          <p className="scan-glass rounded-full px-4 py-2 text-xs font-bold text-slate-200">{batch.label}</p>
+          <div className="flex w-full max-w-xl flex-col items-center gap-2">
+            <AnimatePresence>
+              {prefsOpen && (
+                <motion.div key="scan-prefs" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: 0.18 }} className="scan-glass w-full space-y-2.5 rounded-[22px] p-3">
+                  {isPokemonBatch && (
+                    <>
+                      <ScanChoice label="Idioma" value={prefs.lang} onChange={(value) => setPref({ lang: value })} options={[{ value: 'auto', label: 'Auto' }, { value: '3', label: 'Inglés' }, { value: '100', label: 'Español' }, { value: '85', label: 'Japonés' }]} />
+                      <ScanChoice label="Acabado" value={prefs.finish} onChange={(value) => setPref({ finish: value })} options={[{ value: '', label: 'Cualquiera' }, { value: 'Normal', label: 'Normal' }, { value: 'Holofoil', label: 'Holo' }, { value: 'Reverse Holofoil', label: 'Reverse' }]} />
+                    </>
+                  )}
+                  <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-xl px-1 text-left text-[13px] font-semibold text-slate-100">
+                    <span>Agregar sin preguntar<span className="block text-[11px] font-medium text-slate-300">Solo cuando la carta es clara{isPokemonBatch ? ' y el idioma está fijado' : ''}</span></span>
+                    <input type="checkbox" checked={prefs.quick} onChange={(event) => setPref({ quick: event.target.checked })} className="h-5 w-5 shrink-0 accent-[#ffcb05]" />
+                  </label>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <button type="button" onClick={() => setPrefsOpen((open) => !open)} aria-expanded={prefsOpen} className="scan-glass flex min-h-11 items-center gap-2 rounded-full px-4 py-2 text-xs font-bold text-slate-200 transition-[background-color,transform] duration-150 hover:bg-white/10 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
+              <SvgIcon name="tune" translate="no" aria-hidden="true" className="text-[16px] text-[#ffcb05]" />
+              {isPokemonBatch ? `Pokémon · ${prefs.lang === 'auto' ? 'idioma automático' : prefs.lang === '3' ? 'inglés' : prefs.lang === '100' ? 'español' : 'japonés'}${prefs.finish ? ` · ${prefs.finish}` : ''}` : batch.label}
+              {prefs.quick && <span className="rounded-full bg-[#ffcb05] px-1.5 text-[10px] font-extrabold text-[#1a1400]">directo</span>}
+            </button>
+          </div>
         ) : (
         <LiquidTabs
           ariaLabel="Juego a buscar"
@@ -415,7 +473,7 @@ export default function ScanModal({ onClose, batch, origin }) {
         )}
       </div>
 
-      <PickCardSheet pick={batch ? pick : null} onClose={closePick} onChoose={choosePick} onLang={(value) => setPick((current) => current && { ...current, lang: value })} onManual={batch?.onManualSearch ? searchManually : null} />
+      <PickCardSheet finishPref={isPokemonBatch ? prefs.finish : ''} pick={batch ? pick : null} onClose={closePick} onChoose={choosePick} onLang={(value) => setPick((current) => current && { ...current, lang: value })} onManual={batch?.onManualSearch ? searchManually : null} />
     </div>,
     document.body
   );
