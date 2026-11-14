@@ -337,7 +337,7 @@ export default function ScanModal({ onClose, batch, origin }) {
     buzz();
     contribute(added);
   };
-  const { message, guide, view, cameraError, retryCamera } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: true, batch: Boolean(batch), onCard: handleBatchCard });
+  const { message, guide, view, cameraError, retryCamera } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: true, batch: Boolean(batch), paused: Boolean(pick), onCard: handleBatchCard });
   const best = view.result?.top?.[0];
   const removeScanned = (index) => {
     const entry = tray[index];

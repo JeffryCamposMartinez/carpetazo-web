@@ -37,7 +37,7 @@ export const quality = (result) => {
 };
 
 // batch: el visor no termina al reconocer una carta; la entrega con `onCard(resultado)` y espera a que la cambien por otra
-export default function useCardScanner({ videoRef, areaRef, guideRef, games, enabled, batch = false, onCard }) {
+export default function useCardScanner({ videoRef, areaRef, guideRef, games, enabled, batch = false, paused = false, onCard }) {
   const [message, setMessage] = useState('Iniciando cámara…');
   const [guide, setGuide] = useState(''); // '' · scan · ok · mid
   const [view, setView] = useState({ result: null, votes: 0, reads: 0, done: false });
@@ -45,6 +45,8 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
   const [attempt, setAttempt] = useState(0); // sube al reintentar la cámara
   const gamesRef = useRef(games);
   gamesRef.current = games;
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
   const batchRef = useRef(batch);
   batchRef.current = batch;
   const onCardRef = useRef(onCard);
@@ -60,6 +62,11 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
   }, []);
 
   useEffect(() => { reset(); }, [games, reset]);
+  // Con «Selecciona tu carta» abierta no se escanea: se cancela lo que iba en camino y, al cerrarla, se parte de cero
+  useEffect(() => {
+    if (paused) run.current.abort?.abort();
+    else reset();
+  }, [paused, reset]);
 
   useEffect(() => {
     if (!enabled) return undefined;
@@ -203,7 +210,7 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
 
     const tick = () => {
       const video = videoRef.current;
-      if (document.hidden) { state.prev = null; state.still = 0; return; } // pestaña oculta: sin análisis (ahorra batería) y sin falsos movimientos al volver
+      if (document.hidden || pausedRef.current) { state.prev = null; state.still = 0; return; } // pestaña oculta: sin análisis (ahorra batería) y sin falsos movimientos al volver
       if (state.stopped || state.confirmed || !video?.videoWidth) return; // reconocida: el resultado queda fijo hasta tocar «Escanear otra carta»
       const a = analyze();
       if (!a) return;
