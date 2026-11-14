@@ -89,7 +89,7 @@ export default function CardTile({ card, index, view, wanted, onWish }) {
           <span className="relative block w-[5.5rem] shrink-0 overflow-hidden rounded-xl bg-slate-100" style={{ aspectRatio: cardRatio(card.folder?.tcg) }}>
             <CardImage card={card} className="absolute inset-1.5 h-[calc(100%-0.75rem)] w-[calc(100%-0.75rem)] rounded-md object-contain" />
             <span className="absolute bottom-1.5 left-1.5"><StateTag condition={card.condition} /></span>
-            <CardLanguage card={card} className="absolute left-1.5 top-1.5 !px-1 !text-[9px]" />
+            <CardLanguage card={card} className="absolute left-1.5 top-1.5 !px-1.5 !py-0.5 !text-[11px]" />
             <FinishRibbon finish={finishOfCard(card)} compact corner="br" />
           </span>
           <span className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">

@@ -13,7 +13,7 @@ export default function LanguageBadge({ language, catId, className = '' }) {
   const code = languageCodeOf(language, catId);
   if (!code) return null;
   return (
-    <span title={NAMES[code]} className={`rounded-md bg-[#12315f]/90 px-1.5 py-0.5 text-[10px] font-black tracking-wide text-white shadow ring-1 ring-white/20 ${className}`}>
+    <span title={NAMES[code]} className={`rounded-lg bg-[#12315f]/90 px-2.5 py-1 text-[14px] font-black leading-none tracking-wide text-white shadow-md ring-1 ring-white/25 ${className}`}>
       <span aria-hidden="true">{code}</span>
       <span className="sr-only">Idioma: {NAMES[code]}</span>
     </span>
