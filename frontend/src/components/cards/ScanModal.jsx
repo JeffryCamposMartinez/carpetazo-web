@@ -135,7 +135,7 @@ export default function ScanModal({ onClose, batch, origin }) {
   };
   useBodyScrollLock();
   const [pick, setPick] = useState(null); // lote: carta reconocida a la espera de que la persona elija su impresión exacta { result, options }
-  useEscape(true, () => (pick ? closePick() : requestClose()));
+  useEscape(true, () => (pick ? dismissPick() : requestClose()));
   useEffect(() => { closeRef.current?.focus({ preventScroll: true }); }, []);
   // El foco no sale del visor con Tab (el resto de la página queda detrás)
   const trapTab = (event) => {
@@ -230,6 +230,14 @@ export default function ScanModal({ onClose, batch, origin }) {
   };
   const pickSeq = useRef(0); // invalida respuestas del catálogo si la hoja ya se cerró
   const closePick = () => { pickSeq.current += 1; setPick(null); };
+  // Registro de lo que elige la persona frente a lo que propuso el motor (no cambia nada en pantalla; sirve para medir correcciones)
+  const logChoice = (kind, result, card, quick = false) => {
+    const top = result?.engineTop || result?.top?.[0];
+    const int = (value) => (Number.isInteger(value) ? value : undefined);
+    const rank = card ? versionsOf(result).findIndex((item) => cardId(item) === cardId(card)) : -1;
+    api.logScanChoice({ kind, games, topCategoryId: int(top?.categoryId), topProductId: int(top?.productId), topScore: typeof top?.score === 'number' ? top.score : undefined, chosenCategoryId: int(card?.categoryId), chosenProductId: int(card?.productId), chosenFinish: card?.finish || '', rank: rank >= 0 ? rank : undefined, quick });
+  };
+  const dismissPick = () => { if (pick) logChoice('dismiss', pick.result, null); closePick(); };
   // Al reconocer una carta se abre «Selecciona tu carta»; mientras esté abierta no entran otras
   const handleBatchCard = (result) => openPick(result, null);
   // replace = carta de la bandeja que se cambia al elegir (al tocarla); null = carta recién reconocida
@@ -238,7 +246,7 @@ export default function ScanModal({ onClose, batch, origin }) {
     const options = pickOptions(result);
     if (options.length === 0) { if (!replace) await addPicked(result); return; }
     // «Agregar sin preguntar»: solo con una carta clara, sin otras impresiones cercanas y, en Pokémon, con el idioma fijado (si no, podría ser la misma carta en otro idioma)
-    if (!replace && prefs.quick && !prefs.finish && options.length === 1 && (result.top?.[0]?.score ?? 0) >= 0.9 && (!isPokemonBatch || prefs.lang !== 'auto')) { await addPicked(result); return; }
+    if (!replace && prefs.quick && !prefs.finish && options.length === 1 && (result.top?.[0]?.score ?? 0) >= 0.9 && (!isPokemonBatch || prefs.lang !== 'auto')) { logChoice('confirm', result, result.top[0], true); await addPicked(result); return; }
     buzz();
     const seq = ++pickSeq.current;
     const first = options[0];
@@ -269,9 +277,11 @@ export default function ScanModal({ onClose, batch, origin }) {
   const choosePick = (card) => {
     const { result, options, replace } = pick;
     closePick();
+    const engineTop = result.engineTop || result.top?.[0];
+    logChoice(replace ? 'change' : engineTop && cardId(engineTop) === cardId(card) ? 'confirm' : 'correct', { ...result, engineTop }, card);
     if (replace) { changeVersion(replace, card); return; }
     const code = LANG_CODE[card.categoryId]; // elegir una impresión en otro idioma cambia el idioma de la carta agregada
-    addPicked({ ...result, ...(code ? { language: { ...(result.language || {}), code: code === 'JP' ? 'ja' : code.toLowerCase() } } : {}), top: [card, ...(result.top || []).filter((item) => cardId(item) !== cardId(card))], same: options.filter((item) => cardId(item) !== cardId(card)) });
+    addPicked({ ...result, engineTop, ...(code ? { language: { ...(result.language || {}), code: code === 'JP' ? 'ja' : code.toLowerCase() } } : {}), top: [card, ...(result.top || []).filter((item) => cardId(item) !== cardId(card))], same: options.filter((item) => cardId(item) !== cardId(card)) });
   };
   const searchManually = () => {
     const name = baseName(pick.result.top?.[0]?.name) || pick.result.top?.[0]?.name || '';
@@ -293,7 +303,9 @@ export default function ScanModal({ onClose, batch, origin }) {
   const { message, guide, view, cameraError, retryCamera } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: true, batch: Boolean(batch), onCard: handleBatchCard });
   const best = view.result?.top?.[0];
   const removeScanned = (index) => {
-    batch.onRemove?.(tray[index]);
+    const entry = tray[index];
+    if (entry?.result?.top?.[0] && entry.trayId > (batch.initial?.length || 0)) logChoice('reject', entry.result, entry.result.top[0]); // la quitó: lo que se agregó no era la carta
+    batch.onRemove?.(entry);
     setTray((previous) => previous.filter((_, position) => position !== index));
   };
 
@@ -473,7 +485,7 @@ export default function ScanModal({ onClose, batch, origin }) {
         )}
       </div>
 
-      <PickCardSheet finishPref={isPokemonBatch ? prefs.finish : ''} pick={batch ? pick : null} onClose={closePick} onChoose={choosePick} onLang={(value) => setPick((current) => current && { ...current, lang: value })} onManual={batch?.onManualSearch ? searchManually : null} />
+      <PickCardSheet finishPref={isPokemonBatch ? prefs.finish : ''} pick={batch ? pick : null} onClose={dismissPick} onChoose={choosePick} onLang={(value) => setPick((current) => current && { ...current, lang: value })} onManual={batch?.onManualSearch ? searchManually : null} />
     </div>,
     document.body
   );
