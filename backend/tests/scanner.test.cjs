@@ -43,6 +43,11 @@ const scan = (body, { who = 'seller', type = 'image/jpeg', headers = {} } = {}) 
     ok('registrar una corrección válida → 200', r.status === 200 && r.j?.success === true, JSON.stringify(r.j));
     r = await choice({ kind: 'dismiss', games: '3', topCategoryId: 3, topProductId: 4 });
     ok('cerrar sin elegir también se registra', r.status === 200, String(r.status));
+    const summary = (who) => fetch(B + '/admin/scanner/choices', { headers: who ? { Authorization: 'Bearer test-' + U[who] } : {} }).then(async (x) => ({ status: x.status, j: await x.json().catch(() => null) }));
+    ok('resumen de elecciones sin sesión → 401', (await summary(null)).status === 401);
+    ok('resumen de elecciones como usuario común → 403', (await summary('seller')).status === 403);
+    r = await summary('admin');
+    ok('resumen de elecciones como administrador: totales y últimas filas, sin identificar a nadie', r.status === 200 && r.j.total >= 2 && r.j.byKind.correct >= 1 && r.j.byKind.dismiss >= 1 && Array.isArray(r.j.recent) && r.j.recent.length >= 2 && !JSON.stringify(r.j).includes('actor'), JSON.stringify(r.j).slice(0, 200));
     r = await choice({ kind: 'inventado', chosenProductId: 5 });
     ok('un tipo desconocido → 400', r.status === 400, String(r.status));
     r = await choice({ kind: 'correct', chosenProductId: 'abc' });

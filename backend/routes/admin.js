@@ -2,6 +2,7 @@
 import express from 'express';
 import { authenticateToken, currentUserId, isCoAdmin, requireAdmin, requireStaff } from '../core/auth.js';
 import { prisma } from '../core/db.js';
+import { routeLimiter } from '../core/limits.js';
 import { getPlanState, lockPlanUser } from '../core/entitlements.js';
 import { PLANS, validPlanKey } from '../core/plans.js';
 import { cancelSubscriptionRecord } from '../core/mercadopago.js';
@@ -13,6 +14,33 @@ import { badRequest, isOptionalText, isShortText, isUuid, validUsername } from '
 import { FooterValidationError, getFooterSettings, saveFooterSettings } from '../core/footerSettings.js';
 
 const router = express.Router();
+
+// Resumen de lo que la gente elige en «Selecciona tu carta» del escáner (solo administradores): cuántas veces acierta el motor y las últimas elecciones.
+router.get('/api/admin/scanner/choices', authenticateToken, requireAdmin, routeLimiter(60 * 1000, 30), async (_req, res) => {
+  try {
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const [total, byKind, lastWeek, rows] = await Promise.all([
+      prisma.scanChoice.count(),
+      prisma.scanChoice.groupBy({ by: ['kind'], _count: { _all: true } }),
+      prisma.scanChoice.groupBy({ by: ['kind'], where: { createdAt: { gte: since } }, _count: { _all: true } }),
+      prisma.scanChoice.findMany({ orderBy: { createdAt: 'desc' }, take: 40, select: { id: true, kind: true, games: true, topCategoryId: true, topProductId: true, topScore: true, chosenCategoryId: true, chosenProductId: true, chosenFinish: true, rank: true, quick: true, createdAt: true } }),
+    ]);
+    const ids = [...new Set(rows.flatMap((row) => [row.topProductId, row.chosenProductId]).filter((id) => id !== null))];
+    const cards = ids.length ? await prisma.catalogCard.findMany({ where: { productId: { in: ids } }, select: { productId: true, name: true, number: true } }) : [];
+    const nameOf = new Map(cards.map((card) => [card.productId, `${card.name}${card.number ? ` · ${card.number}` : ''}`]));
+    const counts = (list) => Object.fromEntries(list.map((item) => [item.kind, item._count._all]));
+    res.json({
+      success: true,
+      total,
+      byKind: counts(byKind),
+      lastWeek: counts(lastWeek),
+      recent: rows.map((row) => ({ ...row, topName: nameOf.get(row.topProductId) || null, chosenName: nameOf.get(row.chosenProductId) || null })),
+    });
+  } catch (error) {
+    console.error('Error leyendo las elecciones del escáner:', error.message);
+    res.status(500).json({ success: false, message: 'No se pudo cargar el resumen.' });
+  }
+});
 
 router.get('/api/admin/me', authenticateToken, requireStaff(1), async (req, res) => {
   res.json({ success: true, isAdmin: req.staffLevel >= 3, isStaff: true, level: req.staffLevel, role: req.staffLevel >= 3 ? 'admin' : req.dbUser?.role, user: req.dbUser ? { username: req.dbUser.username } : null });
