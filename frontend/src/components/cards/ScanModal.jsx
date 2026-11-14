@@ -6,6 +6,9 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import LiquidTabs from '../ui/LiquidTabs';
 import SvgIcon from '../ui/SvgIcon';
+import { api } from '../../services/api';
+import PickCardSheet from './PickCardSheet';
+import { INDEX_GAME, LANG_CODE, LANG_ORDER, baseName, cardId, fromIndex, plain } from './pickCard';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import useEscape from '../../hooks/useEscape';
 import useCardScanner, { SCAN_GAMES } from '../../hooks/useCardScanner';
@@ -31,7 +34,6 @@ const calm = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').match
 const buzz = () => { try { navigator.vibrate?.(30); } catch (_error) { /* sin vibración */ } };
 const GAME_OF = { 3: 'Pokémon', 100: 'Pokémon', 85: 'Pokémon', 1: 'Magic', 2: 'Yu-Gi-Oh!', 63: 'Digimon', 68: 'One Piece', 71: 'Lorcana', 89: 'Riftbound', 99: 'Mitos y Leyendas' };
 // «Ultra Ball - 213/217 (Cosmos Holo)» → «Ultra Ball»: se busca por nombre para ver todas las ediciones de la carta
-const baseName = (name) => String(name || '').replace(/\s*\([^)]*\)\s*$/, '').replace(/\s+-\s+\S*\d\S*$/, '').trim();
 
 // Visor de la cámara: apuntas a una carta, se detecta sola y, en cuanto se reconoce, se abre la búsqueda de la sección Cartas (ordenada por parecido).
 // Aquí no se muestran resultados: solo la cámara, el marco, el estado y el juego a buscar.
@@ -100,7 +102,7 @@ export default function ScanModal({ onClose, batch, origin }) {
   useBodyScrollLock();
   const [menuId, setMenuId] = useState(null); // carta de la bandeja cuyo menú de versiones está abierto
   const [pick, setPick] = useState(null); // lote: carta reconocida a la espera de que la persona elija su impresión exacta { result, options }
-  useEscape(true, () => (pick ? setPick(null) : menuId ? setMenuId(null) : requestClose()));
+  useEscape(true, () => (pick ? closePick() : menuId ? setMenuId(null) : requestClose()));
   useEffect(() => { closeRef.current?.focus({ preventScroll: true }); }, []);
   // El foco no sale del visor con Tab (el resto de la página queda detrás)
   const trapTab = (event) => {
@@ -158,31 +160,56 @@ export default function ScanModal({ onClose, batch, origin }) {
     setTray((previous) => previous.map((entry) => (entry.trayId === item.trayId ? { ...entry, ...next, uploading, fly: false } : entry)));
     contribute(next);
   };
-  // Impresiones de la misma carta (mismo nombre base) para elegir, la reconocida primero
+  // Impresiones de la misma carta (mismo nombre base) que ya trae el motor, la reconocida primero
   const pickOptions = (result) => {
     const first = result.top?.[0];
     if (!first || first.productId == null) return [];
-    const key = (baseName(first.name) || first.name || '').toLowerCase();
-    const rest = versionsOf(result).filter((card) => `${card.categoryId}:${card.productId}` !== `${first.categoryId}:${first.productId}` && (baseName(card.name) || card.name || '').toLowerCase() === key);
-    return [first, ...rest].slice(0, 8);
+    const key = plain(baseName(first.name) || first.name);
+    const rest = versionsOf(result).filter((card) => cardId(card) !== cardId(first) && plain(baseName(card.name) || card.name) === key);
+    return [first, ...rest];
   };
+  // Lo que ya había primero; después lo del catálogo: primero el idioma de la carta reconocida y luego los demás
+  const mergeOptions = (base, extra) => {
+    const seen = new Set(base.map(cardId));
+    const mine = LANG_CODE[base[0]?.categoryId];
+    const more = extra.filter((card) => card.productId != null && !seen.has(cardId(card)) && seen.add(cardId(card)));
+    const rank = (card) => { const code = LANG_CODE[card.categoryId]; return code === mine ? -1 : LANG_ORDER.indexOf(code); };
+    return [...base, ...more.map((card, index) => ({ card, index })).sort((x, y) => rank(x.card) - rank(y.card) || x.index - y.index).map(({ card }) => card)].slice(0, 40);
+  };
+  const pickSeq = useRef(0); // invalida respuestas del catálogo si la hoja ya se cerró
+  const closePick = () => { pickSeq.current += 1; setPick(null); };
   // Al reconocer una carta se abre «Selecciona tu carta»; mientras esté abierta no entran otras
   const handleBatchCard = async (result) => {
     if (pick) return;
     const options = pickOptions(result);
     if (options.length === 0) { await addPicked(result); return; }
     buzz();
-    setPick({ result, options });
+    const seq = ++pickSeq.current;
+    const first = options[0];
+    const game = INDEX_GAME[first.categoryId];
+    setPick({ result, options, loading: Boolean(game), lang: 'all' });
+    if (!game) return;
+    const name = baseName(first.name) || first.name;
+    const extra = [];
+    try {
+      for (let page = 1; page <= 3; page += 1) {
+        const response = await api.searchTcgIndex(name, game, page, '', LANG_CODE[first.categoryId] !== undefined);
+        if (seq !== pickSeq.current) return;
+        extra.push(...(response?.cards || []).map(fromIndex).filter((card) => plain(baseName(card.name) || card.name) === plain(name)));
+        if (!response?.cards?.length || page >= (response.pages || 1)) break;
+      }
+    } catch (_error) { /* se quedan las impresiones del motor */ }
+    if (seq === pickSeq.current) setPick((current) => current && { ...current, options: mergeOptions(current.options, extra), loading: false });
   };
   const choosePick = (card) => {
-    const { result } = pick;
-    const id = (item) => `${item.categoryId}:${item.productId}`;
-    setPick(null);
-    addPicked({ ...result, top: [card, ...(result.top || []).filter((item) => id(item) !== id(card))] });
+    const { result, options } = pick;
+    closePick();
+    const code = LANG_CODE[card.categoryId]; // elegir una impresión en otro idioma cambia el idioma de la carta agregada
+    addPicked({ ...result, ...(code ? { language: { ...(result.language || {}), code: code === 'JP' ? 'ja' : code.toLowerCase() } } : {}), top: [card, ...(result.top || []).filter((item) => cardId(item) !== cardId(card))], same: options.filter((item) => cardId(item) !== cardId(card)) });
   };
   const searchManually = () => {
     const name = baseName(pick.result.top?.[0]?.name) || pick.result.top?.[0]?.name || '';
-    setPick(null);
+    closePick();
     requestClose(() => { onClose(); batch.onManualSearch?.(name); });
   };
   const addPicked = async (result) => {
@@ -382,46 +409,7 @@ export default function ScanModal({ onClose, batch, origin }) {
         )}
       </div>
 
-      {/* Lote: «Selecciona tu carta». Al reconocer una carta, la persona elige su impresión exacta antes de agregarla */}
-      <MotionConfig reducedMotion="user">
-        <AnimatePresence>
-          {batch && pick && (
-            <>
-              <motion.button key="pick-backdrop" type="button" aria-label="Cerrar sin agregar" onClick={() => setPick(null)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="absolute inset-0 z-[40] cursor-default bg-black/55 focus:outline-none" />
-              <motion.div key="pick-sheet" role="dialog" aria-modal="true" aria-labelledby="pick-title" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', duration: 0.42, bounce: 0.08 }} className="absolute inset-x-0 bottom-0 z-[41] mx-auto flex max-h-[90svh] w-full max-w-xl flex-col rounded-t-[32px] bg-white text-[#12315f] shadow-[0_-20px_60px_-20px_rgba(0,0,0,0.6)]">
-                <span aria-hidden="true" className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-slate-300" />
-                <div className="flex shrink-0 items-center justify-between gap-3 px-5 pb-3 pt-3">
-                  <h2 id="pick-title" className="text-[22px] font-black leading-tight">Selecciona tu carta</h2>
-                  <button type="button" onClick={() => setPick(null)} aria-label="Cerrar sin agregar" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 text-[#12315f] transition-[background-color,transform] duration-150 hover:bg-slate-50 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-                    <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[22px]" />
-                  </button>
-                </div>
-                <ul className="grid min-h-0 flex-1 grid-cols-2 content-start gap-x-3 gap-y-5 overflow-y-auto px-5 pb-5 pt-1">
-                  {pick.options.map((card, index) => (
-                    <li key={`${card.categoryId}:${card.productId}`}>
-                      <button type="button" onClick={() => choosePick(card)} aria-label={`Agregar ${card.name}, ${[card.set || card.group, card.number && `número ${card.number}`].filter(Boolean).join(', ')}`} className="group block w-full rounded-2xl text-left transition-transform duration-150 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] focus-visible:ring-offset-2">
-                        <span className="relative block aspect-[63/88] w-full overflow-hidden rounded-xl bg-slate-100 shadow-[0_8px_20px_-10px_rgba(18,49,95,0.55)] ring-1 ring-slate-200 transition-shadow duration-150 [@media(hover:hover)]:group-hover:shadow-[0_12px_26px_-10px_rgba(30,64,175,0.6)]">
-                          {card.image ? <img src={card.image} alt="" loading={index < 4 ? 'eager' : 'lazy'} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-sm font-bold text-slate-400">Sin imagen</span>}
-                          {index === 0 && <span className="absolute left-2 top-2 rounded-full bg-[#facc15] px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#1a1400] shadow">Más parecida</span>}
-                        </span>
-                        <span className="mt-2 block text-[17px] font-black leading-snug">{card.name}</span>
-                        <span className="mt-0.5 block text-[15px] font-bold leading-snug">{card.set || card.group || 'Edición'}{card.number ? <span className="font-semibold text-slate-500">{`, #${card.number}`}</span> : null}</span>
-                        {(card.rarity || card.lang) && <span className="mt-0.5 block text-xs font-semibold text-slate-500">{[card.rarity, card.lang].filter(Boolean).join(' · ')}</span>}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                <div className="shrink-0 border-t border-slate-200 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 text-center">
-                  <p className="text-[17px] font-black">¿No ves tu carta?</p>
-                  {batch.onManualSearch && (
-                    <button type="button" onClick={searchManually} className="mt-3 h-14 w-full rounded-full bg-[#1e40af] text-[17px] font-extrabold text-white shadow-[0_10px_24px_-10px_rgba(30,64,175,0.8)] transition-[background-color,transform] duration-150 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15] focus-visible:ring-offset-2 [@media(hover:hover)]:hover:bg-[#1a3a9c]">Buscar manualmente</button>
-                  )}
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-      </MotionConfig>
+      <PickCardSheet pick={batch ? pick : null} onClose={closePick} onChoose={choosePick} onLang={(value) => setPick((current) => current && { ...current, lang: value })} onManual={batch?.onManualSearch ? searchManually : null} />
     </div>,
     document.body
   );
