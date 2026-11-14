@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import useFinishSplit from '../../hooks/useFinishSplit';
 import FinishRibbon from '../ui/FinishRibbon';
@@ -16,6 +16,8 @@ export default function PickCardSheet({ pick, onClose, onChoose, onLang, onManua
   const options = isPokemon ? finishes : pick?.options || [];
   const pickLangs = pick ? LANG_ORDER.filter((code) => options.some((card) => LANG_CODE[card.categoryId] === code)) : [];
   const pickTabs = pickLangs.length > 1 ? [{ value: 'all', label: `Todos (${options.length})` }, ...pickLangs.map((code) => ({ value: code, label: `${LANG_NAME[code]} (${options.filter((card) => LANG_CODE[card.categoryId] === code).length})` }))] : [];
+  const listRef = useRef(null);
+  useEffect(() => { listRef.current?.scrollTo({ top: 0 }); }, [pick?.lang]); // al cambiar de idioma la lista vuelve arriba
   const pickShown = pick ? (pick.lang === 'all' ? options : options.filter((card) => LANG_CODE[card.categoryId] === pick.lang)) : [];
   return (
       <MotionConfig reducedMotion="user">
@@ -52,7 +54,7 @@ export default function PickCardSheet({ pick, onClose, onChoose, onLang, onManua
                     />
                   </div>
                 )}
-                <ul className="grid min-h-0 flex-1 grid-cols-2 content-start gap-3 overflow-y-auto px-4 pb-4 pt-3 sm:grid-cols-3">
+                <ul ref={listRef} className="grid min-h-0 flex-1 grid-cols-2 content-start gap-3 overflow-y-auto px-4 pb-4 pt-3 sm:grid-cols-3">
                   {pickShown.map((card, index) => {
                     const best = cardId(card) === cardId(pick.options[0]) && !card.finish;
                     const code = LANG_CODE[card.categoryId];

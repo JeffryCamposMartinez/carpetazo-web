@@ -416,7 +416,7 @@ export default function FolderAddTab({
             )}
             {scanOpen && (
               <Suspense fallback={null}>
-                <ScanModal origin={scanOrigin} batch={{ games: scanGame.ids, label: scanGame.label, onCard: handleScannedCard, onManualSearch: handleManualSearch, onChangeVersion: handleChangeVersion, onShare: handleSharePhotos, onRemove: handleRemoveScanned }} onClose={() => setScanOpen(false)} />
+                <ScanModal origin={scanOrigin} batch={{ games: scanGame.ids, label: scanGame.label, initial: selectedQueue.flatMap((entry) => Array.from({ length: entry.quantity || 1 }, () => ({ key: String(entry.card.tcgProductId ?? entry.card.productId), queueKey: getCardSelectionKey(entry.card), name: entry.card.name, image: entry.card.imageUrl, language: !isPokemonScan ? '' : entry.card.cardLanguage === 'Spanish' ? 'ES' : entry.card.cardLanguage === 'Japanese' ? 'JP' : 'EN', noImage: false, shared: false, photo: null }))), onCard: handleScannedCard, onManualSearch: handleManualSearch, onChangeVersion: handleChangeVersion, onShare: handleSharePhotos, onRemove: handleRemoveScanned }} onClose={() => setScanOpen(false)} />
               </Suspense>
             )}
             <button 
