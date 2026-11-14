@@ -1,15 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, MotionConfig, motion } from 'motion/react';
+import { AnimatePresence, MotionConfig, motion, useDragControls } from 'motion/react';
 import useFinishSplit from '../../hooks/useFinishSplit';
 import FinishRibbon from '../ui/FinishRibbon';
 import LiquidTabs from '../ui/LiquidTabs';
 import SvgIcon from '../ui/SvgIcon';
 import { LANG_CODE, LANG_NAME, LANG_ORDER, cardId, shownName } from './pickCard';
 
+// Movimiento: resortes que se asientan sin rebotar (como las hojas del iPhone) y salidas más rápidas que las entradas.
+// Solo se animan transform y opacidad; con «reducir movimiento» activado en el sistema todo se vuelve fundido (MotionConfig).
+const SHEET_SPRING = { type: 'spring', stiffness: 420, damping: 40, mass: 0.9 };
+const TILE_SPRING = { type: 'spring', stiffness: 520, damping: 38 };
+const EASE_OUT = [0.23, 1, 0.32, 1];
+
 // «Selecciona tu carta»: hoja inferior del escáner de cartas de una carpeta. La persona elige la impresión exacta (y su idioma) de la carta reconocida.
 // pick = { options, loading, lang }; onManual (opcional) muestra «Buscar manualmente».
 export default function PickCardSheet({ pick, onClose, onChoose, onLang, onManual, finishPref = '' }) {
   const [zoom, setZoom] = useState(null); // carta ampliada para compararla antes de elegir
+  const dragControls = useDragControls(); // la hoja se arrastra hacia abajo desde su cabecera para cerrarla
   // Pokémon: cada impresión se abre en una opción por acabado (Normal, Holofoil, Reverse Holofoil…) según los precios de TCGplayer; el resto de juegos no cambia
   const isPokemon = LANG_CODE[pick?.options?.[0]?.categoryId] !== undefined;
   const prints = useMemo(() => (isPokemon ? pick.options.map((card) => ({ ...card, id: cardId(card), tcgProductId: card.productId, catId: card.categoryId })) : []), [pick?.options, isPokemon]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -29,14 +36,14 @@ export default function PickCardSheet({ pick, onClose, onChoose, onLang, onManua
         <AnimatePresence>
           {pick && (
             <>
-              <motion.button key="pick-backdrop" type="button" aria-label="Cerrar sin agregar" onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="absolute inset-0 z-[40] cursor-default bg-[#08122a]/70 backdrop-blur-[2px] focus:outline-none" />
-              <motion.div key="pick-sheet" role="dialog" aria-modal="true" aria-labelledby="pick-title" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', duration: 0.42, bounce: 0.08 }} className="absolute inset-x-0 bottom-0 z-[41] mx-auto flex max-h-[92svh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[32px] bg-[#f3f7ff] text-[#12315f] shadow-[0_-24px_60px_-20px_rgba(0,0,0,0.65)]">
-                <div className="shrink-0 border-b-4 border-[#facc15] bg-[#12315f] px-5 pb-4 pt-2.5 text-white">
+              <motion.button key="pick-backdrop" type="button" aria-label="Cerrar sin agregar" onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.22, ease: EASE_OUT }} className="absolute inset-0 z-[40] cursor-default bg-[#08122a]/70 backdrop-blur-[2px] focus:outline-none" />
+              <motion.div key="pick-sheet" role="dialog" aria-modal="true" aria-labelledby="pick-title" initial={{ y: '100%' }} animate={{ y: 0, transition: SHEET_SPRING }} exit={{ y: '100%', transition: { duration: 0.24, ease: EASE_OUT } }} drag="y" dragControls={dragControls} dragListener={false} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0.03, bottom: 0.75 }} dragTransition={{ bounceStiffness: 500, bounceDamping: 40 }} onDragEnd={(_event, info) => { if (info.offset.y > 110 || info.velocity.y > 520) onClose(); }} className="absolute inset-x-0 bottom-0 z-[41] mx-auto flex max-h-[92svh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[32px] bg-[#f3f7ff] text-[#12315f] shadow-[0_-24px_60px_-20px_rgba(0,0,0,0.65)]">
+                <div onPointerDown={(event) => dragControls.start(event)} style={{ touchAction: 'none' }} className="shrink-0 cursor-grab border-b-4 border-[#facc15] bg-[#12315f] px-5 pb-4 pt-2.5 text-white active:cursor-grabbing">
                   <span aria-hidden="true" className="mx-auto mb-3 block h-1 w-10 rounded-full bg-white/30" />
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <h2 id="pick-title" className="flex items-center gap-2 text-[22px] font-black leading-tight"><SvgIcon name="photo_camera" translate="no" aria-hidden="true" className="shrink-0 text-[24px] text-[#facc15]" />Selecciona tu carta</h2>
-                      <p className="mt-0.5 text-sm font-medium text-blue-100">{pick.loading ? 'Buscando todas las impresiones…' : `Toca la impresión exacta · ${pickShown.length} ${pickShown.length === 1 ? 'opción' : 'opciones'}`}</p>
+                      <motion.p key={pick.loading ? 'cargando' : 'listo'} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: EASE_OUT }} className="mt-0.5 text-sm font-medium text-blue-100">{pick.loading ? 'Buscando todas las impresiones…' : `Toca la impresión exacta · ${pickShown.length} ${pickShown.length === 1 ? 'opción' : 'opciones'}`}</motion.p>
                     </div>
                     <button type="button" onClick={onClose} aria-label="Cerrar sin agregar" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition-[background-color,transform] duration-150 hover:bg-white/20 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
                       <SvgIcon name="close" translate="no" aria-hidden="true" className="text-[22px]" />
@@ -67,7 +74,7 @@ export default function PickCardSheet({ pick, onClose, onChoose, onLang, onManua
                     const standIn = !card.image && card.categoryId === 100 ? pick.options.find((other) => other.categoryId === 3 && other.productId === card.productId)?.image : null;
                     const picture = card.image || standIn;
                     return (
-                      <li key={`${cardId(card)}~${card.finish || ''}`} className="relative">
+                      <motion.li key={`${cardId(card)}~${card.finish || ''}`} layout="position" initial={{ opacity: 0, y: 14, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ ...TILE_SPRING, delay: Math.min(index, 8) * 0.03 }} className="relative">
                         <button type="button" onClick={() => setZoom({ card, picture })} aria-label={`Ampliar ${shownName(card.name)}`} className="absolute left-3.5 top-3.5 z-[2] flex h-9 w-9 items-center justify-center rounded-full bg-[#12315f]/90 text-white ring-1 ring-white/25 transition-[background-color,transform] duration-150 hover:bg-[#12315f] active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#facc15]">
                           <SvgIcon name="zoom_in" translate="no" aria-hidden="true" className="text-[20px]" />
                         </button>
@@ -83,15 +90,16 @@ export default function PickCardSheet({ pick, onClose, onChoose, onLang, onManua
                           <span className="mt-0.5 block text-[13px] font-bold leading-snug text-[#1e40af]">{card.set || 'Edición'}</span>
                           <span className="mt-0.5 block text-xs font-semibold text-slate-500">{[card.number && `#${card.number}`, card.rarity, card.finishLabel].filter(Boolean).join(' · ')}</span>
                         </button>
-                      </li>
+                      </motion.li>
                     );
                   })}
                   {pick.loading && [0, 1].map((n) => <li key={`sk${n}`} aria-hidden="true" className="rounded-2xl border border-blue-100 bg-white p-2"><span className="block aspect-[63/88] w-full animate-pulse rounded-xl bg-blue-100/70 motion-reduce:animate-none" /><span className="mt-2 block h-4 w-3/4 animate-pulse rounded bg-blue-100/70 motion-reduce:animate-none" /><span className="mt-1.5 block h-3 w-1/2 animate-pulse rounded bg-blue-100/70 motion-reduce:animate-none" /></li>)}
                 </ul>
+                <AnimatePresence>
                 {zoom && (
-                  <div role="dialog" aria-label={`Ampliación de ${shownName(zoom.card.name)}`} className="absolute inset-0 z-[3] flex flex-col bg-[#0b1f3a]/97 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 text-white">
+                  <motion.div key="zoom" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: EASE_OUT }} role="dialog" aria-label={`Ampliación de ${shownName(zoom.card.name)}`} className="absolute inset-0 z-[3] flex flex-col bg-[#0b1f3a]/97 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 text-white">
                     <div className="flex min-h-0 flex-1 items-center justify-center">
-                      {zoom.picture ? <img src={zoom.picture} alt={shownName(zoom.card.name)} className="max-h-full max-w-full rounded-2xl object-contain shadow-2xl" /> : <span className="text-sm font-semibold text-blue-100">Sin imagen</span>}
+                      {zoom.picture ? <motion.img initial={{ opacity: 0, scale: 0.94, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={SHEET_SPRING} src={zoom.picture} alt={shownName(zoom.card.name)} className="max-h-full max-w-full rounded-2xl object-contain shadow-2xl" /> : <span className="text-sm font-semibold text-blue-100">Sin imagen</span>}
                     </div>
                     <p className="mt-3 text-center text-[15px] font-black">{shownName(zoom.card.name)}</p>
                     <p className="text-center text-[13px] font-semibold text-blue-100">{[zoom.card.set, zoom.card.number && `#${zoom.card.number}`, zoom.card.finishLabel].filter(Boolean).join(' · ')}</p>
@@ -99,8 +107,9 @@ export default function PickCardSheet({ pick, onClose, onChoose, onLang, onManua
                       <button type="button" onClick={() => setZoom(null)} className="h-14 flex-1 rounded-full bg-white/10 text-[16px] font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-white/20 active:scale-[0.98]">Volver</button>
                       <button type="button" onClick={() => onChoose(zoom.card)} className="h-14 flex-[1.4] rounded-full bg-gradient-to-b from-[#ffd84a] to-[#ffcb05] text-[16px] font-extrabold text-[#1a1400] transition-transform duration-150 active:scale-[0.98]">Elegir esta carta</button>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
+                </AnimatePresence>
                 <div className="shrink-0 border-t border-blue-100 bg-white px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 text-center">
                   <p className="text-[16px] font-black">¿No ves tu carta?</p>
                   {onManual && (

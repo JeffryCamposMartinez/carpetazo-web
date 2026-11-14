@@ -528,7 +528,7 @@ export default function ScanModal({ onClose, batch, origin }) {
             <ul className="relative flex min-w-0 flex-1 gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Cartas escaneadas">
               <AnimatePresence initial={false} mode="popLayout">
               {tray.map((item, index) => (
-                <motion.li key={item.trayId} layout data-tray-id={item.trayId} initial={item.fly ? { opacity: 0 } : { opacity: 0, scale: 0.8, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.7 }} transition={{ type: 'spring', duration: 0.42, bounce: 0.2, delay: item.fly ? 0.56 : 0 }} className="relative h-[68px] w-12 shrink-0 rounded-lg bg-[#02070f] shadow-[0_6px_14px_-6px_rgba(0,0,0,.7)] ring-1 ring-white/25">
+                <motion.li key={item.trayId} layout data-tray-id={item.trayId} initial={item.fly ? { opacity: 0 } : { opacity: 0, scale: 0.8, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.7 }} transition={{ type: 'spring', duration: 0.42, bounce: 0.1, delay: item.fly ? 0.56 : 0 }} className="relative h-[68px] w-12 shrink-0 rounded-lg bg-[#02070f] shadow-[0_6px_14px_-6px_rgba(0,0,0,.7)] ring-1 ring-white/25">
                   <button type="button" onClick={() => openPick(item.result, item)} disabled={!item.result} aria-haspopup="dialog" aria-label={`Cambiar la versión de ${item.name}`} className="absolute inset-0 overflow-hidden rounded-lg transition-transform duration-150 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05] disabled:active:scale-100">
                   {item.image ? <img src={item.image} alt={item.name} title={item.name} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-[10px]">?</span>}
                   {item.language && <span className="absolute inset-x-0 bottom-0 bg-black/70 text-center text-[8px] font-bold uppercase text-white">{item.language}</span>}
@@ -549,7 +549,7 @@ export default function ScanModal({ onClose, batch, origin }) {
         <div className="flex w-full max-w-xl flex-col items-center gap-2">
             <AnimatePresence>
               {prefsOpen && (
-                <motion.div key="scan-prefs" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: 0.18 }} className="scan-glass w-full space-y-2.5 rounded-[22px] p-3">
+                <motion.div key="scan-prefs" initial={{ opacity: 0, y: 10, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 6, scale: 0.98 }} transition={{ type: 'spring', stiffness: 520, damping: 38 }} style={{ transformOrigin: 'bottom center' }} className="scan-glass w-full space-y-2.5 rounded-[22px] p-3">
                   {isPokemonBatch && (
                     <>
                       <ScanChoice label="Idioma" value={prefs.lang} onChange={(value) => setPref({ lang: value })} options={[{ value: 'auto', label: 'Auto' }, { value: '3', label: 'Inglés' }, { value: '100', label: 'Español' }, { value: '85', label: 'Japonés' }]} />
