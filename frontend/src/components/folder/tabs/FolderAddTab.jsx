@@ -91,6 +91,14 @@ export default function FolderAddTab({
     }
   };
   const handleScannedCard = (result) => addScanned(result?.top?.[0], result || {});
+  // «Buscar manualmente» desde el escáner: se cierra la cámara, se escribe el nombre y se lanza la búsqueda
+  const [manualQuery, setManualQuery] = useState(null);
+  const handleManualSearch = (name) => { setSearchQuery(name); setManualQuery(name); };
+  useEffect(() => {
+    if (manualQuery === null || searchQuery !== manualQuery) return;
+    setManualQuery(null);
+    handleSearchAPI({ preventDefault() {} });
+  }, [manualQuery, searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
   // La persona corrige la versión de una carta ya escaneada: entra la elegida y sale una unidad de la anterior (si la elegida no se pudo abrir, no cambia nada)
   const handleChangeVersion = async (item, candidate, scan) => {
     const next = await addScanned(candidate, scan);
@@ -406,7 +414,7 @@ export default function FolderAddTab({
             )}
             {scanOpen && (
               <Suspense fallback={null}>
-                <ScanModal origin={scanOrigin} batch={{ games: scanGame.ids, label: scanGame.label, onCard: handleScannedCard, onChangeVersion: handleChangeVersion, onShare: handleSharePhotos, onRemove: handleRemoveScanned }} onClose={() => setScanOpen(false)} />
+                <ScanModal origin={scanOrigin} batch={{ games: scanGame.ids, label: scanGame.label, onCard: handleScannedCard, onManualSearch: handleManualSearch, onChangeVersion: handleChangeVersion, onShare: handleSharePhotos, onRemove: handleRemoveScanned }} onClose={() => setScanOpen(false)} />
               </Suspense>
             )}
             <button 
