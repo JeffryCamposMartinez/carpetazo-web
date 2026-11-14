@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import SellCollectionModal from './SellCollectionModal';
+import StoreFollowButton from './StoreFollowButton';
 import LiquidTabs from '../ui/LiquidTabs';
 import SvgIcon from '../ui/SvgIcon';
 import { PAYMENT_NAMES, chileToday, formatException, formatHours, isOpenAt, mapLinks, openLabel } from '../../utils/storeHours';
@@ -60,7 +61,7 @@ export default function StorePublicCard({ store, compact = false, username, stor
       <div className="rounded-3xl border border-blue-100 bg-white p-4 text-slate-800 shadow-sm sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-xl font-extrabold text-[#12315f]"><SvgIcon name="storefront" className="text-2xl text-[#1e40af]" />Tienda física</h2>
-          <OpenPill store={store} />
+          <div className="flex flex-wrap items-center gap-2">{username && <StoreFollowButton username={username} />}<OpenPill store={store} /></div>
         </div>
         {tabs.length > 1 && (
           <LiquidTabs ariaLabel="Información de la tienda" tabs idPrefix="tienda-publica-tab" layout="inline" options={tabs} value={tab} onChange={setTab}

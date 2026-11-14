@@ -10,6 +10,7 @@ import { badRequest, isUuid } from '../core/validation.js';
 import { getEffectivePlan } from '../core/entitlements.js';
 import { generatePickupCode, pickupDeadline } from '../core/storePickups.js';
 import { notifyUsers } from '../core/storeNotices.js';
+import { countCouponUses, couponProblem, discountFor, normalizeCode } from '../core/storeCoupons.js';
 
 const router = express.Router();
 
@@ -159,6 +160,21 @@ router.post('/api/orders/create', async (req, res) => {
       lines.push(`• ${quantity}x ${card.name}${set} - ${clp(price * quantity)}`);
     }
 
+    // Cupón de la tienda (plan Tienda): exige cuenta; el descuento se calcula aquí y se vuelve a validar dentro de la transacción
+    let coupon = null;
+    let discount = 0;
+    if (body.coupon !== undefined && body.coupon !== null && body.coupon !== '') {
+      const code = normalizeCode(body.coupon);
+      if (!/^[A-Z0-9]{3,20}$/.test(code)) return res.status(400).json({ success: false, message: 'Ese cupón no existe o no está activo.' });
+      if (!buyer) return res.status(401).json({ success: false, message: 'Inicia sesión para usar un cupón' });
+      const { plan: sellerPlan } = await getEffectivePlan(prisma, folder.userId);
+      coupon = sellerPlan.storeTools ? await prisma.storeCoupon.findUnique({ where: { storeId_code: { storeId: folder.userId, code } } }) : null;
+      const problem = couponProblem(coupon, { total, ...(coupon ? await countCouponUses(prisma, coupon.id, buyer.id) : {}) });
+      if (problem) return res.status(400).json({ success: false, message: problem });
+      discount = discountFor(coupon, total);
+      lines.push(`Cupón ${coupon.code}: -${clp(discount)}`);
+    }
+
     // Datos para transferir: solo si el vendedor lo activó (por defecto no se envían), y solo a quien acaba de crear un pedido, nunca en rutas públicas
     const bank = seller?.bankDetails && typeof seller.bankDetails === 'object' ? seller.bankDetails : {};
     const payment = bank.accountNumber && sellerTheme.shareBankInOrders === 'on'
@@ -175,37 +191,40 @@ router.post('/api/orders/create', async (req, res) => {
       folderId: folder.id,
       folderName: folder.name || 'Catálogo',
       items,
-      total,
+      total: total - discount,
+      ...(coupon ? { couponCode: coupon.code, discountClp: discount } : {}),
       status: 'pending',
       ...(viaPickup ? { via: 'pickup', pickupCode: generatePickupCode(), pickupBy: pickupDeadline(pickupHours) } : viaMessage ? { via: 'message' } : {})
     };
 
+    const couponUse = coupon ? { couponId: coupon.id, userId: buyer.id, total } : null;
     let order;
     if (viaPickup) {
       const until = orderData.pickupBy.toLocaleString('es-CL', { timeZone: 'America/Santiago', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
-      const text = [`¡Hola! Reservé estas cartas de "${folder.name || 'Catálogo'}" para retirar en tu tienda:`, '', ...lines, '', `Total: ${clp(total)}`, `Código de retiro: ${orderData.pickupCode}`, `Retiro hasta: ${until}`].join('\n');
-      order = await createOrderLocked(folder.id, asked, orderData, { senderId: buyer.id, receiverId: folder.userId, content: JSON.stringify({ v: 1, text, imageUrl: null, imageBase64: null }) });
+      const text = [`¡Hola! Reservé estas cartas de "${folder.name || 'Catálogo'}" para retirar en tu tienda:`, '', ...lines, '', `Total: ${clp(total - discount)}`, `Código de retiro: ${orderData.pickupCode}`, `Retiro hasta: ${until}`].join('\n');
+      order = await createOrderLocked(folder.id, asked, orderData, { senderId: buyer.id, receiverId: folder.userId, content: JSON.stringify({ v: 1, text, imageUrl: null, imageBase64: null }) }, couponUse);
     } else if (viaMessage) {
       const text = [
         `¡Hola! Te hice un pedido desde tu carpeta "${folder.name || 'Catálogo'}" en Carpetazo:`,
         '',
         ...lines,
         '',
-        `Total: ${clp(total)}`,
+        `Total: ${clp(total - discount)}`,
         `Código de pedido: ${code}`,
         ...(payment ? ['', 'Datos para transferir:', [payment.holderName, payment.rut, payment.bank, payment.accountType, payment.accountNumber].filter(Boolean).join('\n')] : []),
         '',
         payment ? '¿Tienes disponibilidad?' : '¿Tienes disponibilidad? ¿Me compartes los datos para transferir?'
       ].join('\n');
       // Pedido y mensaje se crean juntos: no puede quedar uno sin el otro
-      order = await createOrderLocked(folder.id, asked, orderData, { senderId: buyer.id, receiverId: folder.userId, content: JSON.stringify({ v: 1, text, imageUrl: null, imageBase64: null }) });
+      order = await createOrderLocked(folder.id, asked, orderData, { senderId: buyer.id, receiverId: folder.userId, content: JSON.stringify({ v: 1, text, imageUrl: null, imageBase64: null }) }, couponUse);
     } else {
-      order = await createOrderLocked(folder.id, asked, orderData, null);
+      order = await createOrderLocked(folder.id, asked, orderData, null, couponUse);
     }
 
     res.json({ success: true, code, order: formatOrderForUi(order), payment: viaPickup ? null : payment, viaMessage, ...(viaPickup ? { pickup: { code: order.pickupCode, until: order.pickupBy } } : {}) });
   } catch (error) {
     if (error.stockConflict) return res.status(409).json({ success: false, message: error.stockConflict });
+    if (error.couponConflict) return res.status(409).json({ success: false, message: error.couponConflict });
     console.error('Error creating order:', error);
     res.status(500).json({ success: false, message: 'Error interno al crear el pedido' });
   }
@@ -231,7 +250,7 @@ const reservedStock = (pendingOrders) => {
 
 // Crea el pedido con un candado por carpeta y vuelve a revisar el stock adentro: si varias personas piden a la vez
 // la última unidad, solo una la reserva (las demás reciben 409). `asked`: id de carta → cantidad pedida
-const createOrderLocked = (folderId, asked, orderData, messageData) => prisma.$transaction(async (tx) => {
+const createOrderLocked = (folderId, asked, orderData, messageData, couponUse = null) => prisma.$transaction(async (tx) => {
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${'order:' + folderId}))::text`;
   const reserved = reservedStock(await loadPendingOrders(tx, folderId));
   const cards = await tx.card.findMany({ where: { id: { in: [...asked.keys()] }, folderId }, select: { id: true, name: true, stock: true } });
@@ -243,7 +262,15 @@ const createOrderLocked = (folderId, asked, orderData, messageData) => prisma.$t
       throw Object.assign(new Error('stock'), { stockConflict: available <= 0 ? `"${card?.name || 'La carta'}" ya no está disponible` : `Solo quedan ${available} de "${card.name}"` });
     }
   }
+  // El cupón se bloquea y se recuentan sus usos aquí: dos pedidos a la vez no pasan el máximo
+  if (couponUse) {
+    await tx.$queryRaw`SELECT "id" FROM "StoreCoupon" WHERE "id" = ${couponUse.couponId} FOR UPDATE`;
+    const current = await tx.storeCoupon.findUnique({ where: { id: couponUse.couponId } });
+    const problem = couponProblem(current, { total: couponUse.total, ...(await countCouponUses(tx, couponUse.couponId, couponUse.userId)) });
+    if (problem) throw Object.assign(new Error('coupon'), { couponConflict: problem });
+  }
   const created = await tx.order.create({ data: orderData });
+  if (couponUse) await tx.storeCouponUse.create({ data: { couponId: couponUse.couponId, userId: couponUse.userId, orderId: created.id } });
   if (messageData) await tx.message.create({ data: messageData });
   return created;
 }, { timeout: 15000 });

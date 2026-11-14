@@ -42,6 +42,8 @@ function PublicCatalog() {
   const [ownsFolder, setOwnsFolder] = useState(false);
   
   const [cart, setCart] = useState([]);
+  const [appliedCoupon, setAppliedCoupon] = useState(null); // { code, discount, total } revisado en el servidor
+  useEffect(() => { setAppliedCoupon(null); }, [cart]); // si cambia el carrito, el descuento se vuelve a revisar
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
@@ -310,7 +312,7 @@ function PublicCatalog() {
     }
     setIsProcessingCheckout(true);
     try {
-      const response = await api.createOrder({ folderId, via: 'message', items: cart.map((item) => ({ id: item.id, quantity: item.quantity })) });
+      const response = await api.createOrder({ folderId, via: 'message', coupon: appliedCoupon?.code, items: cart.map((item) => ({ id: item.id, quantity: item.quantity })) });
       setCart([]);
       setIsCartOpen(false);
       showToast(`Pedido ${response.code} enviado a ${sellerData?.displayName || 'el vendedor'}`, 'success');
@@ -334,7 +336,7 @@ function PublicCatalog() {
     if (isOwner) { showToast('No puedes reservarte cartas a ti mismo.', 'error'); return; }
     setIsProcessingCheckout(true);
     try {
-      const response = await api.createOrder({ folderId, via: 'pickup', items: cart.map((item) => ({ id: item.id, quantity: item.quantity })) });
+      const response = await api.createOrder({ folderId, via: 'pickup', coupon: appliedCoupon?.code, items: cart.map((item) => ({ id: item.id, quantity: item.quantity })) });
       setCart([]);
       setIsCartOpen(false);
       showToast(`Reserva lista: muestra el código ${response.pickup.code} en la tienda. Revísala en Mi tienda.`, 'success');
@@ -377,6 +379,7 @@ function PublicCatalog() {
         buyerName: 'Cliente por WhatsApp',
         folderId: folderId,
         folderName: folderData.name || 'Catálogo',
+        coupon: appliedCoupon?.code,
         items: cart.map(item => ({
           id: item.id,
           name: item.name,
@@ -388,7 +391,7 @@ function PublicCatalog() {
       });
 
       // 2. Generar el mensaje y redirigir
-      const message = buildOrderMessage({ folderName: folderData?.name, items: cart, total: orderResponse?.order?.total ?? cartTotal, code: orderResponse?.code, payment: orderResponse?.payment });
+      const message = buildOrderMessage({ folderName: folderData?.name, items: cart, total: orderResponse?.order?.total ?? cartTotal, code: orderResponse?.code, payment: orderResponse?.payment, couponCode: orderResponse?.order?.couponCode, discount: orderResponse?.order?.discountClp });
       const whatsappUrl = whatsappOrderUrl(phone, message);
       
       setCart([]);
@@ -629,7 +632,8 @@ function PublicCatalog() {
 
   const catalogCartDrawerProps = { cart, cartTotal, currentUser, formatCLP, handleMessageCheckout,
     handleWhatsAppCheckout, isProcessingCheckout, messageMode, removeFromCart, setIsCartOpen, socialEnabled,
-    pickup: sellerData?.store ? { hours: sellerData.store.pickupHours || 48 } : null, handlePickupCheckout };
+    pickup: sellerData?.store ? { hours: sellerData.store.pickupHours || 48 } : null, handlePickupCheckout,
+    coupons: sellerData?.store ? { folderId, applied: appliedCoupon, setApplied: setAppliedCoupon } : null };
 
   const catalogBrowserProps = { gameFilters: gameKit && gameFilterValues ? { key: gameKit.key, filters: gameFilterValues, setFilters: setGameFilterValues } : null, activeFilterCount, addToCart, addToWishlist, availableRarities, availableSets, cards,
     cart, cartItemsCount, cartTotal, counts, decrementCart, folderData, formatCLP, isMobileFiltersOpen, isOwner,

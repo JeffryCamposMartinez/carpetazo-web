@@ -2,11 +2,12 @@
 export const formatCLP = (price) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(price);
 
 // items: [{ quantity, name, set, price }]; payment (opcional): datos de transferencia del vendedor
-export const buildOrderMessage = ({ folderName, items, total, code, payment }) => {
+export const buildOrderMessage = ({ folderName, items, total, code, payment, couponCode, discount }) => {
   let message = `¡Hola! Vengo de Carpetazo. Me interesa comprar estas cartas de la carpeta "${folderName || 'Catálogo'}":\n\n`;
   items.forEach((item) => {
     message += `• ${item.quantity}x ${item.name} (${item.set}) - ${formatCLP(Number(item.price || 0) * item.quantity)}\n`;
   });
+  if (couponCode && discount) message += `\nCupón ${couponCode}: -${formatCLP(discount)}`;
   message += `\nTotal: ${formatCLP(total)}`;
   if (code) message += `\nCódigo de pedido: ${code}`;
   if (payment) {

@@ -2,10 +2,11 @@ import { useEffect, useRef } from 'react';
 import LoadableImage from '../../ui/LoadableImage';
 import EmptyState from '../../ui/EmptyState';
 import SvgIcon from '../../ui/SvgIcon';
+import CouponField from '../../store/CouponField';
 // Carrito del catálogo público: cartas elegidas, total y envío del pedido.
 export default function CatalogCartDrawer({
   cart, cartTotal, currentUser, formatCLP, handleMessageCheckout, handleWhatsAppCheckout,
-  isProcessingCheckout, messageMode, removeFromCart, setIsCartOpen, socialEnabled, pickup = null, handlePickupCheckout
+  isProcessingCheckout, messageMode, removeFromCart, setIsCartOpen, socialEnabled, pickup = null, handlePickupCheckout, coupons = null
 }) {
   const panelRef = useRef(null);
   // Diálogo accesible: el foco entra al abrir, Tab no sale del panel, Escape cierra y el foco vuelve a donde estaba
@@ -76,6 +77,7 @@ export default function CatalogCartDrawer({
               <button type="button" onClick={() => window.dispatchEvent(new Event('carpetazo:open-auth'))} className="ml-1 font-extrabold underline">Iniciar sesión</button>
             </div>
           )}
+          {coupons && cart.length > 0 && <CouponField {...coupons} cart={cart} currentUser={currentUser} formatCLP={formatCLP} />}
           {!messageMode && (
             <button
               className="w-full text-white p-4 rounded-xl font-extrabold flex justify-center items-center gap-3 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none bg-[#25D366] hover:bg-[#128C7E] shadow-[0_4px_15px_rgba(37,211,102,0.3)]"

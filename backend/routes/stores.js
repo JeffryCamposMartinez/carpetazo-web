@@ -7,7 +7,7 @@ import { routeLimiter } from '../core/limits.js';
 import { badRequest, isSmallObject, isUuid, normalizeUsername } from '../core/validation.js';
 import { parseStoreProfile, toPublicStore } from '../core/storeProfile.js';
 import { MAX_UPCOMING_EVENTS, parseStoreEvent, promotableCount, signupStatusFor, toPublicEvent } from '../core/storeEvents.js';
-import { eventWhen, notifyUsers } from '../core/storeNotices.js';
+import { eventWhen, notifyFollowers, notifyUsers } from '../core/storeNotices.js';
 
 const router = express.Router();
 
@@ -115,6 +115,7 @@ router.post('/api/stores/me/events', authenticateToken, routeLimiter(60 * 60 * 1
     const upcoming = await prisma.storeEvent.count({ where: { storeId: userId, status: 'scheduled', startsAt: { gt: new Date() } } });
     if (upcoming >= MAX_UPCOMING_EVENTS) return badRequest(res, `Puedes tener hasta ${MAX_UPCOMING_EVENTS} eventos programados.`);
     const event = await prisma.storeEvent.create({ data: { storeId: userId, ...parsed.data } });
+    notifyFollowers(userId, { kind: 'event', event }).catch((error) => console.error('Error avisando a seguidores:', error.message)); // sin esperar
     res.json({ success: true, event: toPublicEvent(event) });
   } catch (error) {
     if (error instanceof PlanFeatureError) return sendPlanError(res, error);

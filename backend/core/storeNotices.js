@@ -17,7 +17,7 @@ export const notifyUsers = async (userIds, { subject, title, intro, url, tag, ct
       await sendUserEmail(userId, {
         subject,
         text: `${intro}\n\n${SITE}${url}`,
-        html: noticeEmailHtml({ subject, title, intro, cta, ctaUrl: SITE + url, footer: 'Recibes este correo por tu actividad con una tienda en' })
+        html: noticeEmailHtml({ subject, title, intro, cta, ctaUrl: SITE + url, footer: 'Recibes este correo por tu actividad con una tienda (puedes dejar de seguirla desde su perfil) en' })
       });
       await sendPushToUser(userId, { title, body: intro, url, tag }).catch(() => 0);
       sent += 1;
@@ -57,6 +57,25 @@ export const runEventReminders = async (now = new Date()) => {
 tasks.push(runEventReminders);
 
 export const addStoreTask = (fn) => tasks.push(fn);
+
+// Aviso a los seguidores de una tienda: cada seguidor recibe como máximo un aviso de esa tienda cada 24 h (se reclama antes de enviar)
+export const notifyFollowers = async (storeId, { kind, message = '', event = null }, now = new Date()) => {
+  const store = await prisma.user.findUnique({ where: { id: storeId }, select: { name: true, username: true } });
+  if (!store?.username) return 0;
+  const name = store.name || store.username;
+  const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const followers = await prisma.storeFollow.findMany({ where: { storeId, OR: [{ lastNotifiedAt: null }, { lastNotifiedAt: { lt: since } }] }, select: { id: true, userId: true }, take: 5000 });
+  const ready = [];
+  for (const f of followers) {
+    const claimed = await prisma.storeFollow.updateMany({ where: { id: f.id, OR: [{ lastNotifiedAt: null }, { lastNotifiedAt: { lt: since } }] }, data: { lastNotifiedAt: now } });
+    if (claimed.count) ready.push(f.userId);
+  }
+  const text = kind === 'event'
+    ? { subject: `${name} publicó un evento: ${event.title}`, title: `Nuevo evento en ${name}`, intro: `«${event.title}» (${event.game}) el ${fmtWhen(event.startsAt)}. Inscríbete desde su perfil.` }
+    : { subject: `${name}: ${message.slice(0, 60)}`, title: `Aviso de ${name}`, intro: message };
+  return notifyUsers(ready, { ...text, url: `/${store.username}`, tag: `store-${storeId}`, cta: 'Ver la tienda' });
+};
+
 
 let running = false;
 export const startStoreJobs = () => {

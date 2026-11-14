@@ -143,6 +143,15 @@ export const api = {
   getStoreCash: (days = 7) => apiFetch('/stores/me/cash?days=' + days),
   getStockAlerts: () => apiFetch('/stores/me/stock-alerts'),
   saveStockSettings: (data) => apiFetch('/stores/me/stock-settings', { method: 'PUT', body: JSON.stringify(data) }),
+  checkCoupon: (data) => apiFetch('/stores/coupons/check', { method: 'POST', body: JSON.stringify(data) }),
+  getStoreFollow: (username) => apiFetch('/stores/' + encodeURIComponent(username) + '/follow'),
+  followStore: (username) => apiFetch('/stores/' + encodeURIComponent(username) + '/follow', { method: 'POST', body: '{}' }),
+  unfollowStore: (username) => apiFetch('/stores/' + encodeURIComponent(username) + '/follow', { method: 'DELETE' }),
+  announceToFollowers: (message) => apiFetch('/stores/me/announce', { method: 'POST', body: JSON.stringify({ message }) }),
+  getStoreCoupons: () => apiFetch('/stores/me/coupons'),
+  createStoreCoupon: (data) => apiFetch('/stores/me/coupons', { method: 'POST', body: JSON.stringify(data) }),
+  setStoreCouponActive: (id, active) => apiFetch('/stores/me/coupons/' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify({ active }) }),
+  getStoreDemand: () => apiFetch('/stores/me/demand'),
   deleteProfile: () => apiFetch('/users/me', { method: 'DELETE' }),
 
   // Planes y suscripciones

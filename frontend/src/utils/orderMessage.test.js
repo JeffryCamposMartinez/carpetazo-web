@@ -37,3 +37,10 @@ describe('pedido por WhatsApp', () => {
     expect(formatWhatsAppNumber('9 1234 5678')).toBe('56912345678')
   })
 })
+
+describe('buildOrderMessage con cupón', () => {
+  it('muestra el descuento antes del total', () => {
+    const text = buildOrderMessage({ folderName: 'X', items: [{ quantity: 1, name: 'A', set: 'S', price: 10000 }], total: 9000, couponCode: 'VERANO10', discount: 1000 });
+    expect(text).toMatch(/Cupón VERANO10: -\$\s?1\.000\nTotal: \$\s?9\.000/);
+  });
+});

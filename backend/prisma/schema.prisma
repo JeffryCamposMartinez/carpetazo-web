@@ -57,6 +57,9 @@ model User {
   storeEventSignups        StoreEventSignup[]
   storeBuyRequests         StoreBuyRequest[]  @relation("StoreBuyStore")
   sentBuyRequests          StoreBuyRequest[]  @relation("StoreBuySeller")
+  storeFollowers           StoreFollow[]      @relation("StoreFollowStore")
+  followingStores          StoreFollow[]      @relation("StoreFollowUser")
+  storeCoupons             StoreCoupon[]
   subscriptions            Subscription[]
   planGrants               PlanGrant[]        @relation("PlanGrantUser")
   planGrantsIssued         PlanGrant[]        @relation("PlanGrantIssuer")
@@ -210,6 +213,8 @@ model Order {
   pickupCode      String?
   pickupBy        DateTime?
   pickupReadyAt   DateTime?
+  couponCode      String?
+  discountClp     Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -970,6 +975,7 @@ model StoreProfile {
   pickupHours    Int      @default(48)
   lowStockAt     Int      @default(1)
   staleDays      Int      @default(60)
+  lastAnnouncedAt DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1034,4 +1040,50 @@ model StoreBuyRequest {
 
   @@index([storeId, status, createdAt])
   @@index([userId, createdAt])
+}
+
+// Seguidores de una tienda: reciben como máximo un aviso al día por tienda
+model StoreFollow {
+  id             String    @id @default(uuid())
+  storeId        String
+  userId         String
+  lastNotifiedAt DateTime?
+  createdAt      DateTime  @default(now())
+  store          User      @relation("StoreFollowStore", fields: [storeId], references: [id], onDelete: Cascade)
+  user           User      @relation("StoreFollowUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, userId])
+  @@index([userId])
+}
+
+// Cupones de una tienda: el descuento se calcula y se cuenta en el servidor al crear el pedido
+model StoreCoupon {
+  id         String           @id @default(uuid())
+  storeId    String
+  code       String
+  kind       String           @default("percent")
+  value      Int
+  minTotal   Int              @default(0)
+  startsAt   DateTime?
+  endsAt     DateTime?
+  maxUses    Int?
+  maxPerUser Int              @default(1)
+  active     Boolean          @default(true)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  store      User             @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  uses       StoreCouponUse[]
+
+  @@unique([storeId, code])
+}
+
+model StoreCouponUse {
+  id        String      @id @default(uuid())
+  couponId  String
+  userId    String
+  orderId   String      @unique
+  createdAt DateTime    @default(now())
+  coupon    StoreCoupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+
+  @@index([couponId, userId])
 }
