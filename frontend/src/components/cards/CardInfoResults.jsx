@@ -26,9 +26,11 @@ const tcgplayerImage = (card) => {
 };
 
 // Cuando una carta no está a la venta: las que coinciden en el catálogo (TCGCSV), para ver su imagen y datos. No tienen precio ni compra.
-export default function CardInfoResults({ query, game, enabled, hasOffers = false, sort = '', scanOrder = [] }) {
+export default function CardInfoResults({ query, game, enabled, hasOffers = false, sort = '', scanOrder = [], fixed = null }) {
   const [page, setPage] = useState(1);
-  const { results, searching, exhausted, pages: indexedPages, total: indexedTotal } = useCardInfoSearch({ query, game, enabled, page, sort });
+  // fixed: fichas ya conocidas (lo que encontró el escáner); no se busca nada por nombre
+  const search = useCardInfoSearch({ query, game, enabled: enabled && !fixed, page, sort });
+  const { results, searching, exhausted, pages: indexedPages, total: indexedTotal } = fixed ? { results: fixed, searching: false, exhausted: true, pages: 1, total: fixed.length } : search;
   const { currentUser } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -94,7 +96,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
       <div className="mb-3 flex items-start gap-3 rounded-2xl bg-white p-4 ring-1 ring-slate-900/5">
         <SvgIcon name="info" translate="no" aria-hidden="true" className="mt-0.5 text-[24px] text-[#1e40af]" />
         <div className="min-w-0">
-          <h2 className="text-base font-extrabold text-[#12315f]">{hasOffers ? `Más coincidencias del catálogo para "${query.trim()}"` : `Sin ofertas para "${query.trim()}": busca también en el catálogo`}</h2>
+          <h2 className="text-base font-extrabold text-[#12315f]">{fixed ? 'Resultados del escáner' : hasOffers ? `Más coincidencias del catálogo para "${query.trim()}"` : `Sin ofertas para "${query.trim()}": busca también en el catálogo`}</h2>
           <p className="mt-0.5 text-sm text-slate-600">{scanOrder.length > 0 ? 'Ordenadas por parecido con la carta que escaneaste.' : 'Coincidencias por nombre o similitud.'} Estas fichas son informativas, no ofertas de venta; la disponibilidad se muestra en los resultados de arriba. Puedes agregarlas a tus deseadas.</p>
         </div>
       </div>
@@ -141,7 +143,7 @@ export default function CardInfoResults({ query, game, enabled, hasOffers = fals
         </div>
       )}
       {!searching && exhausted && results.length === 0 && <p className="py-6 text-center text-sm text-slate-600">Tampoco encontramos esa carta en el catálogo. Revisa el nombre.</p>}
-      <CardsPagination page={page} pages={known} openEnded={!exhausted} onPage={goToPage} />
+      {!fixed && <CardsPagination page={page} pages={known} openEnded={!exhausted} onPage={goToPage} />}
 
       {openId && (
         <CardLightbox

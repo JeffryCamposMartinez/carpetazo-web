@@ -28,3 +28,22 @@ export const offerKeyIn = (order) => {
   order.forEach((key, index) => { const product = key.split(':')[1]; if (!byProduct.has(product)) byProduct.set(product, index); });
   return (offer) => { const product = String(offer?.tcgId || '').replace(/^(tcgcsv|myl):/, ''); return byProduct.has(product) ? `p:${byProduct.get(product)}` : ''; };
 };
+
+// Cartas que encontró el escáner (con lo que trae el motor): se validan y se arman como fichas del catálogo para mostrarlas en /cartas sin buscar por nombre
+const SCAN_GAME = { 3: 'Pokémon', 100: 'Pokémon', 85: 'Pokémon', 1: 'Magic', 2: 'Yu-Gi-Oh!', 68: 'One Piece', 71: 'Lorcana', 63: 'Digimon', 89: 'Riftbound', 99: 'Mitos y Leyendas' };
+const text = (value, max) => (typeof value === 'string' ? value.slice(0, max) : '');
+export const readScanned = (state) => (Array.isArray(state?.scanned) ? state.scanned : []).slice(0, 60)
+  .filter((card) => card && Number.isInteger(card.categoryId) && Number.isInteger(card.productId) && SCAN_GAME[card.categoryId])
+  .map((card) => {
+    const game = SCAN_GAME[card.categoryId];
+    const image = typeof card.image === 'string' && card.image.startsWith('https://') ? card.image : '';
+    const name = text(card.name, 160);
+    const setName = text(card.set, 120) || 'Catálogo';
+    return {
+      id: `scan:${card.categoryId}:${card.productId}`, productId: card.productId, tcgProductId: card.productId, catId: card.categoryId, categoryId: card.categoryId,
+      groupId: Number.isInteger(card.groupId) ? card.groupId : undefined, name, imageUrl: image, setName,
+      language: card.categoryId === 85 ? 'Japonés' : card.categoryId === 100 ? 'Español' : 'Inglés', game,
+      payload: { external: { categoryId: card.categoryId, productId: String(card.productId) }, productId: String(card.productId), name, imageUrl: image, detail: setName, game },
+    };
+  });
+export const readScanName = (state) => (typeof state?.scanName === 'string' ? state.scanName.slice(0, 80) : '');

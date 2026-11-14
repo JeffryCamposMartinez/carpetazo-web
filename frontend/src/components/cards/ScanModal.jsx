@@ -262,13 +262,17 @@ export default function ScanModal({ onClose, batch, origin }) {
   };
 
   const openSearch = (card) => {
-    const params = new URLSearchParams({ q: baseName(card.name) || card.name });
+    const params = new URLSearchParams(); // sin texto de búsqueda: la página muestra directamente lo que encontró el escáner
     if (GAME_OF[card.categoryId]) params.set('tcg', GAME_OF[card.categoryId]);
     // La búsqueda muestra primero lo más parecido a lo escaneado: la carta encontrada y, después, las demás por parecido
     const key = (item) => `${item.categoryId}:${item.productId}`;
     const scanOrder = [key(card), ...[...view.result.top, ...(view.result.same || [])].filter((item) => key(item) !== key(card)).sort((a, b) => b.score - a.score).map(key)].filter((value) => !value.includes('null'));
+    const scanned = [card, ...[...view.result.top, ...(view.result.same || [])].filter((item) => key(item) !== key(card)).sort((a, b) => b.score - a.score)]
+      .filter((item) => item.productId != null && item.categoryId != null)
+      .map((item) => ({ categoryId: item.categoryId, productId: item.productId, groupId: item.groupId ?? null, name: item.name, number: item.number || '', set: item.set || '', image: item.image || '' }))
+      .slice(0, 40);
     onClose();
-    navigate(`/cartas?${params.toString()}`, { state: { scanOrder } });
+    navigate(`/cartas${params.toString() ? `?${params.toString()}` : ''}`, { state: { scanOrder, scanned, scanName: baseName(card.name) || card.name } });
   };
   useEffect(() => { if (!batch && view.done && best) { buzz(); setFlash((value) => value + 1); later(() => requestClose(() => openSearch(best)), 650); } }, [view.done]); // eslint-disable-line react-hooks/exhaustive-deps
 

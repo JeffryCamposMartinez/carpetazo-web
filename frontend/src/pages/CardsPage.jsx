@@ -1,4 +1,4 @@
-import React, { startTransition, useEffect, useState } from 'react';
+import React, { startTransition, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { wishlistPayloadFromCard } from '../utils/wishlistPayload';
@@ -13,7 +13,7 @@ import CardsPagination from '../components/cards/CardsPagination';
 import HelpTip from '../components/ui/HelpTip';
 import DidYouMean from '../components/ui/DidYouMean';
 import CardInfoResults from '../components/cards/CardInfoResults';
-import { offerKeyIn, readScanOrder, sortByScan } from '../utils/scanOrder';
+import { offerKeyIn, readScanName, readScanOrder, readScanned, sortByScan } from '../utils/scanOrder';
 import CardsResultsBar, { SORT_VALUES } from '../components/cards/CardsResultsBar';
 import usePageMeta from '../hooks/usePageMeta';
 import EmptyState from '../components/ui/EmptyState';
@@ -31,7 +31,10 @@ export default function CardsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  const scanOrder = readScanOrder(useLocation().state); // viene de la cámara: lo más parecido a la carta escaneada va primero
+  const locationState = useLocation().state;
+  const scanOrder = readScanOrder(locationState); // viene de la cámara: lo más parecido a la carta escaneada va primero
+  const scanned = useMemo(() => readScanned(locationState), [locationState]);
+  const scanName = readScanName(locationState);
   const { showToast } = useToast();
   const wishlistIndex = useWishlistIndex(Boolean(currentUser));
   const [wanted, setWanted] = useState({}); // cartas ya agregadas a la lista de deseadas en esta visita
@@ -44,6 +47,8 @@ export default function CardsPage() {
   const sort = SORT_VALUES.includes(searchParams.get('sort')) ? searchParams.get('sort') : 'recent';
   const page = Math.max(1, Number.parseInt(searchParams.get('page'), 10) || 1);
 
+  // Desde la cámara no se busca por nombre: se muestran las cartas que encontró el escáner (y, entre ellas, las que están a la venta)
+  const scanMode = scanned.length > 0 && !urlQuery && !seller && !comuna;
   const [queryInput, setQueryInput] = useState(urlQuery);
   const [result, setResult] = useState(EMPTY);
   const [loading, setLoading] = useState(true);
@@ -88,7 +93,7 @@ export default function CardsPage() {
     setLoading(true);
     setFailed(false);
     const params = new URLSearchParams();
-    if (urlQuery) params.set('q', urlQuery);
+    if (urlQuery || scanMode) params.set('q', urlQuery || scanName);
     if (tcg) params.set('tcg', tcg);
     if (seller) params.set('seller', seller);
     if (comuna) params.set('comuna', comuna);
@@ -102,7 +107,7 @@ export default function CardsPage() {
       .catch(() => { if (!cancelled) { setFailed(true); setResult(EMPTY); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [urlQuery, tcg, seller, comuna, condition, lang, sort, page, searchRotation]);
+  }, [urlQuery, scanMode, scanName, tcg, seller, comuna, condition, lang, sort, page, searchRotation]);
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   const goToPage = (next) => {
@@ -143,7 +148,10 @@ export default function CardsPage() {
     }
   };
 
-  const hasFilters = Boolean(urlQuery || tcg || seller || comuna || condition || lang);
+  const offerCards = scanMode ? result.cards.filter((card) => offerKeyIn(scanOrder)(card)) : result.cards; // desde la cámara solo las ofertas de las cartas encontradas
+  const offeredProducts = new Set(offerCards.map((card) => String(card.tcgId || '').replace(/^(tcgcsv|myl):/, ''))); // ya salen como oferta: no se repiten como ficha del catálogo
+  const infoScanned = scanMode ? scanned.filter((card) => !offeredProducts.has(String(card.productId))) : [];
+  const hasFilters = Boolean(urlQuery || scanMode || tcg || seller || comuna || condition || lang);
   const gridClass = effectiveView === 'list'
     ? 'grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3'
     : 'grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5';
@@ -180,7 +188,7 @@ export default function CardsPage() {
               query={urlQuery}
               sort={sort}
               tcg={tcg}
-              total={result.total}
+              total={scanMode ? offerCards.length : result.total}
               view={effectiveView}
             />
 
@@ -190,7 +198,7 @@ export default function CardsPage() {
               <EmptyState icon="cloud_off" title="No pudimos cargar las cartas" action={{ label: 'Reintentar', icon: 'refresh', onClick: () => setSearchParams(new URLSearchParams(searchParams), { replace: true }) }} role="alert">
                 Revisa tu conexión e inténtalo de nuevo.
               </EmptyState>
-            ) : !loading && result.cards.length === 0 ? (hasFilters ? null : (
+            ) : !loading && offerCards.length === 0 ? (hasFilters ? null : (
               <EmptyState
                 icon="style"
                 title="Todavía no hay cartas a la venta"
@@ -202,13 +210,13 @@ export default function CardsPage() {
               <ul className={gridClass}>
                 {loading
                   ? Array.from({ length: 12 }, (_, i) => <CardTileSkeleton key={i} view={effectiveView} />)
-                  : sortByScan(result.cards, offerKeyIn(scanOrder), scanOrder.map((_key, index) => `p:${index}`)).map((card, index) => <CardTile key={card.id} card={card} index={index} view={effectiveView} wanted={Boolean(wantedState(card))} onWish={addToWishlist} />)}
+                  : sortByScan(offerCards, offerKeyIn(scanOrder), scanOrder.map((_key, index) => `p:${index}`)).map((card, index) => <CardTile key={card.id} card={card} index={index} view={effectiveView} wanted={Boolean(wantedState(card))} onWish={addToWishlist} />)}
               </ul>
             )}
 
-            <CardInfoResults query={urlQuery} game={tcg} sort={sort} scanOrder={scanOrder} hasOffers={result.total > 0} enabled={!loading && !failed && urlQuery.trim().length >= 2 && !seller && !comuna} />
+            <CardInfoResults query={urlQuery} game={tcg} sort={sort} scanOrder={scanOrder} hasOffers={result.total > 0} fixed={scanMode ? infoScanned : null} enabled={!loading && !failed && (scanMode ? infoScanned.length > 0 : urlQuery.trim().length >= 2) && !seller && !comuna} />
 
-            {!loading && !failed && <CardsPagination page={page} pages={result.pages} onPage={goToPage} />}
+            {!loading && !failed && !scanMode && <CardsPagination page={page} pages={result.pages} onPage={goToPage} />}
           </section>
         </div>
         <FloatingTools onClear={hasFilters ? clearAll : undefined} />
