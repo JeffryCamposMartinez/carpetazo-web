@@ -45,7 +45,7 @@ export default function ScanModal({ onClose, batch, origin }) {
   const areaRef = useRef(null);
   const guideRef = useRef(null);
   const [game, setGame] = useState(readGame);
-  const [tray, setTray] = useState(() => (batch?.initial || []).map((item, index) => ({ ...item, trayId: index + 1 }))); // lote: cartas que ya entraron a la cola de la carpeta
+  const [tray, setTray] = useState(() => (batch?.initial || []).map((item, index) => ({ ...item, trayId: index + 1, lang: item.language ? item.language.toLowerCase().replace('jp', 'ja') : undefined }))); // lote: cartas que ya entraron a la cola de la carpeta
   const [flash, setFlash] = useState(0); // sube con cada carta reconocida: dispara el pulso breve del marco
   const trayId = useRef(batch?.initial?.length || 0); // clave estable por miniatura: quitar una no reinicia la animación de las demás
   const offered = useRef(new Set()); // cartas cuya foto ya se aportó en esta sesión (una sola vez por carta)
