@@ -60,7 +60,7 @@ export default function StorePublicCard({ store, compact = false, username, stor
     <section aria-label="Tienda física" className="relative z-10 mx-auto w-full max-w-[1220px] px-4 pt-5 sm:px-6 md:px-8">
       <div className="rounded-3xl border border-blue-100 bg-white p-4 text-slate-800 shadow-sm sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="flex items-center gap-2 text-xl font-extrabold text-[#12315f]"><SvgIcon name="storefront" className="text-2xl text-[#1e40af]" />Tienda física</h2>
+          <h2 className="flex items-center gap-2 text-xl font-extrabold text-[#12315f]"><SvgIcon name="storefront" className="text-2xl text-[#1e40af]" />Tienda física{store.verified && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-black text-emerald-800"><SvgIcon name="verified" className="text-sm" />Tienda verificada</span>}</h2>
           <div className="flex flex-wrap items-center gap-2">{username && <StoreFollowButton username={username} />}<OpenPill store={store} /></div>
         </div>
         {tabs.length > 1 && (

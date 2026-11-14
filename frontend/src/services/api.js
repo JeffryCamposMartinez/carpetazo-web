@@ -152,6 +152,12 @@ export const api = {
   createStoreCoupon: (data) => apiFetch('/stores/me/coupons', { method: 'POST', body: JSON.stringify(data) }),
   setStoreCouponActive: (id, active) => apiFetch('/stores/me/coupons/' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify({ active }) }),
   getStoreDemand: () => apiFetch('/stores/me/demand'),
+  getStoreVerification: () => apiFetch('/stores/me/verification'),
+  sendStoreVerification: (formData) => apiFetch('/stores/me/verification', { method: 'POST', body: formData, isMultipart: true }),
+  getStoreVerifications: (status = 'pending') => apiFetch('/admin/store-verifications?status=' + encodeURIComponent(status)),
+  storeVerificationPhoto: (id, kind) => apiBlob('/admin/store-verifications/' + encodeURIComponent(id) + '/photo/' + encodeURIComponent(kind)),
+  approveStoreVerification: (id, reason) => apiFetch('/admin/store-verifications/' + encodeURIComponent(id) + '/approve', { method: 'POST', body: JSON.stringify({ reason }) }),
+  rejectStoreVerification: (id, reason) => apiFetch('/admin/store-verifications/' + encodeURIComponent(id) + '/reject', { method: 'POST', body: JSON.stringify({ reason }) }),
   deleteProfile: () => apiFetch('/users/me', { method: 'DELETE' }),
 
   // Planes y suscripciones

@@ -158,6 +158,7 @@ export const toPublicStore = (profile, date = new Date()) => {
     photos: profile.photos || [],
     policy: profile.policy,
     pickupHours: profile.pickupHours,
+    verified: Boolean(profile.verifiedAt),
     openNow: isOpenAt(profile.hours, exceptions, date)
   };
 };

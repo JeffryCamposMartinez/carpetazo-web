@@ -18,6 +18,7 @@ import MylCardsPanel from '../components/moderation/myl/MylCardsPanel';
 import FeedbackPanel from '../components/moderation/FeedbackPanel';
 import CatalogPhotosPanel from '../components/moderation/CatalogPhotosPanel';
 import VerificationsPanel from '../components/moderation/VerificationsPanel';
+import StoreVerificationsPanel from '../components/moderation/StoreVerificationsPanel';
 import CatalogSyncPanel from '../components/moderation/CatalogSyncPanel';
 import ModNav from '../components/moderation/ModNav';
 import LoadingState from '../components/ui/LoadingState';
@@ -160,7 +161,7 @@ export default function Moderation() {
               {tab === 'appeals' && <AppealsPanel level={level} />}
               {tab === 'feedback' && <FeedbackPanel level={level} />}
               {tab === 'photos' && level >= 2 && <CatalogPhotosPanel />}
-              {tab === 'verifications' && level >= 2 && <VerificationsPanel />}
+              {tab === 'verifications' && level >= 2 && <><VerificationsPanel /><StoreVerificationsPanel /></>}
               {tab === 'team' && level >= 3 && <TeamPanel />}
               {tab === 'reviews' && level >= 3 && <ReviewsPanel />}
               {tab === 'metrics' && level >= 3 && <MetricsPanel />}

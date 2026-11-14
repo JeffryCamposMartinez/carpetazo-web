@@ -13,6 +13,7 @@ import PickupsPanel from './PickupsPanel';
 import StoreCashPanel from './StoreCashPanel';
 import StoreStockPanel from './StoreStockPanel';
 import StoreClientsPanel from './StoreClientsPanel';
+import StoreVerificationPanel from './StoreVerificationPanel';
 import { AddressFields, PolicyField, TradeFields } from './StoreProfileForm';
 import { STORE_DAYS, isOpenAt, openLabel } from '../../utils/storeHours';
 
@@ -28,10 +29,11 @@ const SECTIONS = [
   { value: 'retiros', label: 'Retiros' },
   { value: 'caja', label: 'Caja' },
   { value: 'stock', label: 'Stock' },
-  { value: 'clientes', label: 'Clientes' }
+  { value: 'clientes', label: 'Clientes' },
+  { value: 'verificacion', label: 'Verificación' }
 ];
 // Secciones que guardan cada cambio por su cuenta (no usan el botón Guardar de la ficha)
-const OWN_SAVE = ['eventos', 'compras', 'retiros', 'caja', 'stock', 'clientes'];
+const OWN_SAVE = ['eventos', 'compras', 'retiros', 'caja', 'stock', 'clientes', 'verificacion'];
 const PERKS = ['Tu local en tu perfil: dirección, horario y «Abierto ahora»', 'Botones para llegar con Google Maps y Waze', 'Aparecer en «Tiendas» y «Abiertas ahora»', 'Medios de pago, juegos que compras y vendes, fotos y política de cambios'];
 
 const fromServer = (store) => {
@@ -138,6 +140,7 @@ export default function StoreTab() {
         {section === 'caja' && <StoreCashPanel />}
         {section === 'stock' && <StoreStockPanel showToast={showToast} />}
         {section === 'clientes' && <StoreClientsPanel showToast={showToast} />}
+        {section === 'verificacion' && <StoreVerificationPanel showToast={showToast} />}
       </div>
 
       {!OWN_SAVE.includes(section) && <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:static sm:mt-5 sm:border-0 sm:bg-transparent sm:p-0">
