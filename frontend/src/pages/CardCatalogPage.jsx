@@ -366,6 +366,7 @@ export default function CardCatalogPage() {
             older={position >= 0 && position < filteredSets.length - 1 ? filteredSets[position + 1] : null}
             onGo={goTo}
             onShare={share}
+            onAll={setParam ? () => { setDir(1); update({ set: '' }); } : null}
           />
         )}
         {group && cards && (sorted.length > 0 || extraPage.length > 0) && <CatalogToolbar sort={sort} onSort={(value) => update({ orden: value === 'num' ? '' : value })} view={view} onView={changeView} />}
