@@ -71,6 +71,7 @@ const GAME_OF = { 3: 'Pokémon', 100: 'Pokémon', 85: 'Pokémon', 1: 'Magic', 2:
 // Visor de la cámara: apuntas a una carta, se detecta sola y, en cuanto se reconoce, se abre la búsqueda de la sección Cartas (ordenada por parecido).
 // Aquí no se muestran resultados: solo la cámara, el marco, el estado y el juego a buscar.
 // batch = { games, label, onCard } → modo carpeta: juego fijo, el visor sigue abierto tras cada carta y una bandeja cuenta las agregadas
+// sin batch → modo búsqueda (barra de búsqueda): mismo visor, mismos ajustes y misma hoja «Selecciona tu carta», pero la carta elegida se busca en «Cartas» en vez de agregarse
 export default function ScanModal({ onClose, batch, origin }) {
   const navigate = useNavigate();
   const closeRef = useRef(null);
@@ -80,12 +81,14 @@ export default function ScanModal({ onClose, batch, origin }) {
   const [game, setGame] = useState(readGame);
   const [prefs, setPrefs] = useState(readPrefs); // ajustes del escáner de carpeta: idioma, acabado y agregar sin preguntar
   const [prefsOpen, setPrefsOpen] = useState(false);
-  const isPokemonBatch = Boolean(batch) && batch.games === '3,100,85';
+  const searchMode = !batch;
+  const baseGames = batch ? batch.games : SCAN_GAMES.find((item) => item.value === game)?.ids || '';
+  const isPokemonBatch = baseGames === '3,100,85';
   const [tray, setTray] = useState(() => (batch?.initial || []).map((item, index) => ({ ...item, trayId: index + 1, lang: item.language ? item.language.toLowerCase().replace('jp', 'ja') : undefined }))); // lote: cartas que ya entraron a la cola de la carpeta
   const [flash, setFlash] = useState(0); // sube con cada carta reconocida: dispara el pulso breve del marco
   const trayId = useRef(batch?.initial?.length || 0); // clave estable por miniatura: quitar una no reinicia la animación de las demás
   const offered = useRef(new Set()); // cartas cuya foto ya se aportó en esta sesión (una sola vez por carta)
-  const games = useMemo(() => (batch ? (isPokemonBatch && prefs.lang !== 'auto' ? prefs.lang : batch.games) : SCAN_GAMES.find((item) => item.value === game)?.ids || ''), [batch, game, isPokemonBatch, prefs.lang]);
+  const games = useMemo(() => (isPokemonBatch && prefs.lang !== 'auto' ? prefs.lang : baseGames), [baseGames, isPokemonBatch, prefs.lang]);
   const setPref = (changes) => setPrefs((current) => { const next = { ...current, ...changes }; try { localStorage.setItem(SAVED_PREFS, JSON.stringify(next)); } catch (_error) { /* sin almacenamiento: no se recuerdan */ } return next; });
   // Como al abrir una app en el iPhone: el visor crece desde el botón de cámara y al cerrar vuelve a él
   const zoom = origin && origin.width ? origin : null;
@@ -262,9 +265,9 @@ export default function ScanModal({ onClose, batch, origin }) {
   const openPick = async (result, replace) => {
     if (pick) return;
     const options = pickOptions(result);
-    if (options.length === 0) { if (!replace) await addPicked(result); return; }
+    if (options.length === 0) { if (searchMode) searchFrom(result.top?.[0], result, []); else if (!replace) await addPicked(result); return; }
     // «Agregar sin preguntar»: solo con una carta clara, sin otras impresiones cercanas y, en Pokémon, con el idioma fijado (si no, podría ser la misma carta en otro idioma)
-    if (!replace && prefs.quick && !prefs.finish && options.length === 1 && (result.top?.[0]?.score ?? 0) >= 0.9 && (!isPokemonBatch || prefs.lang !== 'auto')) { logChoice('confirm', result, result.top[0], true); await addPicked(result); return; }
+    if (!replace && prefs.quick && !prefs.finish && options.length === 1 && (result.top?.[0]?.score ?? 0) >= 0.9 && (!isPokemonBatch || prefs.lang !== 'auto')) { logChoice('confirm', result, result.top[0], true); if (searchMode) searchFrom(result.top[0], result, []); else await addPicked(result); return; }
     buzz();
     const seq = ++pickSeq.current;
     const first = options[0];
@@ -351,13 +354,20 @@ export default function ScanModal({ onClose, batch, origin }) {
     closePick();
     const engineTop = result.engineTop || result.top?.[0];
     logChoice(replace ? 'change' : engineTop && cardId(engineTop) === cardId(card) ? 'confirm' : 'correct', { ...result, engineTop }, card);
+    if (searchMode) { searchFrom(card, result, options); return; }
     if (replace) { changeVersion(replace, card); return; }
     const code = LANG_CODE[card.categoryId]; // elegir una impresión en otro idioma cambia el idioma de la carta agregada
     addPicked({ ...result, engineTop, ...(code ? { language: { ...(result.language || {}), code: code === 'JP' ? 'ja' : code.toLowerCase() } } : {}), top: [card, ...(result.top || []).filter((item) => cardId(item) !== cardId(card))], same: options.filter((item) => cardId(item) !== cardId(card)) });
   };
   const searchManually = () => {
-    const name = baseName(pick.result.top?.[0]?.name) || pick.result.top?.[0]?.name || '';
+    const first = pick.result.top?.[0];
+    const name = baseName(first?.name) || first?.name || '';
     closePick();
+    if (searchMode) {
+      const tcg = GAME_OF[first?.categoryId];
+      requestClose(() => { onClose(); navigate(`/cartas?q=${encodeURIComponent(name)}${tcg ? `&tcg=${encodeURIComponent(tcg)}` : ''}`); });
+      return;
+    }
     requestClose(() => { onClose(); batch.onManualSearch?.(name); });
   };
   const addPicked = async (result) => {
@@ -372,7 +382,7 @@ export default function ScanModal({ onClose, batch, origin }) {
     buzz();
     contribute(added);
   };
-  const { message, guide, view, cameraError, retryCamera } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: true, batch: Boolean(batch), paused: Boolean(pick), onCard: handleBatchCard });
+  const { message, guide, view, cameraError, retryCamera } = useCardScanner({ videoRef, areaRef, guideRef, games, enabled: true, batch: true, paused: Boolean(pick), onCard: handleBatchCard });
   const best = view.result?.top?.[0];
   const removeScanned = (index) => {
     const entry = tray[index];
@@ -381,7 +391,8 @@ export default function ScanModal({ onClose, batch, origin }) {
     setTray((previous) => previous.filter((_, position) => position !== index));
   };
 
-  const openSearch = async (card) => {
+  const openSearch = async (card, source) => {
+    const found = source || view.result;
     // Una carta reconocida en español (TCGdex) se vende con el id de su gemela inglesa y con su nombre en inglés: se agrega para ordenar y buscar las ofertas
     const twin = card.categoryId === 100 && Number(card.productId) >= 9000000
       ? await api.getEnglishTwin(card.productId).then((response) => (response?.cards || []).slice(0, 3)).catch(() => [])
@@ -390,15 +401,21 @@ export default function ScanModal({ onClose, batch, origin }) {
     if (GAME_OF[card.categoryId]) params.set('tcg', GAME_OF[card.categoryId]);
     // La búsqueda muestra primero lo más parecido a lo escaneado: la carta encontrada y, después, las demás por parecido
     const key = (item) => `${item.categoryId}:${item.productId}`;
-    const scanOrder = [key(card), ...twin.map(key), ...[...view.result.top, ...(view.result.same || [])].filter((item) => key(item) !== key(card)).sort((a, b) => b.score - a.score).map(key)].filter((value) => !value.includes('null'));
-    const scanned = [card, ...twin.map((item) => ({ ...item, set: '', image: '', score: 0 })), ...[...view.result.top, ...(view.result.same || [])].filter((item) => key(item) !== key(card)).sort((a, b) => b.score - a.score)]
+    const scanOrder = [key(card), ...twin.map(key), ...[...found.top, ...(found.same || [])].filter((item) => key(item) !== key(card)).sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).map(key)].filter((value) => !value.includes('null'));
+    const scanned = [card, ...twin.map((item) => ({ ...item, set: '', image: '', score: 0 })), ...[...found.top, ...(found.same || [])].filter((item) => key(item) !== key(card)).sort((a, b) => (b.score ?? 0) - (a.score ?? 0))]
       .filter((item) => item.productId != null && item.categoryId != null)
       .map((item) => ({ categoryId: item.categoryId, productId: item.productId, groupId: item.groupId ?? null, name: item.name, number: item.number || '', set: item.set || '', image: item.image || '' }))
       .slice(0, 40);
     onClose();
     navigate(`/cartas${params.toString() ? `?${params.toString()}` : ''}`, { state: { scanOrder, scanned, scanName: baseName((twin[0] || card).name) || (twin[0] || card).name } });
   };
-  useEffect(() => { if (!batch && view.done && best) { buzz(); setFlash((value) => value + 1); later(() => requestClose(() => openSearch(best)), 650); } }, [view.done]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Modo búsqueda: la carta elegida (o la única candidata) se busca en «Cartas»; las demás impresiones que dio la hoja van detrás en el orden de parecido
+  const searchFrom = (card, result, options) => {
+    if (!card) return;
+    buzz();
+    setFlash((value) => value + 1);
+    requestClose(() => openSearch(card, { top: [card, ...(result.top || []).filter((item) => cardId(item) !== cardId(card))], same: [...options.filter((item) => cardId(item) !== cardId(card)), ...(result.same || [])] }));
+  };
 
   // La fila de juegos se desplaza sola hasta el elegido (al abrir el visor ya puede estar fuera de la vista)
   useEffect(() => {
@@ -529,8 +546,7 @@ export default function ScanModal({ onClose, batch, origin }) {
             <button type="button" onClick={() => requestClose()} className="h-11 shrink-0 rounded-full bg-gradient-to-b from-[#ffd84a] to-[#ffcb05] px-5 text-sm font-extrabold text-[#1a1400] shadow-[0_6px_18px_-6px_rgba(255,203,5,0.6)] transition-[transform,filter] duration-150 hover:brightness-105 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">Listo ({tray.length})</button>
           </div>
         )}
-        {batch ? (
-          <div className="flex w-full max-w-xl flex-col items-center gap-2">
+        <div className="flex w-full max-w-xl flex-col items-center gap-2">
             <AnimatePresence>
               {prefsOpen && (
                 <motion.div key="scan-prefs" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: 0.18 }} className="scan-glass w-full space-y-2.5 rounded-[22px] p-3">
@@ -541,7 +557,7 @@ export default function ScanModal({ onClose, batch, origin }) {
                     </>
                   )}
                   <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-xl px-1 text-left text-[13px] font-semibold text-slate-100">
-                    <span>Agregar sin preguntar<span className="block text-[11px] font-medium text-slate-300">Solo cuando la carta es clara{isPokemonBatch ? ' y el idioma está fijado' : ''}</span></span>
+                    <span>{searchMode ? 'Buscar sin preguntar' : 'Agregar sin preguntar'}<span className="block text-[11px] font-medium text-slate-300">Solo cuando la carta es clara{isPokemonBatch ? ' y el idioma está fijado' : ''}</span></span>
                     <input type="checkbox" checked={prefs.quick} onChange={(event) => setPref({ quick: event.target.checked })} className="h-5 w-5 shrink-0 accent-[#ffcb05]" />
                   </label>
                 </motion.div>
@@ -549,11 +565,10 @@ export default function ScanModal({ onClose, batch, origin }) {
             </AnimatePresence>
             <button type="button" onClick={() => setPrefsOpen((open) => !open)} aria-expanded={prefsOpen} className="scan-glass flex min-h-11 items-center gap-2 rounded-full px-4 py-2 text-xs font-bold text-slate-200 transition-[background-color,transform] duration-150 hover:bg-white/10 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffcb05]">
               <SvgIcon name="tune" translate="no" aria-hidden="true" className="text-[16px] text-[#ffcb05]" />
-              {isPokemonBatch ? `Pokémon · ${prefs.lang === 'auto' ? 'idioma automático' : prefs.lang === '3' ? 'inglés' : prefs.lang === '100' ? 'español' : 'japonés'}${prefs.finish ? ` · ${prefs.finish}` : ''}` : batch.label}
+              {isPokemonBatch ? `Pokémon · ${prefs.lang === 'auto' ? 'idioma automático' : prefs.lang === '3' ? 'inglés' : prefs.lang === '100' ? 'español' : 'japonés'}${prefs.finish ? ` · ${prefs.finish}` : ''}` : (batch ? batch.label : SCAN_GAMES.find((item) => item.value === game)?.label || '')}
               {prefs.quick && <span className="rounded-full bg-[#ffcb05] px-1.5 text-[10px] font-extrabold text-[#1a1400]">directo</span>}
             </button>
-          </div>
-        ) : (
+        {searchMode && (
         <LiquidTabs
           ariaLabel="Juego a buscar"
           layout="inline"
@@ -567,9 +582,10 @@ export default function ScanModal({ onClose, batch, origin }) {
           inactiveTextClassName="text-slate-300 hover:text-white"
         />
         )}
+          </div>
       </div>
 
-      <PickCardSheet finishPref={isPokemonBatch ? prefs.finish : ''} pick={batch ? pick : null} onClose={dismissPick} onChoose={choosePick} onLang={(value) => setPick((current) => current && { ...current, lang: value })} onManual={batch?.onManualSearch ? searchManually : null} />
+      <PickCardSheet finishPref={isPokemonBatch ? prefs.finish : ''} pick={pick} onClose={dismissPick} onChoose={choosePick} onLang={(value) => setPick((current) => current && { ...current, lang: value })} onManual={searchMode || batch?.onManualSearch ? searchManually : null} />
     </div>,
     document.body
   );
