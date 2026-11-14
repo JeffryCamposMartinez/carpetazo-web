@@ -256,22 +256,34 @@ export default function ScanModal({ onClose, batch, origin }) {
     const name = baseName(first.name) || first.name;
     // Un pedido por idioma (en paralelo) y por páginas hasta agotar el catálogo: así no se pierden impresiones ni las de liga
     const wanted = LANG_CODE[first.categoryId] !== undefined ? ['en', 'es', 'ja'] : [''];
-    const fetchLang = async (lang) => {
+    const keyOf = (card) => plain(baseName(card.name) || card.name);
+    const fetchLang = async (lang, text) => {
       const found = [];
       let position = 0; // orden en que el catálogo entrega las cartas de este idioma
       try {
         for (let page = 1; page <= 8; page += 1) {
-          const response = await api.searchTcgIndex(name, game, page, '', false, lang);
+          const response = await api.searchTcgIndex(text, game, page, '', false, lang);
           if (seq !== pickSeq.current) return found;
-          found.push(...(response?.cards || []).map((card) => ({ ...fromIndex(card), apiIndex: position += 1 })).filter((card) => plain(baseName(card.name) || card.name) === plain(name)));
+          found.push(...(response?.cards || []).map((card) => ({ ...fromIndex(card), apiIndex: position += 1 })));
           if (!response?.cards?.length || page >= (response.pages || 1)) break;
         }
       } catch (_error) { /* de ese idioma quedan las que ya llegaron */ }
       return found;
     };
-    const streams = await Promise.all(wanted.map(fetchLang));
-    const extra = streams.flat();
-    const order = new Map(streams[0].map((card) => [card.productId, card.apiIndex])); // el orden del listado en inglés
+    const streams = await Promise.all(wanted.map((lang) => fetchLang(lang, name)));
+    // El nombre en español no siempre es el del catálogo en inglés («Energía Psychic Telepática» / «Telepathic Psychic Energy»): si ninguna carta lleva el nombre
+    // reconocido, las que llegaron del idioma español son las ligadas a ella y su nombre se usa también para traer las impresiones en inglés y japonés
+    const spanishAt = wanted.indexOf('es');
+    let alias = '';
+    if (spanishAt >= 0 && !streams[spanishAt].some((card) => keyOf(card) === plain(name))) {
+      const counts = new Map();
+      streams[spanishAt].forEach((card) => counts.set(keyOf(card), { text: baseName(card.name) || card.name, total: (counts.get(keyOf(card))?.total || 0) + 1 }));
+      alias = [...counts.values()].sort((x, y) => y.total - x.total)[0]?.text || '';
+    }
+    const aliasStreams = alias && seq === pickSeq.current ? await Promise.all(wanted.filter((lang) => lang !== 'es').map((lang) => fetchLang(lang, alias))) : [];
+    const accepted = new Set([plain(name), ...(alias ? [plain(alias)] : [])]);
+    const extra = [...streams, ...aliasStreams].flat().filter((card) => accepted.has(keyOf(card)));
+    const order = new Map([...streams[0], ...aliasStreams.flat().filter((card) => LANG_CODE[card.categoryId] === 'EN')].map((card) => [card.productId, card.apiIndex])); // el orden del listado en inglés
     if (seq === pickSeq.current) setPick((current) => current && { ...current, options: mergeOptions(current.options, extra, order), loading: false });
   };
   const choosePick = (card) => {

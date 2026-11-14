@@ -10,6 +10,7 @@ import { CARD_SEARCH_TCG_ALIASES, sameCardMatch } from '../core/listing.js';
 import { isValidComuna } from '../core/chileData.js';
 import { PUBLIC_PLAN_RELATIONS_SELECT, withPublicPlanBadge } from '../core/publicSeller.js';
 import { isVerifiedSeller } from '../core/sellerTrust.js';
+import { withCatalogImages } from '../core/cardImages.js';
 import { loadCatalogSales } from '../core/catalogPage.js';
 import { badRequest } from '../core/validation.js';
 import { bumpMetric, searchKey } from '../core/metrics.js';
@@ -420,7 +421,7 @@ router.get('/api/cards/search', async (req, res) => {
       total,
       page,
       pages: Math.max(1, Math.ceil(total / CARD_SEARCH_PAGE_SIZE)),
-      cards: cards.map(({ data, _boost, folder, ...card }) => ({
+      cards: (await withCatalogImages(prisma, cards)).map(({ data, _boost, folder, ...card }) => ({
         ...card,
         folder: { id: folder.id, name: folder.name, tcg: folder.tcg, user: folder.user },
         language: data && typeof data === 'object' ? data.language || null : null,
