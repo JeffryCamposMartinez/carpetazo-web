@@ -6,7 +6,7 @@ import { proposeCatalogPhoto } from '../core/catalogPhotos.js';
 import { prisma } from '../core/db.js';
 import { hashIp } from '../core/hashing.js';
 import { routeLimiter } from '../core/limits.js';
-import { engineConfigured, engineFetch, engineStatus } from '../core/visionEngine.js';
+import { engineConfigured, engineFetch, engineStatus, warmEngine } from '../core/visionEngine.js';
 import { badRequest, isAllowedStoredImageUrl } from '../core/validation.js';
 
 const router = express.Router();
@@ -181,7 +181,8 @@ router.post('/api/scanner/choice', authenticateToken, routeLimiter(60 * 1000, 12
 });
 
 // ¿Puede responder el escáner ahora? Solo sí o no (sin direcciones ni claves): lo usan la vigilancia de producción y la web para ofrecer buscar por nombre
-router.get('/api/scanner/status', routeLimiter(60 * 1000, 60), (_req, res) => {
+router.get('/api/scanner/status', routeLimiter(60 * 1000, 60), (req, res) => {
+  if (req.query.warm === '1') warmEngine(); // la web lo pide al abrir la cámara
   const status = engineStatus();
   res.set('Cache-Control', 'no-store');
   res.json({ success: true, available: engineConfigured() && status.available, backup: status.backup, usingBackup: status.usingBackup });

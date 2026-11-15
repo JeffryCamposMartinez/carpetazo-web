@@ -105,5 +105,16 @@ export function startEngineWatch() {
   probeTimer.unref?.();
 }
 
+// Calienta la conexión con el motor justo antes de escanear (la web lo pide al abrir la cámara): así la primera foto no paga la conexión.
+// Una vez cada 10 s como máximo, sin esperar la respuesta y sin contar como fallo ni como acierto del motor.
+let lastWarmAt = 0;
+export const warmEngine = () => {
+  const now = Date.now();
+  if (!engineConfigured() || process.env.TEST_AUTH_STUB === '1' || now - lastWarmAt < 10000) return false;
+  lastWarmAt = now;
+  fetch(`${engines().primary.url}/health`, { signal: AbortSignal.timeout(4000), redirect: 'error' }).catch(() => {});
+  return true;
+};
+
 // Solo para las pruebas
-export const __resetEngineState = () => Object.assign(state, { failures: 0, downSince: null, lastAlertAt: 0, alerted: false, lastOkAt: 0, lastCheckAt: 0, usingFallback: false });
+export const __resetEngineState = () => { lastWarmAt = 0; return Object.assign(state, { failures: 0, downSince: null, lastAlertAt: 0, alerted: false, lastOkAt: 0, lastCheckAt: 0, usingFallback: false }); };

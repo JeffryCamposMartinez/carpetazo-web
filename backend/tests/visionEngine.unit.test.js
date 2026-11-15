@@ -67,3 +67,21 @@ test('si el motor principal vuelve, el estado se recupera', async () => {
   assert.equal(engineStatus().failures, 0);
   primary.server.close();
 });
+
+test('warmEngine: no hace nada sin motor configurado y solo una vez cada 10 s', async () => {
+  const before = { url: process.env.VISION_ENGINE_URL, key: process.env.VISION_ENGINE_KEY, stub: process.env.TEST_AUTH_STUB };
+  const { warmEngine, __resetEngineState } = await import('../core/visionEngine.js');
+  delete process.env.TEST_AUTH_STUB;
+  delete process.env.VISION_ENGINE_URL;
+  assert.equal(warmEngine(), false);
+  const server = http.createServer((_req, res) => res.end('ok'));
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  process.env.VISION_ENGINE_URL = `http://127.0.0.1:${server.address().port}`;
+  process.env.VISION_ENGINE_KEY = 'k';
+  __resetEngineState();
+  assert.equal(warmEngine(), true);
+  assert.equal(warmEngine(), false);
+  server.close();
+  for (const [name, value] of [['VISION_ENGINE_URL', before.url], ['VISION_ENGINE_KEY', before.key], ['TEST_AUTH_STUB', before.stub]]) { if (value === undefined) delete process.env[name]; else process.env[name] = value; }
+  __resetEngineState();
+});

@@ -205,6 +205,8 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
         window.clearTimeout(timeout);
         state.abort = null;
         state.busy = false;
+        // La siguiente lectura no espera al próximo ciclo del reloj (hasta 150 ms): se evalúa apenas termina esta. Las mismas condiciones de siempre aplican.
+        if (!state.stopped && !state.confirmed) window.setTimeout(tick, 0);
       }
     };
 
@@ -240,6 +242,7 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
     (async () => {
       try {
         if (!navigator.mediaDevices?.getUserMedia) throw new Error('Este navegador no permite usar la cámara.');
+        api.warmScanner().catch(() => {}); // abre la conexión con el servidor y el motor mientras la cámara se prepara: la primera foto no paga la espera
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
         if (state.stopped) { stream.getTracks().forEach((track) => track.stop()); return; }
         const video = videoRef.current;

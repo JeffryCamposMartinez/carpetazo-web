@@ -306,6 +306,7 @@ export const api = {
   updateWishlistItem: (id, data) => apiFetch('/wishlist/' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(data) }),
   deleteWishlistItem: (id) => apiFetch('/wishlist/' + encodeURIComponent(id), { method: 'DELETE' }),
   // Escáner de cartas: un cuadro JPEG de la cámara; `crop` = marco en fracciones «x,y,ancho,alto», `games` = ids de categoría separados por coma
+  warmScanner: () => apiFetch('/scanner/status?warm=1'),
   scanCard: (blob, { crop = '', games = '' } = {}) => apiFetch('/scanner/scan', { method: 'POST', isMultipart: true, body: blob, headers: { 'Content-Type': 'image/jpeg', ...(crop ? { 'x-crop': crop } : {}), ...(games ? { 'x-games': games } : {}) } }),
   // Lo que la persona eligió en «Selecciona tu carta» (solo se registra; si falla no se avisa)
   logScanChoice: (body) => apiFetch('/scanner/choice', { method: 'POST', body: JSON.stringify(body) }).catch(() => null),
