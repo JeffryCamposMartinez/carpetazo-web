@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
+import { track } from '../../analytics/tracker';
 import { ButtonSpinner } from '../ui/LoadingState';
 import SvgIcon from '../ui/SvgIcon';
 import { useToast } from '../ui/ToastProvider';
@@ -30,6 +31,7 @@ export default function StoreEvents({ username }) {
     setBusy(e.id);
     try {
       const r = e.mine ? await api.leaveStoreEvent(e.id) : await api.signupStoreEvent(e.id);
+      if (!e.mine) track('store_event_signup');
       setData((d) => ({ ...d, events: d.events.map((x) => (x.id === e.id ? r.event : x)) }));
       showToast(e.mine ? 'Saliste del evento' : r.event.mine === 'waitlist' ? 'Quedaste en lista de espera: te avisamos si se libera un cupo' : '¡Listo! Te inscribiste. La inscripción se paga en el local', 'success');
     } catch (error) {

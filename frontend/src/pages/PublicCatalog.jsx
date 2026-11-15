@@ -1,4 +1,4 @@
-import { track } from '../analytics/tracker';
+import { track, gameOfName } from '../analytics/tracker';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api, { API_BASE_URL, apiFetch } from '../services/api';
@@ -286,6 +286,8 @@ function PublicCatalog() {
     + (onlyAvailable ? 1 : 0) + (sortBy !== 'featured' ? 1 : 0);
 
   const isOwner = Boolean(sellerData?.isOwner) || ownsFolder;
+  const viewedFolder = folderData?.id;
+  useEffect(() => { if (viewedFolder) track('folder_viewed', { game: gameOfName(folderData.tcg), own: isOwner }); }, [viewedFolder]); // eslint-disable-line react-hooks/exhaustive-deps
   const messageMode = !sellerData?.phone; // sin WhatsApp público el pedido viaja por mensajes
   useEffect(() => {
     if (!currentUser?.uid || !folderData) { setOwnsFolder(false); return; }
@@ -313,6 +315,7 @@ function PublicCatalog() {
       return;
     }
     setIsProcessingCheckout(true);
+    track('checkout_started', { via: 'mensaje' });
     try {
       const response = await api.createOrder({ folderId, via: 'message', coupon: appliedCoupon?.code, items: cart.map((item) => ({ id: item.id, quantity: item.quantity })) });
       setCart([]);
@@ -337,6 +340,7 @@ function PublicCatalog() {
     }
     if (isOwner) { showToast('No puedes reservarte cartas a ti mismo.', 'error'); return; }
     setIsProcessingCheckout(true);
+    track('checkout_started', { via: 'retiro' });
     try {
       const response = await api.createOrder({ folderId, via: 'pickup', coupon: appliedCoupon?.code, items: cart.map((item) => ({ id: item.id, quantity: item.quantity })) });
       setCart([]);
@@ -374,6 +378,7 @@ function PublicCatalog() {
     }
     
     setIsProcessingCheckout(true);
+    track('checkout_started', { via: 'whatsapp' });
     try {
             // 1. Guardar la orden en la base de datos
       const orderResponse = await api.createOrder({
@@ -424,6 +429,13 @@ function PublicCatalog() {
   const availableRarities = useMemo(() => [...new Set(cards.map(c => c.rarity).filter(Boolean))].sort(), [cards]);
   const totalStock = useMemo(() => cards.reduce((sum, card) => sum + Number(card.stock || 0), 0), [cards]);
   const availableCardsCount = useMemo(() => cards.filter(card => Number(card.stock || 0) > 0).length, [cards]);
+
+  // Búsqueda dentro del catálogo: se mide una vez que el texto deja de cambiar
+  useEffect(() => {
+    if (!folderData || searchQuery.trim().length < 2) return undefined;
+    const t = window.setTimeout(() => track('search', { game: gameOfName(folderData.tcg), scope: 'catalogo', filters: [searchSet, selectedSupertype, selectedType, mylType, mylRace, mylCost].filter(Boolean).length }), 1200);
+    return () => window.clearTimeout(t);
+  }, [searchQuery, searchSet, selectedSupertype, selectedType, mylType, mylRace, mylCost]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const nextFilters = {

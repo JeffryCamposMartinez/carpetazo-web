@@ -1,5 +1,6 @@
 import { formatWhatsAppNumber, getInstagramHref, getSocialHref } from '../utils/contact';
 import { loadThemeFonts } from '../utils/themeFonts';
+import { track } from '../analytics/tracker';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../services/api';
@@ -91,6 +92,7 @@ export default function SellerProfile() {
     try {
       const result = await api.getUserProfile(sellerUsername);
       const user = result.user;
+      track('profile_viewed', { own: Boolean(user.isOwner), isStore: user.planBadge?.key === 'store' });
       setSeller(user);
       markThemeSaved(user.publicTheme);
       setFolders((user.folders || []).map(normalizeFolder));

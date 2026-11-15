@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
+import { track, trackForm } from '../../analytics/tracker';
 
 // Pantalla que bloquea el uso de la cuenta hasta aceptar los Términos y Condiciones vigentes.
 // Aparece en el primer ingreso y cada vez que cambia la versión. No se puede cerrar: solo aceptar o salir.
@@ -23,6 +24,11 @@ export default function AcceptTermsGate() {
   useEffect(() => {
     if (visible && chooseUsername && appUser?.username) setUsername(appUser.username);
   }, [visible, chooseUsername, appUser?.username]);
+
+  // Cuenta nueva (elige su usuario): empieza el registro. Cuentas que ya existían solo reaceptan textos.
+  useEffect(() => {
+    if (visible && chooseUsername) { track('signup_started', { method: 'google' }); trackForm.start('signup'); }
+  }, [visible, chooseUsername]);
 
   // El fondo no se desplaza y el foco entra al cuadro
   useBodyScrollLock(visible);
@@ -63,6 +69,7 @@ export default function AcceptTermsGate() {
     try {
       const chosen = username.trim();
       await acceptTerms(chooseUsername && chosen && chosen !== appUser?.username ? { username: chosen } : {});
+      if (chooseUsername) trackForm.done('signup');
     } catch (err) {
       setError(err.status === 409 && err.code !== 'terms_version_changed' ? 'Ese usuario ya está en uso. Elige otro.' : (err.message || 'No pudimos guardar tu aceptación. Intenta de nuevo.'));
       setBusy('');
@@ -71,6 +78,7 @@ export default function AcceptTermsGate() {
 
   const leave = async () => {
     setBusy('leave');
+    if (chooseUsername) trackForm.abandon('signup');
     await declineTerms();
   };
 

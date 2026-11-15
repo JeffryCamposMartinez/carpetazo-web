@@ -4,6 +4,7 @@ import { warmUpGoogleSignIn } from '../../services/firebase';
 import { markAcceptedBeforeLogin, clearPendingAcceptance } from '../../legal/pending';
 import LoadingState, { ButtonSpinner } from '../ui/LoadingState';
 import SvgIcon from '../ui/SvgIcon';
+import { track } from '../../analytics/tracker';
 
 const inputClass = 'w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white transition-all text-gray-800';
 const primaryButtonClass = 'w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50';
@@ -117,9 +118,11 @@ export default function AuthModal({ isOpen, onClose }) {
     markAcceptedBeforeLogin();
     try {
       await loginWithGoogle();
+      track('login', { method: 'google' });
       onClose();
     } catch (err) {
       clearPendingAcceptance();
+      if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') track('login_failed', { method: 'google', reason: String(err.code || 'error').replace('auth/', '') });
       console.error(err);
       if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
         setErrorMsg('No pudimos iniciar sesión con Google. Intenta de nuevo.');
@@ -137,9 +140,11 @@ export default function AuthModal({ isOpen, onClose }) {
     markAcceptedBeforeLogin();
     try {
       await loginWithEmail(email, password);
+      track('login', { method: 'email' });
       onClose();
     } catch (err) {
       clearPendingAcceptance();
+      track('login_failed', { method: 'email', reason: String(err.code || err.message || 'error').replace('auth/', '') });
       console.error(err);
       if (err.message === 'auth/email-not-verified') {
         setView('verify-sent');

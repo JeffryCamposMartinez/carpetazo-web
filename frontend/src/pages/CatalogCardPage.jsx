@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../services/api';
+import { track, gameOfName } from '../analytics/tracker';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/ToastProvider';
 import LoadableImage from '../components/ui/LoadableImage';
@@ -39,7 +40,7 @@ export default function CatalogCardPage() {
     let active = true;
     setStatus('loading'); setData(null); setWished(false);
     api.getCatalogCard(productId)
-      .then((json) => { if (active) { setData(json); setStatus('ready'); } })
+      .then((json) => { if (active) { setData(json); setStatus('ready'); track('card_viewed', { game: gameOfName(json?.card?.gameLabel) }); } })
       .catch((error) => { if (active) setStatus(/no encontrada|404/i.test(error.message || '') ? 'missing' : 'failed'); });
     return () => { active = false; };
   }, [productId]);

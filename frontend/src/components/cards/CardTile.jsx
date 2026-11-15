@@ -1,3 +1,4 @@
+import { track, gameOfName } from '../../analytics/tracker';
 import ConditionStars from '../ui/ConditionStars';
 import { Link } from 'react-router-dom';
 import LoadableImage from '../ui/LoadableImage';
@@ -79,13 +80,14 @@ export function CardTileSkeleton({ view }) {
 }
 
 export default function CardTile({ card, index, view, wanted, onWish }) {
+  const clicked = () => track('search_result_click', { game: gameOfName(card.folder?.tcg), rank: (Number(index) || 0) + 1 });
   const isNew = card.createdAt && Date.now() - new Date(card.createdAt).getTime() < NEW_WINDOW_MS;
   const meta = card.set || '';
 
   if (view === 'list') {
     return (
       <li className="card-enter relative min-w-0" style={{ '--i': index }}>
-        <Link to={`/carta/${card.id}`} className={`group flex gap-3 rounded-2xl p-2.5 pr-14 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${SURFACE} ${LIFT}`}>
+        <Link to={`/carta/${card.id}`} onClick={clicked} className={`group flex gap-3 rounded-2xl p-2.5 pr-14 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${SURFACE} ${LIFT}`}>
           <span className="relative block w-[5.5rem] shrink-0 overflow-hidden rounded-xl bg-slate-100" style={{ aspectRatio: cardRatio(card.folder?.tcg) }}>
             <CardImage card={card} className="absolute inset-1.5 h-[calc(100%-0.75rem)] w-[calc(100%-0.75rem)] rounded-md object-contain" />
             <span className="absolute bottom-1.5 left-1.5"><StateTag condition={card.condition} /></span>
@@ -111,7 +113,7 @@ export default function CardTile({ card, index, view, wanted, onWish }) {
 
   return (
     <li className="card-enter relative min-w-0" style={{ '--i': index }}>
-      <Link to={`/carta/${card.id}`} className={`group flex h-full flex-col overflow-hidden rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${SURFACE} ${LIFT}`}>
+      <Link to={`/carta/${card.id}`} onClick={clicked} className={`group flex h-full flex-col overflow-hidden rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af] ${SURFACE} ${LIFT}`}>
         <span className="relative block w-full overflow-hidden bg-slate-100" style={{ aspectRatio: cardRatio(card.folder?.tcg) }}>
           <CardImage card={card} className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-md object-contain" />
           {(isNew || card.featured || card.language || isMyl(card)) && (

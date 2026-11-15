@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
+import { track } from '../../analytics/tracker';
 import SvgIcon from '../ui/SvgIcon';
 import { useToast } from '../ui/ToastProvider';
 
@@ -26,6 +27,7 @@ export default function StoreFollowButton({ username }) {
     try {
       const r = state.following ? await api.unfollowStore(username) : await api.followStore(username);
       setState((s) => ({ ...s, following: r.following, followers: r.followers ?? Math.max(0, s.followers - 1) }));
+      if (r.following) track('store_followed');
       if (r.following) showToast('Ahora sigues esta tienda: te avisaremos de sus eventos y ofertas', 'success');
     } catch (error) { showToast(error.message || 'No se pudo completar', 'error'); } finally { setBusy(false); }
   };

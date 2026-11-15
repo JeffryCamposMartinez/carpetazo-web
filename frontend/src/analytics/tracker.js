@@ -55,10 +55,25 @@ const context = () => {
 const GAME_BY_CATEGORY = { 1: 'pokemon', 99: 'myl', 68: 'onepiece', yugioh: 'yugioh', magic: 'magic', riftbound: 'riftbound', lorcana: 'lorcana', digimon: 'digimon' };
 export const gameOf = (category) => GAME_BY_CATEGORY[String(category)] || 'otro';
 
+// Nombre del juego mostrado en la web (Pokemon, Yu-Gi-Oh!, Mitos y Leyendas…) -> clave del catálogo de eventos
+export const gameOfName = (name) => {
+  const n = String(name || '').toLowerCase().replace(/[^a-z]/g, '');
+  const hit = [['pokemon', 'pokemon'], ['magic', 'magic'], ['yugioh', 'yugioh'], ['onepiece', 'onepiece'], ['lorcana', 'lorcana'], ['digimon', 'digimon'], ['riftbound', 'riftbound'], ['mitos', 'myl']].find(([k]) => n.includes(k));
+  return hit ? hit[1] : 'otro';
+};
+
 export const track = (name, props = {}) => {
   if (!active || !KNOWN.has(name)) return;
   queue.push({ id: uuid(), name, at: new Date().toISOString(), path: location.pathname, props });
   if (queue.length >= MAX_BATCH) flush();
+};
+
+// Formularios: empezó / terminó / abandonó (con los segundos que pasó en él). Cada formulario cuenta una sola vez por apertura.
+const forms = new Map();
+export const trackForm = {
+  start(form) { if (forms.has(form)) return; forms.set(form, Date.now()); track('form_started', { form }); },
+  done(form) { const t = forms.get(form); if (!t) return; forms.delete(form); track('form_completed', { form, sec: Math.round((Date.now() - t) / 1000) }); },
+  abandon(form) { const t = forms.get(form); if (!t) return; forms.delete(form); track('form_abandoned', { form, sec: Math.round((Date.now() - t) / 1000) }); }
 };
 
 const send = async (events, beacon) => {
