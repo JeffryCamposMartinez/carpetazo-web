@@ -20,6 +20,7 @@ import CatalogPhotosPanel from '../components/moderation/CatalogPhotosPanel';
 import VerificationsPanel from '../components/moderation/VerificationsPanel';
 import StoreVerificationsPanel from '../components/moderation/StoreVerificationsPanel';
 import CatalogSyncPanel from '../components/moderation/CatalogSyncPanel';
+import IntelligencePanel from '../components/moderation/intelligence/IntelligencePanel';
 import ModNav from '../components/moderation/ModNav';
 import LoadingState from '../components/ui/LoadingState';
 import SvgIcon from '../components/ui/SvgIcon';
@@ -29,6 +30,7 @@ const GROUPS = [
   { id: 'queue', label: 'Cola de trabajo' },
   { id: 'people', label: 'Personas' },
   { id: 'catalog', label: 'Catálogo' },
+  { id: 'intel', label: 'Inteligencia' },
   { id: 'system', label: 'Sistema' }
 ];
 const TABS = [
@@ -42,6 +44,13 @@ const TABS = [
   { id: 'account', group: 'people', label: 'Cuenta completa', shortLabel: 'Cuenta', icon: 'badge', min: 3, blurb: 'Todos los datos de una persona, sus planes con todas las fechas, y cambiarlos avisándole con un mensaje.' },
   { id: 'team', group: 'people', label: 'Equipo y administradores', shortLabel: 'Equipo', icon: 'admin_panel_settings', min: 3, blurb: 'Quién es del equipo y cómo dar el rol de administrador a otra persona, con doble confirmación.' },
   { id: 'reviews', group: 'people', label: 'Reseñas marcadas', shortLabel: 'Reseñas', icon: 'reviews', min: 3, blurb: 'Reseñas reportadas o sospechosas, para aprobarlas o eliminarlas.' },
+  { id: 'intel_overview', group: 'intel', label: 'Resumen ejecutivo', shortLabel: 'Resumen', icon: 'bar_chart', min: 3, blurb: 'Las cifras clave de Carpetazo con su variación contra el periodo anterior. Cada cifra indica de dónde sale y desde cuándo se mide.' },
+  { id: 'intel_audience', group: 'intel', label: 'Audiencia', icon: 'groups', min: 3, blurb: 'Quién visita, desde dónde llega, qué páginas usa y cuántas personas vuelven.' },
+  { id: 'intel_product', group: 'intel', label: 'Producto', icon: 'inventory_2', min: 3, blurb: 'Carpetas, cartas, deseadas, búsquedas, escáner y comunidad, por juego.' },
+  { id: 'intel_funnels', group: 'intel', label: 'Embudos', icon: 'filter_alt_off', min: 3, blurb: 'Dónde se pierde la gente en el registro, la primera carpeta, el escáner, la compra y la suscripción.' },
+  { id: 'intel_business', group: 'intel', label: 'Negocio', icon: 'payments', min: 3, blurb: 'Ingresos confirmados por Mercado Pago, planes y suscripciones. No se cuenta nada que no esté aprobado.' },
+  { id: 'intel_health', group: 'intel', label: 'Salud técnica', icon: 'ecg_heart', min: 3, blurb: 'Velocidad de carga, errores de la web y tiempos de respuesta de la API.' },
+  { id: 'intel_explorer', group: 'intel', label: 'Explorador de datos', shortLabel: 'Explorador', icon: 'travel_explore', min: 3, blurb: 'Cruza eventos medidos por día, página, dispositivo o juego, y exporta a CSV.' },
   { id: 'metrics', group: 'system', label: 'Métricas', icon: 'monitoring', min: 3, blurb: 'Cómo está funcionando la moderación: volumen, tiempos y resultados.' },
   { id: 'audit', group: 'system', label: 'Auditoría', icon: 'history', min: 3, blurb: 'Todo lo que se decide queda registrado, con quién lo hizo.' },
   { id: 'myl', group: 'catalog', label: 'Mitos y Leyendas', shortLabel: 'Mitos y Leyendas', icon: 'library_add', min: 99, blurb: 'Sube las cartas que faltan y corrige las que se subieron desde aquí: datos, edición e imagen. El barrido de las 2 am no las toca.' },
@@ -164,6 +173,7 @@ export default function Moderation() {
               {tab === 'verifications' && level >= 2 && <><VerificationsPanel /><StoreVerificationsPanel /></>}
               {tab === 'team' && level >= 3 && <TeamPanel />}
               {tab === 'reviews' && level >= 3 && <ReviewsPanel />}
+              {tab.startsWith('intel_') && level >= 3 && <IntelligencePanel view={tab.slice(6)} go={setTab} />}
               {tab === 'metrics' && level >= 3 && <MetricsPanel />}
               {tab === 'audit' && level >= 3 && <AuditPanel />}
               {tab === 'myl' && mylAccess && <MylCardsPanel />}

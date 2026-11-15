@@ -51,6 +51,10 @@ const context = () => {
   return ctxCache;
 };
 
+// Id de categoría del buscador -> clave de juego del catálogo de eventos
+const GAME_BY_CATEGORY = { 1: 'pokemon', 99: 'myl', 68: 'onepiece', yugioh: 'yugioh', magic: 'magic', riftbound: 'riftbound', lorcana: 'lorcana', digimon: 'digimon' };
+export const gameOf = (category) => GAME_BY_CATEGORY[String(category)] || 'otro';
+
 export const track = (name, props = {}) => {
   if (!active || !KNOWN.has(name)) return;
   queue.push({ id: uuid(), name, at: new Date().toISOString(), path: location.pathname, props });

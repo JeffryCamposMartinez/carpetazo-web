@@ -1,3 +1,4 @@
+import { track } from '../../analytics/tracker';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../services/api';
 import { warmFolderPreview } from '../../utils/sharePreview';
@@ -135,7 +136,7 @@ export default function FolderShareSheet({ folder, onClose, onPublished, onPdf, 
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(url);
-      api.trackMetric('share_folder');
+      api.trackMetric('share_folder'); track('folder_shared', { channel: 'otro' });
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
       showToast('Enlace copiado', 'success');
@@ -143,9 +144,9 @@ export default function FolderShareSheet({ folder, onClose, onPublished, onPdf, 
       showToast('No se pudo copiar el enlace.', 'error');
     }
   };
-  const nativeShare = () => { api.trackMetric('share_folder'); return navigator.share({ title: `Catálogo de ${folder.name}`, text, url }).catch(() => {}); };
+  const nativeShare = () => { api.trackMetric('share_folder'); track('folder_shared', { channel: 'otro' }); return navigator.share({ title: `Catálogo de ${folder.name}`, text, url }).catch(() => {}); };
   const onFacebook = () => {
-    api.trackMetric('share_folder');
+    api.trackMetric('share_folder'); track('folder_shared', { channel: 'otro' });
     navigator.clipboard?.writeText(`${text}: ${url}`).then(() => showToast('Mensaje copiado: pégalo en tu publicación si no aparece', 'success')).catch(() => {});
   };
   const downloadQr = async () => {
@@ -160,7 +161,7 @@ export default function FolderShareSheet({ folder, onClose, onPublished, onPdf, 
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(link.href), 4000);
-      api.trackMetric('share_folder');
+      api.trackMetric('share_folder'); track('folder_shared', { channel: 'otro' });
       showToast('Imagen con el QR descargada', 'success');
     } catch (_error) {
       showToast('No se pudo crear la imagen del QR.', 'error');
@@ -221,7 +222,7 @@ export default function FolderShareSheet({ folder, onClose, onPublished, onPdf, 
 
             <div className="mt-3 grid grid-cols-4 gap-2">
               {networks.map(([label, icon, href, color, onClick]) => (
-                <a key={label} href={href} target="_blank" rel="noopener noreferrer" onClick={() => { if (onClick) onClick(); else api.trackMetric('share_folder'); }} aria-label={`Compartir en ${label}`} className={TILE}>
+                <a key={label} href={href} target="_blank" rel="noopener noreferrer" onClick={() => { if (onClick) onClick(); else api.trackMetric('share_folder'); track('folder_shared', { channel: 'otro' }); }} aria-label={`Compartir en ${label}`} className={TILE}>
                   <span className={`${CIRCLE} ${color}`}><BrandIcon name={icon} /></span>
                   {label}
                 </a>

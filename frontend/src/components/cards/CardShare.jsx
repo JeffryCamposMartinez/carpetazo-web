@@ -1,3 +1,4 @@
+import { track } from '../../analytics/tracker';
 import { api } from '../../services/api';
 import { useState } from 'react';
 import { siteUrl } from '../../utils/siteUrl';
@@ -31,7 +32,7 @@ export default function CardShare({ cardId, shareUrl, name, message, showToast, 
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(url);
-      api.trackMetric('share_card');
+      api.trackMetric('share_card'); track('card_shared', { channel: 'otro' });
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
       showToast('Enlace copiado', 'success');
@@ -39,10 +40,10 @@ export default function CardShare({ cardId, shareUrl, name, message, showToast, 
       showToast('No se pudo copiar el enlace.', 'error');
     }
   };
-  const nativeShare = () => { api.trackMetric('share_card'); return navigator.share({ title: name, text, url }).catch(() => {}); };
+  const nativeShare = () => { api.trackMetric('share_card'); track('card_shared', { channel: 'otro' }); return navigator.share({ title: name, text, url }).catch(() => {}); };
   // Facebook no deja escribir la publicación por enlace (solo toma `quote`, y a veces lo ignora): se copia el mensaje completo para pegarlo
   const onFacebook = () => {
-    api.trackMetric('share_card');
+    api.trackMetric('share_card'); track('card_shared', { channel: 'otro' });
     navigator.clipboard?.writeText(`${text}: ${url}`).then(() => showToast('Mensaje copiado: pégalo en tu publicación si no aparece', 'success')).catch(() => {});
   };
 

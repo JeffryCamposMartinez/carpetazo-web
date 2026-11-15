@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
+import { track } from '../analytics/tracker';
 import LoadingState from '../components/ui/LoadingState';
 import { useToast } from '../components/ui/ToastProvider';
 import usePageMeta from '../hooks/usePageMeta';
@@ -35,7 +36,7 @@ export default function PlansPage() {
   }, [currentUser]);
 
   useEffect(() => {
-    try { if (!sessionStorage.getItem('cz-plans-view')) { sessionStorage.setItem('cz-plans-view', '1'); api.trackMetric('plans_view'); } } catch (_error) { api.trackMetric('plans_view'); }
+    try { if (!sessionStorage.getItem('cz-plans-view')) { sessionStorage.setItem('cz-plans-view', '1'); api.trackMetric('plans_view'); track('plans_viewed'); } } catch (_error) { api.trackMetric('plans_view'); }
   }, []);
 
   useEffect(() => {
@@ -127,6 +128,7 @@ export default function PlansPage() {
         showToast(billing?.source === 'grant' ? 'Tu plan lo asignó el equipo de Carpetazo: no es una suscripción y no hay nada que cancelar.' : 'Ya estás en el plan Común: no tienes una suscripción que cancelar.', 'info');
       } else {
         api.trackMetric('plan_cta', plan.key);
+        track('plan_checkout_started', { plan: plan.key });
         const response = await api.createSubscriptionCheckout(plan.key);
         window.location.assign(response.checkoutUrl);
       }

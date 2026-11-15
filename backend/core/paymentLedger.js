@@ -25,9 +25,11 @@ export const parseMercadoPagoPayment = (payment) => {
 // Dinero confirmado: solo `approved` en pesos chilenos, menos lo reembolsado
 export const confirmedAmount = (row) => (row.status === 'approved' ? Math.max(0, row.amountClp - row.refundedClp) : 0);
 
-const link = async (db, externalReference) => {
-  if (!externalReference) return { subscriptionId: null, userId: null };
-  const sub = await db.subscription.findUnique({ where: { id: externalReference }, select: { id: true, userId: true } }).catch(() => null);
+// Vincula el pago con nuestra suscripción: por external_reference (nuestro id) o por el id de preaprobación de Mercado Pago
+const link = async (db, externalReference, preapprovalId) => {
+  let sub = null;
+  if (externalReference) sub = await db.subscription.findUnique({ where: { id: String(externalReference) }, select: { id: true, userId: true } }).catch(() => null);
+  if (!sub && preapprovalId) sub = await db.subscription.findUnique({ where: { providerSubscriptionId: String(preapprovalId) }, select: { id: true, userId: true } }).catch(() => null);
   return { subscriptionId: sub?.id || null, userId: sub?.userId || null };
 };
 
@@ -36,9 +38,10 @@ export const recordMercadoPagoPayment = async (resourceId, topic, fetcher, db = 
   const id = encodeURIComponent(String(resourceId));
   let paymentId = String(resourceId);
   let source = 'payment';
+  let authorized = null;
   if (String(topic).includes('authorized_payment')) {
     source = 'authorized_payment';
-    const authorized = await fetcher(`/authorized_payments/${id}`);
+    authorized = await fetcher(`/authorized_payments/${id}`);
     const inner = authorized?.payment?.id;
     if (inner === undefined || inner === null) {
       // Forma inesperada: se guarda lo mínimo, sin dinero confirmado
@@ -49,7 +52,7 @@ export const recordMercadoPagoPayment = async (resourceId, topic, fetcher, db = 
   }
   const parsed = parseMercadoPagoPayment(await fetcher(`/v1/payments/${encodeURIComponent(paymentId)}`));
   if (!parsed) return { recorded: false };
-  const { subscriptionId, userId } = await link(db, parsed.externalReference);
+  const { subscriptionId, userId } = await link(db, parsed.externalReference || authorized?.external_reference, authorized?.preapproval_id);
   const data = { status: parsed.status, amountClp: parsed.amountClp, refundedClp: parsed.refundedClp, paidAt: parsed.paidAt, subscriptionId, userId, source };
   await db.paymentLedger.upsert({ where: { providerPaymentId: parsed.providerPaymentId }, create: { providerPaymentId: parsed.providerPaymentId, ...data }, update: data });
   return { recorded: true, status: parsed.status };

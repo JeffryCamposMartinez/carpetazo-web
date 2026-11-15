@@ -2,6 +2,7 @@
 // y confirma cuando la misma carta sale en varias lecturas seguidas. Lógica portada del visor del motor (carpetazo-vision-engine/visor/index.html).
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../services/api';
+import { track } from '../analytics/tracker';
 
 export const SCAN_GAMES = [
   { value: 'all', label: 'Todos', ids: '' },
@@ -118,6 +119,7 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
     };
 
     const finish = (result, id, votes, reads) => {
+      track('scan_succeeded', { mode: batchRef.current ? 'agregar' : 'buscar', reads });
       if (batchRef.current) { // lote: se entrega la carta, el visor sigue abierto y se espera a que la cambien
         state.hist = []; state.waitRemoval = true; state.removeTicks = 0;
         setGuide('ok'); setMessage('Carta agregada ✓ Cambia de carta');
@@ -251,10 +253,12 @@ export default function useCardScanner({ videoRef, areaRef, guideRef, games, ena
         video.srcObject = stream;
         await video.play().catch(() => {});
         setCameraError('');
+        track('scan_started', { mode: batchRef.current ? 'agregar' : 'buscar' });
         setMessage('Apunta a una carta');
         timer = window.setInterval(tick, TICK_MS);
       } catch (error) {
         const name = error?.name;
+        track('scan_failed', { mode: batchRef.current ? 'agregar' : 'buscar', reason: name === 'NotAllowedError' || name === 'SecurityError' ? 'permiso' : name === 'NotFoundError' || name === 'OverconstrainedError' ? 'sin camara' : 'camara' });
         setCameraError(name === 'NotAllowedError' || name === 'SecurityError' ? 'Permite el acceso a la cámara en tu navegador para escanear cartas.'
           : name === 'NotFoundError' || name === 'OverconstrainedError' ? 'No encontramos una cámara en este dispositivo.'
           : name === 'NotReadableError' || name === 'AbortError' ? 'La cámara está en uso por otra aplicación. Ciérrala e inténtalo de nuevo.'

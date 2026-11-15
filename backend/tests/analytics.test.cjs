@@ -152,6 +152,14 @@ const count = (where) => prisma.analyticsEvent.count({ where });
     const pid3 = pid + '3'; const apId2 = pid + '4';
     await recordMercadoPagoPayment(apId2, 'subscription_authorized_payment', mp({ [`/authorized_payments/${apId2}`]: { id: apId2, payment: { id: pid3, status: 'approved' } }, [`/v1/payments/${pid3}`]: { id: pid3, status: 'approved', transaction_amount: 9990, date_approved: '2026-11-11T09:00:00.000-03:00' } }));
     ok('un cobro autorizado se confirma consultando el pago real', confirmedAmount(await prisma.paymentLedger.findUnique({ where: { providerPaymentId: pid3 } })) === 9990);
+    // Vínculo con la suscripción por preapproval_id (db simulada, sin crear usuarios)
+    const pid4 = pid + '5'; const apId3 = pid + '6'; let saved = null;
+    const fakeDb = {
+      subscription: { findUnique: async ({ where }) => (where.providerSubscriptionId === 'pre-1' ? { id: 'sub-1', userId: 'user-1' } : null) },
+      paymentLedger: { upsert: async ({ create }) => { saved = create; } }
+    };
+    await recordMercadoPagoPayment(apId3, 'subscription_authorized_payment', mp({ [`/authorized_payments/${apId3}`]: { id: apId3, preapproval_id: 'pre-1', payment: { id: pid4 } }, [`/v1/payments/${pid4}`]: { id: pid4, status: 'approved', transaction_amount: '3990', date_approved: '2026-11-12T09:00:00.000-03:00' } }), fakeDb);
+    ok('el cobro se vincula con la suscripción por preapproval_id', saved?.subscriptionId === 'sub-1' && saved?.userId === 'user-1' && saved?.amountClp === 3990);
   } finally {
     await prisma.analyticsEvent.deleteMany({ where: { OR: [{ visitorId: { startsWith: PREFIX } }, { id: { startsWith: PREFIX } }, { userId: { startsWith: PREFIX } }] } });
     await prisma.analyticsSession.deleteMany({ where: { OR: [{ visitorId: { startsWith: PREFIX } }, { id: { startsWith: PREFIX } }] } });

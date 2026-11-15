@@ -1,3 +1,4 @@
+import { track } from '../analytics/tracker';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api, { API_BASE_URL, apiFetch } from '../services/api';
@@ -226,6 +227,7 @@ function PublicCatalog() {
   }, [folderData?.tcg, cards]);
 
   const addToCart = useCallback((card) => {
+    track('cart_add');
     setCart(prev => {
       const existing = prev.find(item => item.id === card.id);
       if (existing) {

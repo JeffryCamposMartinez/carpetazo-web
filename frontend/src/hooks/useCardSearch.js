@@ -10,6 +10,7 @@ import { DIGIMON_CATEGORY, DIGIMON_MARKER, digimonExt, digimonMatchesQuery, filt
 import { tcgcsvCategoryId } from '../services/tcgcsvGames';
 import { getExtDataValue } from '../components/folder/folderCards';
 import { useEffect, useRef } from 'react';
+import { track, gameOf } from '../analytics/tracker';
 
 // Búsqueda de cartas para agregar a una carpeta: Pokémon por ediciones (TCGCSV, de la más nueva a la más vieja), Mitos y Leyendas y el resto desde la base, con filtros.
 export default function useCardSearch({ abortControllerRef, activeTab, availableSets, filterRarity,
@@ -256,6 +257,7 @@ export default function useCardSearch({ abortControllerRef, activeTab, available
         });
 
         setRawSearchResults(cards);
+        track('search', { game: gameOf(searchCategory), results: cards.length, scope: 'carpeta' });
 
       setHasSearchedAPI(true);
     } catch (error) {
