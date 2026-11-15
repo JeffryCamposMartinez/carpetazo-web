@@ -7,6 +7,11 @@ import SvgIcon from '../ui/SvgIcon';
 
 const CARD = 'rounded-3xl bg-white shadow-[0_1px_2px_rgba(26,43,75,0.06),0_14px_30px_-22px_rgba(26,43,75,0.55)] ring-1 ring-slate-900/5';
 const EASE_OUT = [0.23, 1, 0.32, 1];
+const PERKS = [
+  { icon: 'shopping_bag', title: 'Compra directo', text: 'Elige y arma tu pedido' },
+  { icon: 'sell', title: 'Vende gratis', text: 'Tu carpeta, tus precios' },
+  { icon: 'chat', title: 'Habla con vendedores', text: 'Cierra el trato por chat' }
+];
 const STEPS = [
   { icon: 'create_new_folder', title: 'Crea tu carpeta', text: 'Elige el juego y ponle nombre.' },
   { icon: 'photo_camera', title: 'Agrega tus cartas', text: 'Escanéalas con la cámara o búscalas.' },
@@ -36,11 +41,31 @@ export default function QuickStart() {
   }, [currentUser]);
 
   if (!currentUser) {
+    const openAuth = () => window.dispatchEvent(new Event('carpetazo:open-auth'));
     return (
-      <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0, transition: { duration: 0.3, ease: EASE_OUT } }} aria-label="Vende tus cartas" className={`${CARD} mb-4 flex items-center gap-3 p-3.5 sm:p-4`}>
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#12315f] text-[#facc15]"><SvgIcon name="sell" translate="no" aria-hidden="true" className="text-[22px]" /></span>
-        <p className="min-w-0 flex-1 text-[14px] leading-snug text-slate-700"><span className="block font-extrabold text-[#12315f]">¿Tienes cartas para vender?</span>Arma tu carpeta gratis y compártela.</p>
-        <Link to="/bienvenida" className="inline-flex h-10 shrink-0 items-center rounded-full bg-[#facc15] px-4 text-[13px] font-black text-[#12315f] transition-transform active:scale-[0.97]">Empezar</Link>
+      <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0, transition: { duration: 0.32, ease: EASE_OUT } }} aria-labelledby="welcome-title" className="relative isolate mb-4 overflow-hidden rounded-3xl bg-gradient-to-br from-[#0f2550] via-[#12315f] to-[#1e40af] p-5 text-white shadow-[0_22px_44px_-26px_rgba(18,49,95,0.95)] ring-1 ring-white/10 sm:px-8 sm:py-6">
+        <span aria-hidden="true" className="pointer-events-none absolute -right-10 -top-16 -z-10 h-48 w-48 rounded-full bg-[#facc15]/25 blur-3xl" />
+        <span aria-hidden="true" className="pointer-events-none absolute -bottom-12 left-1/3 -z-10 h-36 w-36 rounded-full bg-[#60a5fa]/25 blur-3xl" />
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
+          <div className="min-w-0">
+            <h2 id="welcome-title" className="text-[1.6rem] font-extrabold leading-[1.1] sm:text-[2rem]">Bienvenido a Carpetazo</h2>
+            <p className="mt-1.5 max-w-xl text-[14.5px] leading-relaxed text-blue-100/90 sm:text-base">Compra y vende cartas TCG directo con jugadores de Chile. Crea tu cuenta gratis y arma tu primera carpeta en minutos.</p>
+            <ul className="mt-4 grid gap-2 sm:grid-cols-3 sm:gap-3">
+              {PERKS.map((perk) => (
+                <li key={perk.title} className="flex items-center gap-2.5 rounded-2xl bg-white/[0.08] px-3 py-2.5 ring-1 ring-inset ring-white/15">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#facc15] text-[#12315f]"><SvgIcon name={perk.icon} translate="no" aria-hidden="true" className="text-[20px]" /></span>
+                  <span className="min-w-0 text-[13px] font-bold leading-tight">{perk.title}<span className="block text-[12px] font-medium text-blue-100/75">{perk.text}</span></span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex shrink-0 flex-col gap-2.5 sm:flex-row lg:w-60 lg:flex-col">
+            <button type="button" onClick={openAuth} className="inline-flex h-12 items-center justify-center sm:flex-1 lg:flex-none gap-2.5 rounded-full bg-[#facc15] px-6 text-[15px] font-black text-[#12315f] shadow-[0_14px_26px_-12px_rgba(250,204,21,0.9)] transition-[transform,filter] duration-150 hover:brightness-105 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+              <img src="/images/logos/google.svg" alt="" className="h-5 w-5 rounded-full bg-white p-[2px]" />Crear cuenta gratis
+            </button>
+            <Link to="/carpetas" className="inline-flex h-12 items-center justify-center sm:flex-1 lg:flex-none rounded-full bg-white/10 px-6 text-[15px] font-bold ring-1 ring-inset ring-white/30 transition-[background-color,transform] duration-150 hover:bg-white/20 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white">Explorar carpetas</Link>
+          </div>
+        </div>
       </motion.section>
     );
   }
