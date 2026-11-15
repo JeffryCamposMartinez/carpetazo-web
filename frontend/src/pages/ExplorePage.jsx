@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import HeroCarousel from '../components/home/HeroCarousel';
 import FeaturedZone from '../components/home/FeaturedZone';
+import QuickStart from '../components/home/QuickStart';
 import usePageMeta from '../hooks/usePageMeta';
 
 export default function ExplorePage() {
@@ -24,6 +25,7 @@ export default function ExplorePage() {
       <div className="relative z-10 flex min-h-[100svh] w-full flex-col overflow-hidden rounded-none border-outline-variant/30 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] md:border-x">
         <div className="relative z-20 flex flex-1 flex-col items-center bg-[#DBEAFE] px-4 pb-4 pt-5 text-[#1a2b4b] sm:px-8 md:pt-8">
           <div className="w-full max-w-[1280px]">
+            <QuickStart />
             <HeroCarousel />
             <FeaturedZone recentCards={recentCards} loadingCards={loadingCards} />
           </div>
