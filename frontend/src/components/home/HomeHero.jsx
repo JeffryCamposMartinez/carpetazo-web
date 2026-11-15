@@ -38,8 +38,9 @@ function Fan({ compact }) {
 
 export default function HomeHero({ compact = false }) {
   const { currentUser } = useAuth();
-  const sellTo = currentUser ? '/dashboard' : '/bienvenida';
-  const sellLabel = currentUser ? 'Ir a mis carpetas' : 'Vender mis cartas';
+  // Con sesión, «Vender mis cartas» abre el formulario de carpeta nueva si todavía no tiene ninguna (si ya tiene, llega a sus carpetas)
+  const sellTo = currentUser ? '/dashboard?empezar=1' : '/bienvenida';
+  const sellLabel = 'Vender mis cartas';
 
   return (
     <div className="relative isolate h-full w-full select-none overflow-hidden text-white">
@@ -58,7 +59,7 @@ export default function HomeHero({ compact = false }) {
             </h1>
             <div className="mt-4 flex gap-2">
               <Link to="/carpetas" className="inline-flex h-10 items-center whitespace-nowrap rounded-full bg-[#ffcb05] px-5 text-[13px] font-extrabold text-[#0B1E45]">Ver carpetas</Link>
-              <Link to={sellTo} className="inline-flex h-10 items-center whitespace-nowrap rounded-full bg-white/10 px-4 text-[13px] font-bold ring-1 ring-inset ring-white/30 max-[359px]:hidden">{currentUser ? 'Mis carpetas' : 'Vender cartas'}</Link>
+              <Link to={sellTo} className="inline-flex h-10 items-center whitespace-nowrap rounded-full bg-white/10 px-4 text-[13px] font-bold ring-1 ring-inset ring-white/30 max-[359px]:hidden">Vender cartas</Link>
             </div>
           </div>
           <div className="min-h-0 flex-1 pt-5"><Fan compact /></div>

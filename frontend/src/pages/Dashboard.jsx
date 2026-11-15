@@ -52,6 +52,14 @@ export default function Dashboard() {
     setActiveTab(tab);
     setSearchParams(tab === 'carpetas' ? {} : { tab }, { replace: true });
   };
+  // Accesos directos a crear una carpeta: ?nueva=carpeta (menú «Crear carpeta») la abre siempre;
+  // ?empezar=1 (portada, «Vender mis cartas») solo si todavía no tiene ninguna, para quien llega por primera vez
+  const createIntent = searchParams.get('nueva') === 'carpeta' ? 'always' : searchParams.get('empezar') === '1' ? 'first' : null;
+  useEffect(() => {
+    if (!createIntent || loading) return;
+    if (createIntent === 'always' || folders.length === 0) { setActiveTab('carpetas'); setIsCreateModalOpen(true); }
+    setSearchParams({}, { replace: true });
+  }, [createIntent, loading, folders.length, setSearchParams]);
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersNextCursor, setOrdersNextCursor] = useState(null);

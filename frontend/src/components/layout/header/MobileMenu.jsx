@@ -72,7 +72,8 @@ export default function MobileMenu({
         {(() => {
           const rowBase = 'relative flex min-h-12 items-center gap-3.5 rounded-xl px-3 text-[15px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]/50';
           const allItems = [
-            { to: '/dashboard', label: 'Mis carpetas', icon: 'folder', active: location.pathname === '/dashboard' && !/tab=(solicitudes|historial|deseadas)/.test(location.search) },
+            { to: '/dashboard', label: 'Mis carpetas', icon: 'folder', active: location.pathname === '/dashboard' && !/tab=(solicitudes|historial|deseadas|tienda)/.test(location.search) },
+            { to: '/dashboard?tab=tienda', label: 'Mi tienda', icon: 'storefront', active: location.pathname === '/dashboard' && location.search.includes('tab=tienda') },
             { to: '/dashboard?tab=deseadas', label: 'Mi lista de deseos', icon: 'favorite', active: location.pathname === '/dashboard' && location.search.includes('tab=deseadas') },
             { to: '/dashboard?tab=solicitudes', label: 'Solicitudes de compra', icon: 'inbox', active: location.pathname === '/dashboard' && location.search.includes('tab=solicitudes'), badge: pendingOrders.count > 0 ? pendingOrders.count : undefined },
             { to: '/dashboard?tab=historial', label: 'Historial de ventas', icon: 'receipt_long', active: location.pathname === '/dashboard' && location.search.includes('tab=historial') },
@@ -86,9 +87,9 @@ export default function MobileMenu({
           ];
           const pick = (...labels) => labels.map((label) => allItems.find((item) => item.label === label)).filter(Boolean);
           // Lo de uso diario va solo, en mosaicos; el resto, agrupado por tema
-          const quick = pick('Mis carpetas', 'Venta presencial', 'Solicitudes de compra', 'Mensajes');
+          const quick = pick('Mis carpetas', 'Mi tienda', 'Venta presencial', 'Solicitudes de compra', 'Mensajes', 'Mi lista de deseos');
           const groups = [
-            { title: 'Mi actividad', items: pick('Historial de ventas', 'Mi lista de deseos') },
+            { title: 'Mi actividad', items: pick('Historial de ventas') },
             { title: 'Cuenta', items: pick('Mi cuenta', 'Mi plan', 'Mi perfil público') },
             { title: 'Ayuda', items: pick('Reclamos y sugerencias') },
             { title: 'Equipo', items: pick('Moderación') }
@@ -137,6 +138,12 @@ export default function MobileMenu({
             <div className="flex flex-1 flex-col px-3 pb-4 pt-3">
               {currentUser ? (
                 <>
+                  {/* Lo primero que busca alguien nuevo: dónde empezar a vender */}
+                  <Link to="/dashboard?nueva=carpeta" onClick={closeMobileMenu} className="mb-2 flex min-h-[3.25rem] items-center gap-3 rounded-2xl bg-[#facc15] px-4 text-[15px] font-black text-[#12315f] shadow-[0_8px_18px_-10px_rgba(202,138,4,0.9)] transition-transform duration-150 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#12315f]/40">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#12315f] text-[#facc15]"><SvgIcon name="add" translate="no" aria-hidden="true" className="text-[22px]" /></span>
+                    <span className="flex-1">Crear carpeta</span>
+                    <SvgIcon name="chevron_right" translate="no" aria-hidden="true" className="text-[20px]" />
+                  </Link>
                   <nav aria-label="Acceso rápido" className="grid grid-cols-2 gap-2">
                     {quick.map(renderTile)}
                   </nav>
