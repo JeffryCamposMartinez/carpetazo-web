@@ -32,11 +32,17 @@ function Tile({ to, icon, label, hint, primary = false }) {
 // Va antes del carrusel porque el carrusel rota y el menú queda escondido tras el avatar: así nadie tiene que buscar dónde empezar.
 export default function QuickStart() {
   const { currentUser, appUser } = useAuth() || {};
-  const [count, setCount] = useState(null);
+  // El número de carpetas de la última visita se usa de inmediato: nunca se muestra un hueco mientras se consulta.
+  // Si aún no se conoce, aparece la tarjeta de atajos (que ya incluye «Crear carpeta») y se cambia solo si resulta que no tiene carpetas.
+  const [count, setCount] = useState(() => { try { const saved = Number(sessionStorage.getItem('carpetazo:folders-count')); return Number.isFinite(saved) && sessionStorage.getItem('carpetazo:folders-count') !== null ? saved : null; } catch (_error) { return null; } });
   useEffect(() => {
     if (!currentUser) return undefined;
     let alive = true;
-    api.getMyFolders().then((r) => { if (alive) setCount((r.folders || []).length); }).catch(() => { if (alive) setCount(-1); });
+    api.getMyFolders().then((r) => {
+      const n = (r.folders || []).length;
+      try { sessionStorage.setItem('carpetazo:folders-count', String(n)); } catch (_error) { /* sin almacenamiento */ }
+      if (alive) setCount(n);
+    }).catch(() => { /* se queda con los atajos */ });
     return () => { alive = false; };
   }, [currentUser]);
 
@@ -69,8 +75,6 @@ export default function QuickStart() {
       </motion.section>
     );
   }
-
-  if (count === null) return <div aria-hidden="true" className="skeleton mb-4 h-[8.5rem] rounded-3xl" />;
 
   if (count === 0) {
     return (
