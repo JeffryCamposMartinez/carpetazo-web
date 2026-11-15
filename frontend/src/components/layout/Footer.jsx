@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { api } from '../../services/api';
 import SocialBrandIcon from '../ui/SocialBrandIcon';
+import { setTrackingOptOut, trackingOptedOut } from '../../analytics/tracker';
 
 const DEFAULT_SETTINGS = {
   tagline: 'Compra, vende y comparte tu colección de cartas TCG en todo Chile.',
@@ -56,6 +57,7 @@ function DiscordIcon({ className = 'w-4 h-4' }) {
 }
 
 export default function Footer() {
+  const [noTrack, setNoTrack] = useState(() => trackingOptedOut());
   const location = useLocation();
   const [publicFooterTheme, setPublicFooterTheme] = useState(null);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -315,6 +317,15 @@ export default function Footer() {
             >
               Política de privacidad
             </Link>
+            <span>&bull;</span>
+            <button
+              type="button"
+              aria-pressed={noTrack}
+              onClick={() => { setTrackingOptOut(!noTrack); setNoTrack(!noTrack); }}
+              className={`hover:underline transition-colors ${isLight ? 'hover:text-blue-700' : 'hover:text-white'}`}
+            >
+              {noTrack ? 'Permitir medir mi uso' : 'No medir mi uso'}
+            </button>
           </div>
         </div>
       </div>

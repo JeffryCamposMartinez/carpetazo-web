@@ -1126,3 +1126,107 @@ model StoreMember {
   @@unique([storeId, userId])
   @@index([userId, status])
 }
+
+// ---------- Carpetazo Intelligence (analítica propia, solo para administradores) ----------
+// Evento crudo. `id` lo genera el cliente (o el servidor): el mismo id nunca se guarda dos veces. Se borra según la retención configurada.
+model AnalyticsEvent {
+  id        String   @id
+  name      String
+  at        DateTime
+  visitorId String?
+  sessionId String?
+  userId    String?
+  path      String   @default("")
+  props     Json?
+  device    String   @default("")
+  browser   String   @default("")
+  os        String   @default("")
+  viewport  String   @default("")
+  source    String   @default("")
+  medium    String   @default("")
+  campaign  String   @default("")
+  tz        String   @default("")
+  origin    String   @default("web") // web | server
+
+  @@index([at])
+  @@index([name, at])
+  @@index([sessionId, at])
+  @@index([path, at])
+  @@index([userId, at])
+}
+
+model AnalyticsSession {
+  id         String   @id
+  visitorId  String
+  userId     String?
+  startedAt  DateTime
+  lastAt     DateTime
+  entryPath  String   @default("")
+  exitPath   String   @default("")
+  pages      Int      @default(0)
+  events     Int      @default(0)
+  activeSec  Int      @default(0)
+  device     String   @default("")
+  browser    String   @default("")
+  os         String   @default("")
+  source     String   @default("")
+  medium     String   @default("")
+  campaign   String   @default("")
+  tz         String   @default("")
+
+  @@index([startedAt])
+  @@index([visitorId, startedAt])
+  @@index([userId, startedAt])
+}
+
+// Agregado por día: (día, métrica, dim1, dim2) -> valor. Alimenta casi todos los paneles. Se conserva 25 meses.
+model AnalyticsDaily {
+  day    DateTime @db.Date
+  metric String
+  dim1   String   @default("")
+  dim2   String   @default("")
+  value  Float    @default(0)
+
+  @@id([day, metric, dim1, dim2])
+  @@index([metric, day])
+}
+
+// Foto diaria de cifras de negocio. `origin`: «reconstruido» (se dedujo de fechas de registros) o «medido» (la tomó el trabajo nocturno ese día).
+model BusinessDaily {
+  day    DateTime @db.Date
+  metric String
+  dim    String   @default("")
+  value  Float    @default(0)
+  origin String   @default("measured")
+
+  @@id([day, metric, dim])
+  @@index([metric, day])
+}
+
+// Cada pago real informado por Mercado Pago. Solo `approved` cuenta como ingreso confirmado.
+model PaymentLedger {
+  id                String    @id @default(uuid())
+  providerPaymentId String    @unique
+  subscriptionId    String?
+  userId            String?
+  status            String    // approved | rejected | refunded | charged_back | pending | unverified | otro texto del proveedor
+  amountClp         Int       @default(0)
+  refundedClp       Int       @default(0)
+  paidAt            DateTime?
+  source            String    @default("payment") // payment | authorized_payment
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([status, paidAt])
+  @@index([subscriptionId])
+  @@index([userId])
+}
+
+model AnalyticsSettings {
+  id            Int      @id @default(1)
+  enabled       Boolean  @default(false) // la recolección nace apagada: se activa desde Moderación
+  retentionDays Int      @default(90)
+  sampleRate    Float    @default(1)
+  updatedAt     DateTime @updatedAt
+  updatedBy     String?
+}

@@ -13,6 +13,8 @@ import { isMylTcg, storedCardId } from '../core/mylIdentity.js';
 import { bulkPublishedRanges, reliablePublishedOn } from '../core/editionDates.js';
 import { PlanLimitError, assertFeature, assertCanAddUniqueCard, assertCanCreateFolder, assertStockChange, getEffectivePlan, getPlanState, lockPlanUser, sendPlanError } from '../core/entitlements.js';
 import { loadPublicStore } from '../core/storeProfile.js';
+import { trackServer } from '../core/analytics.js';
+import { gameKey } from '../core/analyticsCatalog.js';
 
 // Foto que la persona subió a su carta: se ve en su carpeta (para ella y para el público) aunque el catálogo tenga imagen
 const OWN_CARD_PHOTO = /\/Usuarios\/[^/]+\/card\/[0-9a-f]{32}\.webp$/;
@@ -448,6 +450,7 @@ router.post('/api/folders', authenticateToken, async (req, res) => {
         }
       });
     });
+    trackServer('folder_created', { userId: user.id, props: { game: gameKey(folderTcg), isPublic: Boolean(folder.isPublic) } });
     res.json({ success: true, folder });
   } catch (error) {
     if (error instanceof PlanLimitError) return sendPlanError(res, error);
@@ -722,6 +725,7 @@ router.post('/api/folders/:id/cards', authenticateToken, async (req, res) => {
     });
     // Una foto propia en una carta del catálogo que no tiene imagen se ofrece sola a Moderación (no falla la carta si algo sale mal)
     await proposeCatalogPhoto(prisma, { userId: user.id, firebaseUid: req.user.sub, tcg: folder.tcg, tcgId: normalizedTcgId, imageUrl: [cardImageUrl, ...extraPhotos].find((url) => url && isOwnCardPhoto(url, req.user.sub)), language: cardLanguage });
+    trackServer('card_added', { userId: user.id, props: { game: gameKey(folder.tcg), qty: requestedStock } });
     res.json({ success: true, card });
   } catch (error) {
     if (error instanceof PlanLimitError) return sendPlanError(res, error);

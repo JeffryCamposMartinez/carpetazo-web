@@ -6,6 +6,8 @@ import { prisma } from '../core/db.js';
 import { getPlanState, lockPlanUser } from '../core/entitlements.js';
 import { paidPlan, publicPlans, validPlanKey } from '../core/plans.js';
 import { cancelSubscriptionRecord, isMercadoPagoCheckoutUrl, mpFetch } from '../core/mercadopago.js';
+import { trackServer } from '../core/analytics.js';
+import { recordMercadoPagoPayment } from '../core/paymentLedger.js';
 
 const router = express.Router();
 // Incluso si la bandera se configurara por error, producción nunca expone el selector sin cobro.
@@ -270,6 +272,8 @@ const syncPreapproval = async (resourceId) => {
     }
   }
   const updated = await prisma.subscription.update({ where: { id: subscription.id }, data });
+  if (data.status === 'active' && subscription.status !== 'active') trackServer('subscription_confirmed', { userId: subscription.userId, props: { plan: updated.planKey } });
+  if (data.status === 'canceled' && subscription.status !== 'canceled') trackServer('subscription_canceled', { userId: subscription.userId, props: { plan: updated.planKey } });
   if (data.status === 'active' && subscription.status !== 'active') {
     // La suscripción nueva reemplaza a una anterior que solo esperaba su fecha de término
     await prisma.subscription.updateMany({ where: { userId: subscription.userId, id: { not: subscription.id }, status: { in: ['active', 'past_due', 'paused'] }, cancelAtPeriodEnd: true }, data: { status: 'expired' } });
@@ -296,7 +300,9 @@ router.post('/api/billing/mercadopago/webhook', async (req, res) => {
   }
   try {
     const subscription = topic.includes('preapproval') && resourceId ? await syncPreapproval(resourceId) : null;
-    await prisma.billingEvent.update({ where: { id: event.id }, data: { status: subscription ? 'processed' : 'ignored', attempts: { increment: 1 }, subscriptionId: subscription?.id || null, processedAt: new Date(), error: null } });
+    // Pagos reales: se consultan a Mercado Pago y quedan en el libro de pagos (ingresos confirmados)
+    const ledger = resourceId && (topic === 'payment' || topic.includes('authorized_payment')) ? await recordMercadoPagoPayment(resourceId, topic, mpFetch) : null;
+    await prisma.billingEvent.update({ where: { id: event.id }, data: { status: subscription || ledger?.recorded ? 'processed' : 'ignored', attempts: { increment: 1 }, subscriptionId: subscription?.id || null, processedAt: new Date(), error: null } });
     return res.json({ success: true });
   } catch (error) {
     await prisma.billingEvent.update({ where: { id: event.id }, data: { status: 'failed', attempts: { increment: 1 }, error: String(error.code || error.message || 'error').slice(0, 300) } }).catch(() => {});

@@ -13,6 +13,8 @@ import { getCompletedSales, getRecentCompletedSales, getResponseStats } from '..
 import { loadPublicStore } from '../core/storeProfile.js';
 import { SOCIAL_DOMAINS, publicThemeStyleChanged, badRequest, checkImageField, checkSocialField, hasControlChars, isAllowedStoredImageUrl, isOptionalText, isShortText, normalizeUsername, isValidPhone, isValidRut, sanitizePublicTheme, usernameProblem, validUsername } from '../core/validation.js';
 import { moderationHooks, restrictions } from '../moderation/services.js';
+import { trackServer } from '../core/analytics.js';
+import { eraseUserAnalytics } from '../core/analyticsJobs.js';
 
 const router = express.Router();
 
@@ -60,6 +62,7 @@ router.post('/api/users/sync', authenticateToken, async (req, res) => {
           role: req.user.email_verified === true && isAdminEmail(email) ? 'admin' : 'user'
         }
       });
+      trackServer('signup_completed', { userId: user.id });
     } else {
       // Cuenta borrada que vuelve: debe aceptar de nuevo, pero sus aceptaciones anteriores se conservan como evidencia (anuladas, no borradas)
       if (user.role === 'deleted') await prisma.termsAcceptance.updateMany({ where: { userId: user.id, voidedAt: null }, data: { voidedAt: new Date() } });
@@ -331,6 +334,7 @@ router.delete('/api/users/me', authenticateToken, async (req, res) => {
     // Las imágenes propias y los archivos del chat se borran de R2 (solo los de su propia carpeta; si falla no detiene la eliminación)
     await Promise.all([current.photoURL, current.bannerBase64, current.wallpaperBase64].filter(Boolean).map((url) => deleteR2ObjectByPublicUrl(url, firebaseUid)));
     for (const url of [...new Set(sentFiles)]) await deleteR2ObjectByPublicUrl(url, firebaseUid);
+    eraseUserAnalytics(current.id).catch(() => {}); // sus eventos de analítica también se borran
 
     res.json({ success: true });
   } catch (error) {

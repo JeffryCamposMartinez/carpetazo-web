@@ -12,6 +12,7 @@ import { generatePickupCode, pickupDeadline } from '../core/storePickups.js';
 import { notifyUsers } from '../core/storeNotices.js';
 import { finishPendingOrder } from '../core/orderCompletion.js';
 import { countCouponUses, couponProblem, discountFor, normalizeCode } from '../core/storeCoupons.js';
+import { trackServer } from '../core/analytics.js';
 
 const router = express.Router();
 
@@ -222,6 +223,7 @@ router.post('/api/orders/create', async (req, res) => {
       order = await createOrderLocked(folder.id, asked, orderData, null, couponUse);
     }
 
+    trackServer('order_created', { userId: buyer?.id || null, props: { via: viaPickup ? 'retiro' : viaMessage ? 'mensaje' : 'whatsapp', items: items.length, coupon: Boolean(coupon) } });
     res.json({ success: true, code, order: formatOrderForUi(order), payment: viaPickup ? null : payment, viaMessage, ...(viaPickup ? { pickup: { code: order.pickupCode, until: order.pickupBy } } : {}) });
   } catch (error) {
     if (error.stockConflict) return res.status(409).json({ success: false, message: error.stockConflict });

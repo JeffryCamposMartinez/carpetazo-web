@@ -13,6 +13,7 @@ import PhoneGate from '../components/auth/PhoneGate';
 import AppSplash from '../components/layout/AppSplash';
 import { pageLoaders, preloadMainSections } from './routePreload';
 import { ToastProvider } from '../components/ui/ToastProvider';
+import useTracking from '../analytics/useTracking';
 
 // Cada pantalla se descarga solo cuando se visita: el primer arranque en móvil pesa mucho menos
 const LandingPage = lazy(pageLoaders.landing);
@@ -60,6 +61,12 @@ function RouteBoundary({ children }) {
   return <ErrorBoundary resetKey={`${location.pathname}${location.search}`}>{children}</ErrorBoundary>;
 }
 
+// Rastreador de Carpetazo Intelligence: se activa solo si un administrador lo enciende y la persona no pidió ser excluida
+function RouteTracking() {
+  useTracking();
+  return null;
+}
+
 function App() {
   // Con la página ya cargada, el navegador descarga en segundo plano las secciones del menú
   useEffect(() => preloadMainSections(), []);
@@ -69,6 +76,7 @@ function App() {
       <ToastProvider>
         <BrowserRouter>
           <ScrollToTop />
+          <RouteTracking />
           <ValidationBubble />
           <TooltipLayer />
           <div className="flex flex-col min-h-[100svh] w-full relative">

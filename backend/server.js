@@ -38,6 +38,9 @@ import storeLoyaltyRoutes from './routes/storeLoyalty.js';
 import storeVerificationRoutes from './routes/storeVerification.js';
 import storeTeamRoutes from './routes/storeTeam.js';
 import storeReportRoutes from './routes/storeReports.js';
+import analyticsRoutes from './routes/analytics.js';
+import { apiTimingMiddleware, startApiTiming } from './core/apiTiming.js';
+import { startAnalyticsJobs } from './core/analyticsJobs.js';
 import cardRoutes from './routes/cards.js';
 import wishlistRoutes from './routes/wishlist.js';
 import chatRoutes from './routes/chats.js';
@@ -112,6 +115,7 @@ applyRouteLimits(app);
 // La carga de cartas nuevas trae un archivo más grande que el resto de la API (solo administradores, con su propio límite)
 app.use('/api/admin/catalog-import', express.json({ limit: '12mb' }));
 app.use('/api/admin/tcg-catalog-import', express.json({ limit: '12mb' }));
+app.use(apiTimingMiddleware);
 app.use(express.json({ limit: '2mb' }));
 
 // PostgreSQL no admite el byte nulo en textos: llegaba a la base y terminaba en un error 500 (en la URL, el cuerpo o las cadenas JSON)
@@ -151,6 +155,7 @@ app.use(storeLoyaltyRoutes);
 app.use(storeVerificationRoutes);
 app.use(storeTeamRoutes);
 app.use(storeReportRoutes);
+app.use(analyticsRoutes);
 app.use(cardRoutes);
 app.use(wishlistRoutes);
 app.use(catalogImportRoutes);
@@ -198,6 +203,8 @@ app.listen(port, () => {
     startPreviewWarmer();
     startWishlistAlerts();
     startStoreJobs();
+    startApiTiming();
+    startAnalyticsJobs();
     startOnboardingNudges();
     startPriceHistory();
     startMarketPriceHistory();
