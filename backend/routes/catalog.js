@@ -630,12 +630,15 @@ const withPhysicalIds = (rows) => rows.map(({ physicalLinks, ...row }) => ({
   physicalProductIds: (physicalLinks || []).map((link) => link.physicalProductId)
 }));
 
+// Cartas que mazos.cl todavía no revela: ficha vacía, sin imagen ni datos. No se muestran al público hasta que lleguen con su nombre real.
+const UNRELEASED_CARD_NAME = 'Carta Unreleased';
+
 router.get('/api/tcg/:categoryId/:groupId/products', async (req, res) => {
   try {
     const { categoryId, groupId } = req.params;
     const { mylType, mylRace, mylFrequency, mylCost, physicalProductId } = req.query;
 
-    let whereClause = { categoryId: parseInt(categoryId) };
+    let whereClause = { categoryId: parseInt(categoryId), name: { not: UNRELEASED_CARD_NAME } };
     if (physicalProductId) {
       const linkFilter = physicalLinkFilter(physicalProductId);
       if (!linkFilter) return res.status(400).json({ success: false, message: 'Producto inválido' });
@@ -731,6 +734,7 @@ router.get('/api/tcg/search', async (req, res) => {
         { cleanName: { contains: likeEscape(cleanQ), mode: 'insensitive' } }
       ];
     }
+    whereClause.name = { not: UNRELEASED_CARD_NAME };
     if (categoryId) whereClause.categoryId = parseInt(categoryId);
     if (physicalProductId) {
       const linkFilter = physicalLinkFilter(physicalProductId);
