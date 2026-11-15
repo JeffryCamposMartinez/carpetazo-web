@@ -48,7 +48,7 @@ const storedView = () => { try { const value = localStorage.getItem(VIEW_KEY); r
 
 // Las ediciones de Mitos y Leyendas, de la más nueva a la más vieja
 const loadMylGroups = () => api.getTcgGroups('99').then((res) => (res.success ? [...res.data].sort((a, b) => new Date(b.publishedOn || 0) - new Date(a.publishedOn || 0)) : Promise.reject(new Error('Catálogo no disponible'))));
-const mylCardsOf = (res) => (res.success ? res.data.map((product) => ({ productId: String(product.productId), name: product.name, number: (product.extData || []).find((item) => item.name === 'Number')?.value || '', imageUrl: product.imageUrl })) : Promise.reject(new Error('Catálogo no disponible')));
+const mylCardsOf = (res) => (res.success ? res.data.map((product) => ({ productId: String(product.productId), name: product.name, number: (product.extData || []).find((item) => item.name === 'Number')?.value || '', imageUrl: product.imageUrl, physicalProductIds: product.physicalProductIds || [] })) : Promise.reject(new Error('Catálogo no disponible')));
 
 // Visor del catálogo: todas las cartas de todas las ediciones, solo para mirarlas (juego → edición → cartas), con los filtros propios de cada juego
 export default function CardCatalogPage() {
@@ -61,7 +61,8 @@ export default function CardCatalogPage() {
   const isPokemon = game === 'Pokémon';
   const gameInfo = tcgcsvGameInfo(game); // todos los de TCGplayer menos Pokémon y Mitos y Leyendas
 
-  const sort = SORTERS[params.get('orden')] ? params.get('orden') : 'num';
+  const defaultSort = isMyl ? 'producto' : 'num'; // Mitos y Leyendas muestra primero todas las cartas de un producto, luego las del siguiente
+  const sort = SORTERS[params.get('orden')] || (isMyl && params.get('orden') === 'producto') ? params.get('orden') : defaultSort;
   const view = VIEWS.some((item) => item.value === params.get('vista')) ? params.get('vista') : storedView();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -174,7 +175,13 @@ export default function CardCatalogPage() {
   };
   const visible = useMemo(() => refine(cards || []), [cards, game, searchQuery, selectedSupertype, selectedType, gameFilters]);
 
-  const sorted = useMemo(() => [...visible].sort(SORTERS[sort]), [visible, sort]);
+  const sorter = useMemo(() => {
+    if (sort !== 'producto') return SORTERS[sort];
+    const names = new Map(physicalProducts.map((product) => [product.id, product.name]));
+    const productOf = (card) => (card.physicalProductIds || []).map((id) => names.get(id)).filter(Boolean).sort()[0] || '￿'; // sin producto, al final
+    return (a, b) => productOf(a).localeCompare(productOf(b), 'es', { numeric: true, sensitivity: 'base' }) || SORTERS.num(a, b);
+  }, [sort, physicalProducts]);
+  const sorted = useMemo(() => [...visible].sort(sorter), [visible, sorter]);
   useEffect(() => { setShown(PAGE_SIZE); }, [searchQuery, selectedSupertype, selectedType, gameFilters, sort]);
 
   // Al llegar al final de la lista se muestran más cartas solas (el botón sigue ahí por si el navegador no lo permite)
@@ -247,7 +254,7 @@ export default function CardCatalogPage() {
     });
   }, [following.length, chainKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const extraLists = following.map((target) => ({ group: target, list: extraCards[extraKey(target)] }));
-  const extraPage = extraLists.flatMap(({ group: target, list }) => (list ? refine(list).sort(SORTERS[sort]).map((card) => ({ ...card, id: card.productId, tcgProductId: card.productId, groupId: isMyl ? undefined : target.groupId, section: String(target.groupId) })) : []));
+  const extraPage = extraLists.flatMap(({ group: target, list }) => (list ? refine(list).sort(sorter).map((card) => ({ ...card, id: card.productId, tcgProductId: card.productId, groupId: isMyl ? undefined : target.groupId, section: String(target.groupId) })) : []));
 
   const filtering = searchQuery.trim().length >= 2 || Boolean(selectedSupertype || selectedType);
   const extrasReady = extraLists.every((item) => item.list);
@@ -259,7 +266,7 @@ export default function CardCatalogPage() {
   const pageCards = useMemo(() => [...sorted.slice(0, shown).map((card) => {
     const english = twin && String(twin.spanish) === String(group?.groupId) ? twin.byNumber.get(leadingNumber(card.number)) : null;
     return { ...card, id: card.productId, tcgProductId: english || card.productId, baseProductId: english || undefined, groupId: isMyl ? undefined : english ? twin.english : group?.groupId, section: String(group?.groupId) };
-  }), ...extraPage], [sorted, shown, group, isMyl, twin, extraCards, following.length, sort, searchQuery, selectedSupertype, selectedType, gameFilters]);
+  }), ...extraPage], [sorted, shown, group, isMyl, twin, extraCards, following.length, sorter, searchQuery, selectedSupertype, selectedType, gameFilters]);
   const { cards: shownCards } = useFinishSplit(pageCards, isPokemon ? 'pokemon' : null);
   const addToFolder = (card) => {
     if (!currentUser) { navigate('/bienvenida'); return; }
@@ -370,7 +377,7 @@ export default function CardCatalogPage() {
             onShare={share}
           />
         )}
-        {group && cards && (sorted.length > 0 || extraPage.length > 0) && <CatalogToolbar sort={sort} onSort={(value) => update({ orden: value === 'num' ? '' : value })} view={view} onView={changeView} />}
+        {group && cards && (sorted.length > 0 || extraPage.length > 0) && <CatalogToolbar sort={sort} onSort={(value) => update({ orden: value === defaultSort ? '' : value })} withProduct={isMyl} view={view} onView={changeView} />}
         </div>
 
         <section className="mt-4" aria-label="Cartas de la edición" aria-busy={loading}>

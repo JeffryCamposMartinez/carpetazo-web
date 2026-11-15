@@ -14,7 +14,7 @@ export const VIEWS = [
 ];
 
 // Orden y forma de ver las cartas de la edición
-export default function CatalogToolbar({ sort, onSort, view, onView }) {
+export default function CatalogToolbar({ sort, onSort, view, onView, withProduct = false }) {
   return (
     <div className="mt-3 flex items-center justify-center gap-2">
       <ThemedSelect
@@ -22,7 +22,7 @@ export default function CatalogToolbar({ sort, onSort, view, onView }) {
         icon="swap_vert"
         value={sort}
         onChange={onSort}
-        options={SORTS}
+        options={withProduct ? [{ value: 'producto', label: 'Por producto' }, ...SORTS] : SORTS}
         className="min-w-0 flex-1 sm:max-w-xs"
         buttonClassName="h-11 rounded-full bg-white ring-1 ring-slate-900/10 text-sm font-extrabold text-[#12315f]"
       />
