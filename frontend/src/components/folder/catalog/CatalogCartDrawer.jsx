@@ -106,7 +106,7 @@ export default function CatalogCartDrawer({
               onClick={handlePickupCheckout}
             >
               <SvgIcon name={isProcessingCheckout ? 'hourglass_empty' : 'storefront'} translate="no" className="text-2xl" />
-              {isProcessingCheckout ? 'Procesando...' : `Reservar y retirar en tienda (${pickup.hours} h)`}
+              {isProcessingCheckout ? 'Procesando...' : `Reservar y retirar · ${pickup.hours} h`}
             </button>
           )}
           <p className="text-[10px] text-center text-gray-500 mt-3">
