@@ -27,10 +27,10 @@ const ownView = (row) => (row ? { id: row.id, status: row.status, reason: row.st
 // --- La persona: estado de su verificación
 router.get('/api/verification/me', authenticateToken, readLimit, async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true, identityVerifiedAt: true, rut: true, phone: true } });
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true, identityVerifiedAt: true, rut: true, phone: true, photoURL: true } });
     if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     const last = await prisma.identityVerification.findFirst({ where: { userId: user.id }, orderBy: { createdAt: 'desc' } });
-    res.json({ success: true, available: identityConfigured(), verified: Boolean(user.identityVerifiedAt), verifiedAt: user.identityVerifiedAt, request: ownView(last) });
+    res.json({ success: true, available: identityConfigured(), hasProfilePhoto: Boolean(user.photoURL), verified: Boolean(user.identityVerifiedAt), verifiedAt: user.identityVerifiedAt, request: ownView(last) });
   } catch (error) {
     console.error('Error cargando la verificación:', error);
     res.status(500).json({ success: false, message: 'Error interno' });
@@ -54,9 +54,10 @@ router.post('/api/verification/request', authenticateToken, submitLimit, (req, r
     if (!isShortText(rut, 20) || !isValidRut(rut)) return badRequest(res, 'El RUT no es válido. Revisa el número y el dígito verificador.');
     if (!isShortText(phone, 30) || !isValidPhone(phone)) return badRequest(res, 'El teléfono no es válido.');
 
-    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true, identityVerifiedAt: true, role: true } });
+    const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true, identityVerifiedAt: true, role: true, photoURL: true } });
     if (!user || user.role === 'deleted') return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     if (user.identityVerifiedAt) return res.status(409).json({ success: false, message: 'Tu identidad ya está verificada.' });
+    if (!user.photoURL) return badRequest(res, 'Sube una foto de perfil antes de pedir la verificación: es la que verán los demás.');
     if (await prisma.identityVerification.findFirst({ where: { userId: user.id, status: 'pending' }, select: { id: true } })) {
       return res.status(409).json({ success: false, message: 'Ya tienes una solicitud en revisión.' });
     }

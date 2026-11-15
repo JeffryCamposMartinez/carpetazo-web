@@ -24,9 +24,9 @@ const prepare = async (file) => {
 };
 
 const PHOTOS = [
-  { key: 'front', step: 2, title: 'Carnet por delante', help: 'Donde sale tu foto y tu nombre.', tips: ['Ponlo sobre una mesa, con buena luz', 'Que se vean las cuatro esquinas', 'Sin reflejos ni dedos tapando'] },
-  { key: 'back', step: 3, title: 'Carnet por detrás', help: 'El lado con tu dirección y el código.', tips: ['Que se lea todo el texto', 'Sin reflejos ni dedos tapando', 'No uses fotos de pantalla ni copias'] },
-  { key: 'selfie', step: 4, title: 'Foto de tu rostro', help: 'Una foto tuya, de frente y mirando a la cámara.', tips: ['Con buena luz y sin lentes de sol ni gorro', 'Solo tú en la foto', 'Que se te vea el rostro completo'], camera: true },
+  { key: 'front', step: 3, title: 'Carnet por delante', help: 'Donde sale tu foto y tu nombre.', tips: ['Ponlo sobre una mesa, con buena luz', 'Que se vean las cuatro esquinas', 'Sin reflejos ni dedos tapando'] },
+  { key: 'back', step: 4, title: 'Carnet por detrás', help: 'El lado con tu dirección y el código.', tips: ['Que se lea todo el texto', 'Sin reflejos ni dedos tapando', 'No uses fotos de pantalla ni copias'] },
+  { key: 'selfie', step: 5, title: 'Foto de tu rostro', help: 'Una foto tuya, de frente y mirando a la cámara.', tips: ['Con buena luz y sin lentes de sol ni gorro', 'Solo tú en la foto', 'Que se te vea el rostro completo'], camera: true },
 ];
 
 function StepTitle({ number, title, done }) {
@@ -95,13 +95,33 @@ export default function IdentityVerification({ initialRut = '', initialPhone = '
   const rutOk = Boolean(rut.trim()) && isRutValid(rut);
   const phoneOk = Boolean(phone.trim()) && isPhoneValid(phone);
   const missing = useMemo(() => [
+    !status?.hasProfilePhoto && 'tu foto de perfil',
     !rutOk && 'tu RUT',
     !phoneOk && 'tu teléfono',
     !picked.front && 'el carnet por delante',
     !picked.back && 'el carnet por detrás',
     !picked.selfie && 'la foto de tu rostro',
     !consent && 'aceptar el tratamiento de tus datos',
-  ].filter(Boolean), [rutOk, phoneOk, picked, consent]);
+  ].filter(Boolean), [status?.hasProfilePhoto, rutOk, phoneOk, picked, consent]);
+
+  // La foto de perfil es la que ven los demás: se sube aquí mismo (como avatar) y recién entonces se puede enviar la solicitud
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const uploadAvatar = async (file) => {
+    setUploadingAvatar(true);
+    setFormError('');
+    try {
+      const form = new FormData();
+      form.append('image', await prepare(file), 'perfil.jpg');
+      form.append('type', 'avatar');
+      await api.uploadImage(form);
+      await load();
+      showToast('Foto de perfil guardada', 'success');
+    } catch (error) {
+      setFormError(error.message || 'No se pudo subir la foto de perfil. Intenta de nuevo.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const pick = async (key, file) => {
     const ready = await prepare(file);
@@ -197,7 +217,7 @@ export default function IdentityVerification({ initialRut = '', initialPhone = '
       {/* Cómo funciona */}
       {!status.verified && status.available !== false && (
         <ol className="grid gap-3 sm:grid-cols-3" aria-label="Cómo funciona">
-          {[['1', 'Envías tus datos', 'RUT, teléfono, el carnet por los dos lados y una foto de tu rostro.'], ['2', 'Lo revisamos', 'Moderación compara tus fotos con tus datos. Suele tardar pocos días.'], ['3', 'Recibes la insignia', 'Te avisamos y apareces como verificado en toda la web.']].map(([number, title, text], index) => (
+          {[['1', 'Envías tus datos', 'Foto de perfil, RUT, teléfono, el carnet por los dos lados y una foto de tu rostro.'], ['2', 'Lo revisamos', 'Moderación compara tus fotos con tus datos. Suele tardar pocos días.'], ['3', 'Recibes la insignia', 'Te avisamos y apareces como verificado en toda la web.']].map(([number, title, text], index) => (
             <li key={number} className={`rounded-2xl border bg-white p-4 shadow-sm ${(request?.status === 'pending' ? index === 1 : index === 0) ? 'border-[#1e40af] ring-2 ring-[#1e40af]/15' : 'border-slate-200'}`}>
               <span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-full bg-[#facc15] text-sm font-black text-[#12315f]">{number}</span>
               <p className="mt-2 text-[15px] font-extrabold text-[#12315f]">{title}</p>
@@ -211,7 +231,19 @@ export default function IdentityVerification({ initialRut = '', initialPhone = '
       {showForm && (
         <form onSubmit={submit} className="space-y-5" noValidate>
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <StepTitle number="1" title="Tus datos" done={rutOk && phoneOk} />
+            <StepTitle number="1" title="Tu foto de perfil" done={Boolean(status.hasProfilePhoto)} />
+            <p className="mt-1 pl-11 text-sm font-semibold text-slate-600">{status.hasProfilePhoto ? 'Ya tienes foto de perfil. Es la que verán compradores y vendedores junto a la insignia.' : 'Es la foto que verán los demás en tu perfil y tus mensajes. Una foto tuya, de frente y con buena luz.'}</p>
+            {!status.hasProfilePhoto && (
+              <label className={`mt-3 flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-[#1e40af] px-5 text-sm font-extrabold text-white transition-[background-color,transform] duration-150 hover:bg-[#12315f] active:scale-[0.98] sm:inline-flex ${uploadingAvatar ? 'pointer-events-none opacity-70' : ''}`}>
+                <input type="file" accept="image/*" className="sr-only" disabled={uploadingAvatar || sending} onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadAvatar(file); event.target.value = ''; }} />
+                {uploadingAvatar ? <ButtonSpinner /> : <SvgIcon name="add_a_photo" translate="no" aria-hidden="true" className="text-[22px]" />}
+                {uploadingAvatar ? 'Subiendo tu foto…' : 'Subir foto de perfil'}
+              </label>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <StepTitle number="2" title="Tus datos" done={rutOk && phoneOk} />
             <div className="mt-3 grid gap-4 sm:grid-cols-2">
               <label className="block">
                 <span className="mb-1.5 block text-[13px] font-extrabold uppercase tracking-wide text-slate-500">RUT</span>

@@ -5,6 +5,7 @@ const { prisma, NAMES, B, U, call, ok, acceptTerms } = require('./fixtures.cjs')
 
 const RUT = '12345678-5'; // dígito verificador válido
 let n = 0;
+let photoBefore = null;
 const photo = (seed) => sharp({ create: { width: 800, height: 600, channels: 3, background: { r: (seed * 53) % 256, g: (seed * 97) % 256, b: (seed * 29) % 256 } } }).png().toBuffer();
 
 const submit = async (who, { rut = RUT, phone = '+56911112222', kinds = ['front', 'back', 'selfie'] } = {}) => {
@@ -22,8 +23,9 @@ const submit = async (who, { rut = RUT, phone = '+56911112222', kinds = ['front'
     moderatorRole = (await prisma.user.findUnique({ where: { firebaseUid: U.jeffry } })).role;
     await prisma.user.update({ where: { firebaseUid: U.jeffry }, data: { role: 'moderator' } });
     const seller = await prisma.user.findUnique({ where: { firebaseUid: U.seller } });
+    photoBefore = seller.photoURL;
     await prisma.identityVerification.deleteMany({ where: { userId: seller.id } });
-    await prisma.user.update({ where: { id: seller.id }, data: { identityVerifiedAt: null } });
+    await prisma.user.update({ where: { id: seller.id }, data: { identityVerifiedAt: null, photoURL: null } });
     await acceptTerms?.('seller');
 
     let r = await call('GET', '/verification/me', 'seller');
@@ -36,6 +38,12 @@ const submit = async (who, { rut = RUT, phone = '+56911112222', kinds = ['front'
     r = await submit('seller', { phone: 'abc' });
     ok('un teléfono inválido se rechaza', r.status === 400 && /teléfono/.test(r.j.message || ''), JSON.stringify(r));
     ok('nada de lo rechazado quedó guardado', (await prisma.identityVerification.count({ where: { userId: seller.id } })) === 0);
+
+    r = await submit('seller');
+    ok('sin foto de perfil la solicitud completa se rechaza', r.status === 400 && /foto de perfil/.test(r.j.message || ''), JSON.stringify(r));
+    r = await call('GET', '/verification/me', 'seller');
+    ok('/verification/me avisa que falta la foto de perfil', r.j.hasProfilePhoto === false);
+    await prisma.user.update({ where: { id: seller.id }, data: { photoURL: 'https://pub-cztest.r2.dev/Carpetazo.cl/Usuarios/cztest-seller/avatar/x.webp' } });
 
     r = await submit('seller', { rut: '12.345.678-5' });
     ok('una solicitud completa queda en revisión', r.status === 200 && r.j.request?.status === 'pending', JSON.stringify(r));
@@ -93,7 +101,7 @@ const submit = async (who, { rut = RUT, phone = '+56911112222', kinds = ['front'
     if (seller) {
       await prisma.moderationAudit.deleteMany({ where: { targetId: seller.id, action: { startsWith: 'identity.' } } });
       await prisma.identityVerification.deleteMany({ where: { userId: seller.id } });
-      await prisma.user.update({ where: { id: seller.id }, data: { identityVerifiedAt: null } });
+      await prisma.user.update({ where: { id: seller.id }, data: { identityVerifiedAt: null, photoURL: photoBefore } });
     }
     if (moderatorRole) await prisma.user.update({ where: { firebaseUid: U.jeffry }, data: { role: moderatorRole } });
     await prisma.$disconnect();
