@@ -12,6 +12,8 @@ const plan = (who, planKey) => call('POST', '/billing/test-plan', who, { planKey
   const store = await id('seller');
   const card = await prisma.card.findUnique({ where: { id: cardId }, select: { stock: true, price: true } });
   const created = { orders: [], sales: [] };
+  const verifiedBefore = (await prisma.user.findUnique({ where: { id: store }, select: { identityVerifiedAt: true } })).identityVerifiedAt;
+  await prisma.user.update({ where: { id: store }, data: { identityVerifiedAt: new Date() } }); // el local público exige la cuenta verificada
   try {
     await prisma.storeMember.deleteMany({ where: { storeId: store } });
     await prisma.card.update({ where: { id: cardId }, data: { stock: 10, price: 3000 } });
@@ -113,6 +115,7 @@ const plan = (who, planKey) => call('POST', '/billing/test-plan', who, { planKey
     await prisma.message.deleteMany({ where: { receiverId: store, content: { contains: 'Código de retiro' } } });
     await prisma.storeMember.deleteMany({ where: { storeId: store } });
     await prisma.storeProfile.deleteMany({ where: { userId: store } });
+    await prisma.user.update({ where: { id: store }, data: { identityVerifiedAt: verifiedBefore } });
     await prisma.card.update({ where: { id: cardId }, data: { stock: card.stock, price: card.price } });
     await restorePlans();
     await prisma.$disconnect();

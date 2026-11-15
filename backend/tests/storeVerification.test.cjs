@@ -17,6 +17,8 @@ const plan = (who, planKey) => call('POST', '/billing/test-plan', who, { planKey
     const res = await fetch(B + '/stores/me/verification', { method: 'POST', headers: { Authorization: 'Bearer test-' + U[who], 'X-Forwarded-For': ip() }, body: form });
     return { status: res.status, j: await res.json().catch(() => ({})) };
   };
+  const verifiedBefore = (await prisma.user.findUnique({ where: { id: store }, select: { identityVerifiedAt: true } })).identityVerifiedAt;
+  await prisma.user.update({ where: { id: store }, data: { identityVerifiedAt: new Date() } }); // el local público exige la cuenta verificada
   try {
     await prisma.storeVerification.deleteMany({ where: { userId: store } });
     await prisma.storeProfile.deleteMany({ where: { userId: store } });
@@ -62,6 +64,7 @@ const plan = (who, planKey) => call('POST', '/billing/test-plan', who, { planKey
     await prisma.storeVerification.deleteMany({ where: { userId: store } });
     await prisma.storeProfile.deleteMany({ where: { userId: store } });
     await prisma.moderationAudit.deleteMany({ where: { targetId: store, action: { startsWith: 'store_verification' } } });
+    await prisma.user.update({ where: { id: store }, data: { identityVerifiedAt: verifiedBefore } });
     await restorePlans();
     await prisma.$disconnect();
   }

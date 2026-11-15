@@ -60,7 +60,7 @@ function Upsell({ saved }) {
 // Pestaña «Mi tienda» del panel (plan Tienda)
 export default function StoreTab() {
   const { showToast } = useToast();
-  const [state, setState] = useState({ loading: true, allowed: false, saved: false });
+  const [state, setState] = useState({ loading: true, allowed: false, saved: false, identityVerified: true });
   const [form, setForm] = useState(EMPTY);
   const [saved, setSaved] = useState(EMPTY); // última versión guardada: «Descartar» vuelve a ella
   const [group, setGroup] = useState('local');
@@ -71,7 +71,7 @@ export default function StoreTab() {
   useEffect(() => {
     let alive = true;
     api.getMyStore()
-      .then((r) => { if (alive) { setState({ loading: false, allowed: r.allowed, saved: Boolean(r.store) }); setForm(fromServer(r.store)); setSaved(fromServer(r.store)); } })
+      .then((r) => { if (alive) { setState({ loading: false, allowed: r.allowed, saved: Boolean(r.store), identityVerified: r.identityVerified !== false }); setForm(fromServer(r.store)); setSaved(fromServer(r.store)); } })
       .catch(() => { if (alive) setState({ loading: false, allowed: false, saved: false, error: true }); });
     return () => { alive = false; };
   }, []);
@@ -131,12 +131,19 @@ export default function StoreTab() {
         <div className="min-w-0 flex-1">
           <p className="font-black leading-tight text-[#1a2b4b]">Mostrar mi local</p>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[13px] text-slate-600">
-            <span>{form.enabled ? 'Visible en tu perfil y en «Tiendas»' : 'Oculto, solo tú lo ves'}</span>
+            <span>{!state.identityVerified ? 'Verifica tu cuenta para mostrar tu local' : form.enabled ? 'Visible en tu perfil y en «Tiendas»' : 'Oculto, solo tú lo ves'}</span>
             <span className={`inline-flex items-center gap-1 font-bold ${status.open ? 'text-emerald-700' : 'text-slate-500'}`}><span className={`h-1.5 w-1.5 rounded-full ${status.open ? 'bg-emerald-500' : 'bg-slate-400'}`} />{openLabel(status)}</span>
           </p>
         </div>
-        <Switch checked={form.enabled} onChange={(enabled) => change({ ...form, enabled })} label="Mostrar mi local en mi perfil" />
+        <Switch checked={form.enabled && state.identityVerified} disabled={!state.identityVerified} onChange={(enabled) => change({ ...form, enabled })} label="Mostrar mi local en mi perfil" />
       </div>
+      {!state.identityVerified && (
+        <Link to="/perfil" className="-mt-2 mb-5 flex items-center gap-3 rounded-2xl bg-amber-50 p-3.5 text-[13px] leading-snug text-amber-950 ring-1 ring-amber-200 transition-transform active:scale-[0.99]">
+          <SvgIcon name="verified_user" className="shrink-0 text-2xl text-amber-600" />
+          <span className="min-w-0 flex-1"><span className="block font-extrabold">Verifica tu cuenta para publicar tu local</span>Puedes dejar la ficha lista; se mostrará apenas verifiquemos tu identidad.</span>
+          <SvgIcon name="chevron_right" className="shrink-0 text-xl text-amber-600" />
+        </Link>
+      )}
 
       <LiquidTabs
         ariaLabel="Áreas de Mi tienda"

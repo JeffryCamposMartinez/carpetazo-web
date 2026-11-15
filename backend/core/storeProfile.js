@@ -167,6 +167,9 @@ export const toPublicStore = (profile, date = new Date()) => {
 export const loadPublicStore = async (db, userId, getEffectivePlan) => {
   const profile = await db.storeProfile.findUnique({ where: { userId } });
   if (!profile?.enabled) return null;
+  // El local solo se publica con la identidad de la cuenta verificada
+  const owner = await db.user.findUnique({ where: { id: userId }, select: { identityVerifiedAt: true } });
+  if (!owner?.identityVerifiedAt) return null;
   const { plan } = await getEffectivePlan(db, userId);
   return plan.storeTools ? toPublicStore(profile) : null;
 };

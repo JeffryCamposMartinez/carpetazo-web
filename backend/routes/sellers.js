@@ -39,7 +39,7 @@ const queryRegisteredSellers = ({ like, comuna = null, sort, limit, offset, stor
         AND (s."expiresAt" IS NULL OR s."expiresAt" > ${utcNowSql})
     )
     ${like ? Prisma.sql`AND (u."name" ILIKE ${like} OR u."username" ILIKE ${like})` : Prisma.empty}
-    ${stores ? Prisma.sql`AND ${effectivePlanSql} = 'store' AND EXISTS (SELECT 1 FROM "StoreProfile" sx WHERE sx."userId" = u."id" AND sx."enabled" = true)` : Prisma.empty}
+    ${stores ? Prisma.sql`AND ${effectivePlanSql} = 'store' AND u."identityVerifiedAt" IS NOT NULL AND EXISTS (SELECT 1 FROM "StoreProfile" sx WHERE sx."userId" = u."id" AND sx."enabled" = true)` : Prisma.empty}
     ${comuna ? (stores ? Prisma.sql`AND (u."publicComuna" = ${comuna} OR EXISTS (SELECT 1 FROM "StoreProfile" sc WHERE sc."userId" = u."id" AND sc."comuna" = ${comuna}))` : Prisma.sql`AND u."publicComuna" = ${comuna}`) : Prisma.empty}`;
   const order = sort === 'name' ? Prisma.sql`LOWER(COALESCE(u."name", u."username")) ASC` : sort === 'cards' ? Prisma.sql`cards DESC, visits DESC` : Prisma.sql`visits DESC, cards DESC`;
   return Promise.all([

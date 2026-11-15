@@ -108,8 +108,8 @@ router.post('/api/orders/create', async (req, res) => {
     if (buyer && folder.userId === buyer.id) return res.status(400).json({ success: false, message: 'No puedes enviarte un pedido a ti mismo' });
     let pickupHours = null;
     if (viaPickup) {
-      const [{ plan }, storeProfile] = await Promise.all([getEffectivePlan(prisma, folder.userId), prisma.storeProfile.findUnique({ where: { userId: folder.userId }, select: { enabled: true, pickupHours: true } })]);
-      if (!plan.storeTools || !storeProfile?.enabled) return res.status(400).json({ success: false, message: 'Esta tienda no ofrece retiro en el local' });
+      const [{ plan }, storeProfile, owner] = await Promise.all([getEffectivePlan(prisma, folder.userId), prisma.storeProfile.findUnique({ where: { userId: folder.userId }, select: { enabled: true, pickupHours: true } }), prisma.user.findUnique({ where: { id: folder.userId }, select: { identityVerifiedAt: true } })]);
+      if (!plan.storeTools || !storeProfile?.enabled || !owner?.identityVerifiedAt) return res.status(400).json({ success: false, message: 'Esta tienda no ofrece retiro en el local' });
       pickupHours = storeProfile.pickupHours;
     }
     if (viaMessage) {

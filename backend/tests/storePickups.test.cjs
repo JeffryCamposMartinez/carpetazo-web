@@ -11,6 +11,8 @@ const plan = (who, planKey) => call('POST', '/billing/test-plan', who, { planKey
   const seller = (await prisma.user.findFirst({ where: { firebaseUid: 'cztest-seller' }, select: { id: true } })).id;
   const card = await prisma.card.findUnique({ where: { id: cardId }, select: { stock: true } });
   const created = [];
+  const verifiedBefore = (await prisma.user.findUnique({ where: { id: seller }, select: { identityVerifiedAt: true } })).identityVerifiedAt;
+  await prisma.user.update({ where: { id: seller }, data: { identityVerifiedAt: new Date() } }); // el local público exige la cuenta verificada
   try {
     await prisma.card.update({ where: { id: cardId }, data: { stock: 2 } });
     await prisma.storeProfile.deleteMany({ where: { userId: seller } });
@@ -70,6 +72,7 @@ const plan = (who, planKey) => call('POST', '/billing/test-plan', who, { planKey
     await prisma.order.deleteMany({ where: { id: { in: created.filter(Boolean) } } });
     await prisma.message.deleteMany({ where: { receiverId: seller, content: { contains: 'Código de retiro' } } });
     await prisma.storeProfile.deleteMany({ where: { userId: seller } });
+    await prisma.user.update({ where: { id: seller }, data: { identityVerifiedAt: verifiedBefore } });
     await prisma.card.update({ where: { id: cardId }, data: { stock: card.stock } });
     await restorePlans();
     await prisma.$disconnect();

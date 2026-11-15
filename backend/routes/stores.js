@@ -18,9 +18,9 @@ router.get('/api/stores/me', authenticateToken, async (req, res) => {
   try {
     const userId = await ownUserId(req);
     if (!userId) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-    const [{ plan }, profile] = await Promise.all([getEffectivePlan(prisma, userId), prisma.storeProfile.findUnique({ where: { userId } })]);
+    const [{ plan }, profile, owner] = await Promise.all([getEffectivePlan(prisma, userId), prisma.storeProfile.findUnique({ where: { userId } }), prisma.user.findUnique({ where: { id: userId }, select: { identityVerifiedAt: true } })]);
     const store = profile ? { ...toPublicStore({ ...profile, enabled: true }), enabled: profile.enabled } : null;
-    res.json({ success: true, allowed: Boolean(plan.storeTools), store });
+    res.json({ success: true, allowed: Boolean(plan.storeTools), identityVerified: Boolean(owner?.identityVerifiedAt), store });
   } catch (error) {
     console.error('Error cargando la ficha de la tienda:', error.message);
     res.status(500).json({ success: false, message: 'Error interno' });
@@ -36,6 +36,10 @@ router.put('/api/stores/me', authenticateToken, routeLimiter(60 * 1000, 30), asy
     assertFeature(plan, 'storeTools');
     const parsed = parseStoreProfile(req.body);
     if (!parsed.ok) return badRequest(res, parsed.error);
+    // Mostrar el local en público exige la identidad verificada (se puede seguir editando mientras tanto)
+    if (parsed.data.enabled && !(await prisma.user.findUnique({ where: { id: userId }, select: { identityVerifiedAt: true } }))?.identityVerifiedAt) {
+      return res.status(403).json({ success: false, code: 'identity_required', message: 'Para mostrar tu local en público primero verifica tu cuenta.' });
+    }
     const data = { ...parsed.data, hours: parsed.data.hours ?? undefined };
     const profile = await prisma.storeProfile.upsert({ where: { userId }, create: { userId, ...data }, update: data });
     res.json({ success: true, store: { ...toPublicStore({ ...profile, enabled: true }), enabled: profile.enabled } });

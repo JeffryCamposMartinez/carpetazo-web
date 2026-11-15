@@ -13,6 +13,7 @@ const valid = { enabled: true, address: 'Arauco 123', reference: 'Frente a la pl
   const id = async (who) => (await prisma.user.findFirst({ where: { firebaseUid: 'cztest-' + who }, select: { id: true } })).id;
   const store = await id('nobuyer');
   const common = await id('ignacio');
+  const verifiedBefore = (await prisma.user.findUnique({ where: { id: store }, select: { identityVerifiedAt: true } })).identityVerifiedAt;
   try {
     await prisma.storeProfile.deleteMany({ where: { userId: { in: [store, common] } } });
     let r;
@@ -26,6 +27,14 @@ const valid = { enabled: true, address: 'Arauco 123', reference: 'Frente a la pl
     ok('Free: /stores/me dice que no está permitido', r.status === 200 && r.j.allowed === false && r.j.store === null, JSON.stringify(r.j));
 
     await plan('nobuyer', 'store');
+    await prisma.user.update({ where: { id: store }, data: { identityVerifiedAt: null } });
+    r = await call('PUT', '/stores/me', 'nobuyer', valid, ip());
+    ok('sin cuenta verificada no se publica el local → 403 identity_required', r.status === 403 && r.j.code === 'identity_required', JSON.stringify(r.j));
+    r = await call('PUT', '/stores/me', 'nobuyer', { ...valid, enabled: false }, ip());
+    ok('sin verificar sí se puede guardar la ficha oculta', r.status === 200 && r.j.store.enabled === false, JSON.stringify(r.j));
+    r = await call('GET', '/stores/me', 'nobuyer', null, ip());
+    ok('/stores/me informa que falta verificar', r.j.identityVerified === false);
+    await prisma.user.update({ where: { id: store }, data: { identityVerifiedAt: new Date() } });
     r = await call('PUT', '/stores/me', 'nobuyer', valid, ip());
     ok('plan Tienda guarda la ficha', r.status === 200 && r.j.store.address === 'Arauco 123' && r.j.store.enabled === true, JSON.stringify(r.j));
     r = await call('PUT', '/stores/me', 'nobuyer', { ...valid, comuna: 'Gotham', address: 'Otra 1' }, ip());
@@ -60,6 +69,14 @@ const valid = { enabled: true, address: 'Arauco 123', reference: 'Frente a la pl
     r = await call('GET', '/users/' + NAMES.ignacio, null, null, ip());
     ok('vendedor sin plan Tienda no expone dirección', r.status === 200 && r.j.user.store === null && !JSON.stringify(r.j).includes('Secreta 999'), JSON.stringify(r.j.user?.store));
 
+    // Si pierde la verificación, el local se oculta aunque siga guardado
+    await prisma.user.update({ where: { id: store }, data: { identityVerifiedAt: null } });
+    r = await call('GET', '/users/' + NAMES.nobuyer, null, null, ip());
+    ok('sin cuenta verificada el perfil no muestra el local', r.status === 200 && r.j.user.store === null, JSON.stringify(r.j.user?.store));
+    r = await call('GET', '/sellers?kind=store', null, null, ip());
+    ok('y no sale en «Tiendas»', !(r.j.sellers || []).some((s) => s.username === NAMES.nobuyer));
+    await prisma.user.update({ where: { id: store }, data: { identityVerifiedAt: new Date() } });
+
     // Baja de plan: se oculta, no se borra
     await plan('nobuyer', 'free');
     r = await call('GET', '/users/' + NAMES.nobuyer, null, null, ip());
@@ -86,6 +103,7 @@ const valid = { enabled: true, address: 'Arauco 123', reference: 'Frente a la pl
     ok('la ficha acepta la foto propia', r.status === 200 && r.j.store.photos[0] === photoUrl, JSON.stringify(r.j));
   } finally {
     await prisma.storeProfile.deleteMany({ where: { userId: { in: [store, common] } } });
+    await prisma.user.update({ where: { id: store }, data: { identityVerifiedAt: verifiedBefore } });
     await restorePlans();
     await prisma.$disconnect();
   }
