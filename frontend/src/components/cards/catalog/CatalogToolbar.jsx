@@ -22,7 +22,7 @@ export default function CatalogToolbar({ sort, onSort, view, onView, withProduct
         icon="swap_vert"
         value={sort}
         onChange={onSort}
-        options={withProduct ? [{ value: 'producto', label: 'Por producto' }, ...SORTS] : SORTS}
+        options={withProduct ? [{ value: 'producto', label: 'Producto (nuevo a antiguo)' }, ...SORTS] : SORTS}
         className="min-w-0 flex-1 sm:max-w-xs"
         buttonClassName="h-11 rounded-full bg-white ring-1 ring-slate-900/10 text-sm font-extrabold text-[#12315f]"
       />

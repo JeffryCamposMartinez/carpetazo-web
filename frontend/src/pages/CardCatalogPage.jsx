@@ -177,9 +177,10 @@ export default function CardCatalogPage() {
 
   const sorter = useMemo(() => {
     if (sort !== 'producto') return SORTERS[sort];
-    const names = new Map(physicalProducts.map((product) => [product.id, product.name]));
-    const productOf = (card) => (card.physicalProductIds || []).map((id) => names.get(id)).filter(Boolean).sort()[0] || '￿'; // sin producto, al final
-    return (a, b) => productOf(a).localeCompare(productOf(b), 'es', { numeric: true, sensitivity: 'base' }) || SORTERS.num(a, b);
+    // Las fechas de lanzamiento casi no existen: el número del producto crece con cada producto nuevo, así que sirve de "más reciente primero"
+    const valid = new Set(physicalProducts.map((product) => product.id));
+    const productOf = (card) => Math.max(0, ...(card.physicalProductIds || []).filter((id) => valid.has(id))); // sin producto = 0, al final
+    return (a, b) => productOf(b) - productOf(a) || SORTERS.num(a, b);
   }, [sort, physicalProducts]);
   const sorted = useMemo(() => [...visible].sort(sorter), [visible, sorter]);
   useEffect(() => { setShown(PAGE_SIZE); }, [searchQuery, selectedSupertype, selectedType, gameFilters, sort]);
