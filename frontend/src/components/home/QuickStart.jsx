@@ -15,8 +15,8 @@ const STEPS = [
 
 function Tile({ to, icon, label, primary = false }) {
   return (
-    <Link to={to} className="group flex min-w-0 flex-col items-center justify-start gap-1.5 rounded-2xl py-1 text-center text-[12px] font-bold leading-tight text-[#12315f] transition-transform duration-150 active:scale-[0.95] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
-      <span className={`flex h-14 w-14 items-center justify-center rounded-[18px] transition-colors ${primary ? 'bg-[#facc15] text-[#12315f] shadow-[0_8px_16px_-10px_rgba(202,138,4,0.9)]' : 'bg-[#eef3ff] text-[#1e40af] group-hover:bg-[#e2eaff]'}`}><SvgIcon name={icon} translate="no" aria-hidden="true" className="text-[26px]" /></span>
+    <Link to={to} className="group flex min-w-0 flex-col items-center justify-start gap-1.5 rounded-2xl py-1 text-center text-[12px] font-bold leading-tight sm:text-[13px] text-[#12315f] transition-transform duration-150 active:scale-[0.95] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e40af]">
+      <span className={`flex h-14 w-14 items-center justify-center rounded-[18px] sm:h-16 sm:w-16 sm:rounded-[20px] transition-colors ${primary ? 'bg-[#facc15] text-[#12315f] shadow-[0_8px_16px_-10px_rgba(202,138,4,0.9)]' : 'bg-[#eef3ff] text-[#1e40af] group-hover:bg-[#e2eaff]'}`}><SvgIcon name={icon} translate="no" aria-hidden="true" className="text-[26px]" /></span>
       <span className="line-clamp-2 w-full px-0.5">{label}</span>
     </Link>
   );
@@ -67,9 +67,9 @@ export default function QuickStart() {
 
   const name = appUser?.username || appUser?.name;
   return (
-    <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0, transition: { duration: 0.3, ease: EASE_OUT } }} aria-label="Accesos rápidos" className={`${CARD} mb-4 px-3 pb-3 pt-3.5 sm:p-4`}>
-      <p className="mb-2.5 px-1 text-[15px] font-extrabold text-[#12315f]">{name ? `Hola, ${name}` : 'Hola'}</p>
-      <nav className="grid grid-cols-4 gap-1 sm:max-w-md">
+    <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0, transition: { duration: 0.3, ease: EASE_OUT } }} aria-label="Accesos rápidos" className={`${CARD} mb-4 px-3 pb-3 pt-3.5 sm:px-6 sm:pb-4 sm:pt-4`}>
+      <p className="mb-2.5 px-1 text-[15px] font-extrabold text-[#12315f] sm:text-center sm:text-base">{name ? `Hola, ${name}` : 'Hola'}</p>
+      <nav className="mx-auto grid max-w-xl grid-cols-4 gap-1 sm:gap-4">
         <Tile to="/dashboard?nueva=carpeta" icon="add" label="Crear carpeta" primary />
         <Tile to="/dashboard" icon="folder" label="Mis carpetas" />
         <Tile to="/dashboard?tab=solicitudes" icon="inbox" label="Solicitudes" />
