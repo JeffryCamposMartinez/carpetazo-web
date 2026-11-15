@@ -10,6 +10,7 @@ import { badRequest, isUuid } from '../core/validation.js';
 import { getEffectivePlan } from '../core/entitlements.js';
 import { generatePickupCode, pickupDeadline } from '../core/storePickups.js';
 import { notifyUsers } from '../core/storeNotices.js';
+import { finishPendingOrder } from '../core/orderCompletion.js';
 import { countCouponUses, couponProblem, discountFor, normalizeCode } from '../core/storeCoupons.js';
 
 const router = express.Router();
@@ -400,20 +401,7 @@ router.post('/api/orders/mine/:id/status', authenticateToken, async (req, res) =
 
     // Completar descuenta el stock de las cartas de la carpeta en la misma transacción.
     // El cambio de estado se reclama primero (solo si sigue pendiente): dos clics simultáneos no descuentan el stock dos veces.
-    const updated = await prisma.$transaction(async (tx) => {
-      const claimed = await tx.order.updateMany({ where: { id: order.id, status: 'pending' }, data: { status } });
-      if (claimed.count === 0) return null;
-      if (status === 'completed') {
-        for (const item of normalizeOrderItems(order.items)) {
-          const id = String(item.id || '');
-          if (!isUuid(id)) continue;
-          const card = await tx.card.findFirst({ where: { id, folderId: order.folderId } });
-          if (!card) continue;
-          await tx.card.update({ where: { id }, data: { stock: Math.max(0, Number(card.stock || 0) - Number(item.quantity || 1)) } });
-        }
-      }
-      return tx.order.update({ where: { id: order.id }, data: { status, ...(status === 'completed' ? { completedIpHash: hashConnection(req) } : {}) } });
-    });
+    const updated = await finishPendingOrder(prisma, order, status, status === 'completed' ? { completedIpHash: hashConnection(req) } : {});
     if (!updated) return res.status(409).json({ success: false, message: 'Este pedido ya fue gestionado' });
     if (status === 'completed') notifyReviewRequest(updated); // sin esperar: el aviso nunca retrasa ni rompe la confirmación
 

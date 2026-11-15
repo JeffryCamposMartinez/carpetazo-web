@@ -10,13 +10,13 @@ const until = (iso) => new Date(iso).toLocaleString('es-CL', { timeZone: 'Americ
 const isToday = (iso) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/Santiago' }) === chileToday();
 const btn = 'inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-black transition active:scale-[0.97] disabled:opacity-60';
 
-function PickupRow({ p, role, onChange, showToast }) {
+function PickupRow({ p, role, onChange, showToast, storeId }) {
   const [busy, setBusy] = useState(null);
   const run = async (action) => {
     setBusy(action);
     try {
-      if (action === 'ready') onChange((await api.markPickupReady(p.id)).pickup);
-      if (action === 'done') { await api.completeOrder(p.id); onChange({ ...p, status: 'completed' }); showToast('Retiro confirmado. Stock actualizado.', 'success'); }
+      if (action === 'ready') onChange((storeId ? await api.staffPickupAction(storeId, p.id, 'ready') : await api.markPickupReady(p.id)).pickup);
+      if (action === 'done') { if (storeId) await api.staffPickupAction(storeId, p.id, 'deliver'); else await api.completeOrder(p.id); onChange({ ...p, status: 'completed' }); showToast('Retiro confirmado. Stock actualizado.', 'success'); }
       if (action === 'cancel') onChange((await api.cancelPickup(p.id)).pickup);
     } catch (error) {
       showToast(error.message || 'No se pudo completar', 'error');
@@ -45,12 +45,12 @@ function PickupRow({ p, role, onChange, showToast }) {
   );
 }
 
-// role 'store': retiros de la tienda («de hoy» primero) · role 'buyer': mis reservas
-export default function PickupsPanel({ role, showToast, hideWhenEmpty = false, title }) {
+// role 'store': retiros de la tienda («de hoy» primero) · role 'buyer': mis reservas · storeId: empleado de caja de esa tienda
+export default function PickupsPanel({ role, showToast, hideWhenEmpty = false, title, storeId = null }) {
   const [rows, setRows] = useState(null);
   useEffect(() => {
-    (role === 'store' ? api.getStorePickups() : api.getMyPickups()).then((r) => setRows(r.pickups || [])).catch(() => setRows([]));
-  }, [role]);
+    (storeId ? api.getStaffPickups(storeId) : role === 'store' ? api.getStorePickups() : api.getMyPickups()).then((r) => setRows(r.pickups || [])).catch(() => setRows([]));
+  }, [role, storeId]);
   if (!rows) return hideWhenEmpty ? null : <LoadingState variant="compact" label="Cargando retiros" />;
   if (hideWhenEmpty && !rows.some((p) => p.status === 'pending')) return null;
   const today = rows.filter((p) => p.status === 'pending' && isToday(p.pickupBy));
@@ -60,7 +60,7 @@ export default function PickupsPanel({ role, showToast, hideWhenEmpty = false, t
       {title && <h3 className="text-base font-black text-[#1a2b4b]">{title}</h3>}
       {role === 'store' && <p className="text-sm font-bold text-[#12315f]">Retiros que vencen hoy: {today.length}</p>}
       {!rows.length ? <p className="text-sm text-slate-600">Aún no hay reservas. En tus carpetas públicas aparece el botón «Reservar y retirar en tienda» cuando tu local está visible.</p> : (
-        <ul className="space-y-2">{rows.map((p) => <PickupRow key={p.id} p={p} role={role} showToast={showToast} onChange={update} />)}</ul>
+        <ul className="space-y-2">{rows.map((p) => <PickupRow key={p.id} p={p} role={role} showToast={showToast} onChange={update} storeId={storeId} />)}</ul>
       )}
     </div>
   );

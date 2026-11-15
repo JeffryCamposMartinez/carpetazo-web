@@ -61,6 +61,8 @@ model User {
   followingStores          StoreFollow[]      @relation("StoreFollowUser")
   storeCoupons             StoreCoupon[]
   storeVerifications       StoreVerification[]
+  storeMembers             StoreMember[]      @relation("StoreMemberStore")
+  storeJobs                StoreMember[]      @relation("StoreMemberUser")
   subscriptions            Subscription[]
   planGrants               PlanGrant[]        @relation("PlanGrantUser")
   planGrantsIssued         PlanGrant[]        @relation("PlanGrantIssuer")
@@ -978,6 +980,7 @@ model StoreProfile {
   staleDays      Int      @default(60)
   lastAnnouncedAt DateTime?
   verifiedAt     DateTime? // «Tienda verificada»: la aprueba Moderación
+  lastSummaryAt  DateTime? // último resumen semanal enviado (lunes)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1106,4 +1109,20 @@ model StoreVerification {
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
+}
+
+// Empleados de una tienda: «cashier» (ventas en persona y retiros) o «stock» (cantidades y precios de las cartas). Invitación → acepta → el dueño revoca.
+model StoreMember {
+  id        String   @id @default(uuid())
+  storeId   String
+  userId    String
+  role      String
+  status    String   @default("invited") // invited | active
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  store     User     @relation("StoreMemberStore", fields: [storeId], references: [id], onDelete: Cascade)
+  user      User     @relation("StoreMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, userId])
+  @@index([userId, status])
 }

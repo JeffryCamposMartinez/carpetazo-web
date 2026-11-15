@@ -16,6 +16,9 @@ import StoreCashPanel from './StoreCashPanel';
 import StoreStockPanel from './StoreStockPanel';
 import StoreClientsPanel from './StoreClientsPanel';
 import StoreVerificationPanel from './StoreVerificationPanel';
+import StoreTeamPanel from './StoreTeamPanel';
+import StoreReportPanel from './StoreReportPanel';
+import StaffStores from './StaffStores';
 import { AddressFields, PolicyField, TradeFields } from './StoreProfileForm';
 import { STORE_DAYS, isOpenAt, openLabel } from '../../utils/storeHours';
 
@@ -23,11 +26,12 @@ const EMPTY = { enabled: false, address: '', reference: '', comuna: '', hours: O
 // Tres grupos (selector segmentado) y, dentro de cada uno, sus secciones: en el celular no caben 12 pestañas en una fila
 const GROUPS = [
   { value: 'local', label: 'Mi local', sections: [{ value: 'local', label: 'Dirección' }, { value: 'horario', label: 'Horario' }, { value: 'comercio', label: 'Compra y venta' }, { value: 'fotos', label: 'Fotos' }, { value: 'politica', label: 'Política' }, { value: 'verificacion', label: 'Verificación' }] },
-  { value: 'ventas', label: 'Ventas', sections: [{ value: 'retiros', label: 'Retiros' }, { value: 'caja', label: 'Caja' }, { value: 'stock', label: 'Stock' }, { value: 'compras', label: 'Colecciones' }] },
-  { value: 'clientes', label: 'Clientes', sections: [{ value: 'eventos', label: 'Eventos' }, { value: 'clientes', label: 'Avisos y cupones' }] }
+  { value: 'ventas', label: 'Ventas', sections: [{ value: 'retiros', label: 'Retiros' }, { value: 'caja', label: 'Caja' }, { value: 'informe', label: 'Informe' }, { value: 'stock', label: 'Stock' }, { value: 'compras', label: 'Colecciones' }] },
+  { value: 'clientes', label: 'Clientes', sections: [{ value: 'eventos', label: 'Eventos' }, { value: 'clientes', label: 'Avisos y cupones' }] },
+  { value: 'equipo', label: 'Equipo', sections: [{ value: 'equipo', label: 'Personas' }] }
 ];
 // Las que se ven sobre una tarjeta blanca (las otras ya traen sus propias tarjetas)
-const CARDED = ['local', 'comercio', 'fotos', 'politica', 'verificacion', 'caja'];
+const CARDED = ['local', 'comercio', 'fotos', 'politica', 'verificacion', 'caja', 'informe'];
 const CARD = 'rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_12px_28px_-20px_rgba(26,43,75,0.45)] ring-1 ring-slate-900/5 sm:p-5';
 const EASE_OUT = [0.23, 1, 0.32, 1];
 const BAR_SPRING = { type: 'spring', stiffness: 520, damping: 42, mass: 0.8 };
@@ -95,7 +99,7 @@ export default function StoreTab() {
 
   if (state.loading) return <LoadingState label="Cargando tu tienda" />;
   if (state.error) return <p className="text-center text-slate-600">No se pudo cargar tu tienda. Recarga la página.</p>;
-  const mySales = <div className="mx-auto mb-5 max-w-3xl space-y-5"><PickupsPanel role="buyer" showToast={showToast} hideWhenEmpty title="Mis reservas para retirar" /><BuyRequestsInbox role="seller" showToast={showToast} hideWhenEmpty title="Colecciones que ofreciste a tiendas" /></div>;
+  const mySales = <div className="mx-auto mb-5 max-w-3xl space-y-5"><StaffStores showToast={showToast} /><PickupsPanel role="buyer" showToast={showToast} hideWhenEmpty title="Mis reservas para retirar" /><BuyRequestsInbox role="seller" showToast={showToast} hideWhenEmpty title="Colecciones que ofreciste a tiendas" /></div>;
   if (!state.allowed) return <>{mySales}<Upsell saved={state.saved} /></>;
 
   const status = isOpenAt(form.hours, form.exceptions);
@@ -113,7 +117,9 @@ export default function StoreTab() {
     stock: <StoreStockPanel showToast={showToast} />,
     compras: <BuyRequestsInbox role="store" showToast={showToast} />,
     eventos: <StoreEventsEditor showToast={showToast} />,
-    clientes: <StoreClientsPanel showToast={showToast} />
+    clientes: <StoreClientsPanel showToast={showToast} />,
+    informe: <StoreReportPanel showToast={showToast} />,
+    equipo: <StoreTeamPanel showToast={showToast} />
   }[section];
   const showBar = dirty; // también fuera de la ficha: así no se pierden cambios al cambiar de sección
   return (
@@ -147,7 +153,7 @@ export default function StoreTab() {
         activeTextClassName="text-[#12315f]"
         inactiveTextClassName="text-slate-600"
       />
-      <div className="hide-scrollbar -mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+      {current.sections.length > 1 && <div className="hide-scrollbar -mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         <LiquidTabs
           key={group}
           ariaLabel={`Secciones de ${current.label}`}
@@ -164,7 +170,7 @@ export default function StoreTab() {
           activeTextClassName="text-white"
           inactiveTextClassName="text-slate-600 bg-white/70 ring-1 ring-slate-900/[0.06] hover:text-[#1a2b4b]"
         />
-      </div>
+      </div>}
 
       <AnimatePresence mode="wait" initial={false}>
         <motion.div

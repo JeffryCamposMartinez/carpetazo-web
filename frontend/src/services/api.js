@@ -158,6 +158,17 @@ export const api = {
   storeVerificationPhoto: (id, kind) => apiBlob('/admin/store-verifications/' + encodeURIComponent(id) + '/photo/' + encodeURIComponent(kind)),
   approveStoreVerification: (id, reason) => apiFetch('/admin/store-verifications/' + encodeURIComponent(id) + '/approve', { method: 'POST', body: JSON.stringify({ reason }) }),
   rejectStoreVerification: (id, reason) => apiFetch('/admin/store-verifications/' + encodeURIComponent(id) + '/reject', { method: 'POST', body: JSON.stringify({ reason }) }),
+  getStoreTeam: () => apiFetch('/stores/me/team'),
+  inviteStoreMember: (data) => apiFetch('/stores/me/team', { method: 'POST', body: JSON.stringify(data) }),
+  removeStoreMember: (id) => apiFetch('/stores/me/team/' + encodeURIComponent(id), { method: 'DELETE' }),
+  getStaffStores: () => apiFetch('/staff/stores'),
+  acceptStaffInvite: (id) => apiFetch('/staff/invitations/' + encodeURIComponent(id) + '/accept', { method: 'POST', body: '{}' }),
+  leaveStaffStore: (id) => apiFetch('/staff/invitations/' + encodeURIComponent(id), { method: 'DELETE' }),
+  getStaffFolders: (storeId) => apiFetch('/staff/stores/' + encodeURIComponent(storeId) + '/folders'),
+  updateStaffCard: (storeId, cardId, data) => apiFetch('/staff/stores/' + encodeURIComponent(storeId) + '/cards/' + encodeURIComponent(cardId), { method: 'PUT', body: JSON.stringify(data) }),
+  getStaffPickups: (storeId) => apiFetch('/staff/stores/' + encodeURIComponent(storeId) + '/pickups'),
+  staffPickupAction: (storeId, id, action) => apiFetch('/staff/stores/' + encodeURIComponent(storeId) + '/pickups/' + encodeURIComponent(id) + '/' + action, { method: 'POST', body: '{}' }),
+  downloadStoreReport: (from, to) => apiBlob('/stores/me/report.csv?from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to)),
   deleteProfile: () => apiFetch('/users/me', { method: 'DELETE' }),
 
   // Planes y suscripciones

@@ -4,6 +4,7 @@ import express from 'express';
 import { authenticateToken } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { badRequest, isUuid } from '../core/validation.js';
+import { canActForStore } from '../core/storeAccess.js';
 
 const router = express.Router();
 const MAX_LINES = 100;
@@ -24,13 +25,16 @@ const withImages = async (sales) => {
 const PAYMENT_METHODS = ['', 'cash', 'transfer', 'debit', 'credit'];
 const publicSale = (sale) => ({ id: sale.id, paymentMethod: sale.paymentMethod, folderId: sale.folderId, folderName: sale.folderName, items: sale.items, units: sale.units, total: sale.total, subtotal: sale.subtotal, adjustmentType: sale.adjustmentType, adjustmentValue: sale.adjustmentValue, discountAmount: sale.discountAmount, createdAt: sale.createdAt });
 
-// Dueño de la carpeta: 404 si no existe o no es suya (no se distingue para no revelar carpetas ajenas)
+// Dueño de la carpeta (o su empleado de caja): 404 si no existe o no es suya (no se distingue para no revelar carpetas ajenas)
 const ownedFolder = async (req, folderId) => {
   if (!isUuid(folderId)) return null;
   const user = await prisma.user.findUnique({ where: { firebaseUid: req.user.sub }, select: { id: true } });
   if (!user) return null;
   const folder = await prisma.folder.findUnique({ where: { id: folderId }, select: { id: true, name: true, userId: true } });
-  return folder && folder.userId === user.id ? { user, folder } : null;
+  if (!folder) return null;
+  if (folder.userId === user.id) return { user, folder };
+  // Empleado de caja de la tienda: la venta queda a nombre de la tienda (su caja e historial)
+  return (await canActForStore(prisma, user.id, folder.userId, 'sales')) ? { user: { id: folder.userId }, folder, actorId: user.id } : null;
 };
 
 // Todas mis ventas presenciales (para el historial de ventas de la cuenta)
