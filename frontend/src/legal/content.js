@@ -684,6 +684,22 @@ export const privacyBlocks = [
   "x": "Usamos almacenamiento local de tu navegador para recordar preferencias (por ejemplo, vistas y avisos ya vistos). Hoy **no usamos cookies de publicidad ni de analítica de terceros**. Google puede usar cookies propias durante el inicio de sesión."
  },
  {
+  "t": "p",
+  "x": "**Medición propia de uso.** Para mejorar Carpetazo medimos cómo se usa el sitio con una herramienta propia, sin cookies y sin servicios externos. Guardamos un identificador aleatorio de tu navegador, las páginas que visitas (agrupadas, sin nombres de usuario ni identificadores), el tiempo de uso, tu dispositivo, navegador y sistema en forma resumida, de qué sitio llegaste, la zona horaria de tu navegador (para estimar el país) y acciones como buscar, escanear o agregar cartas. Si tienes sesión iniciada, asociamos estos datos a tu cuenta."
+ },
+ {
+  "t": "p",
+  "x": "**No guardamos** tu dirección IP, la identificación completa de tu navegador, contraseñas, mensajes ni datos de pago en esta medición."
+ },
+ {
+  "t": "p",
+  "x": "**Plazos.** Los eventos individuales se eliminan a los 90 días. Después solo quedan totales agregados (por ejemplo, visitas por día) por hasta 25 meses. Si eliminas tu cuenta, borramos tus eventos."
+ },
+ {
+  "t": "p",
+  "x": "**Tu control.** Puedes desactivar la medición cuando quieras con el botón «No medir mi uso» al pie de la página. También respetamos «No rastrear» y Global Privacy Control de tu navegador."
+ },
+ {
   "t": "h2",
   "id": "12-cambios-a-esta-politica",
   "x": "12. Cambios a esta política"
