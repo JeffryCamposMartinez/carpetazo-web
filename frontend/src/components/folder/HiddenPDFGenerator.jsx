@@ -30,22 +30,40 @@ const getPdfImageUrl = (imageUrl) => {
   return apiUrl('/proxy-image?url=' + encodeURIComponent(imageUrl));
 };
 
+const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onloadend = () => resolve(reader.result);
+  reader.onerror = reject;
+  reader.readAsDataURL(blob);
+});
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Descarga la imagen por el proxy con reintentos (el servidor externo a veces tarda o limita): una carta sin imagen sale como hueco negro en el PDF
 const imageUrlToDataUrl = async (imageUrl) => {
   const sourceUrl = getPdfImageUrl(imageUrl);
   if (!sourceUrl) return '';
-
-  const response = await fetch(sourceUrl, { cache: 'no-store' });
-  if (!response.ok) {
-    throw new Error('No se pudo cargar la imagen para PDF: ' + response.status);
+  let lastError;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      const response = await fetch(sourceUrl, { cache: 'no-store' });
+      if (response.ok) return await blobToDataUrl(await response.blob());
+      lastError = new Error('No se pudo cargar la imagen para PDF: ' + response.status);
+      if (response.status === 400 || response.status === 404) break; // reintentar no ayuda
+    } catch (error) { lastError = error; }
+    await wait(600 * (attempt + 1));
   }
+  throw lastError;
+};
 
-  const blob = await response.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
+// Procesa la lista con un máximo de tareas simultáneas para no saturar el servidor ni la fuente de imágenes
+const mapLimit = async (items, limit, task) => {
+  const results = new Array(items.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) { const index = next; next += 1; results[index] = await task(items[index]); }
+  }));
+  return results;
 };
 
 export default function HiddenPDFGenerator({ folderId, onComplete, onProgress }) {
@@ -87,7 +105,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
         onProgressRef.current?.(0, totalCards, false);
         
         // Convert all images to Base64 to guarantee html2canvas can render them
-        const cardsWithBase64 = await Promise.all(cardsData.map(async (card) => {
+        const cardsWithBase64 = await mapLimit(cardsData, 6, async (card) => {
           try {
             const b64 = await imageUrlToDataUrl(card.imageUrl);
             loadedCount++;
@@ -99,7 +117,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
             onProgressRef.current?.(loadedCount, totalCards, false);
             return { ...card, base64: getPdfImageUrl(card.imageUrl) || card.imageUrl };
           }
-        }));
+        });
 
         setCards(cardsWithBase64);
       } catch (error) {
