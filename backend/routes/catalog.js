@@ -632,7 +632,7 @@ const withPhysicalIds = (rows) => rows.map(({ physicalLinks, ...row }) => ({
 
 // Cartas que mazos.cl todavía no revela («Carta Preview», «Carta Spoiler», «Carta Unreleased»…): fichas de tipo NONE llamadas «Carta …», sin datos reales.
 // No se muestran al público hasta que lleguen con su nombre y tipo reales.
-const UNREVEALED_CARD = { AND: [{ name: { startsWith: 'Carta ' } }, { extData: { array_contains: [{ name: 'Type', value: 'NONE' }] } }] };
+const UNREVEALED_CARD = { AND: [{ name: { startsWith: 'Carta ' } }, { imageUrl: '' }, { extData: { array_contains: [{ name: 'Type', value: 'NONE' }] } }] };
 
 router.get('/api/tcg/:categoryId/:groupId/products', async (req, res) => {
   try {
