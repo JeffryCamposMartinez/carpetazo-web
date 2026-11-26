@@ -3,6 +3,8 @@
 import { isMylTcg } from './mylIdentity.js';
 import { r2PublicUrl } from './tcgCatalogImport.js';
 import { hasRealImage } from './catalogPhotos.js';
+import { HeadObjectCommand } from '@aws-sdk/client-s3';
+import { getR2KeyFromPublicUrl, r2Client, r2TestLog } from './r2.js';
 
 const OWN_CARD_PHOTO = /\/Usuarios\/[^/]+\/card\/[0-9a-f]{32}\.webp$/;
 const SPANISH_CARD_IMAGE = /^https:\/\/assets\.tcgdex\.net\/|\/Pokemon_Espanol\//;
@@ -26,4 +28,32 @@ export async function withCatalogImages(db, cards) {
     if (card.imageUrl && language === 'Spanish' && SPANISH_CARD_IMAGE.test(card.imageUrl)) return card;
     return key ? { ...card, imageUrl: r2PublicUrl(key) } : card;
   });
+}
+
+// La foto propia de una carta puede haberse borrado de R2 (el objeto ya no existe) mientras la carta sigue apuntando a ella.
+// Si hay imagen de respaldo (la aprobada por Moderación), se usa esa en lugar de mostrar «Sin imagen». Solo se descarta con la confirmación de R2 de que no existe.
+const photoChecks = new Map(); // url -> { gone, at }
+const PHOTO_CHECK_TTL_MS = 10 * 60 * 1000;
+const photoIsGone = async (url) => {
+  const cached = photoChecks.get(url);
+  if (cached && Date.now() - cached.at < PHOTO_CHECK_TTL_MS) return cached.gone;
+  const key = getR2KeyFromPublicUrl(url);
+  if (!key || !process.env.R2_BUCKET_NAME) return false;
+  let gone = false;
+  try {
+    await r2Client.send(new HeadObjectCommand({ Bucket: process.env.R2_BUCKET_NAME, Key: key }));
+  } catch (error) {
+    gone = error?.$metadata?.httpStatusCode === 404 || error?.name === 'NotFound' || error?.name === 'NoSuchKey';
+  }
+  if (photoChecks.size > 5000) photoChecks.clear();
+  photoChecks.set(url, { gone, at: Date.now() });
+  return gone;
+};
+export async function useFallbackWhenPhotoIsGone(cards) {
+  if (r2TestLog) return cards; // pruebas automáticas: R2 simulado
+  return Promise.all(cards.map(async (card) => (
+    card.fallbackImageUrl && card.imageUrl && OWN_CARD_PHOTO.test(card.imageUrl) && await photoIsGone(card.imageUrl)
+      ? { ...card, imageUrl: card.fallbackImageUrl }
+      : card
+  )));
 }

@@ -6,7 +6,7 @@ import { isValidComuna } from '../core/chileData.js';
 import { folderFilterSql, folderOrderSql, likePattern, loadPublicFolders, tcgVariants, validListText } from '../core/listing.js';
 import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/publicSeller.js';
 import { badRequest, cleanCardData, isAllowedStoredImageUrl, isOptionalText, isShortText, isSmallObject, isUuid, isValidCondition, isValidPrice, isValidStock, normalizedCondition } from '../core/validation.js';
-import { withCatalogImages } from '../core/cardImages.js';
+import { useFallbackWhenPhotoIsGone, withCatalogImages } from '../core/cardImages.js';
 import { deleteR2ObjectByPublicUrl, getR2KeyFromPublicUrl, userR2Prefix } from '../core/r2.js';
 import { proposeCatalogPhoto } from '../core/catalogPhotos.js';
 import { isMylTcg, storedCardId } from '../core/mylIdentity.js';
@@ -536,7 +536,7 @@ router.get('/api/folders/:id', optionalAuth, optionalStaff, async (req, res) => 
       rows.forEach((row) => soldByTcgId.set(row.tcgId, Number(row.sold)));
     }
     // Misma imagen que en los listados públicos (foto propia, español o catálogo)
-    const withImages = await withCatalogImages(prisma, visibleCards.map((card) => ({ ...card, folder: { tcg: folder.tcg } })));
+    const withImages = await useFallbackWhenPhotoIsGone(await withCatalogImages(prisma, visibleCards.map((card) => ({ ...card, folder: { tcg: folder.tcg } }))));
     const cards = visibleCards.map((card, index) => ({
       ...card,
       imageUrl: withImages[index].imageUrl,
