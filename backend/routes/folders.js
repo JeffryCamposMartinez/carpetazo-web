@@ -6,7 +6,7 @@ import { isValidComuna } from '../core/chileData.js';
 import { folderFilterSql, folderOrderSql, likePattern, loadPublicFolders, tcgVariants, validListText } from '../core/listing.js';
 import { PUBLIC_SELLER_SELECT, getReviewSummary, toPublicSeller } from '../core/publicSeller.js';
 import { badRequest, cleanCardData, isAllowedStoredImageUrl, isOptionalText, isShortText, isSmallObject, isUuid, isValidCondition, isValidPrice, isValidStock, normalizedCondition } from '../core/validation.js';
-import { r2PublicUrl } from '../core/tcgCatalogImport.js';
+import { withCatalogImages } from '../core/cardImages.js';
 import { deleteR2ObjectByPublicUrl, getR2KeyFromPublicUrl, userR2Prefix } from '../core/r2.js';
 import { proposeCatalogPhoto } from '../core/catalogPhotos.js';
 import { isMylTcg, storedCardId } from '../core/mylIdentity.js';
@@ -16,11 +16,6 @@ import { loadPublicStore } from '../core/storeProfile.js';
 import { trackServer } from '../core/analytics.js';
 import { gameKey } from '../core/analyticsCatalog.js';
 
-// Foto que la persona subió a su carta: se ve en su carpeta (para ella y para el público) aunque el catálogo tenga imagen
-// (también las subidas antes del escaneo, con otro nombre de archivo: cualquier archivo de la carpeta de la persona en R2)
-const OWN_CARD_PHOTO = /\/Usuarios\/[^/]+\/card[^/]*\/[^/]+\.(webp|jpe?g|png)$/i;
-// Imagen en español de una carta (de TCGdex o ya guardada en R2): se ve igual que la propia foto, no se cambia por la imagen inglesa del catálogo
-const SPANISH_CARD_IMAGE = /^https:\/\/assets\.tcgdex\.net\/|\/Pokemon_Espanol\//;
 // Una carta se identifica por su id, idioma, estado y acabado (Normal, Reverse Holofoil…): lo que cambie en alguno es otra fila (con su propio precio y stock)
 const finishOf = (data) => (data && typeof data === 'object' && typeof data.finish === 'string' ? data.finish : '');
 const identityKey = (tcgId, language, condition, data) => `${tcgId}\u0000${language}\u0000${condition ?? ''}\u0000${finishOf(data)}`;
@@ -521,7 +516,6 @@ router.get('/api/folders/:id', optionalAuth, optionalStaff, async (req, res) => 
     const catalogRows = productIds.length
       ? await prisma.catalogCard.findMany({ where: { productId: { in: productIds }, kind: 'card' }, select: { productId: true, imageKey: true, set: { select: { publishedOn: true } } } })
       : [];
-    const imageByProductId = new Map(catalogRows.filter((row) => row.imageKey).map((row) => [row.productId, r2PublicUrl(row.imageKey)]));
     // Fecha de la edición de cada carta (para ordenar por «Última edición»): el catálogo importado, o TcgProduct en Mitos y Leyendas
     const bulkDates = await bulkPublishedRanges(); // las fechas de carga masiva no son la fecha de la edición
     const editionByTcgId = new Map(catalogRows.map((row) => [String(row.productId), reliablePublishedOn(row.set?.publishedOn, bulkDates)]).filter(([, date]) => date));
@@ -541,9 +535,11 @@ router.get('/api/folders/:id', optionalAuth, optionalStaff, async (req, res) => 
         GROUP BY 1` : [];
       rows.forEach((row) => soldByTcgId.set(row.tcgId, Number(row.sold)));
     }
-    const cards = visibleCards.map((card) => ({
+    // Misma imagen que en los listados públicos (foto propia, español o catálogo)
+    const withImages = await withCatalogImages(prisma, visibleCards.map((card) => ({ ...card, folder: { tcg: folder.tcg } })));
+    const cards = visibleCards.map((card, index) => ({
       ...card,
-      imageUrl: (card.imageUrl && (OWN_CARD_PHOTO.test(card.imageUrl) || (card.language === 'Spanish' && SPANISH_CARD_IMAGE.test(card.imageUrl))) ? card.imageUrl : imageByProductId.get(Number(card.tcgId))) || card.imageUrl,
+      imageUrl: withImages[index].imageUrl,
       editionDate: editionByTcgId.get(String(card.tcgId)) || null,
       ...(isFolderOwner ? { soldUnits: soldByTcgId.get(card.tcgId) || 0 } : {}),
       data: cleanCardData(card.data),
