@@ -39,19 +39,31 @@ const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Descarga la imagen por el proxy con reintentos (el servidor externo a veces tarda o limita): una carta sin imagen sale como hueco negro en el PDF
-const imageUrlToDataUrl = async (imageUrl) => {
+// Descarga la imagen por el proxy con reintentos (el servidor externo a veces tarda o limita): una carta sin imagen sale como hueco negro en el PDF.
+// Usa la caché del navegador (el proxy la permite 7 días) y comparte la descarga entre cartas repetidas para no gastar el límite del proxy.
+const downloads = new Map();
+const imageUrlToDataUrl = (imageUrl) => {
+  if (!downloads.has(imageUrl)) {
+    const task = downloadImage(imageUrl);
+    downloads.set(imageUrl, task);
+    task.catch(() => downloads.delete(imageUrl)); // un fallo no queda guardado: el próximo PDF vuelve a intentarlo
+  }
+  return downloads.get(imageUrl);
+};
+const downloadImage = async (imageUrl) => {
   const sourceUrl = getPdfImageUrl(imageUrl);
   if (!sourceUrl) return '';
   let lastError;
-  for (let attempt = 0; attempt < 4; attempt += 1) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    let pause = 800 * (attempt + 1);
     try {
-      const response = await fetch(sourceUrl, { cache: 'no-store' });
+      const response = await fetch(sourceUrl);
       if (response.ok) return await blobToDataUrl(await response.blob());
       lastError = new Error('No se pudo cargar la imagen para PDF: ' + response.status);
       if (response.status === 400 || response.status === 404) break; // reintentar no ayuda
+      if (response.status === 429) pause = Math.max(pause, (Number(response.headers.get('retry-after')) || 5) * 1000);
     } catch (error) { lastError = error; }
-    await wait(600 * (attempt + 1));
+    await wait(pause);
   }
   throw lastError;
 };
