@@ -122,12 +122,12 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
             const b64 = await imageUrlToDataUrl(card.imageUrl);
             loadedCount++;
             onProgressRef.current?.(loadedCount, totalCards, false);
-            return { ...card, base64: b64 || getPdfImageUrl(card.imageUrl) };
+            return { ...card, base64: b64 || getPdfImageUrl(card.imageUrl), imageFailed: !b64 };
           } catch (e) {
             console.error("Base64 fetch failed for", card.imageUrl, e);
             loadedCount++;
             onProgressRef.current?.(loadedCount, totalCards, false);
-            return { ...card, base64: getPdfImageUrl(card.imageUrl) || card.imageUrl };
+            return { ...card, base64: '', imageFailed: true };
           }
         });
 
@@ -294,6 +294,13 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
                         <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 pointer-events-none z-10 rounded-xl" />
                         {card ? (
                           <div className="w-full h-full relative flex items-center justify-center z-30">
+                            {card.imageFailed ? (
+                              // Sin imagen disponible: se muestra el nombre en vez de un hueco negro
+                              <div ref={el => { imageRefs.current[globalIndex] = null; if (el && !el.dataset.counted) { el.dataset.counted = '1'; setImagesLoaded(prev => prev + 1); } }} className="flex h-full w-full flex-col items-center justify-center gap-2 rounded-[4%] border border-white/15 bg-[#2a2a2a] p-3 text-center">
+                                <span className="text-[15px] font-bold leading-tight text-white">{card.name}</span>
+                                <span className="text-[11px] text-white/60">Sin imagen</span>
+                              </div>
+                            ) : (
                             <img 
                               ref={el => imageRefs.current[globalIndex] = el}
                               src={card.base64 || card.imageUrl} 
@@ -303,6 +310,7 @@ export default function HiddenPDFGenerator({ folderId, onComplete, onProgress })
                               onLoad={() => setImagesLoaded(prev => prev + 1)}
                               onError={() => setImagesLoaded(prev => prev + 1)} 
                             />
+                            )}
                             <div className="pointer-events-none absolute inset-0 z-[115] overflow-hidden rounded-[4%]"><FinishRibbon finish={finishOfCard(card)} pdf /></div>
                             <div className="absolute top-1.5 right-1.5 bg-black/80 text-white font-bold text-[13px] px-3 py-1 rounded-full shadow-lg border border-white/20 z-[120] inline-block text-center backdrop-blur-sm whitespace-nowrap">
                               <span className="relative -top-[5px]">
