@@ -17,7 +17,8 @@ import { trackServer } from '../core/analytics.js';
 import { gameKey } from '../core/analyticsCatalog.js';
 
 // Foto que la persona subió a su carta: se ve en su carpeta (para ella y para el público) aunque el catálogo tenga imagen
-const OWN_CARD_PHOTO = /\/Usuarios\/[^/]+\/card\/[0-9a-f]{32}\.webp$/;
+// (también las subidas antes del escaneo, con otro nombre de archivo: cualquier archivo de la carpeta de la persona en R2)
+const OWN_CARD_PHOTO = /\/Usuarios\/[^/]+\/card[^/]*\/[^/]+\.(webp|jpe?g|png)$/i;
 // Imagen en español de una carta (de TCGdex o ya guardada en R2): se ve igual que la propia foto, no se cambia por la imagen inglesa del catálogo
 const SPANISH_CARD_IMAGE = /^https:\/\/assets\.tcgdex\.net\/|\/Pokemon_Espanol\//;
 // Una carta se identifica por su id, idioma, estado y acabado (Normal, Reverse Holofoil…): lo que cambie en alguno es otra fila (con su propio precio y stock)
