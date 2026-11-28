@@ -6,6 +6,8 @@ import { cardRatio } from '../../../utils/cardShape';
 import ConfirmModal from '../../ui/ConfirmModal';
 import SvgIcon from '../../ui/SvgIcon';
 import { SafeImage } from '../SafeImage';
+import FinishRibbon from '../../ui/FinishRibbon';
+import { finishOfCard } from '../../../utils/cardFinish';
 import { PAYMENT_NAMES } from '../../../utils/storeHours';
 
 const SURFACE = 'rounded-2xl bg-white ring-1 ring-slate-900/5 shadow-[0_1px_2px_rgba(26,43,75,0.06),0_10px_24px_-18px_rgba(26,43,75,0.35)]';
@@ -157,6 +159,7 @@ export default function InPersonSale({ active = true, folderId, cards, onToolbar
                 <div className="relative">
                   <button type="button" onClick={() => setQuantity(card, quantity + 1)} disabled={atMax} aria-label={`Vender una ${card.name}`} className={`${PRESS} group relative block w-full overflow-hidden rounded-xl bg-slate-50 disabled:cursor-default`} style={{ aspectRatio: cardRatio(null, '63 / 88') }}>
                     <SafeImage src={card.imageUrl} alt="" className="absolute inset-0 h-full w-full object-contain" />
+                    <FinishRibbon finish={finishOfCard(card)} corner="br" />
                     <span className="absolute left-1.5 top-1.5 rounded-full bg-[#12315f]/90 px-2 py-0.5 text-[11px] font-extrabold text-white">Stock {card.stock}</span>
                     </button>
                   {quantity > 0 && (
