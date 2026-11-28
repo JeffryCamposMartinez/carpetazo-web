@@ -10,7 +10,7 @@ const plan = (who, planKey) => call('POST', '/billing/test-plan', who, { planKey
   const restorePlans = await snapshotPlans(['seller']);
   const id = async (who) => (await prisma.user.findFirst({ where: { firebaseUid: 'cztest-' + who }, select: { id: true } })).id;
   const store = await id('seller');
-  const card = await prisma.card.findUnique({ where: { id: cardId }, select: { stock: true, price: true } });
+  const card = await prisma.card.findUnique({ where: { id: cardId }, select: { stock: true, price: true, condition: true } });
   const created = { orders: [], sales: [] };
   const verifiedBefore = (await prisma.user.findUnique({ where: { id: store }, select: { identityVerifiedAt: true } })).identityVerifiedAt;
   await prisma.user.update({ where: { id: store }, data: { identityVerifiedAt: new Date() } }); // el local público exige la cuenta verificada
@@ -19,17 +19,17 @@ const plan = (who, planKey) => call('POST', '/billing/test-plan', who, { planKey
     await prisma.card.update({ where: { id: cardId }, data: { stock: 10, price: 3000 } });
     let r;
     await plan('seller', 'free');
-    r = await call('POST', '/stores/me/team', 'seller', { username: NAMES.jerry, role: 'cashier' }, ip());
+    r = await call('POST', '/stores/me/team', 'seller', { username: NAMES.jerry, permissions: ['sales', 'pickups'] }, ip());
     ok('sin plan Tienda no invita → 403', r.status === 403, String(r.status));
     await plan('seller', 'store');
-    r = await call('POST', '/stores/me/team', 'seller', { username: NAMES.jerry, role: 'admin' }, ip());
+    r = await call('POST', '/stores/me/team', 'seller', { username: NAMES.jerry, permissions: ['bank'] }, ip());
     ok('rol inventado → 400', r.status === 400, String(r.status));
-    r = await call('POST', '/stores/me/team', 'seller', { username: NAMES.seller, role: 'cashier' }, ip());
+    r = await call('POST', '/stores/me/team', 'seller', { username: NAMES.seller, permissions: ['sales', 'pickups'] }, ip());
     ok('no se invita a sí mismo → 400', r.status === 400, String(r.status));
-    r = await call('POST', '/stores/me/team', 'seller', { username: NAMES.jerry, role: 'cashier' }, ip());
+    r = await call('POST', '/stores/me/team', 'seller', { username: NAMES.jerry, permissions: ['sales', 'pickups'] }, ip());
     ok('invita a jerry como caja', r.status === 200 && r.j.member.status === 'invited', JSON.stringify(r.j));
     const cashierInvite = r.j.member.id;
-    r = await call('POST', '/stores/me/team', 'seller', { username: NAMES.ale, role: 'stock' }, ip());
+    r = await call('POST', '/stores/me/team', 'seller', { username: NAMES.ale, permissions: ['stock'] }, ip());
     const stockInvite = r.j.member?.id;
 
     // Invitado sin aceptar no puede nada
@@ -76,6 +76,24 @@ const plan = (who, planKey) => call('POST', '/billing/test-plan', who, { planKey
     r = await call('PUT', '/staff/stores/' + store + '/cards/' + cardId, 'ale', { stock: -3, price: 1 }, ip());
     ok('cantidad negativa → 400', r.status === 400, String(r.status));
 
+    // Editar carpetas (casilla extra)
+    r = await call('PUT', '/staff/stores/' + store + '/cards/' + cardId, 'ale', { stock: 7, price: 3500, condition: 2 }, ip());
+    ok('stock sin «editar carpetas» no cambia el estado → 404', r.status === 404, String(r.status));
+    r = await call('PUT', '/stores/me/team/' + stockInvite, 'ale', { permissions: ['folders'] }, ip());
+    ok('un empleado no cambia permisos → 404', r.status === 404, String(r.status));
+    r = await call('PUT', '/stores/me/team/' + stockInvite, 'seller', { permissions: ['sales', 'bank'] }, ip());
+    ok('permiso inventado al editar → 400', r.status === 400, String(r.status));
+    r = await call('PUT', '/stores/me/team/' + stockInvite, 'seller', { permissions: ['folders'] }, ip());
+    ok('el dueño da «editar carpetas»', r.status === 200 && r.j.permissions[0] === 'folders', JSON.stringify(r.j));
+    r = await call('PUT', '/staff/stores/' + store + '/cards/' + cardId, 'ale', { stock: 7, price: 3500, condition: 2 }, ip());
+    ok('con «editar carpetas» cambia el estado', r.status === 200 && (await prisma.card.findUnique({ where: { id: cardId } })).condition === 2, String(r.status));
+    r = await call('PUT', '/staff/stores/' + store + '/cards/' + cardId, 'ale', { stock: 7, price: 3500, condition: 9 }, ip());
+    ok('estado inválido → 404', r.status === 404, String(r.status));
+    r = await call('DELETE', '/staff/stores/' + store + '/cards/' + cardId, 'jerry', null, ip());
+    ok('caja no quita cartas → 404', r.status === 404, String(r.status));
+    await prisma.card.update({ where: { id: cardId }, data: { condition: card.condition } });
+    await call('PUT', '/stores/me/team/' + stockInvite, 'seller', { permissions: ['stock'] }, ip());
+
     // Lo que el equipo nunca ve
     for (const path of ['/stores/me/report.csv?from=2026-11-01&to=2026-11-15', '/stores/me/cash', '/stores/me/coupons']) {
       r = await call('GET', path, 'jerry', null, ip());
@@ -116,7 +134,7 @@ const plan = (who, planKey) => call('POST', '/billing/test-plan', who, { planKey
     await prisma.storeMember.deleteMany({ where: { storeId: store } });
     await prisma.storeProfile.deleteMany({ where: { userId: store } });
     await prisma.user.update({ where: { id: store }, data: { identityVerifiedAt: verifiedBefore } });
-    await prisma.card.update({ where: { id: cardId }, data: { stock: card.stock, price: card.price } });
+    await prisma.card.update({ where: { id: cardId }, data: { stock: card.stock, price: card.price, condition: card.condition } });
     await restorePlans();
     await prisma.$disconnect();
   }

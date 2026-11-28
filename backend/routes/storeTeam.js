@@ -5,8 +5,8 @@ import { authenticateToken } from '../core/auth.js';
 import { prisma } from '../core/db.js';
 import { PlanFeatureError, assertFeature, getEffectivePlan, sendPlanError } from '../core/entitlements.js';
 import { routeLimiter } from '../core/limits.js';
-import { badRequest, isUuid, normalizeUsername } from '../core/validation.js';
-import { STORE_ROLES, canActForStore } from '../core/storeAccess.js';
+import { badRequest, isUuid, isValidCondition, normalizeUsername, normalizedCondition } from '../core/validation.js';
+import { canActForStore, parsePermissions, permissionsOf } from '../core/storeAccess.js';
 import { finishPendingOrder } from '../core/orderCompletion.js';
 import { notifyUsers } from '../core/storeNotices.js';
 
@@ -27,7 +27,7 @@ router.get('/api/stores/me/team', authenticateToken, async (req, res) => {
     const userId = await ownUserId(req);
     if (!userId) return denied(res);
     const members = await prisma.storeMember.findMany({ where: { storeId: userId }, orderBy: { createdAt: 'asc' }, include: { user: person } });
-    res.json({ success: true, members: members.map((m) => ({ id: m.id, role: m.role, status: m.status, createdAt: m.createdAt, name: m.user.name, username: m.user.username })) });
+    res.json({ success: true, members: members.map((m) => ({ id: m.id, permissions: permissionsOf(m.role), status: m.status, createdAt: m.createdAt, name: m.user.name, username: m.user.username })) });
   } catch (error) { fail(res, 'Error cargando el equipo:', error); }
 });
 
@@ -36,9 +36,9 @@ router.post('/api/stores/me/team', authenticateToken, routeLimiter(60 * 60 * 100
     const userId = await ownUserId(req);
     if (!userId) return denied(res);
     assertFeature((await getEffectivePlan(prisma, userId)).plan, 'storeTools');
-    const role = req.body?.role;
+    const role = parsePermissions(req.body?.permissions);
     const username = normalizeUsername(req.body?.username);
-    if (!STORE_ROLES.includes(role)) return badRequest(res, 'Elige un rol: caja o stock.');
+    if (!role) return badRequest(res, 'Marca al menos un permiso.');
     if (!username || username.length > 40) return badRequest(res, 'Escribe el usuario de la persona.');
     const target = await prisma.user.findFirst({ where: { username, NOT: { role: 'deleted' } }, select: { id: true } });
     if (!target) return badRequest(res, 'No encontramos ese usuario.');
@@ -48,9 +48,21 @@ router.post('/api/stores/me/team', authenticateToken, routeLimiter(60 * 60 * 100
     if (existing) return badRequest(res, 'Esa persona ya está en tu equipo o invitada.');
     const member = await prisma.storeMember.create({ data: { storeId: userId, userId: target.id, role } });
     const store = await prisma.user.findUnique({ where: { id: userId }, select: { name: true, username: true } });
-    await notifyUsers([target.id], { subject: `${store.name || store.username} te invitó a su equipo`, title: 'Invitación a una tienda', intro: `${store.name || store.username} te invitó como ${role === 'cashier' ? 'caja' : 'stock'}. Acepta desde Mi tienda.`, url: '/dashboard?tab=tienda', tag: `team-${member.id}` });
-    res.json({ success: true, member: { id: member.id, role, status: member.status, username } });
+    await notifyUsers([target.id], { subject: `${store.name || store.username} te invitó a su equipo`, title: 'Invitación a una tienda', intro: `${store.name || store.username} te invitó a su equipo. Acepta desde Mi tienda.`, url: '/dashboard?tab=tienda', tag: `team-${member.id}` });
+    res.json({ success: true, member: { id: member.id, permissions: permissionsOf(role), status: member.status, username } });
   } catch (error) { fail(res, 'Error invitando al equipo:', error); }
+});
+
+router.put('/api/stores/me/team/:id', authenticateToken, routeLimiter(60 * 1000, 30), async (req, res) => {
+  try {
+    const userId = await ownUserId(req);
+    if (!userId || !isUuid(req.params.id)) return denied(res);
+    const role = parsePermissions(req.body?.permissions);
+    if (!role) return badRequest(res, 'Marca al menos un permiso.');
+    const updated = await prisma.storeMember.updateMany({ where: { id: req.params.id, storeId: userId }, data: { role } });
+    if (!updated.count) return denied(res);
+    res.json({ success: true, permissions: permissionsOf(role) });
+  } catch (error) { fail(res, 'Error cambiando permisos del equipo:', error); }
 });
 
 router.delete('/api/stores/me/team/:id', authenticateToken, routeLimiter(60 * 1000, 30), async (req, res) => {
@@ -69,7 +81,7 @@ router.get('/api/staff/stores', authenticateToken, async (req, res) => {
     const userId = await ownUserId(req);
     if (!userId) return denied(res);
     const rows = await prisma.storeMember.findMany({ where: { userId }, include: { store: person } });
-    res.json({ success: true, stores: rows.map((m) => ({ id: m.id, storeId: m.storeId, role: m.role, status: m.status, name: m.store.name, username: m.store.username })) });
+    res.json({ success: true, stores: rows.map((m) => ({ id: m.id, storeId: m.storeId, permissions: permissionsOf(m.role), status: m.status, name: m.store.name, username: m.store.username })) });
   } catch (error) { fail(res, 'Error cargando tiendas del empleado:', error); }
 });
 
@@ -113,13 +125,38 @@ router.put('/api/staff/stores/:storeId/cards/:cardId', authenticateToken, routeL
     const { storeId, cardId } = req.params;
     if (!userId || !isUuid(storeId) || !isUuid(cardId)) return denied(res);
     if (!(await canActForStore(prisma, userId, storeId, 'stock'))) return denied(res);
-    const { stock, price } = req.body || {};
+    const { stock, price, condition } = req.body || {};
+    if (condition !== undefined && (!isValidCondition(condition) || !(await canActForStore(prisma, userId, storeId, 'folders')))) return denied(res);
     if (!Number.isInteger(stock) || stock < 0 || stock > 100000) return badRequest(res, 'Cantidad inválida.');
     if (price !== null && (!Number.isInteger(price) || price < 0 || price > 100000000)) return badRequest(res, 'Precio inválido.');
-    const updated = await prisma.card.updateMany({ where: { id: cardId, folder: { userId: storeId } }, data: { stock, price } });
+    const data = { stock, price };
+    if (condition !== undefined) {
+      const current = await prisma.card.findFirst({ where: { id: cardId, folder: { userId: storeId } }, select: { id: true, folderId: true, tcgId: true, language: true, condition: true, data: true } });
+      if (!current) return denied(res);
+      const next = normalizedCondition(condition);
+      const finish = (d) => (d && typeof d === 'object' && typeof d.finish === 'string' ? d.finish : '');
+      if (next !== current.condition) {
+        const same = await prisma.card.findMany({ where: { folderId: current.folderId, tcgId: current.tcgId, language: current.language, condition: next, id: { not: current.id } }, select: { data: true } });
+        if (same.some((other) => finish(other.data) === finish(current.data))) return res.status(409).json({ success: false, message: 'Ya existe esa carta con ese estado en la carpeta.' });
+      }
+      data.condition = next;
+    }
+    const updated = await prisma.card.updateMany({ where: { id: cardId, folder: { userId: storeId } }, data });
     if (!updated.count) return denied(res);
-    res.json({ success: true, card: { id: cardId, stock, price } });
+    res.json({ success: true, card: { id: cardId, ...data } });
   } catch (error) { fail(res, 'Error actualizando carta:', error); }
+});
+
+// Editar carpetas: quitar una carta de la tienda
+router.delete('/api/staff/stores/:storeId/cards/:cardId', authenticateToken, routeLimiter(60 * 1000, 60), async (req, res) => {
+  try {
+    const userId = await ownUserId(req);
+    const { storeId, cardId } = req.params;
+    if (!userId || !isUuid(storeId) || !isUuid(cardId) || !(await canActForStore(prisma, userId, storeId, 'folders'))) return denied(res);
+    const removed = await prisma.card.deleteMany({ where: { id: cardId, folder: { userId: storeId } } });
+    if (!removed.count) return denied(res);
+    res.json({ success: true });
+  } catch (error) { fail(res, 'Error quitando carta de la tienda:', error); }
 });
 
 // Caja: retiros de la tienda

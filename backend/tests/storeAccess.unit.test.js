@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canActForStore, roleAllows } from '../core/storeAccess.js';
+import { canActForStore, parsePermissions, permissionsOf, roleAllows } from '../core/storeAccess.js';
 
 test('roleAllows: cada rol solo lo suyo', () => {
   assert.equal(roleAllows('cashier', 'sales'), true);
@@ -10,6 +10,18 @@ test('roleAllows: cada rol solo lo suyo', () => {
   assert.equal(roleAllows('stock', 'sales'), false);
   assert.equal(roleAllows('admin', 'sales'), false);
   for (const p of ['bank', 'plan', 'settings', 'reports']) assert.equal(roleAllows('cashier', p) || roleAllows('stock', p), false, p);
+});
+
+test('permisos por casilla: se guardan, se leen y folders incluye stock', () => {
+  assert.equal(parsePermissions(['pickups', 'sales']), 'sales,pickups');
+  assert.equal(parsePermissions([]), null);
+  assert.equal(parsePermissions(['sales', 'bank']), null);
+  assert.equal(parsePermissions('sales'), null);
+  assert.deepEqual(permissionsOf('sales,stock'), ['sales', 'stock']);
+  assert.equal(roleAllows('sales,pickups', 'stock'), false);
+  assert.equal(roleAllows('folders', 'stock'), true);
+  assert.equal(roleAllows('folders', 'sales'), false);
+  assert.equal(roleAllows('sales,folders', 'folders'), true);
 });
 
 test('canActForStore: dueño sí; invitado, rol equivocado o sin plan no', async () => {
