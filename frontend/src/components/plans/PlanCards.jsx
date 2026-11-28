@@ -36,8 +36,28 @@ const PERK_DETAILS = {
   visits: 'Consulta el detalle de las visitas que recibe tu perfil y tus carpetas.',
   export: 'Descarga tu inventario en un archivo CSV para revisarlo en una hoja de cálculo.',
   boost: 'Aumenta la probabilidad de que tus cartas aparezcan antes en las búsquedas públicas. La posición rota entre vendedores y no se garantiza un primer lugar.',
-  support: 'Envía consultas desde Reclamos y sugerencias. Con Legendario o Tienda quedan marcadas como prioritarias y aparecen antes en la bandeja del equipo.'
+  support: 'Envía consultas desde Reclamos y sugerencias. Con Legendario o Tienda quedan marcadas como prioritarias y aparecen antes en la bandeja del equipo.',
+  storeProfile: 'Una ficha pública de tu local con dirección, horarios, fotos y datos de contacto, para que los clientes te encuentren.',
+  storeEvents: 'Publica torneos y eventos de tu tienda para que aparezcan en tu ficha y los jugadores se enteren.',
+  storeBuy: 'Recibe solicitudes de personas que quieren venderte sus colecciones y respóndelas desde tu panel.',
+  storePickup: 'Ofrece reserva con retiro en tu local: el cliente paga o reserva online y pasa a buscar su pedido.',
+  storeCash: 'Registra ventas presenciales en caja y mantén tu stock al día en un solo lugar.',
+  storeLoyalty: 'Los clientes pueden seguir tu tienda, tú creas cupones de descuento y ves qué cartas buscan más tus clientes.',
+  storeTrust: 'Insignia de tienda verificada y política de cambios visible en tu ficha para generar confianza.',
+  storeReports: 'Recibe un resumen semanal por correo y consulta el informe de tus ventas cuando quieras.',
+  storeTeam: 'Invita a empleados a tu panel y define qué puede hacer cada uno.'
 };
+const STORE_PERKS = [
+  { key: 'storeProfile', text: 'Ficha pública de tu local' },
+  { key: 'storeEvents', text: 'Eventos y torneos' },
+  { key: 'storeBuy', text: 'Compra de colecciones' },
+  { key: 'storePickup', text: 'Reserva con retiro en tienda' },
+  { key: 'storeCash', text: 'Caja y control de stock' },
+  { key: 'storeLoyalty', text: 'Seguidores, cupones y cartas más buscadas' },
+  { key: 'storeTrust', text: 'Tienda verificada y política de cambios' },
+  { key: 'storeReports', text: 'Resumen semanal e informe de ventas' },
+  { key: 'storeTeam', text: 'Empleados con permisos' }
+];
 
 function comparison(current, previous) {
   if (previous === undefined) return null;
@@ -76,7 +96,8 @@ function perksOf(plan, prev) {
     { key: 'studio', on: plan.profileStudio, isNew: !prev?.profileStudio, text: 'Estilos y fondo para tu perfil' },
     { key: 'visits', on: plan.visitsDetail, isNew: !prev?.visitsDetail, text: 'Detalle de tus visitas' },
     { key: 'boost', on: plan.listingBoost > 0, isNew: (prev?.listingBoost || 0) !== plan.listingBoost, text: boostLabel[plan.listingBoost] },
-    { key: 'support', on: plan.prioritySupport, isNew: !prev?.prioritySupport, text: 'Soporte prioritario' }
+    { key: 'support', on: plan.prioritySupport, isNew: !prev?.prioritySupport, text: 'Soporte prioritario' },
+    ...STORE_PERKS.map((perk) => ({ ...perk, on: plan.storeTools, isNew: !prev?.storeTools, extra: true }))
   ];
   return list.filter((item) => item.on);
 }
@@ -99,10 +120,13 @@ function Stat({ value, label, delta }) {
 
 function PlanCard({ plan, prev, current, busy, testMode, cta, onChoose, focused }) {
   const [expandedPerk, setExpandedPerk] = useState(null);
+  const [showMore, setShowMore] = useState(false);
   const active = current === plan.key;
   const disabled = busy || (cta ? cta.disabled : active);
   const label = cta ? cta.label : active ? 'Es tu plan' : testMode ? 'Probar este plan' : plan.priceClp === 0 ? 'Usar Común' : 'Elegir este plan';
-  const perks = perksOf(plan, prev);
+  const allPerks = perksOf(plan, prev);
+  const hiddenCount = allPerks.filter((perk) => perk.extra).length;
+  const perks = showMore ? allPerks : allPerks.filter((perk) => !perk.extra);
   return (
     <article data-plan={plan.key} className={`${focused ? '' : 'scale-[0.96] opacity-60 xl:scale-100 xl:opacity-100'} relative flex w-[84vw] max-w-[22rem] shrink-0 snap-center flex-col rounded-3xl bg-white p-5 xl:w-auto xl:max-w-none xl:shrink shadow-[0_14px_30px_-20px_rgba(18,49,95,0.55),0_2px_4px_rgba(18,49,95,0.06)] transition-[transform,box-shadow,opacity] duration-300 ${EASE} xl:p-3.5 2xl:p-4 [@media(hover:hover)]:xl:hover:-translate-y-1 ${active ? 'ring-4 ring-[#facc15]' : 'ring-1 ring-[#12315f]/10'}`}>
       {active && <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#facc15] px-3 py-1 text-xs font-black text-[#12315f] shadow-sm">Tu plan</span>}
@@ -169,6 +193,17 @@ function PlanCard({ plan, prev, current, busy, testMode, cta, onChoose, focused 
           );
         })}
       </ul>
+      {hiddenCount > 0 && (
+        <button
+          type="button"
+          aria-expanded={showMore}
+          onClick={() => setShowMore((value) => !value)}
+          className={`mt-2 flex min-h-10 w-full items-center justify-center gap-1 rounded-2xl border-2 border-[#1e40af]/20 bg-blue-50 px-3 text-sm font-extrabold text-[#12315f] transition-[background-color,transform,border-color] duration-200 ${EASE} [@media(hover:hover)]:hover:border-[#facc15] [@media(hover:hover)]:hover:bg-[#fff8dc] active:scale-[0.97] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#facc15]`}
+        >
+          {showMore ? 'Mostrar menos' : `Mostrar más (${hiddenCount})`}
+          <SvgIcon name="expand_more" translate="no" aria-hidden="true" className={`text-[20px] transition-transform duration-300 motion-reduce:transition-none ${showMore ? 'rotate-180' : ''}`} />
+        </button>
+      )}
     </article>
   );
 }
